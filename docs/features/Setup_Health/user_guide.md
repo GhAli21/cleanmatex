@@ -1,0 +1,53 @@
+# Setup Health — User Guide
+
+Back to [README.md](README.md). العربية أدناه.
+
+## English
+
+### For organization admins
+
+**Where:** sidebar › Config And Settings › **Setup Health**. Admins only.
+
+The page lists checks grouped by area (Business calendar, Service speeds, Accounting…). Each check shows:
+
+- **OK**, **Needs attention**, **Not applicable** or **Could not check**
+- how serious it is: **Blocker** (something does not work), **Warning** (works but incomplete), **Info** (good to know)
+- in plain words, why it matters
+- a **Fix** button that opens the screen to fix it — if you are allowed to open it. Otherwise: "Your provider sets this up. Please contact support."
+
+Fix the problem in that screen, come back, and the list refreshes by itself.
+
+**Dashboard home:** a "Setup health" tile shows how many blockers, warnings and infos you have. Click it to open the page.
+
+**Red banner:** if a blocker that stops daily work fails, a red banner shows at the top of every page for all users. It cannot be closed; it goes away when the problem is fixed. Admins see an "Open Setup Health" link.
+
+### For HQ staff
+
+**Where:** Tenant Organizations › open an organization › **Setup Health** (after Overview). Needs `tenant_setup_health:view`.
+
+You see four counters (Blockers, Warnings, Info, Could not check), the same checks as the organization plus HQ-only ones (for example *Public holiday dates are not confirmed yet*), each check's code, and **Fix** buttons that open the HQ screen. **Recheck** runs the checks again.
+
+## العربية
+
+### لمسؤولي المنشأة
+
+**المكان:** القائمة الجانبية › الإعدادات › **صحة الإعداد**. للمسؤولين فقط.
+
+تعرض الصفحة الفحوصات مجمّعة حسب المجال (تقويم العمل، سرعات الخدمة، المحاسبة…). لكل فحص:
+
+- الحالة: **سليم** أو **يحتاج إلى انتباه** أو **لا ينطبق** أو **تعذّر الفحص**
+- درجة الأهمية: **مانع** (شيء لا يعمل)، **تحذير** (يعمل لكنه ناقص)، **معلومة**
+- سبب أهميته بكلمات بسيطة
+- زر **إصلاح** يفتح شاشة الإصلاح إن كانت لديك صلاحية فتحها، وإلا تظهر رسالة: "يقوم مزوّد الخدمة بإعداد هذا. يرجى التواصل مع الدعم."
+
+أصلح المشكلة في تلك الشاشة ثم عُد، وستتحدث القائمة تلقائياً.
+
+**الصفحة الرئيسية:** بطاقة "صحة الإعداد" تعرض عدد الموانع والتحذيرات والمعلومات. اضغطها لفتح الصفحة.
+
+**الشريط الأحمر:** إذا فشل فحص مانع يوقف العمل اليومي، يظهر شريط أحمر أعلى كل صفحة لجميع المستخدمين. لا يمكن إغلاقه، ويختفي بعد إصلاح المشكلة. يرى المسؤولون رابط "فتح صحة الإعداد".
+
+### لفريق إدارة المنصة
+
+**المكان:** المنشآت › افتح منشأة › **صحة الإعداد** (بعد النظرة العامة). يتطلب صلاحية `tenant_setup_health:view`.
+
+تظهر أربعة عدّادات (الموانع، التحذيرات، المعلومات، تعذّر الفحص)، ونفس فحوصات المنشأة إضافة إلى فحوصات خاصة بإدارة المنصة (مثل *مواعيد العطل الرسمية غير مؤكدة بعد*)، ورمز كل فحص، وأزرار **إصلاح** تفتح شاشة إدارة المنصة. زر **إعادة الفحص** يشغّل الفحوصات من جديد.

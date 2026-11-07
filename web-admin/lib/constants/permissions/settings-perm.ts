@@ -3,6 +3,8 @@ export const SETTINGS_PERMISSIONS = {
   READ: 'settings:read',
   UPDATE: 'settings:update',
   WORKFLOW: 'settings:workflow',
+  /** Organization profile, Business Calendar hours and holidays. */
+  ORGANIZATION: 'settings:organization',
 } as const
 
 export type SettingsPermissionCode =

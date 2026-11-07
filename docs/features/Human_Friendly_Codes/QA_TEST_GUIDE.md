@@ -102,6 +102,8 @@ Prerequisites: `0687`–`0689` applied; web-admin, HQ `platform-api` and `platfo
 ## S17 — HQ Code Consistency
 **Expected:** 0 errors on a healthy environment; "Run again" refreshes the time.
 
+**Registry note (`0714` applied by the user locally and remotely):** PRODUCT and STOCK_ITEM are category-scoped: the same product code may exist for different service categories in one organization. `0714_hfc_product_code_scope.sql` aligns the registry's `unique_with` metadata with the existing `(tenant_org_id, service_category_code, product_code)` constraint, removing the corresponding `NO_UNIQUE_INDEX` warnings without changing product data or database constraints.
+
 **Result:** FAIL — Env: HQ Code Consistency. Date: 2026-11-05 ~22:02 Asia/Muscat. Report: Errors 1, Warnings 21, Info 38, Types checked 52, Schema checks 58. Single error: STOCK_TRANSACTION (org_inv_stock_tr.transaction_no), 13 rows, 8 duplicates. DB confirms STK-20260218-0001 occurs 8x in one tenant (7 with identical created_at -> concurrency race) and STK-20260218-0002 2x; NO unique index on (tenant_org_id, transaction_no). Cause: inventory-service.ts:563-587 read-latest-then-increment (UTC) + a second writer deduct_retail_stock_for_order; 0667_doc_seq_type_config.sql:583-585 already flags this as deferred. 'Run again' refreshed the timestamp (AR 2026/11/05 10:02:04 PM). See FET-HFC-S17 (P1). Screenshots begin s17-.
 
 ## S18 — HQ General Config

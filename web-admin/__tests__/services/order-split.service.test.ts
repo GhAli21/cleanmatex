@@ -23,6 +23,8 @@ const tx = {
   org_orders_mst: { findFirstOrThrow: jest.fn(), create: jest.fn(), updateMany: jest.fn() },
   org_order_items_dtl: { findMany: jest.fn(), create: jest.fn(), updateMany: jest.fn() },
   org_order_history: { create: jest.fn() },
+  org_order_item_pieces_dtl: { findMany: jest.fn() },
+  sys_service_speed_cd: { findMany: jest.fn() },
 };
 
 jest.mock('server-only', () => ({}));
@@ -87,6 +89,12 @@ beforeEach(() => {
     return [{ id: O }];
   });
   tx.org_orders_mst.findFirstOrThrow.mockResolvedValue(parent);
+  tx.org_order_item_pieces_dtl.findMany.mockResolvedValue([]);
+  tx.sys_service_speed_cd.findMany.mockResolvedValue([
+    { code: 'STANDARD', display_order: 2 },
+    { code: 'EXPRESS', display_order: 4 },
+    { code: 'URGENT', display_order: 5 },
+  ]);
   tx.org_orders_mst.create.mockResolvedValue({ id: SUB, order_no: 'ORD-20261030-0007-S1' });
   (nextSubOrderNoWithTx as jest.Mock).mockResolvedValue('ORD-20261030-0007-S1');
 });
@@ -151,6 +159,19 @@ describe('splitOrderUnits', () => {
     expect(tx.org_orders_mst.updateMany.mock.calls[0][0].where).toEqual({ tenant_org_id: T, id: O });
     expect(tx.org_order_history.create.mock.calls[0][0].data).toMatchObject({ tenant_org_id: T, order_id: O, action_type: 'SPLIT' });
     expect(recalculateOrderFinancialSnapshotTx).toHaveBeenCalledWith(tx, T, SUB);
+  });
+
+  it('the sub-order speed is the fastest of the moved lines and pieces, not the parent speed (Service Speeds D6)', async () => {
+    tx.org_orders_mst.findFirstOrThrow.mockResolvedValueOnce({ ...parent, service_speed: 'STANDARD' });
+    tx.org_order_items_dtl.findMany
+      .mockResolvedValueOnce([{ ...item(I1, 3), service_speed: 'EXPRESS' }])
+      .mockResolvedValueOnce([item(I1, 3), item(I2, 2)]);
+    tx.org_order_item_pieces_dtl.findMany.mockResolvedValueOnce([{ service_speed: 'URGENT' }]);
+
+    await splitOrderUnits({ tenantId: T, orderId: O, userId: U, reason: 'Rush', lines: [{ itemId: I1, pieceSeqs: [2] }] });
+
+    expect(tx.org_orders_mst.create.mock.calls[0][0].data.service_speed).toBe('URGENT');
+    expect(tx.org_order_item_pieces_dtl.findMany.mock.calls[0][0].where).toMatchObject({ tenant_org_id: T, order_id: O });
   });
 
   it('splitting a sub-order keeps the family root (A-28)', async () => {

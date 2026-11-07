@@ -16,6 +16,7 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import {
   allocateMatrix,
+  fastestServiceSpeed,
   toStorageString,
   type AppliedAdjustment,
   type CommercialChargeResult,
@@ -105,13 +106,31 @@ export function lineMoneyColumns(
 }
 
 /**
+ * The order header speed: the fastest line or piece speed by rank (D6).
+ * @param prices each line's resolved price (its speed and any piece speeds)
+ * @param facts the facts holding the speed ranks
+ * @param fallback the order-wide speed, kept when there is no line
+ * @returns a `sys_service_speed_cd` code
+ */
+export function headerServiceSpeed(prices: readonly ResolvedLinePrice[], facts: CommercialFacts, fallback: string): string {
+  const codes = prices.flatMap((p) => [p.serviceSpeed, ...[...(p.pieceSpeeds?.values() ?? [])].map((s) => s.serviceSpeed)]);
+  return fastestServiceSpeed(codes, facts.speedRanks) ?? fallback;
+}
+
+/**
  * The order's commercial snapshots, fixed at creation (§5.3); Edit never rewrites them.
  * @param result the calculated order
  * @param facts the facts it was calculated from
- * @param orderSpeed the order-wide speed the client chose
+ * @param prices each line's resolved price (the header speed is the fastest line's, D6)
+ * @param orderSpeed the order-wide speed the client chose (used only with no line)
  * @returns `org_orders_mst` columns
  */
-export function orderSnapshotColumns(result: CommercialOrderResult, facts: CommercialFacts, orderSpeed: string) {
+export function orderSnapshotColumns(
+  result: CommercialOrderResult,
+  facts: CommercialFacts,
+  prices: readonly ResolvedLinePrice[],
+  orderSpeed: string,
+) {
   return {
     commercial_level: facts.level,
     tax_pricing_mode: facts.pricingMode,
@@ -119,7 +138,7 @@ export function orderSnapshotColumns(result: CommercialOrderResult, facts: Comme
     disc_alloc_mode: facts.discAllocMode,
     disc_alloc_basis: facts.discAllocBasis,
     commercial_calc_version: result.calcVersion,
-    service_speed: orderSpeed,
+    service_speed: headerServiceSpeed(prices, facts, orderSpeed),
     speed_premium_amount: money(result.totals.speedPremiumTotal),
     ready_by: result.orderReadyBy,
   };

@@ -11,10 +11,11 @@ import {
 } from '@/lib/commercial';
 import {
   buildCommercialChildRows,
+  headerServiceSpeed,
   lineMoneyColumns,
   type CommercialChildRowsContext,
 } from '@/lib/services/commercial/commercial-line.writer';
-import type { ResolvedLinePrice } from '@/lib/services/commercial/commercial-context.loader';
+import type { CommercialFacts, ResolvedLinePrice } from '@/lib/services/commercial/commercial-context.loader';
 
 const OMR = { decimalPlaces: 3, mode: 'HALF_UP' as const };
 const vat: CommercialTaxInput = {
@@ -54,7 +55,8 @@ const price = (lineId: string, over: Partial<ResolvedLinePrice['standard']> = {}
   lineId, productId: 'p', serviceSpeed: 'STANDARD',
   standard: { unitPrice: toMoney(1), source: 'PRICE_LIST', priceListId: 'pl', priceListItemId: 'pli', priceListDiscountPercent: toMoney(0), ...over },
   speed: { outcome: 'STANDARD_SPEED', serviceSpeed: 'STANDARD', ruleId: null, ruleLevel: null, speedPriceType: null,
-    unitPremium: toMoney(0), linePremium: toMoney(0), unitPrice: toMoney(1), premiumAmount: toMoney(0), turnaroundHours: null, warnings: [] },
+    unitPremium: toMoney(0), linePremium: toMoney(0), unitPrice: toMoney(1), premiumAmount: toMoney(0), turnaroundHours: null,
+    turnaroundUnit: null, turnaroundDays: null, cutoffTime: null, warnings: [] },
 });
 
 describe('lineMoneyColumns', () => {
@@ -141,5 +143,23 @@ describe('buildCommercialChildRows', () => {
   it('refuses to write a discount for an item that was not created', () => {
     const result = calculateCommercialOrder(order({ lines: [line('a', '2', vat, { priceListDiscountPercent: '10', priceListItemId: 'pli' })] }));
     expect(() => buildCommercialChildRows(result, ctx([], { itemIds: new Map() }))).toThrow(/No created item id/);
+  });
+});
+
+describe('headerServiceSpeed (D6)', () => {
+  const facts = { speedRanks: new Map([['ECONOMY', 1], ['STANDARD', 2], ['NEXT_DAY', 3], ['EXPRESS', 4], ['URGENT', 5]]) } as unknown as CommercialFacts;
+  const at = (lineId: string, serviceSpeed: string, pieces: [string, string][] = []): ResolvedLinePrice => ({
+    ...price(lineId), serviceSpeed, pieceSpeeds: new Map(pieces.map(([id, code]) => [id, { serviceSpeed: code, ruleId: null }])),
+  });
+
+  it('is the fastest line or piece speed by rank, whatever the order-wide choice', () => {
+    expect(headerServiceSpeed([at('a', 'ECONOMY'), at('b', 'NEXT_DAY')], facts, 'STANDARD')).toBe('NEXT_DAY');
+    expect(headerServiceSpeed([at('a', 'STANDARD', [['a-p1', 'URGENT']])], facts, 'STANDARD')).toBe('URGENT');
+    expect(headerServiceSpeed([at('a', 'ECONOMY')], facts, 'EXPRESS')).toBe('ECONOMY');
+  });
+
+  it('a retired speed (no rank) loses to any ranked one; no line keeps the order speed', () => {
+    expect(headerServiceSpeed([at('a', 'OLD'), at('b', 'ECONOMY')], facts, 'STANDARD')).toBe('ECONOMY');
+    expect(headerServiceSpeed([], facts, 'EXPRESS')).toBe('EXPRESS');
   });
 });

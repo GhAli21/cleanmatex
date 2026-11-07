@@ -38,7 +38,7 @@ function mockDb(fixtures: Fixtures) {
   const names = ['org_tenants_mst', 'org_branches_mst', 'org_customers_mst', 'org_product_data_mst', 'org_price_lists_mst',
     'org_price_list_items_dtl', 'org_speed_price_rules_cf', 'org_tax_profiles_cf', 'org_tax_exemptions_cf',
     'org_service_preference_cf', 'org_packing_preference_cf', 'sys_service_preference_cd', 'sys_service_category_cd',
-    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf'];
+    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', 'org_holidays_cf', 'sys_public_holidays_cf'];
   return { db: Object.fromEntries(names.map((n) => [n, model(n)])) as unknown as CommercialDb, calls };
 }
 
@@ -65,7 +65,7 @@ const baseFixtures = (): Fixtures => ({
     speed_price_type: 'MULTIPLIER', default_speed_sell_price: null, multiplier_speed: '0.5', speed_extra_amount: null,
     price_basis: null, turnaround_hh_speed: '6', effective_from: d('2026-01-01'), effective_to: null, is_active: true, rec_status: 1,
   }],
-  sys_service_speed_cd: [{ code: 'STANDARD' }, { code: 'EXPRESS' }],
+  sys_service_speed_cd: [{ code: 'STANDARD', display_order: 2 }, { code: 'EXPRESS', display_order: 4 }],
   org_tax_profiles_cf: [{
     id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false, is_default: true, applies_to: [],
     rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null,
@@ -220,6 +220,81 @@ describe('buildCommercialOrderInput → calculateCommercialOrder', () => {
     // The exemption covers the order charge too.
     expect(result.charges[0].tax?.taxCategoryCode).toBe('EXEMPT');
     expect(result.totals.taxTotal.isZero()).toBe(true);
+  });
+});
+
+describe('Service Speeds S3: calendar, offered speeds, ECONOMY discount', () => {
+  const time = (hhmm: string) => new Date(`1970-01-01T${hhmm}:00Z`);
+  const open = { open: '08:00', close: '20:00' };
+  // Fri–Sat weekend, as the OM template.
+  const hours = { sun: open, mon: open, tue: open, wed: open, thu: open, fri: null, sat: null };
+  const rule = (id: string, speed: string, over: Record<string, unknown>) => ({
+    id, service_speed: speed, branch_id: null, service_category_code: null, product_id: null,
+    speed_price_type: 'MULTIPLIER', default_speed_sell_price: null, multiplier_speed: '0.25', speed_extra_amount: null,
+    price_basis: null, turnaround_hh_speed: null, turnaround_unit: null, turnaround_days_speed: null, cutoff_time_speed: null,
+    effective_from: d('2026-01-01'), effective_to: null, is_active: true, rec_status: 1, ...over,
+  });
+  const calendarFixtures = (): Fixtures => ({
+    ...baseFixtures(),
+    org_tenants_mst: [{
+      commercial_level: 'ITEM', disc_alloc_mode: 'ALLOCATE_TO_LINES', disc_alloc_basis: 'PROPORTIONAL_NET',
+      timezone: 'Asia/Muscat', country: 'OM', business_hours: hours, order_cutoff_time: time('11:00'), ready_time: time('18:00'),
+    }],
+    org_branches_mst: [{ timezone_code: null, country: null, business_hours: null, order_cutoff_time: null, ready_time: null }],
+    sys_service_speed_cd: [
+      { code: 'ECONOMY', display_order: 1 }, { code: 'STANDARD', display_order: 2 }, { code: 'NEXT_DAY', display_order: 3 },
+      { code: 'EXPRESS', display_order: 4 }, { code: 'URGENT', display_order: 5 },
+    ],
+    org_speed_price_rules_cf: [
+      rule('nd', 'NEXT_DAY', { turnaround_unit: 'WORKING_DAYS', turnaround_days_speed: 1 }),
+      rule('eco', 'ECONOMY', { multiplier_speed: '-0.10', turnaround_unit: 'WORKING_DAYS', turnaround_days_speed: 5 }),
+    ],
+    // Sunday 2026-10-25 is a (test) public holiday.
+    sys_public_holidays_cf: [{ holiday_date: d('2026-10-25') }],
+    org_holidays_cf: [],
+  });
+  const oneLine = (serviceSpeed: string) => intent({
+    serviceSpeed, orderPreferences: [],
+    lines: [{ lineId: 'L1', productId: SUIT, quantity: 1, serviceSpeed: null, overrideUnitPrice: null, lineDiscounts: [], preferences: [] }],
+  });
+
+  it('reads the calendar once, tenant-filtered, holidays from the start date for the window', async () => {
+    const { db, calls } = mockDb(calendarFixtures());
+    // Thursday 2026-10-22 09:00 Muscat.
+    const facts = await loadCommercialFacts(db, TENANT, oneLine('NEXT_DAY'), deps);
+    expect(facts.calendar).not.toBeNull();
+    const own = calls.filter((c) => c.model === 'org_holidays_cf');
+    expect(own).toHaveLength(1);
+    expect(own[0].args.where?.tenant_org_id).toBe(TENANT);
+    const pub = calls.find((c) => c.model === 'sys_public_holidays_cf');
+    expect(pub?.args.where).toMatchObject({ country_code: 'OM' });
+  });
+
+  it('NEXT_DAY = 1 working day at the ready time, skipping the weekend and a public holiday', async () => {
+    const { db } = mockDb(calendarFixtures());
+    const order = oneLine('NEXT_DAY');
+    order.receivedAt = new Date('2026-10-22T05:00:00Z'); // Thu 09:00 Muscat, before the 11:00 cut-off
+    const facts = await loadCommercialFacts(db, TENANT, order, deps);
+    const result = calculateCommercialOrder(buildCommercialOrderInput(order, facts).input);
+    // Fri–Sat weekend, Sun 25th holiday → Mon 26th 18:00 Muscat = 14:00 UTC.
+    expect(result.lines[0].readyBy.readyByAt.toISOString()).toBe('2026-10-26T14:00:00.000Z');
+  });
+
+  it('ECONOMY (ranked below STANDARD) may discount; the premium is negative', async () => {
+    const { db } = mockDb(calendarFixtures());
+    const facts = await loadCommercialFacts(db, TENANT, oneLine('ECONOMY'), deps);
+    const { prices } = buildCommercialOrderInput(oneLine('ECONOMY'), facts);
+    // VIP 3.500 × −0.10 = −0.350.
+    expect(prices[0].speed.unitPremium.toString()).toBe('-0.35');
+    expect(prices[0].speed.warnings).toEqual([]);
+  });
+
+  it('a speed with no rule is not offered (SPEED_NOT_OFFERED); EXPRESS keeps its legacy hours until S6', async () => {
+    const { db } = mockDb(calendarFixtures());
+    const facts = await loadCommercialFacts(db, TENANT, oneLine('URGENT'), deps);
+    expect(() => buildCommercialOrderInput(oneLine('URGENT'), facts)).toThrow(expect.objectContaining({ code: 'SPEED_NOT_OFFERED' }));
+    const express = await loadCommercialFacts(mockDb(calendarFixtures()).db, TENANT, oneLine('EXPRESS'), deps);
+    expect(buildCommercialOrderInput(oneLine('EXPRESS'), express).prices[0].speed.outcome).toBe('NO_RULE');
   });
 });
 

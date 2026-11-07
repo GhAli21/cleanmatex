@@ -4,11 +4,11 @@
 
 | Item | State |
 |---|---|
-| Applied migrations | `0666`–`0672`, `0674`, `0677`, `0678`, `0682`–`0685`, `0687`–`0690`, `0693`, `0695`–`0697`, **`0703`, `0705`** (user, local + remote) |
+| Applied migrations | `0666`–`0672`, `0674`, `0677`, `0678`, `0682`–`0685`, `0687`–`0690`, `0693`, `0695`–`0697`, **`0703`, `0705`, `0714`** (user, local + remote) |
 | Non-HFC in folder | `0691_speed_pricing_nav_audit.sql`, `0692_oc_edit_piece_speed_discount.sql`, `0694_retire_zero_speed_rules.sql` (not HFC; already applied with folder) |
 | Not applied yet | None (HFC). |
 | Post-apply checks | Types + `prisma.schema` regenerated both repos **2026-11-05** (after 0697). Four HFC safety tests (`hfc_f1`/`f2`/`f5`/`f11`) — **verification pending report**. |
-| Next free migration number | **`0698`** (folder check: latest numbered `0697_ntf_credit_note_issued_use_credit_note_no.sql`) |
+| Next free migration number | **`0715`** (after applied `0714_hfc_product_code_scope.sql`; folder head at review was `0713_hq_tax_kits_perms_nav.sql`). |
 | P12 stock migration | **Applied by user locally + remotely:** `0703_stock_transaction_hfc.sql`. Local read-only evidence: zero missing codes; zero duplicate tenant/code groups; `transaction_no` is NOT NULL; unique constraint and both triggers exist; registry level is GENERAL. Post-apply behavior/concurrency safety test remains required. |
 | P12 application repairs | **Implemented; deployment/runtime proof pending:** Pay Later/Pay on Collection, piece-tracked splitting, receipt order number, public tracking QR, and authenticated settings proxies/legacy messaging redirect. Focused unit tests pass. |
 | P12 HQ Code Types | **Implemented; deployment/runtime proof pending:** printed-prefix correction and DB-backed Arabic implementation descriptions (`0705`) flow through the HQ API and console. HQ API and console regression/a11y tests pass. |

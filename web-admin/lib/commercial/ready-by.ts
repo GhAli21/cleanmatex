@@ -15,7 +15,10 @@
  * NULL means "not configured" and falls through; 0 is a real value
  * (ready at once, e.g. retail items).
  */
-import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
+import { SERVICE_SPEEDS, TURNAROUND_UNITS, type TurnaroundUnit } from '@/lib/constants/commercial';
+import {
+  addWorkingDays, addWorkingMinutes, countingStart, parseTimeOfDay, type ResolvedCalendar,
+} from './calendar';
 import { toMoney, type MoneyInput } from './money';
 
 /** Hours used when nothing is configured: today's estimateReadyBy defaults. */
@@ -42,6 +45,12 @@ export interface ReadyByLineInput {
   serviceSpeed: string;
   /** `resolveSpeedPricing(...).turnaroundHours` (non-standard speeds only). */
   speedRuleHours: MoneyInput | null;
+  /** `resolveSpeedPricing(...).turnaroundUnit`; WORKING_DAYS uses `speedRuleDays`. */
+  speedRuleUnit?: TurnaroundUnit | null;
+  /** `resolveSpeedPricing(...).turnaroundDays` (0 = same day). */
+  speedRuleDays?: number | null;
+  /** `resolveSpeedPricing(...).cutoffTime` (`HH:MM`); null = the calendar's cut-off. */
+  speedRuleCutoffTime?: string | null;
   /** `org_product_data_mst.turnaround_hh` (standard speed). */
   productHours: MoneyInput | null;
   /** `sys_service_category_cd` hours for this line's speed (`turnaround_hh` or `turnaround_hh_express`). */
@@ -64,12 +73,38 @@ export interface ReadyByInput {
   orderExtraMinutes: number;
   /** A time the cashier entered; it wins for the order, lines keep their own. */
   orderOverride: Date | null;
+  /**
+   * The branch calendar (`resolveCalendar`). Null / absent = clock hours from
+   * `startAt` (today's behaviour) and a CALENDAR_NOT_CONFIGURED note.
+   */
+  calendar?: ResolvedCalendar | null;
+}
+
+/** Facts the UI explains next to the ready-by time. */
+export const READY_BY_NOTES = {
+  /** No business hours / time zone: clock hours were used, ignoring closed days. */
+  CALENDAR_NOT_CONFIGURED: 'CALENDAR_NOT_CONFIGURED',
+} as const;
+/** Derived union of ready-by notes. */
+export type ReadyByNote = (typeof READY_BY_NOTES)[keyof typeof READY_BY_NOTES];
+
+/** A line's turnaround: working hours or working days. */
+export interface TurnaroundSpec {
+  unit: TurnaroundUnit;
+  /** HOURS: the hours. WORKING_DAYS: days × 24, the clock fallback without a calendar. */
+  hours: number;
+  /** WORKING_DAYS only. */
+  days: number | null;
+  source: TurnaroundSource;
 }
 
 /** One line's ready-by. */
 export interface ReadyByLineResult {
   lineId: string;
+  /** See `TurnaroundSpec.hours`. */
   hours: number;
+  unit: TurnaroundUnit;
+  days: number | null;
   source: TurnaroundSource;
   extraMinutes: number;
   readyByAt: Date;
@@ -81,6 +116,7 @@ export interface ReadyByResult {
   /** The latest line ready-by, or the cashier's time; `startAt` + default when there are no lines. */
   orderReadyBy: Date;
   isOverride: boolean;
+  notes: ReadyByNote[];
 }
 
 const hoursOf = (value: MoneyInput | null): number | null => {
@@ -107,38 +143,72 @@ export function resolveTurnaround(line: ReadyByLineInput): { hours: number; sour
   };
 }
 
+/**
+ * A line's turnaround with its unit: a WORKING_DAYS speed rule gives days,
+ * everything else gives hours (`resolveTurnaround`).
+ * @param line the line's speed and configured turnaround
+ * @returns unit, hours, days and source
+ */
+export function resolveTurnaroundSpec(line: ReadyByLineInput): TurnaroundSpec {
+  const days = line.speedRuleDays;
+  if (line.serviceSpeed !== SERVICE_SPEEDS.STANDARD && line.speedRuleUnit === TURNAROUND_UNITS.WORKING_DAYS && days != null) {
+    if (days < 0 || !Number.isInteger(days)) throw new Error(`Line ${line.lineId}: working days must be a whole number ≥ 0.`);
+    return { unit: TURNAROUND_UNITS.WORKING_DAYS, hours: days * 24, days, source: TURNAROUND_SOURCES.SPEED_RULE };
+  }
+  return { ...resolveTurnaround(line), unit: TURNAROUND_UNITS.HOURS, days: null };
+}
+
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 
+const onCalendar = (cal: ResolvedCalendar, start: Date, line: ReadyByLineInput, spec: TurnaroundSpec, extraMinutes: number): Date => {
+  // Ready at once (e.g. retail items): the calendar does not delay it.
+  if (spec.unit === TURNAROUND_UNITS.HOURS && spec.hours === 0 && extraMinutes === 0) return start;
+  const begin = countingStart(cal, start, line.speedRuleCutoffTime ? parseTimeOfDay(line.speedRuleCutoffTime) : null);
+  const at = spec.unit === TURNAROUND_UNITS.WORKING_DAYS
+    ? addWorkingDays(cal, begin, spec.days ?? 0)
+    : addWorkingMinutes(cal, begin, Math.round(spec.hours * 60));
+  return extraMinutes > 0 ? addWorkingMinutes(cal, at, extraMinutes) : at;
+};
+
 /**
  * Ready-by time for every line and for the order.
- * @param input the start time, the lines' turnaround facts, order preference minutes and any cashier time
- * @returns per-line results and the order's ready-by
- * @throws Error on negative hours or minutes
+ *
+ * With a calendar: counting starts at the drop-off, or at the next opening
+ * when after the cut-off (the speed rule's, else the branch's) or closed;
+ * HOURS add working minutes inside opening hours; WORKING_DAYS N is the Nth
+ * working day at the ready time (capped at closing); holidays and short days
+ * apply; preference minutes are working minutes. Without one: clock hours.
+ * @param input the start time, the lines' turnaround facts, order preference minutes, any cashier time and the calendar
+ * @returns per-line results, the order's ready-by and notes
+ * @throws Error on negative hours, days or minutes
  * @example
  * resolveReadyBy({ startAt, lines: [line], orderExtraMinutes: 0, orderOverride: null }).orderReadyBy;
  */
 export function resolveReadyBy(input: ReadyByInput): ReadyByResult {
   if (input.orderExtraMinutes < 0) throw new Error('Order preference minutes cannot be negative.');
   const start = input.startAt.getTime();
-  const lines = input.lines.map((line) => {
+  const cal = input.calendar ?? null;
+  const notes: ReadyByNote[] = cal ? [] : [READY_BY_NOTES.CALENDAR_NOT_CONFIGURED];
+  const lines = input.lines.map((line): ReadyByLineResult => {
     if (line.extraMinutes < 0) throw new Error(`Line ${line.lineId}: preference minutes cannot be negative.`);
     if (line.recordedReadyByAt) {
       return {
-        lineId: line.lineId, hours: 0, source: TURNAROUND_SOURCES.RECORDED, extraMinutes: 0, readyByAt: line.recordedReadyByAt,
+        lineId: line.lineId, hours: 0, unit: TURNAROUND_UNITS.HOURS, days: null,
+        source: TURNAROUND_SOURCES.RECORDED, extraMinutes: 0, readyByAt: line.recordedReadyByAt,
       };
     }
-    const { hours, source } = resolveTurnaround(line);
+    const spec = resolveTurnaroundSpec(line);
     const extraMinutes = line.extraMinutes + input.orderExtraMinutes;
-    return {
-      lineId: line.lineId, hours, source, extraMinutes,
-      readyByAt: new Date(start + Math.round(hours * HOUR_MS) + extraMinutes * MINUTE_MS),
-    };
+    const readyByAt = cal
+      ? onCalendar(cal, input.startAt, line, spec, extraMinutes)
+      : new Date(start + Math.round(spec.hours * HOUR_MS) + extraMinutes * MINUTE_MS);
+    return { lineId: line.lineId, hours: spec.hours, unit: spec.unit, days: spec.days, source: spec.source, extraMinutes, readyByAt };
   });
 
-  if (input.orderOverride) return { lines, orderReadyBy: input.orderOverride, isOverride: true };
+  if (input.orderOverride) return { lines, orderReadyBy: input.orderOverride, isOverride: true, notes };
   const latest = lines.length > 0
     ? new Date(Math.max(...lines.map((l) => l.readyByAt.getTime())))
     : new Date(start + DEFAULT_TURNAROUND_HOURS.STANDARD * HOUR_MS + input.orderExtraMinutes * MINUTE_MS);
-  return { lines, orderReadyBy: latest, isOverride: false };
+  return { lines, orderReadyBy: latest, isOverride: false, notes };
 }

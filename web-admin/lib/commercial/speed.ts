@@ -13,6 +13,7 @@ import {
   SPEED_PRICE_TYPES,
   type PriceBasis,
   type SpeedPriceType,
+  type TurnaroundUnit,
 } from '@/lib/constants/commercial';
 import { ZERO, toMoney, type Money, type MoneyInput } from './money';
 
@@ -46,6 +47,11 @@ export interface SpeedRuleCandidate {
   /** FIXED_AMOUNT only; NULL means PER_UNIT. */
   priceBasis: PriceBasis | null;
   turnaroundHhSpeed: MoneyInput | null;
+  /** HOURS (uses `turnaroundHhSpeed`) | WORKING_DAYS (uses `turnaroundDaysSpeed`); null = no turnaround. */
+  turnaroundUnit?: TurnaroundUnit | null;
+  turnaroundDaysSpeed?: number | null;
+  /** This speed's cut-off, `HH:MM[:SS]`; null = branch, then organization cut-off. */
+  cutoffTimeSpeed?: string | null;
   /** `YYYY-MM-DD`. */
   effectiveFrom: string;
   effectiveTo: string | null;
@@ -101,6 +107,24 @@ export function speedRulesForProduct(rules: readonly SpeedRuleCandidate[], isRet
 }
 
 /**
+ * The fastest of some speeds by rank (`sys_service_speed_cd.display_order`,
+ * higher = faster): the order header speed is its fastest line's (D6).
+ * A code with no known rank (e.g. a retired speed a stored line keeps) loses
+ * to any ranked code; ties keep the first.
+ * @param codes the line and piece speeds
+ * @param ranks code → rank
+ * @returns the fastest code, or null when there is none
+ * @example fastestServiceSpeed(['STANDARD', 'URGENT'], ranks); // 'URGENT'
+ */
+export function fastestServiceSpeed(codes: Iterable<string>, ranks: ReadonlyMap<string, number>): string | null {
+  let best: string | null = null;
+  for (const code of codes) {
+    if (best === null || (ranks.get(code) ?? -Infinity) > (ranks.get(best) ?? -Infinity)) best = code;
+  }
+  return best;
+}
+
+/**
  * Picks the most specific active, effective rule for the row.
  *
  * The scope unique index includes `effective_from`, so two rules at the same
@@ -150,8 +174,12 @@ export type SpeedPricingOutcome = (typeof SPEED_PRICING_OUTCOMES)[keyof typeof S
 
 /** Configuration problems the resolver survives but the UI must show. */
 export const SPEED_PRICING_WARNINGS = {
-  /** A SELL_PRICE rule is below the product's normal price; the premium is held at 0. */
+  /** A SELL_PRICE rule is below the product's normal price at a speed that may not discount; the premium is held at 0. */
   SELL_PRICE_BELOW_STANDARD: 'SELL_PRICE_BELOW_STANDARD',
+  /** A negative MULTIPLIER / FIXED_AMOUNT at a speed that may not discount; the premium is held at 0. */
+  SPEED_DISCOUNT_NOT_ALLOWED: 'SPEED_DISCOUNT_NOT_ALLOWED',
+  /** The speed discount is larger than the price; it is held so the price stays at 0, never below. */
+  SPEED_DISCOUNT_EXCEEDS_PRICE: 'SPEED_DISCOUNT_EXCEEDS_PRICE',
 } as const;
 /** Derived union of the speed pricing warnings. */
 export type SpeedPricingWarning = (typeof SPEED_PRICING_WARNINGS)[keyof typeof SPEED_PRICING_WARNINGS];
@@ -168,6 +196,12 @@ export interface SpeedPricingInput extends SpeedContext {
   /** Line quantity (may be fractional, e.g. kilograms). */
   quantity: MoneyInput;
   rules: readonly SpeedRuleCandidate[];
+  /**
+   * True when this speed ranks below STANDARD (`sys_service_speed_cd.display_order`,
+   * i.e. ECONOMY): only then may a rule lower the price. The DB enforces the
+   * same for MULTIPLIER / FIXED_AMOUNT; SELL_PRICE is checked only here.
+   */
+  discountAllowed?: boolean;
 }
 
 /** The premium for one row, split so the writer can explain it. */
@@ -187,6 +221,12 @@ export interface SpeedPricingResult {
   premiumAmount: Money;
   /** Hours at this speed from the rule; null means the caller's standard turnaround. */
   turnaroundHours: Money | null;
+  /** The rule's turnaround unit; null = the caller's standard turnaround. */
+  turnaroundUnit: TurnaroundUnit | null;
+  /** WORKING_DAYS rules only. */
+  turnaroundDays: number | null;
+  /** The rule's cut-off, `HH:MM[:SS]`, or null. */
+  cutoffTime: string | null;
   warnings: SpeedPricingWarning[];
 }
 
@@ -200,9 +240,14 @@ const requireValue = (value: MoneyInput | null, rule: SpeedRuleCandidate): Money
 /**
  * Prices one row's speed premium on top of its standard price.
  *
- * - SELL_PRICE: premium = rule price − reference price (never below 0).
+ * - SELL_PRICE: premium = rule price − reference price.
  * - MULTIPLIER: premium = standard price × multiplier (L20: 10 × 0.30 → +3).
  * - FIXED_AMOUNT: premium = the amount, per unit or once per line.
+ *
+ * A negative premium (discount) applies only when `discountAllowed`; else it
+ * is held at 0 with a warning. A discount never takes the unit price or the
+ * line below 0 (held there, SPEED_DISCOUNT_EXCEEDS_PRICE). Every hold is a
+ * warning the UI must show (rule #15).
  * @param input the row context, its standard and reference prices, quantity and candidate rules
  * @returns the premium split into unit and line parts, with the rule that set it
  * @throws Error when the chosen rule lacks the value its price type needs
@@ -220,6 +265,9 @@ export function resolveSpeedPricing(input: SpeedPricingInput): SpeedPricingResul
     unitPrice: standard,
     premiumAmount: ZERO,
     turnaroundHours: null,
+    turnaroundUnit: null,
+    turnaroundDays: null,
+    cutoffTime: null,
     warnings: [] as SpeedPricingWarning[],
   };
   const none = (outcome: SpeedPricingOutcome): SpeedPricingResult => ({
@@ -238,10 +286,12 @@ export function resolveSpeedPricing(input: SpeedPricingInput): SpeedPricingResul
   switch (rule.speedPriceType) {
     case SPEED_PRICE_TYPES.SELL_PRICE: {
       const reference = input.referenceUnitPrice == null ? standard : toMoney(input.referenceUnitPrice);
-      const delta = requireValue(rule.defaultSpeedSellPrice, rule).minus(reference);
-      // A speed price below normal would be a hidden discount: hold at 0 and say so.
-      if (delta.isNegative()) warnings.push(SPEED_PRICING_WARNINGS.SELL_PRICE_BELOW_STANDARD);
-      else unitPremium = delta;
+      unitPremium = requireValue(rule.defaultSpeedSellPrice, rule).minus(reference);
+      // Below normal at a speed that may not discount would be a hidden discount: hold at 0 and say so.
+      if (unitPremium.isNegative() && !input.discountAllowed) {
+        warnings.push(SPEED_PRICING_WARNINGS.SELL_PRICE_BELOW_STANDARD);
+        unitPremium = ZERO;
+      }
       break;
     }
     case SPEED_PRICE_TYPES.MULTIPLIER:
@@ -257,6 +307,21 @@ export function resolveSpeedPricing(input: SpeedPricingInput): SpeedPricingResul
       throw new Error(`Unknown speed price type: ${String(rule.speedPriceType)}`);
   }
 
+  if (!input.discountAllowed && (unitPremium.isNegative() || linePremium.isNegative())) {
+    warnings.push(SPEED_PRICING_WARNINGS.SPEED_DISCOUNT_NOT_ALLOWED);
+    if (unitPremium.isNegative()) unitPremium = ZERO;
+    if (linePremium.isNegative()) linePremium = ZERO;
+  }
+  if (unitPremium.lessThan(standard.negated())) {
+    warnings.push(SPEED_PRICING_WARNINGS.SPEED_DISCOUNT_EXCEEDS_PRICE);
+    unitPremium = standard.negated();
+  }
+  const lineBeforeLinePremium = standard.plus(unitPremium).times(quantity);
+  if (linePremium.lessThan(lineBeforeLinePremium.negated())) {
+    if (!warnings.includes(SPEED_PRICING_WARNINGS.SPEED_DISCOUNT_EXCEEDS_PRICE)) warnings.push(SPEED_PRICING_WARNINGS.SPEED_DISCOUNT_EXCEEDS_PRICE);
+    linePremium = lineBeforeLinePremium.negated();
+  }
+
   return {
     outcome: SPEED_PRICING_OUTCOMES.RULE_APPLIED,
     serviceSpeed: input.serviceSpeed,
@@ -268,6 +333,9 @@ export function resolveSpeedPricing(input: SpeedPricingInput): SpeedPricingResul
     unitPrice: standard.plus(unitPremium),
     premiumAmount: unitPremium.times(quantity).plus(linePremium),
     turnaroundHours: rule.turnaroundHhSpeed == null ? null : toMoney(rule.turnaroundHhSpeed),
+    turnaroundUnit: rule.turnaroundUnit ?? null,
+    turnaroundDays: rule.turnaroundDaysSpeed ?? null,
+    cutoffTime: rule.cutoffTimeSpeed ?? null,
     warnings,
   };
 }

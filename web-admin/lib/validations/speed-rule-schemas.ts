@@ -2,14 +2,20 @@
  * Speed Pricing requests (Line-Level P7-01, PLAN §7, §10.1). Mirrors every
  * `org_speed_price_rules_cf` CHECK so a bad rule is refused before save:
  * one value column per type, `price_basis` only on FIXED_AMOUNT, no STANDARD
- * rule, non-negative amounts, `effective_to >= effective_from`. The speed code
- * itself is checked against `sys_service_speed_cd` by the service.
+ * rule, `effective_to >= effective_from`, turnaround unit <=> value
+ * (`chk_org_spd_price_rules_turn_unit`), multiplier > -1. A negative multiplier
+ * or amount (a discount) is accepted here; the service allows it only for a
+ * speed ranked below STANDARD (ECONOMY, `DISCOUNT_NOT_ALLOWED`) and checks the
+ * speed code against `sys_service_speed_cd`. Hours with no unit read as HOURS.
  */
 import { z } from 'zod';
 
-import { PRICE_BASIS, SERVICE_SPEEDS, SPEED_PRICE_TYPES } from '@/lib/constants/commercial';
+import { PRICE_BASIS, SERVICE_SPEEDS, SPEED_PRICE_TYPES, TURNAROUND_UNITS } from '@/lib/constants/commercial';
 
 const money = z.string().regex(/^\d{1,15}(\.\d{1,4})?$/, 'Amount with up to 4 decimals');
+/** A premium that may be a discount (negative): allowed by rank in the service. */
+const signedMoney = z.string().regex(/^-?\d{1,15}(\.\d{1,4})?$/, 'Amount with up to 4 decimals');
+const units = Object.values(TURNAROUND_UNITS) as [string, ...string[]];
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
 const types = Object.values(SPEED_PRICE_TYPES) as [string, ...string[]];
 const bases = Object.values(PRICE_BASIS) as [string, ...string[]];
@@ -21,10 +27,15 @@ const ruleFields = z.object({
   productId: z.string().uuid().nullable(),
   speedPriceType: z.enum(types),
   defaultSpeedSellPrice: money.nullable().optional(),
-  multiplierSpeed: z.string().regex(/^\d{1,4}(\.\d{1,4})?$/).nullable().optional(),
-  speedExtraAmount: money.nullable().optional(),
+  multiplierSpeed: z.string().regex(/^-?\d{1,4}(\.\d{1,4})?$/).nullable().optional(),
+  speedExtraAmount: signedMoney.nullable().optional(),
   priceBasis: z.enum(bases).nullable().optional(),
   turnaroundHhSpeed: z.string().regex(/^\d{1,4}(\.\d{1,2})?$/).nullable().optional(),
+  turnaroundUnit: z.enum(units).nullable().optional(),
+  /** WORKING_DAYS only: 0 = same day (before the cut-off). */
+  turnaroundDaysSpeed: z.number().int().min(0).max(365).nullable().optional(),
+  /** `HH:MM`: this speed's own last drop-off time; null = the branch's cut-off. */
+  cutoffTimeSpeed: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM').nullable().optional(),
   name: z.string().max(200).nullable().optional(),
   name2: z.string().max(200).nullable().optional(),
   effectiveFrom: date,
@@ -47,6 +58,22 @@ function checkValues(v: z.infer<typeof ruleFields>, ctx: z.RefinementCtx) {
   }
   if (set(v.priceBasis) && v.speedPriceType !== SPEED_PRICE_TYPES.FIXED_AMOUNT) {
     ctx.addIssue({ code: 'custom', path: ['priceBasis'], message: 'Only for a fixed amount' });
+  }
+  if (set(v.multiplierSpeed) && Number(v.multiplierSpeed) <= -1) {
+    ctx.addIssue({ code: 'custom', path: ['multiplierSpeed'], message: 'A discount must be less than 100%' });
+  }
+  // Unit <=> value (chk_org_spd_price_rules_turn_unit); hours with no unit are HOURS.
+  const hours = set(v.turnaroundHhSpeed);
+  const days = set(v.turnaroundDaysSpeed);
+  const unit = v.turnaroundUnit ?? (hours ? TURNAROUND_UNITS.HOURS : null);
+  if (unit === TURNAROUND_UNITS.HOURS && (!hours || days)) {
+    ctx.addIssue({ code: 'custom', path: [hours ? 'turnaroundDaysSpeed' : 'turnaroundHhSpeed'], message: 'Hours only for an HOURS turnaround' });
+  }
+  if (unit === TURNAROUND_UNITS.WORKING_DAYS && (!days || hours)) {
+    ctx.addIssue({ code: 'custom', path: [days ? 'turnaroundHhSpeed' : 'turnaroundDaysSpeed'], message: 'Days only for a WORKING_DAYS turnaround' });
+  }
+  if (unit == null && days) {
+    ctx.addIssue({ code: 'custom', path: ['turnaroundUnit'], message: 'Choose the turnaround unit' });
   }
   if (v.effectiveTo && v.effectiveTo < v.effectiveFrom) {
     ctx.addIssue({ code: 'custom', path: ['effectiveTo'], message: 'Ends before it starts' });

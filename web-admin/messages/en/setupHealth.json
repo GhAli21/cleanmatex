@@ -1,0 +1,30 @@
+{
+  "title": "Setup Health",
+  "subtitle": "What is missing or wrong in your setup, why it matters, and where to fix it.",
+  "loadError": "Could not load setup health.",
+  "allGood": "Everything is set up. No problems found.",
+  "issueCount": "{count, plural, one {# item} other {# items}}",
+  "fix": "Fix",
+  "contactSupport": "Your provider sets this up. Please contact support.",
+  "status": {
+    "OK": "OK",
+    "FAIL": "Needs attention",
+    "NA": "Not applicable",
+    "ERROR": "Could not check"
+  },
+  "severity": {
+    "BLOCKER": "Blocker",
+    "WARNING": "Warning",
+    "INFO": "Info"
+  },
+  "banner": {
+    "title": "Setup problem: some features will not work correctly",
+    "viewAll": "Open Setup Health"
+  },
+  "homeCard": {
+    "title": "Setup health",
+    "allGood": "No setup problems",
+    "counts": "{blockers} blockers · {warnings} warnings · {infos} info",
+    "errors": "{count, plural, one {# check could not run} other {# checks could not run}}"
+  }
+}

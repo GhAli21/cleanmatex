@@ -51,6 +51,7 @@ const PRICING_ERROR_KEYS: Readonly<Record<string, string>> = {
   PRODUCT_NOT_FOUND: 'productNotFound',
   PREFERENCE_NOT_AVAILABLE: 'preferenceNotAvailable',
   SERVICE_SPEED_INVALID: 'serviceSpeedInvalid',
+  SPEED_NOT_OFFERED: 'speedNotOffered',
   TIMEZONE_NOT_CONFIGURED: 'timezoneNotConfigured',
   PRICE_NOT_RESOLVED: 'priceNotResolved',
   PRICE_BELOW_MINIMUM: 'priceBelowMinimum',

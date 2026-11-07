@@ -4,4 +4,4 @@
 
 | Path | Kind | Message |
 | --- | --- | --- |
-| — | — | None |
+| /dashboard/settings/calendar | nav_missing_contract | Navigation entry has no resolving access contract: /dashboard/settings/calendar |

@@ -56,9 +56,12 @@ import {
   type StandardPriceResult,
   type TaxProfileInput,
   type MoneyInput,
-  toMoney, speedRulesForProduct } from '@/lib/commercial';
+  toMoney, speedRulesForProduct, type ResolvedCalendar } from '@/lib/commercial';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 import { resolveExtraPricePricingMode, resolveTaxPricingMode } from '../pricing-mode-resolver.service';
+import {
+  BRANCH_CALENDAR_SELECT, TENANT_CALENDAR_SELECT, loadResolvedCalendar, timeColumnToText, type CalendarDb,
+} from './calendar-facts';
 
 /** The Prisma client or a transaction client; the loader only reads. */
 export type CommercialDb = Pick<PrismaClient,
@@ -66,7 +69,7 @@ export type CommercialDb = Pick<PrismaClient,
   | 'org_price_lists_mst' | 'org_price_list_items_dtl' | 'org_speed_price_rules_cf'
   | 'org_tax_profiles_cf' | 'org_tax_exemptions_cf' | 'org_service_preference_cf'
   | 'org_packing_preference_cf' | 'sys_service_preference_cd' | 'sys_service_category_cd'
-  | 'sys_service_speed_cd' | 'sys_currency_rounding_rules_cf'>;
+  | 'sys_service_speed_cd' | 'sys_currency_rounding_rules_cf'> & CalendarDb;
 
 // ─── Intent (what the client may send) ─────────────────────────────────────
 
@@ -295,6 +298,10 @@ export interface CommercialFacts {
   priceCandidates: ReadonlyMap<string, PriceListCandidate[]>;
   speedRules: readonly SpeedRuleCandidate[];
   activeSpeeds: ReadonlySet<string>;
+  /** Speed code → rank (`display_order`); STANDARD is always read. A rank below STANDARD's may discount. */
+  speedRanks: ReadonlyMap<string, number>;
+  /** The branch calendar; null = clock hours (`CALENDAR_NOT_CONFIGURED`). */
+  calendar: ResolvedCalendar | null;
   /** Category code → hours at standard and at any other speed. */
   categoryHours: ReadonlyMap<string, { standard: string | null; other: string | null }>;
   taxProfiles: readonly TaxProfileInput[];
@@ -308,6 +315,8 @@ export interface CommercialFacts {
 export const COMMERCIAL_CONTEXT_ERRORS = {
   PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
   SERVICE_SPEED_INVALID: 'SERVICE_SPEED_INVALID',
+  /** The organization has no active rule for this speed and product (D5); EXPRESS is exempt until S6. */
+  SPEED_NOT_OFFERED: 'SPEED_NOT_OFFERED',
   PREFERENCE_NOT_AVAILABLE: 'PREFERENCE_NOT_AVAILABLE',
   TIMEZONE_NOT_CONFIGURED: 'TIMEZONE_NOT_CONFIGURED',
   /** Same code the payment quote has always returned for a bad selection. */
@@ -402,10 +411,10 @@ export async function loadCommercialFacts(
     // org_tenants_mst is keyed by the tenant id itself (no tenant_org_id column).
     db.org_tenants_mst.findFirst({
       where: { id: tenantOrgId },
-      select: { commercial_level: true, disc_alloc_mode: true, disc_alloc_basis: true, timezone: true },
+      select: { commercial_level: true, disc_alloc_mode: true, disc_alloc_basis: true, ...TENANT_CALENDAR_SELECT },
     }),
     intent.branchId
-      ? db.org_branches_mst.findFirst({ where: { id: intent.branchId, tenant_org_id: tenantOrgId }, select: { timezone_code: true } })
+      ? db.org_branches_mst.findFirst({ where: { id: intent.branchId, tenant_org_id: tenantOrgId }, select: BRANCH_CALENDAR_SELECT })
       : null,
     intent.customerId
       ? db.org_customers_mst.findFirst({ where: { id: intent.customerId, tenant_org_id: tenantOrgId }, select: { type: true, preferences: true } })
@@ -427,7 +436,11 @@ export async function loadCommercialFacts(
     otherSpeeds.length > 0
       ? db.org_speed_price_rules_cf.findMany({ where: { tenant_org_id: tenantOrgId, service_speed: { in: otherSpeeds } } })
       : [],
-    db.sys_service_speed_cd.findMany({ where: { code: { in: speeds }, is_active: true, rec_status: 1 }, select: { code: true } }),
+    // STANDARD is always read: its rank decides which speeds may discount.
+    db.sys_service_speed_cd.findMany({
+      where: { code: { in: [...new Set([...speeds, SERVICE_SPEEDS.STANDARD])] }, is_active: true, rec_status: 1 },
+      select: { code: true, display_order: true },
+    }),
     // Edit uses the order's recorded profiles (D22), never today's.
     deps.recorded ? Promise.resolve([] as org_tax_profiles_cf[]) : db.org_tax_profiles_cf.findMany({
       where: {
@@ -463,13 +476,20 @@ export async function loadCommercialFacts(
     deps.recorded ? deps.recorded.extraPriceMode : resolveExtraPricePricingMode(db as PrismaClient, tenantOrgId, intent.branchId),
   ]);
 
+  // ─── Business date ─────────────────────────────────────────────────────
+  const timezone = [branch?.timezone_code, tenant?.timezone].find((tz) => isValidTimeZone(tz));
+  if (!timezone) {
+    throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.TIMEZONE_NOT_CONFIGURED,
+      'Neither the branch nor the tenant has a valid time zone, so effective dates cannot be read.');
+  }
+
   // ─── Reads that depend on the first ones ───────────────────────────────
   const listIds = [...new Set(listItems.map((i) => i.price_list_id))];
   const categoryCodes = [...new Set([
     ...products.map((p) => p.service_category_code),
     ...intent.lines.map((l) => l.customItem?.serviceCategoryCode ?? l.pinned?.product.serviceCategoryCode ?? null),
   ].filter((c): c is string => Boolean(c)))];
-  const [lists, categories, sysPrefs, exemptions] = await Promise.all([
+  const [lists, categories, sysPrefs, exemptions, calendar] = await Promise.all([
     listIds.length > 0
       ? db.org_price_lists_mst.findMany({
         where: { tenant_org_id: tenantOrgId, id: { in: listIds } },
@@ -503,14 +523,14 @@ export async function loadCommercialFacts(
         select: { customer_id: true, service_type: true },
       })
       : [],
+    // Holidays from the ready-by start's local date (Edit may start at the original drop-off).
+    tenant
+      ? loadResolvedCalendar(db, tenantOrgId, tenant, branch, intent.branchId ?? null,
+        businessDateForTimezone(timezone, intent.readyByStartAt ?? at))
+      : null,
   ]);
 
-  // ─── Business date and rounding ────────────────────────────────────────
-  const timezone = [branch?.timezone_code, tenant?.timezone].find((tz) => isValidTimeZone(tz));
-  if (!timezone) {
-    throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.TIMEZONE_NOT_CONFIGURED,
-      'Neither the branch nor the tenant has a valid time zone, so effective dates cannot be read.');
-  }
+  // ─── Rounding ──────────────────────────────────────────────────────────
   const accountingMode = accounting && isRoundingMode(accounting.rounding_mode) ? accounting.rounding_mode : 'HALF_UP';
   const rounding: RoundingRule = { decimalPlaces: deps.currency.decimalPlaces, mode: accountingMode as RoundingMode };
 
@@ -637,11 +657,16 @@ export async function loadCommercialFacts(
       speedExtraAmount: text(r.speed_extra_amount),
       priceBasis: r.price_basis as SpeedRuleCandidate['priceBasis'],
       turnaroundHhSpeed: text(r.turnaround_hh_speed),
+      turnaroundUnit: r.turnaround_unit as SpeedRuleCandidate['turnaroundUnit'],
+      turnaroundDaysSpeed: r.turnaround_days_speed,
+      cutoffTimeSpeed: timeColumnToText(r.cutoff_time_speed),
       effectiveFrom: dateOnly(r.effective_from) as string,
       effectiveTo: dateOnly(r.effective_to),
       isActive: r.is_active && r.rec_status === 1,
     })),
     activeSpeeds: new Set(activeSpeeds.map((s) => s.code)),
+    speedRanks: new Map(activeSpeeds.map((s) => [s.code, s.display_order] as const)),
+    calendar,
     categoryHours: new Map(categories.map((c) => [c.service_category_code, {
       standard: text(c.turnaround_hh), other: text(c.turnaround_hh_express),
     }] as const)),
@@ -679,6 +704,9 @@ function recordedSpeed(
     unitPrice: toMoney(standardUnitPrice).plus(unitPremium),
     premiumAmount: unitPremium.times(toMoney(quantity)).plus(linePremium),
     turnaroundHours: null,
+    turnaroundUnit: null,
+    turnaroundDays: null,
+    cutoffTime: null,
     warnings: [],
   };
 }
@@ -746,6 +774,29 @@ export function buildCommercialOrderInput(
       .filter((m) => !toMoney(m.amount).isZero());
   const minutesOf = (prefs: readonly PreferenceIntent[]) => prefs.reduce((sum, p) => sum + preferenceOf(p).extraMinutes, 0);
 
+  const standardRank = facts.speedRanks.get(SERVICE_SPEEDS.STANDARD);
+  // Only a speed ranked below STANDARD (ECONOMY) may lower the price; no per-speed constant (D3).
+  const discountAllowed = (code: string) => {
+    const rank = facts.speedRanks.get(code);
+    return rank != null && standardRank != null && rank < standardRank;
+  };
+  /** D5: a speed is offered only where an active rule reaches the product. EXPRESS keeps its legacy category hours until S6. */
+  const requireOffered = (result: SpeedPricingResult, productId: string | null) => {
+    if (result.outcome === SPEED_PRICING_OUTCOMES.NO_RULE && result.serviceSpeed !== SERVICE_SPEEDS.EXPRESS) {
+      throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.SPEED_NOT_OFFERED,
+        `Service speed ${result.serviceSpeed} is not offered for this item.`,
+        { serviceSpeed: result.serviceSpeed, ...(productId ? { productId } : {}) });
+    }
+    return result;
+  };
+  /** The rule's turnaround facts for `resolveReadyBy`. */
+  const readyByRule = (result: SpeedPricingResult) => ({
+    speedRuleHours: result.turnaroundHours,
+    speedRuleUnit: result.turnaroundUnit,
+    speedRuleDays: result.turnaroundDays,
+    speedRuleCutoffTime: result.cutoffTime,
+  });
+
   const prices: ResolvedLinePrice[] = [];
   const lines: CommercialLineInput[] = intent.lines.map((line) => {
     const product = line.customItem
@@ -773,7 +824,7 @@ export function buildCommercialOrderInput(
     });
     const speed = line.pinned?.speed
       ? recordedSpeed(serviceSpeed, standard.unitPrice, line.quantity, line.pinned.speed)
-      : resolveSpeedPricing({
+      : requireOffered(resolveSpeedPricing({
       serviceSpeed,
       branchId: intent.branchId,
       serviceCategoryCode: product.serviceCategoryCode,
@@ -784,7 +835,8 @@ export function buildCommercialOrderInput(
       referenceUnitPrice: line.customItem ? null : product.defaultSellPrice,
       quantity: line.quantity,
       rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
-    });
+      discountAllowed: discountAllowed(serviceSpeed),
+    }), product.id);
     const pieceSpeeds = new Map<string, { serviceSpeed: string; ruleId: string | null }>();
     prices.push({ lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds });
 
@@ -817,7 +869,7 @@ export function buildCommercialOrderInput(
         throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.SERVICE_SPEED_INVALID,
           `Service speed ${code} is not an active speed.`, { serviceSpeed: code });
       }
-      const own = resolveSpeedPricing({
+      const own = requireOffered(resolveSpeedPricing({
         serviceSpeed: code,
         branchId: intent.branchId,
         serviceCategoryCode: product.serviceCategoryCode,
@@ -827,14 +879,15 @@ export function buildCommercialOrderInput(
         referenceUnitPrice: line.customItem ? null : product.defaultSellPrice,
         quantity: 1,
         rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
-      });
+        discountAllowed: discountAllowed(code),
+      }), product.id);
       pieceSpeeds.set(piece.pieceId, { serviceSpeed: code, ruleId: own.ruleId });
       return {
         ...base,
         speed: { unitPremium: own.unitPremium, linePremium: own.linePremium },
         readyBy: {
           serviceSpeed: code,
-          speedRuleHours: own.turnaroundHours,
+          ...readyByRule(own),
           productHours: product.turnaroundHours,
           categoryHours: hoursAt(code),
           extraMinutes,
@@ -876,7 +929,7 @@ export function buildCommercialOrderInput(
       pieces: pieces.map(pieceInput),
       readyBy: {
         serviceSpeed,
-        speedRuleHours: speed.turnaroundHours,
+        ...readyByRule(speed),
         productHours: product.turnaroundHours,
         categoryHours: hoursAt(serviceSpeed),
         extraMinutes,
@@ -919,6 +972,7 @@ export function buildCommercialOrderInput(
         startAt: intent.readyByStartAt ?? intent.receivedAt,
         orderExtraMinutes: minutesOf(intent.orderPreferences),
         orderOverride: intent.readyByOverride,
+        calendar: facts.calendar,
       },
     },
   };

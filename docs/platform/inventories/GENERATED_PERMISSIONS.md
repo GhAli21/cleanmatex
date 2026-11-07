@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-05T19:10:14.658Z
+Generated: 2026-11-07T06:10:13.585Z
 
 ## By surface (counts)
 
@@ -344,7 +344,7 @@ Generated: 2026-11-05T19:10:14.658Z
 | orders:read | api | app/api/v1/scan/resolve/route.ts | 17 | /api/v1/scan/resolve |
 | orders:rebill_authorize | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 93 | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx |
 | orders:reverse_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 82 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:split | screen | src/features/workflow/ui/processing-modal.tsx | 160 | src/features/workflow/ui/processing-modal.tsx |
+| orders:split | screen | src/features/workflow/ui/processing-modal.tsx | 161 | src/features/workflow/ui/processing-modal.tsx |
 | orders:split | screen | src/features/workflow/ui/simple-processing-dialog.tsx | 131 | src/features/workflow/ui/simple-processing-dialog.tsx |
 | orders:split | api | app/api/v1/orders/[id]/split/route.ts | 34 | /api/v1/orders/[id]/split |
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |

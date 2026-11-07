@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-05T19:10:14.658Z
-Git SHA: 23e3fccb
+Generated: 2026-11-07T06:10:13.585Z
+Git SHA: b83055c7
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 165 |
+| Access contracts | 166 |
 | Permission usages | 467 |
-| Feature flag usages | 85 |
+| Feature flag usages | 86 |
 | Setting usages | 23 |
 | Plan limit usages | 2 |
-| Navigation entries | 110 |
+| Navigation entries | 111 |
 | Flag catalog entries | 298 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -175,6 +175,7 @@ Git SHA: 23e3fccb
 | /dashboard/settings/workflows | Workflows | settings:workflow | — | 0 |
 | /dashboard/settings/workflows/[id]/edit | Edit Workflow | — | — | 0 |
 | /dashboard/settings/workflows/new | New Workflow | — | — | 0 |
+| /dashboard/setup-health | Setup Health | setup_health:view | — | 0 |
 | /dashboard/tenant-admin/subscription | Subscription | — | — | 0 |
 | /dashboard/users | Users | — | — | 0 |
 | /dashboard/users/[userId] | User Details | — | — | 0 |

@@ -73,7 +73,7 @@ export function openCommercialCreateSession(checkout: CheckoutQuote): Commercial
     index == null ? ORDER_SCOPE : pieceIndex == null ? checkoutLineId(index) : checkoutPieceId(index, pieceIndex);
 
   return {
-    orderColumns: () => orderSnapshotColumns(result, facts, checkout.intent.serviceSpeed),
+    orderColumns: () => orderSnapshotColumns(result, facts, prices, checkout.intent.serviceSpeed),
     itemColumns: (index) => {
       const { line, price, isOverride } = lineAt(index);
       return lineMoneyColumns(line.item, line, price, isOverride, facts.pricingMode);

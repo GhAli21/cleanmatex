@@ -93,8 +93,6 @@
       "Bash(npm install*)",
       "Write(**/*.sql)",
       "Edit(**/*.sql)",
-      "Write(supabase/migrations/**)",
-      "Edit(supabase/migrations/**)",
       "Edit(CLAUDE.md)",
       "Edit(AGENTS.md)",
       "Edit(.claude/settings*.json)",

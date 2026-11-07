@@ -25,6 +25,7 @@ import {
   AlertsWidget,
 } from './widgets'
 import { RecentOrdersList } from './RecentOrdersList'
+import { SetupHealthHomeCard } from '@features/setup-health/ui/setup-health-home-card'
 
 /**
  *
@@ -60,6 +61,9 @@ export default function DashboardContent() {
 
       {/* Alerts - High Priority */}
       <AlertsWidget />
+
+      {/* Setup Health tile (hidden without setup_health:view) */}
+      <SetupHealthHomeCard />
 
       {/* KPI Row 1: Core Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

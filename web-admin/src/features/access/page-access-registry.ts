@@ -24,6 +24,7 @@ import { TENANT_ADMIN_ACCESS_CONTRACTS } from '@features/tenant-admin/access/ten
 import { USERS_ACCESS_CONTRACTS } from '@features/users/access/users-access'
 import { WORKBOARD_ACCESS_CONTRACTS } from '@features/workboard/access/workboard-access'
 import { AUTH_SESSION_ACCESS_CONTRACTS } from '@features/auth-session/access/auth-session-access'
+import { SETUP_HEALTH_ACCESS_CONTRACTS } from '@features/setup-health/access/setup-health-access'
 
 /** Re-export catalog route contracts for page gates and inspector (single import). */
 export {
@@ -43,6 +44,7 @@ export {
  */
 export const PAGE_ACCESS_CONTRACTS: PageAccessContract[] = [
   ...CORE_ACCESS_CONTRACTS,
+  ...SETUP_HEALTH_ACCESS_CONTRACTS,
   ...B2B_ACCESS_CONTRACTS,
   ...BILLING_ACCESS_CONTRACTS,
   ...CASH_DRAWERS_ACCESS_CONTRACTS,

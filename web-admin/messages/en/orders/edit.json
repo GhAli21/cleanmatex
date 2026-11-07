@@ -157,6 +157,7 @@
       "productNotFound": "An item is no longer in the catalog. Remove it from this change.",
       "preferenceNotAvailable": "A preference is no longer available for this branch. Remove it from this change.",
       "serviceSpeedInvalid": "The selected service speed is not available. Choose another speed.",
+      "speedNotOffered": "The selected service speed is not offered for this item. Choose another speed for it.",
       "timezoneNotConfigured": "The branch time zone is not set up, so prices cannot be dated. Ask an administrator to set it.",
       "priceNotResolved": "A new item has no price set up. Ask an administrator to price it.",
       "priceBelowMinimum": "A line price is below the item's minimum price.",

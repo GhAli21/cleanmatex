@@ -1,0 +1,35 @@
+# Setup Health — Status
+
+**Plan:** [PLAN.md](PLAN.md) (APPROVED 2026-11-07)
+**Migration numbering:** no reserved range — each migration takes the real last seq + 1 when written (owner, 2026-11-07)
+
+## Steps
+
+| # | Step | State | Notes |
+|---|---|---|---|
+| 1 | Migration 0709 — domain + check registry, tenant guard, dispatcher `fn_setup_health_run`, checks `CAL_NO_BUSINESS_HOURS`, `SPEED_NO_RULES`, `ERP_LITE_NOT_READY`, full seed + self-verification | APPLIED local + remote (owner, 2026-11-07); types + Prisma regenerated. Remote check: every active tenant → one row per check, no ERROR | `supabase/migrations/0709_setup_health_registry.sql` |
+| 1b | `CAL_HOLIDAYS_ESTIMATED` check (INFO, HQ only) | APPLIED local + remote (owner, 2026-11-07); types + Prisma regenerated. Remote check: 2 Omani organizations FAIL (3 dates), 2 OK, no ERROR rows. Countries = active branches' country, else the organization's; FAIL when an `is_estimated` public holiday falls in the next 60 days; NA when no country. `hq_fix_route` NULL until the Speeds HQ public-holidays screen exists | `supabase/migrations/0716_setup_health_cal_holidays.sql` (needs 0709 + 0711) |
+| 2 | Migration 0710 — permissions `setup_health:view` (tenant: super_admin/tenant_admin/admin) + `tenant_setup_health:view` (HQ: TECH_ADMIN/SUPPORT/BUSINESS_ADMIN/ANALYST), effective-permission rebuild, tenant nav `settings_setup_health` → `/dashboard/setup-health` | APPLIED local + remote (owner, 2026-11-07) | `supabase/migrations/0710_setup_health_perms_nav.sql` |
+| 3 | Tenant app — service, `GET /api/v1/setup-health`, `/summary`, screen, banner, home card, hook, i18n, access contract, `navigation.ts` | DONE — full `npx eslint . --quiet` ✓, check:i18n ✓, check:ui-access-contract ✓, sync + inventories rebuild ✓ (no Setup Health drift), tsc: no errors in these files, `npm run build` ✓ (2026-11-07). Colours use `--cmx-*` tokens | `lib/services/setup-health/`, `app/api/v1/setup-health/**`, `src/features/setup-health/**`, `app/dashboard/setup-health/page.tsx`, `messages/{en,ar}/setupHealth.json` |
+| 4 | HQ — `platform-api` `tenant-setup-health` module (`GET /tenants/:tenantId/setup-health`, `tenant_setup_health:view`), tenant workspace › Setup Health (after Overview) with Fix → HQ screens | DONE — HQ skills applied (`backend-hq`, `create-nestjs-module`, `frontend`, `i18n`, ui-quality-bar); platform-web build ✓, platform-api `nest build` ✓, HQ check:i18n ✓; own files lint clean (platform-web has 334 older lint errors elsewhere); text uses `--cmx-text-*` tokens | |
+| 4b | HQ Tenant Organizations list: "Setup" column + "has blockers" filter | DONE — 0717 applied locally and remotely; types and Prisma regenerated (owner, 2026-11-07). HQ refreshes the stored summary on Setup Health load; the tenant list joins `org_setup_health_sum_tr`, shows Setup status, and supports the cross-page filter. | `supabase/migrations/0717_setup_health_summary.sql` |
+| 5 | Tests (DB isolation, dispatcher survives throw, filtering, routes 401/403, banner) | DONE — service 3 ✓, routes 7 ✓, banner 3 ✓, DB integration (local) 5 ✓, HQ service spec 2 ✓ | `__tests__/services/setup-health.service.test.ts`, `__tests__/api/setup-health.route.test.ts`, `__tests__/features/setup-health/`, `__tests__/db-integration/setup-health.db.test.ts`, HQ `tenant-setup-health/__tests__/` |
+| 6 | Docs — README, user guide EN/AR, QA guide | DONE (2026-11-07, `/documentation`) — [README.md](README.md), [developer_guide.md](developer_guide.md) (incl. "add a check" for Tax M8), [user_guide.md](user_guide.md) EN + AR (wording matches the app's i18n), [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md), [followups_by_user.md](followups_by_user.md) | |
+
+## Design notes / decisions taken during build (2026-11-07)
+
+- **Step 4b writers (changed from the proposal):** the stored counts are written only by HQ (on Setup Health page load) and the nightly job, not by the tenant app. The tenant app hides HQ-only checks, so its counts differ from what the HQ list must show; computing them in SQL keeps one rule.
+- **0709 audit columns:** the registry tables were created without `updated_count`, `deleted_*`, `rec_order`, `rec_notes`; 0717 adds them + `trg_audit_touch` (full-audit rule).
+
+- **No `POST /recheck` in HQ:** checks run live on every GET (no stored results), so a recheck endpoint would do the same thing. The HQ "Recheck" button refetches GET.
+- **Performance (remote, 2026-11-07):** full run warm 9 ms (cal 0.4 ms, speed 0.3 ms, ERP-Lite 2.6 ms); first call per connection ~360 ms (plpgsql compile). Within the 150 ms target once warm.
+- **Banner** is not dismissible and is collapsible for the current browser session: the underlying blocker remains visible on the Setup Health screen and returns in a new session.
+
+- **Check contract (stable for Tax M8):** registry row in `sys_setup_health_check_cd` + function `fn_shc_<check>(p_tenant uuid, p_branch uuid) → jsonb {status OK|FAIL|NA, count, sample_ids, details}`. Functions are plpgsql, `STABLE`, `SECURITY INVOKER`. `fn_name` must match `^fn_shc_[a-z0-9_]+$` (dynamic EXECUTE safety). Tax M8 adds rows with `domain_code = 'TAX'` (domain already seeded) + functions; nothing else changes.
+- **Tenant guard (security review, 2026-11-07):** every check function and the dispatcher call `fn_shc_guard_tenant(p_tenant)` first. An end-user JWT caller must be an active member of `p_tenant` (`org_users_mst`), else `42501`; server connections and `service_role` pass. Needed because checks may read views that run with owner rights (`vw_fin_tenant_readiness`), so RLS alone would allow cross-tenant reads. Tax M8 check functions must call it too.
+- **Registry is read-only for users (security review, 2026-11-07):** both `sys_setup_health_*` tables revoke Supabase's default anon/authenticated write grants; `authenticated` gets SELECT only, plus RLS with a read-only policy. Only the service role (HQ) and migrations write.
+- **Dispatcher output:** `fn_setup_health_run(p_tenant, p_branch, p_domain)` returns one row per active check with the registry metadata (names, routes, flag, banner, `is_hq_only`), `status` OK/FAIL/NA/ERROR, `issue_count`, `sample_ids`, `details`. Flag / HQ-only / permission filtering is done by the caller (tenant service, HQ module).
+- **Added column `is_hq_only`** (not in PLAN §3.1 table): needed for `CAL_HOLIDAYS_ESTIMATED`, which Speeds plan marks "HQ only". Tenant app hides those rows.
+- **`hq_fix_route`** uses the literal `{tenantId}` placeholder, replaced by HQ.
+- **Dependencies:** `org_branches_mst.business_hours` confirmed in Speeds 0707. The holidays check was moved out of 0709 so 0709 does not depend on an unwritten Speeds migration.
+- **HQ nav:** the HQ tenant workspace sidebar is code-only (`platform-web/src/features/tenants/ui/tenant-sidebar.tsx`); `hq_navigation_cd` has no per-tenant subpage rows, so the HQ item is added in code, not by migration.

@@ -419,6 +419,10 @@ model org_branches_mst {
   extra_price_pricing_mode                                                                     String?
   tax_registration_no                                                                          String?
   timezone_code                                                                                String?
+  order_cutoff_time                                                                            DateTime?                         @db.Time(6)
+  ready_time                                                                                   DateTime?                         @db.Time(6)
+  business_hours                                                                               Json?
+  emirate_code                                                                                 String?
   org_ar_appr_policies_cf                                                                      org_ar_appr_policies_cf[]
   org_asm_exceptions_tr                                                                        org_asm_exceptions_tr[]
   org_asm_locations_mst                                                                        org_asm_locations_mst[]
@@ -456,6 +460,7 @@ model org_branches_mst {
   org_fin_voucher_trx_lines_dtl                                                                org_fin_voucher_trx_lines_dtl[]
   org_fin_vouchers_mst                                                                         org_fin_vouchers_mst[]
   org_gift_card_txn_dtl                                                                        org_gift_card_txn_dtl[]
+  org_holidays_cf                                                                              org_holidays_cf[]
   org_inv_stock_by_branch                                                                      org_inv_stock_by_branch[]
   org_inv_stock_tr                                                                             org_inv_stock_tr[]
   org_invoice_mst                                                                              org_invoice_mst[]
@@ -473,6 +478,7 @@ model org_branches_mst {
   org_stng_audit_log_tr                                                                        org_stng_audit_log_tr[]
   org_stng_effective_cache_cf                                                                  org_stng_effective_cache_cf[]
   org_sv_funding_tenders_dtl                                                                   org_sv_funding_tenders_dtl[]
+  org_tax_rules_cf                                                                             org_tax_rules_cf[]
 
   @@id([id, tenant_org_id])
   @@schema("public")
@@ -589,6 +595,8 @@ model org_customers_mst {
   password_hash              String?
   password_updated_at        DateTime?                    @db.Timestamptz(6)
   preferred_language         String?                      @db.VarChar(2)
+  tax_party_class_code       String?
+  tax_country                String?
   org_ar_appr_policies_cf    org_ar_appr_policies_cf[]
   org_ar_credit_allocs_dtl   org_ar_credit_allocs_dtl[]
   org_ar_disputes_mst        org_ar_disputes_mst[]
@@ -604,6 +612,8 @@ model org_customers_mst {
   org_customer_service_prefs org_customer_service_prefs[]
   org_customer_wallets_mst   org_customer_wallets_mst[]
   sys_language_cd            sys_language_cd?             @relation(fields: [preferred_language], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_cust_pref_lang")
+  sys_country_cd             sys_country_cd?              @relation(fields: [tax_country], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocm_tax_country")
+  sys_tax_party_class_cd     sys_tax_party_class_cd?      @relation(fields: [tax_party_class_code], references: [party_class_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocm_tax_party_class")
   sys_customers_mst          sys_customers_mst?           @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
   org_tenants_mst            org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
   org_customer_category_cf   org_customer_category_cf?    @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, map: "fk_org_cust_category")
@@ -748,6 +758,7 @@ model org_invoice_mst {
   voided_by                      String?                          @db.VarChar(120)
   void_reason                    String?
   outstanding_amount             Decimal?                         @db.Decimal(19, 4)
+  doc_type_code                  String                           @default("AR_INVOICE")
   org_ar_credit_allocs_dtl       org_ar_credit_allocs_dtl[]
   org_ar_disputes_mst            org_ar_disputes_mst[]
   org_ar_dunning_runs_mst        org_ar_dunning_runs_mst[]
@@ -758,6 +769,7 @@ model org_invoice_mst {
   org_b2b_contracts_mst          org_b2b_contracts_mst?           @relation(fields: [b2b_contract_id], references: [id], onUpdate: NoAction, map: "fk_invoice_b2b_contract")
   org_b2b_statements_mst         org_b2b_statements_mst?          @relation(fields: [statement_id], references: [id], onUpdate: NoAction, map: "fk_invoice_b2b_statement")
   org_promotions_mst             org_promotions_mst?              @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_invoice_promo_code")
+  sys_doc_seq_type_cd            sys_doc_seq_type_cd              @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_oim_doc_type")
   org_branches_mst               org_branches_mst?                @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_branch")
   org_customers_mst              org_customers_mst?               @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_org_invoice_customer")
   org_gift_cards_mst             org_gift_cards_mst?              @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_org_invoice_gift_card")
@@ -1235,6 +1247,7 @@ model org_orders_mst {
   commercial_calc_version                                                         Int?                              @db.SmallInt
   speed_premium_amount                                                            Decimal?                          @db.Decimal(19, 4)
   root_order_id                                                                   String?                           @db.Uuid
+  doc_type_code                                                                   String                            @default("ORDER")
   org_asm_tasks_mst                                                               org_asm_tasks_mst?
   org_dlv_stops_dtl                                                               org_dlv_stops_dtl[]
   org_fin_overpay_disp_dtl                                                        org_fin_overpay_disp_dtl[]
@@ -1257,6 +1270,8 @@ model org_orders_mst {
   org_order_preferences_dtl                                                       org_order_preferences_dtl[]
   org_order_status_history                                                        org_order_status_history[]
   org_order_taxes_dtl                                                             org_order_taxes_dtl[]
+  sys_doc_seq_type_cd                                                             sys_doc_seq_type_cd               @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_oom_doc_type")
+  sys_service_speed_cd                                                            sys_service_speed_cd?             @relation(fields: [service_speed], references: [code], onDelete: Restrict, onUpdate: Restrict, map: "fk_oom_service_speed")
   org_pos_sessions_mst                                                            org_pos_sessions_mst?             @relation(fields: [tenant_org_id, created_pos_session_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ord_crt_pos_ses")
   org_orders_mst_org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst       org_orders_mst?                   @relation("org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst", fields: [root_order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: Restrict, map: "fk_ord_root_order")
   other_org_orders_mst_org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst org_orders_mst[]                  @relation("org_orders_mst_root_order_id_tenant_org_idToorg_orders_mst")
@@ -1400,6 +1415,7 @@ model org_fin_vouchers_mst {
   reversal_reason                String?
   idempotency_key                String?
   ref_voucher_id                 String?                          @db.Uuid
+  doc_type_code                  String                           @default("RECEIPT_VOUCHER")
   org_advance_txn_dtl            org_advance_txn_dtl[]
   org_b2b_statement_payments_dtl org_b2b_statement_payments_dtl[]
   org_credit_note_txn_dtl        org_credit_note_txn_dtl[]
@@ -1417,6 +1433,7 @@ model org_fin_vouchers_mst {
   org_fin_vouchers_mst           org_fin_vouchers_mst?            @relation("org_fin_vouchers_mstToorg_fin_vouchers_mst", fields: [reversed_by_voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_reversed")
   other_org_fin_vouchers_mst     org_fin_vouchers_mst[]           @relation("org_fin_vouchers_mstToorg_fin_vouchers_mst")
   org_tenants_mst                org_tenants_mst                  @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fin_voucher_tenant")
+  sys_doc_seq_type_cd            sys_doc_seq_type_cd              @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fvo_doc_type")
   sys_currency_cd                sys_currency_cd?                 @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_fin_vouchers_currency")
   org_gift_card_txn_dtl          org_gift_card_txn_dtl[]
   org_invoice_payments_dtl       org_invoice_payments_dtl[]
@@ -1502,12 +1519,14 @@ model org_product_data_mst {
   tax_category_code         String                      @default("STANDARD")
   tax_supply_code           String?
   tax_exempt_reason         String?
+  tax_item_class_code       String?
   org_inv_stock_by_branch   org_inv_stock_by_branch[]
   org_inv_stock_tr          org_inv_stock_tr[]
   org_order_item_pieces_dtl org_order_item_pieces_dtl[]
   org_order_items_dtl       org_order_items_dtl[]
   org_price_history_audit   org_price_history_audit[]
   org_price_list_items_dtl  org_price_list_items_dtl[]
+  org_tax_item_classes_cf   org_tax_item_classes_cf?    @relation(fields: [tenant_org_id, tax_item_class_code], references: [tenant_org_id, class_code], onUpdate: NoAction, map: "fk_opd_tax_item_class")
   org_service_category_cf   org_service_category_cf     @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
   org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
   sys_tax_category_cd       sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_product_tax_category")
@@ -1610,6 +1629,10 @@ model org_tenants_mst {
   current_fiscal_year              String?
   fiscal_year_start_month          Int?                               @db.SmallInt
   locale_code                      String?                            @db.VarChar(10)
+  order_cutoff_time                DateTime?                          @db.Time(6)
+  ready_time                       DateTime?                          @db.Time(6)
+  calendar_template_code           String?
+  starter_pkg_code                 String?
   cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_advance_txn_dtl              org_advance_txn_dtl[]
@@ -1699,6 +1722,7 @@ model org_tenants_mst {
   org_fx_rate_mst                  org_fx_rate_mst[]
   org_gift_card_txn_dtl            org_gift_card_txn_dtl[]
   org_gift_cards_mst               org_gift_cards_mst[]
+  org_holidays_cf                  org_holidays_cf[]
   org_idempotency_keys             org_idempotency_keys[]
   org_inv_stock_by_branch          org_inv_stock_by_branch[]
   org_inv_stock_tr                 org_inv_stock_tr[]
@@ -1755,19 +1779,26 @@ model org_tenants_mst {
   org_rcpt_templates_cf            org_rcpt_templates_cf[]
   org_service_category_cf          org_service_category_cf[]
   org_service_preference_cf        org_service_preference_cf[]
+  org_setup_health_sum_tr          org_setup_health_sum_tr?
   org_speed_price_rules_cf         org_speed_price_rules_cf[]
   org_stng_audit_log_tr            org_stng_audit_log_tr[]
   org_stng_effective_cache_cf      org_stng_effective_cache_cf[]
   org_sv_funding_tenders_dtl       org_sv_funding_tenders_dtl[]
   org_svc_cat_proc_steps_cf        org_svc_cat_proc_steps_cf[]
+  org_tax_config_cf                org_tax_config_cf?
   org_tax_doc_lines_dtl            org_tax_doc_lines_dtl[]
   org_tax_doc_seq_counters         org_tax_doc_seq_counters[]
   org_tax_doc_triggers_cfg         org_tax_doc_triggers_cfg[]
   org_tax_documents_mst            org_tax_documents_mst[]
+  org_tax_item_classes_cf          org_tax_item_classes_cf[]
+  org_tax_periods_mst              org_tax_periods_mst[]
+  org_tax_rules_cf                 org_tax_rules_cf[]
   org_tenant_order_sources_cf      org_tenant_order_sources_cf[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
   org_tenant_workflow_settings_cf  org_tenant_workflow_settings_cf?
   org_tenant_workflow_templates_cf org_tenant_workflow_templates_cf[]
+  sys_calendar_templates_mst       sys_calendar_templates_mst?        @relation(fields: [calendar_template_code], references: [calendar_code], onDelete: Restrict, onUpdate: Restrict, map: "fk_org_tnt_cal_template")
+  sys_starter_pkg_mst              sys_starter_pkg_mst?               @relation(fields: [starter_pkg_code], references: [pkg_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otm_starter_pkg")
   sys_main_business_type_cd        sys_main_business_type_cd?         @relation(fields: [business_type_code], references: [business_type_code], onUpdate: NoAction, map: "fk_tenant_business_type")
   sys_stng_profiles_mst            sys_stng_profiles_mst?             @relation(fields: [stng_profile_code], references: [stng_profile_code], onDelete: NoAction, onUpdate: NoAction)
   org_usage_tracking               org_usage_tracking[]
@@ -2168,6 +2199,7 @@ model sys_service_category_cd {
   created_info                  String?
   updated_info                  String?
   org_service_category_cf       org_service_category_cf[]
+  org_tax_rules_cf              org_tax_rules_cf[]
   sys_service_prod_templates_cd sys_service_prod_templates_cd[]
   sys_svc_cat_proc_steps        sys_svc_cat_proc_steps[]
 
@@ -3161,45 +3193,53 @@ model sys_tenant_settings_cd {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model hq_audit_logs {
-  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id             String?         @db.Uuid
-  user_email          String?         @db.VarChar(255)
-  action              String          @db.VarChar(100)
-  resource_type       String?         @db.VarChar(50)
-  resource_id         String?         @db.VarChar(255)
-  details             Json?
-  ip_address          String?         @db.Inet
-  user_agent          String?
-  success             Boolean?        @default(true)
-  error_message       String?
-  created_at          DateTime?       @default(now()) @db.Timestamptz(6)
-  actor_type          String?
-  tenant_org_id       String?         @db.Uuid
-  old_value           Json?
-  new_value           Json?
-  source_module       String?
-  severity            String?         @default("info")
-  request_id          String?
-  action_category     String?
-  resource_label      String?
-  session_id          String?
-  batch_id            String?         @db.Uuid
-  parent_audit_id     String?         @db.Uuid
-  http_method         String?
-  http_path           String?
-  http_status_code    Int?            @db.SmallInt
-  duration_ms         Int?
-  change_reason       String?
-  tags                String[]
-  is_sensitive        Boolean         @default(false)
-  hq_audit_logs       hq_audit_logs?  @relation("hq_audit_logsTohq_audit_logs", fields: [parent_audit_id], references: [id], onUpdate: NoAction)
-  other_hq_audit_logs hq_audit_logs[] @relation("hq_audit_logsTohq_audit_logs")
-  hq_users            hq_users?       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String?         @db.Uuid
+  user_email           String?         @db.VarChar(255)
+  action               String          @db.VarChar(100)
+  resource_type        String?         @db.VarChar(50)
+  resource_id          String?         @db.VarChar(255)
+  details              Json?
+  ip_address           String?         @db.Inet
+  user_agent           String?
+  success              Boolean?        @default(true)
+  error_message        String?
+  created_at           DateTime?       @default(now()) @db.Timestamptz(6)
+  actor_type           String?
+  tenant_org_id        String?         @db.Uuid
+  old_value            Json?
+  new_value            Json?
+  source_module        String?
+  severity             String?         @default("info")
+  request_id           String?
+  action_category      String?
+  resource_label       String?
+  session_id           String?
+  batch_id             String?         @db.Uuid
+  parent_audit_id      String?         @db.Uuid
+  http_method          String?
+  http_path            String?
+  http_status_code     Int?            @db.SmallInt
+  duration_ms          Int?
+  change_reason        String?
+  tags                 String[]
+  is_sensitive         Boolean         @default(false)
+  seq_no               BigInt          @unique(map: "idx_hq_audit_seq_no") @default(autoincrement())
+  changed_fields       String[]
+  actor_role_code      String?         @db.VarChar(50)
+  impersonated_user_id String?         @db.Uuid
+  origin_service       String          @default("platform-api") @db.VarChar(40)
+  prev_hash            String?
+  row_hash             String?
+  hq_audit_logs        hq_audit_logs?  @relation("hq_audit_logsTohq_audit_logs", fields: [parent_audit_id], references: [id], onUpdate: NoAction)
+  other_hq_audit_logs  hq_audit_logs[] @relation("hq_audit_logsTohq_audit_logs")
+  hq_users             hq_users?       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
 
   @@index([action, created_at(sort: Desc)], map: "idx_hq_audit_action")
   @@index([created_at(sort: Desc)], map: "idx_hq_audit_created")
   @@index([resource_type, resource_id, created_at(sort: Desc)], map: "idx_hq_audit_resource")
   @@index([user_id, created_at(sort: Desc)], map: "idx_hq_audit_user")
+  @@index([origin_service, created_at(sort: Desc)], map: "idx_hq_audit_origin_service_created")
   @@schema("public")
 }
 
@@ -4154,36 +4194,43 @@ model sys_business_type_template_cf {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_country_cd {
-  code                     String                     @id @db.VarChar(2)
-  name                     String                     @db.VarChar(250)
-  name2                    String?                    @db.VarChar(250)
-  description              String?
-  description2             String?
-  display_order            Int?                       @default(0)
-  icon                     String?                    @db.VarChar(100)
-  color                    String?                    @db.VarChar(60)
-  iso_code                 String                     @unique @db.VarChar(2)
-  iso_alpha3               String?                    @db.VarChar(3)
-  iso_numeric              Int?
-  region                   String?                    @db.VarChar(50)
-  subregion                String?                    @db.VarChar(50)
-  continent                String?                    @db.VarChar(20)
-  default_currency_code    String?                    @db.VarChar(3)
-  default_language_code    String?                    @db.VarChar(2)
-  default_timezone_code    String?                    @db.VarChar(50)
-  phone_code               String?                    @db.VarChar(10)
-  address_format           String?
-  is_default               Boolean?                   @default(false)
-  is_system                Boolean?                   @default(true)
-  is_active                Boolean?                   @default(true)
-  metadata                 Json?
-  created_at               DateTime?                  @default(now()) @db.Timestamp(6)
-  created_by               String?                    @db.Uuid
-  updated_at               DateTime?                  @db.Timestamp(6)
-  updated_by               String?                    @db.Uuid
-  rec_status               Int?                       @default(1) @db.SmallInt
-  hq_general_config        hq_general_config[]
-  sys_tax_exempt_reason_cd sys_tax_exempt_reason_cd[]
+  code                       String                      @id @db.VarChar(2)
+  name                       String                      @db.VarChar(250)
+  name2                      String?                     @db.VarChar(250)
+  description                String?
+  description2               String?
+  display_order              Int?                        @default(0)
+  icon                       String?                     @db.VarChar(100)
+  color                      String?                     @db.VarChar(60)
+  iso_code                   String                      @unique @db.VarChar(2)
+  iso_alpha3                 String?                     @db.VarChar(3)
+  iso_numeric                Int?
+  region                     String?                     @db.VarChar(50)
+  subregion                  String?                     @db.VarChar(50)
+  continent                  String?                     @db.VarChar(20)
+  default_currency_code      String?                     @db.VarChar(3)
+  default_language_code      String?                     @db.VarChar(2)
+  default_timezone_code      String?                     @db.VarChar(50)
+  phone_code                 String?                     @db.VarChar(10)
+  address_format             String?
+  is_default                 Boolean?                    @default(false)
+  is_system                  Boolean?                    @default(true)
+  is_active                  Boolean?                    @default(true)
+  metadata                   Json?
+  created_at                 DateTime?                   @default(now()) @db.Timestamp(6)
+  created_by                 String?                     @db.Uuid
+  updated_at                 DateTime?                   @db.Timestamp(6)
+  updated_by                 String?                     @db.Uuid
+  rec_status                 Int?                        @default(1) @db.SmallInt
+  hq_general_config          hq_general_config[]
+  org_customers_mst          org_customers_mst[]
+  org_fin_supp_mst           org_fin_supp_mst[]
+  org_tax_rules_cf           org_tax_rules_cf[]
+  sys_calendar_templates_mst sys_calendar_templates_mst?
+  sys_public_holidays_cf     sys_public_holidays_cf[]
+  sys_starter_pkg_mst        sys_starter_pkg_mst[]
+  sys_tax_exempt_reason_cd   sys_tax_exempt_reason_cd[]
+  sys_tax_kits_mst           sys_tax_kits_mst[]
 
   @@index([is_active, display_order], map: "idx_country_active")
   @@index([continent, is_active], map: "idx_country_continent")
@@ -4302,6 +4349,7 @@ model sys_currency_cd {
   sys_platform_finance_cf                                                                           sys_platform_finance_cf[]
   sys_pln_price_dtl                                                                                 sys_pln_price_dtl[]
   sys_pln_subscription_plans_mst                                                                    sys_pln_subscription_plans_mst[]
+  sys_tax_kit_versions_mst                                                                          sys_tax_kit_versions_mst[]
 
   @@index([is_active, display_order], map: "idx_currency_active")
   @@index([rec_status, is_active, display_order, code], map: "idx_sys_currency_cd_active_list")
@@ -5453,6 +5501,8 @@ model org_dlv_routes_mst {
   updated_at                 DateTime?           @db.Timestamp(6)
   updated_by                 String?             @db.VarChar(120)
   updated_info               String?
+  doc_type_code              String              @default("DELIVERY_ROUTE")
+  sys_doc_seq_type_cd        sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_dlr_doc_type")
   org_branches_mst           org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_route_branch")
   org_drivers_mst            org_drivers_mst?    @relation(fields: [driver_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_route_driver")
   org_tenants_mst            org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_route_tenant")
@@ -6559,9 +6609,11 @@ model org_inv_stock_tr {
   updated_by           String?
   updated_info         String?
   branch_id            String               @db.Uuid
+  doc_type_code        String               @default("STOCK_TRANSACTION")
   org_product_data_mst org_product_data_mst @relation(fields: [product_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inv_stock_product")
   org_tenants_mst      org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_inv_stock_tenant")
   org_branches_mst     org_branches_mst     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_inv_stock_tr_branch")
+  sys_doc_seq_type_cd  sys_doc_seq_type_cd  @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_ist_doc_type")
 
   @@unique([tenant_org_id, id], map: "uk_inv_stock_tr_tenant")
   @@unique([tenant_org_id, transaction_no], map: "uq_inv_stock_tr_no")
@@ -7141,9 +7193,11 @@ model org_cash_drawer_sessions_mst {
   variance_rejection_reason         String?
   /// Cashier this session is for. NULL until chosen at open or filled by a POS connect.
   session_user_id                   String?                           @db.Uuid
+  doc_type_code                     String                            @default("CASH_DRAWER_SESSION")
   org_cash_drawer_cnt_mst           org_cash_drawer_cnt_mst[]
   org_cash_drawer_ses_bal_dtl       org_cash_drawer_ses_bal_dtl[]
   org_cash_drawer_ses_post_tr       org_cash_drawer_ses_post_tr[]
+  sys_doc_seq_type_cd               sys_doc_seq_type_cd               @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_cds_doc_type")
   sys_cash_drawer_ses_post_cd       sys_cash_drawer_ses_post_cd?      @relation(fields: [post_close_status_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocds_post_close_status")
   org_users_mst                     org_users_mst?                    @relation(fields: [session_user_id, tenant_org_id], references: [user_id, tenant_org_id], onUpdate: NoAction, map: "fk_ocds_session_user")
   sys_currency_cd                   sys_currency_cd                   @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_cds_sessions_currency")
@@ -7193,10 +7247,12 @@ model org_cash_drawer_trx_mst {
   rec_order                                                                                                  Int?
   rec_notes                                                                                                  String?
   is_active                                                                                                  Boolean                       @default(true)
+  doc_type_code                                                                                              String                        @default("CASH_DRAWER_TRX")
   org_cash_drawer_ses_bal_dtl                                                                                org_cash_drawer_ses_bal_dtl[]
   org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_send_trx_id_tenant_org_idToorg_cash_drawer_trx_mst   org_cash_drawer_transit_tr?   @relation("org_cash_drawer_transit_tr_send_trx_id_tenant_org_idToorg_cash_drawer_trx_mst")
   org_cash_drawer_transit_tr_org_cash_drawer_transit_tr_settle_trx_id_tenant_org_idToorg_cash_drawer_trx_mst org_cash_drawer_transit_tr[]  @relation("org_cash_drawer_transit_tr_settle_trx_id_tenant_org_idToorg_cash_drawer_trx_mst")
   org_cash_drawer_trx_dtl                                                                                    org_cash_drawer_trx_dtl[]
+  sys_doc_seq_type_cd                                                                                        sys_doc_seq_type_cd           @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_cdt_doc_type")
   org_branches_mst                                                                                           org_branches_mst              @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_branch")
   org_cash_drawer_trx_mst                                                                                    org_cash_drawer_trx_mst?      @relation("org_cash_drawer_trx_mstToorg_cash_drawer_trx_mst", fields: [reverses_trx_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ocdt_reverses")
   other_org_cash_drawer_trx_mst                                                                              org_cash_drawer_trx_mst[]     @relation("org_cash_drawer_trx_mstToorg_cash_drawer_trx_mst")
@@ -7894,7 +7950,9 @@ model org_order_refunds_dtl {
   refund_context               String
   fin_voucher_id               String?                       @db.Uuid
   fin_voucher_trx_line_id      String?                       @db.Uuid
+  doc_type_code                String                        @default("REFUND")
   org_pos_sessions_mst         org_pos_sessions_mst?         @relation(fields: [tenant_org_id, pos_session_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ordref_possess")
+  sys_doc_seq_type_cd          sys_doc_seq_type_cd           @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_orf_doc_type")
   org_order_payments_dtl       org_order_payments_dtl?       @relation(fields: [tenant_org_id, original_payment_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_refund_orig_payment_tenant")
   org_order_credit_apps_dtl    org_order_credit_apps_dtl?    @relation(fields: [tenant_org_id, original_credit_app_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_refund_original_credit_app")
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst? @relation(fields: [cash_drawer_session_id], references: [id], onUpdate: NoAction)
@@ -8114,7 +8172,7 @@ model org_tax_profiles_cf {
   name                      String
   name2                     String?
   tax_type                  String
-  rate                      Decimal                     @db.Decimal(5, 2)
+  rate                      Decimal?                    @db.Decimal(5, 2)
   is_compound               Boolean                     @default(false)
   applies_to                String[]
   effective_from            DateTime                    @db.Date
@@ -8123,23 +8181,49 @@ model org_tax_profiles_cf {
   is_active                 Boolean                     @default(true)
   rec_status                Int                         @default(1) @db.SmallInt
   created_at                DateTime                    @default(now()) @db.Timestamptz(6)
-  created_by                String?                     @db.Uuid
+  created_by                String?
   created_info              String?
   updated_at                DateTime?                   @db.Timestamptz(6)
-  updated_by                String?                     @db.Uuid
+  updated_by                String?
   updated_info              String?
   rounding_level            String                      @default("DOCUMENT")
   rounding_mode             String                      @default("HALF_UP")
   output_decimal_places     Int?                        @db.SmallInt
   rounding_increment_minor  Int?
+  tax_code                  String
+  version_no                Int                         @default(1)
+  amount_kind               String                      @default("PERCENT")
+  fixed_amount              Decimal?                    @db.Decimal(19, 4)
+  calc_level                String                      @default("LINE")
+  tax_category_code         String
+  exempt_reason_code        String?
+  tax_flow_code             String                      @default("OUTPUT")
+  recoverable_pct           Decimal                     @default(100) @db.Decimal(7, 4)
+  is_reverse_charge         Boolean                     @default(false)
+  priority                  Int                         @default(1) @db.SmallInt
+  source                    String                      @default("TENANT")
+  kit_version_id            String?                     @db.Uuid
+  is_tenant_modified        Boolean                     @default(false)
+  display_order             Int                         @default(0)
+  updated_count             Int                         @default(0)
+  deleted_at                DateTime?                   @db.Timestamptz(6)
+  deleted_by                String?
+  deleted_info              String?
+  rec_order                 Int?
+  rec_notes                 String?
   org_order_charges_dtl     org_order_charges_dtl[]
   org_order_item_pieces_dtl org_order_item_pieces_dtl[]
   org_order_items_dtl       org_order_items_dtl[]
   org_order_taxes_dtl       org_order_taxes_dtl[]
   sys_rounding_mode_cd      sys_rounding_mode_cd        @relation(fields: [rounding_mode], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_tax_prof_rounding_mode")
+  sys_tax_category_cd       sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onUpdate: NoAction, map: "fk_otp_category")
+  sys_tax_kit_versions_mst  sys_tax_kit_versions_mst?   @relation(fields: [kit_version_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_otp_kit_ver")
+  sys_tax_types_cd          sys_tax_types_cd            @relation(fields: [tax_type], references: [tax_type], onUpdate: NoAction, map: "fk_otp_tax_type")
 
   @@unique([tenant_org_id, id], map: "uq_org_tax_prof_tenant_id")
+  @@unique([tenant_org_id, tax_code, version_no], map: "uq_otp_code_version")
   @@index([tenant_org_id, is_active, is_default], map: "idx_tax_profiles_tenant")
+  @@index([tenant_org_id, tax_code, version_no(sort: Desc)], map: "idx_otp_tenant_code")
   @@schema("public")
 }
 
@@ -8322,7 +8406,9 @@ model org_credit_notes_mst {
   updated_by              String?
   updated_info            String?
   metadata                Json?
+  doc_type_code           String                    @default("STORE_CREDIT_NOTE")
   org_credit_note_txn_dtl org_credit_note_txn_dtl[]
+  sys_doc_seq_type_cd     sys_doc_seq_type_cd       @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_crn_doc_type")
   org_customers_mst       org_customers_mst         @relation(fields: [customer_id], references: [id], onUpdate: NoAction)
   org_tenants_mst         org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -8877,7 +8963,9 @@ model org_fin_recon_runs_mst {
   updated_by               String?                    @db.Uuid
   updated_info             String?
   metadata                 Json?
+  doc_type_code            String                     @default("AR_RECON_RUN")
   org_fin_recon_issues_dtl org_fin_recon_issues_dtl[]
+  sys_doc_seq_type_cd      sys_doc_seq_type_cd        @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_frr_doc_type")
 
   @@unique([tenant_org_id, run_no], map: "uq_recon_run_no")
   @@index([tenant_org_id, status, period_from], map: "idx_fin_recon_runs_status")
@@ -9135,12 +9223,14 @@ model org_tax_documents_mst {
   rec_notes             String?
   is_active             Boolean                 @default(true)
   e_invoice_status      String                  @default("NOT_APPLICABLE")
+  doc_type_code         String                  @default("TAX_INVOICE")
   org_tax_doc_items_dtl org_tax_doc_items_dtl[]
   org_tax_doc_lines_dtl org_tax_doc_lines_dtl[]
   org_orders_mst        org_orders_mst          @relation(fields: [order_id], references: [id], onUpdate: NoAction, map: "fk_tax_docs_order")
   supersedes            org_tax_documents_mst?  @relation("TaxDocSupersedes", fields: [supersedes_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_tax_docs_supersedes")
   superseded_by         org_tax_documents_mst[] @relation("TaxDocSupersedes")
   org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_tax_docs_tenant")
+  sys_doc_seq_type_cd   sys_doc_seq_type_cd     @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_tdo_doc_type")
 
   @@unique([tenant_org_id, id], map: "uq_org_tax_docs_tenant_id")
   @@index([tenant_org_id], map: "idx_tax_docs_tenant")
@@ -9988,34 +10078,36 @@ model org_ar_credit_allocs_dtl {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_ar_disputes_mst {
-  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id      String            @db.Uuid
-  invoice_id         String            @db.Uuid
-  customer_id        String            @db.Uuid
-  dispute_no         String            @db.VarChar(50)
-  status_cd          String            @default("OPEN") @db.VarChar(30)
-  reason_cd          String            @db.VarChar(30)
-  title              String            @db.VarChar(200)
-  description        String
-  description2       String?
-  disputed_amount    Decimal           @db.Decimal(19, 4)
-  opened_at          DateTime          @default(now()) @db.Timestamptz(6)
-  opened_by          String?           @db.VarChar(120)
-  assigned_to        String?           @db.VarChar(120)
-  assigned_at        DateTime?         @db.Timestamptz(6)
-  due_by_at          DateTime?         @db.Timestamptz(6)
-  resolved_at        DateTime?         @db.Timestamptz(6)
-  resolved_by        String?           @db.VarChar(120)
-  resolution_summary String?
-  metadata           Json              @default("{}")
-  created_at         DateTime          @default(now()) @db.Timestamptz(6)
-  created_by         String?           @db.VarChar(120)
-  created_by_info    String?
-  updated_at         DateTime?         @db.Timestamptz(6)
-  updated_by         String?           @db.VarChar(120)
-  updated_by_info    String?
-  org_customers_mst  org_customers_mst @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_oadisp_cus")
-  org_invoice_mst    org_invoice_mst   @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_oadisp_inv")
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String              @db.Uuid
+  invoice_id          String              @db.Uuid
+  customer_id         String              @db.Uuid
+  dispute_no          String              @db.VarChar(50)
+  status_cd           String              @default("OPEN") @db.VarChar(30)
+  reason_cd           String              @db.VarChar(30)
+  title               String              @db.VarChar(200)
+  description         String
+  description2        String?
+  disputed_amount     Decimal             @db.Decimal(19, 4)
+  opened_at           DateTime            @default(now()) @db.Timestamptz(6)
+  opened_by           String?             @db.VarChar(120)
+  assigned_to         String?             @db.VarChar(120)
+  assigned_at         DateTime?           @db.Timestamptz(6)
+  due_by_at           DateTime?           @db.Timestamptz(6)
+  resolved_at         DateTime?           @db.Timestamptz(6)
+  resolved_by         String?             @db.VarChar(120)
+  resolution_summary  String?
+  metadata            Json                @default("{}")
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?             @db.VarChar(120)
+  created_by_info     String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?             @db.VarChar(120)
+  updated_by_info     String?
+  doc_type_code       String              @default("AR_DISPUTE")
+  sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_ard_doc_type")
+  org_customers_mst   org_customers_mst   @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_oadisp_cus")
+  org_invoice_mst     org_invoice_mst     @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_oadisp_inv")
 
   @@unique([tenant_org_id, dispute_no], map: "uq_oadisp_no")
   @@index([tenant_org_id, customer_id, status_cd], map: "idx_oadisp_cus")
@@ -10027,26 +10119,28 @@ model org_ar_disputes_mst {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_ar_dunning_runs_mst {
-  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id     String            @db.Uuid
-  customer_id       String            @db.Uuid
-  invoice_id        String?           @db.Uuid
-  run_no            Int
-  stage_cd          String            @db.VarChar(30)
-  action_cd         String            @db.VarChar(30)
-  status_cd         String            @default("PENDING") @db.VarChar(30)
-  scheduled_for     DateTime?         @db.Timestamptz(6)
-  executed_at       DateTime?         @db.Timestamptz(6)
-  response_message  String?
-  metadata          Json              @default("{}")
-  created_at        DateTime          @default(now()) @db.Timestamptz(6)
-  created_by        String?           @db.VarChar(120)
-  created_by_info   String?
-  updated_at        DateTime?         @db.Timestamptz(6)
-  updated_by        String?           @db.VarChar(120)
-  updated_by_info   String?
-  org_customers_mst org_customers_mst @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_oadrun_cus")
-  org_invoice_mst   org_invoice_mst?  @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oadrun_inv")
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String              @db.Uuid
+  customer_id         String              @db.Uuid
+  invoice_id          String?             @db.Uuid
+  run_no              Int
+  stage_cd            String              @db.VarChar(30)
+  action_cd           String              @db.VarChar(30)
+  status_cd           String              @default("PENDING") @db.VarChar(30)
+  scheduled_for       DateTime?           @db.Timestamptz(6)
+  executed_at         DateTime?           @db.Timestamptz(6)
+  response_message    String?
+  metadata            Json                @default("{}")
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?             @db.VarChar(120)
+  created_by_info     String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?             @db.VarChar(120)
+  updated_by_info     String?
+  doc_type_code       String              @default("AR_DUNNING_RUN")
+  sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_adr_doc_type")
+  org_customers_mst   org_customers_mst   @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_oadrun_cus")
+  org_invoice_mst     org_invoice_mst?    @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oadrun_inv")
 
   @@unique([tenant_org_id, customer_id, run_no], map: "uq_oadrun_no")
   @@index([tenant_org_id, customer_id, created_at(sort: Desc)], map: "idx_oadrun_cus")
@@ -10233,7 +10327,9 @@ model org_b2b_statements_mst {
   updated_at                     DateTime?                        @db.Timestamp(6)
   updated_by                     String?                          @db.VarChar(120)
   updated_info                   String?
+  doc_type_code                  String                           @default("B2B_STATEMENT")
   org_b2b_statement_payments_dtl org_b2b_statement_payments_dtl[]
+  sys_doc_seq_type_cd            sys_doc_seq_type_cd              @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_b2s_doc_type")
   org_b2b_contracts_mst          org_b2b_contracts_mst?           @relation(fields: [contract_id], references: [id], onUpdate: NoAction)
   org_customers_mst              org_customers_mst                @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_tenants_mst                org_tenants_mst                  @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -10450,7 +10546,9 @@ model org_fin_alloc_run_mst {
   rec_order             Int?
   rec_notes             String?                 @db.VarChar(200)
   is_active             Boolean                 @default(true)
+  doc_type_code         String                  @default("ERP_ALLOC_RUN")
   org_fin_alloc_run_dtl org_fin_alloc_run_dtl[]
+  sys_doc_seq_type_cd   sys_doc_seq_type_cd     @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_far_doc_type")
   org_fin_period_mst    org_fin_period_mst?     @relation(fields: [period_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofrn_per")
   org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofrn_tnt")
 
@@ -10562,8 +10660,10 @@ model org_fin_ap_inv_mst {
   rec_order           Int?
   rec_notes           String?               @db.VarChar(200)
   is_active           Boolean               @default(true)
+  doc_type_code       String                @default("ERP_AP_INVOICE")
   org_fin_ap_alloc_tr org_fin_ap_alloc_tr[]
   org_fin_ap_inv_dtl  org_fin_ap_inv_dtl[]
+  sys_doc_seq_type_cd sys_doc_seq_type_cd   @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fai_doc_type")
   org_branches_mst    org_branches_mst?     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofai_branch")
   org_fin_po_mst      org_fin_po_mst?       @relation(fields: [po_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofai_po")
   org_fin_supp_mst    org_fin_supp_mst      @relation(fields: [supplier_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofai_supp")
@@ -10606,7 +10706,9 @@ model org_fin_ap_pmt_mst {
   rec_order             Int?
   rec_notes             String?                @db.VarChar(200)
   is_active             Boolean                @default(true)
+  doc_type_code         String                 @default("ERP_AP_PAYMENT")
   org_fin_ap_alloc_tr   org_fin_ap_alloc_tr[]
+  sys_doc_seq_type_cd   sys_doc_seq_type_cd    @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fap_doc_type")
   org_fin_bank_acct_mst org_fin_bank_acct_mst? @relation(fields: [bank_account_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofap_bank")
   org_branches_mst      org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofap_branch")
   org_fin_cashbox_mst   org_fin_cashbox_mst?   @relation(fields: [cashbox_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofap_cash")
@@ -10729,7 +10831,9 @@ model org_fin_bank_recon_mst {
   rec_order             Int?
   rec_notes             String?                 @db.VarChar(200)
   is_active             Boolean                 @default(true)
+  doc_type_code         String                  @default("ERP_BANK_RECON")
   org_fin_bank_match_tr org_fin_bank_match_tr[]
+  sys_doc_seq_type_cd   sys_doc_seq_type_cd     @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fbr_doc_type")
   org_fin_bank_acct_mst org_fin_bank_acct_mst   @relation(fields: [bank_account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofbr_bank")
   org_fin_period_mst    org_fin_period_mst?     @relation(fields: [period_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofbr_per")
   org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofbr_tenant")
@@ -10811,7 +10915,9 @@ model org_fin_bank_stmt_mst {
   rec_order             Int?
   rec_notes             String?                 @db.VarChar(200)
   is_active             Boolean                 @default(true)
+  doc_type_code         String                  @default("ERP_BANK_STATEMENT")
   org_fin_bank_stmt_dtl org_fin_bank_stmt_dtl[]
+  sys_doc_seq_type_cd   sys_doc_seq_type_cd     @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fbs_doc_type")
   org_fin_bank_acct_mst org_fin_bank_acct_mst   @relation(fields: [bank_account_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofbs_bank")
   org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofbs_tenant")
 
@@ -10882,7 +10988,9 @@ model org_fin_cash_rec_mst {
   rec_order           Int?
   rec_notes           String?               @db.VarChar(200)
   is_active           Boolean               @default(true)
+  doc_type_code       String                @default("ERP_PETTY_CASH_RECON")
   org_fin_cash_exc_tr org_fin_cash_exc_tr[]
+  sys_doc_seq_type_cd sys_doc_seq_type_cd   @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fcr_doc_type")
   org_branches_mst    org_branches_mst?     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofcr_brn")
   org_fin_cashbox_mst org_fin_cashbox_mst   @relation(fields: [cashbox_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofcr_cash")
   org_tenants_mst     org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofcr_tnt")
@@ -10928,6 +11036,8 @@ model org_fin_cash_txn_tr {
   rec_order                                                                              Int?
   rec_notes                                                                              String?                @db.VarChar(200)
   is_active                                                                              Boolean                @default(true)
+  doc_type_code                                                                          String                 @default("ERP_PETTY_CASH_TXN")
+  sys_doc_seq_type_cd                                                                    sys_doc_seq_type_cd    @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fct_doc_type")
   org_branches_mst                                                                       org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofct_branch")
   org_fin_cashbox_mst                                                                    org_fin_cashbox_mst    @relation(fields: [cashbox_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofct_cash")
   sys_fin_usage_code_cd_org_fin_cash_txn_tr_expense_usage_code_idTosys_fin_usage_code_cd sys_fin_usage_code_cd? @relation("org_fin_cash_txn_tr_expense_usage_code_idTosys_fin_usage_code_cd", fields: [expense_usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofct_exp")
@@ -11075,7 +11185,9 @@ model org_fin_cost_run_mst {
   rec_order            Int?
   rec_notes            String?                @db.VarChar(200)
   is_active            Boolean                @default(true)
+  doc_type_code        String                 @default("ERP_COST_RUN")
   org_fin_cost_run_dtl org_fin_cost_run_dtl[]
+  sys_doc_seq_type_cd  sys_doc_seq_type_cd    @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fcn_doc_type")
   org_fin_period_mst   org_fin_period_mst?    @relation(fields: [period_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofcm_per")
   org_tenants_mst      org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofcm_tnt")
 
@@ -11188,37 +11300,39 @@ model org_fin_exp_dtl {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_fin_exp_mst {
-  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id    String            @db.Uuid
-  branch_id        String?           @db.Uuid
-  expense_no       String            @db.VarChar(60)
-  expense_date     DateTime          @db.Date
-  posting_date     DateTime?         @db.Date
-  status_code      String            @default("RECORDED") @db.VarChar(20)
-  settlement_code  String            @default("CASH") @db.VarChar(20)
-  currency_code    String            @db.VarChar(10)
-  exchange_rate    Decimal           @default(1) @db.Decimal(19, 8)
-  subtotal_amount  Decimal           @default(0) @db.Decimal(19, 4)
-  tax_amount       Decimal           @default(0) @db.Decimal(19, 4)
-  total_amount     Decimal           @default(0) @db.Decimal(19, 4)
-  source_ref_no    String?           @db.VarChar(80)
-  payee_name       String?           @db.VarChar(250)
-  payee_name2      String?           @db.VarChar(250)
-  description      String?
-  description2     String?
-  created_at       DateTime          @default(now()) @db.Timestamp(6)
-  created_by       String?           @db.VarChar(120)
-  created_info     String?
-  updated_at       DateTime?         @db.Timestamp(6)
-  updated_by       String?           @db.VarChar(120)
-  updated_info     String?
-  rec_status       Int               @default(1) @db.SmallInt
-  rec_order        Int?
-  rec_notes        String?           @db.VarChar(200)
-  is_active        Boolean           @default(true)
-  org_fin_exp_dtl  org_fin_exp_dtl[]
-  org_branches_mst org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofe_branch")
-  org_tenants_mst  org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofe_tenant")
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String              @db.Uuid
+  branch_id           String?             @db.Uuid
+  expense_no          String              @db.VarChar(60)
+  expense_date        DateTime            @db.Date
+  posting_date        DateTime?           @db.Date
+  status_code         String              @default("RECORDED") @db.VarChar(20)
+  settlement_code     String              @default("CASH") @db.VarChar(20)
+  currency_code       String              @db.VarChar(10)
+  exchange_rate       Decimal             @default(1) @db.Decimal(19, 8)
+  subtotal_amount     Decimal             @default(0) @db.Decimal(19, 4)
+  tax_amount          Decimal             @default(0) @db.Decimal(19, 4)
+  total_amount        Decimal             @default(0) @db.Decimal(19, 4)
+  source_ref_no       String?             @db.VarChar(80)
+  payee_name          String?             @db.VarChar(250)
+  payee_name2         String?             @db.VarChar(250)
+  description         String?
+  description2        String?
+  created_at          DateTime            @default(now()) @db.Timestamp(6)
+  created_by          String?             @db.VarChar(120)
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamp(6)
+  updated_by          String?             @db.VarChar(120)
+  updated_info        String?
+  rec_status          Int                 @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?             @db.VarChar(200)
+  is_active           Boolean             @default(true)
+  doc_type_code       String              @default("ERP_EXPENSE")
+  org_fin_exp_dtl     org_fin_exp_dtl[]
+  sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fex_doc_type")
+  org_branches_mst    org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofe_branch")
+  org_tenants_mst     org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofe_tenant")
 
   @@unique([tenant_org_id, id], map: "uq_ofe_tenant_id")
   @@unique([tenant_org_id, expense_no], map: "uq_ofe_tenant_no")
@@ -11341,7 +11455,9 @@ model org_fin_journal_mst {
   rec_order                 Int?
   rec_notes                 String?                    @db.VarChar(200)
   is_active                 Boolean                    @default(true)
+  doc_type_code             String                     @default("FIN_JOURNAL")
   org_fin_journal_dtl       org_fin_journal_dtl[]
+  sys_doc_seq_type_cd       sys_doc_seq_type_cd        @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fjr_doc_type")
   org_branches_mst          org_branches_mst?          @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofj_branch")
   sys_fin_evt_cd            sys_fin_evt_cd             @relation(fields: [txn_event_code], references: [evt_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofj_evt")
   org_fin_journal_mst       org_fin_journal_mst?       @relation("org_fin_journal_mstToorg_fin_journal_mst", fields: [reversal_of_journal_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofj_rev")
@@ -11481,34 +11597,36 @@ model org_fin_po_dtl {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_fin_po_mst {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id      String               @db.Uuid
-  supplier_id        String               @db.Uuid
-  branch_id          String?              @db.Uuid
-  po_no              String               @db.VarChar(40)
-  po_date            DateTime             @db.Date
-  expected_date      DateTime?            @db.Date
-  currency_code      String               @db.VarChar(10)
-  exchange_rate      Decimal              @default(1) @db.Decimal(19, 4)
-  subtotal_amount    Decimal              @default(0) @db.Decimal(19, 4)
-  tax_amount         Decimal              @default(0) @db.Decimal(19, 4)
-  total_amount       Decimal              @default(0) @db.Decimal(19, 4)
-  status_code        String               @default("DRAFT") @db.VarChar(12)
-  created_at         DateTime             @default(now()) @db.Timestamp(6)
-  created_by         String?              @db.VarChar(120)
-  created_info       String?
-  updated_at         DateTime?            @db.Timestamp(6)
-  updated_by         String?              @db.VarChar(120)
-  updated_info       String?
-  rec_status         Int                  @default(1) @db.SmallInt
-  rec_order          Int?
-  rec_notes          String?              @db.VarChar(200)
-  is_active          Boolean              @default(true)
-  org_fin_ap_inv_mst org_fin_ap_inv_mst[]
-  org_fin_po_dtl     org_fin_po_dtl[]
-  org_branches_mst   org_branches_mst?    @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofpo_branch")
-  org_fin_supp_mst   org_fin_supp_mst     @relation(fields: [supplier_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofpo_supp")
-  org_tenants_mst    org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofpo_tenant")
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String               @db.Uuid
+  supplier_id         String               @db.Uuid
+  branch_id           String?              @db.Uuid
+  po_no               String               @db.VarChar(40)
+  po_date             DateTime             @db.Date
+  expected_date       DateTime?            @db.Date
+  currency_code       String               @db.VarChar(10)
+  exchange_rate       Decimal              @default(1) @db.Decimal(19, 4)
+  subtotal_amount     Decimal              @default(0) @db.Decimal(19, 4)
+  tax_amount          Decimal              @default(0) @db.Decimal(19, 4)
+  total_amount        Decimal              @default(0) @db.Decimal(19, 4)
+  status_code         String               @default("DRAFT") @db.VarChar(12)
+  created_at          DateTime             @default(now()) @db.Timestamp(6)
+  created_by          String?              @db.VarChar(120)
+  created_info        String?
+  updated_at          DateTime?            @db.Timestamp(6)
+  updated_by          String?              @db.VarChar(120)
+  updated_info        String?
+  rec_status          Int                  @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?              @db.VarChar(200)
+  is_active           Boolean              @default(true)
+  doc_type_code       String               @default("ERP_PO")
+  org_fin_ap_inv_mst  org_fin_ap_inv_mst[]
+  org_fin_po_dtl      org_fin_po_dtl[]
+  sys_doc_seq_type_cd sys_doc_seq_type_cd  @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fpo_doc_type")
+  org_branches_mst    org_branches_mst?    @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofpo_branch")
+  org_fin_supp_mst    org_fin_supp_mst     @relation(fields: [supplier_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_ofpo_supp")
+  org_tenants_mst     org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofpo_tenant")
 
   @@unique([tenant_org_id, po_no], map: "uq_ofpo_no")
   @@unique([tenant_org_id, id], map: "uq_ofpo_tenant_id")
@@ -11822,41 +11940,45 @@ model org_fin_supp_ctc_dtl {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_fin_supp_mst {
-  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id         String                 @db.Uuid
-  branch_id             String?                @db.Uuid
-  payable_acct_id       String?                @db.Uuid
-  default_usage_id      String?                @db.Uuid
-  supplier_code         String                 @db.VarChar(40)
-  name                  String                 @db.VarChar(250)
-  name2                 String?                @db.VarChar(250)
-  description           String?
-  description2          String?
-  email                 String?                @db.VarChar(250)
-  phone                 String?                @db.VarChar(40)
-  tax_reg_no            String?                @db.VarChar(80)
-  payment_terms_days    Int                    @default(0)
-  currency_code         String                 @db.VarChar(10)
-  status_code           String                 @default("ACTIVE") @db.VarChar(12)
-  posting_hold          Boolean                @default(false)
-  created_at            DateTime               @default(now()) @db.Timestamp(6)
-  created_by            String?                @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?              @db.Timestamp(6)
-  updated_by            String?                @db.VarChar(120)
-  updated_info          String?
-  rec_status            Int                    @default(1) @db.SmallInt
-  rec_order             Int?
-  rec_notes             String?                @db.VarChar(200)
-  is_active             Boolean                @default(true)
-  org_fin_ap_inv_mst    org_fin_ap_inv_mst[]
-  org_fin_ap_pmt_mst    org_fin_ap_pmt_mst[]
-  org_fin_po_mst        org_fin_po_mst[]
-  org_fin_supp_ctc_dtl  org_fin_supp_ctc_dtl[]
-  org_branches_mst      org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofs_branch")
-  org_fin_acct_mst      org_fin_acct_mst?      @relation(fields: [payable_acct_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofs_pay")
-  org_tenants_mst       org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofs_tenant")
-  sys_fin_usage_code_cd sys_fin_usage_code_cd? @relation(fields: [default_usage_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofs_usage")
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String                  @db.Uuid
+  branch_id              String?                 @db.Uuid
+  payable_acct_id        String?                 @db.Uuid
+  default_usage_id       String?                 @db.Uuid
+  supplier_code          String                  @db.VarChar(40)
+  name                   String                  @db.VarChar(250)
+  name2                  String?                 @db.VarChar(250)
+  description            String?
+  description2           String?
+  email                  String?                 @db.VarChar(250)
+  phone                  String?                 @db.VarChar(40)
+  tax_reg_no             String?                 @db.VarChar(80)
+  payment_terms_days     Int                     @default(0)
+  currency_code          String                  @db.VarChar(10)
+  status_code            String                  @default("ACTIVE") @db.VarChar(12)
+  posting_hold           Boolean                 @default(false)
+  created_at             DateTime                @default(now()) @db.Timestamp(6)
+  created_by             String?                 @db.VarChar(120)
+  created_info           String?
+  updated_at             DateTime?               @db.Timestamp(6)
+  updated_by             String?                 @db.VarChar(120)
+  updated_info           String?
+  rec_status             Int                     @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?                 @db.VarChar(200)
+  is_active              Boolean                 @default(true)
+  tax_party_class_code   String?
+  tax_country            String?
+  org_fin_ap_inv_mst     org_fin_ap_inv_mst[]
+  org_fin_ap_pmt_mst     org_fin_ap_pmt_mst[]
+  org_fin_po_mst         org_fin_po_mst[]
+  org_fin_supp_ctc_dtl   org_fin_supp_ctc_dtl[]
+  org_branches_mst       org_branches_mst?       @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofs_branch")
+  org_fin_acct_mst       org_fin_acct_mst?       @relation(fields: [payable_acct_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofs_pay")
+  sys_country_cd         sys_country_cd?         @relation(fields: [tax_country], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ofs_tax_country")
+  sys_tax_party_class_cd sys_tax_party_class_cd? @relation(fields: [tax_party_class_code], references: [party_class_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ofs_tax_party_class")
+  org_tenants_mst        org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofs_tenant")
+  sys_fin_usage_code_cd  sys_fin_usage_code_cd?  @relation(fields: [default_usage_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofs_usage")
 
   @@unique([tenant_org_id, supplier_code], map: "uq_ofs_code")
   @@unique([tenant_org_id, id], map: "uq_ofs_tenant_id")
@@ -12567,6 +12689,7 @@ model org_pos_sessions_mst {
   rollover_applied_at           DateTime?                       @db.Timestamptz(6)
   stale_flagged_at              DateTime?                       @db.Timestamptz(6)
   auto_close_reason             String?
+  doc_type_code                 String                          @default("POS_SESSION")
   org_fin_voucher_trx_lines_dtl org_fin_voucher_trx_lines_dtl[]
   org_order_payments_dtl        org_order_payments_dtl[]
   org_order_refunds_dtl         org_order_refunds_dtl[]
@@ -12576,6 +12699,7 @@ model org_pos_sessions_mst {
   org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst?   @relation(fields: [cash_drawer_session_id], references: [id], onUpdate: NoAction, map: "fk_ops_draw_sess")
   org_cash_drawers_mst          org_cash_drawers_mst?           @relation(fields: [cash_drawer_id], references: [id], onUpdate: NoAction, map: "fk_ops_drawer")
   org_payment_terminals_cf      org_payment_terminals_cf?       @relation(fields: [terminal_id], references: [id], onUpdate: NoAction, map: "fk_ops_term")
+  sys_doc_seq_type_cd           sys_doc_seq_type_cd             @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_pss_doc_type")
   sys_pos_session_status_cd     sys_pos_session_status_cd       @relation(fields: [status], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_pos_shift_z_rpt_tr        org_pos_shift_z_rpt_tr?
@@ -14440,21 +14564,24 @@ model sys_service_preference_cd {
 }
 
 model sys_tax_types_cd {
-  tax_type     String    @id
-  name         String
-  name2        String?
-  description  String?
-  sort_order   Int       @default(0) @db.SmallInt
-  is_active    Boolean   @default(true)
-  rec_status   Int       @default(1) @db.SmallInt
-  rec_order    Int?
-  rec_notes    String?
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  created_by   String?
-  created_info String?
-  updated_at   DateTime? @db.Timestamptz(6)
-  updated_by   String?
-  updated_info String?
+  tax_type              String                  @id
+  name                  String
+  name2                 String?
+  description           String?
+  sort_order            Int                     @default(0) @db.SmallInt
+  is_active             Boolean                 @default(true)
+  rec_status            Int                     @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  charge_kind           String                  @default("TAX")
+  org_tax_profiles_cf   org_tax_profiles_cf[]
+  sys_tax_kit_codes_dtl sys_tax_kit_codes_dtl[]
 
   @@schema("public")
 }
@@ -15088,7 +15215,9 @@ model org_pos_shift_z_rpt_tr {
   created_info           String?
   rec_status             Int                  @default(1) @db.SmallInt
   is_active              Boolean              @default(true)
+  doc_type_code          String               @default("POS_Z_REPORT")
   org_pos_sessions_mst   org_pos_sessions_mst @relation(fields: [tenant_org_id, pos_session_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_opszr_session")
+  sys_doc_seq_type_cd    sys_doc_seq_type_cd  @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_pzr_doc_type")
   org_tenants_mst        org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([tenant_org_id, pos_session_id], map: "uq_opszr_session")
@@ -16670,8 +16799,10 @@ model sys_service_speed_cd {
   updated_at                DateTime?                   @db.Timestamptz(6)
   updated_by                String?                     @db.Uuid
   rec_status                Int                         @default(1) @db.SmallInt
+  default_turnaround_unit   String?
   org_order_item_pieces_dtl org_order_item_pieces_dtl[]
   org_order_items_dtl       org_order_items_dtl[]
+  org_orders_mst            org_orders_mst[]
   org_speed_price_rules_cf  org_speed_price_rules_cf[]
 
   @@index([is_active, display_order], map: "idx_service_speed_active")
@@ -16700,7 +16831,9 @@ model sys_tax_category_cd {
   org_order_items_dtl       org_order_items_dtl[]
   org_product_data_mst      org_product_data_mst[]
   org_tax_doc_items_dtl     org_tax_doc_items_dtl[]
+  org_tax_profiles_cf       org_tax_profiles_cf[]
   sys_tax_exempt_reason_cd  sys_tax_exempt_reason_cd[]
+  sys_tax_kit_codes_dtl     sys_tax_kit_codes_dtl[]
 
   @@index([is_active, display_order], map: "idx_tax_category_active")
   @@schema("public")
@@ -16736,6 +16869,9 @@ model org_speed_price_rules_cf {
   updated_at                DateTime?                   @db.Timestamptz(6)
   updated_by                String?
   updated_info              String?
+  turnaround_unit           String?
+  turnaround_days_speed     Int?                        @db.SmallInt
+  cutoff_time_speed         DateTime?                   @db.Time(6)
   org_order_item_pieces_dtl org_order_item_pieces_dtl[]
   org_order_items_dtl       org_order_items_dtl[]
   org_branches_mst          org_branches_mst?           @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_spd_price_rules_branch")
@@ -17019,55 +17155,86 @@ model sys_doc_seq_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model sys_doc_seq_type_cd {
-  doc_type_code               String                      @id(map: "pk_sys_doc_seq_type_cd")
-  name                        String
-  name2                       String?
-  description                 String?
-  description2                String?
-  scope_code                  String
-  category_code               String
-  module_code                 String
-  sub_system_code             String
-  target_table                String
-  target_column               String
-  is_unique                   Boolean                     @default(true)
-  unique_with                 String[]
-  prefix                      String?
-  type_prefix                 String                      @unique(map: "uq_doc_seq_type_tprefix")
-  separator                   String                      @default("-")
-  parts_format                String
-  how_many_parts              Int?                        @default(dbgenerated("(cardinality(string_to_array(parts_format, '-'::text)))::smallint")) @db.SmallInt
-  seq_pad_length              Int                         @default(6) @db.SmallInt
-  full_size                   Int?                        @default(dbgenerated("fn_doc_seq_full_size(prefix, separator, parts_format, seq_pad_length)")) @db.SmallInt
-  reset_policy                String?
-  manage_by_level             String
-  managed_by_object           String?
-  allow_tenant_override       Boolean                     @default(false)
-  strict_no_gaps              Boolean                     @default(false)
-  implement_description       String
-  display_order               Int                         @default(0)
-  created_at                  DateTime                    @default(now()) @db.Timestamptz(6)
-  created_by                  String?
-  created_info                String?
-  updated_at                  DateTime?                   @db.Timestamptz(6)
-  updated_by                  String?
-  updated_info                String?
-  updated_count               Int?                        @default(0)
-  deleted_at                  DateTime?                   @db.Timestamptz(6)
-  deleted_by                  String?
-  deleted_info                String?
-  rec_status                  Int                         @default(1) @db.SmallInt
-  rec_order                   Int?
-  rec_notes                   String?
-  is_active                   Boolean                     @default(true)
-  implement_description2      String
-  hq_doc_seq_mst              hq_doc_seq_mst[]
-  org_doc_seq_mst             org_doc_seq_mst[]
-  sys_doc_seq_mst             sys_doc_seq_mst[]
-  sys_doc_seq_category_cd     sys_doc_seq_category_cd     @relation(fields: [category_code], references: [category_code], onUpdate: NoAction, map: "fk_doc_seq_type_cat")
-  sys_doc_seq_manage_level_cd sys_doc_seq_manage_level_cd @relation(fields: [manage_by_level], references: [manage_level_code], onUpdate: NoAction, map: "fk_doc_seq_type_level")
-  sys_saas_scope_cd           sys_saas_scope_cd           @relation(fields: [scope_code], references: [scope_code], onUpdate: NoAction, map: "fk_doc_seq_type_scope")
-  sys_module_sub_systems_cd   sys_module_sub_systems_cd   @relation(fields: [module_code, sub_system_code], references: [module_code, sub_system_code], onUpdate: NoAction, map: "fk_doc_seq_type_subsys")
+  doc_type_code                String                         @id(map: "pk_sys_doc_seq_type_cd")
+  name                         String
+  name2                        String?
+  description                  String?
+  description2                 String?
+  scope_code                   String
+  category_code                String
+  module_code                  String
+  sub_system_code              String
+  target_table                 String
+  target_column                String
+  is_unique                    Boolean                        @default(true)
+  unique_with                  String[]
+  prefix                       String?
+  type_prefix                  String                         @unique(map: "uq_doc_seq_type_tprefix")
+  separator                    String                         @default("-")
+  parts_format                 String
+  how_many_parts               Int?                           @default(dbgenerated("(cardinality(string_to_array(parts_format, '-'::text)))::smallint")) @db.SmallInt
+  seq_pad_length               Int                            @default(6) @db.SmallInt
+  full_size                    Int?                           @default(dbgenerated("fn_doc_seq_full_size(prefix, separator, parts_format, seq_pad_length)")) @db.SmallInt
+  reset_policy                 String?
+  manage_by_level              String
+  managed_by_object            String?
+  allow_tenant_override        Boolean                        @default(false)
+  strict_no_gaps               Boolean                        @default(false)
+  implement_description        String
+  display_order                Int                            @default(0)
+  created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
+  created_by                   String?
+  created_info                 String?
+  updated_at                   DateTime?                      @db.Timestamptz(6)
+  updated_by                   String?
+  updated_info                 String?
+  updated_count                Int?                           @default(0)
+  deleted_at                   DateTime?                      @db.Timestamptz(6)
+  deleted_by                   String?
+  deleted_info                 String?
+  rec_status                   Int                            @default(1) @db.SmallInt
+  rec_order                    Int?
+  rec_notes                    String?
+  is_active                    Boolean                        @default(true)
+  implement_description2       String
+  tax_flow_code                String                         @default("NONE")
+  is_tax_relevant              Boolean                        @default(false)
+  hq_doc_seq_mst               hq_doc_seq_mst[]
+  org_ar_disputes_mst          org_ar_disputes_mst[]
+  org_ar_dunning_runs_mst      org_ar_dunning_runs_mst[]
+  org_b2b_statements_mst       org_b2b_statements_mst[]
+  org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst[]
+  org_cash_drawer_trx_mst      org_cash_drawer_trx_mst[]
+  org_credit_notes_mst         org_credit_notes_mst[]
+  org_dlv_routes_mst           org_dlv_routes_mst[]
+  org_doc_seq_mst              org_doc_seq_mst[]
+  org_fin_alloc_run_mst        org_fin_alloc_run_mst[]
+  org_fin_ap_inv_mst           org_fin_ap_inv_mst[]
+  org_fin_ap_pmt_mst           org_fin_ap_pmt_mst[]
+  org_fin_bank_recon_mst       org_fin_bank_recon_mst[]
+  org_fin_bank_stmt_mst        org_fin_bank_stmt_mst[]
+  org_fin_cash_rec_mst         org_fin_cash_rec_mst[]
+  org_fin_cash_txn_tr          org_fin_cash_txn_tr[]
+  org_fin_cost_run_mst         org_fin_cost_run_mst[]
+  org_fin_exp_mst              org_fin_exp_mst[]
+  org_fin_journal_mst          org_fin_journal_mst[]
+  org_fin_po_mst               org_fin_po_mst[]
+  org_fin_recon_runs_mst       org_fin_recon_runs_mst[]
+  org_fin_vouchers_mst         org_fin_vouchers_mst[]
+  org_inv_stock_tr             org_inv_stock_tr[]
+  org_invoice_mst              org_invoice_mst[]
+  org_order_refunds_dtl        org_order_refunds_dtl[]
+  org_orders_mst               org_orders_mst[]
+  org_pos_sessions_mst         org_pos_sessions_mst[]
+  org_pos_shift_z_rpt_tr       org_pos_shift_z_rpt_tr[]
+  org_tax_documents_mst        org_tax_documents_mst[]
+  org_tax_rules_cf             org_tax_rules_cf[]
+  sys_doc_seq_mst              sys_doc_seq_mst[]
+  sys_doc_seq_category_cd      sys_doc_seq_category_cd        @relation(fields: [category_code], references: [category_code], onUpdate: NoAction, map: "fk_doc_seq_type_cat")
+  sys_doc_seq_manage_level_cd  sys_doc_seq_manage_level_cd    @relation(fields: [manage_by_level], references: [manage_level_code], onUpdate: NoAction, map: "fk_doc_seq_type_level")
+  sys_saas_scope_cd            sys_saas_scope_cd              @relation(fields: [scope_code], references: [scope_code], onUpdate: NoAction, map: "fk_doc_seq_type_scope")
+  sys_module_sub_systems_cd    sys_module_sub_systems_cd      @relation(fields: [module_code, sub_system_code], references: [module_code, sub_system_code], onUpdate: NoAction, map: "fk_doc_seq_type_subsys")
+  sys_tax_kit_rules_dtl        sys_tax_kit_rules_dtl[]
 
   @@index([module_code, sub_system_code], map: "idx_doc_seq_type_subsys")
   @@schema("public")
@@ -17267,6 +17434,784 @@ model hq_navigation_cd {
 
   @@index([parent_nav_code], map: "idx_hq_nav_parent")
   @@index([section_code, display_order], map: "idx_hq_nav_section")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_setup_health_check_cd {
+  check_code                 String                     @id(map: "pk_sys_shc_check")
+  domain_code                String
+  severity                   String
+  name                       String
+  name2                      String
+  description                String
+  description2               String
+  fix_route                  String?
+  hq_fix_route               String?
+  fix_permission             String?
+  feature_flag_key           String?
+  shows_banner               Boolean                    @default(false)
+  is_hq_only                 Boolean                    @default(false)
+  fn_name                    String
+  display_order              Int                        @default(0)
+  is_active                  Boolean                    @default(true)
+  rec_status                 Int                        @default(1) @db.SmallInt
+  created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                  @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                        @default(0)
+  deleted_at                 DateTime?                  @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_order                  Int?
+  rec_notes                  String?
+  sys_setup_health_domain_cd sys_setup_health_domain_cd @relation(fields: [domain_code], references: [domain_code], onUpdate: NoAction, map: "fk_shc_check_domain")
+
+  @@index([domain_code, display_order], map: "idx_shc_check_domain_ord")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_setup_health_domain_cd {
+  domain_code               String                      @id(map: "pk_sys_shc_domain")
+  name                      String
+  name2                     String
+  display_order             Int                         @default(0)
+  is_active                 Boolean                     @default(true)
+  rec_status                Int                         @default(1) @db.SmallInt
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  updated_count             Int                         @default(0)
+  deleted_at                DateTime?                   @db.Timestamptz(6)
+  deleted_by                String?
+  deleted_info              String?
+  rec_order                 Int?
+  rec_notes                 String?
+  sys_setup_health_check_cd sys_setup_health_check_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_holidays_cf {
+  id               String            @id(map: "pk_org_holidays_cf") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String            @db.Uuid
+  branch_id        String?           @db.Uuid
+  holiday_date     DateTime          @db.Date
+  name             String
+  name2            String?
+  is_closed        Boolean           @default(true)
+  open_time        DateTime?         @db.Time(6)
+  close_time       DateTime?         @db.Time(6)
+  is_active        Boolean           @default(true)
+  rec_status       Int               @default(1) @db.SmallInt
+  rec_notes        String?
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?         @db.Timestamptz(6)
+  updated_by       String?
+  updated_info     String?
+  org_branches_mst org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_hol_branch")
+  org_tenants_mst  org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_hol_tenant")
+
+  @@unique([tenant_org_id, branch_id, holiday_date], map: "uq_org_hol_scope_date")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_calendar_templates_mst {
+  calendar_code       String                @id(map: "pk_sys_cal_tpl")
+  country_code        String?               @unique(map: "uq_sys_cal_tpl_country")
+  name                String
+  name2               String?
+  business_hours      Json
+  weekend_days        String[]
+  order_cutoff_time   DateTime              @db.Time(6)
+  ready_time          DateTime              @db.Time(6)
+  is_active           Boolean               @default(true)
+  rec_status          Int                   @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?             @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  org_tenants_mst     org_tenants_mst[]
+  sys_country_cd      sys_country_cd?       @relation(fields: [country_code], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_sys_cal_tpl_country")
+  sys_starter_pkg_mst sys_starter_pkg_mst[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_public_holidays_cf {
+  id             String         @id(map: "pk_sys_pub_hol") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  country_code   String
+  holiday_date   DateTime       @db.Date
+  holiday_year   Int?           @default(dbgenerated("(EXTRACT(year FROM holiday_date))::smallint")) @db.SmallInt
+  holiday_code   String
+  name           String
+  name2          String?
+  is_estimated   Boolean        @default(true)
+  source_ref     String?
+  is_active      Boolean        @default(true)
+  rec_status     Int            @default(1) @db.SmallInt
+  rec_notes      String?
+  created_at     DateTime       @default(now()) @db.Timestamptz(6)
+  created_by     String?
+  created_info   String?
+  updated_at     DateTime?      @db.Timestamptz(6)
+  updated_by     String?
+  updated_info   String?
+  sys_country_cd sys_country_cd @relation(fields: [country_code], references: [code], onUpdate: NoAction, map: "fk_sys_pub_hol_country")
+
+  @@unique([country_code, holiday_date], map: "uq_sys_pub_hol_country_date")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_starter_pkg_mst {
+  pkg_code                   String                     @id(map: "pk_sys_starter_pkg")
+  country_code               String?
+  segment_code               String
+  tax_kit_code               String
+  calendar_template_code     String
+  tax_setup_mode             String                     @default("BASIC")
+  tax_pricing_mode           String                     @default("INCLUSIVE")
+  is_country_default         Boolean                    @default(false)
+  name                       String
+  name2                      String?
+  description                String?
+  description2               String?
+  display_order              Int                        @default(0)
+  is_active                  Boolean                    @default(true)
+  rec_status                 Int                        @default(1) @db.SmallInt
+  created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                  @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                        @default(0)
+  deleted_at                 DateTime?                  @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_order                  Int?
+  rec_notes                  String?
+  org_tax_config_cf          org_tax_config_cf[]
+  org_tenants_mst            org_tenants_mst[]
+  sys_calendar_templates_mst sys_calendar_templates_mst @relation(fields: [calendar_template_code], references: [calendar_code], onUpdate: NoAction, map: "fk_ssp_calendar")
+  sys_country_cd             sys_country_cd?            @relation(fields: [country_code], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ssp_country")
+  sys_tax_kits_mst           sys_tax_kits_mst           @relation(fields: [tax_kit_code], references: [kit_code], onUpdate: NoAction, map: "fk_ssp_kit")
+  sys_tax_segment_cd         sys_tax_segment_cd         @relation(fields: [segment_code], references: [segment_code], onUpdate: NoAction, map: "fk_ssp_segment")
+  sys_starter_pkg_trig_dtl   sys_starter_pkg_trig_dtl[]
+
+  @@unique([country_code, segment_code], map: "uq_ssp_country_segment")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_starter_pkg_trig_dtl {
+  pkg_code            String
+  trigger_event       String
+  document_type       String
+  created_at          DateTime            @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int                 @default(0)
+  deleted_at          DateTime?           @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_status          Int                 @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?
+  is_active           Boolean             @default(true)
+  sys_starter_pkg_mst sys_starter_pkg_mst @relation(fields: [pkg_code], references: [pkg_code], onDelete: Cascade, onUpdate: NoAction, map: "fk_sspt_pkg")
+
+  @@id([pkg_code, trigger_event], map: "pk_sys_starter_pkg_trig")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kit_codes_dtl {
+  kit_version_id             String                       @db.Uuid
+  tax_code                   String
+  name                       String
+  name2                      String?
+  tax_type                   String
+  tax_category_code          String
+  tax_flow_code              String
+  amount_kind                String                       @default("PERCENT")
+  rate                       Decimal?                     @db.Decimal(9, 4)
+  fixed_amount               Decimal?                     @db.Decimal(19, 4)
+  calc_level                 String                       @default("LINE")
+  recoverable_pct            Decimal                      @default(100) @db.Decimal(7, 4)
+  is_reverse_charge          Boolean                      @default(false)
+  priority                   Int                          @default(1) @db.SmallInt
+  compound_base              Boolean                      @default(false)
+  display_order              Int                          @default(0)
+  rec_status                 Int                          @default(1) @db.SmallInt
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                    @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                          @default(0)
+  deleted_at                 DateTime?                    @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                      @default(true)
+  sys_tax_category_cd        sys_tax_category_cd          @relation(fields: [tax_category_code], references: [code], onUpdate: NoAction, map: "fk_stkc_category")
+  sys_tax_types_cd           sys_tax_types_cd             @relation(fields: [tax_type], references: [tax_type], onUpdate: NoAction, map: "fk_stkc_type")
+  sys_tax_kit_versions_mst   sys_tax_kit_versions_mst     @relation(fields: [kit_version_id], references: [id], onUpdate: NoAction, map: "fk_stkc_version")
+  sys_tax_kit_rule_codes_dtl sys_tax_kit_rule_codes_dtl[]
+
+  @@id([kit_version_id, tax_code], map: "pk_sys_tax_kit_codes")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kit_item_classes_dtl {
+  kit_version_id           String                   @db.Uuid
+  class_code               String
+  tax_flow_code            String
+  name                     String
+  name2                    String?
+  description              String?
+  description2             String?
+  is_default               Boolean                  @default(false)
+  display_order            Int                      @default(0)
+  rec_status               Int                      @default(1) @db.SmallInt
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  updated_count            Int                      @default(0)
+  deleted_at               DateTime?                @db.Timestamptz(6)
+  deleted_by               String?
+  deleted_info             String?
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                  @default(true)
+  sys_tax_kit_versions_mst sys_tax_kit_versions_mst @relation(fields: [kit_version_id], references: [id], onUpdate: NoAction, map: "fk_stki_version")
+  sys_tax_kit_rules_dtl    sys_tax_kit_rules_dtl[]
+
+  @@id([kit_version_id, class_code], map: "pk_sys_tax_kit_cls")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kit_rule_codes_dtl {
+  rule_id               String                @db.Uuid
+  kit_version_id        String                @db.Uuid
+  seq_no                Int                   @db.SmallInt
+  tax_code              String
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?             @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  updated_count         Int                   @default(0)
+  deleted_at            DateTime?             @db.Timestamptz(6)
+  deleted_by            String?
+  deleted_info          String?
+  rec_status            Int                   @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean               @default(true)
+  sys_tax_kit_codes_dtl sys_tax_kit_codes_dtl @relation(fields: [kit_version_id, tax_code], references: [kit_version_id, tax_code], onUpdate: NoAction, map: "fk_stkrc_code")
+  sys_tax_kit_rules_dtl sys_tax_kit_rules_dtl @relation(fields: [rule_id, kit_version_id], references: [id, kit_version_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_stkrc_rule")
+
+  @@id([rule_id, seq_no], map: "pk_sys_tax_kit_rcodes")
+  @@unique([rule_id, tax_code], map: "uq_stkrc_rule_code")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kit_rules_dtl {
+  id                           String                        @id(map: "pk_sys_tax_kit_rules") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kit_version_id               String                        @db.Uuid
+  rule_code                    String
+  doc_type_code                String?
+  tax_flow_code                String?
+  tax_item_class_code          String?
+  party_tax_class_code         String?
+  party_country_scope          String?
+  segment_codes                String[]
+  priority                     Int                           @default(100) @db.SmallInt
+  name                         String
+  name2                        String?
+  rec_status                   Int                           @default(1) @db.SmallInt
+  created_at                   DateTime                      @default(now()) @db.Timestamptz(6)
+  created_by                   String?
+  created_info                 String?
+  updated_at                   DateTime?                     @db.Timestamptz(6)
+  updated_by                   String?
+  updated_info                 String?
+  updated_count                Int                           @default(0)
+  deleted_at                   DateTime?                     @db.Timestamptz(6)
+  deleted_by                   String?
+  deleted_info                 String?
+  rec_order                    Int?
+  rec_notes                    String?
+  is_active                    Boolean                       @default(true)
+  sys_tax_kit_rule_codes_dtl   sys_tax_kit_rule_codes_dtl[]
+  sys_tax_kit_item_classes_dtl sys_tax_kit_item_classes_dtl? @relation(fields: [kit_version_id, tax_item_class_code], references: [kit_version_id, class_code], onUpdate: NoAction, map: "fk_stkr_class")
+  sys_doc_seq_type_cd          sys_doc_seq_type_cd?          @relation(fields: [doc_type_code], references: [doc_type_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_stkr_doc_type")
+  sys_tax_party_class_cd       sys_tax_party_class_cd?       @relation(fields: [party_tax_class_code], references: [party_class_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_stkr_party")
+  sys_tax_kit_versions_mst     sys_tax_kit_versions_mst      @relation(fields: [kit_version_id], references: [id], onUpdate: NoAction, map: "fk_stkr_version")
+
+  @@unique([kit_version_id, rule_code], map: "uq_stkr_code")
+  @@unique([kit_version_id, doc_type_code, tax_flow_code, tax_item_class_code, party_tax_class_code, party_country_scope, segment_codes], map: "uq_stkr_criteria")
+  @@unique([id, kit_version_id], map: "uq_stkr_id_version")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kit_vectors_dtl {
+  kit_version_id           String                   @db.Uuid
+  vector_code              String
+  description              String
+  description2             String?
+  input                    Json
+  expected                 Json
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  updated_count            Int                      @default(0)
+  deleted_at               DateTime?                @db.Timestamptz(6)
+  deleted_by               String?
+  deleted_info             String?
+  rec_status               Int                      @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                  @default(true)
+  sys_tax_kit_versions_mst sys_tax_kit_versions_mst @relation(fields: [kit_version_id], references: [id], onUpdate: NoAction, map: "fk_stkx_version")
+
+  @@id([kit_version_id, vector_code], map: "pk_sys_tax_kit_vectors")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kit_versions_mst {
+  id                           String                         @id(map: "pk_sys_tax_kit_ver") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kit_code                     String
+  version_no                   Int
+  status                       String                         @default("DRAFT")
+  effective_from               DateTime                       @db.Date
+  effective_to                 DateTime?                      @db.Date
+  currency_code                String?
+  mandatory_reg_threshold      Decimal?                       @db.Decimal(19, 4)
+  voluntary_reg_threshold      Decimal?                       @db.Decimal(19, 4)
+  simplified_max_amount        Decimal?                       @db.Decimal(19, 4)
+  rounding_level               String                         @default("LINE")
+  rounding_mode                String                         @default("HALF_UP")
+  tax_on_advance               Boolean                        @default(false)
+  is_verified                  Boolean                        @default(false)
+  source_url                   String?
+  checked_on                   DateTime?                      @db.Date
+  review_notes                 String?
+  published_at                 DateTime?                      @db.Timestamptz(6)
+  published_by                 String?
+  rec_status                   Int                            @default(1) @db.SmallInt
+  created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
+  created_by                   String?
+  created_info                 String?
+  updated_at                   DateTime?                      @db.Timestamptz(6)
+  updated_by                   String?
+  updated_info                 String?
+  updated_count                Int                            @default(0)
+  deleted_at                   DateTime?                      @db.Timestamptz(6)
+  deleted_by                   String?
+  deleted_info                 String?
+  rec_order                    Int?
+  rec_notes                    String?
+  is_active                    Boolean                        @default(true)
+  org_tax_config_cf            org_tax_config_cf[]
+  org_tax_item_classes_cf      org_tax_item_classes_cf[]
+  org_tax_profiles_cf          org_tax_profiles_cf[]
+  org_tax_rules_cf             org_tax_rules_cf[]
+  sys_tax_kit_codes_dtl        sys_tax_kit_codes_dtl[]
+  sys_tax_kit_item_classes_dtl sys_tax_kit_item_classes_dtl[]
+  sys_tax_kit_rules_dtl        sys_tax_kit_rules_dtl[]
+  sys_tax_kit_vectors_dtl      sys_tax_kit_vectors_dtl[]
+  sys_currency_cd              sys_currency_cd?               @relation(fields: [currency_code], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_stkv_currency")
+  sys_tax_kits_mst             sys_tax_kits_mst               @relation(fields: [kit_code], references: [kit_code], onUpdate: NoAction, map: "fk_stkv_kit")
+
+  @@unique([kit_code, version_no], map: "uq_stkv_kit_version")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_kits_mst {
+  kit_code                 String                     @id(map: "pk_sys_tax_kits")
+  country_code             String?
+  kit_kind                 String
+  name                     String
+  name2                    String?
+  description              String?
+  description2             String?
+  display_order            Int                        @default(0)
+  is_active                Boolean                    @default(true)
+  rec_status               Int                        @default(1) @db.SmallInt
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                  @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  updated_count            Int                        @default(0)
+  deleted_at               DateTime?                  @db.Timestamptz(6)
+  deleted_by               String?
+  deleted_info             String?
+  rec_order                Int?
+  rec_notes                String?
+  org_tax_config_cf        org_tax_config_cf[]
+  sys_starter_pkg_mst      sys_starter_pkg_mst[]
+  sys_tax_kit_versions_mst sys_tax_kit_versions_mst[]
+  sys_country_cd           sys_country_cd?            @relation(fields: [country_code], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_stk_country")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_party_class_cd {
+  party_class_code      String                  @id(map: "pk_sys_tax_party_cls")
+  name                  String
+  name2                 String?
+  description           String?
+  description2          String?
+  is_default            Boolean                 @default(false)
+  display_order         Int                     @default(0)
+  is_active             Boolean                 @default(true)
+  rec_status            Int                     @default(1) @db.SmallInt
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  updated_count         Int                     @default(0)
+  deleted_at            DateTime?               @db.Timestamptz(6)
+  deleted_by            String?
+  deleted_info          String?
+  rec_order             Int?
+  rec_notes             String?
+  org_customers_mst     org_customers_mst[]
+  org_fin_supp_mst      org_fin_supp_mst[]
+  org_tax_rules_cf      org_tax_rules_cf[]
+  sys_tax_kit_rules_dtl sys_tax_kit_rules_dtl[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_segment_cd {
+  segment_code        String                @id(map: "pk_sys_tax_segment")
+  name                String
+  name2               String?
+  description         String?
+  description2        String?
+  display_order       Int                   @default(0)
+  is_active           Boolean               @default(true)
+  rec_status          Int                   @default(1) @db.SmallInt
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  created_by          String?
+  created_info        String?
+  updated_at          DateTime?             @db.Timestamptz(6)
+  updated_by          String?
+  updated_info        String?
+  updated_count       Int                   @default(0)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  deleted_by          String?
+  deleted_info        String?
+  rec_order           Int?
+  rec_notes           String?
+  org_tax_config_cf   org_tax_config_cf[]
+  sys_starter_pkg_mst sys_starter_pkg_mst[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_setup_health_sum_tr {
+  tenant_org_id   String          @id(map: "pk_org_shc_sum") @db.Uuid
+  blocker_count   Int             @default(0)
+  warning_count   Int             @default(0)
+  info_count      Int             @default(0)
+  error_count     Int             @default(0)
+  checked_at      DateTime        @db.Timestamptz(6)
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  created_info    String?
+  updated_at      DateTime?       @db.Timestamptz(6)
+  updated_by      String?
+  updated_info    String?
+  updated_count   Int             @default(0)
+  deleted_at      DateTime?       @db.Timestamptz(6)
+  deleted_by      String?
+  deleted_info    String?
+  rec_status      Int             @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?
+  is_active       Boolean         @default(true)
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_shc_sum_tenant")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tax_config_cf {
+  id                       String                   @id(map: "pk_org_tax_config") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                   @unique(map: "uq_otc_tenant") @db.Uuid
+  starter_pkg_code         String
+  kit_code                 String
+  kit_version_id           String                   @db.Uuid
+  segment_code             String
+  setup_mode               String                   @default("BASIC")
+  status                   String                   @default("PENDING_CONFIRMATION")
+  tax_enabled              Boolean                  @default(false)
+  applied_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  applied_by               String
+  last_apply_summary       Json?
+  confirmed_at             DateTime?                @db.Timestamptz(6)
+  confirmed_by             String?
+  confirm_note             String?
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  updated_count            Int                      @default(0)
+  deleted_at               DateTime?                @db.Timestamptz(6)
+  deleted_by               String?
+  deleted_info             String?
+  rec_status               Int                      @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                  @default(true)
+  sys_tax_kits_mst         sys_tax_kits_mst         @relation(fields: [kit_code], references: [kit_code], onUpdate: NoAction, map: "fk_otc_kit")
+  sys_tax_kit_versions_mst sys_tax_kit_versions_mst @relation(fields: [kit_version_id], references: [id], onUpdate: NoAction, map: "fk_otc_kit_ver")
+  sys_starter_pkg_mst      sys_starter_pkg_mst      @relation(fields: [starter_pkg_code], references: [pkg_code], onUpdate: NoAction, map: "fk_otc_pkg")
+  sys_tax_segment_cd       sys_tax_segment_cd       @relation(fields: [segment_code], references: [segment_code], onUpdate: NoAction, map: "fk_otc_segment")
+  org_tenants_mst          org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otc_tenant")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tax_item_classes_cf {
+  id                       String                    @id(map: "pk_org_tax_item_cls") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                    @db.Uuid
+  class_code               String
+  tax_flow_code            String
+  name                     String
+  name2                    String?
+  description              String?
+  description2             String?
+  is_default               Boolean                   @default(false)
+  display_order            Int                       @default(0)
+  source                   String                    @default("TENANT")
+  kit_version_id           String?                   @db.Uuid
+  is_tenant_modified       Boolean                   @default(false)
+  created_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                 @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  updated_count            Int                       @default(0)
+  deleted_at               DateTime?                 @db.Timestamptz(6)
+  deleted_by               String?
+  deleted_info             String?
+  rec_status               Int                       @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                   @default(true)
+  org_product_data_mst     org_product_data_mst[]
+  sys_tax_kit_versions_mst sys_tax_kit_versions_mst? @relation(fields: [kit_version_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_otic_kit_ver")
+  org_tenants_mst          org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otic_tenant")
+  org_tax_rules_cf         org_tax_rules_cf[]
+
+  @@unique([tenant_org_id, class_code], map: "uq_otic_tenant_code")
+  @@unique([tenant_org_id, id], map: "uq_otic_tenant_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tax_periods_mst {
+  id              String          @id(map: "pk_org_tax_periods") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id   String          @db.Uuid
+  period_start    DateTime        @db.Date
+  period_end      DateTime        @db.Date
+  status          String          @default("OPEN")
+  closed_at       DateTime?       @db.Timestamptz(6)
+  closed_by       String?
+  reopened_at     DateTime?       @db.Timestamptz(6)
+  reopened_by     String?
+  reopen_reason   String?
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  created_info    String?
+  updated_at      DateTime?       @db.Timestamptz(6)
+  updated_by      String?
+  updated_info    String?
+  updated_count   Int             @default(0)
+  deleted_at      DateTime?       @db.Timestamptz(6)
+  deleted_by      String?
+  deleted_info    String?
+  rec_status      Int             @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?
+  is_active       Boolean         @default(true)
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otpm_tenant")
+
+  @@unique([tenant_org_id, id], map: "uq_otpm_tenant_id")
+  @@unique([tenant_org_id, period_start], map: "uq_otpm_tenant_start")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tax_rule_codes_dtl {
+  tenant_org_id    String           @db.Uuid
+  rule_id          String           @db.Uuid
+  seq_no           Int              @db.SmallInt
+  tax_code         String
+  created_at       DateTime         @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?        @db.Timestamptz(6)
+  updated_by       String?
+  updated_info     String?
+  updated_count    Int              @default(0)
+  deleted_at       DateTime?        @db.Timestamptz(6)
+  deleted_by       String?
+  deleted_info     String?
+  rec_status       Int              @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?
+  is_active        Boolean          @default(true)
+  org_tax_rules_cf org_tax_rules_cf @relation(fields: [tenant_org_id, rule_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_otrc_rule")
+
+  @@id([tenant_org_id, rule_id, seq_no], map: "pk_org_tax_rule_codes")
+  @@unique([tenant_org_id, rule_id, tax_code], map: "uq_otrc_rule_code")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tax_rules_cf {
+  id                       String                    @id(map: "pk_org_tax_rules") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                    @db.Uuid
+  rule_code                String
+  doc_type_code            String?
+  tax_flow_code            String?
+  branch_id                String?                   @db.Uuid
+  place_of_supply_country  String?
+  tax_item_class_code      String?
+  party_tax_class_code     String?
+  party_country_scope      String?
+  service_category_code    String?
+  effective_from           DateTime                  @db.Date
+  effective_to             DateTime?                 @db.Date
+  priority                 Int                       @default(100) @db.SmallInt
+  name                     String
+  name2                    String?
+  source                   String                    @default("TENANT")
+  kit_version_id           String?                   @db.Uuid
+  is_tenant_modified       Boolean                   @default(false)
+  created_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                 @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  updated_count            Int                       @default(0)
+  deleted_at               DateTime?                 @db.Timestamptz(6)
+  deleted_by               String?
+  deleted_info             String?
+  rec_status               Int                       @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                   @default(true)
+  org_tax_rule_codes_dtl   org_tax_rule_codes_dtl[]
+  org_branches_mst         org_branches_mst?         @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_otr_branch")
+  sys_doc_seq_type_cd      sys_doc_seq_type_cd?      @relation(fields: [doc_type_code], references: [doc_type_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otr_doc_type")
+  org_tax_item_classes_cf  org_tax_item_classes_cf?  @relation(fields: [tenant_org_id, tax_item_class_code], references: [tenant_org_id, class_code], onUpdate: NoAction, map: "fk_otr_item_class")
+  sys_tax_kit_versions_mst sys_tax_kit_versions_mst? @relation(fields: [kit_version_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_otr_kit_ver")
+  sys_tax_party_class_cd   sys_tax_party_class_cd?   @relation(fields: [party_tax_class_code], references: [party_class_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otr_party_class")
+  sys_country_cd           sys_country_cd?           @relation(fields: [place_of_supply_country], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otr_pos_country")
+  sys_service_category_cd  sys_service_category_cd?  @relation(fields: [service_category_code], references: [service_category_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otr_svc_cat")
+  org_tenants_mst          org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otr_tenant")
+
+  @@unique([tenant_org_id, rule_code], map: "uq_otr_tenant_code")
+  @@unique([tenant_org_id, id], map: "uq_otr_tenant_id")
   @@schema("public")
 }
 

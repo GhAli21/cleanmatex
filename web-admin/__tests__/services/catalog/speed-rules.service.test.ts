@@ -33,7 +33,10 @@ jest.mock('@/lib/db/prisma', () => {
       get org_order_items_dtl() { return items; },
       get org_order_item_pieces_dtl() { return pieces; },
       get org_product_data_mst() { return products; },
-      sys_service_speed_cd: { findFirst: async () => ({ code: 'EXPRESS' }) },
+      sys_service_speed_cd: {
+        findMany: async ({ where }: { where: { code: { in: string[] } } }) => [['ECONOMY', 1], ['STANDARD', 2], ['EXPRESS', 4], ['URGENT', 5]]
+          .filter(([code]) => where.code.in.includes(code as string)).map(([code, display_order]) => ({ code, display_order })),
+      },
       org_branches_mst: { findFirst: async () => ({ id: 'b1' }) },
       sys_service_category_cd: { findFirst: async () => ({ service_category_code: 'DRY' }) },
       $transaction: (fn: (t: typeof tx) => unknown) => fn(tx),
@@ -111,6 +114,45 @@ describe('speedRuleCreateSchema', () => {
   it('bulk needs a category', () => {
     expect(speedRuleBulkSchema.safeParse(input).success).toBe(false);
     expect(speedRuleBulkSchema.safeParse({ ...input, serviceCategoryCode: 'DRY' }).success).toBe(true);
+  });
+});
+
+describe('Service Speeds: turnaround unit and discounts', () => {
+  it('unit and value go together; hours alone read as HOURS', () => {
+    expect(speedRuleCreateSchema.safeParse({ ...input, turnaroundHhSpeed: '6' }).success).toBe(true);
+    expect(speedRuleCreateSchema.safeParse({ ...input, turnaroundUnit: 'WORKING_DAYS', turnaroundDaysSpeed: 1 }).success).toBe(true);
+    expect(speedRuleCreateSchema.safeParse({ ...input, turnaroundUnit: 'WORKING_DAYS', turnaroundHhSpeed: '6' }).success).toBe(false);
+    expect(speedRuleCreateSchema.safeParse({ ...input, turnaroundUnit: 'HOURS', turnaroundDaysSpeed: 1 }).success).toBe(false);
+    expect(speedRuleCreateSchema.safeParse({ ...input, turnaroundDaysSpeed: 1 }).success).toBe(false);
+    expect(speedRuleCreateSchema.safeParse({ ...input, cutoffTimeSpeed: '25:00' }).success).toBe(false);
+    expect(speedRuleCreateSchema.safeParse({ ...input, multiplierSpeed: '-1' }).success).toBe(false);
+  });
+
+  it('stores the working-days turnaround and the speed cut-off', async () => {
+    rules.create.mockResolvedValue(row());
+    rules.findFirst.mockResolvedValueOnce(null).mockResolvedValue(row());
+    await createSpeedRule(TENANT, USER, speedRuleCreateSchema.parse({ ...input, turnaroundUnit: 'WORKING_DAYS', turnaroundDaysSpeed: 0, cutoffTimeSpeed: '10:00' }));
+    expect(rules.create.mock.calls[0][0].data).toMatchObject({
+      turnaround_unit: 'WORKING_DAYS', turnaround_days_speed: 0, turnaround_hh_speed: null,
+      cutoff_time_speed: new Date('1970-01-01T10:00:00.000Z'),
+    });
+  });
+
+  it('only a speed ranked below STANDARD (ECONOMY) may lower the price', async () => {
+    const discount = speedRuleCreateSchema.parse({ ...input, multiplierSpeed: '-0.1' });
+    await expect(createSpeedRule(TENANT, USER, discount)).rejects.toMatchObject({ code: 'DISCOUNT_NOT_ALLOWED', status: 422 });
+    expect(rules.create).not.toHaveBeenCalled();
+
+    rules.create.mockResolvedValue(row({ service_speed: 'ECONOMY' }));
+    rules.findFirst.mockResolvedValueOnce(null).mockResolvedValue(row({ service_speed: 'ECONOMY' }));
+    await createSpeedRule(TENANT, USER, { ...discount, serviceSpeed: 'ECONOMY' });
+    expect(rules.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('a product sell price below the product price is a discount', async () => {
+    products.findFirst.mockResolvedValue({ id: PRODUCT, default_sell_price: { toString: () => '2' } });
+    const below = speedRuleCreateSchema.parse({ ...input, productId: PRODUCT, speedPriceType: 'SELL_PRICE', multiplierSpeed: null, defaultSpeedSellPrice: '1.5' });
+    await expect(createSpeedRule(TENANT, USER, below)).rejects.toMatchObject({ code: 'DISCOUNT_NOT_ALLOWED' });
   });
 });
 

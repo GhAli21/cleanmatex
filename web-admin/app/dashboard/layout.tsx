@@ -20,6 +20,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { SidebarProvider, useSidebar } from '@/lib/context/sidebar-context'
 import { DashboardBrowserTitle } from '@features/dashboard/ui/dashboard-browser-title'
 import { SessionLifecycleProvider } from '@features/auth-session/ui/session-lifecycle-provider'
+import { SetupBlockerBanner } from '@features/setup-health/ui/setup-blocker-banner'
 
 /** True when current route is the ready-order print preview (receipt or order-details). */
 function useIsPrintRoute(): boolean {
@@ -60,7 +61,10 @@ function DashboardContent({
       <CmxSidebar />
       <div className={`${paddingClass} ${transitionClass}`}>
         <CmxTopBar />
-        <main className="py-6 px-4 sm:px-6 lg:px-8">{children}</main>
+        <main className="py-6 px-4 sm:px-6 lg:px-8">
+          <SetupBlockerBanner />
+          {children}
+        </main>
       </div>
     </>
   )

@@ -88,13 +88,13 @@ isOneToOne: false
                   ]
                 },"hq_audit_logs": {
                   Row: {
-                    "action": string,"action_category": string | null,"actor_type": string | null,"batch_id": string | null,"change_reason": string | null,"created_at": string | null,"details": Json | null,"duration_ms": number | null,"error_message": string | null,"http_method": string | null,"http_path": string | null,"http_status_code": number | null,"id": string,"ip_address": unknown,"is_sensitive": boolean,"new_value": Json | null,"old_value": Json | null,"parent_audit_id": string | null,"request_id": string | null,"resource_id": string | null,"resource_label": string | null,"resource_type": string | null,"session_id": string | null,"severity": string | null,"source_module": string | null,"success": boolean | null,"tags": (string)[] | null,"tenant_org_id": string | null,"user_agent": string | null,"user_email": string | null,"user_id": string | null
+                    "action": string,"action_category": string | null,"actor_role_code": string | null,"actor_type": string | null,"batch_id": string | null,"change_reason": string | null,"changed_fields": (string)[] | null,"created_at": string | null,"details": Json | null,"duration_ms": number | null,"error_message": string | null,"http_method": string | null,"http_path": string | null,"http_status_code": number | null,"id": string,"impersonated_user_id": string | null,"ip_address": unknown,"is_sensitive": boolean,"new_value": Json | null,"old_value": Json | null,"origin_service": string,"parent_audit_id": string | null,"prev_hash": string | null,"request_id": string | null,"resource_id": string | null,"resource_label": string | null,"resource_type": string | null,"row_hash": string | null,"seq_no": number,"session_id": string | null,"severity": string | null,"source_module": string | null,"success": boolean | null,"tags": (string)[] | null,"tenant_org_id": string | null,"user_agent": string | null,"user_email": string | null,"user_id": string | null
                   }
                   Insert: {
-                    "action": string,"action_category"?: string | null,"actor_type"?: string | null,"batch_id"?: string | null,"change_reason"?: string | null,"created_at"?: string | null,"details"?: Json | null,"duration_ms"?: number | null,"error_message"?: string | null,"http_method"?: string | null,"http_path"?: string | null,"http_status_code"?: number | null,"id"?: string,"ip_address"?: unknown,"is_sensitive"?: boolean,"new_value"?: Json | null,"old_value"?: Json | null,"parent_audit_id"?: string | null,"request_id"?: string | null,"resource_id"?: string | null,"resource_label"?: string | null,"resource_type"?: string | null,"session_id"?: string | null,"severity"?: string | null,"source_module"?: string | null,"success"?: boolean | null,"tags"?: (string)[] | null,"tenant_org_id"?: string | null,"user_agent"?: string | null,"user_email"?: string | null,"user_id"?: string | null
+                    "action": string,"action_category"?: string | null,"actor_role_code"?: string | null,"actor_type"?: string | null,"batch_id"?: string | null,"change_reason"?: string | null,"changed_fields"?: (string)[] | null,"created_at"?: string | null,"details"?: Json | null,"duration_ms"?: number | null,"error_message"?: string | null,"http_method"?: string | null,"http_path"?: string | null,"http_status_code"?: number | null,"id"?: string,"impersonated_user_id"?: string | null,"ip_address"?: unknown,"is_sensitive"?: boolean,"new_value"?: Json | null,"old_value"?: Json | null,"origin_service"?: string,"parent_audit_id"?: string | null,"prev_hash"?: string | null,"request_id"?: string | null,"resource_id"?: string | null,"resource_label"?: string | null,"resource_type"?: string | null,"row_hash"?: string | null,"seq_no"?: number,"session_id"?: string | null,"severity"?: string | null,"source_module"?: string | null,"success"?: boolean | null,"tags"?: (string)[] | null,"tenant_org_id"?: string | null,"user_agent"?: string | null,"user_email"?: string | null,"user_id"?: string | null
                   }
                   Update: {
-                    "action"?: string,"action_category"?: string | null,"actor_type"?: string | null,"batch_id"?: string | null,"change_reason"?: string | null,"created_at"?: string | null,"details"?: Json | null,"duration_ms"?: number | null,"error_message"?: string | null,"http_method"?: string | null,"http_path"?: string | null,"http_status_code"?: number | null,"id"?: string,"ip_address"?: unknown,"is_sensitive"?: boolean,"new_value"?: Json | null,"old_value"?: Json | null,"parent_audit_id"?: string | null,"request_id"?: string | null,"resource_id"?: string | null,"resource_label"?: string | null,"resource_type"?: string | null,"session_id"?: string | null,"severity"?: string | null,"source_module"?: string | null,"success"?: boolean | null,"tags"?: (string)[] | null,"tenant_org_id"?: string | null,"user_agent"?: string | null,"user_email"?: string | null,"user_id"?: string | null
+                    "action"?: string,"action_category"?: string | null,"actor_role_code"?: string | null,"actor_type"?: string | null,"batch_id"?: string | null,"change_reason"?: string | null,"changed_fields"?: (string)[] | null,"created_at"?: string | null,"details"?: Json | null,"duration_ms"?: number | null,"error_message"?: string | null,"http_method"?: string | null,"http_path"?: string | null,"http_status_code"?: number | null,"id"?: string,"impersonated_user_id"?: string | null,"ip_address"?: unknown,"is_sensitive"?: boolean,"new_value"?: Json | null,"old_value"?: Json | null,"origin_service"?: string,"parent_audit_id"?: string | null,"prev_hash"?: string | null,"request_id"?: string | null,"resource_id"?: string | null,"resource_label"?: string | null,"resource_type"?: string | null,"row_hash"?: string | null,"seq_no"?: number,"session_id"?: string | null,"severity"?: string | null,"source_module"?: string | null,"success"?: boolean | null,"tags"?: (string)[] | null,"tenant_org_id"?: string | null,"user_agent"?: string | null,"user_email"?: string | null,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -718,16 +718,22 @@ isOneToOne: false
                   ]
                 },"org_ar_disputes_mst": {
                   Row: {
-                    "assigned_at": string | null,"assigned_to": string | null,"created_at": string,"created_by": string | null,"created_by_info": string | null,"customer_id": string,"description": string,"description2": string | null,"dispute_no": string,"disputed_amount": number,"due_by_at": string | null,"id": string,"invoice_id": string,"metadata": NonNullable<Json>,"opened_at": string,"opened_by": string | null,"reason_cd": string,"resolution_summary": string | null,"resolved_at": string | null,"resolved_by": string | null,"status_cd": string,"tenant_org_id": string,"title": string,"updated_at": string | null,"updated_by": string | null,"updated_by_info": string | null
+                    "assigned_at": string | null,"assigned_to": string | null,"created_at": string,"created_by": string | null,"created_by_info": string | null,"customer_id": string,"description": string,"description2": string | null,"dispute_no": string,"disputed_amount": number,"doc_type_code": string,"due_by_at": string | null,"id": string,"invoice_id": string,"metadata": NonNullable<Json>,"opened_at": string,"opened_by": string | null,"reason_cd": string,"resolution_summary": string | null,"resolved_at": string | null,"resolved_by": string | null,"status_cd": string,"tenant_org_id": string,"title": string,"updated_at": string | null,"updated_by": string | null,"updated_by_info": string | null
                   }
                   Insert: {
-                    "assigned_at"?: string | null,"assigned_to"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id": string,"description": string,"description2"?: string | null,"dispute_no": string,"disputed_amount": number,"due_by_at"?: string | null,"id"?: string,"invoice_id": string,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by"?: string | null,"reason_cd": string,"resolution_summary"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status_cd"?: string,"tenant_org_id": string,"title": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
+                    "assigned_at"?: string | null,"assigned_to"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id": string,"description": string,"description2"?: string | null,"dispute_no": string,"disputed_amount": number,"doc_type_code"?: string,"due_by_at"?: string | null,"id"?: string,"invoice_id": string,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by"?: string | null,"reason_cd": string,"resolution_summary"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status_cd"?: string,"tenant_org_id": string,"title": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
                   }
                   Update: {
-                    "assigned_at"?: string | null,"assigned_to"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id"?: string,"description"?: string,"description2"?: string | null,"dispute_no"?: string,"disputed_amount"?: number,"due_by_at"?: string | null,"id"?: string,"invoice_id"?: string,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by"?: string | null,"reason_cd"?: string,"resolution_summary"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status_cd"?: string,"tenant_org_id"?: string,"title"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
+                    "assigned_at"?: string | null,"assigned_to"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id"?: string,"description"?: string,"description2"?: string | null,"dispute_no"?: string,"disputed_amount"?: number,"doc_type_code"?: string,"due_by_at"?: string | null,"id"?: string,"invoice_id"?: string,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by"?: string | null,"reason_cd"?: string,"resolution_summary"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status_cd"?: string,"tenant_org_id"?: string,"title"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_ard_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_oadisp_cus"
       columns: ["customer_id"]
 isOneToOne: false
@@ -743,16 +749,22 @@ isOneToOne: false
                   ]
                 },"org_ar_dunning_runs_mst": {
                   Row: {
-                    "action_cd": string,"created_at": string,"created_by": string | null,"created_by_info": string | null,"customer_id": string,"executed_at": string | null,"id": string,"invoice_id": string | null,"metadata": NonNullable<Json>,"response_message": string | null,"run_no": number,"scheduled_for": string | null,"stage_cd": string,"status_cd": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_by_info": string | null
+                    "action_cd": string,"created_at": string,"created_by": string | null,"created_by_info": string | null,"customer_id": string,"doc_type_code": string,"executed_at": string | null,"id": string,"invoice_id": string | null,"metadata": NonNullable<Json>,"response_message": string | null,"run_no": number,"scheduled_for": string | null,"stage_cd": string,"status_cd": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_by_info": string | null
                   }
                   Insert: {
-                    "action_cd": string,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id": string,"executed_at"?: string | null,"id"?: string,"invoice_id"?: string | null,"metadata"?: NonNullable<Json>,"response_message"?: string | null,"run_no": number,"scheduled_for"?: string | null,"stage_cd": string,"status_cd"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
+                    "action_cd": string,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id": string,"doc_type_code"?: string,"executed_at"?: string | null,"id"?: string,"invoice_id"?: string | null,"metadata"?: NonNullable<Json>,"response_message"?: string | null,"run_no": number,"scheduled_for"?: string | null,"stage_cd": string,"status_cd"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
                   }
                   Update: {
-                    "action_cd"?: string,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id"?: string,"executed_at"?: string | null,"id"?: string,"invoice_id"?: string | null,"metadata"?: NonNullable<Json>,"response_message"?: string | null,"run_no"?: number,"scheduled_for"?: string | null,"stage_cd"?: string,"status_cd"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
+                    "action_cd"?: string,"created_at"?: string,"created_by"?: string | null,"created_by_info"?: string | null,"customer_id"?: string,"doc_type_code"?: string,"executed_at"?: string | null,"id"?: string,"invoice_id"?: string | null,"metadata"?: NonNullable<Json>,"response_message"?: string | null,"run_no"?: number,"scheduled_for"?: string | null,"stage_cd"?: string,"status_cd"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_by_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_adr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_oadrun_cus"
       columns: ["customer_id"]
 isOneToOne: false
@@ -1154,16 +1166,22 @@ isOneToOne: false
                   ]
                 },"org_b2b_statements_mst": {
                   Row: {
-                    "balance_amount": number | null,"contract_id": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency_cd": string | null,"customer_id": string,"due_date": string | null,"id": string,"is_active": boolean | null,"paid_amount": number | null,"period_from": string | null,"period_to": string | null,"rec_status": number | null,"statement_no": string,"status_cd": string | null,"tenant_org_id": string,"total_amount": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "balance_amount": number | null,"contract_id": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency_cd": string | null,"customer_id": string,"doc_type_code": string,"due_date": string | null,"id": string,"is_active": boolean | null,"paid_amount": number | null,"period_from": string | null,"period_to": string | null,"rec_status": number | null,"statement_no": string,"status_cd": string | null,"tenant_org_id": string,"total_amount": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "balance_amount"?: number | null,"contract_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_cd"?: string | null,"customer_id": string,"due_date"?: string | null,"id"?: string,"is_active"?: boolean | null,"paid_amount"?: number | null,"period_from"?: string | null,"period_to"?: string | null,"rec_status"?: number | null,"statement_no": string,"status_cd"?: string | null,"tenant_org_id": string,"total_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "balance_amount"?: number | null,"contract_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_cd"?: string | null,"customer_id": string,"doc_type_code"?: string,"due_date"?: string | null,"id"?: string,"is_active"?: boolean | null,"paid_amount"?: number | null,"period_from"?: string | null,"period_to"?: string | null,"rec_status"?: number | null,"statement_no": string,"status_cd"?: string | null,"tenant_org_id": string,"total_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "balance_amount"?: number | null,"contract_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_cd"?: string | null,"customer_id"?: string,"due_date"?: string | null,"id"?: string,"is_active"?: boolean | null,"paid_amount"?: number | null,"period_from"?: string | null,"period_to"?: string | null,"rec_status"?: number | null,"statement_no"?: string,"status_cd"?: string | null,"tenant_org_id"?: string,"total_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "balance_amount"?: number | null,"contract_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_cd"?: string | null,"customer_id"?: string,"doc_type_code"?: string,"due_date"?: string | null,"id"?: string,"is_active"?: boolean | null,"paid_amount"?: number | null,"period_from"?: string | null,"period_to"?: string | null,"rec_status"?: number | null,"statement_no"?: string,"status_cd"?: string | null,"tenant_org_id"?: string,"total_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_b2s_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "org_b2b_statements_mst_contract_id_fkey"
       columns: ["contract_id"]
 isOneToOne: false
@@ -1234,13 +1252,13 @@ isOneToOne: false
                   ]
                 },"org_branches_mst": {
                   Row: {
-                    "address": string | null,"area": string | null,"branch_name": string | null,"building": string | null,"city": string | null,"country": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"email": string | null,"extra_price_pricing_mode": string | null,"floor": string | null,"id": string,"is_active": boolean,"is_main": boolean | null,"latitude": number | null,"longitude": number | null,"name": string | null,"name2": string | null,"phone": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"s_date": string | null,"street": string | null,"tax_pricing_mode": string | null,"tax_registration_no": string | null,"tenant_org_id": string,"timezone_code": string | null,"type": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "address": string | null,"area": string | null,"branch_name": string | null,"building": string | null,"business_hours": Json | null,"city": string | null,"country": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"email": string | null,"emirate_code": string | null,"extra_price_pricing_mode": string | null,"floor": string | null,"id": string,"is_active": boolean,"is_main": boolean | null,"latitude": number | null,"longitude": number | null,"name": string | null,"name2": string | null,"order_cutoff_time": string | null,"phone": string | null,"ready_time": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"s_date": string | null,"street": string | null,"tax_pricing_mode": string | null,"tax_registration_no": string | null,"tenant_org_id": string,"timezone_code": string | null,"type": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "address"?: string | null,"area"?: string | null,"branch_name"?: string | null,"building"?: string | null,"city"?: string | null,"country"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"email"?: string | null,"extra_price_pricing_mode"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_main"?: boolean | null,"latitude"?: number | null,"longitude"?: number | null,"name"?: string | null,"name2"?: string | null,"phone"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string | null,"street"?: string | null,"tax_pricing_mode"?: string | null,"tax_registration_no"?: string | null,"tenant_org_id": string,"timezone_code"?: string | null,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "address"?: string | null,"area"?: string | null,"branch_name"?: string | null,"building"?: string | null,"business_hours"?: Json | null,"city"?: string | null,"country"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"email"?: string | null,"emirate_code"?: string | null,"extra_price_pricing_mode"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_main"?: boolean | null,"latitude"?: number | null,"longitude"?: number | null,"name"?: string | null,"name2"?: string | null,"order_cutoff_time"?: string | null,"phone"?: string | null,"ready_time"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string | null,"street"?: string | null,"tax_pricing_mode"?: string | null,"tax_registration_no"?: string | null,"tenant_org_id": string,"timezone_code"?: string | null,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"area"?: string | null,"branch_name"?: string | null,"building"?: string | null,"city"?: string | null,"country"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"email"?: string | null,"extra_price_pricing_mode"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_main"?: boolean | null,"latitude"?: number | null,"longitude"?: number | null,"name"?: string | null,"name2"?: string | null,"phone"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string | null,"street"?: string | null,"tax_pricing_mode"?: string | null,"tax_registration_no"?: string | null,"tenant_org_id"?: string,"timezone_code"?: string | null,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "address"?: string | null,"area"?: string | null,"branch_name"?: string | null,"building"?: string | null,"business_hours"?: Json | null,"city"?: string | null,"country"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"email"?: string | null,"emirate_code"?: string | null,"extra_price_pricing_mode"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_main"?: boolean | null,"latitude"?: number | null,"longitude"?: number | null,"name"?: string | null,"name2"?: string | null,"order_cutoff_time"?: string | null,"phone"?: string | null,"ready_time"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string | null,"street"?: string | null,"tax_pricing_mode"?: string | null,"tax_registration_no"?: string | null,"tenant_org_id"?: string,"timezone_code"?: string | null,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -1534,16 +1552,22 @@ isOneToOne: false
                   ]
                 },"org_cash_drawer_sessions_mst": {
                   Row: {
-                    "branch_id": string,"cash_drawer_id": string,"close_ledger_seq": number | null,"close_notes": string | null,"closed_at": string | null,"closed_by": string | null,"closing_started_at": string | null,"closing_started_by": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency_code": string,"force_close_reason": string | null,"id": string,"is_active": boolean,"metadata": NonNullable<Json>,"open_ledger_seq": number | null,"opened_at": string,"opened_by": string,"opening_float_amount": number,"post_close_at": string | null,"post_close_by": string | null,"post_close_notes": string | null,"post_close_status_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"session_no": string,"session_user_id": string | null,"status": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"variance_approval_reason": string | null,"variance_approved_at": string | null,"variance_approved_by": string | null,"variance_rejected_at": string | null,"variance_rejected_by": string | null,"variance_rejection_reason": string | null,"variance_threshold_snapshot": number | null
+                    "branch_id": string,"cash_drawer_id": string,"close_ledger_seq": number | null,"close_notes": string | null,"closed_at": string | null,"closed_by": string | null,"closing_started_at": string | null,"closing_started_by": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"force_close_reason": string | null,"id": string,"is_active": boolean,"metadata": NonNullable<Json>,"open_ledger_seq": number | null,"opened_at": string,"opened_by": string,"opening_float_amount": number,"post_close_at": string | null,"post_close_by": string | null,"post_close_notes": string | null,"post_close_status_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"session_no": string,"session_user_id": string | null,"status": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"variance_approval_reason": string | null,"variance_approved_at": string | null,"variance_approved_by": string | null,"variance_rejected_at": string | null,"variance_rejected_by": string | null,"variance_rejection_reason": string | null,"variance_threshold_snapshot": number | null
                   }
                   Insert: {
-                    "branch_id": string,"cash_drawer_id": string,"close_ledger_seq"?: number | null,"close_notes"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"closing_started_at"?: string | null,"closing_started_by"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"force_close_reason"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"open_ledger_seq"?: number | null,"opened_at"?: string,"opened_by": string,"opening_float_amount"?: number,"post_close_at"?: string | null,"post_close_by"?: string | null,"post_close_notes"?: string | null,"post_close_status_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"session_no": string,"session_user_id"?: string | null,"status"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_approval_reason"?: string | null,"variance_approved_at"?: string | null,"variance_approved_by"?: string | null,"variance_rejected_at"?: string | null,"variance_rejected_by"?: string | null,"variance_rejection_reason"?: string | null,"variance_threshold_snapshot"?: number | null
+                    "branch_id": string,"cash_drawer_id": string,"close_ledger_seq"?: number | null,"close_notes"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"closing_started_at"?: string | null,"closing_started_by"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"force_close_reason"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"open_ledger_seq"?: number | null,"opened_at"?: string,"opened_by": string,"opening_float_amount"?: number,"post_close_at"?: string | null,"post_close_by"?: string | null,"post_close_notes"?: string | null,"post_close_status_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"session_no": string,"session_user_id"?: string | null,"status"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_approval_reason"?: string | null,"variance_approved_at"?: string | null,"variance_approved_by"?: string | null,"variance_rejected_at"?: string | null,"variance_rejected_by"?: string | null,"variance_rejection_reason"?: string | null,"variance_threshold_snapshot"?: number | null
                   }
                   Update: {
-                    "branch_id"?: string,"cash_drawer_id"?: string,"close_ledger_seq"?: number | null,"close_notes"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"closing_started_at"?: string | null,"closing_started_by"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"force_close_reason"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"open_ledger_seq"?: number | null,"opened_at"?: string,"opened_by"?: string,"opening_float_amount"?: number,"post_close_at"?: string | null,"post_close_by"?: string | null,"post_close_notes"?: string | null,"post_close_status_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"session_no"?: string,"session_user_id"?: string | null,"status"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_approval_reason"?: string | null,"variance_approved_at"?: string | null,"variance_approved_by"?: string | null,"variance_rejected_at"?: string | null,"variance_rejected_by"?: string | null,"variance_rejection_reason"?: string | null,"variance_threshold_snapshot"?: number | null
+                    "branch_id"?: string,"cash_drawer_id"?: string,"close_ledger_seq"?: number | null,"close_notes"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"closing_started_at"?: string | null,"closing_started_by"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"force_close_reason"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"open_ledger_seq"?: number | null,"opened_at"?: string,"opened_by"?: string,"opening_float_amount"?: number,"post_close_at"?: string | null,"post_close_by"?: string | null,"post_close_notes"?: string | null,"post_close_status_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"session_no"?: string,"session_user_id"?: string | null,"status"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_approval_reason"?: string | null,"variance_approved_at"?: string | null,"variance_approved_by"?: string | null,"variance_rejected_at"?: string | null,"variance_rejected_by"?: string | null,"variance_rejection_reason"?: string | null,"variance_threshold_snapshot"?: number | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_cds_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ocds_post_close_status"
       columns: ["post_close_status_code"]
 isOneToOne: false
@@ -1723,16 +1747,22 @@ isOneToOne: false
                   ]
                 },"org_cash_drawer_trx_mst": {
                   Row: {
-                    "approved_by": string | null,"branch_id": string,"business_date": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"id": string,"idempotency_key": string | null,"is_active": boolean,"metadata": NonNullable<Json>,"notes": string | null,"occurred_at": string,"performed_by": string,"reason_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reverses_trx_id": string | null,"source_session_id": string | null,"tenant_org_id": string,"trx_no": string,"trx_type_code": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "approved_by": string | null,"branch_id": string,"business_date": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"id": string,"idempotency_key": string | null,"is_active": boolean,"metadata": NonNullable<Json>,"notes": string | null,"occurred_at": string,"performed_by": string,"reason_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reverses_trx_id": string | null,"source_session_id": string | null,"tenant_org_id": string,"trx_no": string,"trx_type_code": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "approved_by"?: string | null,"branch_id": string,"business_date"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"notes"?: string | null,"occurred_at"?: string,"performed_by": string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reverses_trx_id"?: string | null,"source_session_id"?: string | null,"tenant_org_id": string,"trx_no": string,"trx_type_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "approved_by"?: string | null,"branch_id": string,"business_date"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"notes"?: string | null,"occurred_at"?: string,"performed_by": string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reverses_trx_id"?: string | null,"source_session_id"?: string | null,"tenant_org_id": string,"trx_no": string,"trx_type_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "approved_by"?: string | null,"branch_id"?: string,"business_date"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"notes"?: string | null,"occurred_at"?: string,"performed_by"?: string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reverses_trx_id"?: string | null,"source_session_id"?: string | null,"tenant_org_id"?: string,"trx_no"?: string,"trx_type_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "approved_by"?: string | null,"branch_id"?: string,"business_date"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"notes"?: string | null,"occurred_at"?: string,"performed_by"?: string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reverses_trx_id"?: string | null,"source_session_id"?: string | null,"tenant_org_id"?: string,"trx_no"?: string,"trx_type_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_cdt_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ocdt_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -1876,16 +1906,22 @@ isOneToOne: false
                   ]
                 },"org_credit_notes_mst": {
                   Row: {
-                    "cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"credit_note_no": string,"currency_code": string,"customer_id": string,"expires_at": string | null,"id": string,"is_active": boolean,"issued_at": string,"issued_by": string | null,"metadata": Json | null,"original_amount": number,"reason": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"related_order_id": string | null,"remaining_balance": number,"status": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"credit_note_no": string,"currency_code": string,"customer_id": string,"doc_type_code": string,"expires_at": string | null,"id": string,"is_active": boolean,"issued_at": string,"issued_by": string | null,"metadata": Json | null,"original_amount": number,"reason": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"related_order_id": string | null,"remaining_balance": number,"status": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"credit_note_no"?: string,"currency_code": string,"customer_id": string,"expires_at"?: string | null,"id"?: string,"is_active"?: boolean,"issued_at"?: string,"issued_by"?: string | null,"metadata"?: Json | null,"original_amount": number,"reason": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"related_order_id"?: string | null,"remaining_balance": number,"status"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"credit_note_no"?: string,"currency_code": string,"customer_id": string,"doc_type_code"?: string,"expires_at"?: string | null,"id"?: string,"is_active"?: boolean,"issued_at"?: string,"issued_by"?: string | null,"metadata"?: Json | null,"original_amount": number,"reason": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"related_order_id"?: string | null,"remaining_balance": number,"status"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"credit_note_no"?: string,"currency_code"?: string,"customer_id"?: string,"expires_at"?: string | null,"id"?: string,"is_active"?: boolean,"issued_at"?: string,"issued_by"?: string | null,"metadata"?: Json | null,"original_amount"?: number,"reason"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"related_order_id"?: string | null,"remaining_balance"?: number,"status"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"credit_note_no"?: string,"currency_code"?: string,"customer_id"?: string,"doc_type_code"?: string,"expires_at"?: string | null,"id"?: string,"is_active"?: boolean,"issued_at"?: string,"issued_by"?: string | null,"metadata"?: Json | null,"original_amount"?: number,"reason"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"related_order_id"?: string | null,"remaining_balance"?: number,"status"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_crn_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "org_credit_notes_mst_customer_id_fkey"
       columns: ["customer_id"]
 isOneToOne: false
@@ -2313,13 +2349,13 @@ isOneToOne: false
                   ]
                 },"org_customers_mst": {
                   Row: {
-                    "address": string | null,"area": string | null,"building": string | null,"company_name": string | null,"company_name2": string | null,"cost_center_code": string | null,"cr_id": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"credit_limit": number | null,"customer_category_id": string | null,"customer_id": string | null,"customer_source_type": string,"display_name": string | null,"email": string | null,"first_name": string | null,"floor": string | null,"id": string,"is_active": boolean,"is_credit_hold": boolean | null,"last_name": string | null,"loyalty_points": number | null,"name": string | null,"name2": string | null,"password_hash": string | null,"password_updated_at": string | null,"payment_terms_days": number | null,"phone": string | null,"preferences": Json | null,"preferred_language": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"s_date": string,"tax_id": string | null,"tenant_org_id": string,"type": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "address": string | null,"area": string | null,"building": string | null,"company_name": string | null,"company_name2": string | null,"cost_center_code": string | null,"cr_id": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"credit_limit": number | null,"customer_category_id": string | null,"customer_id": string | null,"customer_source_type": string,"display_name": string | null,"email": string | null,"first_name": string | null,"floor": string | null,"id": string,"is_active": boolean,"is_credit_hold": boolean | null,"last_name": string | null,"loyalty_points": number | null,"name": string | null,"name2": string | null,"password_hash": string | null,"password_updated_at": string | null,"payment_terms_days": number | null,"phone": string | null,"preferences": Json | null,"preferred_language": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"s_date": string,"tax_country": string | null,"tax_id": string | null,"tax_party_class_code": string | null,"tenant_org_id": string,"type": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"company_name"?: string | null,"company_name2"?: string | null,"cost_center_code"?: string | null,"cr_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"credit_limit"?: number | null,"customer_category_id"?: string | null,"customer_id"?: string | null,"customer_source_type"?: string,"display_name"?: string | null,"email"?: string | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_credit_hold"?: boolean | null,"last_name"?: string | null,"loyalty_points"?: number | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"password_updated_at"?: string | null,"payment_terms_days"?: number | null,"phone"?: string | null,"preferences"?: Json | null,"preferred_language"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string,"tax_id"?: string | null,"tenant_org_id": string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"company_name"?: string | null,"company_name2"?: string | null,"cost_center_code"?: string | null,"cr_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"credit_limit"?: number | null,"customer_category_id"?: string | null,"customer_id"?: string | null,"customer_source_type"?: string,"display_name"?: string | null,"email"?: string | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_credit_hold"?: boolean | null,"last_name"?: string | null,"loyalty_points"?: number | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"password_updated_at"?: string | null,"payment_terms_days"?: number | null,"phone"?: string | null,"preferences"?: Json | null,"preferred_language"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string,"tax_country"?: string | null,"tax_id"?: string | null,"tax_party_class_code"?: string | null,"tenant_org_id": string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"company_name"?: string | null,"company_name2"?: string | null,"cost_center_code"?: string | null,"cr_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"credit_limit"?: number | null,"customer_category_id"?: string | null,"customer_id"?: string | null,"customer_source_type"?: string,"display_name"?: string | null,"email"?: string | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_credit_hold"?: boolean | null,"last_name"?: string | null,"loyalty_points"?: number | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"password_updated_at"?: string | null,"payment_terms_days"?: number | null,"phone"?: string | null,"preferences"?: Json | null,"preferred_language"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string,"tax_id"?: string | null,"tenant_org_id"?: string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"company_name"?: string | null,"company_name2"?: string | null,"cost_center_code"?: string | null,"cr_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"credit_limit"?: number | null,"customer_category_id"?: string | null,"customer_id"?: string | null,"customer_source_type"?: string,"display_name"?: string | null,"email"?: string | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_credit_hold"?: boolean | null,"last_name"?: string | null,"loyalty_points"?: number | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"password_updated_at"?: string | null,"payment_terms_days"?: number | null,"phone"?: string | null,"preferences"?: Json | null,"preferred_language"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"s_date"?: string,"tax_country"?: string | null,"tax_id"?: string | null,"tax_party_class_code"?: string | null,"tenant_org_id"?: string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -2328,6 +2364,18 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "sys_language_cd"
       referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_ocm_tax_country"
+      columns: ["tax_country"]
+isOneToOne: false
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_ocm_tax_party_class"
+      columns: ["tax_party_class_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_party_class_cd"
+      referencedColumns: ["party_class_code"]
     },{
       foreignKeyName: "fk_org_cust_sys"
       columns: ["customer_id"]
@@ -2468,16 +2516,22 @@ isOneToOne: false
                   ]
                 },"org_dlv_routes_mst": {
                   Row: {
-                    "branch_id": string | null,"completed_at": string | null,"completed_stops": number | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"driver_id": string | null,"estimated_duration_minutes": number | null,"id": string,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"route_number": string,"route_status_code": string | null,"started_at": string | null,"tenant_org_id": string,"total_distance_km": number | null,"total_stops": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string | null,"completed_at": string | null,"completed_stops": number | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"driver_id": string | null,"estimated_duration_minutes": number | null,"id": string,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"route_number": string,"route_status_code": string | null,"started_at": string | null,"tenant_org_id": string,"total_distance_km": number | null,"total_stops": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id"?: string | null,"completed_at"?: string | null,"completed_stops"?: number | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"driver_id"?: string | null,"estimated_duration_minutes"?: number | null,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"route_number": string,"route_status_code"?: string | null,"started_at"?: string | null,"tenant_org_id": string,"total_distance_km"?: number | null,"total_stops"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"completed_at"?: string | null,"completed_stops"?: number | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"driver_id"?: string | null,"estimated_duration_minutes"?: number | null,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"route_number": string,"route_status_code"?: string | null,"started_at"?: string | null,"tenant_org_id": string,"total_distance_km"?: number | null,"total_stops"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string | null,"completed_at"?: string | null,"completed_stops"?: number | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"driver_id"?: string | null,"estimated_duration_minutes"?: number | null,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"route_number"?: string,"route_status_code"?: string | null,"started_at"?: string | null,"tenant_org_id"?: string,"total_distance_km"?: number | null,"total_stops"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"completed_at"?: string | null,"completed_stops"?: number | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"driver_id"?: string | null,"estimated_duration_minutes"?: number | null,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"route_number"?: string,"route_status_code"?: string | null,"started_at"?: string | null,"tenant_org_id"?: string,"total_distance_km"?: number | null,"total_stops"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_dlr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_dlv_route_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -2880,16 +2934,22 @@ isOneToOne: false
                   ]
                 },"org_fin_alloc_run_mst": {
                   Row: {
-                    "alloc_scope_code": string,"basis_snapshot_json": Json | null,"created_at": string,"created_by": string | null,"created_info": string | null,"id": string,"is_active": boolean,"period_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"run_date": string,"run_no": string,"status_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "alloc_scope_code": string,"basis_snapshot_json": Json | null,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"id": string,"is_active": boolean,"period_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"run_date": string,"run_no": string,"status_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "alloc_scope_code": string,"basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date": string,"run_no": string,"status_code"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "alloc_scope_code": string,"basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date": string,"run_no": string,"status_code"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "alloc_scope_code"?: string,"basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date"?: string,"run_no"?: string,"status_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "alloc_scope_code"?: string,"basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date"?: string,"run_no"?: string,"status_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_far_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofrn_per"
       columns: ["period_id","tenant_org_id"]
 isOneToOne: false
@@ -3021,16 +3081,22 @@ isOneToOne: false
                   ]
                 },"org_fin_ap_inv_mst": {
                   Row: {
-                    "ap_inv_no": string,"branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"due_date": string | null,"exchange_rate": number,"id": string,"invoice_date": string,"is_active": boolean,"open_amount": number,"po_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"subtotal_amount": number,"supplier_id": string,"supplier_inv_no": string | null,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "ap_inv_no": string,"branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"due_date": string | null,"exchange_rate": number,"id": string,"invoice_date": string,"is_active": boolean,"open_amount": number,"po_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"subtotal_amount": number,"supplier_id": string,"supplier_inv_no": string | null,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "ap_inv_no": string,"branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"due_date"?: string | null,"exchange_rate"?: number,"id"?: string,"invoice_date": string,"is_active"?: boolean,"open_amount"?: number,"po_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id": string,"supplier_inv_no"?: string | null,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "ap_inv_no": string,"branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"due_date"?: string | null,"exchange_rate"?: number,"id"?: string,"invoice_date": string,"is_active"?: boolean,"open_amount"?: number,"po_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id": string,"supplier_inv_no"?: string | null,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "ap_inv_no"?: string,"branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"due_date"?: string | null,"exchange_rate"?: number,"id"?: string,"invoice_date"?: string,"is_active"?: boolean,"open_amount"?: number,"po_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id"?: string,"supplier_inv_no"?: string | null,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "ap_inv_no"?: string,"branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"due_date"?: string | null,"exchange_rate"?: number,"id"?: string,"invoice_date"?: string,"is_active"?: boolean,"open_amount"?: number,"po_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id"?: string,"supplier_inv_no"?: string | null,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fai_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofai_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -3070,16 +3136,22 @@ isOneToOne: false
                   ]
                 },"org_fin_ap_pmt_mst": {
                   Row: {
-                    "amount_total": number,"ap_pmt_no": string,"bank_account_id": string | null,"branch_id": string | null,"cashbox_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"exchange_rate": number,"ext_ref_no": string | null,"id": string,"is_active": boolean,"payment_date": string,"payment_method_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"settlement_code": string,"status_code": string,"supplier_id": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "amount_total": number,"ap_pmt_no": string,"bank_account_id": string | null,"branch_id": string | null,"cashbox_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"exchange_rate": number,"ext_ref_no": string | null,"id": string,"is_active": boolean,"payment_date": string,"payment_method_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"settlement_code": string,"status_code": string,"supplier_id": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "amount_total"?: number,"ap_pmt_no": string,"bank_account_id"?: string | null,"branch_id"?: string | null,"cashbox_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"exchange_rate"?: number,"ext_ref_no"?: string | null,"id"?: string,"is_active"?: boolean,"payment_date": string,"payment_method_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code": string,"status_code"?: string,"supplier_id": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "amount_total"?: number,"ap_pmt_no": string,"bank_account_id"?: string | null,"branch_id"?: string | null,"cashbox_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"exchange_rate"?: number,"ext_ref_no"?: string | null,"id"?: string,"is_active"?: boolean,"payment_date": string,"payment_method_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code": string,"status_code"?: string,"supplier_id": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "amount_total"?: number,"ap_pmt_no"?: string,"bank_account_id"?: string | null,"branch_id"?: string | null,"cashbox_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"exchange_rate"?: number,"ext_ref_no"?: string | null,"id"?: string,"is_active"?: boolean,"payment_date"?: string,"payment_method_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code"?: string,"status_code"?: string,"supplier_id"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "amount_total"?: number,"ap_pmt_no"?: string,"bank_account_id"?: string | null,"branch_id"?: string | null,"cashbox_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"exchange_rate"?: number,"ext_ref_no"?: string | null,"id"?: string,"is_active"?: boolean,"payment_date"?: string,"payment_method_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code"?: string,"status_code"?: string,"supplier_id"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fap_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofap_bank"
       columns: ["bank_account_id","tenant_org_id"]
 isOneToOne: false
@@ -3217,16 +3289,22 @@ isOneToOne: false
                   ]
                 },"org_fin_bank_recon_mst": {
                   Row: {
-                    "bank_account_id": string,"closed_at": string | null,"closed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"gl_balance": number | null,"id": string,"is_active": boolean,"period_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recon_code": string,"recon_date": string,"status_code": string,"stmt_balance": number | null,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"unmatched_amount": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "bank_account_id": string,"closed_at": string | null,"closed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"gl_balance": number | null,"id": string,"is_active": boolean,"period_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recon_code": string,"recon_date": string,"status_code": string,"stmt_balance": number | null,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"unmatched_amount": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "bank_account_id": string,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"gl_balance"?: number | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_code": string,"recon_date": string,"status_code"?: string,"stmt_balance"?: number | null,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"unmatched_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "bank_account_id": string,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"gl_balance"?: number | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_code": string,"recon_date": string,"status_code"?: string,"stmt_balance"?: number | null,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"unmatched_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "bank_account_id"?: string,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"gl_balance"?: number | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_code"?: string,"recon_date"?: string,"status_code"?: string,"stmt_balance"?: number | null,"stmt_date_from"?: string,"stmt_date_to"?: string,"tenant_org_id"?: string,"unmatched_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "bank_account_id"?: string,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"gl_balance"?: number | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_code"?: string,"recon_date"?: string,"status_code"?: string,"stmt_balance"?: number | null,"stmt_date_from"?: string,"stmt_date_to"?: string,"tenant_org_id"?: string,"unmatched_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fbr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofbr_bank"
       columns: ["bank_account_id","tenant_org_id"]
 isOneToOne: false
@@ -3303,16 +3381,22 @@ isOneToOne: false
                   ]
                 },"org_fin_bank_stmt_mst": {
                   Row: {
-                    "bank_account_id": string,"closing_balance": number | null,"created_at": string,"created_by": string | null,"created_info": string | null,"id": string,"import_batch_no": string,"imported_at": string,"is_active": boolean,"line_count": number,"opening_balance": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"source_code": string,"source_file_name": string | null,"status_code": string,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "bank_account_id": string,"closing_balance": number | null,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"id": string,"import_batch_no": string,"imported_at": string,"is_active": boolean,"line_count": number,"opening_balance": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"source_code": string,"source_file_name": string | null,"status_code": string,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "bank_account_id": string,"closing_balance"?: number | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"import_batch_no": string,"imported_at"?: string,"is_active"?: boolean,"line_count"?: number,"opening_balance"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source_code"?: string,"source_file_name"?: string | null,"status_code"?: string,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "bank_account_id": string,"closing_balance"?: number | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"import_batch_no": string,"imported_at"?: string,"is_active"?: boolean,"line_count"?: number,"opening_balance"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source_code"?: string,"source_file_name"?: string | null,"status_code"?: string,"stmt_date_from": string,"stmt_date_to": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "bank_account_id"?: string,"closing_balance"?: number | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"import_batch_no"?: string,"imported_at"?: string,"is_active"?: boolean,"line_count"?: number,"opening_balance"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source_code"?: string,"source_file_name"?: string | null,"status_code"?: string,"stmt_date_from"?: string,"stmt_date_to"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "bank_account_id"?: string,"closing_balance"?: number | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"import_batch_no"?: string,"imported_at"?: string,"is_active"?: boolean,"line_count"?: number,"opening_balance"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source_code"?: string,"source_file_name"?: string | null,"status_code"?: string,"stmt_date_from"?: string,"stmt_date_to"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fbs_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofbs_bank"
       columns: ["bank_account_id","tenant_org_id"]
 isOneToOne: false
@@ -3445,16 +3529,22 @@ isOneToOne: false
                   ]
                 },"org_fin_cash_rec_mst": {
                   Row: {
-                    "branch_id": string | null,"cashbox_id": string,"closed_at": string | null,"closed_by": string | null,"counted_balance": number,"created_at": string,"created_by": string | null,"created_info": string | null,"expected_balance": number,"id": string,"is_active": boolean,"opening_balance": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recon_date": string,"recon_no": string,"status_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"variance_amount": number
+                    "branch_id": string | null,"cashbox_id": string,"closed_at": string | null,"closed_by": string | null,"counted_balance": number,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"expected_balance": number,"id": string,"is_active": boolean,"opening_balance": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recon_date": string,"recon_no": string,"status_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"variance_amount": number
                   }
                   Insert: {
-                    "branch_id"?: string | null,"cashbox_id": string,"closed_at"?: string | null,"closed_by"?: string | null,"counted_balance"?: number,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"expected_balance"?: number,"id"?: string,"is_active"?: boolean,"opening_balance"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_date": string,"recon_no": string,"status_code"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_amount"?: number
+                    "branch_id"?: string | null,"cashbox_id": string,"closed_at"?: string | null,"closed_by"?: string | null,"counted_balance"?: number,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"expected_balance"?: number,"id"?: string,"is_active"?: boolean,"opening_balance"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_date": string,"recon_no": string,"status_code"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_amount"?: number
                   }
                   Update: {
-                    "branch_id"?: string | null,"cashbox_id"?: string,"closed_at"?: string | null,"closed_by"?: string | null,"counted_balance"?: number,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"expected_balance"?: number,"id"?: string,"is_active"?: boolean,"opening_balance"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_date"?: string,"recon_no"?: string,"status_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_amount"?: number
+                    "branch_id"?: string | null,"cashbox_id"?: string,"closed_at"?: string | null,"closed_by"?: string | null,"counted_balance"?: number,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"expected_balance"?: number,"id"?: string,"is_active"?: boolean,"opening_balance"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recon_date"?: string,"recon_no"?: string,"status_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"variance_amount"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fcr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofcr_brn"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -3488,16 +3578,22 @@ isOneToOne: false
                   ]
                 },"org_fin_cash_txn_tr": {
                   Row: {
-                    "amount_total": number,"branch_id": string | null,"cashbox_id": string,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"description": string | null,"description2": string | null,"exchange_rate": number,"expense_usage_code_id": string | null,"funding_usage_code_id": string | null,"id": string,"is_active": boolean,"party_name": string | null,"party_name2": string | null,"posting_date": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reference_no": string | null,"status_code": string,"tenant_org_id": string,"txn_date": string,"txn_no": string,"txn_type_code": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "amount_total": number,"branch_id": string | null,"cashbox_id": string,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"description": string | null,"description2": string | null,"doc_type_code": string,"exchange_rate": number,"expense_usage_code_id": string | null,"funding_usage_code_id": string | null,"id": string,"is_active": boolean,"party_name": string | null,"party_name2": string | null,"posting_date": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reference_no": string | null,"status_code": string,"tenant_org_id": string,"txn_date": string,"txn_no": string,"txn_type_code": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "amount_total": number,"branch_id"?: string | null,"cashbox_id": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"description"?: string | null,"description2"?: string | null,"exchange_rate"?: number,"expense_usage_code_id"?: string | null,"funding_usage_code_id"?: string | null,"id"?: string,"is_active"?: boolean,"party_name"?: string | null,"party_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reference_no"?: string | null,"status_code"?: string,"tenant_org_id": string,"txn_date": string,"txn_no": string,"txn_type_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "amount_total": number,"branch_id"?: string | null,"cashbox_id": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"description"?: string | null,"description2"?: string | null,"doc_type_code"?: string,"exchange_rate"?: number,"expense_usage_code_id"?: string | null,"funding_usage_code_id"?: string | null,"id"?: string,"is_active"?: boolean,"party_name"?: string | null,"party_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reference_no"?: string | null,"status_code"?: string,"tenant_org_id": string,"txn_date": string,"txn_no": string,"txn_type_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "amount_total"?: number,"branch_id"?: string | null,"cashbox_id"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"description"?: string | null,"description2"?: string | null,"exchange_rate"?: number,"expense_usage_code_id"?: string | null,"funding_usage_code_id"?: string | null,"id"?: string,"is_active"?: boolean,"party_name"?: string | null,"party_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reference_no"?: string | null,"status_code"?: string,"tenant_org_id"?: string,"txn_date"?: string,"txn_no"?: string,"txn_type_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "amount_total"?: number,"branch_id"?: string | null,"cashbox_id"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"description"?: string | null,"description2"?: string | null,"doc_type_code"?: string,"exchange_rate"?: number,"expense_usage_code_id"?: string | null,"funding_usage_code_id"?: string | null,"id"?: string,"is_active"?: boolean,"party_name"?: string | null,"party_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reference_no"?: string | null,"status_code"?: string,"tenant_org_id"?: string,"txn_date"?: string,"txn_no"?: string,"txn_type_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fct_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofct_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -3684,16 +3780,22 @@ isOneToOne: false
                   ]
                 },"org_fin_cost_run_mst": {
                   Row: {
-                    "basis_snapshot_json": Json | null,"created_at": string,"created_by": string | null,"created_info": string | null,"id": string,"is_active": boolean,"period_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"run_date": string,"run_no": string,"status_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "basis_snapshot_json": Json | null,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"id": string,"is_active": boolean,"period_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"run_date": string,"run_no": string,"status_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date": string,"run_no": string,"status_code"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date": string,"run_no": string,"status_code"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date"?: string,"run_no"?: string,"status_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "basis_snapshot_json"?: Json | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"is_active"?: boolean,"period_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_date"?: string,"run_no"?: string,"status_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fcn_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofcm_per"
       columns: ["period_id","tenant_org_id"]
 isOneToOne: false
@@ -3857,16 +3959,22 @@ isOneToOne: false
                   ]
                 },"org_fin_exp_mst": {
                   Row: {
-                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"description": string | null,"description2": string | null,"exchange_rate": number,"expense_date": string,"expense_no": string,"id": string,"is_active": boolean,"payee_name": string | null,"payee_name2": string | null,"posting_date": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"settlement_code": string,"source_ref_no": string | null,"status_code": string,"subtotal_amount": number,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"description": string | null,"description2": string | null,"doc_type_code": string,"exchange_rate": number,"expense_date": string,"expense_no": string,"id": string,"is_active": boolean,"payee_name": string | null,"payee_name2": string | null,"posting_date": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"settlement_code": string,"source_ref_no": string | null,"status_code": string,"subtotal_amount": number,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"description"?: string | null,"description2"?: string | null,"exchange_rate"?: number,"expense_date": string,"expense_no": string,"id"?: string,"is_active"?: boolean,"payee_name"?: string | null,"payee_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code"?: string,"source_ref_no"?: string | null,"status_code"?: string,"subtotal_amount"?: number,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"description"?: string | null,"description2"?: string | null,"doc_type_code"?: string,"exchange_rate"?: number,"expense_date": string,"expense_no": string,"id"?: string,"is_active"?: boolean,"payee_name"?: string | null,"payee_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code"?: string,"source_ref_no"?: string | null,"status_code"?: string,"subtotal_amount"?: number,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"description"?: string | null,"description2"?: string | null,"exchange_rate"?: number,"expense_date"?: string,"expense_no"?: string,"id"?: string,"is_active"?: boolean,"payee_name"?: string | null,"payee_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code"?: string,"source_ref_no"?: string | null,"status_code"?: string,"subtotal_amount"?: number,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"description"?: string | null,"description2"?: string | null,"doc_type_code"?: string,"exchange_rate"?: number,"expense_date"?: string,"expense_no"?: string,"id"?: string,"is_active"?: boolean,"payee_name"?: string | null,"payee_name2"?: string | null,"posting_date"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"settlement_code"?: string,"source_ref_no"?: string | null,"status_code"?: string,"subtotal_amount"?: number,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fex_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofe_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -4023,16 +4131,22 @@ isOneToOne: false
                   ]
                 },"org_fin_journal_mst": {
                   Row: {
-                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"exchange_rate": number,"id": string,"is_active": boolean,"journal_date": string,"journal_no": string,"mapping_rule_id": string | null,"mapping_rule_version_no": number | null,"narration": string | null,"narration2": string | null,"posted_at": string | null,"posted_by": string | null,"posting_date": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reversal_of_journal_id": string | null,"source_doc_id": string,"source_doc_no": string | null,"source_doc_type_code": string,"source_module_code": string,"status_code": string,"tenant_org_id": string,"total_credit": number,"total_debit": number,"txn_event_code": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"exchange_rate": number,"id": string,"is_active": boolean,"journal_date": string,"journal_no": string,"mapping_rule_id": string | null,"mapping_rule_version_no": number | null,"narration": string | null,"narration2": string | null,"posted_at": string | null,"posted_by": string | null,"posting_date": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reversal_of_journal_id": string | null,"source_doc_id": string,"source_doc_no": string | null,"source_doc_type_code": string,"source_module_code": string,"status_code": string,"tenant_org_id": string,"total_credit": number,"total_debit": number,"txn_event_code": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"exchange_rate"?: number,"id"?: string,"is_active"?: boolean,"journal_date": string,"journal_no": string,"mapping_rule_id"?: string | null,"mapping_rule_version_no"?: number | null,"narration"?: string | null,"narration2"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_date": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reversal_of_journal_id"?: string | null,"source_doc_id": string,"source_doc_no"?: string | null,"source_doc_type_code": string,"source_module_code": string,"status_code"?: string,"tenant_org_id": string,"total_credit"?: number,"total_debit"?: number,"txn_event_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"exchange_rate"?: number,"id"?: string,"is_active"?: boolean,"journal_date": string,"journal_no": string,"mapping_rule_id"?: string | null,"mapping_rule_version_no"?: number | null,"narration"?: string | null,"narration2"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_date": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reversal_of_journal_id"?: string | null,"source_doc_id": string,"source_doc_no"?: string | null,"source_doc_type_code": string,"source_module_code": string,"status_code"?: string,"tenant_org_id": string,"total_credit"?: number,"total_debit"?: number,"txn_event_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"exchange_rate"?: number,"id"?: string,"is_active"?: boolean,"journal_date"?: string,"journal_no"?: string,"mapping_rule_id"?: string | null,"mapping_rule_version_no"?: number | null,"narration"?: string | null,"narration2"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_date"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reversal_of_journal_id"?: string | null,"source_doc_id"?: string,"source_doc_no"?: string | null,"source_doc_type_code"?: string,"source_module_code"?: string,"status_code"?: string,"tenant_org_id"?: string,"total_credit"?: number,"total_debit"?: number,"txn_event_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"exchange_rate"?: number,"id"?: string,"is_active"?: boolean,"journal_date"?: string,"journal_no"?: string,"mapping_rule_id"?: string | null,"mapping_rule_version_no"?: number | null,"narration"?: string | null,"narration2"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_date"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reversal_of_journal_id"?: string | null,"source_doc_id"?: string,"source_doc_no"?: string | null,"source_doc_type_code"?: string,"source_module_code"?: string,"status_code"?: string,"tenant_org_id"?: string,"total_credit"?: number,"total_debit"?: number,"txn_event_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fjr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofj_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -4189,16 +4303,22 @@ isOneToOne: false
                   ]
                 },"org_fin_po_mst": {
                   Row: {
-                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"exchange_rate": number,"expected_date": string | null,"id": string,"is_active": boolean,"po_date": string,"po_no": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"subtotal_amount": number,"supplier_id": string,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"exchange_rate": number,"expected_date": string | null,"id": string,"is_active": boolean,"po_date": string,"po_no": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"subtotal_amount": number,"supplier_id": string,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"exchange_rate"?: number,"expected_date"?: string | null,"id"?: string,"is_active"?: boolean,"po_date": string,"po_no": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id": string,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"exchange_rate"?: number,"expected_date"?: string | null,"id"?: string,"is_active"?: boolean,"po_date": string,"po_no": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id": string,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"exchange_rate"?: number,"expected_date"?: string | null,"id"?: string,"is_active"?: boolean,"po_date"?: string,"po_no"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id"?: string,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"exchange_rate"?: number,"expected_date"?: string | null,"id"?: string,"is_active"?: boolean,"po_date"?: string,"po_no"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"subtotal_amount"?: number,"supplier_id"?: string,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_fpo_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
       foreignKeyName: "fk_ofpo_branch"
       columns: ["branch_id","tenant_org_id"]
 isOneToOne: false
@@ -4509,16 +4629,22 @@ isOneToOne: false
                   ]
                 },"org_fin_recon_runs_mst": {
                   Row: {
-                    "branch_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"failed_checks": number,"id": string,"is_active": boolean,"metadata": Json | null,"passed_checks": number,"period_from": string,"period_to": string,"rec_status": number,"run_no": string,"run_type": string,"started_at": string,"status": string,"tenant_org_id": string,"total_checked": number,"triggered_by": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"warning_checks": number
+                    "branch_id": string | null,"completed_at": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"failed_checks": number,"id": string,"is_active": boolean,"metadata": Json | null,"passed_checks": number,"period_from": string,"period_to": string,"rec_status": number,"run_no": string,"run_type": string,"started_at": string,"status": string,"tenant_org_id": string,"total_checked": number,"triggered_by": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"warning_checks": number
                   }
                   Insert: {
-                    "branch_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"failed_checks"?: number,"id"?: string,"is_active"?: boolean,"metadata"?: Json | null,"passed_checks"?: number,"period_from": string,"period_to": string,"rec_status"?: number,"run_no": string,"run_type"?: string,"started_at"?: string,"status"?: string,"tenant_org_id": string,"total_checked"?: number,"triggered_by"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"warning_checks"?: number
+                    "branch_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"failed_checks"?: number,"id"?: string,"is_active"?: boolean,"metadata"?: Json | null,"passed_checks"?: number,"period_from": string,"period_to": string,"rec_status"?: number,"run_no": string,"run_type"?: string,"started_at"?: string,"status"?: string,"tenant_org_id": string,"total_checked"?: number,"triggered_by"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"warning_checks"?: number
                   }
                   Update: {
-                    "branch_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"failed_checks"?: number,"id"?: string,"is_active"?: boolean,"metadata"?: Json | null,"passed_checks"?: number,"period_from"?: string,"period_to"?: string,"rec_status"?: number,"run_no"?: string,"run_type"?: string,"started_at"?: string,"status"?: string,"tenant_org_id"?: string,"total_checked"?: number,"triggered_by"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"warning_checks"?: number
+                    "branch_id"?: string | null,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"failed_checks"?: number,"id"?: string,"is_active"?: boolean,"metadata"?: Json | null,"passed_checks"?: number,"period_from"?: string,"period_to"?: string,"rec_status"?: number,"run_no"?: string,"run_type"?: string,"started_at"?: string,"status"?: string,"tenant_org_id"?: string,"total_checked"?: number,"triggered_by"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"warning_checks"?: number
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "fk_frr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    }
                   ]
                 },"org_fin_supp_ctc_dtl": {
                   Row: {
@@ -4559,13 +4685,13 @@ isOneToOne: false
                   ]
                 },"org_fin_supp_mst": {
                   Row: {
-                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"default_usage_id": string | null,"description": string | null,"description2": string | null,"email": string | null,"id": string,"is_active": boolean,"name": string,"name2": string | null,"payable_acct_id": string | null,"payment_terms_days": number,"phone": string | null,"posting_hold": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"supplier_code": string,"tax_reg_no": string | null,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"default_usage_id": string | null,"description": string | null,"description2": string | null,"email": string | null,"id": string,"is_active": boolean,"name": string,"name2": string | null,"payable_acct_id": string | null,"payment_terms_days": number,"phone": string | null,"posting_hold": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"supplier_code": string,"tax_country": string | null,"tax_party_class_code": string | null,"tax_reg_no": string | null,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"default_usage_id"?: string | null,"description"?: string | null,"description2"?: string | null,"email"?: string | null,"id"?: string,"is_active"?: boolean,"name": string,"name2"?: string | null,"payable_acct_id"?: string | null,"payment_terms_days"?: number,"phone"?: string | null,"posting_hold"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"supplier_code": string,"tax_reg_no"?: string | null,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"default_usage_id"?: string | null,"description"?: string | null,"description2"?: string | null,"email"?: string | null,"id"?: string,"is_active"?: boolean,"name": string,"name2"?: string | null,"payable_acct_id"?: string | null,"payment_terms_days"?: number,"phone"?: string | null,"posting_hold"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"supplier_code": string,"tax_country"?: string | null,"tax_party_class_code"?: string | null,"tax_reg_no"?: string | null,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"default_usage_id"?: string | null,"description"?: string | null,"description2"?: string | null,"email"?: string | null,"id"?: string,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"payable_acct_id"?: string | null,"payment_terms_days"?: number,"phone"?: string | null,"posting_hold"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"supplier_code"?: string,"tax_reg_no"?: string | null,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"default_usage_id"?: string | null,"description"?: string | null,"description2"?: string | null,"email"?: string | null,"id"?: string,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"payable_acct_id"?: string | null,"payment_terms_days"?: number,"phone"?: string | null,"posting_hold"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"supplier_code"?: string,"tax_country"?: string | null,"tax_party_class_code"?: string | null,"tax_reg_no"?: string | null,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -4586,6 +4712,18 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "vw_fin_coa_explorer"
       referencedColumns: ["account_id","tenant_org_id"]
+    },{
+      foreignKeyName: "fk_ofs_tax_country"
+      columns: ["tax_country"]
+isOneToOne: false
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_ofs_tax_party_class"
+      columns: ["tax_party_class_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_party_class_cd"
+      referencedColumns: ["party_class_code"]
     },{
       foreignKeyName: "fk_ofs_tenant"
       columns: ["tenant_org_id"]
@@ -4835,13 +4973,13 @@ isOneToOne: false
                   ]
                 },"org_fin_vouchers_mst": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"branch_id": string | null,"content_html": string | null,"content_text": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string | null,"currency_ex_rate": number | null,"customer_id": string | null,"description": string | null,"direction": string | null,"discount_amount": number | null,"employee_id": string | null,"fee_amount": number | null,"id": string,"idempotency_key": string | null,"invoice_id": string | null,"is_active": boolean,"issued_at": string | null,"metadata": Json | null,"notes": string | null,"order_id": string | null,"outstanding_amount": number | null,"paid_amount": number | null,"party_name": string | null,"party_type": string | null,"posted_at": string | null,"posted_by": string | null,"posting_status": string,"reason_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"ref_voucher_id": string | null,"refunded_amount": number | null,"reversal_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"reversed_by_voucher_id": string | null,"source_module": string | null,"source_ref_id": string | null,"source_ref_type": string | null,"subtotal_amount": number | null,"supplier_id": string | null,"tax_amount": number | null,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"void_reason": string | null,"voided_at": string | null,"voucher_category": string,"voucher_date": string | null,"voucher_datetime": string | null,"voucher_no": string,"voucher_status": string,"voucher_subtype": string | null,"voucher_type": string | null
+                    "approved_at": string | null,"approved_by": string | null,"branch_id": string | null,"content_html": string | null,"content_text": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string | null,"currency_ex_rate": number | null,"customer_id": string | null,"description": string | null,"direction": string | null,"discount_amount": number | null,"doc_type_code": string,"employee_id": string | null,"fee_amount": number | null,"id": string,"idempotency_key": string | null,"invoice_id": string | null,"is_active": boolean,"issued_at": string | null,"metadata": Json | null,"notes": string | null,"order_id": string | null,"outstanding_amount": number | null,"paid_amount": number | null,"party_name": string | null,"party_type": string | null,"posted_at": string | null,"posted_by": string | null,"posting_status": string,"reason_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"ref_voucher_id": string | null,"refunded_amount": number | null,"reversal_reason": string | null,"reversed_at": string | null,"reversed_by": string | null,"reversed_by_voucher_id": string | null,"source_module": string | null,"source_ref_id": string | null,"source_ref_type": string | null,"subtotal_amount": number | null,"supplier_id": string | null,"tax_amount": number | null,"tenant_org_id": string,"total_amount": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"void_reason": string | null,"voided_at": string | null,"voucher_category": string,"voucher_date": string | null,"voucher_datetime": string | null,"voucher_no": string,"voucher_status": string,"voucher_subtype": string | null,"voucher_type": string | null
                   }
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"branch_id"?: string | null,"content_html"?: string | null,"content_text"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number | null,"customer_id"?: string | null,"description"?: string | null,"direction"?: string | null,"discount_amount"?: number | null,"employee_id"?: string | null,"fee_amount"?: number | null,"id"?: string,"idempotency_key"?: string | null,"invoice_id"?: string | null,"is_active"?: boolean,"issued_at"?: string | null,"metadata"?: Json | null,"notes"?: string | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"party_name"?: string | null,"party_type"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_status"?: string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"ref_voucher_id"?: string | null,"refunded_amount"?: number | null,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"reversed_by_voucher_id"?: string | null,"source_module"?: string | null,"source_ref_id"?: string | null,"source_ref_type"?: string | null,"subtotal_amount"?: number | null,"supplier_id"?: string | null,"tax_amount"?: number | null,"tenant_org_id": string,"total_amount": number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"void_reason"?: string | null,"voided_at"?: string | null,"voucher_category": string,"voucher_date"?: string | null,"voucher_datetime"?: string | null,"voucher_no": string,"voucher_status"?: string,"voucher_subtype"?: string | null,"voucher_type"?: string | null
+                    "approved_at"?: string | null,"approved_by"?: string | null,"branch_id"?: string | null,"content_html"?: string | null,"content_text"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number | null,"customer_id"?: string | null,"description"?: string | null,"direction"?: string | null,"discount_amount"?: number | null,"doc_type_code"?: string,"employee_id"?: string | null,"fee_amount"?: number | null,"id"?: string,"idempotency_key"?: string | null,"invoice_id"?: string | null,"is_active"?: boolean,"issued_at"?: string | null,"metadata"?: Json | null,"notes"?: string | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"party_name"?: string | null,"party_type"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_status"?: string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"ref_voucher_id"?: string | null,"refunded_amount"?: number | null,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"reversed_by_voucher_id"?: string | null,"source_module"?: string | null,"source_ref_id"?: string | null,"source_ref_type"?: string | null,"subtotal_amount"?: number | null,"supplier_id"?: string | null,"tax_amount"?: number | null,"tenant_org_id": string,"total_amount": number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"void_reason"?: string | null,"voided_at"?: string | null,"voucher_category": string,"voucher_date"?: string | null,"voucher_datetime"?: string | null,"voucher_no": string,"voucher_status"?: string,"voucher_subtype"?: string | null,"voucher_type"?: string | null
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"branch_id"?: string | null,"content_html"?: string | null,"content_text"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number | null,"customer_id"?: string | null,"description"?: string | null,"direction"?: string | null,"discount_amount"?: number | null,"employee_id"?: string | null,"fee_amount"?: number | null,"id"?: string,"idempotency_key"?: string | null,"invoice_id"?: string | null,"is_active"?: boolean,"issued_at"?: string | null,"metadata"?: Json | null,"notes"?: string | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"party_name"?: string | null,"party_type"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_status"?: string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"ref_voucher_id"?: string | null,"refunded_amount"?: number | null,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"reversed_by_voucher_id"?: string | null,"source_module"?: string | null,"source_ref_id"?: string | null,"source_ref_type"?: string | null,"subtotal_amount"?: number | null,"supplier_id"?: string | null,"tax_amount"?: number | null,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"void_reason"?: string | null,"voided_at"?: string | null,"voucher_category"?: string,"voucher_date"?: string | null,"voucher_datetime"?: string | null,"voucher_no"?: string,"voucher_status"?: string,"voucher_subtype"?: string | null,"voucher_type"?: string | null
+                    "approved_at"?: string | null,"approved_by"?: string | null,"branch_id"?: string | null,"content_html"?: string | null,"content_text"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number | null,"customer_id"?: string | null,"description"?: string | null,"direction"?: string | null,"discount_amount"?: number | null,"doc_type_code"?: string,"employee_id"?: string | null,"fee_amount"?: number | null,"id"?: string,"idempotency_key"?: string | null,"invoice_id"?: string | null,"is_active"?: boolean,"issued_at"?: string | null,"metadata"?: Json | null,"notes"?: string | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"party_name"?: string | null,"party_type"?: string | null,"posted_at"?: string | null,"posted_by"?: string | null,"posting_status"?: string,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"ref_voucher_id"?: string | null,"refunded_amount"?: number | null,"reversal_reason"?: string | null,"reversed_at"?: string | null,"reversed_by"?: string | null,"reversed_by_voucher_id"?: string | null,"source_module"?: string | null,"source_ref_id"?: string | null,"source_ref_type"?: string | null,"subtotal_amount"?: number | null,"supplier_id"?: string | null,"tax_amount"?: number | null,"tenant_org_id"?: string,"total_amount"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"void_reason"?: string | null,"voided_at"?: string | null,"voucher_category"?: string,"voucher_date"?: string | null,"voucher_datetime"?: string | null,"voucher_no"?: string,"voucher_status"?: string,"voucher_subtype"?: string | null,"voucher_type"?: string | null
                   }
                   Relationships: [
                     {
@@ -4910,6 +5048,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "vw_fin_tenant_readiness"
       referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_fvo_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     },{
       foreignKeyName: "fk_org_fin_vouchers_currency"
       columns: ["currency_code"]
@@ -5181,6 +5325,43 @@ isOneToOne: false
       referencedColumns: ["tenant_org_id"]
     }
                   ]
+                },"org_holidays_cf": {
+                  Row: {
+                    "branch_id": string | null,"close_time": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"holiday_date": string,"id": string,"is_active": boolean,"is_closed": boolean,"name": string,"name2": string | null,"open_time": string | null,"rec_notes": string | null,"rec_status": number,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                  }
+                  Insert: {
+                    "branch_id"?: string | null,"close_time"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"holiday_date": string,"id"?: string,"is_active"?: boolean,"is_closed"?: boolean,"name": string,"name2"?: string | null,"open_time"?: string | null,"rec_notes"?: string | null,"rec_status"?: number,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "branch_id"?: string | null,"close_time"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"holiday_date"?: string,"id"?: string,"is_active"?: boolean,"is_closed"?: boolean,"name"?: string,"name2"?: string | null,"open_time"?: string | null,"rec_notes"?: string | null,"rec_status"?: number,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_org_hol_branch"
+      columns: ["branch_id","tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_branches_mst"
+      referencedColumns: ["id","tenant_org_id"]
+    },{
+      foreignKeyName: "fk_org_hol_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_org_hol_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_org_hol_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
                 },"org_idempotency_keys": {
                   Row: {
                     "created_at": string,"expires_at": string,"id": string,"key": string,"resource_id": string | null,"resource_type": string,"response_cache": Json | null,"tenant_org_id": string
@@ -5257,13 +5438,13 @@ isOneToOne: false
                   ]
                 },"org_inv_stock_tr": {
                   Row: {
-                    "branch_id": string,"created_at": string | null,"created_by": string | null,"created_info": string | null,"id": string,"is_active": boolean,"notes": string | null,"processed_by": string | null,"product_id": string,"qty_after": number | null,"qty_before": number | null,"quantity": number,"reason": string | null,"rec_status": number | null,"reference_id": string | null,"reference_no": string | null,"reference_type": string | null,"tenant_org_id": string,"total_cost": number | null,"transaction_date": string,"transaction_no": string,"transaction_type": string,"unit_cost": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "branch_id": string,"created_at": string | null,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"id": string,"is_active": boolean,"notes": string | null,"processed_by": string | null,"product_id": string,"qty_after": number | null,"qty_before": number | null,"quantity": number,"reason": string | null,"rec_status": number | null,"reference_id": string | null,"reference_no": string | null,"reference_type": string | null,"tenant_org_id": string,"total_cost": number | null,"transaction_date": string,"transaction_no": string,"transaction_type": string,"unit_cost": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "branch_id": string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id": string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity": number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id": string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no": string,"transaction_type": string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id": string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id": string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity": number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id": string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no": string,"transaction_type": string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "branch_id"?: string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id"?: string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity"?: number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id"?: string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no"?: string,"transaction_type"?: string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "branch_id"?: string,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"id"?: string,"is_active"?: boolean,"notes"?: string | null,"processed_by"?: string | null,"product_id"?: string,"qty_after"?: number | null,"qty_before"?: number | null,"quantity"?: number,"reason"?: string | null,"rec_status"?: number | null,"reference_id"?: string | null,"reference_no"?: string | null,"reference_type"?: string | null,"tenant_org_id"?: string,"total_cost"?: number | null,"transaction_date"?: string,"transaction_no"?: string,"transaction_type"?: string,"unit_cost"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -5296,6 +5477,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "org_branches_mst"
       referencedColumns: ["id","tenant_org_id"]
+    },{
+      foreignKeyName: "fk_ist_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     }
                   ]
                 },"org_invoice_adjustments_dtl": {
@@ -5344,13 +5531,13 @@ isOneToOne: false
                   ]
                 },"org_invoice_mst": {
                   Row: {
-                    "approval_action_cd": string | null,"approval_notes": string | null,"approval_required": boolean,"approved_at": string | null,"approved_by": string | null,"b2b_contract_id": string | null,"branch_id": string | null,"cost_center_code": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"currency_ex_rate": number,"customer_id": string | null,"customer_reference": string | null,"discount": number | null,"discount_rate": number | null,"discount_type": string | null,"due_date": string | null,"due_date_source_cd": string | null,"due_terms_days": number | null,"gift_card_applied_amount": number | null,"gift_card_id": string | null,"handed_to_by_user": string | null,"handed_to_date": string | null,"handed_to_mobile_no": string | null,"handed_to_name": string | null,"id": string,"invoice_date": string | null,"invoice_no": string,"invoice_type_cd": string | null,"is_active": boolean | null,"issued_at": string | null,"issued_by": string | null,"metadata": Json | null,"numbering_doc_type_cd": string,"numbering_seq_no": number | null,"order_id": string | null,"outstanding_amount": number | null,"paid_amount": number | null,"paid_at": string | null,"paid_by": string | null,"paid_by_name": string | null,"payment_method_code": string | null,"payment_terms": string | null,"po_number": string | null,"promo_code_id": string | null,"promo_discount_amount": number | null,"rec_notes": string | null,"rec_status": number | null,"service_charge": number | null,"service_charge_type": string | null,"statement_id": string | null,"status": string | null,"subtotal": number | null,"tax": number | null,"tax_rate": number | null,"tenant_org_id": string,"total": number | null,"trans_desc": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"vat_amount": number | null,"vat_rate": number | null,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                    "approval_action_cd": string | null,"approval_notes": string | null,"approval_required": boolean,"approved_at": string | null,"approved_by": string | null,"b2b_contract_id": string | null,"branch_id": string | null,"cost_center_code": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string,"currency_ex_rate": number,"customer_id": string | null,"customer_reference": string | null,"discount": number | null,"discount_rate": number | null,"discount_type": string | null,"doc_type_code": string,"due_date": string | null,"due_date_source_cd": string | null,"due_terms_days": number | null,"gift_card_applied_amount": number | null,"gift_card_id": string | null,"handed_to_by_user": string | null,"handed_to_date": string | null,"handed_to_mobile_no": string | null,"handed_to_name": string | null,"id": string,"invoice_date": string | null,"invoice_no": string,"invoice_type_cd": string | null,"is_active": boolean | null,"issued_at": string | null,"issued_by": string | null,"metadata": Json | null,"numbering_doc_type_cd": string,"numbering_seq_no": number | null,"order_id": string | null,"outstanding_amount": number | null,"paid_amount": number | null,"paid_at": string | null,"paid_by": string | null,"paid_by_name": string | null,"payment_method_code": string | null,"payment_terms": string | null,"po_number": string | null,"promo_code_id": string | null,"promo_discount_amount": number | null,"rec_notes": string | null,"rec_status": number | null,"service_charge": number | null,"service_charge_type": string | null,"statement_id": string | null,"status": string | null,"subtotal": number | null,"tax": number | null,"tax_rate": number | null,"tenant_org_id": string,"total": number | null,"trans_desc": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"vat_amount": number | null,"vat_rate": number | null,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
                   }
                   Insert: {
-                    "approval_action_cd"?: string | null,"approval_notes"?: string | null,"approval_required"?: boolean,"approved_at"?: string | null,"approved_by"?: string | null,"b2b_contract_id"?: string | null,"branch_id"?: string | null,"cost_center_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"currency_ex_rate"?: number,"customer_id"?: string | null,"customer_reference"?: string | null,"discount"?: number | null,"discount_rate"?: number | null,"discount_type"?: string | null,"due_date"?: string | null,"due_date_source_cd"?: string | null,"due_terms_days"?: number | null,"gift_card_applied_amount"?: number | null,"gift_card_id"?: string | null,"handed_to_by_user"?: string | null,"handed_to_date"?: string | null,"handed_to_mobile_no"?: string | null,"handed_to_name"?: string | null,"id"?: string,"invoice_date"?: string | null,"invoice_no": string,"invoice_type_cd"?: string | null,"is_active"?: boolean | null,"issued_at"?: string | null,"issued_by"?: string | null,"metadata"?: Json | null,"numbering_doc_type_cd"?: string,"numbering_seq_no"?: number | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"paid_at"?: string | null,"paid_by"?: string | null,"paid_by_name"?: string | null,"payment_method_code"?: string | null,"payment_terms"?: string | null,"po_number"?: string | null,"promo_code_id"?: string | null,"promo_discount_amount"?: number | null,"rec_notes"?: string | null,"rec_status"?: number | null,"service_charge"?: number | null,"service_charge_type"?: string | null,"statement_id"?: string | null,"status"?: string | null,"subtotal"?: number | null,"tax"?: number | null,"tax_rate"?: number | null,"tenant_org_id": string,"total"?: number | null,"trans_desc"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_amount"?: number | null,"vat_rate"?: number | null,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                    "approval_action_cd"?: string | null,"approval_notes"?: string | null,"approval_required"?: boolean,"approved_at"?: string | null,"approved_by"?: string | null,"b2b_contract_id"?: string | null,"branch_id"?: string | null,"cost_center_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"currency_ex_rate"?: number,"customer_id"?: string | null,"customer_reference"?: string | null,"discount"?: number | null,"discount_rate"?: number | null,"discount_type"?: string | null,"doc_type_code"?: string,"due_date"?: string | null,"due_date_source_cd"?: string | null,"due_terms_days"?: number | null,"gift_card_applied_amount"?: number | null,"gift_card_id"?: string | null,"handed_to_by_user"?: string | null,"handed_to_date"?: string | null,"handed_to_mobile_no"?: string | null,"handed_to_name"?: string | null,"id"?: string,"invoice_date"?: string | null,"invoice_no": string,"invoice_type_cd"?: string | null,"is_active"?: boolean | null,"issued_at"?: string | null,"issued_by"?: string | null,"metadata"?: Json | null,"numbering_doc_type_cd"?: string,"numbering_seq_no"?: number | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"paid_at"?: string | null,"paid_by"?: string | null,"paid_by_name"?: string | null,"payment_method_code"?: string | null,"payment_terms"?: string | null,"po_number"?: string | null,"promo_code_id"?: string | null,"promo_discount_amount"?: number | null,"rec_notes"?: string | null,"rec_status"?: number | null,"service_charge"?: number | null,"service_charge_type"?: string | null,"statement_id"?: string | null,"status"?: string | null,"subtotal"?: number | null,"tax"?: number | null,"tax_rate"?: number | null,"tenant_org_id": string,"total"?: number | null,"trans_desc"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_amount"?: number | null,"vat_rate"?: number | null,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Update: {
-                    "approval_action_cd"?: string | null,"approval_notes"?: string | null,"approval_required"?: boolean,"approved_at"?: string | null,"approved_by"?: string | null,"b2b_contract_id"?: string | null,"branch_id"?: string | null,"cost_center_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"currency_ex_rate"?: number,"customer_id"?: string | null,"customer_reference"?: string | null,"discount"?: number | null,"discount_rate"?: number | null,"discount_type"?: string | null,"due_date"?: string | null,"due_date_source_cd"?: string | null,"due_terms_days"?: number | null,"gift_card_applied_amount"?: number | null,"gift_card_id"?: string | null,"handed_to_by_user"?: string | null,"handed_to_date"?: string | null,"handed_to_mobile_no"?: string | null,"handed_to_name"?: string | null,"id"?: string,"invoice_date"?: string | null,"invoice_no"?: string,"invoice_type_cd"?: string | null,"is_active"?: boolean | null,"issued_at"?: string | null,"issued_by"?: string | null,"metadata"?: Json | null,"numbering_doc_type_cd"?: string,"numbering_seq_no"?: number | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"paid_at"?: string | null,"paid_by"?: string | null,"paid_by_name"?: string | null,"payment_method_code"?: string | null,"payment_terms"?: string | null,"po_number"?: string | null,"promo_code_id"?: string | null,"promo_discount_amount"?: number | null,"rec_notes"?: string | null,"rec_status"?: number | null,"service_charge"?: number | null,"service_charge_type"?: string | null,"statement_id"?: string | null,"status"?: string | null,"subtotal"?: number | null,"tax"?: number | null,"tax_rate"?: number | null,"tenant_org_id"?: string,"total"?: number | null,"trans_desc"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_amount"?: number | null,"vat_rate"?: number | null,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                    "approval_action_cd"?: string | null,"approval_notes"?: string | null,"approval_required"?: boolean,"approved_at"?: string | null,"approved_by"?: string | null,"b2b_contract_id"?: string | null,"branch_id"?: string | null,"cost_center_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"currency_ex_rate"?: number,"customer_id"?: string | null,"customer_reference"?: string | null,"discount"?: number | null,"discount_rate"?: number | null,"discount_type"?: string | null,"doc_type_code"?: string,"due_date"?: string | null,"due_date_source_cd"?: string | null,"due_terms_days"?: number | null,"gift_card_applied_amount"?: number | null,"gift_card_id"?: string | null,"handed_to_by_user"?: string | null,"handed_to_date"?: string | null,"handed_to_mobile_no"?: string | null,"handed_to_name"?: string | null,"id"?: string,"invoice_date"?: string | null,"invoice_no"?: string,"invoice_type_cd"?: string | null,"is_active"?: boolean | null,"issued_at"?: string | null,"issued_by"?: string | null,"metadata"?: Json | null,"numbering_doc_type_cd"?: string,"numbering_seq_no"?: number | null,"order_id"?: string | null,"outstanding_amount"?: number | null,"paid_amount"?: number | null,"paid_at"?: string | null,"paid_by"?: string | null,"paid_by_name"?: string | null,"payment_method_code"?: string | null,"payment_terms"?: string | null,"po_number"?: string | null,"promo_code_id"?: string | null,"promo_discount_amount"?: number | null,"rec_notes"?: string | null,"rec_status"?: number | null,"service_charge"?: number | null,"service_charge_type"?: string | null,"statement_id"?: string | null,"status"?: string | null,"subtotal"?: number | null,"tax"?: number | null,"tax_rate"?: number | null,"tenant_org_id"?: string,"total"?: number | null,"trans_desc"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_amount"?: number | null,"vat_rate"?: number | null,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -5371,6 +5558,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "org_promotions_mst"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_oim_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     },{
       foreignKeyName: "fk_org_invoice_branch"
       columns: ["branch_id","tenant_org_id"]
@@ -7451,13 +7644,13 @@ isOneToOne: false
                   ]
                 },"org_order_refunds_dtl": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"cash_drawer_session_id": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency_code": string,"fin_voucher_id": string | null,"fin_voucher_trx_line_id": string | null,"gateway_refund_id": string | null,"id": string,"idempotency_key": string | null,"is_active": boolean,"metadata": NonNullable<Json>,"order_id": string,"original_credit_app_id": string | null,"original_payment_id": string | null,"pos_session_id": string | null,"processed_at": string | null,"reason_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"refund_amount": number,"refund_context": string,"refund_method_code": string | null,"refund_no": string | null,"refund_reason": string | null,"refund_source_type": string,"refund_status": string,"reopens_due_amount": number,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "approved_at": string | null,"approved_by": string | null,"cash_drawer_session_id": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency_code": string,"doc_type_code": string,"fin_voucher_id": string | null,"fin_voucher_trx_line_id": string | null,"gateway_refund_id": string | null,"id": string,"idempotency_key": string | null,"is_active": boolean,"metadata": NonNullable<Json>,"order_id": string,"original_credit_app_id": string | null,"original_payment_id": string | null,"pos_session_id": string | null,"processed_at": string | null,"reason_code": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"refund_amount": number,"refund_context": string,"refund_method_code": string | null,"refund_no": string | null,"refund_reason": string | null,"refund_source_type": string,"refund_status": string,"reopens_due_amount": number,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"cash_drawer_session_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"fin_voucher_id"?: string | null,"fin_voucher_trx_line_id"?: string | null,"gateway_refund_id"?: string | null,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"order_id": string,"original_credit_app_id"?: string | null,"original_payment_id"?: string | null,"pos_session_id"?: string | null,"processed_at"?: string | null,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"refund_amount": number,"refund_context": string,"refund_method_code"?: string | null,"refund_no"?: string | null,"refund_reason"?: string | null,"refund_source_type": string,"refund_status"?: string,"reopens_due_amount"?: number,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "approved_at"?: string | null,"approved_by"?: string | null,"cash_drawer_session_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code": string,"doc_type_code"?: string,"fin_voucher_id"?: string | null,"fin_voucher_trx_line_id"?: string | null,"gateway_refund_id"?: string | null,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"order_id": string,"original_credit_app_id"?: string | null,"original_payment_id"?: string | null,"pos_session_id"?: string | null,"processed_at"?: string | null,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"refund_amount": number,"refund_context": string,"refund_method_code"?: string | null,"refund_no"?: string | null,"refund_reason"?: string | null,"refund_source_type": string,"refund_status"?: string,"reopens_due_amount"?: number,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"cash_drawer_session_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"fin_voucher_id"?: string | null,"fin_voucher_trx_line_id"?: string | null,"gateway_refund_id"?: string | null,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"order_id"?: string,"original_credit_app_id"?: string | null,"original_payment_id"?: string | null,"pos_session_id"?: string | null,"processed_at"?: string | null,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"refund_amount"?: number,"refund_context"?: string,"refund_method_code"?: string | null,"refund_no"?: string | null,"refund_reason"?: string | null,"refund_source_type"?: string,"refund_status"?: string,"reopens_due_amount"?: number,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "approved_at"?: string | null,"approved_by"?: string | null,"cash_drawer_session_id"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string,"doc_type_code"?: string,"fin_voucher_id"?: string | null,"fin_voucher_trx_line_id"?: string | null,"gateway_refund_id"?: string | null,"id"?: string,"idempotency_key"?: string | null,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"order_id"?: string,"original_credit_app_id"?: string | null,"original_payment_id"?: string | null,"pos_session_id"?: string | null,"processed_at"?: string | null,"reason_code"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"refund_amount"?: number,"refund_context"?: string,"refund_method_code"?: string | null,"refund_no"?: string | null,"refund_reason"?: string | null,"refund_source_type"?: string,"refund_status"?: string,"reopens_due_amount"?: number,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -7466,6 +7659,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "org_pos_sessions_mst"
       referencedColumns: ["tenant_org_id","id"]
+    },{
+      foreignKeyName: "fk_orf_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     },{
       foreignKeyName: "fk_refund_orig_payment_tenant"
       columns: ["tenant_org_id","original_payment_id"]
@@ -7592,16 +7791,28 @@ isOneToOne: false
                   ]
                 },"org_orders_mst": {
                   Row: {
-                    "ar_invoice_id": string | null,"ar_invoice_no": string | null,"ar_invoice_status": string | null,"ar_receivable_amount": number,"authorized_payment_amount": number,"b2b_contract_id": string | null,"bag_count": number | null,"base_cur_ar_receivable_amount": number,"base_cur_credit_applied_amount": number,"base_cur_currency_code": string | null,"base_cur_outstanding_amount": number,"base_cur_paid_amount": number,"base_cur_tax_amount": number,"base_cur_total_amount": number,"branch_id": string | null,"cancellation_reason_code": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"cancelled_note": string | null,"change_returned_amount": number | null,"commercial_calc_version": number | null,"commercial_level": string | null,"committed_at": string | null,"committed_by": string | null,"cost_center_code": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"created_pos_session_id": string | null,"credit_limit_override_at": string | null,"credit_limit_override_by": string | null,"credit_reversal_reopens_due_amount": number,"credit_reversed_amount": number,"currency_code": string | null,"currency_ex_rate": number,"current_stage": string | null,"current_status": string | null,"customer_credit_issued_amount": number,"customer_details": Json | null,"customer_email": string | null,"customer_id": string,"customer_mobile_number": string | null,"customer_name": string | null,"customer_notes": string | null,"delivered_at": string | null,"delivery_charge_amount": number,"disc_alloc_basis": string | null,"disc_alloc_mode": string | null,"discount_rate": number | null,"discount_type": string | null,"edit_access_status": string,"edit_block_reason_code": string | null,"edit_block_reason_text": string | null,"edit_block_until": string | null,"edit_blocked_at": string | null,"edit_blocked_by": string | null,"edit_state_version": number,"exempt_amount": number,"express_charge_amount": number,"extra_price_pricing_mode": string | null,"failed_credit_application_amount": number,"failed_payment_amount": number,"financial_calculation_hash": string | null,"financial_calculation_snapshot": NonNullable<Json>,"financial_calculation_trace_id": string | null,"financial_engine_version": number | null,"financial_last_calculated_at": string | null,"financial_last_calculated_by": string | null,"financial_mismatch_warning_count": number,"financial_snapshot_status": string,"gift_card_id": string | null,"hanging_count": number | null,"has_issue": boolean | null,"has_split": boolean | null,"hold_from_status": string | null,"id": string,"idempotency_key": string | null,"internal_notes": string | null,"is_default_customer": boolean | null,"is_order_quick_drop": boolean | null,"is_rejected": boolean | null,"is_retail": boolean,"issue_id": string | null,"items_base_amount": number,"last_transition_at": string | null,"last_transition_by": string | null,"locker_code": string | null,"locker_location": string | null,"net_collected_amount": number,"non_taxable_amount": number,"order_no": string,"order_source_code": string,"order_subtype": string | null,"order_type_id": string | null,"other_charges_amount": number,"out_of_scope_amount": number,"outstanding_amount": number | null,"overpaid_amount": number,"paid_at": string | null,"paid_by": string | null,"parent_order_id": string | null,"pay_on_collection_amount": number | null,"payment_due_date": string | null,"payment_method_code": string | null,"payment_notes": string | null,"payment_status": string | null,"payment_terms": string | null,"payment_type_code": string | null,"pending_credit_application_amount": number,"pending_payment_amount": number,"photo_urls": Json | null,"physical_intake_at": string | null,"physical_intake_by": string | null,"physical_intake_info": string | null,"physical_intake_status": string,"piece_extra_price_amount": number,"po_number": string | null,"preference_extra_price_amount": number,"preparation_status": string | null,"prepared_at": string | null,"prepared_by": string | null,"priority": string | null,"priority_multiplier": number | null,"promo_code_id": string | null,"public_tracking_token": string | null,"public_tracking_token_expires_at": string | null,"public_tracking_token_revoked_at": string | null,"quick_drop_quantity": number | null,"rack_location": string | null,"ready_at": string | null,"ready_by": string | null,"ready_by_at_new": string | null,"ready_by_override": string | null,"real_payment_refunded_amount": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"received_at": string | null,"received_info": string | null,"refund_reopens_due_amount": number,"refunded_amount": number,"rejected_from_stage": string | null,"return_reason": string | null,"return_reason_code": string | null,"returned_at": string | null,"returned_by": string | null,"root_order_id": string | null,"rounding_adjustment_amount": number | null,"service_category_code": string | null,"service_charge_amount": number,"service_speed": string | null,"speed_premium_amount": number | null,"state_version": number,"status": string | null,"stored_value_restored_amount": number,"subtotal_amount": number,"tax_document_id": string | null,"tax_document_no": string | null,"tax_document_status": string | null,"tax_document_type": string | null,"tax_pricing_mode": string | null,"tax_rate": number | null,"taxable_amount": number,"tenant_org_id": string,"total_amount": number,"total_charges_amount": number | null,"total_credit_applied_amount": number | null,"total_discount_amount": number | null,"total_items": number | null,"total_paid_amount": number | null,"total_tax_amount": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"vat_rate": number | null,"wf_profile_artifact_id": string | null,"wf_profile_checksum": string | null,"wf_profile_id": string | null,"wf_profile_revision": number | null,"wf_profile_schema_version": number | null,"wf_profile_version_id": string | null,"wf_version_no": number | null,"workflow_template_id": string | null,"zero_rated_amount": number
+                    "ar_invoice_id": string | null,"ar_invoice_no": string | null,"ar_invoice_status": string | null,"ar_receivable_amount": number,"authorized_payment_amount": number,"b2b_contract_id": string | null,"bag_count": number | null,"base_cur_ar_receivable_amount": number,"base_cur_credit_applied_amount": number,"base_cur_currency_code": string | null,"base_cur_outstanding_amount": number,"base_cur_paid_amount": number,"base_cur_tax_amount": number,"base_cur_total_amount": number,"branch_id": string | null,"cancellation_reason_code": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"cancelled_note": string | null,"change_returned_amount": number | null,"commercial_calc_version": number | null,"commercial_level": string | null,"committed_at": string | null,"committed_by": string | null,"cost_center_code": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"created_pos_session_id": string | null,"credit_limit_override_at": string | null,"credit_limit_override_by": string | null,"credit_reversal_reopens_due_amount": number,"credit_reversed_amount": number,"currency_code": string | null,"currency_ex_rate": number,"current_stage": string | null,"current_status": string | null,"customer_credit_issued_amount": number,"customer_details": Json | null,"customer_email": string | null,"customer_id": string,"customer_mobile_number": string | null,"customer_name": string | null,"customer_notes": string | null,"delivered_at": string | null,"delivery_charge_amount": number,"disc_alloc_basis": string | null,"disc_alloc_mode": string | null,"discount_rate": number | null,"discount_type": string | null,"doc_type_code": string,"edit_access_status": string,"edit_block_reason_code": string | null,"edit_block_reason_text": string | null,"edit_block_until": string | null,"edit_blocked_at": string | null,"edit_blocked_by": string | null,"edit_state_version": number,"exempt_amount": number,"express_charge_amount": number,"extra_price_pricing_mode": string | null,"failed_credit_application_amount": number,"failed_payment_amount": number,"financial_calculation_hash": string | null,"financial_calculation_snapshot": NonNullable<Json>,"financial_calculation_trace_id": string | null,"financial_engine_version": number | null,"financial_last_calculated_at": string | null,"financial_last_calculated_by": string | null,"financial_mismatch_warning_count": number,"financial_snapshot_status": string,"gift_card_id": string | null,"hanging_count": number | null,"has_issue": boolean | null,"has_split": boolean | null,"hold_from_status": string | null,"id": string,"idempotency_key": string | null,"internal_notes": string | null,"is_default_customer": boolean | null,"is_order_quick_drop": boolean | null,"is_rejected": boolean | null,"is_retail": boolean,"issue_id": string | null,"items_base_amount": number,"last_transition_at": string | null,"last_transition_by": string | null,"locker_code": string | null,"locker_location": string | null,"net_collected_amount": number,"non_taxable_amount": number,"order_no": string,"order_source_code": string,"order_subtype": string | null,"order_type_id": string | null,"other_charges_amount": number,"out_of_scope_amount": number,"outstanding_amount": number | null,"overpaid_amount": number,"paid_at": string | null,"paid_by": string | null,"parent_order_id": string | null,"pay_on_collection_amount": number | null,"payment_due_date": string | null,"payment_method_code": string | null,"payment_notes": string | null,"payment_status": string | null,"payment_terms": string | null,"payment_type_code": string | null,"pending_credit_application_amount": number,"pending_payment_amount": number,"photo_urls": Json | null,"physical_intake_at": string | null,"physical_intake_by": string | null,"physical_intake_info": string | null,"physical_intake_status": string,"piece_extra_price_amount": number,"po_number": string | null,"preference_extra_price_amount": number,"preparation_status": string | null,"prepared_at": string | null,"prepared_by": string | null,"priority": string | null,"priority_multiplier": number | null,"promo_code_id": string | null,"public_tracking_token": string | null,"public_tracking_token_expires_at": string | null,"public_tracking_token_revoked_at": string | null,"quick_drop_quantity": number | null,"rack_location": string | null,"ready_at": string | null,"ready_by": string | null,"ready_by_at_new": string | null,"ready_by_override": string | null,"real_payment_refunded_amount": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"received_at": string | null,"received_info": string | null,"refund_reopens_due_amount": number,"refunded_amount": number,"rejected_from_stage": string | null,"return_reason": string | null,"return_reason_code": string | null,"returned_at": string | null,"returned_by": string | null,"root_order_id": string | null,"rounding_adjustment_amount": number | null,"service_category_code": string | null,"service_charge_amount": number,"service_speed": string | null,"speed_premium_amount": number | null,"state_version": number,"status": string | null,"stored_value_restored_amount": number,"subtotal_amount": number,"tax_document_id": string | null,"tax_document_no": string | null,"tax_document_status": string | null,"tax_document_type": string | null,"tax_pricing_mode": string | null,"tax_rate": number | null,"taxable_amount": number,"tenant_org_id": string,"total_amount": number,"total_charges_amount": number | null,"total_credit_applied_amount": number | null,"total_discount_amount": number | null,"total_items": number | null,"total_paid_amount": number | null,"total_tax_amount": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"vat_rate": number | null,"wf_profile_artifact_id": string | null,"wf_profile_checksum": string | null,"wf_profile_id": string | null,"wf_profile_revision": number | null,"wf_profile_schema_version": number | null,"wf_profile_version_id": string | null,"wf_version_no": number | null,"workflow_template_id": string | null,"zero_rated_amount": number
                   }
                   Insert: {
-                    "ar_invoice_id"?: string | null,"ar_invoice_no"?: string | null,"ar_invoice_status"?: string | null,"ar_receivable_amount"?: number,"authorized_payment_amount"?: number,"b2b_contract_id"?: string | null,"bag_count"?: number | null,"base_cur_ar_receivable_amount"?: number,"base_cur_credit_applied_amount"?: number,"base_cur_currency_code"?: string | null,"base_cur_outstanding_amount"?: number,"base_cur_paid_amount"?: number,"base_cur_tax_amount"?: number,"base_cur_total_amount"?: number,"branch_id"?: string | null,"cancellation_reason_code"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"cancelled_note"?: string | null,"change_returned_amount"?: number | null,"commercial_calc_version"?: number | null,"commercial_level"?: string | null,"committed_at"?: string | null,"committed_by"?: string | null,"cost_center_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"created_pos_session_id"?: string | null,"credit_limit_override_at"?: string | null,"credit_limit_override_by"?: string | null,"credit_reversal_reopens_due_amount"?: number,"credit_reversed_amount"?: number,"currency_code"?: string | null,"currency_ex_rate"?: number,"current_stage"?: string | null,"current_status"?: string | null,"customer_credit_issued_amount"?: number,"customer_details"?: Json | null,"customer_email"?: string | null,"customer_id": string,"customer_mobile_number"?: string | null,"customer_name"?: string | null,"customer_notes"?: string | null,"delivered_at"?: string | null,"delivery_charge_amount"?: number,"disc_alloc_basis"?: string | null,"disc_alloc_mode"?: string | null,"discount_rate"?: number | null,"discount_type"?: string | null,"edit_access_status"?: string,"edit_block_reason_code"?: string | null,"edit_block_reason_text"?: string | null,"edit_block_until"?: string | null,"edit_blocked_at"?: string | null,"edit_blocked_by"?: string | null,"edit_state_version"?: number,"exempt_amount"?: number,"express_charge_amount"?: number,"extra_price_pricing_mode"?: string | null,"failed_credit_application_amount"?: number,"failed_payment_amount"?: number,"financial_calculation_hash"?: string | null,"financial_calculation_snapshot"?: NonNullable<Json>,"financial_calculation_trace_id"?: string | null,"financial_engine_version"?: number | null,"financial_last_calculated_at"?: string | null,"financial_last_calculated_by"?: string | null,"financial_mismatch_warning_count"?: number,"financial_snapshot_status"?: string,"gift_card_id"?: string | null,"hanging_count"?: number | null,"has_issue"?: boolean | null,"has_split"?: boolean | null,"hold_from_status"?: string | null,"id"?: string,"idempotency_key"?: string | null,"internal_notes"?: string | null,"is_default_customer"?: boolean | null,"is_order_quick_drop"?: boolean | null,"is_rejected"?: boolean | null,"is_retail"?: boolean,"issue_id"?: string | null,"items_base_amount"?: number,"last_transition_at"?: string | null,"last_transition_by"?: string | null,"locker_code"?: string | null,"locker_location"?: string | null,"net_collected_amount"?: number,"non_taxable_amount"?: number,"order_no": string,"order_source_code"?: string,"order_subtype"?: string | null,"order_type_id"?: string | null,"other_charges_amount"?: number,"out_of_scope_amount"?: number,"outstanding_amount"?: number | null,"overpaid_amount"?: number,"paid_at"?: string | null,"paid_by"?: string | null,"parent_order_id"?: string | null,"pay_on_collection_amount"?: number | null,"payment_due_date"?: string | null,"payment_method_code"?: string | null,"payment_notes"?: string | null,"payment_status"?: string | null,"payment_terms"?: string | null,"payment_type_code"?: string | null,"pending_credit_application_amount"?: number,"pending_payment_amount"?: number,"photo_urls"?: Json | null,"physical_intake_at"?: string | null,"physical_intake_by"?: string | null,"physical_intake_info"?: string | null,"physical_intake_status"?: string,"piece_extra_price_amount"?: number,"po_number"?: string | null,"preference_extra_price_amount"?: number,"preparation_status"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"priority"?: string | null,"priority_multiplier"?: number | null,"promo_code_id"?: string | null,"public_tracking_token"?: string | null,"public_tracking_token_expires_at"?: string | null,"public_tracking_token_revoked_at"?: string | null,"quick_drop_quantity"?: number | null,"rack_location"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"ready_by_at_new"?: string | null,"ready_by_override"?: string | null,"real_payment_refunded_amount"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"received_at"?: string | null,"received_info"?: string | null,"refund_reopens_due_amount"?: number,"refunded_amount"?: number,"rejected_from_stage"?: string | null,"return_reason"?: string | null,"return_reason_code"?: string | null,"returned_at"?: string | null,"returned_by"?: string | null,"root_order_id"?: string | null,"rounding_adjustment_amount"?: number | null,"service_category_code"?: string | null,"service_charge_amount"?: number,"service_speed"?: string | null,"speed_premium_amount"?: number | null,"state_version"?: number,"status"?: string | null,"stored_value_restored_amount"?: number,"subtotal_amount"?: number,"tax_document_id"?: string | null,"tax_document_no"?: string | null,"tax_document_status"?: string | null,"tax_document_type"?: string | null,"tax_pricing_mode"?: string | null,"tax_rate"?: number | null,"taxable_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"total_charges_amount"?: number | null,"total_credit_applied_amount"?: number | null,"total_discount_amount"?: number | null,"total_items"?: number | null,"total_paid_amount"?: number | null,"total_tax_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_rate"?: number | null,"wf_profile_artifact_id"?: string | null,"wf_profile_checksum"?: string | null,"wf_profile_id"?: string | null,"wf_profile_revision"?: number | null,"wf_profile_schema_version"?: number | null,"wf_profile_version_id"?: string | null,"wf_version_no"?: number | null,"workflow_template_id"?: string | null,"zero_rated_amount"?: number
+                    "ar_invoice_id"?: string | null,"ar_invoice_no"?: string | null,"ar_invoice_status"?: string | null,"ar_receivable_amount"?: number,"authorized_payment_amount"?: number,"b2b_contract_id"?: string | null,"bag_count"?: number | null,"base_cur_ar_receivable_amount"?: number,"base_cur_credit_applied_amount"?: number,"base_cur_currency_code"?: string | null,"base_cur_outstanding_amount"?: number,"base_cur_paid_amount"?: number,"base_cur_tax_amount"?: number,"base_cur_total_amount"?: number,"branch_id"?: string | null,"cancellation_reason_code"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"cancelled_note"?: string | null,"change_returned_amount"?: number | null,"commercial_calc_version"?: number | null,"commercial_level"?: string | null,"committed_at"?: string | null,"committed_by"?: string | null,"cost_center_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"created_pos_session_id"?: string | null,"credit_limit_override_at"?: string | null,"credit_limit_override_by"?: string | null,"credit_reversal_reopens_due_amount"?: number,"credit_reversed_amount"?: number,"currency_code"?: string | null,"currency_ex_rate"?: number,"current_stage"?: string | null,"current_status"?: string | null,"customer_credit_issued_amount"?: number,"customer_details"?: Json | null,"customer_email"?: string | null,"customer_id": string,"customer_mobile_number"?: string | null,"customer_name"?: string | null,"customer_notes"?: string | null,"delivered_at"?: string | null,"delivery_charge_amount"?: number,"disc_alloc_basis"?: string | null,"disc_alloc_mode"?: string | null,"discount_rate"?: number | null,"discount_type"?: string | null,"doc_type_code"?: string,"edit_access_status"?: string,"edit_block_reason_code"?: string | null,"edit_block_reason_text"?: string | null,"edit_block_until"?: string | null,"edit_blocked_at"?: string | null,"edit_blocked_by"?: string | null,"edit_state_version"?: number,"exempt_amount"?: number,"express_charge_amount"?: number,"extra_price_pricing_mode"?: string | null,"failed_credit_application_amount"?: number,"failed_payment_amount"?: number,"financial_calculation_hash"?: string | null,"financial_calculation_snapshot"?: NonNullable<Json>,"financial_calculation_trace_id"?: string | null,"financial_engine_version"?: number | null,"financial_last_calculated_at"?: string | null,"financial_last_calculated_by"?: string | null,"financial_mismatch_warning_count"?: number,"financial_snapshot_status"?: string,"gift_card_id"?: string | null,"hanging_count"?: number | null,"has_issue"?: boolean | null,"has_split"?: boolean | null,"hold_from_status"?: string | null,"id"?: string,"idempotency_key"?: string | null,"internal_notes"?: string | null,"is_default_customer"?: boolean | null,"is_order_quick_drop"?: boolean | null,"is_rejected"?: boolean | null,"is_retail"?: boolean,"issue_id"?: string | null,"items_base_amount"?: number,"last_transition_at"?: string | null,"last_transition_by"?: string | null,"locker_code"?: string | null,"locker_location"?: string | null,"net_collected_amount"?: number,"non_taxable_amount"?: number,"order_no": string,"order_source_code"?: string,"order_subtype"?: string | null,"order_type_id"?: string | null,"other_charges_amount"?: number,"out_of_scope_amount"?: number,"outstanding_amount"?: number | null,"overpaid_amount"?: number,"paid_at"?: string | null,"paid_by"?: string | null,"parent_order_id"?: string | null,"pay_on_collection_amount"?: number | null,"payment_due_date"?: string | null,"payment_method_code"?: string | null,"payment_notes"?: string | null,"payment_status"?: string | null,"payment_terms"?: string | null,"payment_type_code"?: string | null,"pending_credit_application_amount"?: number,"pending_payment_amount"?: number,"photo_urls"?: Json | null,"physical_intake_at"?: string | null,"physical_intake_by"?: string | null,"physical_intake_info"?: string | null,"physical_intake_status"?: string,"piece_extra_price_amount"?: number,"po_number"?: string | null,"preference_extra_price_amount"?: number,"preparation_status"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"priority"?: string | null,"priority_multiplier"?: number | null,"promo_code_id"?: string | null,"public_tracking_token"?: string | null,"public_tracking_token_expires_at"?: string | null,"public_tracking_token_revoked_at"?: string | null,"quick_drop_quantity"?: number | null,"rack_location"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"ready_by_at_new"?: string | null,"ready_by_override"?: string | null,"real_payment_refunded_amount"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"received_at"?: string | null,"received_info"?: string | null,"refund_reopens_due_amount"?: number,"refunded_amount"?: number,"rejected_from_stage"?: string | null,"return_reason"?: string | null,"return_reason_code"?: string | null,"returned_at"?: string | null,"returned_by"?: string | null,"root_order_id"?: string | null,"rounding_adjustment_amount"?: number | null,"service_category_code"?: string | null,"service_charge_amount"?: number,"service_speed"?: string | null,"speed_premium_amount"?: number | null,"state_version"?: number,"status"?: string | null,"stored_value_restored_amount"?: number,"subtotal_amount"?: number,"tax_document_id"?: string | null,"tax_document_no"?: string | null,"tax_document_status"?: string | null,"tax_document_type"?: string | null,"tax_pricing_mode"?: string | null,"tax_rate"?: number | null,"taxable_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"total_charges_amount"?: number | null,"total_credit_applied_amount"?: number | null,"total_discount_amount"?: number | null,"total_items"?: number | null,"total_paid_amount"?: number | null,"total_tax_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_rate"?: number | null,"wf_profile_artifact_id"?: string | null,"wf_profile_checksum"?: string | null,"wf_profile_id"?: string | null,"wf_profile_revision"?: number | null,"wf_profile_schema_version"?: number | null,"wf_profile_version_id"?: string | null,"wf_version_no"?: number | null,"workflow_template_id"?: string | null,"zero_rated_amount"?: number
                   }
                   Update: {
-                    "ar_invoice_id"?: string | null,"ar_invoice_no"?: string | null,"ar_invoice_status"?: string | null,"ar_receivable_amount"?: number,"authorized_payment_amount"?: number,"b2b_contract_id"?: string | null,"bag_count"?: number | null,"base_cur_ar_receivable_amount"?: number,"base_cur_credit_applied_amount"?: number,"base_cur_currency_code"?: string | null,"base_cur_outstanding_amount"?: number,"base_cur_paid_amount"?: number,"base_cur_tax_amount"?: number,"base_cur_total_amount"?: number,"branch_id"?: string | null,"cancellation_reason_code"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"cancelled_note"?: string | null,"change_returned_amount"?: number | null,"commercial_calc_version"?: number | null,"commercial_level"?: string | null,"committed_at"?: string | null,"committed_by"?: string | null,"cost_center_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"created_pos_session_id"?: string | null,"credit_limit_override_at"?: string | null,"credit_limit_override_by"?: string | null,"credit_reversal_reopens_due_amount"?: number,"credit_reversed_amount"?: number,"currency_code"?: string | null,"currency_ex_rate"?: number,"current_stage"?: string | null,"current_status"?: string | null,"customer_credit_issued_amount"?: number,"customer_details"?: Json | null,"customer_email"?: string | null,"customer_id"?: string,"customer_mobile_number"?: string | null,"customer_name"?: string | null,"customer_notes"?: string | null,"delivered_at"?: string | null,"delivery_charge_amount"?: number,"disc_alloc_basis"?: string | null,"disc_alloc_mode"?: string | null,"discount_rate"?: number | null,"discount_type"?: string | null,"edit_access_status"?: string,"edit_block_reason_code"?: string | null,"edit_block_reason_text"?: string | null,"edit_block_until"?: string | null,"edit_blocked_at"?: string | null,"edit_blocked_by"?: string | null,"edit_state_version"?: number,"exempt_amount"?: number,"express_charge_amount"?: number,"extra_price_pricing_mode"?: string | null,"failed_credit_application_amount"?: number,"failed_payment_amount"?: number,"financial_calculation_hash"?: string | null,"financial_calculation_snapshot"?: NonNullable<Json>,"financial_calculation_trace_id"?: string | null,"financial_engine_version"?: number | null,"financial_last_calculated_at"?: string | null,"financial_last_calculated_by"?: string | null,"financial_mismatch_warning_count"?: number,"financial_snapshot_status"?: string,"gift_card_id"?: string | null,"hanging_count"?: number | null,"has_issue"?: boolean | null,"has_split"?: boolean | null,"hold_from_status"?: string | null,"id"?: string,"idempotency_key"?: string | null,"internal_notes"?: string | null,"is_default_customer"?: boolean | null,"is_order_quick_drop"?: boolean | null,"is_rejected"?: boolean | null,"is_retail"?: boolean,"issue_id"?: string | null,"items_base_amount"?: number,"last_transition_at"?: string | null,"last_transition_by"?: string | null,"locker_code"?: string | null,"locker_location"?: string | null,"net_collected_amount"?: number,"non_taxable_amount"?: number,"order_no"?: string,"order_source_code"?: string,"order_subtype"?: string | null,"order_type_id"?: string | null,"other_charges_amount"?: number,"out_of_scope_amount"?: number,"outstanding_amount"?: number | null,"overpaid_amount"?: number,"paid_at"?: string | null,"paid_by"?: string | null,"parent_order_id"?: string | null,"pay_on_collection_amount"?: number | null,"payment_due_date"?: string | null,"payment_method_code"?: string | null,"payment_notes"?: string | null,"payment_status"?: string | null,"payment_terms"?: string | null,"payment_type_code"?: string | null,"pending_credit_application_amount"?: number,"pending_payment_amount"?: number,"photo_urls"?: Json | null,"physical_intake_at"?: string | null,"physical_intake_by"?: string | null,"physical_intake_info"?: string | null,"physical_intake_status"?: string,"piece_extra_price_amount"?: number,"po_number"?: string | null,"preference_extra_price_amount"?: number,"preparation_status"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"priority"?: string | null,"priority_multiplier"?: number | null,"promo_code_id"?: string | null,"public_tracking_token"?: string | null,"public_tracking_token_expires_at"?: string | null,"public_tracking_token_revoked_at"?: string | null,"quick_drop_quantity"?: number | null,"rack_location"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"ready_by_at_new"?: string | null,"ready_by_override"?: string | null,"real_payment_refunded_amount"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"received_at"?: string | null,"received_info"?: string | null,"refund_reopens_due_amount"?: number,"refunded_amount"?: number,"rejected_from_stage"?: string | null,"return_reason"?: string | null,"return_reason_code"?: string | null,"returned_at"?: string | null,"returned_by"?: string | null,"root_order_id"?: string | null,"rounding_adjustment_amount"?: number | null,"service_category_code"?: string | null,"service_charge_amount"?: number,"service_speed"?: string | null,"speed_premium_amount"?: number | null,"state_version"?: number,"status"?: string | null,"stored_value_restored_amount"?: number,"subtotal_amount"?: number,"tax_document_id"?: string | null,"tax_document_no"?: string | null,"tax_document_status"?: string | null,"tax_document_type"?: string | null,"tax_pricing_mode"?: string | null,"tax_rate"?: number | null,"taxable_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"total_charges_amount"?: number | null,"total_credit_applied_amount"?: number | null,"total_discount_amount"?: number | null,"total_items"?: number | null,"total_paid_amount"?: number | null,"total_tax_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_rate"?: number | null,"wf_profile_artifact_id"?: string | null,"wf_profile_checksum"?: string | null,"wf_profile_id"?: string | null,"wf_profile_revision"?: number | null,"wf_profile_schema_version"?: number | null,"wf_profile_version_id"?: string | null,"wf_version_no"?: number | null,"workflow_template_id"?: string | null,"zero_rated_amount"?: number
+                    "ar_invoice_id"?: string | null,"ar_invoice_no"?: string | null,"ar_invoice_status"?: string | null,"ar_receivable_amount"?: number,"authorized_payment_amount"?: number,"b2b_contract_id"?: string | null,"bag_count"?: number | null,"base_cur_ar_receivable_amount"?: number,"base_cur_credit_applied_amount"?: number,"base_cur_currency_code"?: string | null,"base_cur_outstanding_amount"?: number,"base_cur_paid_amount"?: number,"base_cur_tax_amount"?: number,"base_cur_total_amount"?: number,"branch_id"?: string | null,"cancellation_reason_code"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"cancelled_note"?: string | null,"change_returned_amount"?: number | null,"commercial_calc_version"?: number | null,"commercial_level"?: string | null,"committed_at"?: string | null,"committed_by"?: string | null,"cost_center_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"created_pos_session_id"?: string | null,"credit_limit_override_at"?: string | null,"credit_limit_override_by"?: string | null,"credit_reversal_reopens_due_amount"?: number,"credit_reversed_amount"?: number,"currency_code"?: string | null,"currency_ex_rate"?: number,"current_stage"?: string | null,"current_status"?: string | null,"customer_credit_issued_amount"?: number,"customer_details"?: Json | null,"customer_email"?: string | null,"customer_id"?: string,"customer_mobile_number"?: string | null,"customer_name"?: string | null,"customer_notes"?: string | null,"delivered_at"?: string | null,"delivery_charge_amount"?: number,"disc_alloc_basis"?: string | null,"disc_alloc_mode"?: string | null,"discount_rate"?: number | null,"discount_type"?: string | null,"doc_type_code"?: string,"edit_access_status"?: string,"edit_block_reason_code"?: string | null,"edit_block_reason_text"?: string | null,"edit_block_until"?: string | null,"edit_blocked_at"?: string | null,"edit_blocked_by"?: string | null,"edit_state_version"?: number,"exempt_amount"?: number,"express_charge_amount"?: number,"extra_price_pricing_mode"?: string | null,"failed_credit_application_amount"?: number,"failed_payment_amount"?: number,"financial_calculation_hash"?: string | null,"financial_calculation_snapshot"?: NonNullable<Json>,"financial_calculation_trace_id"?: string | null,"financial_engine_version"?: number | null,"financial_last_calculated_at"?: string | null,"financial_last_calculated_by"?: string | null,"financial_mismatch_warning_count"?: number,"financial_snapshot_status"?: string,"gift_card_id"?: string | null,"hanging_count"?: number | null,"has_issue"?: boolean | null,"has_split"?: boolean | null,"hold_from_status"?: string | null,"id"?: string,"idempotency_key"?: string | null,"internal_notes"?: string | null,"is_default_customer"?: boolean | null,"is_order_quick_drop"?: boolean | null,"is_rejected"?: boolean | null,"is_retail"?: boolean,"issue_id"?: string | null,"items_base_amount"?: number,"last_transition_at"?: string | null,"last_transition_by"?: string | null,"locker_code"?: string | null,"locker_location"?: string | null,"net_collected_amount"?: number,"non_taxable_amount"?: number,"order_no"?: string,"order_source_code"?: string,"order_subtype"?: string | null,"order_type_id"?: string | null,"other_charges_amount"?: number,"out_of_scope_amount"?: number,"outstanding_amount"?: number | null,"overpaid_amount"?: number,"paid_at"?: string | null,"paid_by"?: string | null,"parent_order_id"?: string | null,"pay_on_collection_amount"?: number | null,"payment_due_date"?: string | null,"payment_method_code"?: string | null,"payment_notes"?: string | null,"payment_status"?: string | null,"payment_terms"?: string | null,"payment_type_code"?: string | null,"pending_credit_application_amount"?: number,"pending_payment_amount"?: number,"photo_urls"?: Json | null,"physical_intake_at"?: string | null,"physical_intake_by"?: string | null,"physical_intake_info"?: string | null,"physical_intake_status"?: string,"piece_extra_price_amount"?: number,"po_number"?: string | null,"preference_extra_price_amount"?: number,"preparation_status"?: string | null,"prepared_at"?: string | null,"prepared_by"?: string | null,"priority"?: string | null,"priority_multiplier"?: number | null,"promo_code_id"?: string | null,"public_tracking_token"?: string | null,"public_tracking_token_expires_at"?: string | null,"public_tracking_token_revoked_at"?: string | null,"quick_drop_quantity"?: number | null,"rack_location"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"ready_by_at_new"?: string | null,"ready_by_override"?: string | null,"real_payment_refunded_amount"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"received_at"?: string | null,"received_info"?: string | null,"refund_reopens_due_amount"?: number,"refunded_amount"?: number,"rejected_from_stage"?: string | null,"return_reason"?: string | null,"return_reason_code"?: string | null,"returned_at"?: string | null,"returned_by"?: string | null,"root_order_id"?: string | null,"rounding_adjustment_amount"?: number | null,"service_category_code"?: string | null,"service_charge_amount"?: number,"service_speed"?: string | null,"speed_premium_amount"?: number | null,"state_version"?: number,"status"?: string | null,"stored_value_restored_amount"?: number,"subtotal_amount"?: number,"tax_document_id"?: string | null,"tax_document_no"?: string | null,"tax_document_status"?: string | null,"tax_document_type"?: string | null,"tax_pricing_mode"?: string | null,"tax_rate"?: number | null,"taxable_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"total_charges_amount"?: number | null,"total_credit_applied_amount"?: number | null,"total_discount_amount"?: number | null,"total_items"?: number | null,"total_paid_amount"?: number | null,"total_tax_amount"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"vat_rate"?: number | null,"wf_profile_artifact_id"?: string | null,"wf_profile_checksum"?: string | null,"wf_profile_id"?: string | null,"wf_profile_revision"?: number | null,"wf_profile_schema_version"?: number | null,"wf_profile_version_id"?: string | null,"wf_version_no"?: number | null,"workflow_template_id"?: string | null,"zero_rated_amount"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_oom_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
+      foreignKeyName: "fk_oom_service_speed"
+      columns: ["service_speed"]
+isOneToOne: false
+      referencedRelation: "sys_service_speed_cd"
+      referencedColumns: ["code"]
+    },{
       foreignKeyName: "fk_ord_crt_pos_ses"
       columns: ["tenant_org_id","created_pos_session_id"]
 isOneToOne: false
@@ -8063,13 +8274,13 @@ isOneToOne: false
                   ]
                 },"org_pos_sessions_mst": {
                   Row: {
-                    "auto_close_reason": string | null,"branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_id": string | null,"cash_drawer_session_id": string | null,"close_reason": string | null,"closed_at": string | null,"closed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"force_close_reason": string | null,"force_closed_at": string | null,"force_closed_by": string | null,"id": string,"is_active": boolean,"metadata": NonNullable<Json>,"opened_at": string,"opened_by": string,"pause_reason": string | null,"paused_at": string | null,"paused_by": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"rollover_applied_at": string | null,"session_no": string,"stale_flagged_at": string | null,"status": string,"tenant_org_id": string,"terminal_id": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"user_id": string
+                    "auto_close_reason": string | null,"branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_id": string | null,"cash_drawer_session_id": string | null,"close_reason": string | null,"closed_at": string | null,"closed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"force_close_reason": string | null,"force_closed_at": string | null,"force_closed_by": string | null,"id": string,"is_active": boolean,"metadata": NonNullable<Json>,"opened_at": string,"opened_by": string,"pause_reason": string | null,"paused_at": string | null,"paused_by": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"rollover_applied_at": string | null,"session_no": string,"stale_flagged_at": string | null,"status": string,"tenant_org_id": string,"terminal_id": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"user_id": string
                   }
                   Insert: {
-                    "auto_close_reason"?: string | null,"branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_id"?: string | null,"cash_drawer_session_id"?: string | null,"close_reason"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"force_close_reason"?: string | null,"force_closed_at"?: string | null,"force_closed_by"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by": string,"pause_reason"?: string | null,"paused_at"?: string | null,"paused_by"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rollover_applied_at"?: string | null,"session_no": string,"stale_flagged_at"?: string | null,"status": string,"tenant_org_id": string,"terminal_id"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_id": string
+                    "auto_close_reason"?: string | null,"branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_id"?: string | null,"cash_drawer_session_id"?: string | null,"close_reason"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"force_close_reason"?: string | null,"force_closed_at"?: string | null,"force_closed_by"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by": string,"pause_reason"?: string | null,"paused_at"?: string | null,"paused_by"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rollover_applied_at"?: string | null,"session_no": string,"stale_flagged_at"?: string | null,"status": string,"tenant_org_id": string,"terminal_id"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_id": string
                   }
                   Update: {
-                    "auto_close_reason"?: string | null,"branch_id"?: string,"business_date"?: string,"business_timezone"?: string,"cash_drawer_id"?: string | null,"cash_drawer_session_id"?: string | null,"close_reason"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"force_close_reason"?: string | null,"force_closed_at"?: string | null,"force_closed_by"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by"?: string,"pause_reason"?: string | null,"paused_at"?: string | null,"paused_by"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rollover_applied_at"?: string | null,"session_no"?: string,"stale_flagged_at"?: string | null,"status"?: string,"tenant_org_id"?: string,"terminal_id"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_id"?: string
+                    "auto_close_reason"?: string | null,"branch_id"?: string,"business_date"?: string,"business_timezone"?: string,"cash_drawer_id"?: string | null,"cash_drawer_session_id"?: string | null,"close_reason"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"force_close_reason"?: string | null,"force_closed_at"?: string | null,"force_closed_by"?: string | null,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"opened_at"?: string,"opened_by"?: string,"pause_reason"?: string | null,"paused_at"?: string | null,"paused_by"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rollover_applied_at"?: string | null,"session_no"?: string,"stale_flagged_at"?: string | null,"status"?: string,"tenant_org_id"?: string,"terminal_id"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -8096,6 +8307,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "org_payment_terminals_cf"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_pss_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     },{
       foreignKeyName: "org_pos_sessions_mst_status_fkey"
       columns: ["status"]
@@ -8124,13 +8341,13 @@ isOneToOne: false
                   ]
                 },"org_pos_shift_z_rpt_tr": {
                   Row: {
-                    "branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_session_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"generated_at": string,"generated_by": string,"id": string,"is_active": boolean,"metadata": NonNullable<Json>,"operator_user_id": string,"pos_session_id": string,"rec_status": number,"report_no": string,"session_closed_at": string,"session_opened_at": string,"session_status": string,"snapshot": NonNullable<Json>,"snapshot_hash": string,"snapshot_version": number,"tenant_org_id": string
+                    "branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_session_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"doc_type_code": string,"generated_at": string,"generated_by": string,"id": string,"is_active": boolean,"metadata": NonNullable<Json>,"operator_user_id": string,"pos_session_id": string,"rec_status": number,"report_no": string,"session_closed_at": string,"session_opened_at": string,"session_status": string,"snapshot": NonNullable<Json>,"snapshot_hash": string,"snapshot_version": number,"tenant_org_id": string
                   }
                   Insert: {
-                    "branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_session_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"generated_at"?: string,"generated_by": string,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"operator_user_id": string,"pos_session_id": string,"rec_status"?: number,"report_no": string,"session_closed_at": string,"session_opened_at": string,"session_status": string,"snapshot": NonNullable<Json>,"snapshot_hash": string,"snapshot_version"?: number,"tenant_org_id": string
+                    "branch_id": string,"business_date": string,"business_timezone": string,"cash_drawer_session_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"generated_at"?: string,"generated_by": string,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"operator_user_id": string,"pos_session_id": string,"rec_status"?: number,"report_no": string,"session_closed_at": string,"session_opened_at": string,"session_status": string,"snapshot": NonNullable<Json>,"snapshot_hash": string,"snapshot_version"?: number,"tenant_org_id": string
                   }
                   Update: {
-                    "branch_id"?: string,"business_date"?: string,"business_timezone"?: string,"cash_drawer_session_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"generated_at"?: string,"generated_by"?: string,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"operator_user_id"?: string,"pos_session_id"?: string,"rec_status"?: number,"report_no"?: string,"session_closed_at"?: string,"session_opened_at"?: string,"session_status"?: string,"snapshot"?: NonNullable<Json>,"snapshot_hash"?: string,"snapshot_version"?: number,"tenant_org_id"?: string
+                    "branch_id"?: string,"business_date"?: string,"business_timezone"?: string,"cash_drawer_session_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"doc_type_code"?: string,"generated_at"?: string,"generated_by"?: string,"id"?: string,"is_active"?: boolean,"metadata"?: NonNullable<Json>,"operator_user_id"?: string,"pos_session_id"?: string,"rec_status"?: number,"report_no"?: string,"session_closed_at"?: string,"session_opened_at"?: string,"session_status"?: string,"snapshot"?: NonNullable<Json>,"snapshot_hash"?: string,"snapshot_version"?: number,"tenant_org_id"?: string
                   }
                   Relationships: [
                     {
@@ -8139,6 +8356,12 @@ isOneToOne: false
 isOneToOne: true
       referencedRelation: "org_pos_sessions_mst"
       referencedColumns: ["tenant_org_id","id"]
+    },{
+      foreignKeyName: "fk_pzr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     },{
       foreignKeyName: "org_pos_shift_z_rpt_tr_tenant_org_id_fkey"
       columns: ["tenant_org_id"]
@@ -8346,16 +8569,22 @@ isOneToOne: false
                   ]
                 },"org_product_data_mst": {
                   Row: {
-                    "created_at": string | null,"created_by": string | null,"created_info": string | null,"default_packing_pref": string | null,"default_sell_price": number | null,"extra_days": number | null,"hint_text": string | null,"id": string,"id_sku": string | null,"is_active": boolean,"is_retail_item": boolean | null,"item_type_code": string | null,"last_purchase_cost": number | null,"max_stock_level": number | null,"min_quantity": number | null,"min_sell_price": number | null,"min_stock_level": number | null,"pieces_per_product": number | null,"price_type": string | null,"product_code": string,"product_color1": string | null,"product_color2": string | null,"product_color3": string | null,"product_cost": number | null,"product_group1": string | null,"product_group2": string | null,"product_group3": string | null,"product_icon": string | null,"product_image": string | null,"product_name": string | null,"product_name2": string | null,"product_order": number | null,"product_type": number | null,"product_unit": string | null,"qty_on_hand": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"reorder_point": number | null,"service_category_code": string,"storage_location": string | null,"tags": Json | null,"tax_category_code": string,"tax_exempt_reason": string | null,"tax_supply_code": string | null,"tenant_org_id": string,"turnaround_hh": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "created_at": string | null,"created_by": string | null,"created_info": string | null,"default_packing_pref": string | null,"default_sell_price": number | null,"extra_days": number | null,"hint_text": string | null,"id": string,"id_sku": string | null,"is_active": boolean,"is_retail_item": boolean | null,"item_type_code": string | null,"last_purchase_cost": number | null,"max_stock_level": number | null,"min_quantity": number | null,"min_sell_price": number | null,"min_stock_level": number | null,"pieces_per_product": number | null,"price_type": string | null,"product_code": string,"product_color1": string | null,"product_color2": string | null,"product_color3": string | null,"product_cost": number | null,"product_group1": string | null,"product_group2": string | null,"product_group3": string | null,"product_icon": string | null,"product_image": string | null,"product_name": string | null,"product_name2": string | null,"product_order": number | null,"product_type": number | null,"product_unit": string | null,"qty_on_hand": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"reorder_point": number | null,"service_category_code": string,"storage_location": string | null,"tags": Json | null,"tax_category_code": string,"tax_exempt_reason": string | null,"tax_item_class_code": string | null,"tax_supply_code": string | null,"tenant_org_id": string,"turnaround_hh": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code": string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code": string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_supply_code"?: string | null,"tenant_org_id": string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code": string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code": string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_item_class_code"?: string | null,"tax_supply_code"?: string | null,"tenant_org_id": string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code"?: string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code"?: string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_supply_code"?: string | null,"tenant_org_id"?: string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code"?: string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code"?: string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_item_class_code"?: string | null,"tax_supply_code"?: string | null,"tenant_org_id"?: string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_opd_tax_item_class"
+      columns: ["tenant_org_id","tax_item_class_code"]
+isOneToOne: false
+      referencedRelation: "org_tax_item_classes_cf"
+      referencedColumns: ["tenant_org_id","class_code"]
+    },{
       foreignKeyName: "fk_org_prod_ctg"
       columns: ["tenant_org_id","service_category_code"]
 isOneToOne: false
@@ -8646,15 +8875,46 @@ isOneToOne: false
       referencedColumns: ["tenant_org_id"]
     }
                   ]
-                },"org_speed_price_rules_cf": {
+                },"org_setup_health_sum_tr": {
                   Row: {
-                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"default_speed_sell_price": number | null,"effective_from": string,"effective_to": string | null,"id": string,"is_active": boolean,"multiplier_speed": number | null,"name": string | null,"name2": string | null,"price_basis": string | null,"product_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"service_category_code": string | null,"service_speed": string,"speed_extra_amount": number | null,"speed_price_type": string,"tenant_org_id": string,"turnaround_hh_speed": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "blocker_count": number,"checked_at": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"error_count": number,"info_count": number,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"warning_count": number
                   }
                   Insert: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"default_speed_sell_price"?: number | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"multiplier_speed"?: number | null,"name"?: string | null,"name2"?: string | null,"price_basis"?: string | null,"product_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"service_category_code"?: string | null,"service_speed": string,"speed_extra_amount"?: number | null,"speed_price_type": string,"tenant_org_id": string,"turnaround_hh_speed"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "blocker_count"?: number,"checked_at": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"error_count"?: number,"info_count"?: number,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"warning_count"?: number
                   }
                   Update: {
-                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"default_speed_sell_price"?: number | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"multiplier_speed"?: number | null,"name"?: string | null,"name2"?: string | null,"price_basis"?: string | null,"product_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"service_category_code"?: string | null,"service_speed"?: string,"speed_extra_amount"?: number | null,"speed_price_type"?: string,"tenant_org_id"?: string,"turnaround_hh_speed"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "blocker_count"?: number,"checked_at"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"error_count"?: number,"info_count"?: number,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"warning_count"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_org_shc_sum_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: true
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_org_shc_sum_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: true
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_org_shc_sum_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: true
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
+                },"org_speed_price_rules_cf": {
+                  Row: {
+                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"cutoff_time_speed": string | null,"default_speed_sell_price": number | null,"effective_from": string,"effective_to": string | null,"id": string,"is_active": boolean,"multiplier_speed": number | null,"name": string | null,"name2": string | null,"price_basis": string | null,"product_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"service_category_code": string | null,"service_speed": string,"speed_extra_amount": number | null,"speed_price_type": string,"tenant_org_id": string,"turnaround_days_speed": number | null,"turnaround_hh_speed": number | null,"turnaround_unit": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                  }
+                  Insert: {
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cutoff_time_speed"?: string | null,"default_speed_sell_price"?: number | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"multiplier_speed"?: number | null,"name"?: string | null,"name2"?: string | null,"price_basis"?: string | null,"product_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"service_category_code"?: string | null,"service_speed": string,"speed_extra_amount"?: number | null,"speed_price_type": string,"tenant_org_id": string,"turnaround_days_speed"?: number | null,"turnaround_hh_speed"?: number | null,"turnaround_unit"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cutoff_time_speed"?: string | null,"default_speed_sell_price"?: number | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"multiplier_speed"?: number | null,"name"?: string | null,"name2"?: string | null,"price_basis"?: string | null,"product_id"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"service_category_code"?: string | null,"service_speed"?: string,"speed_extra_amount"?: number | null,"speed_price_type"?: string,"tenant_org_id"?: string,"turnaround_days_speed"?: number | null,"turnaround_hh_speed"?: number | null,"turnaround_unit"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -8885,6 +9145,61 @@ isOneToOne: false
       referencedColumns: ["tenant_org_id"]
     }
                   ]
+                },"org_tax_config_cf": {
+                  Row: {
+                    "applied_at": string,"applied_by": string,"confirm_note": string | null,"confirmed_at": string | null,"confirmed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"id": string,"is_active": boolean,"kit_code": string,"kit_version_id": string,"last_apply_summary": Json | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"segment_code": string,"setup_mode": string,"starter_pkg_code": string,"status": string,"tax_enabled": boolean,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "applied_at"?: string,"applied_by": string,"confirm_note"?: string | null,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"id"?: string,"is_active"?: boolean,"kit_code": string,"kit_version_id": string,"last_apply_summary"?: Json | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"segment_code": string,"setup_mode"?: string,"starter_pkg_code": string,"status"?: string,"tax_enabled"?: boolean,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "applied_at"?: string,"applied_by"?: string,"confirm_note"?: string | null,"confirmed_at"?: string | null,"confirmed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"id"?: string,"is_active"?: boolean,"kit_code"?: string,"kit_version_id"?: string,"last_apply_summary"?: Json | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"segment_code"?: string,"setup_mode"?: string,"starter_pkg_code"?: string,"status"?: string,"tax_enabled"?: boolean,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_otc_kit"
+      columns: ["kit_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kits_mst"
+      referencedColumns: ["kit_code"]
+    },{
+      foreignKeyName: "fk_otc_kit_ver"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otc_pkg"
+      columns: ["starter_pkg_code"]
+isOneToOne: false
+      referencedRelation: "sys_starter_pkg_mst"
+      referencedColumns: ["pkg_code"]
+    },{
+      foreignKeyName: "fk_otc_segment"
+      columns: ["segment_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_segment_cd"
+      referencedColumns: ["segment_code"]
+    },{
+      foreignKeyName: "fk_otc_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: true
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otc_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: true
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_otc_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: true
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
                 },"org_tax_doc_items_dtl": {
                   Row: {
                     "created_at": string,"created_by": string | null,"created_info": string | null,"discount_amount": number,"id": string,"line_no": number,"line_total_amount": number,"net_amount": number,"order_item_id": string,"price_per_unit": number,"product_name": string,"product_name2": string | null,"quantity": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"tax_amount": number,"tax_category_code": string,"tax_document_id": string,"tax_rate": number,"tenant_org_id": string
@@ -9023,13 +9338,13 @@ isOneToOne: false
                   ]
                 },"org_tax_documents_mst": {
                   Row: {
-                    "base_currency_code": string | null,"cancellation_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string | null,"currency_ex_rate": number,"document_no": string | null,"document_type": string,"e_invoice_status": string,"fiscal_year": number,"id": string,"is_active": boolean,"issued_at": string | null,"issued_by": string | null,"order_id": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"sequence_number": number,"status": string,"supersedes_id": string | null,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"trigger_event": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "base_currency_code": string | null,"cancellation_reason": string | null,"cancelled_at": string | null,"cancelled_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string | null,"currency_ex_rate": number,"doc_type_code": string,"document_no": string | null,"document_type": string,"e_invoice_status": string,"fiscal_year": number,"id": string,"is_active": boolean,"issued_at": string | null,"issued_by": string | null,"order_id": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"sequence_number": number,"status": string,"supersedes_id": string | null,"tax_amount": number,"tenant_org_id": string,"total_amount": number,"trigger_event": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "base_currency_code"?: string | null,"cancellation_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number,"document_no"?: string | null,"document_type": string,"e_invoice_status"?: string,"fiscal_year": number,"id"?: string,"is_active"?: boolean,"issued_at"?: string | null,"issued_by"?: string | null,"order_id": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sequence_number"?: number,"status"?: string,"supersedes_id"?: string | null,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"trigger_event": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "base_currency_code"?: string | null,"cancellation_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number,"doc_type_code"?: string,"document_no"?: string | null,"document_type": string,"e_invoice_status"?: string,"fiscal_year": number,"id"?: string,"is_active"?: boolean,"issued_at"?: string | null,"issued_by"?: string | null,"order_id": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sequence_number"?: number,"status"?: string,"supersedes_id"?: string | null,"tax_amount"?: number,"tenant_org_id": string,"total_amount"?: number,"trigger_event": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "base_currency_code"?: string | null,"cancellation_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number,"document_no"?: string | null,"document_type"?: string,"e_invoice_status"?: string,"fiscal_year"?: number,"id"?: string,"is_active"?: boolean,"issued_at"?: string | null,"issued_by"?: string | null,"order_id"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sequence_number"?: number,"status"?: string,"supersedes_id"?: string | null,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"trigger_event"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "base_currency_code"?: string | null,"cancellation_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"currency_ex_rate"?: number,"doc_type_code"?: string,"document_no"?: string | null,"document_type"?: string,"e_invoice_status"?: string,"fiscal_year"?: number,"id"?: string,"is_active"?: boolean,"issued_at"?: string | null,"issued_by"?: string | null,"order_id"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sequence_number"?: number,"status"?: string,"supersedes_id"?: string | null,"tax_amount"?: number,"tenant_org_id"?: string,"total_amount"?: number,"trigger_event"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -9062,6 +9377,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "vw_fin_tenant_readiness"
       referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_tdo_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
     }
                   ]
                 },"org_tax_exemptions_cf": {
@@ -9077,15 +9398,83 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"org_tax_profiles_cf": {
+                },"org_tax_item_classes_cf": {
                   Row: {
-                    "applies_to": (string)[] | null,"created_at": string,"created_by": string | null,"created_info": string | null,"effective_from": string,"effective_to": string | null,"id": string,"is_active": boolean,"is_compound": boolean,"is_default": boolean,"name": string,"name2": string | null,"output_decimal_places": number | null,"rate": number,"rec_status": number,"rounding_increment_minor": number | null,"rounding_level": string,"rounding_mode": string,"tax_type": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "class_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"id": string,"is_active": boolean,"is_default": boolean,"is_tenant_modified": boolean,"kit_version_id": string | null,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"source": string,"tax_flow_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
                   }
                   Insert: {
-                    "applies_to"?: (string)[] | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"effective_from": string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_default"?: boolean,"name": string,"name2"?: string | null,"output_decimal_places"?: number | null,"rate": number,"rec_status"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"tax_type": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "class_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source"?: string,"tax_flow_code": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Update: {
-                    "applies_to"?: (string)[] | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_default"?: boolean,"name"?: string,"name2"?: string | null,"output_decimal_places"?: number | null,"rate"?: number,"rec_status"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"tax_type"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "class_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source"?: string,"tax_flow_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_otic_kit_ver"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otic_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otic_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_otic_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
+                },"org_tax_periods_mst": {
+                  Row: {
+                    "closed_at": string | null,"closed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"id": string,"is_active": boolean,"period_end": string,"period_start": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reopen_reason": string | null,"reopened_at": string | null,"reopened_by": string | null,"status": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"id"?: string,"is_active"?: boolean,"period_end": string,"period_start": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reopen_reason"?: string | null,"reopened_at"?: string | null,"reopened_by"?: string | null,"status"?: string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"id"?: string,"is_active"?: boolean,"period_end"?: string,"period_start"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reopen_reason"?: string | null,"reopened_at"?: string | null,"reopened_by"?: string | null,"status"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_otpm_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otpm_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_otpm_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
+                },"org_tax_profiles_cf": {
+                  Row: {
+                    "amount_kind": string,"applies_to": (string)[] | null,"calc_level": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"display_order": number,"effective_from": string,"effective_to": string | null,"exempt_reason_code": string | null,"fixed_amount": number | null,"id": string,"is_active": boolean,"is_compound": boolean,"is_default": boolean,"is_reverse_charge": boolean,"is_tenant_modified": boolean,"kit_version_id": string | null,"name": string,"name2": string | null,"output_decimal_places": number | null,"priority": number,"rate": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recoverable_pct": number,"rounding_increment_minor": number | null,"rounding_level": string,"rounding_mode": string,"source": string,"tax_category_code": string,"tax_code": string,"tax_flow_code": string,"tax_type": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"version_no": number
+                  }
+                  Insert: {
+                    "amount_kind"?: string,"applies_to"?: (string)[] | null,"calc_level"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"effective_from": string,"effective_to"?: string | null,"exempt_reason_code"?: string | null,"fixed_amount"?: number | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_default"?: boolean,"is_reverse_charge"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name": string,"name2"?: string | null,"output_decimal_places"?: number | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"source"?: string,"tax_category_code": string,"tax_code": string,"tax_flow_code"?: string,"tax_type": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number
+                  }
+                  Update: {
+                    "amount_kind"?: string,"applies_to"?: (string)[] | null,"calc_level"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"effective_from"?: string,"effective_to"?: string | null,"exempt_reason_code"?: string | null,"fixed_amount"?: number | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_default"?: boolean,"is_reverse_charge"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name"?: string,"name2"?: string | null,"output_decimal_places"?: number | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"source"?: string,"tax_category_code"?: string,"tax_code"?: string,"tax_flow_code"?: string,"tax_type"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number
                   }
                   Relationships: [
                     {
@@ -9094,6 +9483,116 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "sys_rounding_mode_cd"
       referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_otp_category"
+      columns: ["tax_category_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_category_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_otp_kit_ver"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otp_tax_type"
+      columns: ["tax_type"]
+isOneToOne: false
+      referencedRelation: "sys_tax_types_cd"
+      referencedColumns: ["tax_type"]
+    }
+                  ]
+                },"org_tax_rule_codes_dtl": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"rule_id": string,"seq_no": number,"tax_code": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_id": string,"seq_no": number,"tax_code": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_id"?: string,"seq_no"?: number,"tax_code"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_otrc_rule"
+      columns: ["tenant_org_id","rule_id"]
+isOneToOne: false
+      referencedRelation: "org_tax_rules_cf"
+      referencedColumns: ["tenant_org_id","id"]
+    }
+                  ]
+                },"org_tax_rules_cf": {
+                  Row: {
+                    "branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"doc_type_code": string | null,"effective_from": string,"effective_to": string | null,"id": string,"is_active": boolean,"is_tenant_modified": boolean,"kit_version_id": string | null,"name": string,"name2": string | null,"party_country_scope": string | null,"party_tax_class_code": string | null,"place_of_supply_country": string | null,"priority": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"rule_code": string,"service_category_code": string | null,"source": string,"tax_flow_code": string | null,"tax_item_class_code": string | null,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"doc_type_code"?: string | null,"effective_from": string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name": string,"name2"?: string | null,"party_country_scope"?: string | null,"party_tax_class_code"?: string | null,"place_of_supply_country"?: string | null,"priority"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_code": string,"service_category_code"?: string | null,"source"?: string,"tax_flow_code"?: string | null,"tax_item_class_code"?: string | null,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "branch_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"doc_type_code"?: string | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name"?: string,"name2"?: string | null,"party_country_scope"?: string | null,"party_tax_class_code"?: string | null,"place_of_supply_country"?: string | null,"priority"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_code"?: string,"service_category_code"?: string | null,"source"?: string,"tax_flow_code"?: string | null,"tax_item_class_code"?: string | null,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_otr_branch"
+      columns: ["branch_id","tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_branches_mst"
+      referencedColumns: ["id","tenant_org_id"]
+    },{
+      foreignKeyName: "fk_otr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
+      foreignKeyName: "fk_otr_item_class"
+      columns: ["tenant_org_id","tax_item_class_code"]
+isOneToOne: false
+      referencedRelation: "org_tax_item_classes_cf"
+      referencedColumns: ["tenant_org_id","class_code"]
+    },{
+      foreignKeyName: "fk_otr_kit_ver"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otr_party_class"
+      columns: ["party_tax_class_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_party_class_cd"
+      referencedColumns: ["party_class_code"]
+    },{
+      foreignKeyName: "fk_otr_pos_country"
+      columns: ["place_of_supply_country"]
+isOneToOne: false
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_otr_svc_cat"
+      columns: ["service_category_code"]
+isOneToOne: false
+      referencedRelation: "sys_service_category_cd"
+      referencedColumns: ["service_category_code"]
+    },{
+      foreignKeyName: "fk_otr_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otr_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_otr_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
     }
                   ]
                 },"org_tenant_order_sources_cf": {
@@ -9259,16 +9758,28 @@ isOneToOne: false
                   ]
                 },"org_tenants_mst": {
                   Row: {
-                    "address": string | null,"brand_color_accent": string | null,"brand_color_primary": string | null,"brand_color_secondary": string | null,"business_hours": Json | null,"business_type": string | null,"business_type_code": string | null,"city": string | null,"commercial_level": string,"country": string | null,"country_code": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency": string | null,"current_fiscal_year": string | null,"date_format": string | null,"disc_alloc_basis": string,"disc_alloc_mode": string,"e_invoice_enabled_start_date": string | null,"email": string,"extra_price_pricing_mode": string,"feature_flags": Json | null,"first_day_of_week": number | null,"fiscal_year_start_month": number | null,"id": string,"is_active": boolean | null,"is_e_invoice_enabled": boolean,"is_hq_test_demo": boolean,"language": string | null,"locale_code": string | null,"logo_url": string | null,"name": string,"name2": string | null,"onboarding_completed": boolean | null,"phone": string,"phone_country_code": string | null,"rec_notes": string | null,"rec_status": number | null,"s_current_plan": string | null,"slug": string,"status": string | null,"stng_profile_code": string | null,"stng_profile_locked": boolean | null,"stng_profile_version_applied": number | null,"tax_pricing_mode": string,"tax_registration_no": string | null,"time_format": string | null,"timezone": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "address": string | null,"brand_color_accent": string | null,"brand_color_primary": string | null,"brand_color_secondary": string | null,"business_hours": Json | null,"business_type": string | null,"business_type_code": string | null,"calendar_template_code": string | null,"city": string | null,"commercial_level": string,"country": string | null,"country_code": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"currency": string | null,"current_fiscal_year": string | null,"date_format": string | null,"disc_alloc_basis": string,"disc_alloc_mode": string,"e_invoice_enabled_start_date": string | null,"email": string,"extra_price_pricing_mode": string,"feature_flags": Json | null,"first_day_of_week": number | null,"fiscal_year_start_month": number | null,"id": string,"is_active": boolean | null,"is_e_invoice_enabled": boolean,"is_hq_test_demo": boolean,"language": string | null,"locale_code": string | null,"logo_url": string | null,"name": string,"name2": string | null,"onboarding_completed": boolean | null,"order_cutoff_time": string | null,"phone": string,"phone_country_code": string | null,"ready_time": string | null,"rec_notes": string | null,"rec_status": number | null,"s_current_plan": string | null,"slug": string,"starter_pkg_code": string | null,"status": string | null,"stng_profile_code": string | null,"stng_profile_locked": boolean | null,"stng_profile_version_applied": number | null,"tax_pricing_mode": string,"tax_registration_no": string | null,"time_format": string | null,"timezone": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "address"?: string | null,"brand_color_accent"?: string | null,"brand_color_primary"?: string | null,"brand_color_secondary"?: string | null,"business_hours"?: Json | null,"business_type"?: string | null,"business_type_code"?: string | null,"city"?: string | null,"commercial_level"?: string,"country"?: string | null,"country_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency"?: string | null,"current_fiscal_year"?: string | null,"date_format"?: string | null,"disc_alloc_basis"?: string,"disc_alloc_mode"?: string,"e_invoice_enabled_start_date"?: string | null,"email": string,"extra_price_pricing_mode"?: string,"feature_flags"?: Json | null,"first_day_of_week"?: number | null,"fiscal_year_start_month"?: number | null,"id"?: string,"is_active"?: boolean | null,"is_e_invoice_enabled"?: boolean,"is_hq_test_demo"?: boolean,"language"?: string | null,"locale_code"?: string | null,"logo_url"?: string | null,"name": string,"name2"?: string | null,"onboarding_completed"?: boolean | null,"phone": string,"phone_country_code"?: string | null,"rec_notes"?: string | null,"rec_status"?: number | null,"s_current_plan"?: string | null,"slug": string,"status"?: string | null,"stng_profile_code"?: string | null,"stng_profile_locked"?: boolean | null,"stng_profile_version_applied"?: number | null,"tax_pricing_mode"?: string,"tax_registration_no"?: string | null,"time_format"?: string | null,"timezone"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "address"?: string | null,"brand_color_accent"?: string | null,"brand_color_primary"?: string | null,"brand_color_secondary"?: string | null,"business_hours"?: Json | null,"business_type"?: string | null,"business_type_code"?: string | null,"calendar_template_code"?: string | null,"city"?: string | null,"commercial_level"?: string,"country"?: string | null,"country_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency"?: string | null,"current_fiscal_year"?: string | null,"date_format"?: string | null,"disc_alloc_basis"?: string,"disc_alloc_mode"?: string,"e_invoice_enabled_start_date"?: string | null,"email": string,"extra_price_pricing_mode"?: string,"feature_flags"?: Json | null,"first_day_of_week"?: number | null,"fiscal_year_start_month"?: number | null,"id"?: string,"is_active"?: boolean | null,"is_e_invoice_enabled"?: boolean,"is_hq_test_demo"?: boolean,"language"?: string | null,"locale_code"?: string | null,"logo_url"?: string | null,"name": string,"name2"?: string | null,"onboarding_completed"?: boolean | null,"order_cutoff_time"?: string | null,"phone": string,"phone_country_code"?: string | null,"ready_time"?: string | null,"rec_notes"?: string | null,"rec_status"?: number | null,"s_current_plan"?: string | null,"slug": string,"starter_pkg_code"?: string | null,"status"?: string | null,"stng_profile_code"?: string | null,"stng_profile_locked"?: boolean | null,"stng_profile_version_applied"?: number | null,"tax_pricing_mode"?: string,"tax_registration_no"?: string | null,"time_format"?: string | null,"timezone"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"brand_color_accent"?: string | null,"brand_color_primary"?: string | null,"brand_color_secondary"?: string | null,"business_hours"?: Json | null,"business_type"?: string | null,"business_type_code"?: string | null,"city"?: string | null,"commercial_level"?: string,"country"?: string | null,"country_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency"?: string | null,"current_fiscal_year"?: string | null,"date_format"?: string | null,"disc_alloc_basis"?: string,"disc_alloc_mode"?: string,"e_invoice_enabled_start_date"?: string | null,"email"?: string,"extra_price_pricing_mode"?: string,"feature_flags"?: Json | null,"first_day_of_week"?: number | null,"fiscal_year_start_month"?: number | null,"id"?: string,"is_active"?: boolean | null,"is_e_invoice_enabled"?: boolean,"is_hq_test_demo"?: boolean,"language"?: string | null,"locale_code"?: string | null,"logo_url"?: string | null,"name"?: string,"name2"?: string | null,"onboarding_completed"?: boolean | null,"phone"?: string,"phone_country_code"?: string | null,"rec_notes"?: string | null,"rec_status"?: number | null,"s_current_plan"?: string | null,"slug"?: string,"status"?: string | null,"stng_profile_code"?: string | null,"stng_profile_locked"?: boolean | null,"stng_profile_version_applied"?: number | null,"tax_pricing_mode"?: string,"tax_registration_no"?: string | null,"time_format"?: string | null,"timezone"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "address"?: string | null,"brand_color_accent"?: string | null,"brand_color_primary"?: string | null,"brand_color_secondary"?: string | null,"business_hours"?: Json | null,"business_type"?: string | null,"business_type_code"?: string | null,"calendar_template_code"?: string | null,"city"?: string | null,"commercial_level"?: string,"country"?: string | null,"country_code"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"currency"?: string | null,"current_fiscal_year"?: string | null,"date_format"?: string | null,"disc_alloc_basis"?: string,"disc_alloc_mode"?: string,"e_invoice_enabled_start_date"?: string | null,"email"?: string,"extra_price_pricing_mode"?: string,"feature_flags"?: Json | null,"first_day_of_week"?: number | null,"fiscal_year_start_month"?: number | null,"id"?: string,"is_active"?: boolean | null,"is_e_invoice_enabled"?: boolean,"is_hq_test_demo"?: boolean,"language"?: string | null,"locale_code"?: string | null,"logo_url"?: string | null,"name"?: string,"name2"?: string | null,"onboarding_completed"?: boolean | null,"order_cutoff_time"?: string | null,"phone"?: string,"phone_country_code"?: string | null,"ready_time"?: string | null,"rec_notes"?: string | null,"rec_status"?: number | null,"s_current_plan"?: string | null,"slug"?: string,"starter_pkg_code"?: string | null,"status"?: string | null,"stng_profile_code"?: string | null,"stng_profile_locked"?: boolean | null,"stng_profile_version_applied"?: number | null,"tax_pricing_mode"?: string,"tax_registration_no"?: string | null,"time_format"?: string | null,"timezone"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "fk_org_tnt_cal_template"
+      columns: ["calendar_template_code"]
+isOneToOne: false
+      referencedRelation: "sys_calendar_templates_mst"
+      referencedColumns: ["calendar_code"]
+    },{
+      foreignKeyName: "fk_otm_starter_pkg"
+      columns: ["starter_pkg_code"]
+isOneToOne: false
+      referencedRelation: "sys_starter_pkg_mst"
+      referencedColumns: ["pkg_code"]
+    },{
       foreignKeyName: "fk_tenant_business_type"
       columns: ["business_type_code"]
 isOneToOne: false
@@ -10221,6 +10732,25 @@ isOneToOne: false
       referencedColumns: ["item_code","service_category_code"]
     }
                   ]
+                },"sys_calendar_templates_mst": {
+                  Row: {
+                    "business_hours": NonNullable<Json>,"calendar_code": string,"country_code": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"is_active": boolean,"name": string,"name2": string | null,"order_cutoff_time": string,"ready_time": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"weekend_days": (string)[]
+                  }
+                  Insert: {
+                    "business_hours": NonNullable<Json>,"calendar_code": string,"country_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"order_cutoff_time": string,"ready_time": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"weekend_days": (string)[]
+                  }
+                  Update: {
+                    "business_hours"?: NonNullable<Json>,"calendar_code"?: string,"country_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"order_cutoff_time"?: string,"ready_time"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"weekend_days"?: (string)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sys_cal_tpl_country"
+      columns: ["country_code"]
+isOneToOne: true
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    }
+                  ]
                 },"sys_card_brand_cd": {
                   Row: {
                     "code": string,"created_at": string,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"name": string,"name2": string | null,"rec_status": number
@@ -10826,13 +11356,13 @@ isOneToOne: false
                   ]
                 },"sys_doc_seq_type_cd": {
                   Row: {
-                    "allow_tenant_override": boolean,"category_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"doc_type_code": string,"full_size": number | null,"how_many_parts": number | null,"implement_description": string,"implement_description2": string,"is_active": boolean,"is_unique": boolean,"manage_by_level": string,"managed_by_object": string | null,"module_code": string,"name": string,"name2": string | null,"parts_format": string,"prefix": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reset_policy": string | null,"scope_code": string,"separator": string,"seq_pad_length": number,"strict_no_gaps": boolean,"sub_system_code": string,"target_column": string,"target_table": string,"type_prefix": string,"unique_with": (string)[] | null,"updated_at": string | null,"updated_by": string | null,"updated_count": number | null,"updated_info": string | null
+                    "allow_tenant_override": boolean,"category_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"doc_type_code": string,"full_size": number | null,"how_many_parts": number | null,"implement_description": string,"implement_description2": string,"is_active": boolean,"is_tax_relevant": boolean,"is_unique": boolean,"manage_by_level": string,"managed_by_object": string | null,"module_code": string,"name": string,"name2": string | null,"parts_format": string,"prefix": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"reset_policy": string | null,"scope_code": string,"separator": string,"seq_pad_length": number,"strict_no_gaps": boolean,"sub_system_code": string,"target_column": string,"target_table": string,"tax_flow_code": string,"type_prefix": string,"unique_with": (string)[] | null,"updated_at": string | null,"updated_by": string | null,"updated_count": number | null,"updated_info": string | null
                   }
                   Insert: {
-                    "allow_tenant_override"?: boolean,"category_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"doc_type_code": string,"full_size"?: never,"how_many_parts"?: never,"implement_description": string,"implement_description2": string,"is_active"?: boolean,"is_unique"?: boolean,"manage_by_level": string,"managed_by_object"?: string | null,"module_code": string,"name": string,"name2"?: string | null,"parts_format": string,"prefix"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reset_policy"?: string | null,"scope_code": string,"separator"?: string,"seq_pad_length"?: number,"strict_no_gaps"?: boolean,"sub_system_code": string,"target_column": string,"target_table": string,"type_prefix": string,"unique_with"?: (string)[] | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number | null,"updated_info"?: string | null
+                    "allow_tenant_override"?: boolean,"category_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"doc_type_code": string,"full_size"?: never,"how_many_parts"?: never,"implement_description": string,"implement_description2": string,"is_active"?: boolean,"is_tax_relevant"?: boolean,"is_unique"?: boolean,"manage_by_level": string,"managed_by_object"?: string | null,"module_code": string,"name": string,"name2"?: string | null,"parts_format": string,"prefix"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reset_policy"?: string | null,"scope_code": string,"separator"?: string,"seq_pad_length"?: number,"strict_no_gaps"?: boolean,"sub_system_code": string,"target_column": string,"target_table": string,"tax_flow_code"?: string,"type_prefix": string,"unique_with"?: (string)[] | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "allow_tenant_override"?: boolean,"category_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"doc_type_code"?: string,"full_size"?: never,"how_many_parts"?: never,"implement_description"?: string,"implement_description2"?: string,"is_active"?: boolean,"is_unique"?: boolean,"manage_by_level"?: string,"managed_by_object"?: string | null,"module_code"?: string,"name"?: string,"name2"?: string | null,"parts_format"?: string,"prefix"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reset_policy"?: string | null,"scope_code"?: string,"separator"?: string,"seq_pad_length"?: number,"strict_no_gaps"?: boolean,"sub_system_code"?: string,"target_column"?: string,"target_table"?: string,"type_prefix"?: string,"unique_with"?: (string)[] | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number | null,"updated_info"?: string | null
+                    "allow_tenant_override"?: boolean,"category_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"doc_type_code"?: string,"full_size"?: never,"how_many_parts"?: never,"implement_description"?: string,"implement_description2"?: string,"is_active"?: boolean,"is_tax_relevant"?: boolean,"is_unique"?: boolean,"manage_by_level"?: string,"managed_by_object"?: string | null,"module_code"?: string,"name"?: string,"name2"?: string | null,"parts_format"?: string,"prefix"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"reset_policy"?: string | null,"scope_code"?: string,"separator"?: string,"seq_pad_length"?: number,"strict_no_gaps"?: boolean,"sub_system_code"?: string,"target_column"?: string,"target_table"?: string,"tax_flow_code"?: string,"type_prefix"?: string,"unique_with"?: (string)[] | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -12912,6 +13442,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"sys_public_holidays_cf": {
+                  Row: {
+                    "country_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"holiday_code": string,"holiday_date": string,"holiday_year": number | null,"id": string,"is_active": boolean,"is_estimated": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_status": number,"source_ref": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                  }
+                  Insert: {
+                    "country_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"holiday_code": string,"holiday_date": string,"holiday_year"?: never,"id"?: string,"is_active"?: boolean,"is_estimated"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_status"?: number,"source_ref"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "country_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"holiday_code"?: string,"holiday_date"?: string,"holiday_year"?: never,"id"?: string,"is_active"?: boolean,"is_estimated"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_status"?: number,"source_ref"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sys_pub_hol_country"
+      columns: ["country_code"]
+isOneToOne: false
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    }
+                  ]
                 },"sys_qa_decision_type_cd": {
                   Row: {
                     "allows_proceed": boolean | null,"code": string,"created_at": string | null,"created_by": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"requires_rework": boolean | null,"updated_at": string | null,"updated_by": string | null
@@ -13120,16 +13669,104 @@ isOneToOne: false
                   ]
                 },"sys_service_speed_cd": {
                   Row: {
-                    "code": string,"created_at": string,"created_by": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_default": boolean,"name": string,"name2": string | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null
+                    "code": string,"created_at": string,"created_by": string | null,"default_turnaround_unit": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_default": boolean,"name": string,"name2": string | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null
                   }
                   Insert: {
-                    "code": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"name": string,"name2"?: string | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null
+                    "code": string,"created_at"?: string,"created_by"?: string | null,"default_turnaround_unit"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"name": string,"name2"?: string | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null
                   }
                   Update: {
-                    "code"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"name"?: string,"name2"?: string | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null
+                    "code"?: string,"created_at"?: string,"created_by"?: string | null,"default_turnaround_unit"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"name"?: string,"name2"?: string | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null
                   }
                   Relationships: [
                     
+                  ]
+                },"sys_setup_health_check_cd": {
+                  Row: {
+                    "check_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string,"description2": string,"display_order": number,"domain_code": string,"feature_flag_key": string | null,"fix_permission": string | null,"fix_route": string | null,"fn_name": string,"hq_fix_route": string | null,"is_active": boolean,"is_hq_only": boolean,"name": string,"name2": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"severity": string,"shows_banner": boolean,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "check_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description": string,"description2": string,"display_order"?: number,"domain_code": string,"feature_flag_key"?: string | null,"fix_permission"?: string | null,"fix_route"?: string | null,"fn_name": string,"hq_fix_route"?: string | null,"is_active"?: boolean,"is_hq_only"?: boolean,"name": string,"name2": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"severity": string,"shows_banner"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "check_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string,"description2"?: string,"display_order"?: number,"domain_code"?: string,"feature_flag_key"?: string | null,"fix_permission"?: string | null,"fix_route"?: string | null,"fn_name"?: string,"hq_fix_route"?: string | null,"is_active"?: boolean,"is_hq_only"?: boolean,"name"?: string,"name2"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"severity"?: string,"shows_banner"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_shc_check_domain"
+      columns: ["domain_code"]
+isOneToOne: false
+      referencedRelation: "sys_setup_health_domain_cd"
+      referencedColumns: ["domain_code"]
+    }
+                  ]
+                },"sys_setup_health_domain_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"display_order": number,"domain_code": string,"is_active": boolean,"name": string,"name2": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"domain_code": string,"is_active"?: boolean,"name": string,"name2": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"domain_code"?: string,"is_active"?: boolean,"name"?: string,"name2"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_starter_pkg_mst": {
+                  Row: {
+                    "calendar_template_code": string,"country_code": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_country_default": boolean,"name": string,"name2": string | null,"pkg_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"segment_code": string,"tax_kit_code": string,"tax_pricing_mode": string,"tax_setup_mode": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "calendar_template_code": string,"country_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_country_default"?: boolean,"name": string,"name2"?: string | null,"pkg_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"segment_code": string,"tax_kit_code": string,"tax_pricing_mode"?: string,"tax_setup_mode"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "calendar_template_code"?: string,"country_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_country_default"?: boolean,"name"?: string,"name2"?: string | null,"pkg_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"segment_code"?: string,"tax_kit_code"?: string,"tax_pricing_mode"?: string,"tax_setup_mode"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_ssp_calendar"
+      columns: ["calendar_template_code"]
+isOneToOne: false
+      referencedRelation: "sys_calendar_templates_mst"
+      referencedColumns: ["calendar_code"]
+    },{
+      foreignKeyName: "fk_ssp_country"
+      columns: ["country_code"]
+isOneToOne: false
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_ssp_kit"
+      columns: ["tax_kit_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kits_mst"
+      referencedColumns: ["kit_code"]
+    },{
+      foreignKeyName: "fk_ssp_segment"
+      columns: ["segment_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_segment_cd"
+      referencedColumns: ["segment_code"]
+    }
+                  ]
+                },"sys_starter_pkg_trig_dtl": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"document_type": string,"is_active": boolean,"pkg_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"trigger_event": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"document_type": string,"is_active"?: boolean,"pkg_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"trigger_event": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"document_type"?: string,"is_active"?: boolean,"pkg_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"trigger_event"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sspt_pkg"
+      columns: ["pkg_code"]
+isOneToOne: false
+      referencedRelation: "sys_starter_pkg_mst"
+      referencedColumns: ["pkg_code"]
+    }
                   ]
                 },"sys_stng_categories_cd": {
                   Row: {
@@ -13251,15 +13888,216 @@ isOneToOne: false
       referencedColumns: ["code"]
     }
                   ]
-                },"sys_tax_types_cd": {
+                },"sys_tax_kit_codes_dtl": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"created_info": string | null,"description": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"sort_order": number,"tax_type": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "amount_kind": string,"calc_level": string,"compound_base": boolean,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"display_order": number,"fixed_amount": number | null,"is_active": boolean,"is_reverse_charge": boolean,"kit_version_id": string,"name": string,"name2": string | null,"priority": number,"rate": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recoverable_pct": number,"tax_category_code": string,"tax_code": string,"tax_flow_code": string,"tax_type": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"description"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sort_order"?: number,"tax_type": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "amount_kind"?: string,"calc_level"?: string,"compound_base"?: boolean,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"fixed_amount"?: number | null,"is_active"?: boolean,"is_reverse_charge"?: boolean,"kit_version_id": string,"name": string,"name2"?: string | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"tax_category_code": string,"tax_code": string,"tax_flow_code": string,"tax_type": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"description"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sort_order"?: number,"tax_type"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "amount_kind"?: string,"calc_level"?: string,"compound_base"?: boolean,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"fixed_amount"?: number | null,"is_active"?: boolean,"is_reverse_charge"?: boolean,"kit_version_id"?: string,"name"?: string,"name2"?: string | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"tax_category_code"?: string,"tax_code"?: string,"tax_flow_code"?: string,"tax_type"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stkc_category"
+      columns: ["tax_category_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_category_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_stkc_type"
+      columns: ["tax_type"]
+isOneToOne: false
+      referencedRelation: "sys_tax_types_cd"
+      referencedColumns: ["tax_type"]
+    },{
+      foreignKeyName: "fk_stkc_version"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sys_tax_kit_item_classes_dtl": {
+                  Row: {
+                    "class_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_default": boolean,"kit_version_id": string,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"tax_flow_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "class_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"kit_version_id": string,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"tax_flow_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "class_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"kit_version_id"?: string,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"tax_flow_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stki_version"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sys_tax_kit_rule_codes_dtl": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"is_active": boolean,"kit_version_id": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"rule_id": string,"seq_no": number,"tax_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"is_active"?: boolean,"kit_version_id": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_id": string,"seq_no": number,"tax_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"is_active"?: boolean,"kit_version_id"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_id"?: string,"seq_no"?: number,"tax_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stkrc_code"
+      columns: ["kit_version_id","tax_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_codes_dtl"
+      referencedColumns: ["kit_version_id","tax_code"]
+    },{
+      foreignKeyName: "fk_stkrc_rule"
+      columns: ["rule_id","kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_rules_dtl"
+      referencedColumns: ["id","kit_version_id"]
+    }
+                  ]
+                },"sys_tax_kit_rules_dtl": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"doc_type_code": string | null,"id": string,"is_active": boolean,"kit_version_id": string,"name": string,"name2": string | null,"party_country_scope": string | null,"party_tax_class_code": string | null,"priority": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"rule_code": string,"segment_codes": (string)[] | null,"tax_flow_code": string | null,"tax_item_class_code": string | null,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"doc_type_code"?: string | null,"id"?: string,"is_active"?: boolean,"kit_version_id": string,"name": string,"name2"?: string | null,"party_country_scope"?: string | null,"party_tax_class_code"?: string | null,"priority"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_code": string,"segment_codes"?: (string)[] | null,"tax_flow_code"?: string | null,"tax_item_class_code"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"doc_type_code"?: string | null,"id"?: string,"is_active"?: boolean,"kit_version_id"?: string,"name"?: string,"name2"?: string | null,"party_country_scope"?: string | null,"party_tax_class_code"?: string | null,"priority"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"rule_code"?: string,"segment_codes"?: (string)[] | null,"tax_flow_code"?: string | null,"tax_item_class_code"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stkr_class"
+      columns: ["kit_version_id","tax_item_class_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_item_classes_dtl"
+      referencedColumns: ["kit_version_id","class_code"]
+    },{
+      foreignKeyName: "fk_stkr_doc_type"
+      columns: ["doc_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_doc_seq_type_cd"
+      referencedColumns: ["doc_type_code"]
+    },{
+      foreignKeyName: "fk_stkr_party"
+      columns: ["party_tax_class_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_party_class_cd"
+      referencedColumns: ["party_class_code"]
+    },{
+      foreignKeyName: "fk_stkr_version"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sys_tax_kit_vectors_dtl": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string,"description2": string | null,"expected": NonNullable<Json>,"input": NonNullable<Json>,"is_active": boolean,"kit_version_id": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"vector_code": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description": string,"description2"?: string | null,"expected": NonNullable<Json>,"input": NonNullable<Json>,"is_active"?: boolean,"kit_version_id": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"vector_code": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string,"description2"?: string | null,"expected"?: NonNullable<Json>,"input"?: NonNullable<Json>,"is_active"?: boolean,"kit_version_id"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"vector_code"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stkx_version"
+      columns: ["kit_version_id"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kit_versions_mst"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sys_tax_kit_versions_mst": {
+                  Row: {
+                    "checked_on": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"currency_code": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"effective_from": string,"effective_to": string | null,"id": string,"is_active": boolean,"is_verified": boolean,"kit_code": string,"mandatory_reg_threshold": number | null,"published_at": string | null,"published_by": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"review_notes": string | null,"rounding_level": string,"rounding_mode": string,"simplified_max_amount": number | null,"source_url": string | null,"status": string,"tax_on_advance": boolean,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"version_no": number,"voluntary_reg_threshold": number | null
+                  }
+                  Insert: {
+                    "checked_on"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"effective_from": string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"is_verified"?: boolean,"kit_code": string,"mandatory_reg_threshold"?: number | null,"published_at"?: string | null,"published_by"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"review_notes"?: string | null,"rounding_level"?: string,"rounding_mode"?: string,"simplified_max_amount"?: number | null,"source_url"?: string | null,"status"?: string,"tax_on_advance"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no": number,"voluntary_reg_threshold"?: number | null
+                  }
+                  Update: {
+                    "checked_on"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"currency_code"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"effective_from"?: string,"effective_to"?: string | null,"id"?: string,"is_active"?: boolean,"is_verified"?: boolean,"kit_code"?: string,"mandatory_reg_threshold"?: number | null,"published_at"?: string | null,"published_by"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"review_notes"?: string | null,"rounding_level"?: string,"rounding_mode"?: string,"simplified_max_amount"?: number | null,"source_url"?: string | null,"status"?: string,"tax_on_advance"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number,"voluntary_reg_threshold"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stkv_currency"
+      columns: ["currency_code"]
+isOneToOne: false
+      referencedRelation: "sys_currency_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_stkv_kit"
+      columns: ["kit_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kits_mst"
+      referencedColumns: ["kit_code"]
+    }
+                  ]
+                },"sys_tax_kits_mst": {
+                  Row: {
+                    "country_code": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"kit_code": string,"kit_kind": string,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "country_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"kit_code": string,"kit_kind": string,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "country_code"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"kit_code"?: string,"kit_kind"?: string,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_stk_country"
+      columns: ["country_code"]
+isOneToOne: false
+      referencedRelation: "sys_country_cd"
+      referencedColumns: ["code"]
+    }
+                  ]
+                },"sys_tax_party_class_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_default": boolean,"name": string,"name2": string | null,"party_class_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"name": string,"name2"?: string | null,"party_class_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_default"?: boolean,"name"?: string,"name2"?: string | null,"party_class_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_tax_segment_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"segment_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"segment_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"segment_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_tax_types_cd": {
+                  Row: {
+                    "charge_kind": string,"created_at": string,"created_by": string | null,"created_info": string | null,"description": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"sort_order": number,"tax_type": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                  }
+                  Insert: {
+                    "charge_kind"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"description"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sort_order"?: number,"tax_type": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "charge_kind"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"description"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sort_order"?: number,"tax_type"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     
@@ -14177,6 +15015,13 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"vw_hq_unified_audit_trail": {
+                  Row: {
+                    "action": string | null,"action_category": string | null,"actor_role_code": string | null,"actor_type": string | null,"audit_silo": string | null,"batch_id": string | null,"change_reason": string | null,"changed_fields": (string)[] | null,"created_at": string | null,"details": Json | null,"duration_ms": number | null,"error_message": string | null,"http_method": string | null,"http_path": string | null,"http_status_code": number | null,"id": string | null,"impersonated_user_id": string | null,"ip_address": string | null,"is_sensitive": boolean | null,"new_value": Json | null,"old_value": Json | null,"origin_service": string | null,"parent_audit_id": string | null,"prev_hash": string | null,"request_id": string | null,"resource_id": string | null,"resource_label": string | null,"resource_type": string | null,"row_hash": string | null,"seq_no": number | null,"session_id": string | null,"severity": string | null,"source_module": string | null,"success": boolean | null,"tags": (string)[] | null,"tenant_org_id": string | null,"user_agent": string | null,"user_email": string | null,"user_id": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Functions: {
@@ -14498,6 +15343,7 @@ isOneToOne: false
 "implement_description": string,
 "implement_description2": string,
 "is_active": boolean,
+"is_tax_relevant": boolean,
 "is_unique": boolean,
 "manage_by_level": string,
 "managed_by_object": string | null,
@@ -14517,6 +15363,7 @@ isOneToOne: false
 "sub_system_code": string,
 "target_column": string,
 "target_table": string,
+"tax_flow_code": string,
 "type_prefix": string,
 "unique_with": (string)[] | null,
 "updated_at": string | null,
@@ -14720,6 +15567,32 @@ isOneToOne: false
 "fn_recalc_order_totals":
 { Args: { "p_order": string,"p_tenant": string }; Returns: undefined
                            },
+"fn_setup_health_refresh_all":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"fn_setup_health_refresh_sum":
+{ Args: { "p_tenant": string }; Returns: Json
+                           },
+"fn_setup_health_run":
+{ Args: { "p_branch": string,"p_domain": string,"p_tenant": string }; Returns: {
+              "check_code": string,"description": string,"description2": string,"details": Json,"display_order": number,"domain_code": string,"domain_order": number,"feature_flag_key": string,"fix_permission": string,"fix_route": string,"hq_fix_route": string,"is_hq_only": boolean,"issue_count": number,"name": string,"name2": string,"sample_ids": Json,"severity": string,"shows_banner": boolean,"status": string
+            }[]
+                           },
+"fn_shc_cal_holidays_estimated":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_cal_no_business_hours":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_erp_lite_not_ready":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_guard_tenant":
+{ Args: { "p_tenant": string }; Returns: undefined
+                           },
+"fn_shc_speed_no_rules":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
 "fn_stng_compute_cache_hash":
 { Args: { "p_branch_id"?: string,"p_tenant_id": string,"p_user_id"?: string }; Returns: string
                            },
@@ -14755,8 +15628,22 @@ isOneToOne: false
 "fn_sys_doc_seq_next":
 { Args: { "p_at"?: string,"p_doc_type": string }; Returns: string
                            },
+"fn_tax_config_confirm":
+{ Args: { "p_actor": string,"p_note"?: string,"p_tenant": string }; Returns: Json
+                           },
+"fn_tax_kit_apply":
+{ Args: { "p_activate"?: boolean,"p_actor": string,"p_note"?: string,"p_pkg_code": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_tax_profile_is_used":
+{ Args: { "p_profile_id": string,"p_tenant": string }; Returns: boolean
+                           },
 "fn_tenant_general_value":
 { Args: { "p_key": string,"p_tenant_id": string }; Returns: string
+                           },
+"fn_verify_hq_audit_integrity":
+{ Args: { "p_limit"?: number }; Returns: {
+              "broken_count": number,"checked_at": string,"first_broken_id": string,"first_broken_seq_no": number,"is_valid": boolean,"total_checked": number,"valid_count": number
+            }[]
                            },
 "generate_cash_drawer_sess_no":
 { Args: { "p_tenant_org_id": string }; Returns: string

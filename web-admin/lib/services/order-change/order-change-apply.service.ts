@@ -1055,6 +1055,8 @@ function moneyHeaderFields(money: EditMoneyColumns | null, request: ApplyRequest
     || (operation.code === 'CHANGE_UNLISTED' && operation.payload.field === 'order.readyBy'));
   return {
     speed_premium_amount: money.speedPremiumAmount,
+    // D6: the header follows the fastest line, also after a line-only speed change.
+    service_speed: money.serviceSpeed,
     ...(money.readyBy && !readyBySet ? { ready_by: money.readyBy } : {}),
   };
 }

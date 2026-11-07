@@ -316,6 +316,7 @@
       "DUPLICATE_SCOPE": "A rule for this speed, scope and start date already exists. Edit that rule, or choose another start date.",
       "RULE_IN_USE": "Orders were priced with this rule, so it cannot be deleted. Deactivate it instead.",
       "INVALID_REFERENCE": "The speed, product, branch or category is no longer available. Choose another one.",
+      "DISCOUNT_NOT_ALLOWED": "Only a speed slower than Standard (Economy) can lower the price. Use a value of 0 or more for this speed.",
       "VALIDATION_FAILED": "Some values are not valid. Check them and try again.",
       "CSRF_REJECTED": "Your session needs refreshing. Reload the page and try again.",
       "INTERNAL_ERROR": "Something went wrong. Try again."

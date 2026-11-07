@@ -1,4 +1,5 @@
 # Tenant Tax Configuration — Implementation Plan
+**Doc Status:** Superseded — replaced by the approved Tax Engine master plan (cleanmatex docs/features/Tax_Config/TAX_ENGINE_PLAN.md, approved 2026-11-07); kept for history, carried parts are marked there, flagged 2026-11-07 by documentation
 
 **Status:** Proposed — planning only  
 **Owner:** `cleanmatex` tenant app and shared migration authority  

@@ -84,6 +84,16 @@ export const PRICE_HISTORY_SPEED_RULE = 'speed_rule';
  * persisted in `org_speed_price_rules_cf.price_basis` (M2). Meaningless (and
  * always `NULL` in the DB) for `SELL_PRICE` / `MULTIPLIER` rules.
  */
+/** `org_speed_price_rules_cf.turnaround_unit` / `sys_service_speed_cd.default_turnaround_unit` values. */
+export const TURNAROUND_UNITS = {
+  /** Working hours inside opening hours. */
+  HOURS: 'HOURS',
+  /** Ready on the Nth working day at the ready time (0 = same day). */
+  WORKING_DAYS: 'WORKING_DAYS',
+} as const;
+/** Derived union for turnaround unit values. */
+export type TurnaroundUnit = (typeof TURNAROUND_UNITS)[keyof typeof TURNAROUND_UNITS];
+
 export const PRICE_BASIS = {
   PER_UNIT: 'PER_UNIT',
   PER_LINE: 'PER_LINE',

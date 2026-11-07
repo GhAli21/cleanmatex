@@ -1,4 +1,5 @@
 # Tax Calculation and Financial Posting Specification
+**Doc Status:** Superseded — replaced by the approved Tax Engine master plan (cleanmatex docs/features/Tax_Config/TAX_ENGINE_PLAN.md, approved 2026-11-07); kept for history, carried parts are marked there, flagged 2026-11-07 by documentation
 
 **Status:** Proposed design — no implementation authorised  
 **Authority:** `cleanmatex` calculates and persists final tax outcomes. HQ uses the approved read-only preview contract only.  

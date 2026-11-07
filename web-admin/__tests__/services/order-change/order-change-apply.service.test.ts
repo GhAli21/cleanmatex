@@ -87,7 +87,7 @@ function calculatedEdit(lines: Array<{ id: string; unitPrice: string; quantity?:
         standard: { unitPrice: toMoney(line.unitPrice), source: 'PRODUCT_DEFAULT', priceListId: null, priceListItemId: null, priceListDiscountPercent: toMoney(0) },
         speed: { ruleId: null },
       })),
-      facts: { pricingMode: 'TAX_EXCLUSIVE', taxProfileLabels: new Map([['vat', { label: 'VAT', label2: null }]]) },
+      facts: { pricingMode: 'TAX_EXCLUSIVE', speedRanks: new Map([['STANDARD', 2], ['EXPRESS', 4]]), taxProfileLabels: new Map([['vat', { label: 'VAT', label2: null }]]) },
       orderAdjustments: [],
     },
     intent: {

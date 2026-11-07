@@ -1,4 +1,4 @@
-# Tax Engine — Master Plan (v2 draft)
+# Tax Engine — Master Plan (v2)
 
 **Status:** APPROVED by owner ("all approved", 2026-11-07) — implementation authorised in program order: Service Speeds S1–S7 → Setup Health → Tax Engine T0–T9
 **Supersedes on approval:** [TENANT_TAX_CONFIG_IMPLEMENTATION_PLAN.md](TENANT_TAX_CONFIG_IMPLEMENTATION_PLAN.md), [TAX_CALCULATION_AND_FINANCIAL_POSTING_SPEC.md](TAX_CALCULATION_AND_FINANCIAL_POSTING_SPEC.md), [CROSS_PROJECT_TAX_IMPLEMENTATION_COORDINATION_PLAN.md](CROSS_PROJECT_TAX_IMPLEMENTATION_COORDINATION_PLAN.md), HQ `cleanmatexsaas/docs/features/Tax_Setup/` (all "Proposed — planning only", nothing built). Carried parts are marked *(carried)*.
@@ -6,9 +6,13 @@
 
 ## 0. Program order
 
-1. [Service Speeds](../Service_Speeds/PLAN.md) (S1–S7) — independent, smallest.
-2. [Setup Health](../Setup_Health/PLAN.md) — framework needed by the tax banner and kit.
-3. Tax Engine T0–T9 (this plan).
+The three plans run in parallel sessions (owner, 2026-11-07). No reserved number ranges: each new migration takes the current last number in `supabase/migrations/` + 1 at the moment it is written (create the file right away so another session sees it). Migrations are applied in number order.
+
+| Plan | Dependency for Tax |
+|---|---|
+| [Service Speeds](../Service_Speeds/PLAN.md) (S1–S7) | M2 needs `sys_calendar_templates_mst` (Speeds calendar migration) for the package FK |
+| [Setup Health](../Setup_Health/PLAN.md) | M8 adds TAX_* checks to its registry and dispatcher |
+| Tax Engine T0–T9 (this plan) | — |
 
 Each migration: written → STOP → owner applies (local + remote) → Prisma pull + types in both repos → continue.
 
@@ -27,7 +31,7 @@ Each migration: written → STOP → owner applies (local + remote) → Prisma p
 | D9 | HQ owns country packs and prepares ready-to-use kits; supporting inexperienced laundries is a design goal |
 | D10 | Kits: verified OM, SA, AE, BH; "no VAT" kits QA, KW; generic kit (no rate) for other countries |
 | D11 | Kit is created as a pending candidate at tenant creation; the tenant-app banner says orders are not taxed until confirmed. **Apply tax kit** is an HQ screen opened from HQ › tenant › Setup Health. HQ support may apply **and** activate on the owner's behalf (reason recorded, e.g. "confirmed with owner by phone"), or leave it pending for the owner to confirm in the tenant app |
-| D12 | **Starter packages = the existing settings profiles** (`sys_stng_profiles_mst`: country + segment, parent inheritance, version; tenant `stng_profile_code` / `stng_profile_version_applied` / `stng_profile_locked`). No parallel package table. A profile references the country tax kit and calendar template; segment differences are profile values and segment-flagged kit rules (§4.7) |
+| D12 | **Starter packages = direct typed tables, not the general settings engine** (owner, 2026-11-07: "avoid general settings as possible"). `sys_starter_pkg_mst` (country × segment) points by FK to the tax kit and calendar template and holds mode / pricing mode as typed, CHECKed columns; the tenant stores its choices in plain columns (`org_tenants_mst.starter_pkg_code`, `calendar_template_code`; `org_tax_config_cf.kit_code`, `segment_code`, …). No `sys_stng_*` values are added by this program; existing settings profiles are left untouched (§4.7) |
 | D13 | When the tax invoice is issued stays in the existing `org_tax_doc_triggers_cfg` (per document type and event, e.g. `ON_ORDER_SUBMIT` → `INVOICE`); the starter package seeds it. No duplicate column on `org_tenants_mst` |
 
 ## 2. Current state (verified 2026-11-07)
@@ -56,7 +60,7 @@ Constants: `lib/constants/doc-types.ts` mirrors `doc_type_code` values used in c
 | Layer | Objects |
 |---|---|
 | L1 Country packs *(carried)* | `sys_tax_jurisdictions_cd`, `sys_tax_policy_packs_mst`, `sys_tax_pack_versions_cf` (rounding, tax point, `tax_on_advance`, source/review), `sys_tax_pack_rules_dtl`; `sys_tax_types_cd` + `charge_kind` (TAX/LEVY); new types `MUNICIPALITY_TAX`, `TOURISM_TAX`, `TOURISM_LEVY`, `SERVICE_LEVY`, `WHT` |
-| L1b Kits | `sys_tax_kits_mst` (per pack version), `sys_tax_kit_codes_dtl`, `sys_tax_kit_item_classes_dtl`, `sys_tax_kit_rules_dtl` (+ result codes), `sys_tax_kit_vectors_dtl` (sample + expected tax) |
+| L1b Kits | `sys_tax_kits_mst` (per pack version; `simplified_max_amount` NULL = no limit, `is_verified`, `source_url`, `checked_on`), `sys_tax_kit_codes_dtl`, `sys_tax_kit_item_classes_dtl`, `sys_tax_kit_rules_dtl` (+ result codes), `sys_tax_kit_vectors_dtl` (sample + expected tax) |
 | L2 Registration | `org_tax_config_cf` *(carried)*: mode (BASIC/ADVANCED), pack version, kit version, status (`PENDING_CONFIRMATION`/`ACTIVE`/`DISABLED`), `tax_enabled`, confirmed by/at. Branch: `tax_registration_no` (exists), `country` (exists), `tax_pack_version_id` NULL = organization's |
 | L3 Tax codes | `org_tax_profiles_cf` evolved: `tax_code`, `version_no`, `charge_kind`, `amount_kind` (PERCENT/FIXED), `fixed_amount`, `calc_level` (LINE/DOCUMENT), `tax_category_code`, `exempt_reason_code`, `tax_flow_code`, `recoverable_pct`, `priority`, `compound_base`, `report_box_code`, `source` (HQ_KIT/TENANT), `kit_code_ref`. Invariants: VAT ⇒ LINE; used code immutable (trigger) — change = new version; `applies_to`/`is_default` retired in T3 |
 | L4 Classes | `org_tax_item_classes_cf` (tenant, from kit) → `org_product_data_mst.tax_item_class_code` (replaces `tax_supply_code`), `org_fin_exp_cat_cf`, service categories. `sys_tax_party_class_cd` (CONSUMER, BUSINESS_REGISTERED, GOVERNMENT, FOREIGN, EXEMPT_ENTITY) → `org_customers_mst` (+ `tax_country`, reuse `tax_id`), `org_fin_supp_mst` (+ class, country, reuse `tax_reg_no`) |
@@ -67,7 +71,7 @@ Constants: `lib/constants/doc-types.ts` mirrors `doc_type_code` values used in c
 
 ### 4.1 Kit apply — one function for both repos
 
-`fn_tax_kit_apply(p_tenant, p_kit_id, p_options jsonb, p_actor)` (SQL, SECURITY INVOKER, every `org_*` write sets/filters `tenant_org_id`): copies kit codes, classes, rules into the tenant with `source = HQ_KIT`; idempotent (re-apply updates only `source = HQ_KIT` rows not modified by the tenant, reports conflicts); creates/updates `org_tax_config_cf` as `PENDING_CONFIRMATION`; maps all products without class to the kit default class. Called by HQ onboarding and by the tenant **Apply tax kit** screen. `fn_tax_config_confirm(p_tenant, p_actor)` activates (`ACTIVE`, sets confirmed_by/at) after readiness passes. Audited.
+`fn_tax_kit_apply(p_tenant, p_pkg_code, p_actor)` (SQL, SECURITY INVOKER, every `org_*` write sets/filters `tenant_org_id`): copies kit codes, classes, rules into the tenant with `source = HQ_KIT`; idempotent (re-apply updates only `source = HQ_KIT` rows not modified by the tenant, reports conflicts); creates/updates `org_tax_config_cf` as `PENDING_CONFIRMATION`; maps all products without class to the kit default class. Called by HQ onboarding and by the tenant **Apply tax kit** screen. `fn_tax_config_confirm(p_tenant, p_actor)` activates (`ACTIVE`, sets confirmed_by/at) after readiness passes. Audited.
 
 ### 4.2 Calculation — `lib/tax/` (pure, no I/O)
 
@@ -84,14 +88,18 @@ Covers: exclusive/inclusive, stacked independent, compound (NET_PLUS_PRIOR with 
 
 ### 4.7 Starter packages (D12)
 
-| Layer | Holds | Example |
-|---|---|---|
-| `GENERAL_MAIN_PROFILE` → `GCC_MAIN_PROFILE` → `GCC_OM_MAIN` (exists) | country defaults | tax kit `OM_VAT_KIT`, calendar template `OM`, currency, tax doc triggers |
-| `GCC_OM_SME` / `GCC_OM_ENTERPRISE` / `FRANCHISE_BASE` (exist, empty) | segment values | SME: Basic mode, prices include VAT, simplified tax invoice on order submit. ENTERPRISE: Advanced mode, B2B rules on, full tax invoice for business customers |
-| New profile values (settings catalog `sys_stng_*`, HQ-managed) | `TAX_KIT_CODE`, `TAX_SETUP_MODE`, `TAX_PRICING_MODE_DEFAULT`, `TAX_DOC_TRIGGERS_DEFAULT` (jsonb), `CALENDAR_TEMPLATE_CODE`, `TAX_KIT_SEGMENT` | resolved through the profile chain (child overrides parent) |
-| Kit rules | `segment_codes TEXT[]` (NULL = every segment) | B2B reverse-charge rule only for ENTERPRISE |
+Direct tables and columns, every value typed, FK'd and CHECKed (no key/value settings, no profile-chain resolution):
 
-One kit per country (rates live once, so a rate change updates every segment); a package only selects and adjusts. A new segment or situation (e.g. "not VAT-registered" small shop — approved 2026-11-07) = a new child profile, no code change. `fn_tax_kit_apply` reads the tenant's resolved profile to choose kit, segment rules, mode, pricing mode and tax doc triggers. Changing a tenant's profile later re-runs apply as a pending candidate (never silently).
+| Object | Columns / purpose | Example |
+|---|---|---|
+| `sys_tax_segment_cd` | `segment_code`, `name/name2`, `description/description2`, `display_order` | SME, ENTERPRISE, FRANCHISE_BASE, NOT_VAT_REGISTERED |
+| `sys_starter_pkg_mst` | `pkg_code`, `country_code` (FK, NULL = generic), `segment_code` (FK), `tax_kit_code` (FK), `calendar_template_code` (FK), `tax_setup_mode` (BASIC/ADVANCED), `tax_pricing_mode` (INCLUSIVE/EXCLUSIVE), `is_country_default`, `name/name2`, `is_active`; UNIQUE (country, segment); one default per country | `OM_SME` → `OM_VAT_KIT`, calendar `OM`, BASIC, INCLUSIVE |
+| `sys_starter_pkg_trig_dtl` | `pkg_code`, `doc_type_code` (FK), `event_code`, `tax_doc_kind` — copied into `org_tax_doc_triggers_cfg` at apply (D13) | `OM_SME`: `ON_ORDER_SUBMIT` → simplified `INVOICE` |
+| `org_tenants_mst` | `starter_pkg_code` (FK), `calendar_template_code` (FK) — what was applied, shown in HQ | — |
+| `org_tax_config_cf` | `kit_code`, `kit_version_applied`, `segment_code`, `setup_mode`, `pricing_mode`, `status` (PENDING/ACTIVE), confirm audit | — |
+| Kit rules | `segment_codes TEXT[]` (NULL = every segment), each element checked against `sys_tax_segment_cd` by trigger | B2B reverse-charge rule only for ENTERPRISE |
+
+Resolution is one lookup: tenant country + chosen segment → package (else the country default, else the generic package). One kit per country (rates live once, so a rate change updates every segment); a package only selects and adjusts. A new segment or situation (e.g. "not VAT-registered" small shop — approved 2026-11-07) = new seed rows, no code change. `fn_tax_kit_apply(tenant, pkg_code)` reads the package row to choose kit, segment rules, mode, pricing mode and tax doc triggers. Changing a tenant's package later re-runs apply as a pending candidate (never silently). Existing `stng_profile_*` columns and settings profiles are not used or changed by this program.
 
 ## 5. Special treatments
 
@@ -112,15 +120,35 @@ One kit per country (rates live once, so a rate change updates every segment); a
 | # | Migration | Content |
 |---|---|---|
 | M1 | Doc identity | §3 columns, triggers, CHECKs, backfill, comments |
-| M2 | Tax catalog & kits | L1, L1b, party classes, return boxes `sys_tax_return_box_cd`, GCC + generic seeds (rates from official sources, cited in comments), new types |
-| M3 | Tenant config | `org_tax_config_cf`, profile evolution, item classes, rules + codes, periods, branch pack column, customer/supplier tax columns, `fn_tax_kit_apply`, `fn_tax_config_confirm`, immutability triggers, RLS, permissions, nav |
+| M2 | Tax catalog & kits | L1, L1b, segments, starter packages + triggers, party classes, GCC + generic seeds (rates from official sources, cited in comments), new types |
+| M3 | Tenant config | `org_tax_config_cf`, profile evolution, item classes, rules + codes, periods, branch pack column, `org_branches_mst.emirate_code` (AE return 1a–1g, [KIT_FACTS §3](KIT_FACTS.md)), customer/supplier tax columns, `fn_tax_kit_apply`, `fn_tax_config_confirm`, immutability triggers, RLS, permissions, nav |
 | M4 | Convert existing | demo profiles `applies_to`/`is_default` → rules; products `tax_supply_code` → classes; pending config for every tenant; then drop retired columns (separate M4b after readers moved) |
 | M5 | Tax lines | `org_tax_lines_tr`, triggers, indexes, RLS |
 | M6 | Purchases/payouts | tax columns on expense/AP/PO lines (`tax_item_class_code`, party on header), `voucher_tax_mode` on gift cards |
-| M7 | Reporting/posting | return box mapping, GL usage codes for output/input/WHT/non-recoverable |
-| M8 | Setup Health checks | TAX_* check functions + registry rows |
+| M7 | Reporting/posting | return boxes `sys_tax_return_box_cd` (seeded from official return forms) + mapping, GL usage codes for output/input/WHT/non-recoverable |
+| M8 | Setup Health checks | TAX_* check functions + registry rows, incl. `TAX_KIT_FACT_UNVERIFIED` (HQ only: kit has `is_verified = false` facts, [KIT_FACTS §5](KIT_FACTS.md)) |
 
 All `org_*`: `tenant_org_id`, RLS, tenant-first list indexes, composite FKs in parent key order, `DROP … RESTRICT`, TEXT not VARCHAR, money DECIMAL(19,4), `COMMENT ON` everything.
+
+### 6.1 Seed data — full, when possible (owner, 2026-11-07)
+
+Rule: every migration ships complete, usable data so HQ can apply a kit to a new laundry with no manual setup. Rates, thresholds, return boxes and invoice rules come from official tax-authority sources cited in SQL comments (with the date checked). A fact that cannot be confirmed is not invented: it is seeded inactive or flagged, and Setup Health shows it to HQ. Seeds are idempotent; every `org_*` seed filters `tenant_org_id`.
+
+| Data | What is seeded |
+|---|---|
+| Document types | `tax_flow_code` and `is_tax_relevant` for **every** existing `sys_doc_seq_type_cd` row (sales, returns, credit notes, vouchers, purchases, payouts, internal) — none left NULL |
+| Country packs + kits | OM, SA, AE, BH (VAT, verified rates and registration thresholds), QA, KW ("no VAT" kits), `GENERIC` (tenant sets the rate) |
+| Tax codes per kit | STANDARD, ZERO, EXEMPT, OUT_OF_SCOPE, REVERSE_CHARGE (where the law has it), with EN/AR names and effective dates |
+| Item classes | Laundry / dry-cleaning service, goods sale, delivery / service charge, gift card (SPV / MPV), deposit / advance, tip, cash rounding; each mapped per kit |
+| Party classes | Individual, VAT-registered business, government, foreign / non-resident, exempt body |
+| Rules | Full rule set per kit **and** per segment (SME, ENTERPRISE, FRANCHISE_BASE, NOT_VAT_REGISTERED) so no supported document type returns `NO_TAX_RULE` after apply |
+| Return boxes | `sys_tax_return_box_cd` for each VAT country's official return form, with the code → box mapping |
+| Invoice triggers | `org_tax_doc_triggers_cfg` defaults per starter package (e.g. `ON_ORDER_SUBMIT` → `INVOICE`) |
+| Starter packages | `sys_tax_segment_cd` (4 segments) + `sys_starter_pkg_mst` rows for each country × segment + generic, with `sys_starter_pkg_trig_dtl` triggers; one country default each |
+| GL usage codes | Output VAT, input VAT, withholding, non-recoverable VAT, mapped in the ERP-Lite default chart |
+| Permissions / nav | `tax:manage_periods` with role grants; all new menu rows (tenant + HQ) |
+| Existing tenants (M4) | Every tenant gets `starter_pkg_code` = its country default and a **pending** kit candidate from it; demo profiles and product `tax_supply_code` converted to rules and classes; demo tenants also get an open tax period for the current month |
+| Verification | After each apply: every demo tenant's kit apply preview shows 0 errors, and `vw_doc_seq_consistency` stays at 0 ERROR rows |
 
 ## 7. Backend & APIs (tenant app)
 
@@ -167,14 +195,14 @@ All: Cmx components, `cmxMessage`, EN/AR + RTL, loading/empty/error, server pagi
 
 | Area | Item |
 |---|---|
-| platform-api module `tax-setup` | packs, versions, kits (codes/classes/rules/vectors) CRUD; publish (runs kit vectors via tenant preview contract); kit diff |
-| Tenant onboarding | resolves the tenant's settings profile (D12) and calls `fn_tax_kit_apply` (pending) |
-| **Apply tax kit** (HQ tenant workspace, from Setup Health) | shows profile + kit + segment rules in plain words, per-branch registration numbers, worked example; actions: Apply (pending) · Apply and activate (reason required) |
-| Settings profiles screen (exists) | new tax/calendar values per profile; preview "what a tenant on this profile gets" |
+| platform-api module `tax-setup` | T2: kits + version detail (codes, classes, rules, examples) read; mark version facts verified (source, date, notes; audited); starter packages list + edit (kit, calendar, mode, pricing, default, active, triggers; audited). T8: new draft version (clone), edit draft, publish (runs kit examples), kit diff — with the kit update job |
+| Tenant onboarding | picks the starter package (country default, HQ may change segment) (D12) and calls `fn_tax_kit_apply` (pending) |
+| **Apply tax kit** (HQ tenant workspace, from Setup Health) | package picker (segment) + kit + segment rules in plain words, per-branch registration numbers, worked example; actions: Apply (pending) · Apply and activate (reason required) |
+| Starter packages (new, HQ › Master System Codes) | list / edit `sys_starter_pkg_mst` + triggers; preview "what a tenant on this package gets" |
 | Tenant support | `GET /tenants/:id/tax` (config, diff vs kit, readiness, explain order), actions: re-apply kit (pending candidate), reset row to kit — audited |
 | Kit updates | publish new version with effective date → job creates new code versions for tenants on that kit (HQ_KIT rows only) + tenant notification; tenant-modified rows flagged `TAX_KIT_UPDATE_PENDING` |
 | platform-web | Tax Packs & Kits screens, tenant › Tax tab, tenant › Setup Health tab |
-| Permissions / nav | HQ perms `tax_packs:view/manage`, HQ nav rows — migrations in `cleanmatex` |
+| Permissions / nav | HQ perms `tax_packs.view` / `tax_packs.manage` / `tax_packs.*` (HQ dot grammar; TECH_ADMIN gets `tax_packs.*`), HQ nav rows in `hq_navigation_cd` under Master System Codes (`/system-codes/tax-kits`, `/system-codes/starter-packages`) — migration 0713 |
 | Preview contract *(carried)* | private tenant endpoint `POST /internal/tax/preview` with service auth (existing Notification HQ service-auth pattern) |
 
 ## 10. Mobile
@@ -209,3 +237,14 @@ Per feature folder: README, PLAN, STATUS, developer_guide, user_guide EN/AR (wri
 - Largest program so far (≈8 migrations, both repos): phases are independently shippable; sales stay on today's engine until T4 lands complete.
 - Kit rates are legal facts: each verified kit cites its official source and review date; generic kits never claim verification *(carried)*.
 - E-invoicing connectors (ZATCA, Oman, UAE) remain a separate program; data is ready after T4.
+
+## Per-step definition of done (owner, 2026-11-07 — applies to every step / phase)
+
+Every step (migration, service, API, screen, HQ change) is done only when all apply:
+
+1. **CLAUDE.md first** — load the required skills before writing (`/database`, `/multitenancy`, `/backend`, `/frontend`, `/i18n`, `/navigation`, `/rebuild-ui-access-contract`, `/update-rbac-role`, `/code-documentation`, `/order-fin` as relevant); follow the rule docs it points to (`docs/dev/rules/*`); agents only when the owner asks.
+2. **Database** — full audit columns on every new table, `COMMENT ON` every object, RLS on `org_*`, explicit `tenant_org_id` in every query, `DROP … RESTRICT`, migration number = live last + 1, full seeds; write → STOP → owner applies.
+3. **UI** — reuse Cmx components from `src/ui/` (HQ: its shared components); if a needed piece is missing and will be reused, add it as a shared reusable component (with story/test), never a feature-local copy; `cmxMessage`, EN/AR + RTL, loading/empty/error states.
+4. **Both repos** — the step's HQ (`cleanmatexsaas`) part is done in the same step when the plan lists one.
+5. **Checks** — `npx eslint . --quiet`, typecheck, `npm run build`, `npm run check:i18n`, targeted tests; access-contract + inventories refresh after gating/nav changes.
+6. **Update status** — the feature's `STATUS.md` (phase row + log line), this plan if scope changed, `followups_by_user.md` for owner actions, QA guide scenarios for testable behaviour, and memory.

@@ -31,6 +31,7 @@ import { nextSubOrderNoWithTx, parseOrderNumberError } from '@/lib/services/orde
 import { findOpenPosSessionIdForOrder, stampCreatedPosSession } from '@/lib/services/order-created-pos-session';
 import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 import { buildOrderItemSrno } from '@/lib/services/order-item-code.service';
+import { fastestServiceSpeed } from '@/lib/commercial/speed';
 
 /** order_subtype values written by the split (mirror org_orders_mst.order_subtype, 0020). */
 export const ORDER_SPLIT_SUBTYPES = {
@@ -198,6 +199,40 @@ type ParentItemRow = {
 type PlannedLine = { item: ParentItemRow; units: number; pieceSeqs: number[] | null };
 
 /**
+ * Service Speeds D6: a sub-order's header speed is the fastest speed (by
+ * `display_order`) of the lines and pieces it takes.
+ * @param tx the split transaction
+ * @param tenantId the organization
+ * @param orderId the parent order
+ * @param planned the lines (and piece numbers) moving to the sub-order
+ * @returns a `sys_service_speed_cd` code, or null when nothing has a speed
+ */
+async function subOrderServiceSpeed(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  orderId: string,
+  planned: readonly PlannedLine[]
+): Promise<string | null> {
+  const pieceFilters = planned
+    .filter((p) => p.pieceSeqs && p.pieceSeqs.length > 0)
+    .map((p) => ({ order_item_id: p.item.id, piece_seq: { in: p.pieceSeqs ?? [] } }));
+  const [speeds, pieces] = await Promise.all([
+    tx.sys_service_speed_cd.findMany({ select: { code: true, display_order: true } }),
+    pieceFilters.length === 0
+      ? Promise.resolve([] as { service_speed: string }[])
+      : tx.org_order_item_pieces_dtl.findMany({
+          where: { tenant_org_id: tenantId, order_id: orderId, deleted_order_change_id: null, OR: pieceFilters },
+          select: { service_speed: true },
+        }),
+  ]);
+  const ranks = new Map(speeds.map((s) => [s.code, s.display_order]));
+  const codes = [...planned.map((p) => p.item.service_speed), ...pieces.map((p) => p.service_speed)].filter(
+    (c): c is string => !!c
+  );
+  return fastestServiceSpeed(codes, ranks);
+}
+
+/**
  * Family root of a split: the parent's root_order_id, or the parent itself when it is a root (A-28).
  * A parent that has a parent_order_id but no root_order_id is broken data: refuse (fail closed).
  * @param parent locked parent row
@@ -352,6 +387,7 @@ export async function splitOrderUnits(input: OrderSplitInput): Promise<OrderSpli
         const subOrderNo = await nextSubOrderNoWithTx(tx, tenantId, orderId);
 
         // 4. Sub-order header: operational copy, zero money (A-29).
+        const subSpeed = await subOrderServiceSpeed(tx, tenantId, orderId, planned);
         const now = new Date();
         const sub = await tx.org_orders_mst.create({
           data: {
@@ -389,7 +425,8 @@ export async function splitOrderUnits(input: OrderSplitInput): Promise<OrderSpli
             customer_mobile_number: parent.customer_mobile_number,
             customer_email: parent.customer_email,
             customer_details: parent.customer_details ?? undefined,
-            service_speed: parent.service_speed,
+            // Service Speeds D6: the fastest speed of what moves (lines and pieces), not the parent's.
+            service_speed: subSpeed ?? parent.service_speed,
             // Same commercial settings as the parent. commercial_calc_version stays empty: Edit refuses money on a sub-order.
             commercial_level: parent.commercial_level,
             tax_pricing_mode: parent.tax_pricing_mode,

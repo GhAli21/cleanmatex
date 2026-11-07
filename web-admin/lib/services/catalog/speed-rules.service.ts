@@ -3,7 +3,11 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 import { SPEED_RULE_LEVELS, resolveSpeedPricing, selectSpeedRule, speedRulesForProduct, type SpeedRuleCandidate, type SpeedRuleLevel } from '@/lib/commercial/speed';
-import { PRICE_HISTORY_SPEED_RULE, SERVICE_SPEEDS, type PriceBasis, type SpeedPriceType } from '@/lib/constants/commercial';
+import {
+  PRICE_HISTORY_SPEED_RULE, SERVICE_SPEEDS, SPEED_PRICE_TYPES, TURNAROUND_UNITS,
+  type PriceBasis, type SpeedPriceType, type TurnaroundUnit,
+} from '@/lib/constants/commercial';
+import { textToTimeColumn, timeColumnToText } from '@/lib/services/commercial/calendar-facts';
 import { prisma } from '@/lib/db/prisma';
 import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 
@@ -16,11 +20,18 @@ import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput
  * A rule no line used is really deleted: its scope stays in the unique index
  * otherwise, and the same scope could never be created again. Every change writes
  * one `org_price_history_audit` row in the same transaction.
+ *
+ * Service Speeds (PLAN §5): a rule may lower the price (negative multiplier or
+ * amount, or a product sell price below the product's price) only for a speed
+ * ranked below STANDARD (`display_order`, i.e. ECONOMY): `DISCOUNT_NOT_ALLOWED`.
  */
 
 /** A refused request; `status` is the HTTP status the route answers. */
 export class SpeedRuleError extends Error {
-  constructor(public readonly code: 'NOT_FOUND' | 'DUPLICATE_SCOPE' | 'RULE_IN_USE' | 'INVALID_REFERENCE', public readonly status: number) {
+  constructor(
+    public readonly code: 'NOT_FOUND' | 'DUPLICATE_SCOPE' | 'RULE_IN_USE' | 'INVALID_REFERENCE' | 'DISCOUNT_NOT_ALLOWED',
+    public readonly status: number,
+  ) {
     super(code);
   }
 }
@@ -40,6 +51,10 @@ export interface SpeedRuleView {
   speedExtraAmount: string | null;
   priceBasis: string | null;
   turnaroundHhSpeed: string | null;
+  turnaroundUnit: string | null;
+  turnaroundDaysSpeed: number | null;
+  /** `HH:MM`, or null = the branch's cut-off. */
+  cutoffTimeSpeed: string | null;
   name: string | null;
   name2: string | null;
   effectiveFrom: string;
@@ -73,6 +88,9 @@ function toCandidate(r: RuleRow): SpeedRuleCandidate {
     speedExtraAmount: dec(r.speed_extra_amount),
     priceBasis: r.price_basis as PriceBasis | null,
     turnaroundHhSpeed: dec(r.turnaround_hh_speed),
+    turnaroundUnit: r.turnaround_unit as TurnaroundUnit | null,
+    turnaroundDaysSpeed: r.turnaround_days_speed,
+    cutoffTimeSpeed: timeColumnToText(r.cutoff_time_speed),
     effectiveFrom: dateText(r.effective_from)!,
     effectiveTo: dateText(r.effective_to),
     isActive: r.is_active && r.rec_status === 1,
@@ -96,6 +114,9 @@ function toView(r: RuleRow, names: Map<string, { name: string | null; name2: str
     speedExtraAmount: dec(r.speed_extra_amount),
     priceBasis: r.price_basis,
     turnaroundHhSpeed: dec(r.turnaround_hh_speed),
+    turnaroundUnit: r.turnaround_unit,
+    turnaroundDaysSpeed: r.turnaround_days_speed,
+    cutoffTimeSpeed: c.cutoffTimeSpeed ?? null,
     name: r.name,
     name2: r.name2,
     effectiveFrom: c.effectiveFrom,
@@ -162,15 +183,48 @@ export async function getSpeedRule(tenantId: string, id: string): Promise<SpeedR
   return toView(row, await productNames(tenantId, row.product_id ? [row.product_id] : []));
 }
 
-/** References must exist in this tenant (or the global catalog). */
+/**
+ * Speed code -> rank (`display_order`) of the active speeds; STANDARD is always
+ * read, as its rank decides which speeds may discount.
+ */
+async function speedRanks(codes: string[]): Promise<Map<string, number>> {
+  const rows = await prisma.sys_service_speed_cd.findMany({
+    where: { code: { in: [...new Set([...codes, SERVICE_SPEEDS.STANDARD])] }, is_active: true, rec_status: 1 },
+    select: { code: true, display_order: true },
+  });
+  return new Map(rows.map((r) => [r.code, r.display_order]));
+}
+
+/** True when the speed ranks below STANDARD (ECONOMY): only then may a rule lower the price. */
+function rankAllowsDiscount(ranks: Map<string, number>, code: string): boolean {
+  const rank = ranks.get(code);
+  const standard = ranks.get(SERVICE_SPEEDS.STANDARD);
+  return rank != null && standard != null && rank < standard;
+}
+
+/**
+ * References must exist in this tenant (or the global catalog); a discount
+ * needs a speed that may discount.
+ * @throws SpeedRuleError INVALID_REFERENCE | DISCOUNT_NOT_ALLOWED
+ */
 async function checkReferences(tenantId: string, input: SpeedRuleCreateInput) {
-  const [speed, product, branch, category] = await Promise.all([
-    prisma.sys_service_speed_cd.findFirst({ where: { code: input.serviceSpeed, is_active: true, rec_status: 1 }, select: { code: true } }),
-    input.productId ? prisma.org_product_data_mst.findFirst({ where: { id: input.productId, tenant_org_id: tenantId }, select: { id: true } }) : Promise.resolve({ id: '' }),
+  const [ranks, product, branch, category] = await Promise.all([
+    speedRanks([input.serviceSpeed]),
+    input.productId
+      ? prisma.org_product_data_mst.findFirst({ where: { id: input.productId, tenant_org_id: tenantId }, select: { id: true, default_sell_price: true } })
+      : Promise.resolve({ id: '', default_sell_price: null }),
     input.branchId ? prisma.org_branches_mst.findFirst({ where: { id: input.branchId, tenant_org_id: tenantId }, select: { id: true } }) : Promise.resolve({ id: '' }),
     input.serviceCategoryCode ? prisma.sys_service_category_cd.findFirst({ where: { service_category_code: input.serviceCategoryCode }, select: { service_category_code: true } }) : Promise.resolve({ service_category_code: '' }),
   ]);
-  if (!speed || !product || !branch || !category) throw new SpeedRuleError('INVALID_REFERENCE', 422);
+  if (!ranks.has(input.serviceSpeed) || !product || !branch || !category) throw new SpeedRuleError('INVALID_REFERENCE', 422);
+  if (rankAllowsDiscount(ranks, input.serviceSpeed)) return;
+  const negative = (v: string | null | undefined) => v != null && Number(v) < 0;
+  // A sell price is comparable only on a product rule; on wider scopes the calculator holds it at 0 with a warning.
+  const sellBelow = input.speedPriceType === SPEED_PRICE_TYPES.SELL_PRICE && product.default_sell_price != null
+    && input.defaultSpeedSellPrice != null && Number(input.defaultSpeedSellPrice) < Number(product.default_sell_price);
+  if (negative(input.multiplierSpeed) || negative(input.speedExtraAmount) || sellBelow) {
+    throw new SpeedRuleError('DISCOUNT_NOT_ALLOWED', 422);
+  }
 }
 
 /** Prevented before save (UX rule); `duplicateToError` covers two saves racing past this check. */
@@ -230,6 +284,10 @@ function columns(input: SpeedRuleCreateInput) {
     speed_extra_amount: input.speedExtraAmount ?? null,
     price_basis: input.priceBasis ?? null,
     turnaround_hh_speed: input.turnaroundHhSpeed ?? null,
+    // Hours with no unit are HOURS (older clients send hours only).
+    turnaround_unit: input.turnaroundUnit ?? (input.turnaroundHhSpeed ? TURNAROUND_UNITS.HOURS : null),
+    turnaround_days_speed: input.turnaroundDaysSpeed ?? null,
+    cutoff_time_speed: textToTimeColumn(input.cutoffTimeSpeed ?? null),
     name: input.name ?? null,
     name2: input.name2 ?? null,
     effective_from: new Date(`${input.effectiveFrom}T00:00:00Z`),
@@ -480,16 +538,20 @@ export async function resolveSpeedRule(tenantId: string, q: {
     branchId: q.branchId ?? null,
     businessDate: q.date ?? new Date().toISOString().slice(0, 10),
   };
-  const rows = await prisma.org_speed_price_rules_cf.findMany({
-    where: { tenant_org_id: tenantId, service_speed: q.serviceSpeed, rec_status: 1 },
-  });
+  const [rows, ranks] = await Promise.all([
+    prisma.org_speed_price_rules_cf.findMany({ where: { tenant_org_id: tenantId, service_speed: q.serviceSpeed, rec_status: 1 } }),
+    speedRanks([q.serviceSpeed]),
+  ]);
   // The same rules the calculator may use for this product.
   const candidates = [...speedRulesForProduct(rows.map(toCandidate), product?.is_retail_item === true)];
   const winner = selectSpeedRule(ctx, candidates);
   const standard = product?.default_sell_price?.toString() ?? null;
   const priced = standard == null
     ? null
-    : resolveSpeedPricing({ ...ctx, standardUnitPrice: standard, referenceUnitPrice: standard, quantity: 1, rules: candidates });
+    : resolveSpeedPricing({
+      ...ctx, standardUnitPrice: standard, referenceUnitPrice: standard, quantity: 1, rules: candidates,
+      discountAllowed: rankAllowsDiscount(ranks, q.serviceSpeed),
+    });
   const names = await productNames(tenantId, rows.flatMap((r) => (r.product_id ? [r.product_id] : [])));
   const byId = new Map(rows.map((r) => [r.id, r]));
   // Every rule that alone would apply, in the calculator's order of preference.

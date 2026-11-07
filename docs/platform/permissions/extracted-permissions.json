@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-05T19:10:10.252Z",
+  "extractedAt": "2026-11-07T06:09:59.161Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -791,7 +791,7 @@
       "route": "src/features/workflow/ui/processing-modal.tsx",
       "permission": "orders:split",
       "component": "useHasPermissionCode",
-      "line": 160,
+      "line": 161,
       "surface": "screen"
     },
     {

@@ -24,6 +24,7 @@ import { CHARGE_TYPES } from '@/lib/constants/order-financial';
 import type { EditQuote } from './commercial-edit.loader';
 import {
   buildCommercialChildRows,
+  headerServiceSpeed,
   lineMoneyColumns,
   type ChargeMeta,
   type LineMoneyColumns,
@@ -35,6 +36,8 @@ export interface EditMoneyColumns {
   pieces: ReadonlyMap<string, LineMoneyColumns>;
   /** `org_orders_mst.speed_premium_amount` */
   speedPremiumAmount: string;
+  /** `org_orders_mst.service_speed`: the fastest line or piece speed after the edit (D6). */
+  serviceSpeed: string;
   /**
    * The order ready-by when a line's time was counted again (a new line or a
    * changed speed); null when every line kept its stored time.
@@ -65,6 +68,7 @@ export function editMoneyColumns(edit: EditQuote): EditMoneyColumns {
     items,
     pieces,
     speedPremiumAmount: result.totals.speedPremiumTotal.toFixed(4),
+    serviceSpeed: headerServiceSpeed(prices, facts, edit.intent.serviceSpeed),
     readyBy: recounted ? result.orderReadyBy : null,
   };
 }

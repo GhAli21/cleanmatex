@@ -45,6 +45,7 @@
       "PRODUCT_NOT_FOUND": "An item is no longer in the catalog. Remove it to see the amounts.",
       "PREFERENCE_NOT_AVAILABLE": "A selected preference is no longer available for this branch. Remove it to see the amounts.",
       "SERVICE_SPEED_INVALID": "The selected service speed is not available. Choose another speed.",
+      "SPEED_NOT_OFFERED": "The selected service speed is not offered for an item in the cart. Choose another speed for it.",
       "TIMEZONE_NOT_CONFIGURED": "The branch time zone is not set up, so prices cannot be dated. Ask an administrator to set it.",
       "PRICE_NOT_RESOLVED": "An item has no price set up. Ask an administrator to price it, or set a price for this line.",
       "PRICE_BELOW_MINIMUM": "A line price is below the item's minimum price.",

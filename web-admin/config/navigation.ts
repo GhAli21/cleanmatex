@@ -8,6 +8,7 @@ import type { LucideIcon } from 'lucide-react'
 import { FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { ADMIN_PERMISSIONS } from '@/lib/constants/permissions/admin-perm'
 import { PRICING_PERMISSIONS } from '@/lib/constants/permissions/pricing-perm'
+import { SETUP_HEALTH_PERMISSIONS } from '@/lib/constants/permissions/setup-health-perm'
 import {
   Home,
   PackageSearch,
@@ -977,6 +978,23 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/settings/branches',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['settings:branch_manage'],
+      },
+      {
+        key: 'settings_calendar',
+        label: 'Business Calendar',
+        label2: 'تقويم العمل',
+        path: '/dashboard/settings/calendar',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
+      },
+      {
+        // Dual-write: sys_components_cd row settings_setup_health (migration 0710).
+        key: 'settings_setup_health',
+        label: 'Setup Health',
+        label2: 'صحة الإعداد',
+        path: '/dashboard/setup-health',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: [SETUP_HEALTH_PERMISSIONS.VIEW],
       },
       {
         key: 'settings_preferences',

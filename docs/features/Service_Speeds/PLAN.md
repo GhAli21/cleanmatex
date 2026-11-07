@@ -18,7 +18,7 @@
 | D7 | Names EN / AR: Economy / اقتصادي · Standard / عادي · Next day / اليوم التالي · Express / مستعجل · Urgent / طارئ |
 | D8 | Minimum urgent charge: later |
 | D9 | Daily urgent capacity per branch: later |
-| D10 | HQ keeps a default calendar per country; the tenant's starter package (settings profile, `CALENDAR_TEMPLATE_CODE`) selects it at onboarding |
+| D10 | HQ keeps a default calendar per country; onboarding picks it from the tenant's country (or its starter package `sys_starter_pkg_mst.calendar_template_code`, Tax plan §4.7) and stores it in the direct column `org_tenants_mst.calendar_template_code` (FK). No general settings (`sys_stng_*`) are used for calendar, cut-off or ready time: all are typed columns on tenant / branch |
 
 ### Country calendars (HQ-owned, D10)
 
@@ -49,7 +49,7 @@
 | Express | same day if in before cut-off | +50% | working days (0) + earlier cut-off |
 | Urgent | 2–4 hours | +100% | working hours |
 
-## 4. Database (one migration, then STOP)
+## 4. Database (two migrations, each then STOP; number = latest in `supabase/migrations/` + 1 at write time, never pre-reserved)
 
 | Object | Change | Invariant |
 |---|---|---|
@@ -64,6 +64,21 @@
 | Comments | `COMMENT ON` every table/column/constraint/index/function | repo rule |
 
 S4 (later migration): copy `sys_service_category_cd.turnaround_hh_express` into category-scoped EXPRESS rules per tenant, then drop the column; drop product Express columns' special handling.
+
+### 4.1 Seed data — full, when possible (owner, 2026-11-07)
+
+Rule: every new table or column ships with complete, usable data in the same migration (or a paired seed migration), so a fresh tenant and every demo tenant work with no manual setup. Facts come from official sources cited in SQL comments; a fact that cannot be confirmed is seeded with a flag (`is_estimated = true`) and surfaced by Setup Health, never invented silently. Seeds are idempotent (`ON CONFLICT … DO UPDATE` for `sys_*`, `WHERE NOT EXISTS` for `org_*`) and every `org_*` seed filters `tenant_org_id`.
+
+| Data | What is seeded |
+|---|---|
+| `sys_service_speed_cd` | All 5 speeds with EN/AR `name`, `description` (what the customer gets), `display_order`, `default_turnaround_unit` |
+| `sys_calendar_templates_mst` | One template per country in `sys_country_cd` with a known weekend (OM, SA, AE, BH, QA, KW + others present) and a `GENERIC` fallback: weekly hours, weekend days, default cut-off and ready time |
+| `sys_public_holidays_cf` | Current and next year for OM, SA, AE, BH, QA, KW: fixed-date holidays (national days, New Year where official) confirmed; Islamic holidays (Eid al-Fitr, Eid al-Adha, Hijri New Year, Prophet's Birthday where official, Arafat day) from the Umm al-Qura calendar with `is_estimated = true` until HQ confirms. Sources cited per country |
+| Speed rule backfill | Existing 96 `org_speed_price_rules_cf` rows: `turnaround_unit = 'HOURS'` from `turnaround_hh_speed` (no value changes) |
+| Tenant / branch defaults | Every existing tenant: `order_cutoff_time`, `ready_time`, `business_hours` (if empty) from its country template; branches left NULL (inherit) |
+| Demo tenants | Speed rules for NEXT_DAY / EXPRESS / URGENT on every category that has an EXPRESS rule today, plus one ECONOMY discount rule (−10%) to exercise the negative path; 2 sample tenant holidays (one closure, one "we open that day") |
+| New tenants | HQ onboarding copies the template (S5) and seeds the NEXT_DAY / EXPRESS / URGENT sample rules (`seed_product_speed_rules`) |
+| Navigation / permissions | Business Calendar menu row (`sys_components_cd`) |
 
 ## 5. Backend (tenant app)
 
@@ -136,3 +151,14 @@ Ready-by vectors: before/after cut-off, closed day, holiday, short day, Fri/Sat 
 
 - Ready-by changes for existing demo orders: none (recorded values are kept).
 - A tenant without business hours keeps clock-hour behavior; Setup Health warns.
+
+## Per-step definition of done (owner, 2026-11-07 — applies to every step / phase)
+
+Every step (migration, service, API, screen, HQ change) is done only when all apply:
+
+1. **CLAUDE.md first** — load the required skills before writing (`/database`, `/multitenancy`, `/backend`, `/frontend`, `/i18n`, `/navigation`, `/rebuild-ui-access-contract`, `/update-rbac-role`, `/code-documentation`, `/order-fin` as relevant); follow the rule docs it points to (`docs/dev/rules/*`); agents only when the owner asks.
+2. **Database** — full audit columns on every new table, `COMMENT ON` every object, RLS on `org_*`, explicit `tenant_org_id` in every query, `DROP … RESTRICT`, migration number = live last + 1, full seeds; write → STOP → owner applies.
+3. **UI** — reuse Cmx components from `src/ui/` (HQ: its shared components); if a needed piece is missing and will be reused, add it as a shared reusable component (with story/test), never a feature-local copy; `cmxMessage`, EN/AR + RTL, loading/empty/error states.
+4. **Both repos** — the step's HQ (`cleanmatexsaas`) part is done in the same step when the plan lists one.
+5. **Checks** — `npx eslint . --quiet`, typecheck, `npm run build`, `npm run check:i18n`, targeted tests; access-contract + inventories refresh after gating/nav changes.
+6. **Update status** — the feature's `STATUS.md` (phase row + log line), this plan if scope changed, `followups_by_user.md` for owner actions, QA guide scenarios for testable behaviour, and memory.
