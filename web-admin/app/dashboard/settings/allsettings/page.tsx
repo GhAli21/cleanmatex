@@ -10,31 +10,29 @@
  * Route: /dashboard/settings/allsettings (protected)
  */
 
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { CmxCard } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
-import { CmxButton, Alert } from '@ui/primitives';
-import { CmxTabsPanel } from '@ui/navigation';
-import { Info, HelpCircle } from 'lucide-react';
-import type { Tenant } from '@/lib/types/tenant';
-import { TenantSettings } from '@features/settings/ui/TenantSettings';
-import { BranchSettings } from '@features/settings/ui/BranchSettings';
-import { UserSettings } from '@features/settings/ui/UserSettings';
-import { FeatureFlagsSettings } from '@features/settings/ui/FeatureFlagsSettings';
-import { PlanLimitsSettings } from '@features/settings/ui/PlanLimitsSettings';
-import { ProfileInfoCard } from '@features/settings/ui/profile-info-card';
-import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
+import React, { useState, useEffect } from "react";
+import { CmxCard } from "@ui/primitives/cmx-card";
+import { Badge } from "@ui/primitives/badge";
+import { CmxButton, Alert } from "@ui/primitives";
+import { CmxTabsPanel } from "@ui/navigation";
+import { Info, HelpCircle } from "lucide-react";
+import type { Tenant } from "@/lib/types/tenant";
+import { TenantSettings } from "@features/settings/ui/TenantSettings";
+import { BranchSettings } from "@features/settings/ui/BranchSettings";
+import { UserSettings } from "@features/settings/ui/UserSettings";
+import { FeatureFlagsSettings } from "@features/settings/ui/FeatureFlagsSettings";
+import { PlanLimitsSettings } from "@features/settings/ui/PlanLimitsSettings";
+import { ProfileInfoCard } from "@features/settings/ui/profile-info-card";
 
 /**
  *
  */
 export default function AllSettingsPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     void fetchData();
@@ -43,20 +41,18 @@ export default function AllSettingsPage() {
   const fetchData = async () => {
     try {
       // Fetch tenant data
-      const tenantResponse = await fetch('/api/v1/tenants/me');
+      const tenantResponse = await fetch("/api/v1/tenants/me");
       const tenantData = await tenantResponse.json();
 
       if (!tenantResponse.ok) {
-        throw new Error(tenantData.error || 'Failed to fetch tenant data');
+        throw new Error(tenantData.error || "Failed to fetch tenant data");
       }
 
       setTenant(tenantData.data);
 
-      // Fetch effective settings (used by some inner components)
-      const settings = await settingsClient.getEffectiveSettings();
-      setEffectiveSettings(settings);
+      // Each tab loads the settings required for its own scope, avoiding a stale global HQ dependency.
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+      setError(err instanceof Error ? err.message : "Failed to load settings");
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +62,7 @@ export default function AllSettingsPage() {
     try {
       await fetchData();
     } catch (err) {
-      console.error('Failed to recompute settings:', err);
+      console.error("Failed to recompute settings:", err);
     }
   };
 
@@ -87,7 +83,7 @@ export default function AllSettingsPage() {
         <Alert
           variant="error"
           title="Error Loading Settings"
-          message={error || 'Unable to load tenant data'}
+          message={error || "Unable to load tenant data"}
         />
       </div>
     );
@@ -95,32 +91,32 @@ export default function AllSettingsPage() {
 
   const tabs = [
     {
-      id: 'tenant-settings',
-      label: 'Tenant Settings',
+      id: "tenant-settings",
+      label: "Tenant Settings",
       icon: <span>🧩</span>,
       content: <TenantSettings />,
     },
     {
-      id: 'branch-settings',
-      label: 'Branch Settings',
+      id: "branch-settings",
+      label: "Branch Settings",
       icon: <span>🏬</span>,
       content: <BranchSettings />,
     },
     {
-      id: 'user-settings',
-      label: 'User Settings',
+      id: "user-settings",
+      label: "User Settings",
       icon: <span>👤</span>,
       content: <UserSettings />,
     },
     {
-      id: 'feature-flags',
-      label: 'Feature Flags',
+      id: "feature-flags",
+      label: "Feature Flags",
       icon: <span>🚩</span>,
       content: <FeatureFlagsSettings />,
     },
     {
-      id: 'plan-limits',
-      label: 'Plan Limits',
+      id: "plan-limits",
+      label: "Plan Limits",
       icon: <span>📊</span>,
       content: <PlanLimitsSettings />,
     },
@@ -130,8 +126,8 @@ export default function AllSettingsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Tenant status badge (optional, no duplicate header) */}
       <div className="mb-4 flex justify-end">
-        <Badge variant={tenant.status === 'trial' ? 'warning' : 'success'}>
-          {tenant.status === 'trial' ? 'Trial Account' : 'Active'}
+        <Badge variant={tenant.status === "trial" ? "warning" : "success"}>
+          {tenant.status === "trial" ? "Trial Account" : "Active"}
         </Badge>
       </div>
 
@@ -150,9 +146,9 @@ export default function AllSettingsPage() {
                 7-Layer Settings Resolution
               </h3>
               <p className="mt-1 text-sm text-blue-800">
-                Settings are resolved through 7 layers: System Default → Profile → Plan → Feature
-                Flags → Tenant → Branch → User. Look for source badges next to each setting to see
-                where the value comes from.
+                Settings are resolved through 7 layers: System Default → Profile
+                → Plan → Feature Flags → Tenant → Branch → User. Look for source
+                badges next to each setting to see where the value comes from.
               </p>
               <CmxButton
                 variant="ghost"
@@ -172,4 +168,3 @@ export default function AllSettingsPage() {
     </div>
   );
 }
-

@@ -28,6 +28,11 @@ const nextConfig: NextConfig = {
         destination: '/dashboard/tenant-admin/subscription',
         permanent: true,
       },
+      {
+        source: '/dashboard/settings/messaging',
+        destination: '/dashboard/notifications/settings',
+        permanent: true,
+      },
     ];
   },
 

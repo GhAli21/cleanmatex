@@ -17060,6 +17060,7 @@ model sys_doc_seq_type_cd {
   rec_order                   Int?
   rec_notes                   String?
   is_active                   Boolean                     @default(true)
+  implement_description2      String
   hq_doc_seq_mst              hq_doc_seq_mst[]
   org_doc_seq_mst             org_doc_seq_mst[]
   sys_doc_seq_mst             sys_doc_seq_mst[]

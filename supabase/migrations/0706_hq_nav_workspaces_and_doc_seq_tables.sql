@@ -1,0 +1,351 @@
+-- =============================================================================
+-- Migration: 0706_hq_nav_workspaces_and_doc_seq_tables.sql
+-- Purpose:
+--   1. Promote Order Change Config (/order-change-config) to a top-level (L1)
+--      sidebar workspace under section `tenant_gov` (decoupled from Workflow hub).
+--   2. Promote HQ Navigation Registry (/hq-admin-console/navigation) to a
+--      top-level (L1) sidebar item under section `hq_admin`.
+--   3. Seed L2 workspace routes for Feature Flags (/feature-flags/plan-mappings,
+--      /feature-flags/bulk-operations, /feature-flags/create), Order Change
+--      Config sub-screens, and Document Sequence Console tables
+--      (sys_doc_seq_category_cd, sys_doc_seq_manage_level_cd,
+--      sys_doc_seq_type_cd, sys_doc_seq_mst).
+-- Target Table: public.hq_navigation_cd (CleanMateX Platform HQ Console)
+-- =============================================================================
+
+BEGIN;
+
+SET LOCAL lock_timeout = '10s';
+
+-- 1. Promote tg_order_change (/order-change-config) to top-level L1 workspace
+UPDATE public.hq_navigation_cd
+SET
+  parent_nav_code = NULL,
+  section_code    = 'tenant_gov',
+  nav_level       = 1,
+  display_order   = 145,
+  is_leaf         = false,
+  is_navigable    = true,
+  metadata        = '{"hub": true}'::jsonb,
+  updated_at      = now(),
+  updated_by      = 'migration_0706',
+  updated_count   = COALESCE(updated_count, 0) + 1
+WHERE nav_code = 'tg_order_change';
+
+-- 2. Promote hq_nav_registry (/hq-admin-console/navigation) to top-level L1 item
+UPDATE public.hq_navigation_cd
+SET
+  parent_nav_code = NULL,
+  section_code    = 'hq_admin',
+  nav_level       = 1,
+  display_order   = 405,
+  is_leaf         = true,
+  is_navigable    = true,
+  updated_at      = now(),
+  updated_by      = 'migration_0706',
+  updated_count   = COALESCE(updated_count, 0) + 1
+WHERE nav_code = 'hq_nav_registry';
+
+-- 3. Upsert L2 routes for Feature Flags, Order Change Config, and Doc Seq Console
+INSERT INTO public.hq_navigation_cd (
+  nav_code,
+  parent_nav_code,
+  section_code,
+  label,
+  label2,
+  description,
+  description2,
+  nav_path,
+  nav_icon,
+  main_permission_code,
+  nav_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  metadata,
+  rec_status,
+  created_by
+)
+VALUES
+  -- Feature Flags Workspace L2 Children
+  (
+    'tg_ff_plan_mappings',
+    'tg_feature_flags',
+    'tenant_gov',
+    'Plan-Flag Mappings',
+    'تعيينات الخطط والأعلام',
+    'Bind feature flags and plan-specific values to subscription plans.',
+    'ربط أعلام الميزات والقيم المخصصة بخطط الاشتراك.',
+    '/feature-flags/plan-mappings',
+    'Layers',
+    NULL,
+    2,
+    121,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'tg_ff_bulk_ops',
+    'tg_feature_flags',
+    'tenant_gov',
+    'Bulk Operations',
+    'العمليات الجماعية للأعلام',
+    'Enable, disable, or override feature flag values across multiple organizations.',
+    'تفعيل أو تعطيل أو تعديل قيم أعلام الميزات لعدة منشآت دفعة واحدة.',
+    '/feature-flags/bulk-operations',
+    'ListChecks',
+    NULL,
+    2,
+    122,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'tg_ff_create',
+    'tg_feature_flags',
+    'tenant_gov',
+    'Create New Flag',
+    'إنشاء علم ميزة جديد',
+    'Register a new feature flag definition in the platform catalog.',
+    'إضافة تعريف علم ميزة جديد في فهرس المنصة.',
+    '/feature-flags/create',
+    'Flag',
+    NULL,
+    2,
+    123,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+
+  -- Order Change Config Workspace L2 Children
+  (
+    'tg_oc_policy_rules',
+    'tg_order_change',
+    'tenant_gov',
+    'Policy Rules',
+    'قواعد سياسة التعديل',
+    'Stage, payment, and timing eligibility rules for order modifications.',
+    'قواعد الأهلية لتعديل الطلبات حسب المرحلة وحالة الدفع والتوقيت.',
+    '/order-change-config/policy-rules',
+    'ShieldCheck',
+    NULL,
+    2,
+    146,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'tg_oc_reason_codes',
+    'tg_order_change',
+    'tenant_gov',
+    'Reason Codes',
+    'أكواد أسباب التعديل',
+    'Standardized reason codes required for order modifications and cancellations.',
+    'أكواد الأسباب القياسية المطلوبة عند تعديل أو إلغاء الطلبات.',
+    '/order-change-config/Reason-codes',
+    'ClipboardList',
+    NULL,
+    2,
+    147,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'tg_oc_wf_check',
+    'tg_order_change',
+    'tenant_gov',
+    'Workflow Check Policy',
+    'سياسة فحص سير العمل',
+    'Pre-flight validation checks and blocking rules for order change workflows.',
+    'قواعد الفحص المسبق والمنع لمسارات تعديل الطلبات.',
+    '/order-change-config/workflow-Check-Policy',
+    'ListChecks',
+    NULL,
+    2,
+    148,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'tg_oc_settings',
+    'tg_order_change',
+    'tenant_gov',
+    'Order Change Settings',
+    'إعدادات تعديل الطلبات',
+    'Global and tenant-overridable parameters for order modification workflows.',
+    'المعلمات العامة والقابلة للتخصيص لمسارات تعديل الطلبات.',
+    '/order-change-config/settings',
+    'Settings2',
+    NULL,
+    2,
+    149,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+
+  -- Document Sequences Console L2 Tables (sys_doc_seq_*)
+  (
+    'hq_doc_seq_categories',
+    'hq_doc_seq',
+    'hq_admin',
+    'Sequence Categories (sys_doc_seq_category_cd)',
+    'فئات التسلسل (sys_doc_seq_category_cd)',
+    'Master categories for document and entity sequence numbering.',
+    'الفئات الرئيسية لتسلسل ترقيم المستندات والكيانات.',
+    '/doc-seq-config/categories',
+    'Database',
+    'hq_doc_seq:read',
+    2,
+    441,
+    true,
+    true,
+    true,
+    true,
+    '{"table": "sys_doc_seq_category_cd"}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'hq_doc_seq_levels',
+    'hq_doc_seq',
+    'hq_admin',
+    'Management Levels (sys_doc_seq_manage_level_cd)',
+    'مستويات الإدارة (sys_doc_seq_manage_level_cd)',
+    'Code generation management levels (GENERAL, DOMAIN, MANUAL, NONE).',
+    'مستويات إدارة توليد الأكواد (عام، خدمة مجال، يدوي، بلا).',
+    '/doc-seq-config/manage-levels',
+    'Layers',
+    'hq_doc_seq:read',
+    2,
+    442,
+    true,
+    true,
+    true,
+    true,
+    '{"table": "sys_doc_seq_manage_level_cd"}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'hq_doc_seq_types',
+    'hq_doc_seq',
+    'hq_admin',
+    'Sequence Types (sys_doc_seq_type_cd)',
+    'أنواع التسلسل (sys_doc_seq_type_cd)',
+    'Document and entity sequence type definitions, formats, and reset rules.',
+    'تعريفات أنواع تسلسل المستندات والأكواد وصيغها وقواعد إعادة الضبط.',
+    '/doc-seq-config/types',
+    'ListOrdered',
+    'hq_doc_seq:read',
+    2,
+    443,
+    true,
+    true,
+    true,
+    true,
+    '{"table": "sys_doc_seq_type_cd"}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'hq_doc_seq_counters',
+    'hq_doc_seq',
+    'hq_admin',
+    'Sequence Counters (sys_doc_seq_mst)',
+    'عدادات التسلسل (sys_doc_seq_mst)',
+    'Live sequence counters across system (sys_doc_seq_mst), HQ, and tenants.',
+    'عدادات التسلسل النشطة للنظام (sys_doc_seq_mst) والمقر والمنشآت.',
+    '/doc-seq-config/counters',
+    'Hash',
+    'hq_doc_seq:read',
+    2,
+    444,
+    true,
+    true,
+    true,
+    true,
+    '{"table": "sys_doc_seq_mst"}'::jsonb,
+    1,
+    'migration_0706'
+  ),
+  (
+    'hq_doc_seq_consistency',
+    'hq_doc_seq',
+    'hq_admin',
+    'Code Consistency',
+    'فحص سلامة الترقيم',
+    'Schema and data self-checks across all document sequence types and targets.',
+    'فحوصات سلامة المخطط والبيانات لجميع أنواع التسلسل والجداول المستهدفة.',
+    '/doc-seq-config/consistency',
+    'ShieldCheck',
+    'hq_doc_seq:read',
+    2,
+    445,
+    true,
+    true,
+    true,
+    true,
+    '{}'::jsonb,
+    1,
+    'migration_0706'
+  )
+ON CONFLICT (nav_code) DO UPDATE SET
+  parent_nav_code      = EXCLUDED.parent_nav_code,
+  section_code         = EXCLUDED.section_code,
+  label                = EXCLUDED.label,
+  label2               = EXCLUDED.label2,
+  description          = EXCLUDED.description,
+  description2         = EXCLUDED.description2,
+  nav_path             = EXCLUDED.nav_path,
+  nav_icon             = EXCLUDED.nav_icon,
+  main_permission_code = EXCLUDED.main_permission_code,
+  nav_level            = EXCLUDED.nav_level,
+  display_order        = EXCLUDED.display_order,
+  is_leaf              = EXCLUDED.is_leaf,
+  is_navigable         = EXCLUDED.is_navigable,
+  is_active            = EXCLUDED.is_active,
+  metadata             = EXCLUDED.metadata,
+  rec_status           = EXCLUDED.rec_status,
+  updated_at           = now(),
+  updated_by           = 'migration_0706',
+  updated_count        = COALESCE(public.hq_navigation_cd.updated_count, 0) + 1;
+
+COMMIT;
+

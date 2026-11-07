@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { hqApiClient } from '@/lib/api/hq-api-client';
-import { requireAuth } from '@/lib/auth/require-auth';
+import { NextRequest, NextResponse } from "next/server";
+import { hqApiClient } from "@/lib/api/hq-api-client";
+import {
+  getSessionAuthorizationHeader,
+  requireAuth,
+} from "@/lib/auth/require-auth";
 
 /**
  *
@@ -11,25 +14,29 @@ export async function GET(request: NextRequest) {
     const auth = await requireAuth();
     if (auth instanceof NextResponse) return auth;
 
-    const { searchParams } = new URL(request.url);
-    const authHeader = request.headers.get('authorization');
+    const authHeader = await getSessionAuthorizationHeader(auth.supabase);
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const limit = searchParams.get('limit');
-    const offset = searchParams.get('offset');
-    const categoryCode = searchParams.get('categoryCode') || undefined;
-    const scope = searchParams.get('scope') || undefined;
-    const dataType = searchParams.get('dataType') || undefined;
-    const isActiveParam = searchParams.get('isActive');
-    const isOverridableParam = searchParams.get('isOverridable');
-    const search = searchParams.get('search') || undefined;
+    const { searchParams } = new URL(request.url);
+
+    const limit = searchParams.get("limit");
+    const offset = searchParams.get("offset");
+    const categoryCode = searchParams.get("categoryCode") || undefined;
+    const scope = searchParams.get("scope") || undefined;
+    const dataType = searchParams.get("dataType") || undefined;
+    const isActiveParam = searchParams.get("isActive");
+    const isOverridableParam = searchParams.get("isOverridable");
+    const search = searchParams.get("search") || undefined;
 
     const isActive =
-      isActiveParam !== null && isActiveParam !== ''
-        ? isActiveParam === 'true'
+      isActiveParam !== null && isActiveParam !== ""
+        ? isActiveParam === "true"
         : undefined;
     const isOverridable =
-      isOverridableParam !== null && isOverridableParam !== ''
-        ? isOverridableParam === 'true'
+      isOverridableParam !== null && isOverridableParam !== ""
+        ? isOverridableParam === "true"
         : undefined;
 
     const result = await hqApiClient.getSettingsCatalog({
@@ -48,17 +55,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data: result.data ?? [] });
   } catch (error) {
     const details =
-      error instanceof Error ? error.message : String(error ?? 'Unknown error');
-    console.error('Error in settings catalog endpoint:', error);
+      error instanceof Error ? error.message : String(error ?? "Unknown error");
+    console.error("Error in settings catalog endpoint:", error);
 
     if (
-      details.toLowerCase().includes('authentication required') ||
-      details.includes('No authentication token') ||
-      details.includes('401')
+      details.toLowerCase().includes("authentication required") ||
+      details.includes("No authentication token") ||
+      details.includes("401")
     ) {
       return NextResponse.json(
         {
-          error: 'HQ API authentication failed',
+          error: "HQ API authentication failed",
           details:
             'Platform HQ API rejected the request. Set a valid HQ_SERVICE_TOKEN in web-admin/.env.local (run "npm run generate-service-token" in cleanmatexsaas/platform-api and paste the token).',
         },
@@ -67,12 +74,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (
-      details.toLowerCase().includes('not found') ||
-      details.includes('404')
+      details.toLowerCase().includes("not found") ||
+      details.includes("404")
     ) {
       return NextResponse.json(
         {
-          error: 'Settings catalog not found',
+          error: "Settings catalog not found",
           details,
         },
         { status: 404 },
@@ -81,11 +88,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Failed to fetch settings catalog',
+        error: "Failed to fetch settings catalog",
         details,
       },
       { status: 500 },
     );
   }
 }
-

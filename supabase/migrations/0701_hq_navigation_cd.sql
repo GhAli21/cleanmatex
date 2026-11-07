@@ -166,7 +166,7 @@ INSERT INTO public.hq_navigation_cd (
   ('tg_products_items', NULL, 'tenant_gov', 'Products & Catalogs Hub', 'المنتجات والأصناف', '/products-items-config', 'Package', 1, 150, false, true, NULL, '{"hub": true}'::jsonb),
   ('tg_service_catalog', 'tg_products_items', 'tenant_gov', 'Customer & Business Types', 'أنواع العملاء والأنشطة', '/catalog', 'Database', 2, 155, true, true, 'catalog.view', '{}'::jsonb),
 
-  ('tg_system_codes', NULL, 'tenant_gov', 'Master System Codes', 'أكواد النظام المالية', '/system-codes', 'Database', 1, 160, false, true, NULL, '{"hub": true}'::jsonb),
+  ('tg_system_codes', NULL, 'tenant_gov', 'Master System Codes & Financial Setup', 'أكواد النظام المالية', '/system-codes', 'Database', 1, 160, false, true, NULL, '{"hub": true}'::jsonb),
   ('tg_sys_codes_currency', 'tg_system_codes', 'tenant_gov', 'Currency Setup', 'تهيئة العملات', '/system-codes/currency-setup', 'DollarSign', 2, 161, true, true, NULL, '{}'::jsonb),
   ('tg_sys_codes_rounding', 'tg_system_codes', 'tenant_gov', 'Rounding & Denominations', 'التقريب والفئات النقدية', '/system-codes/currency-rounding', 'Coins', 2, 162, true, true, NULL, '{}'::jsonb),
   ('tg_sys_codes_fx', 'tg_system_codes', 'tenant_gov', 'Exchange Rates', 'أسعار الصرف', '/system-codes/exchange-rates', 'ArrowLeftRight', 2, 163, true, true, NULL, '{}'::jsonb),
