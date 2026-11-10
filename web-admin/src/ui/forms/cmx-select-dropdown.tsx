@@ -41,6 +41,8 @@ export interface CmxSelectDropdownProps {
   isLoading?: boolean;
   emptyLabel?: string;
   loadingLabel?: string;
+  /** Called when the list opens or closes, for options that load on demand. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function CmxSelectDropdown({
@@ -51,8 +53,13 @@ export function CmxSelectDropdown({
   isLoading = false,
   emptyLabel = 'No options available',
   loadingLabel = 'Loading options...',
+  onOpenChange,
 }: CmxSelectDropdownProps) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpenState] = React.useState(false);
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    onOpenChange?.(next);
+  };
   const [highlightedValue, setHighlightedValue] = React.useState<string | null>(value || null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const contentRef = React.useRef<HTMLDivElement>(null);

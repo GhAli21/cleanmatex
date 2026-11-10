@@ -88,11 +88,11 @@ Rule: every new table or column ships with complete, usable data in the same mig
 | `lib/commercial/calendar.ts` (new, pure) | `resolveCalendar(branch, tenant)`, `nextOpening`, `addWorkingMinutes`, `addWorkingDays`; timezone via existing `timezone_code` (branch → tenant) |
 | `lib/commercial/speed.ts` | ECONOMY negative premium (line net never below 0 → `SPEED_DISCOUNT_EXCEEDS_PRICE`); `SPEED_NOT_OFFERED` when no rule matches |
 | `commercial-context.loader.ts` / `commercial-edit.loader.ts` | Load calendar, holidays (date window), cut-off chain (rule → branch → tenant) once per request |
-| Header writer (create, Edit apply, split) | `service_speed` = fastest line by rank; `is_express` = ≠ STANDARD |
-| `service-speed-lookup.service.ts` | Return offered speeds (active rule exists) with rank, names, unit guidance; `?all=true` for Speed Pricing editor |
+| Header writer (create, Edit apply, split) | `service_speed` = fastest line or piece by rank. _Implemented: `org_orders_mst` has no `is_express` column, so there is nothing else to write._ |
+| `service-speed-lookup.service.ts` | Return every active speed with rank, names, unit guidance and `is_offered` for the organization. _Implemented instead of `?all=true`: one list, so labels still resolve on old orders; pickers filter on `is_offered`. STANDARD and EXPRESS always offered (EXPRESS until S6)._ |
 | `speed-rules.service.ts` + `speed-rule-schemas.ts` | New fields, ECONOMY-only negative validation, unit/value consistency |
 | `lib/services/settings/business-calendar.service.ts` (new) | Get/update tenant + branch calendar fields, holidays CRUD; every query `tenant_org_id` |
-| Ready-by preview | `POST /api/v1/orders/ready-by/preview` already part of quote? → reuse the quote response (`readyByAt` per line + order) — no new endpoint if quote already returns it (verify) |
+| Ready-by preview | _Implemented: the cart quote already returns `readyByAt` per line and order; no new endpoint. Each speed option is quoted on demand when its menu opens._ |
 
 ## 6. APIs
 
@@ -111,7 +111,7 @@ Errors use the existing `{ success:false, error:{ code, messageKey } }` shape; n
 
 | Screen | Change |
 |---|---|
-| New Order speed picker | Offered speeds only, ordered by rank, each with surcharge preview and promised ready-by ("Ready Tue 6 PM"); disabled speeds for a line show the reason |
+| New Order speed picker | Offered speeds only, ordered by rank, each with its total and promised ready-by ("Ready Tue 6 PM"); disabled speeds for a line show the reason. _Implemented: total rather than "+amount", so the client does no money math._ |
 | Order Edit | Same picker per line/piece; label from lookup (remove hardcoded Express) |
 | Speed Pricing (`/dashboard/catalog/speed-pricing`) | Turnaround unit (hours / working days), days, speed cut-off, ECONOMY discount with inline explanation (no silent money change); guidance table §3 |
 | **Business Calendar** (new, `/dashboard/settings/calendar`) | Weekly hours grid (open/close/closed per day), cut-off time, ready time, holidays list (add/edit/delete, short day), branch tab "Use organization's" toggle per field; Cmx components, `cmxMessage`, EN/AR + RTL |
@@ -119,7 +119,7 @@ Errors use the existing `{ success:false, error:{ code, messageKey } }` shape; n
 | Order detail / receipts / labels / tracking | Speed name from lookup, ready-by unchanged display |
 | Setup Health | `CAL_NO_BUSINESS_HOURS`, `SPEED_NO_RULES` checks ([Setup Health](../Setup_Health/PLAN.md)) |
 
-i18n: `catalog.json` (speed pricing), `settings/calendar.json` (new), `newOrder`, `orders/edit.json`; glossary terms `service_speed` (exists), `cutoff_time` «آخر وقت للاستلام», `ready_time` «وقت الجاهزية», `working_day` «يوم عمل».
+i18n: `catalog.json` (speed pricing), `settings.json` → `calendar` (`settings` is a file namespace, so it cannot also be a folder), `newOrder`, `orders/edit.json`; glossary terms `service_speed` (exists), `cutoff_time` «آخر وقت للاستلام», `ready_time` «وقت الجاهزية», `working_day` «يوم عمل».
 
 ## 8. HQ (`cleanmatexsaas`)
 

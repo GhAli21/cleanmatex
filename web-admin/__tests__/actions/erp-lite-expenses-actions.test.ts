@@ -1,3 +1,7 @@
+jest.mock('@/lib/services/tax/purchase-tax-message', () => ({
+  purchaseTaxErrorMessage: jest.fn().mockResolvedValue(null),
+}));
+
 jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }));

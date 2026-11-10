@@ -9,6 +9,8 @@
  */
 import 'server-only';
 
+import type { Prisma } from '@prisma/client';
+import { writeOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
 import { PRICED_PREFERENCE_SYS_KINDS } from './commercial-context.loader';
 import type { CheckoutQuote } from './commercial-checkout.service';
 import { checkoutLineId, checkoutPieceId } from './commercial-checkout.service';
@@ -47,6 +49,8 @@ export interface CommercialCreateSession {
   recordPreference: (row: { id: string; sysKind: string; code: string; index: number | null; pieceIndex: number | null }) => void;
   /** The discount, charge and tax rows, once every item, piece and preference row exists. */
   childRows: (ctx: { tenantOrgId: string; orderId: string; currencyCode: string; userId: string | null }) => CommercialChildRows;
+  /** Writes the tax record (`org_tax_lines_tr`), once every item and piece row exists. */
+  writeTaxLines: (tx: Prisma.TransactionClient, ctx: { tenantOrgId: string; orderId: string; userId: string | null }) => Promise<void>;
 }
 
 /**
@@ -112,5 +116,6 @@ export function openCommercialCreateSession(checkout: CheckoutQuote): Commercial
         adjustmentMeta: checkout.adjustmentMeta, chargeMeta, taxLineMeta,
       });
     },
+    writeTaxLines: (tx, ctx) => writeOrderTaxLines(tx, { ...ctx, at: new Date(), quote: checkout.quote, itemIds, pieceIds }),
   };
 }

@@ -77,8 +77,12 @@ export default async function ErpLiteApPage({
     cashbox_options: [],
   };
 
+  let taxOptions: Awaited<ReturnType<typeof ErpLiteV2Service.getPurchaseTaxFormOptions>> = { tax_class_options: [], supplier_options: [] };
   try {
-    snapshot = await ErpLiteV2Service.getApDashboardSnapshot(locale);
+    [snapshot, taxOptions] = await Promise.all([
+      ErpLiteV2Service.getApDashboardSnapshot(locale),
+      ErpLiteV2Service.getPurchaseTaxFormOptions(locale),
+    ]);
   } catch (loadFailure) {
     loadError =
       loadFailure instanceof Error
@@ -177,7 +181,14 @@ export default async function ErpLiteApPage({
                 />
                 <CmxInput name="currency_code" label={t('forms.invoice.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="subtotal_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.subtotal')} required />
-                <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.tax')} />
+                <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.tax')} placeholder={tCommon('tax.amountBlank')} />
+                <CmxSelect
+                  name="tax_item_class_code"
+                  label={tCommon('tax.itemClass')}
+                  defaultValue=""
+                  placeholder={tCommon('tax.itemClassDefault')}
+                  options={taxOptions.tax_class_options.map((item) => ({ value: item.id, label: item.label }))}
+                />
                 <CmxInput name="supplier_inv_no" label={t('forms.invoice.fields.supplierInvoiceNo')} />
                 <div className="space-y-1">
                   <label htmlFor="erp-ap-invoice-description" className="block text-sm font-medium text-gray-700">

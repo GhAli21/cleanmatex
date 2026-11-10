@@ -511,3 +511,413 @@ All 4 FAILs are "fix not deployed" (PF-21 steps 2–3, S8.1 line totals, S8.7). 
 6. After S30: **S8.2** (void a delivery charge) and **S8.6** (AR invoice, multi-order share).
 7. After S33: **S8.8** allocation to the seeded target. Expect paid, balance and payment status updated.
 8. Carry-over from Round 3 items 1–4, 6 and 7 (custom role for S5, S5 API, S6 exemption, S3 mobile, drawer, New Order guard), all still open.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (Round 4 progress batch 1)
+
+**Run:** Preview `/dashboard/orders/new`, Demo Laundry (`11111111-1111-1111-1111-111111111111`), admin; 2026-11-07 14:26 Asia/Muscat (UTC+4); English, 1920×1072. Returned browser evidence recorded below; no completed submit or server-side/persistence proof claimed. Earlier rounds and owner cells remain unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| S7 | **PARTIAL** | PF-21 cart UI regression **PASS**: Bathrobe Standard baseline subtotal 1.800, tax 0.126, total 1.926 OMR. Override 2.100, reason `QA-20261107 PF21 override retest`: subtotal 2.100, tax 0.147, total 2.247. Reset under Standard restores 1.800. Express preserves the typed 2.100 override. Reset under Express restores 2.250 (premium 0.450), tax 0.158, total 2.408. Characterization/owner sign-off was not newly verified, and completed submit is unproven: Submit Order was disabled; no separate payment-preview control observed. Cause not established. No order submitted. |
+| S5 | **PARTIAL** | Override-reason UI validation **PASS**: blank reason displays `Reason is required for price override`; minimum 10 characters noted. Positive cart override exercised as above. Persistence, actor audit, server refusals, negative-role control and completed submit were **NOT RUN** in this batch. |
+
+**Provisional counts (tested parent scenarios only): PASS 0 · FAIL 0 · PARTIAL 2 (S5, S7) · BLOCKED 0.** These counts do not supersede earlier-round counts and do not count substep passes as full scenario passes. All remaining scenarios await this run's evidence.
+
+**Evidence:** screenshots `/workspace/qa-20261107/shots/ll-s7-01-baseline-standard.png` through `/workspace/qa-20261107/shots/ll-s7-10-empty-cart.png` (returned browser evidence series; relevant baseline/override/reset/Express/cleanup states).
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch 1)
+
+- **FET-LLMS-Nov07-S7 (regression result):** PF-21 reset and Express-preserves-override cart behaviors now pass the observed UI checks. Keep automated coverage for Standard reset, Express override preservation and Express reset. This is not a completed-submit pass; characterize the disabled Submit separately before attributing a cause.
+- **P3 FET-LLMS-Nov07-S5-Picker:** Existing `Jh Test dev21` Quick Select was selected, but the results area also said `No customers found` despite the customer card. Contradictory empty-state observation only; diagnosis pending. Recommendation: verify which search/result state the empty message describes, then align/hide that message when an applicable result card is present. No source-level cause asserted.
+
+### Test data left behind
+
+No saved customer/order/payment data changes. Item and selected customer cleared; Standard restored; 0 cart items at end (`ll-s7-10-empty-cart.png`). POS and drawer unchanged. No order submitted, payment recorded, policy/role edited or password changed.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch 2)
+
+**Run:** 2026-11-07 14:34 Asia/Muscat (UTC+4), Preview, Demo Laundry LLC (`11111111-1111-1111-1111-111111111111`), admin, EN/AR, 1920×1072. Returned UI evidence; no order/payment/workflow writes, no printing sent. English restored; no dirty draft.
+
+| # | Result | Evidence |
+|---|---|---|
+| S1 | PARTIAL | Saved financial data loads correctly on two same-tenant orders. Negative orders:read and cross-tenant refusal not tested. |
+| S8 | PARTIAL | S8.1 Ready zero-line regression PASS on ORD-20261105-00008 (`0a27746d-5667-4342-999a-055d8ced7d4d`): Shirt line 0.800, tax 0.056 (VAT0.040 + Municipal0.016), total/paid0.856, due0 OMR; Paid / Pay in advance / Reconciled. A4 receipt preview total/paid0.856 due0, closed without printing. S8.4 no false mismatch PASS on observed saved states only; after-refund untested. NEW identity FAIL: list/detail customer Jh Test dev21, but Ready AND receipt Test Customer2 Mohammed Ahmed. S8.1 entire scope remains PARTIAL: other fixtures/print types untested and identity defect present. S8.2/3/5/6/7/8 not executed in this batch. |
+
+Order ORD-20261105-0003 (`cd4ac165-9a37-4b5e-9300-59152ca8e236`): lines0.800 +1.000, tax0.126 (VAT0.090 + Municipal0.036), total1.926, paid0.856, due1.070; Pay in advance / Partially paid / Reconciled. Correct saved figures; do not label this a POC order.
+
+**Evidence:** `shots/ll-s8-01-order00008-detailed-financial.png`, `ll-s8-02-order00008-full.png`, `ll-s8-05-orders-sidebar-list.png`, `ll-s8-06-ready-order00008.png`, `ll-s8-07-ready-order00008-a4-receipt-preview.png`; all under `/workspace/qa-20261107/`. Additional 0003 figures: `shots/reuse-01-order0003-financial-summary.png`, `reuse-02-order0003-financial-details.png`.
+
+**Provisional cumulative parent counts this run:** PARTIAL4 (S1,S5,S7,S8); PASS0/FAIL0/BLOCKED0 at parent level. Identity subcheck FAIL; financial/Ready subcheck passes are not full scenario passes. All other parents NOT RUN.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch 2)
+- **P1 candidate FET-LLMS-Nov07-S8-Identity:** Cross-surface customer identity mismatch, exact names above, Ready and receipt versus list/detail on same UUID. Cause unconfirmed; no current source diagnosis available. Verify canonical customer display identity and align Ready/receipt with order detail; add regression coverage. Do not assert a specific field/source cause yet.
+- **FET-LLMS-Nov07-S8-Regression:** Ready line and receipt header figures now match saved data on 00008; broaden remaining print/fixture coverage before full S8 signoff.
+- **Ancillary FET-LLMS-Nov07-Navigation:** Background HTTP504 `/api/navigation` observed while subject pages still rendered. Record request timing/build on repeat; root cause not established.
+
+### Test data left behind
+None changed; no orders/payments/workflow/printing writes; no dirty draft. POS/drawer unchanged.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch 3: HQ prerequisites)
+
+**Run:** 2026-11-07 14:48 Asia/Muscat (UTC+4), HQ, English1920×1072, visible user System Administrator. Inventory only; no draft/create/clone/publish/role mutation activated. Setup inventory is not a product-test PASS.
+
+| # | Result | Evidence |
+|---|---|---|
+| S9 / S10 / S13 / S22 prerequisites | BLOCKED (setup only) | Requested effective ITEM/PIECE capability rules are not enabled. No scenario execution or postconfiguration signoff in this batch. |
+
+STANDARD (`f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`) PILOT rev3,230/702 rules. More actions offers Clone to new draft, Create draft, Publish; none activated. All five requested Processing pairs simulate DENY `CAPABILITY_POLICY_NOT_ENABLED`: CHANGE_SERVICE_SPEED ITEM/PIECE, CHANGE_DISCOUNT ITEM/PIECE, CHANGE_ITEM_PRICE ITEM. Processing existing15 rules comprise4 WARN and11 REQUIRE_OVERRIDE; ORDER speed Require override; ORDER discount absent; Item price has no ORDER counterpart. Preserve operation/target distinctions; no invented decisions.
+
+WF_V2_SIMPLE v4 coverage307 issues, incomplete: missing five pairs at Processing/Preparing and inactive-status issues. Fill deny NOT used. Demo organization assignment is All profiles, no defaults. Starter description says Unassigned despite current assignment (minor stale-description observation).
+
+FULL_PATH (`346dc050-cbbd-48e3-9e86-afebe126f531`) PILOT rev8,260/702, unassigned. Processing Item price explicit Deny, `CAPABILITY_POLICY_NOT_ENABLED`, `orderChange.policy.notEnabled`. Do not replace explicit denial with a presumed allowance or reactivate obsolete tenant PROFILE linkage.
+
+Evidence under `/workspace/qa-20261107/shots/`: `hq-policy-inventory-list.png`, `hq-policy-inventory-standard-processing.png`, `hq-policy-inventory-processing-simulation-deny.png`, `hq-policy-inventory-processing-speed-piece-deny.png`, `hq-policy-inventory-coverage.png`, `hq-policy-inventory-standard-assignment.png`, `hq-policy-inventory-fullpath-item-price-deny.png`.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch 3)
+- **FET-LLMS-Nov07-PolicyPrereq:** Draft/publish needs intentional per-status decisions and effective-link verification. Missing-rule deny is correct fail-closed behavior; preserve current ORDER speed override/reason and protected statuses. Coverage gaps are setup evidence, not proof of a resolver defect.
+- **P3 FET-LLMS-Nov07-PolicyDescription:** Starter description says Unassigned while Demo All profiles assignment is present. Verify description intended meaning and update stale explanatory copy if warranted; cause unconfirmed.
+
+**Counts:** this batch adds4 BLOCKED parent prerequisites (S9,S10,S13,S22), no PASS; earlier PARTIAL results remain. No policies, roles, orders or payments changed.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch4: responsive financial retest)
+
+**Retest:** 2026-11-07 15:12:44 Asia/Muscat (UTC+4), Demo Laundry/admin, Chrome actual device mode configured360/1024/1440, EN/AR; EN restored at configured1440. Configuration labels are not independently exact viewport measurements: tool1081×1040 versus screenshot1041×1002 makes the1024 evidence measurement PARTIAL. No commercial/workflow/printing writes; only preferences/locale. Prior rounds/observations preserved.
+
+Order0003 UUID `cd4ac165-9a37-4b5e-9300-59152ca8e236`: saved/reference figures total1.926,paid0.856,due1.070 OMR; lines0.800+1.000,tax0.126,Reconciled. Correct statement shows balance-first with at most3 other figures. No POC,paidextra,delivery,discount fixture coverage claimed.
+
+| # | Result | Evidence |
+|---|---|---|
+| S8 reader consistency retest | PARTIAL overall; workspace subcheck FAIL | Order0003 statement/reference1.926 total/0.856 paid/1.070 due remains correct; workspace header Order total0.000 is inconsistent. Exact workspace route above. Raw key `orders.detail.workspace.paymentPlans.pay_in_advance` displayed. No current code diagnosis. |
+| S8.1 identity retest | FAIL identity subcheck; amounts PASS | Independent reload00008 UUID `0a27746d-5667-4342-999a-055d8ced7d4d` confirms detail Jh Test dev21 versus Ready Test Customer2 Mohammed Ahmed. Ready financial amounts remain correct; do not confuse amount regression pass with identity integrity pass. |
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch4)
+- **P1 FET-LLMS-Nov07-WorkspaceTotal:** Subject financial reader shows0.000 on workspace versus saved/reference1.926. Diagnose snapshot display path before assigning cause; align authoritative total and add regression. Evidence `shots/reuse-device-en-1440-workspace-mismatch.png`. — Retest 2026-11-09: not reproduced (own-order editor totals now match 4.783).
+- **P1 candidate FET-LLMS-Nov07-S8-Identity (retest):** Independent loaded screenshots reproduce mismatch: `shots/reuse-device-en-1440-00008-detail-reload-loaded.png` / `reuse-device-en-1440-00008-ready-recheck-loaded.png`. Cause pending; prior finding not overwritten.
+
+**Provisional cumulative Line-Level parent counts unchanged:** PARTIAL4 (S1,S5,S7,S8),BLOCKED4 (S9,S10,S13,S22 prerequisites),NOT RUN15; no parent PASS/FAIL. Workspace and identity subchecks FAIL, recorded explicitly without claiming all S8 executed. No Manual Edit interactions in this batch; no Manual guide appendix justified.
+
+### Test data left behind
+No saved data/payments/workflow/printing changes; preferences/locale only, EN restored. Policy clone/publication in progress elsewhere is NOT a completed outcome here.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch5: policy draft attempt)
+
+**Run:** 2026-11-07 15:25 Asia/Muscat (UTC+4), HQ policy prerequisite attempt; returned UI evidence. This is setup, not an Edit scenario PASS.
+
+| # | Result | Evidence |
+|---|---|---|
+| Requested five ITEM/PIECE capability-rule setup | BLOCKED | Separate Draft created but required operation-target rows absent from editor, no per-cell add observed. No rule changes/publication/assignment completed. |
+
+**Original unchanged:** `f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`, `ORDER_CHANGE_STANDARD_V1`, PILOT rev3, read-only. **Leftover separate clone:** `a6f6c2ef-8d69-4ab1-9770-d99e33730b62`, `ORDER_CHANGE_STANDARD_QA_20261107_V1`, name `Standard Order Change 20261107`, DRAFT rev2 (clone rev1, metadata save rev2), unassigned at every scope,230/702 inherited rules. This is a separate policy, NOT a new revision in the original policy lineage.
+
+Owner intent: Allow with warning on editable statuses, preserving explicit DENY. Current active-v4 candidate editable statuses seen: Intake/Preparing/Processing; Awaiting collection and Ready/Delivered/Cancelled retain15 DENY cells; Assembly/QA/Packing inactive. These observations are not permission to alter protected rules or other versions. Five requested rows: CHANGE_SERVICE_SPEED ITEM/PIECE; CHANGE_DISCOUNT ITEM/PIECE; CHANGE_ITEM_PRICE ITEM. They were absent as editable rows; only Fill missing only and Reset suggestions available, neither used. Coverage307 issues incomplete. No new rule saved, Publish/Start pilot not activated, no assignment/default changed.
+
+**Documented method check (read-only existing plan):** Extend_Order_Edit_policy_Plan.md line565 requires HQ matrix to load pairs from catalog, not a fixed13-code list. Lines1388–1390 specify active-status matrix and Smart fill as a proposal only; lines415–417 no automatic ALLOW backfill and money/payment proposals DENY. Lines188–189 document read-only catalog and Smart fill; they do NOT explain Fill missing only versus Reset suggestions preservation semantics, a target-filter repair step, or how to add missing per-cell rows. Therefore no verified safe normal-UI method to expose these five absent rows was established from available docs. Do not use Reset suggestions on assumption it preserves populated cells. Do not clone other profiles while same blocker persists; no internal API/DB-write bypass.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch5)
+- **P1 candidate FET-Policy-Nov07-MissingTargetRows:** Editor cannot currently expose requested operation-target rows for this setup attempt. Confirm catalog availability and normal UI filters/target selection through documented UI; if absent, editor should render all active catalog pairs—including the five requested ITEM/PIECE pairs—as independently editable missing cells while preserving populated decisions. Document Fill missing only/Reset suggestions semantics and preview a non-destructive diff. Cause not diagnosed; no source defect asserted beyond observed UI deficiency.
+
+**Evidence** under `/workspace/qa-20261107/shots/`: `hq-standard-draft-original-pilot-readonly.png`, `hq-standard-draft-details-rev2.png`, `hq-standard-draft-unassigned.png`, `hq-standard-draft-wf-v2-simple-v4.png`, `hq-standard-draft-rules-preparing.png`, `hq-standard-draft-deny-cells.png`, `hq-standard-draft-coverage-v4.png`.
+
+### Test data left behind
+Separate unassigned DRAFT clone above, rev2, metadata saved. Source policy/rules/links unchanged; no publish/pilot/assignment, order/payment/workflow writes. No other profile cloned in this attempt. Existing subject scenario results remain unchanged; setup BLOCKED tracked separately.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch6: Create preview)
+
+**Run:** 2026-11-07 15:51 Asia/Muscat (UTC+4), Demo admin, Main Branch2, EN1440×985 CSS. Existing POS/drawer untouched. Existing customer Jh Test dev21, Counter/in-branch, one Bathrobe Standard1.800 +tax0.126 =total1.926 OMR.
+
+**Observed prerequisite resolution:** Ready By absent kept Submit disabled in THIS flow; applying Nov8 16:00 Asia/Muscat enabled Ready to submit. No disabled-Submit bug claimed. This establishes the observed-flow explanation only, not a retrospective diagnosis of every earlier disabled state.
+
+**Cart regression PASS:** override2.100 with reason `QA-20261107 override preview` preserved under Express; reset under Express2.250; restoring Standard1.800. Payment modal showed Pay later Applied / Pay on Collection available (as observed labels), not evidence of a saved settlement type. Cash0.500 typed: unsaved preview settled0.500, remaining1.426; Financial summary agrees, closing it preserves typed0.500. No payment/order submitted. Line-discount options inspected then canceled, no discount coverage claimed.
+
+**Evidence** under `/workspace/qa-20261107/shots/`: `create-preview-baseline-cart.png`, `create-preview-readyby-picker.png`, `create-preview-readyby-enabled.png`, `create-preview-override-standard.png`, `create-preview-express-override.png`, `create-preview-express-reset.png`, `create-preview-standard-restored.png`, `create-preview-payment-poc.png`, `create-preview-cash-partial.png`, `create-preview-financial-summary.png`, `create-preview-discount-dialog.png`, `create-preview-final-empty.png`.
+
+| # | Result | Evidence |
+|---|---|---|
+| S7 PF21 cart retest | PARTIAL parent / cart subchecks PASS | Override/Express/reset pass and payment preview now reachable after applied Ready By. Owner characterization signoff and completed submit/persisted figures remain unproven. |
+| S5 permitted override preview | PARTIAL | Typed override/reason and preview observed; persisted actor/reason/server/negative-role coverage not performed. |
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch6)
+- **FET-LLMS-Nov07-S7 (observed prerequisite follow-up):** Explicit future Ready By enables Submit in this Create flow; retain normal required-field gate, no defect attributed. Prior disabled-control uncertainty narrowed only for this observation.
+
+**Counts:** S5/S7 remain PARTIAL, not full saved-submit PASS; prior reader failures/setup blockers unchanged. No saved/AR test passes added.
+
+### Test data left behind
+No saved order/payment/customer/workflow changes. Modal canceled and cart discarded:0 items,customer cleared,Standard restored,notes cleared. Ready By remains displayed only as unsaved form state. POS/drawer unchanged. No policy change outcome recorded.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch7: dedicated POC fixture)
+
+**Created:** 2026-11-07 16:02 Asia/Muscat (UTC+4); inspected16:17, Demo Laundry admin/Main Branch2, EN1440×985 CSS. Authoritative detailed fixture ledger: `/workspace/qa-20261107/create-poc-ledger.md` (note caveat below supersedes any unqualified lost-data interpretation).
+
+**Saved dedicated order:** `ORD-20261107-00001`, UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9`, existing Jh Test dev21; Counter(in branch),Standard,Ready By Nov8 16:00 Asia/Muscat. Processing/preparation pending,revision1,Edit access OPEN; no workflow transition/Edit Apply performed.
+
+**Correct persisted money:** Bathrobe override2.100 (baseline1.800), reason entered `QA-20261107 persisted override`; Shirt Ironing Only catalog0.300,10% discount **0.030**,net **0.270** (NOT a0.270 discount). Full Items &extras2.400 minus line discount0.030=subtotal2.370;VAT0.119+Municipal0.047=tax0.166;total2.536 OMR. No charges/delivery. Paid0,credits0,due at collection2.536; explicit Pay later applied/Pay on Collection confirmed,Reconciled/PENDING COLLECTION. Confirmation accepted once,success toast/cart reset; no real payment taken.
+
+**Notes observation, provisional FAIL:** `QA-20261107-CREATE-POC-01` appeared in pre-submit Notes but was absent from saved Notes after reload. Notes Save had been enabled; whether required explicit Save/apply was omitted is NOT isolated. Missing explicit Save is a plausible alternative to a product persistence defect. Do not diagnose lost-data code defect until next controlled note-control check.
+
+**Duplicate-selection boundary:** second identical Bathrobe merged into Create quantity2, then reduced to1 and distinct Shirt selected. Expected Create behavior, not evidence of an Edit duplicate-line targeting failure.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `create-poc-override-dialog.png`, `create-poc-shirt-catalog.png`, `create-poc-pre-submit-panel.png`, `create-poc-payment-poc-zero.png`, `create-poc-confirm-zero-poc.png`, `create-poc-order-created.png`, `create-poc-order-header.png`, `create-poc-items-after-reload.png`, `create-poc-reconciled-after-reload.png`, `create-poc-full-records.png`, `create-poc-edit-status.png`, `create-poc-duplicate-merge.png`.
+
+| # | Result | Evidence |
+|---|---|---|
+| S8.5 POC zero-payment create | PASS subcheck | Explicit POC saved,paid0/full2.536 due; old SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER422 did not occur on this creation. No general rounding/other deferred-method claim. |
+| S5 permitted override persistence | PARTIAL parent / persisted price PASS | Reload Bathrobe2.100 retained. Entered override reason/actor not exposed in History/Change History/Full records; generic committed-by is not override attribution. Server audit/negative role/refusal paths not proven. |
+| S7 PF21 persistence follow-up | PARTIAL parent / persisted price PASS | Previous cart reset/Express behavior passed; saved override now retained. Owner characterization signoff, complete saved-reset/Express cases and audit visibility not all proven. |
+| Create line discount persistence | PASS subcheck | Shirt0.300 less0.030=0.270 retained; Full discount0.030. This is not Edit S10/S13 coverage. |
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch7)
+- **FET-LLMS-Nov07-POC-Retest:** Dedicated zero-payment POC creation now passes observed regression; retain exact deferred0-paid fixture for further tests.
+- **FET-LLMS-Nov07-OverrideAudit:** Price persistence passes; reason/actor UI attribution still unproven. Verify intended audit surface before claiming absent DB audit.
+- **FET-LLMS-Nov07-Notes-Provisional:** Repeat controlled Notes explicit-Save versus unsaved input submission to separate required UI semantics from true persistence loss. Provisional observation FAIL only; cause unresolved.
+
+**Parent counts unchanged:** PARTIAL4(S1,S5,S7,S8),BLOCKED4(S9,S10,S13,S22 prerequisites),NOT RUN15. Added measured leaf checks: POC create PASS,override price persistence PASS,line-discount persistence PASS,audit visibility PARTIAL,notes provisional FAIL. These are not full saved/AR/Edit passes.
+
+### Test data left behind
+One dedicated saved order UUID/code above,2.536 OMR unpaid POC,initial processing/pending,revision1 OPEN. No payment/refund/collection/workflow/Edit Apply/print/message made. POS/drawer unchanged. Override reason entered and discount persisted; note absent with explicit-Save caveat. No other new order in this batch.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch8: controlled core Edit)
+
+**Retest r5/core Edit:** 2026-11-07 16:37:44 Asia/Muscat (UTC+4), Demo Laundry/admin, EN1440×985 CSS; AR clean-context check then EN restored. Only dedicated `ORD-20261107-00001` UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9` changed. Detailed returned evidence `/workspace/qa-20261107/man-core-edit-ledger.md`.
+
+| # | Result | Evidence |
+|---|---|---|
+| S5/S7 preserved override follow-up | PARTIAL parents; persistence subcheck PASS | Quantity Edit kept2.100 override/unit and existing Shirtdiscount.030/net.270. No speed/price/discount operation attempted; no S9/S10/S13 completion implied. |
+| History attribution observation | FAIL display subcheck | One successful Change with persisted reason but Applied by Unknown user; DB actor absence not proven. |
+
+Bathrobe quantity1→2 preserves override2.100/unit,line4.200; Shirt.300−discount.030=net.270 retained. Live card new4.783/was2.536/delta+2.247/balance4.783/To collect. Review matches numbers, but Updating persisted>25s and stale after Apply. Independent reload total4.783,tax.313,paid0,credits0,due4.783 POC/Reconciled; processing/preparation pending unchanged.
+
+History exactly1Change#1,2ops,reason `QA-20261107 controlled quantity retest`,source order-edit,revision1→2,workflow version1; Applied by Unknown user. ItemUUID `2e052d4b-0c4e-4f20-a408-c29988ccbc80`; added pieceUUID `db4b929d-e1aa-4e96-8d2c-fd39428f7da6`,piece2/processing/expected. Single Apply click proves only observed single record, NOT lost-response retry or durable idempotency.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch8)
+- **P1 candidate FET-LLMS-Nov07-HistoryActor:** Preserve attribution evidence and diagnose canonical display identity; no assumption absent server audit.
+- **FET-LLMS-Nov07-CreateNoteClarification:** Edit Show notes has static Save caption, no separate Save button. Earlier Create-note missing result remains provisional; missing explicit Save button is not established cause.
+
+Parent counts remain PARTIAL4/BLOCKED4/NOT RUN15; successful qty Apply is not a line-control/policy setup pass.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `man-core-baseline.png`, `man-core-note-review.png`, `man-core-note-discarded.png`, `man-core-quantity-staged.png`, `man-core-quantity-review-required.png`, `man-core-review-reason-required.png`, `man-core-review-reason-entered.png`, `man-core-review-ready.png`, `man-core-post-apply-balance.png`, `man-core-change-history.png`, `man-core-final-items.png`, `man-core-ar-context.png`, `man-core-final-en.png`.
+
+### Test data left behind / current fixture state
+Dedicated order now revision2,total4.783/tax.313/paid0/due4.783 OMR,POC,processing/pending,OPEN; Bathrobeqty2 atoverride2.100 and Shirtqty1 net.270;3pieces;one change/twoops/above reason. Note-only draft discarded. No other order/policy/payment/collection/refund/workflow/print/message changes. Final independent EN detail, no dirty draft. Original Create ledger remains historical baseline, not current total.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch12: independent tenant reads)
+
+**Run:**17:17–17:25:33 Asia/Muscat (UTC+4),Demo admin,CSS1920×1072,EN/AR→EN;under10min. Full ledger `/workspace/qa-20261107/linelevel-independent-ledger.md`. No money/workflow/printing/tax/catalog/settings/role/policy/session writes;blankforms canceled. Final ownReady route.
+
+| # | Result | Evidence |
+|---|---|---|
+| S14 | PARTIAL | Demo Finance has tax-profile guidance/no legacytaxrateform; defaultVAT5%+Municipal2% Active,no warning. OpenTaxSetup link click stayed onFinance,normal directTaxroute worked. ARcardRTL/Arabicguidance but Finance Settings titleEN; Tax Setup/title/columns/controlsEnglish/mixed. NOT full S14/BlueWave/historicaltax/no-defaultmutation pass. |
+| S18 | PARTIAL | Six-level precedence/filters/rulesvisible;Express WinterCoat checkerAllproducts/allbranches+25%Applies,product-specificinactive;no active specific-vslower comparison. EconomycheckerApplies,visible+10% versus accessibility`+-10%` not resolved. BlankAddform inspected,canceled;no duplicate/abcvalidation/save/history/RBAC tested. |
+| S19 | BLOCKED UIaccess | `/dashboard/catalog/services`: Catalog Services / Access not granted / `You need the admin:manage permission to view Catalog & Pricing. Ask your tenant admin to grant it.` No producttax/speed/New fields seen;no accesswidening/retry. |
+| S20 | PARTIAL parent / detailReady netline subchecks PASS | Ownrev3,total4.783,tax.313,paid0,due4.783 POC. Bathrobe2×2.100=4.200;Shirtgross.300,discount.030,Afterdiscount.270 matchdetailReady. ReadyNotyetavailableforpickup,workflowunchanged,nozeroLine. No mixedtaxfixture/taxreport/cancel/tracking/dashboard test. Customerdisplaydiscrepancy alsoobserved;ledgerdoesnottranscribeexactnewfixturelabels,so nonamesinvented. |
+| S21 | PARTIAL | Retireorrestoreproductrules dialogEconomy/Allcategories says `No active product rules match.` Retirerulesdisabled,canceled. No retire/restore/global30%rule/retail/RBAC/zero-seedcompletecoverage. |
+
+**Exact S14Financeguidance:** `Tax rates are set as tax profiles in Tax Setup. Each order is taxed by the default profiles that apply to it; with no profile, no tax is charged.` Profilesreadunchanged VAT5%/Municipal2%defaultactive with disabledDeactivate. BlueWave notvisited.
+
+**S18precedence:** Productonebranch→Productallbranches→Categoryonebranch→Categoryallbranches→Allproductsonebranch→Allproductsallbranches. Table1–5of52; observedinactiveExpressproductrules WinterCoat/Stockings/Hosiery/Poncho/LabCoat. BlankAddform is NOT duplicatevalidation evidence.
+
+**Own financial reference:** Items&extras4.500−discount.030+VAT.224+Municipal.089=4.783;tax.313. Revision3/twoorderchanges unchanged. DetailReady lineandsummaryconsistent,no mismatchwarning observed.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch12)
+- **P2 candidate FET-LLMS-Nov07-TaxNavigation:** Finance OpenTaxSetup clickleftpageinplace;normaldirectrouteworks. Recheck exactlink behavior beforecauseclaim;S14navigationcomponentnotpassed.
+- **P2 FET-LLMS-Nov07-TaxAR:** Finance Settings titleEnglish,Tax Setup headings/controlsEnglishormixedinAR. Capture/translate actualUIstrings;profilenamesalonecanbeauthoreddata,notautomaticallytranslationdefect.
+- **FET-LLMS-Nov07-S19Access:** admin:manageUIgate blocksproductcoverage;resolveviaauthorizedtenantadminprocess,notAPI/DBbypass. Currentaccountlabeldoesnotproveneededpermission.
+- **P1 candidate FET-LLMS-Nov07-S20Identity:** Ownnewfixture detailReady labels differ. Exactnamesarenottranscribedinreturnedledger;retain screenshotsasprimaryevidence,nospecificlabelclaimorrootcause.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `ll-independent-s14-finance-en.png`,`ll-independent-s14-tax-en.png`,`ll-independent-s14-finance-ar.png`,`ll-independent-s14-tax-ar.png`,`ll-independent-s18-speed-pricing-en.png`,`ll-independent-s18-checker-express-wintercoat.png`,`ll-independent-s18-add-rule-form-en.png`,`ll-independent-s21-retire-dialog-en.png`,`ll-independent-s20-order-items.png`,`ll-independent-s20-order-financial-summary.png`,`ll-independent-s20-ready-detail.png`.
+
+**Current23parent counts:** PARTIAL8(S1,S5,S7,S8,S14,S18,S20,S21),BLOCKED5(S9,S10,S13,S19,S22),NOT RUN10(S2,S3,S4,S6,S11,S12,S15,S16,S17,S23);no fullparentPASS/FAIL. Explicitfinancial/identity/localization leafoutcomesremainseparate.
+
+### Test data left behind
+No changes. Ownfixturelastverifiedrev3,total/due4.783,tax.313,paid0,POCprocessing/pending;twoChanges;Readyreads didnotmoveworkflow. POS/drawerunchanged;ENrestored,nodirtyforms.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch13: custom draft and limited loyalty read)
+
+**Run:**17:26–17:32:41 Asia/Muscat (UTC+4),Demo admin,EN1920×1072CSS;within10min. Authoritative `/workspace/qa-20261107/public-fin-customitem-ledger.md`. OwnORD-20261107-00001/UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9`,revision3,processing/pending,total/due4.783,paid0,POC. No savedchanges.
+
+| # | Result | Evidence |
+|---|---|---|
+| S11 | PARTIAL parent; custom draft subcheck PASS | CustomitemopensAddCustomItem;`QA-20261107 Custom Curtain`,price7.250,qty1 retained in draft/Review. ProposedAdditem+Addpiece;Needsanoverride/CAPABILITY_POLICY_OVERRIDE_REQUIRED,Reasonfield/Reviewasksforreason. No reason/Reviewagain/Apply. Cancel+Discard restoresrev3/0dirty/4.783,nocustomline. No committedcustomlineqty/reopen/negativepermission/AR pass. |
+| S17 | PARTIAL limited read | FullFinancialRecords `Loyalty: None`;Total4.783/Paid0/Credits0/Due4.783,existing2Changes. No programactive/rate/outbox or customerledger attribution proof;no earn/delta/refund/cancel/redemption/idempotency outcome claimed. |
+
+**Customquote:** helper `Charged at the price you enter. Speed premiums from the category still apply, and the line is taxed as a standard service.` Newtotal12.540,Was4.783,increase7.757,balance12.540;Reviewcurrent4.783/estimated12.5400,tax.820,OUTSTANDING. AdditemCustomCurtain andAddpieceNewpiece bothqty1/unit7.250,line7.250,serviceWASH_AND_IRON. Updatingremainedvisible (earlierlivecardfindingretained,no new precise durationclaim). Discardtoast `Changes were discarded.` Draft7.250 preservation is NOTdatabasepersistence.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch13)
+- **FET-LLMS-Nov07-S11Preview:** Preserve customenteredprice/draftReview/discardregression;fullS11needscontrolledcommittedcustomfixture,not justpreview.
+- **FET-LLMS-Nov07-S17EvidenceBoundary:** FullRecordsLoyaltyNoneislimitedorderdisplayonly;verifyactiveprogram/customerorderattributionbeforeclaimnoEARNunpaidcase.
+
+**Evidence** `/workspace/qa-20261107/shots/custom-item-review.png`,`public-fin-full-records.png`. PubliclinkcopycontrolwasactivatedwithoutvisibleURL/toast;clipboardpastewasNOTtested,so NOappFAIL/definiteblock/severityclaim. NextnormalCtrl+V privatecontextpending;noURL/tokenread/copiedtoreport. Reusablepublicstatementevidencedeferreduntilactualpageopened. MAN011viewportcheckNOTRUN.
+
+**Updated23parents:** PARTIAL10(S1,S5,S7,S8,S11,S14,S17,S18,S20,S21),BLOCKED5(S9,S10,S13,S19,S22),NOT RUN8(S2,S3,S4,S6,S12,S15,S16,S23). No fullparentPASS/FAIL.
+
+### Test data left behind
+No newrecords/payment/workflow/settings/policy/role/print/message. Customdraftdiscarded;ownrev3,total/due4.783,paid0,2Changes,ENcleandetail,nocustomitem. OriginalCreate-noteprovisionalfindingunresolved.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch14: reviewed read-only diagnosis)
+
+**Supportingreadmethod:**2026-11-07 17:35:04–17:36:05 and17:37:26 Asia/Muscat(UTC+4),remoteDBviaestablisheduser-machinepsql;serverdefault_transaction_read_only=on verified,statementtimeout20s,onlyminimalcatalog/tenant-orderSELECTs. Credentialvaluesneverprinted/copied,sessionsecretcleared. No source/APIinspection,DBmutations or policy/role/taxwrites. Parentreviewed supporting `/workspace/qa-20261107/db-diagnosis.md`;sanitizedqueryresults`db-diagnosis-data1/2/3.txt`and`db-diagnosis-workspace.txt`. This adds diagnosiscontext,notnewUIrun/changedverdict.
+
+### Tester suggestions / supporting evidence — customer display inconsistency
+**FET-Nov07-CustomerDisplay-Clarification:** Both own`cce8a46e-a8f4-4346-8ca1-790182d1e1d9` andolder`0a27746d-5667-4342-999a-055d8ced7d4d` reference samecorrecttenantorgcustomer`264a0321-daac-4e88-a17f-d423134c7fad`,sameDemo1111tenant;globalrelationshipresolves. Ordercustomer_name snapshot andorgdisplay_name `Jh Test dev21`;orglegacyname/globaldisplay_name/globalname `Test Customer2 Mohammed Ahmed`. Olddetailmatchesordersnapshot/orgdisplay;Ready/receiptmatcheslegacy/globalname. CurrentUIinconsistencyFAILremainsvalid,butNOTproofwrongcustomerUUID/cross-tenantleak. DBshowsnamefielddivergence,NOTwhichUIpath/fieldisread. Ownfixturehasidenticalstorednamedivergence;exactcurrentUIcrosscheckseparate.
+One-linefixrecommendation: renderoneconsistenttenant-facingdisplayidentitycontract acrossdetail/Ready/receipt,verifyrenderpathbeforechoosingfallback;noDBcustomerbulkoverwrite orassertedcodefilecause.
+
+### Supporting evidence — actual workspace failure order storage
+At17:37:26 readonlySELECTspecifically`cd4ac165-9a37-4b5e-9300-59152ca8e236`/Demo confirmsrevision2,CURRENT,subtotal1.8000,discount0,tax0.1260,total_amount1.9260,paid0.8560,due1.0700. Nested`financial_calculation_snapshot.derivedTotals` matches1.926/1.8/0/.126/.856/1.07. Thus actualearlierworkspaceheader0.000 conflictswithnonzerosavedcanonicaldataonSAMEorder;notjusta cross-ordercomparison. NoUIcodecauseproved. Recommendationworkspaceconsumesauthoritativesavedfinancialsnapshotconsistentlyandshowsunavailableinsteadofinventedzero,afterverifyingactualmapping.
+Ownrevision3storedtotal4.783,tax.313,paid0,due4.783;older00008stored.856/tax.056/paid.856/due0;theirderivedtotalsandnonzerolinesconsistent. Threeordersnowseparatelyverified;no assumptionworkspaceonownfixturewasretested.
+
+### Notes / unchanged data boundary
+Currentowninternal_notes`QA-20261107-STALE-A-COMMIT`persisted;customer_notesempty. CannotrecoverunwrittenCreate-notehistoryorresolveoriginalCreateabsencefromcurrentEditnote. OriginalCreatefindingremainsprovisional,separateflow. No changesmade:ownlastverifiedrevision3,total/due4.783,tax.313,paid0,2Changes;priorUIverdictsandtestcountsunchanged.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch15: public tracking and small Edit subset)
+
+**Follow-up:**17:33–17:41:29 Asia/Muscat(UTC+4),Demo admin,ownrev3ordercce8a46e-a8f4-4346-8ca1-790182d1e1d9;EN,final1920×1072CSS. ActualChromeUIincognito/clipboardpaste/device-toolbarused;noShellclipboard/API. Authoritativeupdated`/workspace/qa-20261107/public-fin-customitem-ledger.md`. No savedchanges;existingcustomdraftalreadyloggednotdoublecounted.
+
+| # | Result | Evidence |
+|---|---|---|
+| S2 | PARTIAL | Validtokenpageworks;retiredreadableURL/no-redirect/ENARandeligibleConfirmreceivednotyettested. No wholeS2PASS. |
+
+**Copy/publicroute subchecks PASS:** No toast is not failure. NormalCtrl+Vincognitoaddressbarconfirmedcopied`https://cmx.cleanmatex.com/track/[redacted]`;authorizedexistingtokenloadedanonymousCleanMateX/TrackYourOrder. No token/contactvaluesretainedinQAtext/screenshots. Signed-incontextrestoredafterincognitoclosed.
+**Financialamounts PASS onthisfixture:** Items&extras4.500,discount−.030,tax+.313,total4.783,paid0,balance/due4.783;POCnoticeProcessing/remaining4.783consistent. TaxinclusivelinefiguresBathrobe4.494/Shirt.289sum4.783. No paid/creditentries;Charges/Credits/paymentmethodrowsnotdisplayed.
+**Privacy limited PASS:** no staffwarnings/UUID/paymentreferencesobserved. Trackingpagealsohasnormalorder/status/timing/item/customersections;thesearenotautomaticallyfinancial-blockleakageorcrosscustomerdata. Guide10saysfinancialstatementshowscategoriesandNothingelse;availableguidetextdoesNOTexplicitlyrequireeveryzeroCharges/CreditsroworpermethodrowswhennoPayments. ThereforemissingzerorowsisP2contract-clarificationcandidate,NOTconfirmedfinancialgap/privacyFAIL. Do notadopttheledger'sunqualifiedwhole-pagefinancial-fields-onlyfailureinterpretation. Needstatement-boundaryandnonzerofixturebeforestrictminimizationconclusion.
+Evidence`/workspace/qa-20261107/shots/public-fin-link-control.png`,`public-fin-statement.png`,`public-fin-balance.png`privacycropped.
+
+### Tester suggestions — Financial_Expert_Tester(batch15)
+- **FET-LLMS-Nov07-S2Token:** Copyworkswithouttoast;continuereadable-linkretirementseparately,no unsupportedcopyFAIL.
+
+### Test data left behind
+None;ownrev3,total/due4.783,tax.313,paid0,processing/pending,twoChanges;customdraftdiscarded(noadditionalcustomattemptcount). ENcleandetail,incognitoclosed,desktoprestored. No messages/linksend/revoke/payment/workflow/printing/policy/settings.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch19: S4/S6/S23 forms and fixture preflight)
+
+**Run:** 18:08:32–18:17:31 Asia/Muscat (UTC+4), 8m59s. Demo tenant, English, 1440 CSS px. Authoritative ledger: `/workspace/qa-20261107/linelevel-s4-s6-s23-ledger.md`. No customer data entered; no order/customer/tax/preparation state saved or advanced. Earlier results and recommendations retained unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| S4 | PARTIAL | Orders list readable: Total Orders9 / Pending Prep8 / In Progress8 / Ready0 / Out for Delivery0 / Delivered Today0 / Overdue6; example OMR4.783. Status options Draft, Intake, Preparation, Processing, Ready, Ready for Pickup, Out for Delivery, Delivered; prep status/priority/order type/physical intake filters present. Filter-result correctness not demonstrated. New Order empty0pieces/0bags, no items, disabled Submit, catalog OMR3dp; no cart/payment/promo opened in this batch. Picker search name/phone/email had no distinct Quick Add or dedicated phone input. Side-panel Edit opened blank Edit Customer (required First Name/Phone, +968, optional email); Cancel, no Save. This does NOT prove a customer-create path or identity-lock violation in New Order. B2B Customers→New required Company Name/Phone and +968 selector, optional email; exited unsaved. Full S4 contract, Prepare add-item and crafted cross-tenant rejection not proved here. |
+| S6 | BLOCKED — prior blocker retested | Config And Settings→Tax Setup→Tax Exemptions→Add: type/certificate/service/validity, no customer selector. Existing row Customer ID and Service Type both —; no active customer-linked fixture established. Cancelled. Missing fixture and UI association capability prevent exempt-customer calculation; zero VAT/total tax NOT proved, no normal-vs-exempt comparison staged. Prior blocked evidence preserved; no new source/DB diagnosis. |
+| S23 | BLOCKED prerequisite | Orders submenu exposed Workboard and Processing, no separate Preparation link. Workboard Preparation0 / Processing8 / All8. No eligible Preparation/QuickDrop fixture; no Edit route/add/remove/no Delete/stored price-panel checks performed. This is not a Ready-page/full scenario PASS. Processing list read only. |
+
+**Evidence:** `/workspace/qa-20261107/shots/ll-forms-orders-filters.png`, `ll-forms-orders-stats.png`, `ll-forms-orders-money.png`, `ll-forms-neworder-empty.png`, `ll-forms-neworder-customer-phone.png`, `ll-forms-b2b-customer-phone.png`, `ll-forms-tax-exemption-add.png`, `ll-preparation-workboard-queue.png` (all under shots).
+
+### Tester suggestions — Financial_Expert_Tester (batch19)
+- **P2 FET-LLMS-Nov07-S4-EntrySemantics:** Clearly distinguish customer create/Quick Add from empty Edit Customer in New Order; +968 field presence is verified but create/save validation remains untested. Avoid treating New Order as locked Edit identity context.
+- **P1 FET-LLMS-Nov07-S6-AssociationRetest:** Existing customer-exemption selector gap remains observable. Provide supported customer association UI or owner-provisioned active customer-linked exemption fixture before claiming customer-specific zero tax; no forced DB setup.
+- **P3 FET-LLMS-Nov07-S23-FixtureGate:** Provide a dedicated eligible Preparation/QuickDrop order before Edit/add/remove/no-Delete and stored-total checks; Workboard count0 is prerequisite evidence, not a product-failure diagnosis.
+
+**Cumulative current-run 23-parent counts:** PASS0 / FAIL0 / PARTIAL12 / BLOCKED7 / NOT RUN4. NOT RUN: S3, S12, S15, S16. BLOCKED: S6, S9, S10, S13, S19, S22, S23. PARTIAL: S1,S2,S4,S5,S7,S8,S11,S14,S17,S18,S20,S21. These are parent coverage statuses, not erasure of earlier leaf failures or prior rounds.
+
+### Test data left behind
+No persistent changes or new fixtures. Forms cancelled/exited; own order `cce8a46e-a8f4-4346-8ca1-790182d1e1d9` restored clean EN1440px, revision3, Bathrobeqty2, total/due4.783 OMR, tax.313, paid0. No workflow/payment/preparation action. Existing fixture inventory unchanged.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch20: customer-app and price-drift environment preflight)
+
+**Environment preflight only — 2026-11-07 Asia/Muscat (UTC+4).** No customer-app UI attempt, sign-in, OTP, service startup, source/API/SCM access or mutation. Narrow user-machine scan of `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` (33 lines): documented environment hosts only `https://cmx.cleanmatex.com` (line6) and `https://hqsaas.cleanmatex.com` (line18). No customer/mobile/Android/iOS/Flutter/Expo/TestFlight/APK/IPA reference found by metadata scan; no customer-app login entry identified. The credentials document was NOT copied; no account/contact/credential values emitted or requested. Memory and available QA notes supplied no genuine customer-app address/build. Existing QA rounds already record missing customer mobile build. This establishes missing access inputs for this run, NOT that no customer application exists. Tenant web-admin at phone width and public tracking are not customer-app substitutes.
+
+| # | Result | Evidence |
+|---|---|---|
+| S3 | BLOCKED — environment inputs | No documented installable customer mobile build/openable customer-app URL, target platform/device setup or confirmed test environment supplied. Prior missing-build blocker retained; no mobile Orders detail/bearer-isolation test attempted. Need owner-provided genuine build/entry, backend mapping and authorized customer test-session path; do not paste bearer tokens into notes. |
+| S15 | BLOCKED — environment inputs | Guide requires customer app against this server via API_BASE_URL and real demo customer. No documented customer-app build/entry/backend configuration identified; no booking/confirmation/error/Arabic checks attempted. Separate disposable missing-price/unavailable-workflow fixtures also needed before negative tests; no shared catalog changes authorized here. |
+| S12 | BLOCKED — normal UI fixture setup | Guide requires ADD_ITEM at target status and a product with editable price list, then deliberate price drift before Review/Apply. Existing actual Catalog Services refusal at `/dashboard/catalog/services`: `Access not granted` / `You need the admin:manage permission to view Catalog & Pricing. Ask your tenant admin to grant it.` (linelevel-independent-ledger.md). Current account cannot establish price-drift fixture through that normal UI. Need authorized catalog manager and isolated editable product/price list with original values captured, plus ADD_ITEM policy prerequisite. No DB price write, role widening, fake Review or Apply claimed. |
+
+### Tester suggestions — Financial_Expert_Tester (batch20)
+- **P2 FET-LLMS-Nov07-CustomerAppInputs:** Document customer-app distribution/openable URL, platform/device instructions and backend/environment mapping separately from secret login details; provide authorized customer session entry without putting credentials/tokens in QA notes. Re-run S3/S15 only after genuine access inputs exist.
+- **P2 FET-LLMS-Nov07-S12DriftFixture:** Provision designated normal-UI catalog manager and disposable mutable price fixture; verify ADD_ITEM policy before controlled drift, retain/restore original price only under explicit mutation scope. Current permission denial is prerequisite evidence, not a price-confirmation defect.
+
+**Cumulative 23-parent counts:** PASS0 / FAIL0 / PARTIAL12 / BLOCKED10 / NOT RUN1 (S16). Newly classified S3/S12/S15 are environment/setup BLOCKED, not app FAIL. Earlier S4 PARTIAL / S6 BLOCKED and all earlier text remain untouched; leaf financial/localization failures remain valid.
+
+### Test data left behind
+None created/changed. Own order unchanged rev3/Bathrobeqty2/total4.783/tax.313/paid0/due4.783 OMR. No actor/order/customer/settings/policy or workflow changes.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch22: recorded discount/promo prerequisite inventory)
+
+**Run:**2026-11-07 18:26:55–18:35:13 Asia/Muscat(UTC+4),8m18s; Demo tenant admin, EN desktop. Full authoritative `/workspace/qa-20261107/ll-promo-ar-edge.md` read. This batch completed read-only inventory, NOT the missing financial behavioral tests. No rules/promos/invoices/payments/tax documents/snapshots created, saved, disabled, issued, posted, collected, cancelled or deleted. Previous findings preserved unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| S16 | BLOCKED — suitable recorded-rule/promo fixture absent; inventory completed | Marketing Discount Rules and Promo Codes accessible. No qualifying order with recorded automatic rule/promo established. Own .030 Line Discount is manual Shirt discount, NOT an applied promo/rule fixture. Thus no quantity-based recalculation, below-minimum removal/acknowledgment, usage-count change, notes-only recorded-discount retention, Arabic removal or auto-promo booking proved. Missing fixture is not PASS or product FAIL. Customer-app booking also retains separate environment prerequisite. |
+
+**Observed UI:** `/dashboard/marketing/discount-rules` had LLOYALTY2_DISCOUNT2/LLOYALTY_DISCOUNT1, both active but displayed Disabled; minitems1, minimum amounts5/3, stack-with-promoYes and different stack-with-other-rules. Create Rule preview showed code/name/rule type/discount type/value/priority/minimums/validity/stacking/Enabled; no customer/product selector or scope field observed. Cancelled with no Save; no claim customer-specific rule saved or isolated product-scoped setup available.
+
+`/dashboard/marketing/promos` had typed and auto-apply promos, All/Active/Expired filters and code/name/type/value/maxuses/validity/Enabled/actions columns. Create preview code optional for auto-only; discount/maxdiscount, usage/percustomer limits, min/maxamount, Applicable Categories(comma-separated,empty=all), Applicable Customer Groups,validity/stacking/Enabled/Auto-apply. Scope is category/group, no individual-customer/product selector observed; no fields changed or Save. Existing promos present does not prove applied fixture/usage semantics.
+
+**Own order read:**4.783 OMR due, paid0, manual Line Discount.030; no Promo entry, AR invoiceNone, AR receivable0. No re-evaluation attempted on unsuitable fixture.
+
+### Tester suggestions — Financial_Expert_Tester(batch22)
+- **P2 FET-LLMS-Nov07-S16Fixture:** Provide designated recorded minimum-rule and promo orders with original usage counts and controlled category/customer-group scope before tests. Do not enable broad rules or interpret manual line discount as automatic promo evidence. Customer-specific scoping was not exposed in observed form; no source cause inferred.
+
+Evidence under `/workspace/qa-20261107/shots/`: `ll-promo-rules-list.webp`, `ll-promo-rule-form.webp`, `ll-promo-codes-list.webp`, `ll-promo-code-form-top.webp`, `ll-promo-code-form-limits.webp`, `reuse-edge-own-financial-summary.png`.
+
+**Cumulative23parents:** PASS0 / FAIL0 / PARTIAL12 / BLOCKED11 / NOT RUN0. BLOCKED:S3,S6,S9,S10,S12,S13,S15,S16,S19,S22,S23. PARTIAL:S1,S2,S4,S5,S7,S8,S11,S14,S17,S18,S20,S21. NOT RUN0 means every parent now has evidence or explicit prerequisite classification, NOT complete behavioral coverage; earlier leaf FAILs remain.
+
+### Test data left behind
+No saved changes. Own `cce8a46e-a8f4-4346-8ca1-790182d1e1d9` remains rev3, manualdiscount.030,total/due4.783,tax.313,paid0 OMR. EN own-order detail restored, no form/modal. No actor/customer/workflow changes.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (FINAL reconciliation: INCOMPLETE)
+
+**INCOMPLETE — NO OVERALL PASS.** Original requested QA pass stopped after the completed evidence below; no further testing. Parent PARTIAL/BLOCKED/NOT RUN are unresolved coverage, and NOT RUN0 never means all subchecks passed. Earlier rounds/leaf FAILs remain unchanged. This is own final reconciliation, not an edit of author requirements or other editors' results. No source/spec additions or execution.
+
+**Final parent counts:** PASS 0 / FAIL 0 / PARTIAL 12 / BLOCKED 11 / NOT RUN 0.
+
+**FAIL IDs:** none
+**PARTIAL IDs:** S1, S2, S4, S5, S7, S8, S11, S14, S17, S18, S20, S21
+**BLOCKED IDs:** S3, S6, S9, S10, S12, S13, S15, S16, S19, S22, S23
+**NOT RUN IDs:** none
+
+### Qualified unresolved findings / recommendations
+- P1 FET-FINAL-LL: Workspace header0.000 vs saved1.926 is financial display inconsistency; actual-order read-only DB confirmed nonzero storage, UI path cause unproven. Use server snapshot consistently. — Retest 2026-11-09: workspace 0.000 not reproduced on own order; new notes-only Estimated-total mismatch tracked as FET-LLMS-Nov09-NotesOnlyEstTotal.
+- P1 FET-FINAL-Identity: detail/Ready labels disagree for same valid tenant customer; different stored display-name fields explain available data, NOT proven wrong customer/cross-tenant leak. Align tenant display contract, no DB overwrite.
+- P2 FET-FINAL-LLPrereqs: Customer app, customer exemption, normal Catalog admin:manage/price fixture, missing ITEM/PIECE policy controls, automatic-rule/promo, QuickDrop and special fixtures remain required. Own notes-only Edit persistence does not resolve provisional original Create-note absence/save semantics.
+### Test data left behind
+Own cce8a46e-a8f4-4346-8ca1-790182d1e1d9 / ORD-20261107-00001 rev3,2Changes/3ops,Bathrobeqty2 at2.100,Shirt.300−.030=.270,total4.783,tax.313,paid0,due4.783,POCprocessing/pending; saved A note retained, unsaved drafts discarded. Unassigned/unpublished draft a6f6c2ef-8d69-4ab1-9770-d99e33730b62 rev2 unchanged; source policy unchanged, roles not granted due denied access. No latest extra records/messages/printing/password changes.
+
+
+## Financial_Expert_Tester Results — 2026-11-08 (remote-only policy/access retest and parity adaptation)
+
+**Remote UI evidence:**2026-11-08 16:36:02–16:41:06 Asia/Muscat(UTC+4),HQ System Administrator; full `hq-policy-role-retest.md` read. No toggles/fill/reset/save/publish/assignment/grant/account change. REMOTE ONLY per user direction: tenant `https://cmx.cleanmatex.com`, HQ `https://hqsaas.cleanmatex.com`; no more localhost/listener checks or service actions. cmx is tenant web-admin, NOT a newly supplied customer mobile app.
+
+| # | Result | Evidence |
+|---|---|---|
+| S9/S10/S13/S22 prerequisite retest | BLOCKED missing Item/Piece rows; no new behavior PASS | Five target pairs absent on existing source/clone; saved speed/discount/price/history/piece paths not exercised. Existing Order speed override is not line-scope proof. |
+Source actual `/en/order-change-config/edit-policies/f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`:ORDER_CHANGE_STANDARD_V1 Pilotrev3,230/702. Processing15rules,4Allow with warning/11Require override/0Deny. CHANGE_SERVICE_SPEED Order=Require override, reason/orders:edit_override; NOT a substitute for Item/Piece. All five requested pairs still absent: CHANGE_SERVICE_SPEED Item/Piece, CHANGE_DISCOUNT Item/Piece, CHANGE_ITEM_PRICE Item. No row means no decision combobox/per-row disabled reason; no exposed per-cell add. Smart fill note only adds missing cells, NOT activated or validated as safe pair-add mechanism.
+Existing clone actual `/en/order-change-config/edit-policies/a6f6c2ef-8d69-4ab1-9770-d99e33730b62`:ORDER_CHANGE_STANDARD_QA_20261107_V1 Draftrev2/230of702,unassigned/unpublished per current description; Processing same15/4WARN/11override/0DENY, same five pairs absent. Fill missing only/Reset suggestions NOT used; no new clone/type or protected decision changes. Source Pilot badge/list vs adjacent `Unassigned Draft starter matrix. HQ must review, promote, and assign it before any tenant can use it.` is qualified descriptive UX inconsistency, NOT proven lifecycle/backend resolution bug. No current tenant-side parity tested in this evidence.
+### Tester suggestions — Financial_Expert_Tester(Nov8 remote policy)
+- **P2 FET-LLMS-Nov08-LinePairs:** Expose a supported normal-UI authoring method for all requested operation-target rows without overwriting explicit denials. Smart-fill text alone does not establish correct five-pair additions; no fill/publish authorized here.
+- **P3 FET-LLMS-Nov08-PolicyDescription:** Reconcile source Pilot status and stale draft-starter description; verify intended text before declaring lifecycle defect.
+Parent counts unchanged PARTIAL12/BLOCKED11; full workstream incomplete.
+
+### Test data left behind
+None created/changed by this retest. Existing source Pilotrev3 and clone Draftrev2 preserved; no publish/assignment/grant. Order last-known Nov7 state is NOT independently verified by HQ-only retest. Final clean EN policy list; no messages/printing/password changes.
+
+
+## Financial_Expert_Tester Results — Retest 2026-11-09 (remote, read-only, no Apply)
+
+**Remote UI evidence:** 2026-11-09 16:21–16:32 Asia/Muscat(UTC+4), tenant `https://cmx.cleanmatex.com` Demo Laundry admin; own order ORD-20261107-00001. No Apply; drafts discarded; order still 4.783 OMR / 2 changes. Source ledger `/workspace/qa-20261109/tenant-editor-recheck.md`. Defect rechecks + one new financial finding — parent scenario counts unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| Workspace / editor totals match | PASS — prior 0.000 defect not reproduced | Editor Total 4.783 OMR; Order Items 4.500; Financial Details items +4.500, discount −0.030, tax +0.313, total 4.783, due 4.783. Prior workspace header 0.000 vs saved total not reproduced on this order. References **FET-LLMS-Nov07-WorkspaceTotal** / **FET-FINAL-LL**. |
+| Notes-only Review Estimated total | FAIL (new P1) | Customer-notes-only draft (Before None → After QA-20261109-REASON-CHECK): Review Estimated total **4.830** vs Current **4.783** (+0.047); Financial result **OUTSTANDING**. Notes-only change must not shift estimated total. See **FET-LLMS-Nov09-NotesOnlyEstTotal**. |
+
+### Tester suggestions — Financial_Expert_Tester (Nov9 line-level / editor money)
+- **P1 FET-LLMS-Nov09-NotesOnlyEstTotal:** A notes-only change shows Estimated total 4.830 vs Current 4.783 with financial result OUTSTANDING. Keep notes-only Review financially neutral (estimated == current; no OUTSTANDING from notes alone); diagnose preview/calculation path. Evidence in `/workspace/qa-20261109/tenant-editor-recheck.md` and shots sand-subagent-8addfd1b-*.
+- Prior **FET-LLMS-Nov07-WorkspaceTotal** and **FET-FINAL-LL** annotated in place: workspace 0.000 not reproduced on own order.
+
+**Parent counts unchanged:** PARTIAL12 / BLOCKED11. Defect recheck + new finding only — no author scenario newly fully satisfied. Overall workstream remains INCOMPLETE.
+
+### Test data left behind
+Nothing persisted. Drafts discarded; order ORD-20261107-00001 unchanged at Revision 3 / total 4.783 OMR / 2 changes. No Apply/payment/workflow/password changes; no messages/printing. Screens under `/workspace/qa-20261109/shots/` (sand-subagent-8addfd1b-*).

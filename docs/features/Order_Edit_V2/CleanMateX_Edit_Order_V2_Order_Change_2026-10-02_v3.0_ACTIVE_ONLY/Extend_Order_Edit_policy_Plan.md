@@ -1647,3 +1647,101 @@ Item money precision, the 300-second review lifetime, direct table grants, and t
 Implementation starts at Phase 1 only after this plan is confirmed. The agent writes the migration and stops for review. The agent does not apply it. Later phases start only after the previous phase is in place.
 
 Every phase follows the rules at the top of this plan: existing code, complete areas, `CLAUDE.md` and its skills, separation of concerns, and reusable UI. When existing code is better, improve that code or keep it, update this plan, and record the choice in `Extend_Order_Edit_policy_STATUS.md`. A feature is not done until every required area is covered in each repository that feature needs. Close each phase with "Tasks after every phase". After Phase 5, run "Final task — generate the extension docs".
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch16: local cross-app prerequisites)
+
+**Read-only prerequisite check:**2026-11-07 17:44:21 Asia/Muscat(UTC+4),usercomputer77dd14e5-dc60-4812-819e-a433bec1856c. PowerShellGet-NetTCPConnection(StateListen)restrictedports3000/3001/3002;no processcommandline/environmentread,no sourcecheckout/startup/configchange.
+
+| # | Result | Evidence |
+|---|---|---|
+| §11.4 local cross-app check | BLOCKED prerequisite; NOT UIexecuted | UsermachineTCP3000ABSENT(tenant),3001ABSENT(HQweb),3002ABSENT(HQAPI)atchecktime. No listenerprocesses toidentify. Local UIparitynotrunnableonexpectedports;noFAILclaimed. This doesnotprove appsaren'thostedelsewhere/otherports. |
+| Requested order-financial-view E2E spec | NOT RUN | No executionperformed;parentreports scopedSCM executionaccesspending. Do notbypass pendingaccesscard,no source/configrouteworkaround. This is distinct from local§11.4blockandnotanE2EFAIL. |
+
+Previewtenant/HQpolicy/financialchecksareNOTproofthatbothlocalappsruntogetherorthatlocalEffectiveresolutionmatches. Usermachine localhost differsfromboxlocalhost. No servicesstarted or localDB/configchanged by thischeck.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch16)
+- **FET-Policy-Nov07-LocalParityPrereq:** Afterowner-managedlocalenvironment/executionaccessisavailable,verifytenant3000/HQweb3001/HQAPI3002andsharedintendedDB,thenrunactual§11.4UIpairs;recordsource/revision/status/operation/targetonbothsides. Do not usePreviewstatusaslocalsignoff.
+- **FET-Policy-Nov07-CanonicalAdaptation:** Preserveoldauthoredstepsunchanged;futuretestmustfollowcurrentcanonicalauthority**ORGANIZATION→VERSION_DEFAULT→PROFILE(platformglobaldefault)**. Oldstep6per-organizationPROFILEoverrideissuperseded;donotreactivateobsoleteassignmentorclaimitbeatsversiondefault. UseisolatednormalUIfixtures,intentionalprotecteddecisionsandowner-approvedsettingsscope.
+
+**Counts separatefromotherguides:** oneplan-levelcheckBLOCKED,zeroexecutedplanPASS/FAIL; sevenadaptedsubstepsunexecutedbyprerequisite. E2EspeconeNOT RUN separately. No policy/rolepermissionfixorSCMaccesssuccessclaimed.
+
+### Test data left behind
+None;canonicalappendonly. ExistingQAorder/policydraft/catalogfixturesuntouched. No configs,source,servicesorotherguideschanged.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (FINAL reconciliation: INCOMPLETE)
+
+**INCOMPLETE — NO OVERALL PASS.** Original requested QA pass stopped after the completed evidence below; no further testing. Parent PARTIAL/BLOCKED/NOT RUN are unresolved coverage, and NOT RUN0 never means all subchecks passed. Earlier rounds/leaf FAILs remain unchanged. This is own final reconciliation, not an edit of author requirements or other editors' results. No source/spec additions or execution.
+
+**Final parent counts:** PASS 0 / FAIL 0 / PARTIAL 0 / BLOCKED 1 / NOT RUN 0.
+
+**FAIL IDs:** none
+**PARTIAL IDs:** none
+**BLOCKED IDs:** §11.4 (POL-11.4.1–7 substeps blocked)
+**NOT RUN IDs:** none
+
+### Remaining scope / Tester suggestions — Financial_Expert_Tester final
+- P2 FET-FINAL-LocalParity: §11.4 remains BLOCKED; seven adapted substeps unexecuted. Last actual local check3000/3001/3002absent; no services started now. Preview policy info is not local cross-app parity. Preserve ORGANIZATION→VERSION_DEFAULT→PROFILE(platform global default) precedence and intentional protected decisions; no universal ALLOW.
+- Requested policy setup remains incomplete: five ITEM/PIECE pairs absent from normal editor, no published/assigned replacement. Roles grant blocked by existing HQ Roles denial; no bypass. Local setup/test required before parity signoff. Reusable spec remains NOT RUN separately, not part of this one-parent count.
+### Test data left behind
+Unassigned/unpublished policy clone a6f6c2ef-8d69-4ab1-9770-d99e33730b62 ORDER_CHANGE_STANDARD_QA_20261107_V1 DRAFTrev2. Source ORDER_CHANGE_STANDARD_V1 PILOTrev3 unchanged by this workstream. No grants, publish/assignment/config/service/source changes; no external messages/printing/password changes in latest batches.
+
+
+## Financial_Expert_Tester Results — 2026-11-08 (local §11.4 prerequisite retest)
+
+**Time/method:**2026-11-08 16:36:08 Asia/Muscat(UTC+4), user machine77dd14e5-dc60-4812-819e-a433bec1856c. Full Nov8 `local-listeners.md` and `resume-preflight.md` read. Initial Get-NetTCPConnection failed because NetTCPIP module could not load, yielding UNKNOWN then. Subsequent explicitly scoped ordinary Windows `netstat.exe -ano -p tcp` succeeded exit0 (shell0); only matching TCP LISTENING lines for local ports3000/3001/3002 were retained/output. No matching rows: all three ABSENT at successful check time. No unrelated network dump, commandlines/env/secrets or HTTP/API probes.
+
+| # | Result | Evidence |
+|---|---|---|
+| §11.4 local cross-app check | BLOCKED prerequisite only — retest | No listeners3000tenant/3001HQweb/3002HQAPI on user machine at16:36:08. Seven adapted UI substeps remain unexecuted; no parity PASS/FAIL. No services/processes started or installed, no config/source/spec/DB/API/UI work. This does not prove apps absent elsewhere/on other ports; no app identity or Preview parity inference. |
+
+**Separate document context, NOT test PASS:** Six fresh canonical guides at16:33:55–16:33:56 matched Nov7 final hashes exactly; no owner/dev documentation fixes/new prerequisite notes found. This is existing resume-preflight evidence, not code/deployment verification or an extra scenario. Earlier results and author §11.4 expected steps unchanged.
+
+### Tester suggestions — Financial_Expert_Tester (Nov8 local retest)
+- **P2 FET-Policy-Nov08-LocalPorts:** Owner-managed normal local tenant/HQ startup/shared intended environment remains prerequisite; then execute actual seven §11.4 UI substeps. Do not claim Preview parity substitutes local test. Preserve current ORGANIZATION→VERSION_DEFAULT→PROFILE authority and intentional decisions without modifying author text.
+
+**Counts:** one requested plan parent BLOCKED, PASS0/FAIL0/PARTIAL0/NOT RUN0; seven POL-11.4.1–7 substeps BLOCKED prerequisite and UI NOT executed. Same parent retested, not an additional eighth substep or second parent. Overall workstream remains INCOMPLETE; other guide coverage carried forward from Nov7, not retested here.
+
+### Test data left behind
+None. No order/policy/role/config/service/source changes or new records. Only this own dated Results/FET append; original prefix and other editors preserved. Evidence `/workspace/qa-20261108/local-listeners.md`, `resume-preflight.md`; Nov7 retained.
+
+
+## Financial_Expert_Tester Results — 2026-11-08 (remote-only policy/access retest and parity adaptation)
+
+**Remote UI evidence:**2026-11-08 16:36:02–16:41:06 Asia/Muscat(UTC+4),HQ System Administrator; full `hq-policy-role-retest.md` read. No toggles/fill/reset/save/publish/assignment/grant/account change. REMOTE ONLY per user direction: tenant `https://cmx.cleanmatex.com`, HQ `https://hqsaas.cleanmatex.com`; no more localhost/listener checks or service actions. cmx is tenant web-admin, NOT a newly supplied customer mobile app.
+
+| # | Result | Evidence |
+|---|---|---|
+| §11.4 USER-DIRECTED REMOTE ADAPTATION | PENDING / NOT RUN remote parity — no PASS | User directed deployed tenant cmx.cleanmatex.com and HQ hqsaas.cleanmatex.com only. Original local author steps/history retained unchanged. Historical local absence is NOT a blocker for requested remote version; no further local checks/startup. Seven adapted remote substeps unexecuted. |
+
+Read original §11.4 seven steps:1noauthority→closed,2publish/versiondefault,3orgoverride ADD_ITEM DENY,4override persists over unchangeddefault,5deactivateoverride→default,6profileoverridevsdefault,7HQpreview samecontext decision. Steps1–6 require controlled states/saved changes or existing fixtures; not performed. Author step6 is superseded by documented ORGANIZATION→VERSION_DEFAULT→PROFILE precedence: do not expect PROFILE to beat a live VERSION_DEFAULT or silently mutate an assignment to satisfy old wording. Preserve author text and intentional decisions. Read-only initial remote parity against existing state is a safe separate subcheck, NOT all seven setup/transition steps.
+
+Current HQ source Pilotrev3/cloneDraftrev2 evidence is as above/subject ledgers; no current tenant-side confirmation or HQ effective-preview matching tuple yet. Demo11111111-1111-1111-1111-111111111111 current context must be read in tenant UI before comparison; last Nov7 organization-wide Standardrev3/Processing/WF_V2_SIMPLEv4 is historical, not assumed current. Remote brief prepared from actual author steps; no new policies/assignments/defaults/roles.
+### Tester suggestions — Financial_Expert_Tester(Nov8 remote adaptation)
+- **P2 FET-Policy-Nov08-RemoteScope:** Run same-org/profile/version/status/operation/target effective-preview vs tenant panel using deployed normal UI only. Distinguish effective preview from single-policy simulation. Capture both current sources/revisions/decision/reason; read-only equality does not prove mutation transitions.
+- **P2 FET-Policy-Nov08-ControlledTransitions:** Separate existing-state read parity from publish/assign/deactivate/default transitions requiring explicitly scoped saved changes/isolated fixtures. No local-service requirement for remote request; no author changes.
+Current adapted requested-plan parent: NOT RUN1(remote pending),PASS0/FAIL0/PARTIAL0/BLOCKED0. Historical local BLOCKED and7local unexecuted substeps remain as history, not a second current parent. Overall INCOMPLETE.
+
+### Test data left behind
+None created/changed by this retest. Existing source Pilotrev3 and clone Draftrev2 preserved; no publish/assignment/grant. Order last-known Nov7 state is NOT independently verified by HQ-only retest. Final clean EN policy list; no messages/printing/password changes.
+
+
+## Financial_Expert_Tester Results — Retest r1 2026-11-09 (remote, read-only)
+
+**Remote UI evidence:** 2026-11-09 16:10–16:16 Asia/Muscat(UTC+4). User-directed remote adaptation only: tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, super_admin) / HQ `https://hqsaas.cleanmatex.com`. Nothing saved/changed. Source ledger `/workspace/qa-20261109/remote-parity-results.md`. Author §11.4 original steps retained unchanged; this is existing-state parity for step 7 only, not the six controlled-transition steps.
+
+| # | Result | Evidence |
+|---|---|---|
+| §11.4 step 7 existing-state remote parity (3 ops) | PASS (with policy ID/revision GAP) | Own order ORD-20261107-00001 (cce8a46e-…): PROCESSING + Pending Payment, editor Revision 3, total 4.783 OMR. Tenant Policy Info: Organization-wide override; Standard Order Change V1 / ORDER_CHANGE_STANDARD_V1 / f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6; rev 3; PILOT; WF_V2_SIMPLE v4 PILOT. Fresh-reload HQ Effective Preview (Demo, WF_V2_SIMPLE, v4 PILOT, Processing) matched tenant for: Change Order Notes → Allow with warning / Organization override / CAPABILITY_POLICY_WARNING; Change Service Speed (Order) → Require override / CAPABILITY_POLICY_OVERRIDE_REQUIRED; Remove item (Item) → Require override (same). GAP: HQ preview shows no policy ID/name/revision/lifecycle — those fields cannot be compared from HQ side. Assignments confirm one in-effect Organization override (ORDER_CHANGE_STANDARD_V1 Pilot rev 3) wins ahead of defaults. Defaults: no Published version default for WF_V2_SIMPLE v4 PILOT. |
+| §11.4 steps 1–6 remote | NOT RUN | Need controlled fixtures and/or approved publish/assign/deactivate writes; not authorized in this read-only batch. Step 1 needs no-authority fixture (do not remove live Demo override). Step 2 needs publish + version-default write. Step 3–4 need ADD_ITEM DENY-vs-ALLOW fixture. Step 5 needs deactivation. Step 6 superseded by ORGANIZATION→VERSION_DEFAULT→PROFILE; no obsolete profile-beats-default expectation. |
+
+### Tester suggestions — Financial_Expert_Tester (Nov9 remote step7)
+- **P2 FET-Policy-Nov09-PreviewStale:** HQ Effective Preview result panel does not clear/refresh when the selected operation changes; first Change-notes pass showed a stale "Require override" until a full page reload. Clear or re-fetch the result panel on operation/target change.
+- **P2 FET-Policy-Nov09-UncoveredProcessing:** HQ "Uncovered statuses" lists `processing` while an Organization override resolves for Processing. Reconcile uncovered-status labeling with effective resolution so covered statuses are not listed as uncovered.
+- **P3 FET-Policy-Nov09-AssignmentIdLabel:** Tenant Policy Info shows "Assignment ID: Not assigned" for an in-effect Organization override that HQ Assignments shows as In effect. Fix the label or surface the real assignment id when an org override is winning.
+
+**Counts:** §11.4 step 7 existing-state PASS1 (3 matched ops, ID/revision GAP noted); steps 1–6 NOT RUN remote. Historical local BLOCKED and Nov8 remote PENDING remain history. Overall §11.4 workstream still INCOMPLETE (six transition steps outstanding).
+
+### Test data left behind
+Nothing created/changed. Own order ORD-20261107-00001 unchanged at Revision 3 / total 4.783 OMR. Source ORDER_CHANGE_STANDARD_V1 Pilot rev 3 and clone a6f6c2ef-8d69-4ab1-9770-d99e33730b62 Draft rev 2 unassigned/unpublished preserved. No publish/assignment/grant/password changes; no messages/printing. Screens under `/workspace/qa-20261109/shots/`.

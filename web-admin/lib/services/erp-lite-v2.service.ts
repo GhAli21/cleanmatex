@@ -5,6 +5,9 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
+import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
+import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
+import { COMMERCIAL_ERROR_CODES, CommercialRuleError } from '@/lib/commercial/errors';
 import type {
   CreateErpLiteBankMatchInput,
   CreateErpLiteApInvoiceInput,
@@ -383,7 +386,13 @@ export class ErpLiteV2Service {
           tx
         );
         const subtotalAmount = this.roundAmount(input.subtotal_amount);
-        const taxAmount = this.roundAmount(input.tax_amount ?? 0);
+        // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
+        const tax = await resolvePurchaseTax(tx, {
+          tenantOrgId: tenantId, flow: 'INPUT', docTypeCode: DOC_SEQ_TYPES.ERP_PO, date: input.po_date,
+          branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: input.tax_item_class_code ?? null,
+          currencyCode: input.currency_code.trim(), net: subtotalAmount, enteredTax: input.tax_amount ?? null,
+        });
+        const taxAmount = tax ? tax.taxAmount.toNumber() : this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
 
         const inserted = await tx.$queryRaw<PoInsertRow[]>(Prisma.sql`
@@ -437,6 +446,7 @@ export class ErpLiteV2Service {
             line_no,
             branch_id,
             usage_code_id,
+            tax_item_class_code,
             description,
             description2,
             qty_ordered,
@@ -455,6 +465,7 @@ export class ErpLiteV2Service {
             1,
             ${input.branch_id ?? null}::uuid,
             ${usageCodeId}::uuid,
+            ${tax?.itemClass ?? input.tax_item_class_code ?? null},
             ${input.description.trim()},
             ${input.description2?.trim() || null},
             1,
@@ -505,7 +516,13 @@ export class ErpLiteV2Service {
           tx
         );
         const subtotalAmount = this.roundAmount(input.subtotal_amount);
-        const taxAmount = this.roundAmount(input.tax_amount ?? 0);
+        // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
+        const tax = await resolvePurchaseTax(tx, {
+          tenantOrgId: tenantId, flow: 'INPUT', docTypeCode: DOC_SEQ_TYPES.ERP_AP_INVOICE, date: input.invoice_date,
+          branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: input.tax_item_class_code ?? null,
+          currencyCode: input.currency_code.trim(), net: subtotalAmount, enteredTax: input.tax_amount ?? null,
+        });
+        const taxAmount = tax ? tax.taxAmount.toNumber() : this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
         const dueDate =
           input.due_date ??
@@ -561,7 +578,7 @@ export class ErpLiteV2Service {
           throw new Error('Failed to create AP invoice');
         }
 
-        await tx.$queryRaw(Prisma.sql`
+        const lines = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
           INSERT INTO public.org_fin_ap_inv_dtl (
             tenant_org_id,
             ap_inv_id,
@@ -569,6 +586,7 @@ export class ErpLiteV2Service {
             line_no,
             branch_id,
             usage_code_id,
+            tax_item_class_code,
             description,
             description2,
             net_amount,
@@ -585,6 +603,7 @@ export class ErpLiteV2Service {
             1,
             ${input.branch_id ?? null}::uuid,
             ${usageCodeId}::uuid,
+            ${tax?.itemClass ?? input.tax_item_class_code ?? null},
             ${input.description.trim()},
             ${input.description2?.trim() || null},
             ${subtotalAmount},
@@ -595,7 +614,14 @@ export class ErpLiteV2Service {
             1,
             true
           )
+          RETURNING id
         `);
+        if (tax) {
+          await writePurchaseTaxLines(tx, {
+            tenantOrgId: tenantId, docTypeCode: DOC_SEQ_TYPES.ERP_AP_INVOICE, docId: apInvoice.id, docNo: apInvoice.ap_inv_no,
+            lineId: lines[0]?.id ?? null, userId: input.created_by ?? null, at: new Date(), tax,
+          });
+        }
       });
     });
   }
@@ -641,6 +667,19 @@ export class ErpLiteV2Service {
         const amountTotal = this.roundAmount(input.amount_total);
         if (amountTotal > invoice.open_amount) {
           throw new Error('AP payment amount cannot exceed the selected invoice open amount');
+        }
+
+        // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
+        const tax = await resolvePurchaseTax(tx, {
+          tenantOrgId: tenantId, flow: 'WITHHOLDING', docTypeCode: DOC_SEQ_TYPES.ERP_AP_PAYMENT, date: input.payment_date,
+          branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: null,
+          currencyCode: input.currency_code.trim(), net: amountTotal, enteredTax: null,
+        });
+        // shortcut: withheld tax is only recorded; posting it (cash paid = amount − withheld, liability) comes with T7, so a non-zero rate is refused until then.
+        if (tax && !tax.taxAmount.isZero()) {
+          throw new CommercialRuleError(COMMERCIAL_ERROR_CODES.WHT_POSTING_NOT_READY, 'Withholding tax applies to this payment, and its posting is not available yet.', {
+            amount: tax.taxAmount.toString(),
+          });
         }
 
         const apPmtNo = await this.generateSequentialNo(
@@ -697,6 +736,12 @@ export class ErpLiteV2Service {
         const apPayment = inserted[0];
         if (!apPayment) {
           throw new Error('Failed to create AP payment');
+        }
+        if (tax) {
+          await writePurchaseTaxLines(tx, {
+            tenantOrgId: tenantId, docTypeCode: DOC_SEQ_TYPES.ERP_AP_PAYMENT, docId: apPayment.id, docNo: apPayment.ap_pmt_no,
+            lineId: null, userId: input.created_by ?? null, at: new Date(), tax,
+          });
         }
 
         await tx.$queryRaw(Prisma.sql`
@@ -1575,6 +1620,34 @@ export class ErpLiteV2Service {
     `);
 
     return this.mapLocalizedOptions(rows, locale);
+  }
+
+  /**
+   * What the purchase forms need for tax: active purchase tax classes and suppliers.
+   * Tenant resolved server-side from the session; queries scoped to it.
+   * @param locale - Display language
+   * @returns Tax classes (id = class code) and suppliers
+   * @example const { tax_class_options } = await ErpLiteV2Service.getPurchaseTaxFormOptions('en');
+   */
+  static async getPurchaseTaxFormOptions(locale: 'en' | 'ar'): Promise<{
+    tax_class_options: ErpLiteV2OptionItem[];
+    supplier_options: ErpLiteV2OptionItem[];
+  }> {
+    const tenantId = await this.requireTenantId();
+    return withTenantContext(tenantId, async () => {
+      const [classes, suppliers] = await Promise.all([
+        prisma.org_tax_item_classes_cf.findMany({
+          where: { tenant_org_id: tenantId, tax_flow_code: 'INPUT', is_active: true, rec_status: 1 },
+          select: { class_code: true, name: true, name2: true },
+          orderBy: { display_order: 'asc' },
+        }),
+        this.listSupplierOptions(tenantId, locale),
+      ]);
+      return {
+        tax_class_options: classes.map((c) => ({ id: c.class_code, label: (locale === 'ar' && c.name2) || c.name })),
+        supplier_options: suppliers,
+      };
+    });
   }
 
   private static async listSupplierOptions(

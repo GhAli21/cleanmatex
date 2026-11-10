@@ -53,7 +53,7 @@ export interface ReadyByLineInput {
   speedRuleCutoffTime?: string | null;
   /** `org_product_data_mst.turnaround_hh` (standard speed). */
   productHours: MoneyInput | null;
-  /** `sys_service_category_cd` hours for this line's speed (`turnaround_hh` or `turnaround_hh_express`). */
+  /** `sys_service_category_cd.turnaround_hh`: the last configured hours at any speed. */
   categoryHours: MoneyInput | null;
   /** Σ `extra_turnaround_min` of this line's item and piece preferences. */
   extraMinutes: number;

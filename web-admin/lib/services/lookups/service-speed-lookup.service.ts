@@ -5,7 +5,7 @@
  * READ-ONLY in cleanmatex. Speeds are an HQ catalog (cleanmatexsaas). Every
  * active speed is listed (so labels resolve for speeds on older orders); with a
  * tenant, each row says whether this organization offers it: STANDARD always,
- * EXPRESS until S6 (its legacy category hours), any other speed only with an
+ * and any other speed only with an
  * active, effective Speed Pricing rule. The order loader enforces the same
  * (`SPEED_NOT_OFFERED`). Do not add write methods to this service.
  */
@@ -31,8 +31,8 @@ export interface ServiceSpeedLookupRow {
   is_offered: boolean;
 }
 
-/** Speeds offered with no rule: STANDARD by definition, EXPRESS until S6 retires its legacy hours. */
-const ALWAYS_OFFERED = new Set<string>([SERVICE_SPEEDS.STANDARD, SERVICE_SPEEDS.EXPRESS]);
+/** Speeds offered with no rule: STANDARD by definition retires its legacy hours. */
+const ALWAYS_OFFERED = new Set<string>([SERVICE_SPEEDS.STANDARD]);
 
 /**
  * Lists the active speeds for the speed menus and the Speed Pricing editor.

@@ -22,6 +22,8 @@ import type {
   ProcessErpLiteApprovalInput,
 } from '@/lib/types/erp-lite-expenses';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
+import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -146,14 +148,28 @@ export class ErpLiteExpensesService {
           'org_fin_exp_mst',
           tx
         );
+        if (input.supplier_id) {
+          const supplier = await tx.org_fin_supp_mst.findFirst({
+            where: { id: input.supplier_id, tenant_org_id: tenantId, is_active: true, rec_status: 1, status_code: 'ACTIVE' },
+            select: { id: true },
+          });
+          if (!supplier) throw new Error('Selected supplier is not active for this tenant');
+        }
         const subtotalAmount = this.roundAmount(input.subtotal_amount);
-        const taxAmount = this.roundAmount(input.tax_amount ?? 0);
+        // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
+        const tax = await resolvePurchaseTax(tx, {
+          tenantOrgId: tenantId, flow: 'INPUT', docTypeCode: DOC_SEQ_TYPES.ERP_EXPENSE, date: input.expense_date,
+          branchId: input.branch_id ?? null, supplierId: input.supplier_id ?? null, itemClass: input.tax_item_class_code ?? null,
+          currencyCode: input.currency_code, net: subtotalAmount, enteredTax: input.tax_amount ?? null,
+        });
+        const taxAmount = tax ? tax.taxAmount.toNumber() : this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
 
         const inserted = await tx.$queryRaw<ExpenseInsertRow[]>(Prisma.sql`
           INSERT INTO public.org_fin_exp_mst (
             tenant_org_id,
             branch_id,
+            supplier_id,
             expense_no,
             expense_date,
             posting_date,
@@ -173,6 +189,7 @@ export class ErpLiteExpensesService {
           ) VALUES (
             ${tenantId}::uuid,
             ${input.branch_id ?? null}::uuid,
+            ${input.supplier_id ?? null}::uuid,
             ${expenseNo},
             ${input.expense_date}::date,
             ${input.expense_date}::date,
@@ -209,13 +226,14 @@ export class ErpLiteExpensesService {
           throw new Error('Failed to create ERP-Lite expense');
         }
 
-        await tx.$queryRaw(Prisma.sql`
+        const lines = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
           INSERT INTO public.org_fin_exp_dtl (
             tenant_org_id,
             expense_id,
             line_no,
             usage_code_id,
             branch_id,
+            tax_item_class_code,
             line_description,
             net_amount,
             tax_amount,
@@ -230,6 +248,7 @@ export class ErpLiteExpensesService {
             1,
             ${usageCodeId}::uuid,
             ${input.branch_id ?? null}::uuid,
+            ${tax?.itemClass ?? input.tax_item_class_code ?? null},
             ${input.description ?? null},
             ${subtotalAmount},
             ${taxAmount},
@@ -239,7 +258,14 @@ export class ErpLiteExpensesService {
             1,
             true
           )
+          RETURNING id
         `);
+        if (tax) {
+          await writePurchaseTaxLines(tx, {
+            tenantOrgId: tenantId, docTypeCode: DOC_SEQ_TYPES.ERP_EXPENSE, docId: expense.id, docNo: expense.expense_no,
+            lineId: lines[0]?.id ?? null, userId: input.created_by ?? null, at: new Date(), tax,
+          });
+        }
 
         const posting = await ErpLiteAutoPostService.dispatchExpenseRecordedInTransaction(tx, {
           expense_id: expense.id,

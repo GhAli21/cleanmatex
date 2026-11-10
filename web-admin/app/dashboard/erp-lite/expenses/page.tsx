@@ -18,6 +18,7 @@ import {
   CmxTextarea,
 } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
 import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
@@ -88,8 +89,12 @@ export default async function ErpLiteExpensesPage({
     cash_txn_options: [],
   };
 
+  let taxOptions: Awaited<ReturnType<typeof ErpLiteV2Service.getPurchaseTaxFormOptions>> = { tax_class_options: [], supplier_options: [] };
   try {
-    snapshot = await ErpLiteExpensesService.getDashboardSnapshot(locale);
+    [snapshot, taxOptions] = await Promise.all([
+      ErpLiteExpensesService.getDashboardSnapshot(locale),
+      ErpLiteV2Service.getPurchaseTaxFormOptions(locale),
+    ]);
   } catch (loadFailure) {
     loadError =
       loadFailure instanceof Error
@@ -182,6 +187,21 @@ export default async function ErpLiteExpensesPage({
                   step="0.0001"
                   min="0"
                   label={t('forms.expense.fields.tax')}
+                  placeholder={tCommon('tax.amountBlank')}
+                />
+                <CmxSelect
+                  name="tax_item_class_code"
+                  label={tCommon('tax.itemClass')}
+                  defaultValue=""
+                  placeholder={tCommon('tax.itemClassDefault')}
+                  options={taxOptions.tax_class_options.map((item) => ({ value: item.id, label: item.label }))}
+                />
+                <CmxSelect
+                  name="supplier_id"
+                  label={tCommon('tax.supplier')}
+                  defaultValue=""
+                  placeholder={tCommon('tax.supplierNone')}
+                  options={taxOptions.supplier_options.map((item) => ({ value: item.id, label: item.label }))}
                 />
                 <CmxInput
                   name="payee_name"

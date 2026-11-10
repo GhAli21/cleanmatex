@@ -6,6 +6,7 @@
 
 'use client';
 
+import type { CartQuoteRequest } from '@/lib/validations/new-order-payment-schemas';
 import { memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -27,6 +28,8 @@ export interface ItemCartListQuoteProps {
   unquoted?: boolean;
   onLineSpeedChange?: (productId: string, serviceSpeed: string | null) => void;
   lineSpeedDisabled?: boolean;
+  /** The current cart request; lets a line's speed menu price its options. */
+  previewRequest?: Omit<CartQuoteRequest, 'requestId'>;
   /** Opens the line discount dialog; absent when the user lacks `orders:discount` (P5-03c). */
   onEditLineDiscount?: (productId: string) => void;
   /** Opens the discount dialog for one piece (PIECE level, P9-01). */
@@ -170,6 +173,15 @@ function ItemCartListComponent({
                 ? (code: string | null) => quote.onLineSpeedChange?.(item.productId, code)
                 : undefined,
               lineSpeedDisabled: quote.lineSpeedDisabled,
+              speedPreview: quote.previewRequest
+                ? {
+                    lineIndex: index,
+                    requestFor: (code: string) => ({
+                      ...quote.previewRequest!,
+                      items: quote.previewRequest!.items.map((line, i) => (i === index ? { ...line, serviceSpeed: code } : line)),
+                    }),
+                  }
+                : undefined,
               onEditLineDiscount: quote.onEditLineDiscount
                 ? () => quote.onEditLineDiscount?.(item.productId)
                 : undefined,

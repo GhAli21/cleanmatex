@@ -233,7 +233,20 @@
     "priceTypeChangeHint": "Changing the type clears the amount, because each type means something different.",
     "multiplierExample": "Example: 0.30 adds 30% to the normal price.",
     "multiplierHint": "Adds {percent}% to the normal price.",
-    "turnaroundHint": "Optional. Hours to finish at this speed.",
+    "turnaroundHint": "Optional. Working hours to finish at this speed.",
+    "turnaroundDaysHint": "Optional. 0 = same day, 1 = next working day. Ready at the Business Calendar's ready time.",
+    "cutoffTimeHint": "Optional. Orders received later count from the next working day. Empty = the branch's cut-off.",
+    "discountAllowedHint": "This speed can cost less than Standard: enter a negative value, for example -0.10 for 10% off.",
+    "discountHint": "Takes {percent}% off the normal price.",
+    "turnaroundUnit": { "HOURS": "Working hours", "WORKING_DAYS": "Working days" },
+    "guidance": {
+      "title": "Typical speeds (a starting point)",
+      "ECONOMY": { "promise": "4–7 working days", "price": "−10 to −20%" },
+      "STANDARD": { "promise": "2–3 working days", "price": "Base price" },
+      "NEXT_DAY": { "promise": "Next working day", "price": "+20 to +30%" },
+      "EXPRESS": { "promise": "Same day if received before the cut-off", "price": "+50%" },
+      "URGENT": { "promise": "2–4 working hours", "price": "+100%" }
+    },
     "effectiveToHint": "Leave empty if the rule has no end date.",
     "order": {
       "title": "When several rules match, the first one in this order wins:"
@@ -270,6 +283,9 @@
       "priceType": "Price type",
       "priceBasis": "Charged",
       "turnaround": "Turnaround (hours)",
+      "turnaroundUnit": "Turnaround counted in",
+      "turnaroundDays": "Turnaround (working days)",
+      "cutoffTime": "Cut-off time for this speed",
       "effectiveFrom": "Effective from",
       "effectiveTo": "Effective to",
       "name": "Label (English)",
@@ -293,10 +309,15 @@
       "sellPrice": "Sell price {amount}",
       "multiplier": "+{percent}",
       "fixedPerUnit": "+{amount} per unit",
-      "fixedPerLine": "+{amount} per line"
+      "fixedPerLine": "+{amount} per line",
+      "discountPercent": "{percent} off",
+      "discountAmount": "{amount} off"
     },
     "validation": {
       "form": "Check this value.",
+      "turnaroundUnit": "Choose how the turnaround is counted.",
+      "turnaroundDaysSpeed": "Enter a whole number of working days, or leave it empty.",
+      "cutoffTimeSpeed": "Enter a valid time.",
       "serviceSpeed": "Choose a speed other than Standard.",
       "productId": "Choose a product.",
       "serviceCategoryCode": "Choose a category.",
@@ -383,6 +404,11 @@
       "doneRetired": "{count, plural, one {# rule retired.} other {# rules retired.}}",
       "doneRestored": "{count, plural, one {# rule restored.} other {# rules restored.}}"
     }
+  },
+  "taxItemClass": {
+    "label": "Item tax class",
+    "hint": "Decides how this item is taxed. Applies to new orders only. Orders already created keep their tax.",
+    "useDefault": "Organization default"
   },
   "taxCategory": {
     "label": "Tax category",

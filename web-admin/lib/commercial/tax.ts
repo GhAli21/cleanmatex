@@ -34,6 +34,8 @@ import { roundMoney, type RoundingRule } from './rounding';
 export interface TaxProfileInput {
   /** Profile id; for the tenant-rate fallback, any stable id (the writer stores NULL). */
   id: string;
+  /** The tax code of this version; absent only on an order taxed before the rules engine. */
+  taxCode?: string;
   /** `VAT`, `CUSTOM`, … carried through to the header tax line. */
   taxType: string;
   /** Percent, e.g. 15 for 15%. */

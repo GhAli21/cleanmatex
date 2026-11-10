@@ -38,6 +38,7 @@ jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({
   resolveExtraPricePricingMode: jest.fn().mockResolvedValue('INCLUDED_IN_ITEM_PRICE'),
 }));
 
+import { TAX_ENGINE_MODELS, activeTaxSetup, taxCodeColumns } from '../../helpers/tax-engine-fixtures';
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const SHIRT = 'aaaaaaaa-0000-0000-0000-000000000001';
 
@@ -52,8 +53,9 @@ function mockDb() {
     sys_service_speed_cd: [{ code: 'STANDARD' }, { code: 'EXPRESS' }],
     org_tax_profiles_cf: [{
       id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false, is_default: true, applies_to: [],
-      rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null,
+      rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null, ...taxCodeColumns('VAT_STD'),
     }],
+    ...activeTaxSetup('VAT_STD'),
     sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
     org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 0, branch_id: null }],
     sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 0 }],
@@ -66,7 +68,7 @@ function mockDb() {
   const names = ['org_tenants_mst', 'org_branches_mst', 'org_customers_mst', 'org_product_data_mst', 'org_price_lists_mst',
     'org_price_list_items_dtl', 'org_speed_price_rules_cf', 'org_tax_profiles_cf', 'org_tax_exemptions_cf',
     'org_service_preference_cf', 'org_packing_preference_cf', 'sys_service_preference_cd', 'sys_service_category_cd',
-    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf'];
+    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', ...TAX_ENGINE_MODELS];
   return { db: Object.fromEntries(names.map((n) => [n, model(n)])) as unknown as CommercialDb, counts };
 }
 
@@ -86,7 +88,7 @@ beforeEach(() => {
 });
 
 describe('quoteCheckout', () => {
-  it('prices the cart from server facts; the charge is taxed (L25); the panel shows the profiles from the same read', async () => {
+  it('prices the cart from server facts; the charge is taxed (L25); rules choose the tax, so the panel offers no choice', async () => {
     const { db, counts } = mockDb();
     // A client amount on the line is ignored (C2, PF-02).
     const checkout = await quoteCheckout(params({ db, items: [{ ...params().items[0], priceOverride: null }] }));
@@ -97,7 +99,7 @@ describe('quoteCheckout', () => {
     expect(t.extrasIncludedAmount).toBe(0.2);
     expect(t.speedPremiumIncludedAmount).toBe(0); // standard speed
     expect(t.taxBreakdown).toEqual([expect.objectContaining({ profileId: 'vat', label: 'VAT', label2: 'ضريبة', rate: 5, taxAmount: 0.22 })]);
-    expect(checkout.taxProfileEntries).toEqual([expect.objectContaining({ id: 'vat', name: 'VAT', rate: 5, enabled: true })]);
+    expect(checkout.taxProfileEntries).toEqual([]);
     expect(counts.org_tax_profiles_cf).toBe(1);
     expect(checkout.quote.result.calcVersion).toBe(1);
   });

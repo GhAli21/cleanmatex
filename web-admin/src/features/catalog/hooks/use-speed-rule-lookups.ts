@@ -49,9 +49,16 @@ export function useSpeedRuleLookups() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `pick` only reads locale
     [categories.data, locale],
   );
+  const standardRank = speeds.find((s) => s.code === SERVICE_SPEEDS.STANDARD)?.display_order ?? 0;
   const speedOptions = speeds
     .filter((s) => s.code !== SERVICE_SPEEDS.STANDARD)
-    .map((s) => ({ value: s.code, label: speedLabel(s.code) }));
+    .map((s) => ({
+      value: s.code,
+      label: speedLabel(s.code),
+      defaultUnit: s.default_turnaround_unit,
+      // A speed ranked below Standard may be cheaper (D3); the server checks it again.
+      allowsDiscount: s.display_order < standardRank,
+    }));
 
   return {
     speedOptions,

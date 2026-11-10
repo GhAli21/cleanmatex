@@ -20,6 +20,7 @@ import {
   decideTaxDocumentIssuance,
   decideCorrectionDocumentType,
 } from '@/lib/services/tax-document-decision.service';
+import { reverseOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
 
 export class TaxDocumentIssuanceError extends Error {
   code: string;
@@ -241,6 +242,18 @@ export async function issueCorrectionTaxDocumentTx(
     data: { supersedes_id: original.id },
   });
   const { documentNo } = await issueTaxDocumentTx(tx, documentId, params.tenantId, params.issuedBy);
+  // An amendment rewrites the tax record through Order Edit; a refund reverses a share of it here.
+  if (params.triggerEvent === TAX_DOCUMENT_TRIGGER_EVENTS.ON_REFUND) {
+    await reverseOrderTaxLines(tx, {
+      tenantOrgId: params.tenantId,
+      orderId: params.orderId,
+      creditNote: { id: documentId, no: documentNo },
+      taxAmount: correctionTaxAmount,
+      portion: originalTotal > 0 ? Math.min(1, absDelta / originalTotal) : 0,
+      userId: params.issuedBy,
+      at: new Date(),
+    });
+  }
   return { documentId, documentNo };
 }
 

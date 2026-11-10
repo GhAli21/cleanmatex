@@ -42,6 +42,7 @@ class BookingBootstrapModel {
     this.pickupPreferences = const [],
     this.vatRate = 0.0,
     this.currencyCode = 'OMR',
+    this.serviceSpeeds = const [],
   });
 
   final bool bookingEnabled;
@@ -55,6 +56,7 @@ class BookingBootstrapModel {
   final List<BookingPreferenceOptionModel> pickupPreferences;
   final double vatRate;
   final String currencyCode;
+  final List<BookingServiceSpeedModel> serviceSpeeds;
 }
 
 class OrderBookingService {
@@ -151,6 +153,11 @@ class OrderBookingService {
         pickupPreferences: pickupPreferences,
         vatRate: (data['vatRate'] as num?)?.toDouble() ?? 0.0,
         currencyCode: data['currencyCode'] as String? ?? 'OMR',
+        serviceSpeeds: (data['serviceSpeeds'] as List? ?? const [])
+            .whereType<Map<String, Object?>>()
+            .map(BookingServiceSpeedModel.fromJson)
+            .where((speed) => speed.code.isNotEmpty)
+            .toList(growable: false),
       );
     } on MobileHttpException catch (error) {
       throw OrderBookingServiceException(
@@ -223,6 +230,7 @@ class OrderBookingService {
           'addressId': draft.address?.id,
           'slotId': draft.slot?.id,
           'notes': draft.notes.trim(),
+          if (draft.serviceSpeed != null) 'serviceSpeed': draft.serviceSpeed,
         },
       );
 
@@ -320,6 +328,7 @@ class OrderBookingService {
       'PRODUCT_NOT_FOUND' => 'booking.itemUnavailableError',
       'PREFERENCE_NOT_AVAILABLE' => 'booking.preferenceUnavailableError',
       'SERVICE_SPEED_INVALID' => 'booking.speedInvalidError',
+      'SPEED_NOT_OFFERED' => 'booking.speedNotOfferedError',
       'PRICE_NOT_RESOLVED' => 'booking.priceUnavailableError',
       // Laundry setup the customer cannot fix (time zone, currency, workflow profile).
       'TIMEZONE_NOT_CONFIGURED' ||

@@ -26,7 +26,6 @@ import {
   updateTaxExemptionAction,
   deactivateTaxExemptionAction,
 } from '@/app/actions/settings/tax-actions';
-import { hasDefaultTaxProfile } from '../model/tax-default-profile';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -590,27 +589,8 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
   // ---------------------------------------------------------------------------
 
   // P6-03: tax comes from profiles only; with no applicable default, orders carry no tax.
-  const hasDefaultProfile = hasDefaultTaxProfile(profiles, new Date().toISOString().slice(0, 10));
 
   const tabs = [
-    {
-      id: 'profiles',
-      label: t('profiles'),
-      content: (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <CmxButton onClick={openCreateProfile} disabled={isPending}>
-              <Plus className="h-4 w-4 me-2" />
-              {t('addProfile')}
-            </CmxButton>
-          </div>
-          {profiles.length === 0
-            ? <CmxEmptyState title={t('empty')} />
-            : <CmxDataTable columns={profileColumns} data={profiles} />
-          }
-        </div>
-      ),
-    },
     {
       id: 'exemptions',
       label: t('exemptions'),
@@ -637,9 +617,6 @@ export function TaxSetupClient({ initialProfiles, initialExemptions }: TaxSetupC
 
   return (
     <>
-      {!hasDefaultProfile && (
-        <CmxSummaryMessage type="warning" title={t('noDefaultProfile.title')} items={[t('noDefaultProfile.description')]} className="mb-4" />
-      )}
       <CmxTabsPanel tabs={tabs} />
 
       {/* Profile Dialog */}

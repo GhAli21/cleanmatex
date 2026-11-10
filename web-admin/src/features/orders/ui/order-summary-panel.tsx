@@ -15,6 +15,7 @@ import {
 } from '../hooks/use-payment-modal-version';
 import { ItemCartList, type ItemCartListQuoteProps } from './item-cart-list';
 import { ServiceSpeedSelect } from './service-speed-select';
+import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { CmxButton } from '@ui/primitives';
 import { CmxSummaryMessage } from '@ui/feedback';
@@ -116,6 +117,8 @@ interface OrderSummaryPanelProps {
   /** The order speed code (`sys_service_speed_cd`). */
   serviceSpeed?: string;
   onServiceSpeedChange?: (serviceSpeed: string) => void;
+  /** New Order only: prices each option of the order speed menu. */
+  speedPreview?: SpeedOptionPreviewSource;
   /** Shown only when a line has its own speed. */
   hasLineSpeedOverrides?: boolean;
   onApplySpeedToAllLines?: () => void;
@@ -174,6 +177,7 @@ function OrderSummaryPanelComponent({
   onClearCustomer,
   serviceSpeed = SERVICE_SPEEDS.STANDARD,
   onServiceSpeedChange,
+  speedPreview,
   hasLineSpeedOverrides = false,
   onApplySpeedToAllLines,
   lineQuote,
@@ -294,6 +298,7 @@ function OrderSummaryPanelComponent({
           disabled={!speedCapability.interactive || !onServiceSpeedChange}
           disabledReason={tNewOrder('serviceSpeed.locked')}
           ariaLabel={tNewOrder('serviceSpeed.orderAria')}
+          preview={speedPreview}
         />
         {hasLineSpeedOverrides && onApplySpeedToAllLines ? (
           <CmxButton

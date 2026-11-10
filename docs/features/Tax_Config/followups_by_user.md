@@ -18,3 +18,15 @@ Until each item is done, HQ Setup Health shows `TAX_KIT_FACT_UNVERIFIED` for tha
 ## After each migration
 
 - Apply the migration (local + remote), run `npm run prisma:pull`, regenerate types in both repos, then reply so the next step can start.
+
+## Testing
+
+- Run the scenarios in [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) for T3 (organization app and HQ) and T4 (orders).
+
+## Decisions to check
+
+- Demo organization `11111111…` charges an extra 2% on every order (old profile `LEGACY_05`). `0722` keeps it as a rule code so nothing changes on confirmation. If that 2% was only test data, deactivate it in Advanced mode › Tax rules.
+- Until an organization confirms its tax setup, its new orders carry no tax (ADR-061). All 4 organizations are waiting for confirmation today.
+- Supplier withholding: every kit's withholding rule is 0% (`WHT_NONE`). A real withholding rate is refused on supplier payments until T7 posts the withheld liability.
+- Foreign-currency purchases cannot be taxed yet: ERP-Lite records no exchange rate. Decide whether ERP-Lite should store a rate, then the limit can go.
+- No kit has a reverse-charge purchase rule (foreign supplier of services). `VAT_IN_RC` exists but nothing selects it; add rules per country after checking the law.

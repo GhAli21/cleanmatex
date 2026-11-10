@@ -1,6 +1,77 @@
 {
   "title": "Settings",
   "subtitle": "Manage your business settings and preferences",
+  "calendar": {
+    "title": "Business Calendar",
+    "subtitle": "Opening hours, cut-off and holidays. Promised ready times are worked out from these.",
+    "tabs": { "organization": "Organization", "branches": "Branches", "holidays": "Holidays" },
+    "timezone": "Time zone: {timezone}. Change it in General settings.",
+    "saved": "Calendar saved",
+    "copyToOpenDays": "Copy to open days",
+    "movedFromGeneral": "Opening hours are now set on the Business Calendar page, with cut-off time, ready time and holidays.",
+    "openPage": "Open Business Calendar",
+    "hours": { "title": "Opening hours" },
+    "cutoff": {
+      "label": "Cut-off time",
+      "help": "Orders received after this time count from the next working day. Empty = no cut-off.",
+      "none": "No cut-off"
+    },
+    "ready": {
+      "label": "Ready time",
+      "help": "When orders promised in working days are ready. Empty = closing time.",
+      "none": "Closing time"
+    },
+    "branch": {
+      "select": "Branch",
+      "choose": "Choose a branch",
+      "emptyTitle": "Choose a branch",
+      "emptyDescription": "Each branch can use the organization's calendar or its own.",
+      "useOrganizationHours": "Use the organization's opening hours",
+      "useOrganizationCutoff": "Use the organization's cut-off time",
+      "useOrganizationReady": "Use the organization's ready time",
+      "openCalendar": "Branch calendar"
+    },
+    "holidays": {
+      "add": "Add holiday",
+      "edit": "Edit holiday",
+      "date": "Date",
+      "name": "Name (English)",
+      "name2": "Name (Arabic)",
+      "year": "Year",
+      "source": "Source",
+      "sourceOwn": "Organization",
+      "sourcePublic": "Public holiday",
+      "sourcePublicEstimated": "Public holiday (estimated)",
+      "hours": "Hours",
+      "appliesTo": "Applies to",
+      "allBranches": "All branches",
+      "closedAllDay": "Closed all day",
+      "openThisDay": "We open this day",
+      "saved": "Holiday saved",
+      "deleted": "Holiday deleted",
+      "deleteTitle": "Delete this holiday?",
+      "deleteDescription": "Promised ready times will treat this date as a normal day. Saved orders do not change.",
+      "emptyTitle": "No holidays this year",
+      "emptyDescription": "Add the days you close, or short working days.",
+      "noCountry": "Public holidays cannot be shown because the organization has no country."
+    },
+    "validation": {
+      "closeAfterOpen": "Enter both times; closing must be after opening.",
+      "oneOpenDay": "Open at least one day.",
+      "time": "Enter a valid time.",
+      "holidayDate": "Choose a date.",
+      "name": "Enter a name."
+    },
+    "errors": {
+      "title": "Could not save",
+      "loadFailed": "Could not load the calendar. Refresh the page to try again.",
+      "CALENDAR_INVALID_HOURS": "Check the hours: closing must be after opening, and at least one day must be open.",
+      "HOLIDAY_DUPLICATE": "This date already has a holiday for the same branch.",
+      "NOT_FOUND": "This record no longer exists.",
+      "INVALID_REFERENCE": "The selected branch is not available.",
+      "INTERNAL_ERROR": "Something went wrong. Please try again."
+    }
+  },
   "general": "General",
   "branding": "Branding",
   "users": "Users",

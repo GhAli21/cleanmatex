@@ -88,5 +88,7 @@ export interface CartQuoteData {
   lines: CartQuoteLine[];
   /** The resolver's order ready-by (latest line), never the cashier's value. */
   readyByAt: string;
+  /** Time zone to show `readyByAt` in; null when the organization has no calendar. */
+  timezone: string | null;
   disclosures: CartQuoteDisclosure[];
 }

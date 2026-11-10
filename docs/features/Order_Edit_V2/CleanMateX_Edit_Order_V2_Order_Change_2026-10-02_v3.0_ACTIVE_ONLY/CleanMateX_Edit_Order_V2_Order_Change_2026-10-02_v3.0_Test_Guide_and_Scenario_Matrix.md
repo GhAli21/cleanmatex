@@ -303,3 +303,181 @@ Run from `web-admin`. DB suites need local Supabase on port 54322; each runs in 
 | OC-CALC-017 (ledger) | `__tests__/db-integration/loyalty-order-earn-reconcile.db.test.ts`, `__tests__/services/loyalty.service.test.ts` | `npx jest --config jest.db.config.js __tests__/db-integration/loyalty-order-earn-reconcile.db.test.ts` | PASS |
 
 Browser steps for the same rules: [Line-Level QA guide](../../Order_Fin/Line_Level_Money_Snapshot/QA_TEST_GUIDE.md) S9–S17.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch8: controlled core Edit)
+
+**Retest r5/core Edit:** 2026-11-07 16:37:44 Asia/Muscat (UTC+4), Demo Laundry/admin, EN1440×985 CSS; AR clean-context check then EN restored. Only dedicated `ORD-20261107-00001` UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9` changed. Detailed returned evidence `/workspace/qa-20261107/man-core-edit-ledger.md`.
+
+| # | Result | Companion and exact scope |
+|---|---|---|
+| OC-UI-001 | FAIL identity UI subcheck; context PARTIAL | MAN001 current customer controls contradict locked identity contract; context/rev load observed. No security bypass proof. |
+| OC-UI-005 | PARTIAL | MAN005 twoops grouping/before-after/financial Review and successful controlled Apply; stale editor/audit findings remain. |
+| OC-UI-010 | PARTIAL | MAN010 Escape noncommit PASS; opener-focus restoration not established/page-root observation; no full keyboard proof. |
+| OC-UI-012 | PARTIAL | MAN012 visible separate collect follow-up/no autopayment PASS; overpayment example pending. |
+| OC-UI-008 / 011 | NOT RUN this batch | No dirty-navigation or responsive/POS exercise. |
+| OC-UI-007 | NOT RUN | One Apply and one record do NOT prove lost-response same-key/payload retry/idempotency. |
+| Other OC UI rows | NOT RUN this batch | MAN004 WARN/OVERRIDE evidence is additional manual coverage; do not map MAN004 to duplicate-line OC004 (MAN013). Clean AR is not full OC009 flow. |
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch8)
+- **FET-OCUI-Nov07-Core:** Preserve exact companion boundaries. Regress current enabled identity controls, stale committed editor, reason reopen, focus and Unknown user findings recorded in Manual guide. Missing automated retry/security coverage remains missing; no replacement by visual observations.
+
+Bathrobe quantity1→2 preserves override2.100/unit,line4.200; Shirt.300−discount.030=net.270 retained. Live card new4.783/was2.536/delta+2.247/balance4.783/To collect. Review matches numbers, but Updating persisted>25s and stale after Apply. Independent reload total4.783,tax.313,paid0,credits0,due4.783 POC/Reconciled; processing/preparation pending unchanged.
+
+History exactly1Change#1,2ops,reason `QA-20261107 controlled quantity retest`,source order-edit,revision1→2,workflow version1; Applied by Unknown user. ItemUUID `2e052d4b-0c4e-4f20-a408-c29988ccbc80`; added pieceUUID `db4b929d-e1aa-4e96-8d2c-fd39428f7da6`,piece2/processing/expected. Single Apply click proves only observed single record, NOT lost-response retry or durable idempotency.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `man-core-baseline.png`, `man-core-note-review.png`, `man-core-note-discarded.png`, `man-core-quantity-staged.png`, `man-core-quantity-review-required.png`, `man-core-review-reason-required.png`, `man-core-review-reason-entered.png`, `man-core-review-ready.png`, `man-core-post-apply-balance.png`, `man-core-change-history.png`, `man-core-final-items.png`, `man-core-ar-context.png`, `man-core-final-en.png`.
+
+### Test data left behind / current fixture state
+Dedicated order now revision2,total4.783/tax.313/paid0/due4.783 OMR,POC,processing/pending,OPEN; Bathrobeqty2 atoverride2.100 and Shirtqty1 net.270;3pieces;one change/twoops/above reason. Note-only draft discarded. No other order/policy/payment/collection/refund/workflow/print/message changes. Final independent EN detail, no dirty draft. Original Create ledger remains historical baseline, not current total.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch11: stale guard and navigation)
+
+**Run:** returned17:17 Asia/Muscat (UTC+4), underlying16:57–17:15 about18minutes (exceeded15minbound). Demo admin,own `ORD-20261107-00001` UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9`; EN,final reportedCSS1920×1072/computer capture1280×800. Authoritative `/workspace/qa-20261107/man-stale-nav-ledger.md` read completely. Finalone clean detailtab `/dashboard/orders/{UUID}?tab=change_history`.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN006 / OC006 | PARTIAL | B note `QA-20261107-STALE-B-DO-NOT-SAVE` WARNack/Reviewagain initiallySTALE thenREADY asynchronously. Second editor A blocked `Close the other edit window before opening this order again.` Limited single-editor guard evidence PASS; NO concurrent committedstaleApply,no409/networkcapture,no full conflict-recovery PASS. B canceled/discarded before A opened. |
+| MAN008 / OC008 | PARTIAL | NAVdraft `QA-20261107-NAV-DRAFT-DO-NOT-SAVE`; Backprompt `Leave without saving?` / `You have unsaved changes. Are you sure you want to discard them?` Cancel/Confirm. Cancel retained draft/route; explicit Discard restored savedAnote/0dirty. Sidebar Orders/Expand wouldnotopen,aria-expandedfalse,noAppmessage; AllOrdersprompt/Leavepath not reached. Backafterdiscard didn'tnavigate; normal detailroute used. |
+| MAN013 / OC004 | BLOCKED fixture | Bathrobe+Shirt are NOTsameproductcommittedduplicates. No duplicate draft attempt; missingprecondition,not productFAIL. |
+| MAN011 / OC011 | NOT RUN | No responsivevisualpass. |
+| OC007 | NOT RUN | One Apply doesnotprove durableidempotency/retry. |
+
+**A notes-only controlled Apply:** after Bclosed,revision2 note `QA-20261107-STALE-A-COMMIT`,1dirty,No money change,total4.783. WARNack→Reviewagain initiallypending/stale thenREADY,no reasonrequested. Applyonce,toast `The change was saved.` Followup `Collect 4.7830 OMR on the existing collection screen. This screen does not take payment.` Backtoorder,no collection.
+
+Independentreload revision3/exactly2historyrecords: oldquantityChange#1 unchanged2ops; newChange#2 oneChange notes op,revision2→3,delta0.000,total4.783/tax0.313,paid0/due4.783,POCprocessing/pending. Newrecord AppliedbyUnknownuser,No reason recorded (none requested),sourceorder-edit,A note persisted. B/NAVnotes absent. No quantity/speed/price/discount/payment/workflow/customer/branch/policy changes.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch11)
+- **FET-EOV2-Nov07-SingleEditorBoundary:** Record single-session guard rather than claiming stale409. Full concurrent stale review test needs supported isolated sessions/testharness; do not bypass guard by internalAPI.
+- **P2 candidate FET-EOV2-Nov07-SidebarNav:** Sidebar Orders/Expand didnotopen,preventing remaining navtest; capture current shell interaction on repeat,sourcecause unconfirmed. BackCancel/explicitDiscard passes don't prove sidebarLeavepath.
+- **FET-EOV2-Nov07-ReviewPending:** Brief STALE→READY after acknowledged Reviewagain observed without repeat; record asyncsequence,not definitive conflictresult.
+- **FET-EOV2-Nov07-NotesScope:** Editnotes persistence nowpasses; prior Createnotes absence remains provisional/separateflow,not resolved by Edit.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `man-stale-b-review-stale.webp`,`man-stale-b-ready-review.webp`,`man-stale-concurrent-edit-block.webp`,`man-stale-a-ready-review.webp`,`man-stale-a-applied-balance.webp`,`man-stale-a-history.webp`,`man-stale-final-en.webp`,`man-nav-draft-staged.webp`,`man-nav-back-prompt.webp`,`man-nav-back-stay.webp`,`man-nav-draft-discarded.webp`.
+
+### Test data left behind / latest fixture
+Revision3,total4.783,tax0.313,paid0,due4.783,POCprocessing/pending;2totalChanges(2oldqtyops+1newnotesop). A note intentionallysaved,B/NAVnot;onecleanENdetailtab. No other saved changes. These actualstates supersede expectedrevision3 in brief,not historicalrecords. No Arabiccheck thisbatch.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch15: public tracking and small Edit subset)
+
+**Follow-up:**17:33–17:41:29 Asia/Muscat(UTC+4),Demo admin,ownrev3ordercce8a46e-a8f4-4346-8ca1-790182d1e1d9;EN,final1920×1072CSS. ActualChromeUIincognito/clipboardpaste/device-toolbarused;noShellclipboard/API. Authoritativeupdated`/workspace/qa-20261107/public-fin-customitem-ledger.md`. No savedchanges;existingcustomdraftalreadyloggednotdoublecounted.
+
+| # | Result | Evidence |
+|---|---|---|
+| OC-UI-011 | PARTIAL | ManualcompanionMAN011configured360cleanvisualsubset;objectiveviewportmatrixnotproven. |
+
+**MAN011/OC011 PARTIAL:** ChromeDevToolsdevice-toolbarconfigured360×985(notzoom). Playwrightreported434×1188whileemulated,so360evidenceisDeviceToolbarsetting,NOTindependentactualCSSmeasurement. Cleanrev3/0dirty,total4.783;Branchdisabled,Reviewvisible/enabled,Discardvisible/disabledclean. Servicecategorybarhorizontal-scrollshowsWash&Iron/DryCleaning,latersclipped;contexttabs1–3visible,laterstepsclipped. RecordP2responsiveusabilitycandidate;horizontal-scrollaloneisnotautomaticallybugifalltabsreachable—verifyreachability/primaryactionsbeforefullFAIL. Full1440/1024/smallPOSmatrixandReviewdialognotcoveredbythissubset. Desktoprestored.
+Evidence`shots/custom-item-mobile-360-branch.png`,`custom-item-mobile-360-review-discard.png`,`custom-item-mobile-360-category-overflow.png`,`custom-item-mobile-360-context-tabs.png`under`/workspace/qa-20261107/`.
+
+### Tester suggestions — Financial_Expert_Tester(batch15)
+- **FET-OCUI-Nov07-ViewportBoundary:** Do notequateDevToolssetting/screenshotpixelswithindependentactualCSSmeasurement;fullautomatedviewportcoveragepending.
+
+### Test data left behind
+None;ownrev3,total/due4.783,tax.313,paid0,processing/pending,twoChanges;customdraftdiscarded(noadditionalcustomattemptcount). ENcleandetail,incognitoclosed,desktoprestored. No messages/linksend/revoke/payment/workflow/printing/policy/settings.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch17: entry candidate piece and tablet retest)
+
+**Run:** tasktimestamp17:42,lastcheck17:52:52 Asia/Muscat(UTC+4);startsecondnotcaptured,10minboundmaybeslightlyexceeded. EN,responsivetoolbar1024×985/1440×985,lastowncleandetail1440×985. Read `/workspace/qa-20261107/man-entry-piece-tablet-ledger.md` completely. No savedorder/ReviewonDelivered/Apply/Delete/pieceAddRemove/workflow/paymentchanges. Ownrev3/total4.783 unchanged.
+
+| # | Result | Exact mapping boundary |
+|---|---|---|
+| OC002 / MAN002 | PARTIAL candidate; trueentryDENY untested | DeliveredcandidateEditOPENwithoperationrestrictions. No establishedentryDENYdecision,socontractFAILnotasserted. |
+| OC011 / MAN011 | PARTIAL | Actualtoolbars1024/1440cleancontext+noteswarningReview;1024tableclipped/overflow,headeractionsvisible;1440noapparentoverlap. NoAR/fullPOSmatrix/automatedviewportproof. |
+| MAN007 piece-selection companion | PARTIAL manual-only | Qtydecreasenopickerlocalonly. This relatesOC-STR-004,NOTsame-productOC004/MAN013. NoApply/exactservereligibilityproof. |
+| OC007 | NOT RUN | No retry/idempotencytest. |
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch17)
+- **P2 candidate FET-EOV2-Nov07-PieceSelector-Retest:** Localqtydecreaseauto-reducedvisiblepiececountwithoutchooser,matchingpriorUXobservation. Verifyintendedeligiblepiece-selectionworkflowwithrealprotectedpiecefixture;noDBwrong-removalclaim.
+- **P2 candidate FET-EOV2-Nov07-1024Table:** Horizontallyclippeditemtableat1024whileReview/Discardvisible. Testscrollreachability/contentbeforebroadunusableclaim;1440cleanlayoutlooksbetter.
+- **FET-EOV2-Nov07-EntryFixture:** DeliveredwithclosedoperationsisnotanentryDENYsample;preparegenuineentryDENYthroughpermittedexistingfixture/account,nopolicychangetojustmanufactureit.
+
+**Evidence** `/workspace/qa-20261107/shots/man-entry-delivered-denials.png`,`man-piece-quantity1-piece-list.png`,`man-tablet-1024-controls.png`,`man-tablet-1024-review-dialog.png`,`man-desktop-1440-review-dialog.png`.
+
+### Test data left behind
+No persistentchanges. Owncce8a46e-a8f4-4346-8ca1-790182d1e1d9rev3/0dirty/Bathrobeqty2,Shirtdiscountunchanged,total/due4.783,paid0,tax.313,savedAnoterestored;2Changesunchanged. Deliveredcandidateunchangedrev1/19.260. EN1440×985owndetail. Existinghistoricalresultsretained,notrewritten.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch18: long bilingual Review and financial previews)
+
+**Run:**2026-11-07 17:54:09–18:06:54 Asia/Muscat(UTC+4),12m45s(2m45over10minbound);owncce8a46e-a8f4-4346-8ca1-790182d1e1d9,EN/AR→EN1440×985CSS. Fullauthoritative`/workspace/qa-20261107/man014-oc009-p6-05-p6-03-ledger.md`read. No Apply/payment/taxdoc/refund/void/credit/workflow/printing/PDFsave.
+
+| # | Result | Mapping correction |
+|---|---|---|
+| OC009 / MAN009 | FAIL actualARReview subcheck |BilingualfunctionalEditReviewcomesfromlongreasonARattempt,NOTCollectPayment. ENREADYvsARREASON_REQUIREDdespitesame310charreason. |
+| MAN014 additionalmanual | PARTIAL visual / functionalreasonFAIL |Longfield/footerreachable,notbroaderall-statePASS. |
+
+LedgerheadingscallingOC009CollectmodalandP6-05A4reportaremislabels:collect=P6-05,actualreport=P6-03. No unrelatedfinancialactionsusedtosignoffOC009.
+
+**LongReview:** localBathrobeqty2→3,subtotal6.600,4pieces. BlankreasonREASON_REQUIRED;exact`QA-20261107 long review reason `repeated10=310charactersverified. ENReviewagainREADY,current4.783/projected7.0300,tax.313→.460,line4.200→6.300,OUTSTANDING,qty+Addpiece3/unit2.100/processing/expected;bothCAPABILITY_POLICY_OVERRIDE_REQUIRED. ReachableApply/Cancel;Applynotclicked.
+ARwithsamedraftandexactreasonvisibleinالسبب:oneمراجعةمرةأخرىattemptremainedREASON_REQUIRED,noApply;Reviewagain/Cancelreachable,noretries. This is functionalreason-stateFAILsubcheck,noserver/securityrootcause. ExactrawUIresidue READY,REASON_REQUIRED,OUTSTANDING,CAPABILITY_POLICY_OVERRIDE_REQUIRED,processing,expected,CHANGE_ORDER_NOTES,CHANGE_ITEM_QUANTITY,ADD_PIECE;intentionalENreasonisnottranslationdefect. Cancel+Discardrestoresrev3/qty2/0dirty/4.783.
+Evidence`shots/man-long-en-reason-field.png`,`man-long-en-ready-bottom.png`,`man-long-ar-review.png`under`/workspace/qa-20261107/`.
+
+### Tester suggestions — Financial_Expert_Tester(batch18)
+- **FET-OCUI-Nov07-BilingualReview:** Addregressionexactlongreasonlocale-switchworkflow;retainreportedARreasonstate/localizationfailurewithnosavedmutation. OtherOCcontractsnotpassedbythischeck.
+
+### Test data left behind
+No savedchanges;alldraftsdiscarded,ownrev3/Bathrobeqty2,total4.783,tax.313,paid0,due4.783,POCprocessing/pending,twoChanges. EN1440×985cleandetail,nomodal;no printing/payment. Priorfailures/roundstextpreserved.
+
+Cumulative provisional ledger recount: PASS 0 / FAIL 2 / PARTIAL 7 / BLOCKED 1 / NOT RUN 2: OC-UI-003, OC-UI-007 (12 parent scenarios). Subcheck PASS does not imply parent PASS.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch23: remaining Edit prerequisite notes only)
+
+No new UI or automated execution. Read `/workspace/qa-20261107/remaining-edit-view-preflight.md`; these notes do not convert prior evidence into new coverage.
+
+| # | Result | Evidence boundary |
+|---|---|---|
+| OC-UI-003 | NOT RUN target behavior | Contract operation-level denied control cannot be committed (Playwright required), MAN003 disabled/reason companion. Prior speed/price/discount baseline and allowed notes/quantity do not establish REMOVE_ITEM DENY mixed with allowed controls. Need confirmed normal-UI DENY fixture and enforcement evidence. No policy mutation/Remove/Apply attempted. |
+| OC-UI-007 | NOT RUN target behavior | Lost-response retry must retain same key/payload and durable original outcome. One earlier Apply/one record or single-editor guard does not prove it. Supported retry/fault harness unavailable; SCM disconnected. No simulated loss/retry, second Apply, internal request or guard bypass. |
+
+### Tester suggestions — Financial_Expert_Tester (batch23)
+- **P2 FET-OCUI-Nov07-RemainingPrereqs:** Retain exact deny-fixture and supported retry-harness requirements. Read-only policy/affordance inspection can only characterize prerequisites; don't replace objective enforcement/idempotency evidence with UI visibility or duplicate one-click history.
+
+**Counts unchanged:** PASS0/FAIL2/PARTIAL7/BLOCKED1/NOT RUN2:OC-UI-003,OC-UI-007. No action undertaken on own order rev3,total/due4.783,paid0; no source/API/DB/spec execution or SCM reconnection. Earlier result text preserved.
+
+### Test data left behind
+None; preparation only, no saved changes.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (FINAL reconciliation: INCOMPLETE)
+
+**INCOMPLETE — NO OVERALL PASS.** Original requested QA pass stopped after the completed evidence below; no further testing. Parent PARTIAL/BLOCKED/NOT RUN are unresolved coverage, and NOT RUN0 never means all subchecks passed. Earlier rounds/leaf FAILs remain unchanged. This is own final reconciliation, not an edit of author requirements or other editors' results. No source/spec additions or execution.
+
+**Final parent counts:** PASS 0 / FAIL 2 / PARTIAL 7 / BLOCKED 2 / NOT RUN 1.
+
+**FAIL IDs:** OC-UI-001, OC-UI-009
+**PARTIAL IDs:** OC-UI-002, OC-UI-005, OC-UI-006, OC-UI-008, OC-UI-010, OC-UI-011, OC-UI-012
+**BLOCKED IDs:** OC-UI-003, OC-UI-004
+**NOT RUN IDs:** OC-UI-007
+
+
+### Latest completed OC003 / MAN003 read-only evidence
+18:55:26–18:59:06 Asia/Muscat(UTC+4), Demo super_admin EN1440px. Full `oc003-policy-affordance-ledger.md` read. Own actual `/dashboard/orders/cce8a46e-a8f4-4346-8ca1-790182d1e1d9/edit`: revision3,processing,0unsaved,Bathrobeqty2,total4.783. Edit Policy Info: Standard Order Change V1; Organization-wide override; policyrev3/PILOT; workflowprofile version4/PILOT. Remove an item(Item) **Needs an override**, NOT Not allowed/DENY. Exact explanation: `You can change this while editing. Review checks the current policy before anything is saved.` / `A person with override permission must approve this before Apply.` / `Review asks for a reason before Apply.` Change notes showed allowed-with-warning, read only. Enabled-looking Remove item hover gave no accessible tooltip; explanation existed in Policy Info. No Remove clicked, no fields changed/Review/Apply. No enforcement PASS or warning-as-failure. Required real REMOVE_ITEM DENY plus allowed-operation fixture remains missing: parent BLOCKED prerequisite, enforcement target NOT RUN.
+
+**Manual-scope correction:** Original user explicitly said no Playwright spec exists and for now checks are manual. Absence of a new OC-UI spec is NOT a blocker to manual OC003. Missing real DENY fixture is the blocker; do not add a spec/code. OC007 lost-response/same-key/payload retry remains NOT RUN because no safe supported harness, not because visual evidence failed. No guard/SCM bypass.
+Evidence under `shots/`: `oc003-policy-info-editor.webp`,`oc003-policy-remove-item.png`,`oc003-policy-remove-affordance.webp`. Clean EN detail restored; no saved change.
+### Tester suggestions — Financial_Expert_Tester final
+- P2 FET-FINAL-OCBoundary: Retain partial manual browser evidence without claiming unexecuted denied-commit/retry/concurrency/objective guarantees. OC003 manual execution is permitted in original scope once real DENY fixture available; OC007 needs supported safe harness. No code/spec added, SCM remains disconnected.
+### Test data left behind
+Own order rev3,total/due4.783,paid0,2Changes unchanged; no new Apply or records. No messages/printing/password changes.
+
+
+## Financial_Expert_Tester Results — 2026-11-08 (remote-only policy/access retest and parity adaptation)
+
+**Remote UI evidence:**2026-11-08 16:36:02–16:41:06 Asia/Muscat(UTC+4),HQ System Administrator; full `hq-policy-role-retest.md` read. No toggles/fill/reset/save/publish/assignment/grant/account change. REMOTE ONLY per user direction: tenant `https://cmx.cleanmatex.com`, HQ `https://hqsaas.cleanmatex.com`; no more localhost/listener checks or service actions. cmx is tenant web-admin, NOT a newly supplied customer mobile app.
+
+| # | Result | Evidence |
+|---|---|---|
+| OC003/MAN003 prerequisite context | BLOCKED true-DENY fixture; target behavior unexecuted | HQ source/clone policy inventory unchanged; no new tenant denied-operation attempt. SourceProcessing15rows4WARN/11override/0DENY not evidence of required REMOVE_ITEM DENY. Manual OC003 not blocked by missing new Playwright spec. |
+| OC007 | NOT RUN | No lost-response/retry test or safe harness; no code/spec added. |
+Source actual `/en/order-change-config/edit-policies/f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`:ORDER_CHANGE_STANDARD_V1 Pilotrev3,230/702. Processing15rules,4Allow with warning/11Require override/0Deny. CHANGE_SERVICE_SPEED Order=Require override, reason/orders:edit_override; NOT a substitute for Item/Piece. All five requested pairs still absent: CHANGE_SERVICE_SPEED Item/Piece, CHANGE_DISCOUNT Item/Piece, CHANGE_ITEM_PRICE Item. No row means no decision combobox/per-row disabled reason; no exposed per-cell add. Smart fill note only adds missing cells, NOT activated or validated as safe pair-add mechanism.
+Existing clone actual `/en/order-change-config/edit-policies/a6f6c2ef-8d69-4ab1-9770-d99e33730b62`:ORDER_CHANGE_STANDARD_QA_20261107_V1 Draftrev2/230of702,unassigned/unpublished per current description; Processing same15/4WARN/11override/0DENY, same five pairs absent. Fill missing only/Reset suggestions NOT used; no new clone/type or protected decision changes. Source Pilot badge/list vs adjacent `Unassigned Draft starter matrix. HQ must review, promote, and assign it before any tenant can use it.` is qualified descriptive UX inconsistency, NOT proven lifecycle/backend resolution bug. No current tenant-side parity tested in this evidence.
+### Tester suggestions — Financial_Expert_Tester(Nov8 remote policy)
+- **P2 FET-OC-Nov08-PrereqBoundary:** Keep absent five line pairs as setup blocker only; do not sign off denied commit, retry or parity from HQ row inventory.
+Parent counts unchanged FAIL2/PARTIAL7/BLOCKED2/NOT RUN1(OC007).
+
+### Test data left behind
+None created/changed by this retest. Existing source Pilotrev3 and clone Draftrev2 preserved; no publish/assignment/grant. Order last-known Nov7 state is NOT independently verified by HQ-only retest. Final clean EN policy list; no messages/printing/password changes.

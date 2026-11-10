@@ -1,6 +1,7 @@
 'use server';
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
+import { legacyTaxProfileIdentity } from '@/lib/services/tax/legacy-tax-profile';
 import { taxProfileRoundingColumns, taxProfileRoundingSchema, type TaxProfileRoundingInput } from '@/lib/validations/tax-profile-rounding-schema';
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
@@ -137,6 +138,7 @@ export async function createTaxProfileAction(input: CreateTaxProfileInput): Prom
       const profile = await prisma.org_tax_profiles_cf.create({
         data: {
           tenant_org_id:  tenantId,
+          ...legacyTaxProfileIdentity(input.rate),
           name:           input.name,
           name2:          input.name2 ?? null,
           tax_type:       input.taxType,

@@ -1,3 +1,4 @@
+import { legacyTaxProfileIdentity } from '@/lib/services/tax/legacy-tax-profile';
 import { NextRequest, NextResponse } from 'next/server';
 import { taxProfileRoundingColumns, taxProfileRoundingSchema } from '@/lib/validations/tax-profile-rounding-schema';
 import { z } from 'zod';
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
       prisma.org_tax_profiles_cf.create({
         data: {
           tenant_org_id:  tenantId,
+          ...legacyTaxProfileIdentity(parsed.data.rate),
           name:           parsed.data.name,
           name2:          parsed.data.name2 ?? null,
           tax_type:       parsed.data.taxType,

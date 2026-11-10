@@ -478,6 +478,7 @@ model org_branches_mst {
   org_stng_audit_log_tr                                                                        org_stng_audit_log_tr[]
   org_stng_effective_cache_cf                                                                  org_stng_effective_cache_cf[]
   org_sv_funding_tenders_dtl                                                                   org_sv_funding_tenders_dtl[]
+  org_tax_lines_tr                                                                             org_tax_lines_tr[]
   org_tax_rules_cf                                                                             org_tax_rules_cf[]
 
   @@id([id, tenant_org_id])
@@ -1791,6 +1792,7 @@ model org_tenants_mst {
   org_tax_doc_triggers_cfg         org_tax_doc_triggers_cfg[]
   org_tax_documents_mst            org_tax_documents_mst[]
   org_tax_item_classes_cf          org_tax_item_classes_cf[]
+  org_tax_lines_tr                 org_tax_lines_tr[]
   org_tax_periods_mst              org_tax_periods_mst[]
   org_tax_rules_cf                 org_tax_rules_cf[]
   org_tenant_order_sources_cf      org_tenant_order_sources_cf[]
@@ -2168,7 +2170,6 @@ model sys_service_category_cd {
   ctg_name2                     String?                         @db.VarChar(250)
   ctg_desc                      String?                         @db.VarChar(600)
   turnaround_hh                 Decimal?                        @db.Decimal(4, 2)
-  turnaround_hh_express         Decimal?                        @db.Decimal(4, 2)
   multiplier_express            Decimal?                        @db.Decimal(4, 2)
   is_builtin                    Boolean                         @default(false)
   has_fee                       Boolean                         @default(false)
@@ -2701,6 +2702,7 @@ model org_gift_cards_mst {
   currency_code         String
   /// PIN verification failure counter — reset on successful auth; lock after 5 failures
   pin_failed_attempts   Int                     @default(0)
+  voucher_tax_mode      String                  @default("MPV")
   org_gift_card_txn_dtl org_gift_card_txn_dtl[]
   purchased_by_customer org_customers_mst?      @relation("gc_purchased_by", fields: [purchased_by_cust_id], references: [id], onUpdate: NoAction, map: "fk_gc_purchased_by")
   sys_currency_cd       sys_currency_cd         @relation(fields: [currency_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_gift_cards_currency")
@@ -4329,6 +4331,8 @@ model sys_currency_cd {
   org_order_changes_mst                                                                             org_order_changes_mst[]
   org_orders_mst                                                                                    org_orders_mst[]
   org_pln_subscriptions_mst                                                                         org_pln_subscriptions_mst[]
+  org_tax_lines_tr_org_tax_lines_tr_base_currency_codeTosys_currency_cd                             org_tax_lines_tr[]                     @relation("org_tax_lines_tr_base_currency_codeTosys_currency_cd")
+  org_tax_lines_tr_org_tax_lines_tr_currency_codeTosys_currency_cd                                  org_tax_lines_tr[]                     @relation("org_tax_lines_tr_currency_codeTosys_currency_cd")
   sys_bill_invoice_payments_tr_sys_bill_invoice_payments_tr_base_currency_codeTosys_currency_cd     sys_bill_invoice_payments_tr[]         @relation("sys_bill_invoice_payments_tr_base_currency_codeTosys_currency_cd")
   sys_bill_invoice_payments_tr_sys_bill_invoice_payments_tr_currency_codeTosys_currency_cd          sys_bill_invoice_payments_tr[]         @relation("sys_bill_invoice_payments_tr_currency_codeTosys_currency_cd")
   sys_bill_invoices_mst_sys_bill_invoices_mst_base_currency_codeTosys_currency_cd                   sys_bill_invoices_mst[]                @relation("sys_bill_invoices_mst_base_currency_codeTosys_currency_cd")
@@ -8215,6 +8219,7 @@ model org_tax_profiles_cf {
   org_order_item_pieces_dtl org_order_item_pieces_dtl[]
   org_order_items_dtl       org_order_items_dtl[]
   org_order_taxes_dtl       org_order_taxes_dtl[]
+  org_tax_lines_tr          org_tax_lines_tr[]
   sys_rounding_mode_cd      sys_rounding_mode_cd        @relation(fields: [rounding_mode], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_tax_prof_rounding_mode")
   sys_tax_category_cd       sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onUpdate: NoAction, map: "fk_otp_category")
   sys_tax_kit_versions_mst  sys_tax_kit_versions_mst?   @relation(fields: [kit_version_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_otp_kit_ver")
@@ -10595,33 +10600,35 @@ model org_fin_ap_alloc_tr {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_fin_ap_inv_dtl {
-  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id         String                 @db.Uuid
-  ap_inv_id             String                 @db.Uuid
-  po_line_id            String?                @db.Uuid
-  line_no               Int
-  branch_id             String?                @db.Uuid
-  usage_code_id         String?                @db.Uuid
-  description           String
-  description2          String?
-  net_amount            Decimal                @default(0) @db.Decimal(19, 4)
-  tax_amount            Decimal                @default(0) @db.Decimal(19, 4)
-  gross_amount          Decimal                @default(0) @db.Decimal(19, 4)
-  created_at            DateTime               @default(now()) @db.Timestamp(6)
-  created_by            String?                @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?              @db.Timestamp(6)
-  updated_by            String?                @db.VarChar(120)
-  updated_info          String?
-  rec_status            Int                    @default(1) @db.SmallInt
-  rec_order             Int?
-  rec_notes             String?                @db.VarChar(200)
-  is_active             Boolean                @default(true)
-  org_branches_mst      org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofad_branch")
-  org_fin_ap_inv_mst    org_fin_ap_inv_mst     @relation(fields: [ap_inv_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofad_inv")
-  org_fin_po_dtl        org_fin_po_dtl?        @relation(fields: [po_line_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofad_po")
-  org_tenants_mst       org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofad_tenant")
-  sys_fin_usage_code_cd sys_fin_usage_code_cd? @relation(fields: [usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofad_usage")
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String                   @db.Uuid
+  ap_inv_id               String                   @db.Uuid
+  po_line_id              String?                  @db.Uuid
+  line_no                 Int
+  branch_id               String?                  @db.Uuid
+  usage_code_id           String?                  @db.Uuid
+  description             String
+  description2            String?
+  net_amount              Decimal                  @default(0) @db.Decimal(19, 4)
+  tax_amount              Decimal                  @default(0) @db.Decimal(19, 4)
+  gross_amount            Decimal                  @default(0) @db.Decimal(19, 4)
+  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  created_by              String?                  @db.VarChar(120)
+  created_info            String?
+  updated_at              DateTime?                @db.Timestamp(6)
+  updated_by              String?                  @db.VarChar(120)
+  updated_info            String?
+  rec_status              Int                      @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?                  @db.VarChar(200)
+  is_active               Boolean                  @default(true)
+  tax_item_class_code     String?
+  org_branches_mst        org_branches_mst?        @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofad_branch")
+  org_fin_ap_inv_mst      org_fin_ap_inv_mst       @relation(fields: [ap_inv_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofad_inv")
+  org_fin_po_dtl          org_fin_po_dtl?          @relation(fields: [po_line_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofad_po")
+  org_tenants_mst         org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofad_tenant")
+  sys_fin_usage_code_cd   sys_fin_usage_code_cd?   @relation(fields: [usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofad_usage")
+  org_tax_item_classes_cf org_tax_item_classes_cf? @relation(fields: [tenant_org_id, tax_item_class_code], references: [tenant_org_id, class_code], onUpdate: NoAction, map: "fk_ofaid_tax_class")
 
   @@unique([tenant_org_id, ap_inv_id, line_no], map: "uq_ofad_line")
   @@unique([tenant_org_id, id], map: "uq_ofad_tenant_id")
@@ -10707,6 +10714,7 @@ model org_fin_ap_pmt_mst {
   rec_notes             String?                @db.VarChar(200)
   is_active             Boolean                @default(true)
   doc_type_code         String                 @default("ERP_AP_PAYMENT")
+  wht_amount            Decimal                @default(0) @db.Decimal(19, 4)
   org_fin_ap_alloc_tr   org_fin_ap_alloc_tr[]
   sys_doc_seq_type_cd   sys_doc_seq_type_cd    @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fap_doc_type")
   org_fin_bank_acct_mst org_fin_bank_acct_mst? @relation(fields: [bank_account_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofap_bank")
@@ -11263,30 +11271,32 @@ model org_fin_doc_seq_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_fin_exp_dtl {
-  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id         String                @db.Uuid
-  expense_id            String                @db.Uuid
-  line_no               Int
-  usage_code_id         String                @db.Uuid
-  branch_id             String?               @db.Uuid
-  line_description      String?
-  line_description2     String?
-  net_amount            Decimal               @default(0) @db.Decimal(19, 4)
-  tax_amount            Decimal               @default(0) @db.Decimal(19, 4)
-  gross_amount          Decimal               @default(0) @db.Decimal(19, 4)
-  created_at            DateTime              @default(now()) @db.Timestamp(6)
-  created_by            String?               @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?             @db.Timestamp(6)
-  updated_by            String?               @db.VarChar(120)
-  updated_info          String?
-  rec_status            Int                   @default(1) @db.SmallInt
-  rec_order             Int?
-  rec_notes             String?               @db.VarChar(200)
-  is_active             Boolean               @default(true)
-  org_branches_mst      org_branches_mst?     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofed_branch")
-  org_fin_exp_mst       org_fin_exp_mst       @relation(fields: [expense_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofed_exp")
-  sys_fin_usage_code_cd sys_fin_usage_code_cd @relation(fields: [usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofed_usage")
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String                   @db.Uuid
+  expense_id              String                   @db.Uuid
+  line_no                 Int
+  usage_code_id           String                   @db.Uuid
+  branch_id               String?                  @db.Uuid
+  line_description        String?
+  line_description2       String?
+  net_amount              Decimal                  @default(0) @db.Decimal(19, 4)
+  tax_amount              Decimal                  @default(0) @db.Decimal(19, 4)
+  gross_amount            Decimal                  @default(0) @db.Decimal(19, 4)
+  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  created_by              String?                  @db.VarChar(120)
+  created_info            String?
+  updated_at              DateTime?                @db.Timestamp(6)
+  updated_by              String?                  @db.VarChar(120)
+  updated_info            String?
+  rec_status              Int                      @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?                  @db.VarChar(200)
+  is_active               Boolean                  @default(true)
+  tax_item_class_code     String?
+  org_branches_mst        org_branches_mst?        @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofed_branch")
+  org_fin_exp_mst         org_fin_exp_mst          @relation(fields: [expense_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofed_exp")
+  org_tax_item_classes_cf org_tax_item_classes_cf? @relation(fields: [tenant_org_id, tax_item_class_code], references: [tenant_org_id, class_code], onUpdate: NoAction, map: "fk_ofed_tax_class")
+  sys_fin_usage_code_cd   sys_fin_usage_code_cd    @relation(fields: [usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofed_usage")
 
   @@unique([tenant_org_id, id], map: "uq_ofed_tenant_id")
   @@unique([tenant_org_id, expense_id, line_no], map: "uq_ofed_tenant_line")
@@ -11329,9 +11339,11 @@ model org_fin_exp_mst {
   rec_notes           String?             @db.VarChar(200)
   is_active           Boolean             @default(true)
   doc_type_code       String              @default("ERP_EXPENSE")
+  supplier_id         String?             @db.Uuid
   org_fin_exp_dtl     org_fin_exp_dtl[]
   sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fex_doc_type")
   org_branches_mst    org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofe_branch")
+  org_fin_supp_mst    org_fin_supp_mst?   @relation(fields: [tenant_org_id, supplier_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ofe_supplier")
   org_tenants_mst     org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofe_tenant")
 
   @@unique([tenant_org_id, id], map: "uq_ofe_tenant_id")
@@ -11556,35 +11568,37 @@ model org_fin_period_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_fin_po_dtl {
-  id                    String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id         String                 @db.Uuid
-  po_id                 String                 @db.Uuid
-  line_no               Int
-  branch_id             String?                @db.Uuid
-  usage_code_id         String?                @db.Uuid
-  description           String
-  description2          String?
-  qty_ordered           Decimal                @default(0) @db.Decimal(19, 4)
-  qty_received          Decimal                @default(0) @db.Decimal(19, 4)
-  unit_price            Decimal                @default(0) @db.Decimal(19, 4)
-  net_amount            Decimal                @default(0) @db.Decimal(19, 4)
-  tax_amount            Decimal                @default(0) @db.Decimal(19, 4)
-  gross_amount          Decimal                @default(0) @db.Decimal(19, 4)
-  created_at            DateTime               @default(now()) @db.Timestamp(6)
-  created_by            String?                @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?              @db.Timestamp(6)
-  updated_by            String?                @db.VarChar(120)
-  updated_info          String?
-  rec_status            Int                    @default(1) @db.SmallInt
-  rec_order             Int?
-  rec_notes             String?                @db.VarChar(200)
-  is_active             Boolean                @default(true)
-  org_fin_ap_inv_dtl    org_fin_ap_inv_dtl[]
-  org_branches_mst      org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofpd_branch")
-  org_fin_po_mst        org_fin_po_mst         @relation(fields: [po_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofpd_po")
-  org_tenants_mst       org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofpd_tenant")
-  sys_fin_usage_code_cd sys_fin_usage_code_cd? @relation(fields: [usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofpd_usage")
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String                   @db.Uuid
+  po_id                   String                   @db.Uuid
+  line_no                 Int
+  branch_id               String?                  @db.Uuid
+  usage_code_id           String?                  @db.Uuid
+  description             String
+  description2            String?
+  qty_ordered             Decimal                  @default(0) @db.Decimal(19, 4)
+  qty_received            Decimal                  @default(0) @db.Decimal(19, 4)
+  unit_price              Decimal                  @default(0) @db.Decimal(19, 4)
+  net_amount              Decimal                  @default(0) @db.Decimal(19, 4)
+  tax_amount              Decimal                  @default(0) @db.Decimal(19, 4)
+  gross_amount            Decimal                  @default(0) @db.Decimal(19, 4)
+  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  created_by              String?                  @db.VarChar(120)
+  created_info            String?
+  updated_at              DateTime?                @db.Timestamp(6)
+  updated_by              String?                  @db.VarChar(120)
+  updated_info            String?
+  rec_status              Int                      @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?                  @db.VarChar(200)
+  is_active               Boolean                  @default(true)
+  tax_item_class_code     String?
+  org_fin_ap_inv_dtl      org_fin_ap_inv_dtl[]
+  org_branches_mst        org_branches_mst?        @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofpd_branch")
+  org_fin_po_mst          org_fin_po_mst           @relation(fields: [po_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofpd_po")
+  org_tenants_mst         org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ofpd_tenant")
+  sys_fin_usage_code_cd   sys_fin_usage_code_cd?   @relation(fields: [usage_code_id], references: [usage_code_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ofpd_usage")
+  org_tax_item_classes_cf org_tax_item_classes_cf? @relation(fields: [tenant_org_id, tax_item_class_code], references: [tenant_org_id, class_code], onUpdate: NoAction, map: "fk_ofpod_tax_class")
 
   @@unique([tenant_org_id, po_id, line_no], map: "uq_ofpd_line")
   @@unique([tenant_org_id, id], map: "uq_ofpd_tenant_id")
@@ -11971,6 +11985,7 @@ model org_fin_supp_mst {
   tax_country            String?
   org_fin_ap_inv_mst     org_fin_ap_inv_mst[]
   org_fin_ap_pmt_mst     org_fin_ap_pmt_mst[]
+  org_fin_exp_mst        org_fin_exp_mst[]
   org_fin_po_mst         org_fin_po_mst[]
   org_fin_supp_ctc_dtl   org_fin_supp_ctc_dtl[]
   org_branches_mst       org_branches_mst?       @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofs_branch")
@@ -16831,6 +16846,7 @@ model sys_tax_category_cd {
   org_order_items_dtl       org_order_items_dtl[]
   org_product_data_mst      org_product_data_mst[]
   org_tax_doc_items_dtl     org_tax_doc_items_dtl[]
+  org_tax_lines_tr          org_tax_lines_tr[]
   org_tax_profiles_cf       org_tax_profiles_cf[]
   sys_tax_exempt_reason_cd  sys_tax_exempt_reason_cd[]
   sys_tax_kit_codes_dtl     sys_tax_kit_codes_dtl[]
@@ -17228,6 +17244,7 @@ model sys_doc_seq_type_cd {
   org_pos_sessions_mst         org_pos_sessions_mst[]
   org_pos_shift_z_rpt_tr       org_pos_shift_z_rpt_tr[]
   org_tax_documents_mst        org_tax_documents_mst[]
+  org_tax_lines_tr             org_tax_lines_tr[]
   org_tax_rules_cf             org_tax_rules_cf[]
   sys_doc_seq_mst              sys_doc_seq_mst[]
   sys_doc_seq_category_cd      sys_doc_seq_category_cd        @relation(fields: [category_code], references: [category_code], onUpdate: NoAction, map: "fk_doc_seq_type_cat")
@@ -18089,6 +18106,9 @@ model org_tax_item_classes_cf {
   rec_order                Int?
   rec_notes                String?
   is_active                Boolean                   @default(true)
+  org_fin_ap_inv_dtl       org_fin_ap_inv_dtl[]
+  org_fin_exp_dtl          org_fin_exp_dtl[]
+  org_fin_po_dtl           org_fin_po_dtl[]
   org_product_data_mst     org_product_data_mst[]
   sys_tax_kit_versions_mst sys_tax_kit_versions_mst? @relation(fields: [kit_version_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_otic_kit_ver")
   org_tenants_mst          org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otic_tenant")
@@ -18103,31 +18123,32 @@ model org_tax_item_classes_cf {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_tax_periods_mst {
-  id              String          @id(map: "pk_org_tax_periods") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id   String          @db.Uuid
-  period_start    DateTime        @db.Date
-  period_end      DateTime        @db.Date
-  status          String          @default("OPEN")
-  closed_at       DateTime?       @db.Timestamptz(6)
-  closed_by       String?
-  reopened_at     DateTime?       @db.Timestamptz(6)
-  reopened_by     String?
-  reopen_reason   String?
-  created_at      DateTime        @default(now()) @db.Timestamptz(6)
-  created_by      String?
-  created_info    String?
-  updated_at      DateTime?       @db.Timestamptz(6)
-  updated_by      String?
-  updated_info    String?
-  updated_count   Int             @default(0)
-  deleted_at      DateTime?       @db.Timestamptz(6)
-  deleted_by      String?
-  deleted_info    String?
-  rec_status      Int             @default(1) @db.SmallInt
-  rec_order       Int?
-  rec_notes       String?
-  is_active       Boolean         @default(true)
-  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otpm_tenant")
+  id               String             @id(map: "pk_org_tax_periods") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String             @db.Uuid
+  period_start     DateTime           @db.Date
+  period_end       DateTime           @db.Date
+  status           String             @default("OPEN")
+  closed_at        DateTime?          @db.Timestamptz(6)
+  closed_by        String?
+  reopened_at      DateTime?          @db.Timestamptz(6)
+  reopened_by      String?
+  reopen_reason    String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?          @db.Timestamptz(6)
+  updated_by       String?
+  updated_info     String?
+  updated_count    Int                @default(0)
+  deleted_at       DateTime?          @db.Timestamptz(6)
+  deleted_by       String?
+  deleted_info     String?
+  rec_status       Int                @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?
+  is_active        Boolean            @default(true)
+  org_tax_lines_tr org_tax_lines_tr[]
+  org_tenants_mst  org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otpm_tenant")
 
   @@unique([tenant_org_id, id], map: "uq_otpm_tenant_id")
   @@unique([tenant_org_id, period_start], map: "uq_otpm_tenant_start")
@@ -18200,6 +18221,7 @@ model org_tax_rules_cf {
   rec_order                Int?
   rec_notes                String?
   is_active                Boolean                   @default(true)
+  org_tax_lines_tr         org_tax_lines_tr[]
   org_tax_rule_codes_dtl   org_tax_rule_codes_dtl[]
   org_branches_mst         org_branches_mst?         @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_otr_branch")
   sys_doc_seq_type_cd      sys_doc_seq_type_cd?      @relation(fields: [doc_type_code], references: [doc_type_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otr_doc_type")
@@ -18212,6 +18234,80 @@ model org_tax_rules_cf {
 
   @@unique([tenant_org_id, rule_code], map: "uq_otr_tenant_code")
   @@unique([tenant_org_id, id], map: "uq_otr_tenant_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tax_lines_tr {
+  id                                                                   String               @id(map: "pk_org_tax_lines") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                        String               @db.Uuid
+  source_doc_type_code                                                 String
+  source_doc_id                                                        String               @db.Uuid
+  source_doc_no                                                        String?
+  source_doc_line_id                                                   String?              @db.Uuid
+  source_doc_sub_line_id                                               String?              @db.Uuid
+  line_status                                                          String               @default("PROVISIONAL")
+  tax_point_at                                                         DateTime?            @db.Timestamptz(6)
+  tax_date                                                             DateTime             @db.Date
+  tax_flow_code                                                        String
+  branch_id                                                            String?              @db.Uuid
+  party_type                                                           String?
+  party_id                                                             String?              @db.Uuid
+  tax_code                                                             String
+  tax_profile_id                                                       String?              @db.Uuid
+  tax_rule_id                                                          String?              @db.Uuid
+  tax_category_code                                                    String
+  exempt_reason_code                                                   String?
+  calc_level                                                           String               @default("LINE")
+  rate                                                                 Decimal?             @db.Decimal(5, 2)
+  fixed_amount                                                         Decimal?             @db.Decimal(19, 4)
+  taxable_amount                                                       Decimal              @db.Decimal(19, 4)
+  tax_amount                                                           Decimal              @db.Decimal(19, 4)
+  recoverable_amount                                                   Decimal              @default(0) @db.Decimal(19, 4)
+  currency_code                                                        String
+  base_currency_code                                                   String
+  base_taxable_amount                                                  Decimal              @db.Decimal(19, 4)
+  base_tax_amount                                                      Decimal              @db.Decimal(19, 4)
+  fx_rate                                                              Decimal?             @db.Decimal(22, 10)
+  fx_rate_date                                                         DateTime?            @db.Date
+  fx_rate_source                                                       String?
+  fx_rate_id                                                           String?              @db.Uuid
+  compound_base                                                        Boolean              @default(false)
+  applied_seq                                                          Int                  @default(1) @db.SmallInt
+  reverses_tax_line_id                                                 String?              @db.Uuid
+  report_box_code                                                      String?
+  period_id                                                            String?              @db.Uuid
+  created_at                                                           DateTime             @default(now()) @db.Timestamptz(6)
+  created_by                                                           String?
+  created_info                                                         String?
+  updated_at                                                           DateTime?            @db.Timestamptz(6)
+  updated_by                                                           String?
+  updated_info                                                         String?
+  updated_count                                                        Int                  @default(0)
+  deleted_at                                                           DateTime?            @db.Timestamptz(6)
+  deleted_by                                                           String?
+  deleted_info                                                         String?
+  rec_status                                                           Int                  @default(1) @db.SmallInt
+  rec_order                                                            Int?
+  rec_notes                                                            String?
+  is_active                                                            Boolean              @default(true)
+  sys_currency_cd_org_tax_lines_tr_base_currency_codeTosys_currency_cd sys_currency_cd      @relation("org_tax_lines_tr_base_currency_codeTosys_currency_cd", fields: [base_currency_code], references: [code], onUpdate: NoAction, map: "fk_otl_base_currency")
+  org_branches_mst                                                     org_branches_mst?    @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_otl_branch")
+  sys_tax_category_cd                                                  sys_tax_category_cd  @relation(fields: [tax_category_code], references: [code], onUpdate: NoAction, map: "fk_otl_category")
+  sys_currency_cd_org_tax_lines_tr_currency_codeTosys_currency_cd      sys_currency_cd      @relation("org_tax_lines_tr_currency_codeTosys_currency_cd", fields: [currency_code], references: [code], onUpdate: NoAction, map: "fk_otl_currency")
+  sys_doc_seq_type_cd                                                  sys_doc_seq_type_cd  @relation(fields: [source_doc_type_code], references: [doc_type_code], onUpdate: NoAction, map: "fk_otl_doc_type")
+  org_tax_periods_mst                                                  org_tax_periods_mst? @relation(fields: [tenant_org_id, period_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_otl_period")
+  org_tax_profiles_cf                                                  org_tax_profiles_cf? @relation(fields: [tenant_org_id, tax_profile_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_otl_profile")
+  org_tax_lines_tr                                                     org_tax_lines_tr?    @relation("org_tax_lines_trToorg_tax_lines_tr", fields: [tenant_org_id, reverses_tax_line_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_otl_reverses")
+  other_org_tax_lines_tr                                               org_tax_lines_tr[]   @relation("org_tax_lines_trToorg_tax_lines_tr")
+  org_tax_rules_cf                                                     org_tax_rules_cf?    @relation(fields: [tenant_org_id, tax_rule_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_otl_rule")
+  org_tenants_mst                                                      org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otl_tenant")
+
+  @@unique([tenant_org_id, id], map: "uq_otl_tenant_id")
+  @@index([tenant_org_id, tax_date, tax_flow_code], map: "idx_otl_date_flow")
+  @@index([tenant_org_id, source_doc_type_code, source_doc_id], map: "idx_otl_source")
   @@schema("public")
 }
 

@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton, CmxInput, CmxSelect, CmxSwitch, Label } from '@ui/primitives';
 import { CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
-import { PRICE_BASIS, SPEED_PRICE_TYPES } from '@/lib/constants/commercial';
+import { PRICE_BASIS, SPEED_PRICE_TYPES, TURNAROUND_UNITS } from '@/lib/constants/commercial';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import type { SpeedRuleView } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleBulkSchema, speedRuleCreateSchema } from '@/lib/validations/speed-rule-schemas';
@@ -14,6 +14,7 @@ import { SpeedRuleProductField, type PickedProduct } from './speed-rule-parts';
 
 type Scope = 'TENANT' | 'CATEGORY' | 'PRODUCT';
 type Option = { value: string; label: string };
+type SpeedOption = Option & { defaultUnit?: string | null; allowsDiscount?: boolean };
 
 /** Props of the rule editor. Mount it with a `key` per rule, so the form starts from that rule. */
 export interface SpeedRuleEditorDialogProps {
@@ -22,7 +23,7 @@ export interface SpeedRuleEditorDialogProps {
   rule?: SpeedRuleView;
   /** Opened from a product: the rule belongs to this product and the scope cannot change. */
   fixedProduct?: PickedProduct;
-  speedOptions: Option[];
+  speedOptions: SpeedOption[];
   branchOptions: Option[];
   categoryOptions: Option[];
   onClose: () => void;
@@ -54,6 +55,11 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
   const [amount, setAmount] = useState(rule?.defaultSpeedSellPrice ?? rule?.multiplierSpeed ?? rule?.speedExtraAmount ?? '');
   const [priceBasis, setPriceBasis] = useState(rule?.priceBasis ?? PRICE_BASIS.PER_UNIT);
   const [turnaround, setTurnaround] = useState(rule?.turnaroundHhSpeed ?? '');
+  const [turnaroundDays, setTurnaroundDays] = useState(rule?.turnaroundDaysSpeed != null ? String(rule.turnaroundDaysSpeed) : '');
+  const [turnaroundUnit, setTurnaroundUnit] = useState<string>(
+    rule?.turnaroundUnit ?? speedOptions.find((s) => s.value === serviceSpeed)?.defaultUnit ?? TURNAROUND_UNITS.HOURS,
+  );
+  const [cutoffTime, setCutoffTime] = useState(rule?.cutoffTimeSpeed ?? '');
   const [name, setName] = useState(rule?.name ?? '');
   const [name2, setName2] = useState(rule?.name2 ?? '');
   const [effectiveFrom, setEffectiveFrom] = useState(rule?.effectiveFrom ?? new Date().toISOString().slice(0, 10));
@@ -68,6 +74,19 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
   const isFixed = priceType === SPEED_PRICE_TYPES.FIXED_AMOUNT;
   const amountField = isSellPrice ? 'defaultSpeedSellPrice' : isMultiplier ? 'multiplierSpeed' : 'speedExtraAmount';
   const amountPercent = isMultiplier && /^\d+(\.\d+)?$/.test(amount) ? (Number(amount) * 100).toLocaleString(undefined, { maximumFractionDigits: 2 }) : null;
+  const discountPercent = isMultiplier && /^-\d*\.?\d+$/.test(amount.trim()) ? (Number(amount) * -100).toLocaleString(undefined, { maximumFractionDigits: 2 }) : null;
+  const allowsDiscount = speedOptions.find((s) => s.value === serviceSpeed)?.allowsDiscount ?? false;
+  const isDays = turnaroundUnit === TURNAROUND_UNITS.WORKING_DAYS;
+  const amountHelp = discountPercent ? t('discountHint', { percent: discountPercent })
+    : amountPercent ? t('multiplierHint', { percent: amountPercent })
+      : allowsDiscount ? t('discountAllowedHint')
+        : isMultiplier ? t('multiplierExample') : undefined;
+  const changeSpeed = (next: string) => {
+    setServiceSpeed(next);
+    // Guidance only, and only while nothing has been typed.
+    const unit = speedOptions.find((s) => s.value === next)?.defaultUnit;
+    if (unit && !turnaround.trim() && !turnaroundDays.trim()) setTurnaroundUnit(unit);
+  };
 
   const save = async () => {
     const trimmed = amount.trim();
@@ -81,7 +100,10 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
       multiplierSpeed: isMultiplier ? trimmed : null,
       speedExtraAmount: isFixed ? trimmed : null,
       priceBasis: isFixed ? priceBasis : null,
-      turnaroundHhSpeed: turnaround.trim() || null,
+      turnaroundHhSpeed: isDays ? null : turnaround.trim() || null,
+      turnaroundUnit: (isDays ? turnaroundDays.trim() : turnaround.trim()) ? turnaroundUnit : null,
+      turnaroundDaysSpeed: isDays && turnaroundDays.trim() ? Number(turnaroundDays) : null,
+      cutoffTimeSpeed: cutoffTime || null,
       name: name.trim() || null,
       name2: name2.trim() || null,
       effectiveFrom,
@@ -138,7 +160,7 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
           {formError ? <CmxSummaryMessage type="error" title={t('errors.title')} items={[formError]} onDismiss={() => setFormError(null)} /> : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <CmxSelect label={t('fields.speed')} options={speedOptions} value={serviceSpeed} onChange={(e) => setServiceSpeed(e.target.value)} error={fieldErrors.serviceSpeed} />
+            <CmxSelect label={t('fields.speed')} options={speedOptions} value={serviceSpeed} onChange={(e) => changeSpeed(e.target.value)} error={fieldErrors.serviceSpeed} />
             <CmxSelect
               label={t('fields.branch')}
               options={[{ value: '', label: t('scope.allBranches') }, ...branchOptions]}
@@ -194,7 +216,7 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               error={fieldErrors[amountField]}
-              helpText={amountPercent ? t('multiplierHint', { percent: amountPercent }) : isMultiplier ? t('multiplierExample') : undefined}
+              helpText={amountHelp}
             />
             {isFixed ? (
               <CmxSelect
@@ -205,14 +227,42 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
                 error={fieldErrors.priceBasis}
               />
             ) : null}
+            <CmxSelect
+              label={t('fields.turnaroundUnit')}
+              options={Object.values(TURNAROUND_UNITS).map((value) => ({ value, label: t(`turnaroundUnit.${value}`) }))}
+              value={turnaroundUnit}
+              onChange={(e) => setTurnaroundUnit(e.target.value)}
+              error={fieldErrors.turnaroundUnit}
+            />
+            {isDays ? (
+              <CmxInput
+                label={t('fields.turnaroundDays')}
+                inputMode="numeric"
+                dir="ltr"
+                value={turnaroundDays}
+                onChange={(e) => setTurnaroundDays(e.target.value)}
+                error={fieldErrors.turnaroundDaysSpeed}
+                helpText={t('turnaroundDaysHint')}
+              />
+            ) : (
+              <CmxInput
+                label={t('fields.turnaround')}
+                inputMode="decimal"
+                dir="ltr"
+                value={turnaround}
+                onChange={(e) => setTurnaround(e.target.value)}
+                error={fieldErrors.turnaroundHhSpeed}
+                helpText={t('turnaroundHint')}
+              />
+            )}
             <CmxInput
-              label={t('fields.turnaround')}
-              inputMode="decimal"
+              label={t('fields.cutoffTime')}
+              type="time"
               dir="ltr"
-              value={turnaround}
-              onChange={(e) => setTurnaround(e.target.value)}
-              error={fieldErrors.turnaroundHhSpeed}
-              helpText={t('turnaroundHint')}
+              value={cutoffTime}
+              onChange={(e) => setCutoffTime(e.target.value)}
+              error={fieldErrors.cutoffTimeSpeed}
+              helpText={t('cutoffTimeHint')}
             />
           </div>
 

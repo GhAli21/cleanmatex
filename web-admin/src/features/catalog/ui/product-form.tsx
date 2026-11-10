@@ -33,8 +33,7 @@ import {
 } from '@ui/primitives'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
-import { TAX_CATEGORIES } from '@/lib/constants/commercial'
-import { useTaxCategoryOptions } from '../hooks/use-tax-category-options'
+import { useTaxItemClassOptions } from '../hooks/use-tax-item-class-options'
 import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
 interface CategoryOption {
@@ -71,7 +70,7 @@ export interface ProductFormValues {
   default_sell_price: number
   min_quantity?: number
   turnaround_hh?: number
-  tax_category_code?: string
+  tax_item_class_code?: string | null
   is_active?: boolean
   product_image?: string | null
   product_icon?: string | null
@@ -99,7 +98,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const isRtl = useRTL()
   const { decimalPlaces } = useTenantCurrency()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const taxCategoryOptions = useTaxCategoryOptions()
+  const taxItemClassOptions = useTaxItemClassOptions()
 
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [categories, setCategories] = useState<CategoryOption[]>([])
@@ -121,7 +120,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         default_sell_price: z.number().min(0, tCommon('required')),
         min_quantity: z.number().min(0).optional(),
         turnaround_hh: z.number().min(0).optional(),
-        tax_category_code: z.string().optional(),
+        tax_item_class_code: z.string().nullable().optional(),
         is_active: z.boolean().default(true),
         product_image: z.string().nullable().optional(),
         product_icon: z.string().nullable().optional(),
@@ -142,7 +141,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         initialValues?.min_quantity !== undefined ? Number(initialValues.min_quantity) : undefined,
       turnaround_hh:
         initialValues?.turnaround_hh !== undefined ? Number(initialValues.turnaround_hh) : undefined,
-      tax_category_code: initialValues?.tax_category_code ?? TAX_CATEGORIES.STANDARD,
+      tax_item_class_code: initialValues?.tax_item_class_code ?? '',
       is_active: initialValues?.is_active ?? true,
       id: initialValues?.id,
       product_image: initialValues?.product_image ?? null,
@@ -277,7 +276,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
       default_sell_price: Number(values.default_sell_price),
       min_quantity: values.min_quantity !== undefined ? Number(values.min_quantity) : undefined,
       turnaround_hh: values.turnaround_hh !== undefined ? Number(values.turnaround_hh) : undefined,
-      tax_category_code: values.tax_category_code,
+      tax_item_class_code: values.tax_item_class_code || null,
       is_active: values.is_active ?? true,
       product_icon: values.product_icon ?? undefined,
     }
@@ -513,9 +512,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
 
 
             <CmxFormField
-              name="tax_category_code"
-              label={t('taxCategory.label')}
-              hint={t('taxCategory.hint')}
+              name="tax_item_class_code"
+              label={t('taxItemClass.label')}
+              hint={t('taxItemClass.hint')}
             >
               {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
                 <CmxSelect
@@ -525,7 +524,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
                   value={String(value ?? '')}
                   onChange={(event) => onChange(event.target.value)}
                   onBlur={onBlur}
-                  options={taxCategoryOptions}
+                  options={taxItemClassOptions}
                   aria-describedby={describedBy}
                   aria-invalid={invalid}
                 />

@@ -278,7 +278,7 @@ export async function updateTenantGeneral(
     timezone: input.timezone,
     currency: input.currency,
     language: input.defaultLanguage,
-    business_hours: toDbHours(input.businessHours) as Json,
+    ...(input.businessHours ? { business_hours: toDbHours(input.businessHours) as Json } : {}),
     updated_at: new Date().toISOString(),
     updated_by: audit.userId,
     updated_info: audit.userInfo ?? null,

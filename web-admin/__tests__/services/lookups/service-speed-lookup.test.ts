@@ -2,7 +2,7 @@
 
 /**
  * Service Speeds D5: the speed lookup lists every active speed and marks what
- * this organization offers — STANDARD always, EXPRESS until S6, any other speed
+ * this organization offers — STANDARD always, any other speed
  * only with an active rule in effect today. The rule read filters the tenant.
  */
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }));
@@ -38,7 +38,7 @@ const speeds = [speed('ECONOMY', 1), speed('STANDARD', 2), speed('NEXT_DAY', 3),
 beforeEach(() => { for (const k of Object.keys(filters)) delete filters[k]; });
 
 describe('listActiveServiceSpeeds', () => {
-  it('marks STANDARD, EXPRESS and ruled speeds as offered; an expired rule does not count', async () => {
+  it('marks STANDARD and ruled speeds as offered; an expired rule does not count', async () => {
     const result = await listActiveServiceSpeeds(client({
       sys_service_speed_cd: speeds,
       org_speed_price_rules_cf: [
@@ -48,7 +48,7 @@ describe('listActiveServiceSpeeds', () => {
       org_tenants_mst: { timezone: 'Asia/Muscat' },
     }), 'tenant-1');
     expect(result.data?.map((s) => [s.code, s.is_offered])).toEqual([
-      ['ECONOMY', false], ['STANDARD', true], ['NEXT_DAY', true], ['EXPRESS', true], ['URGENT', false],
+      ['ECONOMY', false], ['STANDARD', true], ['NEXT_DAY', true], ['EXPRESS', false], ['URGENT', false],
     ]);
     expect(filters.org_speed_price_rules_cf).toContainEqual(['tenant_org_id', 'tenant-1']);
   });

@@ -23,6 +23,7 @@ import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color
 import type { CartQuoteLine } from '@/lib/types/cart-quote';
 import { ServiceSpeedSelect } from './service-speed-select';
 import { useServiceSpeeds } from '../hooks/use-service-speeds';
+import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
 
 /** This line's quoted figures (New Order, P5-03b) and its speed menu (also Order Edit, P6-02b). */
 export interface SummaryCartItemQuote {
@@ -36,6 +37,8 @@ export interface SummaryCartItemQuote {
   lineSpeed: string | null;
   onLineSpeedChange?: (serviceSpeed: string | null) => void;
   lineSpeedDisabled?: boolean;
+  /** Prices this line's speed options (New Order only). */
+  speedPreview?: SpeedOptionPreviewSource;
   /** Opens the line discount dialog (P5-03c); absent without `orders:discount`. */
   onEditLineDiscount?: () => void;
   /** Sets a piece's own speed (PIECE level, P9-01); null follows the line. */
@@ -430,6 +433,7 @@ function SummaryCartItemComponent({
               value={quote.lineSpeed}
               orderSpeed={quote.orderSpeed}
               onChange={quote.onLineSpeedChange}
+              preview={quote.speedPreview}
               disabled={quote.lineSpeedDisabled}
               disabledReason={tSpeed('locked')}
               ariaLabel={tSpeed('lineAria', { item: displayName })}

@@ -27,6 +27,7 @@ class _CustomerBookingStep3ScheduleVwState
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
     final theme = Theme.of(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     AppLogger.info(
       'booking_step3.render pickup=${booking.draft.isPickupFromAddress} '
       'isAsap=${booking.draft.isAsap} addresses=${booking.addresses.length} '
@@ -54,6 +55,26 @@ class _CustomerBookingStep3ScheduleVwState
           description: localizations.text('booking.step3Description'),
         ),
         const SizedBox(height: AppSpacing.lg),
+        if (booking.serviceSpeeds.length > 1) ...[
+          Text(
+            localizations.text('booking.speedLabel'),
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final speed in booking.serviceSpeeds) ...[
+            CustomerBookingOptionCard(
+              title: isArabic ? (speed.name2 ?? speed.name) : speed.name,
+              description:
+                  (isArabic ? speed.description2 : speed.description) ?? '',
+              trailingLabel: '',
+              // No choice yet means the Standard speed.
+              isSelected: (booking.draft.serviceSpeed ?? 'STANDARD') == speed.code,
+              onTap: () => notifier.chooseServiceSpeed(speed.code),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          const SizedBox(height: AppSpacing.md),
+        ],
         // Handoff mode selection
         _HandoffOptionCard(
           title: localizations.text('booking.bringInOption'),

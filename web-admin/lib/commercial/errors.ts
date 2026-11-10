@@ -24,6 +24,22 @@ export const COMMERCIAL_ERROR_CODES = {
   INVALID_ADJUSTMENT: 'INVALID_ADJUSTMENT',
   /** A piece discount or speed on a line priced on the item (ITEM level, or the PIECE fallback). */
   PIECE_PRICING_UNAVAILABLE: 'PIECE_PRICING_UNAVAILABLE',
+  /** Tax is on and no tax rule matches this line (never a silent zero; ADR-061). */
+  NO_TAX_RULE: 'NO_TAX_RULE',
+  /** Two equally specific rules match this line. */
+  TAX_RULE_AMBIGUOUS: 'TAX_RULE_AMBIGUOUS',
+  /** A rule names a tax code with no version in force on the order date. */
+  TAX_CODE_VERSION_MISSING: 'TAX_CODE_VERSION_MISSING',
+  /** A rule names a fixed-amount or document-level code, which the order calculator does not support yet. */
+  TAX_CODE_UNSUPPORTED: 'TAX_CODE_UNSUPPORTED',
+  /** A purchase's entered tax differs from what its tax code gives by more than one minor unit. */
+  PURCHASE_TAX_MISMATCH: 'PURCHASE_TAX_MISMATCH',
+  /** A purchase line names an item tax class that is not an active purchase class. */
+  TAX_CLASS_INVALID: 'TAX_CLASS_INVALID',
+  /** Withholding tax applies, but its posting (T7) is not built yet; nothing is written. */
+  WHT_POSTING_NOT_READY: 'WHT_POSTING_NOT_READY',
+  /** A taxed purchase is in a currency other than the organization's (ERP-Lite records no exchange rate). */
+  TAX_CURRENCY_UNSUPPORTED: 'TAX_CURRENCY_UNSUPPORTED',
   /** An output breaks a money invariant I1–I6 (PLAN.md §5.2); nothing is written. */
   COMMERCIAL_INVARIANT_FAILED: 'COMMERCIAL_INVARIANT_FAILED',
 } as const;

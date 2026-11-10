@@ -59,6 +59,10 @@ const PRICING_ERROR_KEYS: Readonly<Record<string, string>> = {
   DOCUMENT_DISCOUNT_EXCEEDS_BASE: 'documentDiscountExceedsBase',
   DOCUMENT_DISCOUNT_EXCEEDS_LINE: 'documentDiscountExceedsLine',
   INVALID_ADJUSTMENT: 'invalidAdjustment',
+  NO_TAX_RULE: 'noTaxRule',
+  TAX_RULE_AMBIGUOUS: 'taxRuleAmbiguous',
+  TAX_CODE_VERSION_MISSING: 'taxCodeVersionMissing',
+  TAX_CODE_UNSUPPORTED: 'taxCodeUnsupported',
   COMMERCIAL_INVARIANT_FAILED: 'invariantFailed',
 };
 

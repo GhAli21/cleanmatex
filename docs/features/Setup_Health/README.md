@@ -8,7 +8,7 @@ Shows an organization what is missing or wrong in its setup, why it matters, and
 | [STATUS.md](STATUS.md) | Current state of each step, design decisions |
 | [developer_guide.md](developer_guide.md) | How it works, how to add a check |
 | [user_guide.md](user_guide.md) | For admins and HQ staff, English + Arabic |
-| [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) | Owner test scenarios (tenant T1–T9, HQ H1–H7) |
+| [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) | Owner test scenarios (tenant T1–T9, HQ H1–H10) |
 | [followups_by_user.md](followups_by_user.md) | Items waiting for the owner |
 
 ## At a glance
@@ -18,9 +18,11 @@ Shows an organization what is missing or wrong in its setup, why it matters, and
 | Tenant screen | Config And Settings › **Setup Health** — `/dashboard/setup-health` (nav key `settings_setup_health`) |
 | Tenant widgets | Red banner on every dashboard page for failing banner blockers; "Setup health" tile on the dashboard home |
 | HQ screen | Tenant Organizations › organization › **Setup Health** — `/tenants/{id}/setup-health` |
+| HQ list | Tenant Organizations list — **Setup** column and **Setup Health** filter (`/tenants`), from stored counts |
 | Permissions | Tenant `setup_health:view` (super_admin, tenant_admin, admin). HQ `tenant_setup_health:view` (TECH_ADMIN, SUPPORT, BUSINESS_ADMIN, ANALYST) |
-| APIs | Tenant `GET /api/v1/setup-health`, `GET /api/v1/setup-health/summary`. HQ `GET /tenants/:tenantId/setup-health` |
-| Migrations | `0709_setup_health_registry.sql`, `0710_setup_health_perms_nav.sql`, `0716_setup_health_cal_holidays.sql` |
+| APIs | Tenant `GET /api/v1/setup-health`, `GET /api/v1/setup-health/summary`. HQ `GET /tenants/:tenantId/setup-health`, `GET /tenants?setupHealth=has_blockers\|needs_attention` |
+| Migrations | `0709_setup_health_registry.sql`, `0710_setup_health_perms_nav.sql`, `0716_setup_health_cal_holidays.sql`, `0717_setup_health_summary.sql` |
+| Scheduled job | `setup-health-refresh`, 02:15 UTC daily (`sys_ops_job_cf`) |
 | Feature flags / settings / plan limits / env vars | None new. A check can be hidden by an existing flag (`feature_flag_key`) |
 
 ## Checks today

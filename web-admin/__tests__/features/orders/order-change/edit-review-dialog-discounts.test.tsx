@@ -6,6 +6,7 @@ import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 jest.mock('@/lib/context/tenant-currency-context', () => ({ useTenantCurrency: () => ({ decimalPlaces: 3 }) }));
+jest.mock('@features/orders/hooks/use-service-speeds', () => ({ useServiceSpeeds: () => ({ labelOf: (code: string) => code }) }));
 jest.mock('next-intl', () => ({
   useLocale: () => 'en',
   useTranslations: (namespace: string) => (key: string, values?: Record<string, string>) =>

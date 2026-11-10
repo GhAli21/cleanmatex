@@ -103,7 +103,8 @@ export interface GeneralSettingsInput {
   timezone: string;
   currency: string;
   defaultLanguage: string;
-  businessHours: UiBusinessHours;
+  /** Absent leaves the stored hours unchanged (they are edited on Business Calendar). */
+  businessHours?: UiBusinessHours;
 }
 
 // ---------- Branding settings DTO ----------

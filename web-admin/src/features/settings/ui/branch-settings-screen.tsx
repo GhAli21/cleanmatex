@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { GitBranch } from 'lucide-react';
 import { CmxCard, CmxCardHeader, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxSelect } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { BranchSettings } from './BranchSettings';
 import {
@@ -136,6 +137,12 @@ export function BranchSettingsScreen() {
 
           {/* B2 — branch timezone: the business day belongs to the branch */}
           <BranchBusinessDayCard branchId={selectedBranchId} />
+
+          <div className="flex justify-end">
+            <CmxButton asChild variant="outline" size="sm">
+              <Link href={`/dashboard/settings/calendar?tab=branches&branch=${selectedBranchId}`}>{t('calendar.branch.openCalendar')}</Link>
+            </CmxButton>
+          </div>
 
           {/* Pricing mode overrides */}
           <CmxCard>

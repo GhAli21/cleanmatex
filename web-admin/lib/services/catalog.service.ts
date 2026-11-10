@@ -269,6 +269,7 @@ export async function createProduct(
       turnaround_hh: request.turnaround_hh || null,
       product_order: request.product_order || null,
       ...(request.tax_category_code ? { tax_category_code: request.tax_category_code } : {}),
+      ...(request.tax_item_class_code ? { tax_item_class_code: request.tax_item_class_code } : {}),
       tags: request.tags || null,
       id_sku: request.id_sku || null,
       is_active: request.is_active !== undefined ? request.is_active : true,
@@ -335,6 +336,7 @@ export async function updateProduct(
   if (request.turnaround_hh !== undefined) updateData.turnaround_hh = request.turnaround_hh;
   if (request.product_order !== undefined) updateData.product_order = request.product_order;
   if (request.tax_category_code !== undefined) updateData.tax_category_code = request.tax_category_code;
+  if (request.tax_item_class_code !== undefined) updateData.tax_item_class_code = request.tax_item_class_code;
   if (request.tags !== undefined) updateData.tags = request.tags;
   if (request.id_sku !== undefined) updateData.id_sku = request.id_sku;
   if (request.is_active !== undefined) updateData.is_active = request.is_active;

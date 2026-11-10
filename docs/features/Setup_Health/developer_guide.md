@@ -22,7 +22,11 @@ flowchart LR
    - Tenant (`web-admin/lib/services/setup-health/setup-health.service.ts`): drops flag-off checks and `is_hq_only` checks; keeps `fixRoute` only when the user has `fix_permission`.
    - HQ (`platform-api/src/modules/tenant-setup-health/`): drops flag-off checks (`hq_ff_get_effective_values_batch`), keeps HQ-only checks, replaces `{tenantId}` in `hq_fix_route`.
 
-No results are stored: every request runs the checks (warm full run ≈ 9 ms).
+Every screen request runs the checks live (warm full run ≈ 9 ms). The only stored result is `org_setup_health_sum_tr` (0717): one row of counts per organization, for the HQ list only, because a filter across all pages cannot run checks per row.
+
+- **Writers:** `fn_setup_health_refresh_sum(p_tenant)` on HQ Setup Health page load (a failure is logged and never fails the page), and `fn_setup_health_refresh_all()` from the nightly job `setup-health-refresh` (02:15 UTC). Not the tenant app: it hides HQ-only checks, so its counts would differ.
+- **Counts** follow HQ visibility: flag-off checks are out, HQ-only checks are in. The list can be up to a day old; a new check is counted after the next refresh, with no code change.
+- **Access:** service role only (RLS on, no policy).
 
 ## Add a check (e.g. Tax M8)
 
@@ -42,11 +46,11 @@ The texts come from the registry, so the apps need no code or i18n change.
 
 | Repo | Path |
 |---|---|
-| DB | `supabase/migrations/0709_*`, `0710_*`, `0716_*` |
+| DB | `supabase/migrations/0709_*`, `0710_*`, `0716_*`, `0717_*` |
 | Tenant | `lib/constants/setup-health.ts`, `lib/constants/permissions/setup-health-perm.ts`, `lib/types/setup-health.ts`, `lib/services/setup-health/`, `app/api/v1/setup-health/**`, `app/dashboard/setup-health/page.tsx`, `src/features/setup-health/{api,hooks,ui,access}`, `messages/{en,ar}/setupHealth.json` |
 | Tenant (shared files, one entry each) | `app/dashboard/layout.tsx` (banner), `src/features/dashboard/ui/DashboardContent.tsx` (tile), `config/navigation.ts`, `src/features/access/page-access-registry.ts` |
-| HQ API | `platform-api/src/modules/tenant-setup-health/` (+ `app.module.ts`) |
-| HQ web | `lib/api/tenant-setup-health.ts`, `src/features/tenants/hooks/use-tenant-setup-health.ts`, `src/features/tenants/ui/tenant-setup-health-screen.tsx`, `app/tenants/[id]/setup-health/page.tsx`, `tenant-sidebar.tsx`, `messages/{en,ar}/tenants/{setupHealth,sidebar}.json` |
+| HQ API | `platform-api/src/modules/tenant-setup-health/` (+ `app.module.ts`); list: `tenants/tenants.service.ts` `findAll`, `tenants/dto/query-tenants.dto.ts` |
+| HQ web | `lib/api/tenant-setup-health.ts`, `src/features/tenants/hooks/use-tenant-setup-health.ts`, `src/features/tenants/ui/tenant-setup-health-screen.tsx`, `app/tenants/[id]/setup-health/page.tsx`, `tenant-sidebar.tsx`, `messages/{en,ar}/tenants/{setupHealth,sidebar}.json`; list: `app/tenants/page.tsx`, `lib/api/tenants.ts`, `messages/{en,ar}/tenants/list.json` |
 
 ## API
 
@@ -54,7 +58,8 @@ The texts come from the registry, so the apps need no code or i18n change.
 |---|---|---|---|
 | `GET /api/v1/setup-health` | `setup_health:view` | `domain` (code), `branchId` (uuid) | `{ domains, items }` |
 | `GET /api/v1/setup-health/summary` | signed in | — | counts, `bannerItems`, `canView` (used by the banner for every user) |
-| HQ `GET /tenants/:tenantId/setup-health` | `tenant_setup_health:view` | — | items with `hqFixRoute` + counts; 404 if the organization does not exist |
+| HQ `GET /tenants/:tenantId/setup-health` | `tenant_setup_health:view` | — | items with `hqFixRoute` + counts; refreshes the stored counts; 404 if the organization does not exist |
+| HQ `GET /tenants` | existing list gate | `setupHealth` = `has_blockers` or `needs_attention` (optional) | each row gains `setup_health` (counts + `checked_at`, or null) |
 
 The tenant id always comes from the session, never from the request.
 
@@ -62,4 +67,4 @@ The tenant id always comes from the session, never from the request.
 
 - `web-admin`: `__tests__/services/setup-health.service.test.ts`, `__tests__/api/setup-health.route.test.ts`, `__tests__/features/setup-health/`
 - `web-admin` DB (local Supabase): `__tests__/db-integration/setup-health.db.test.ts` — rows per check, tenant isolation, throwing check, guard
-- HQ: `platform-api/src/modules/tenant-setup-health/__tests__/`
+- HQ: `platform-api/src/modules/tenant-setup-health/__tests__/`, `platform-api/src/modules/tenants/__tests__/tenants.service.find-all.spec.ts`

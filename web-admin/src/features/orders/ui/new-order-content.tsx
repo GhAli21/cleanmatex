@@ -974,6 +974,7 @@ export function NewOrderContent() {
     // Order Edit shows the stored prices and re-prices at Review.
     serviceSpeed: state.state.serviceSpeed,
     onServiceSpeedChange: handleServiceSpeedChange,
+    speedPreview: state.state.isEditMode ? undefined : { requestFor: (code: string) => ({ ...cartQuoteRequest, serviceSpeed: code }) },
     hasLineSpeedOverrides: state.state.items.some((item) => item.serviceSpeed != null),
     onApplySpeedToAllLines: lineSpeedCapability.interactive ? handleApplySpeedToAllLines : undefined,
     lineQuote: state.state.isEditMode
@@ -995,6 +996,7 @@ export function NewOrderContent() {
           lines: cartQuote.data?.lines ?? null,
           pending: cartQuote.pending,
           onLineSpeedChange: handleLineSpeedChange,
+          previewRequest: cartQuoteRequest,
           onEditLineDiscount: canDiscountLines ? setDiscountProductId : undefined,
           onEditPieceDiscount: canDiscountLines
             ? (productId: string, pieceId: string) => {

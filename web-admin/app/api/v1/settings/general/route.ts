@@ -67,7 +67,8 @@ const generalInputSchema = z.object({
   timezone: z.enum(ALLOWED_TIMEZONES),
   currency: z.enum(ALLOWED_CURRENCIES),
   defaultLanguage: z.enum(ALLOWED_LANGUAGES),
-  businessHours: businessHoursSchema,
+  /** Older clients only: hours are edited on Business Calendar; absent leaves them unchanged. */
+  businessHours: businessHoursSchema.optional(),
 });
 
 // ---------------------------------------------------------------------------

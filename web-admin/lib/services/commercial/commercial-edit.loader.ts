@@ -26,7 +26,8 @@ import 'server-only';
 
 import type { PrismaClient } from '@prisma/client';
 import { toMoney, type AdjustmentInput, type StandardPriceResult } from '@/lib/commercial';
-import { PRICE_SOURCES, type CommercialLevel, type DiscAllocBasis, type DiscAllocMode } from '@/lib/constants/commercial';
+import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
+import { PRICE_SOURCES, TAX_CATEGORIES, type CommercialLevel, type DiscAllocBasis, type DiscAllocMode } from '@/lib/constants/commercial';
 import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, MANUAL_LINE_DISCOUNT_LABEL, type DiscountCalcType } from '@/lib/constants/discount-source-type';
 import { CHARGE_TYPES, type ExtraPricePricingMode, type TaxPricingMode } from '@/lib/constants/order-financial';
 import { PREFS_LEVEL } from '@/lib/constants/order-preferences';
@@ -41,6 +42,7 @@ import {
   type PreferenceIntent,
   type ProductFacts,
   type RecordedCommercialSnapshot,
+  type RecordedLineTax,
   type RecordedTaxProfile,
 } from './commercial-context.loader';
 import type { AdjustmentMeta } from './commercial-line.writer';
@@ -161,6 +163,7 @@ export interface EditStoredTaxLine {
 /** The rounding and scope facts of a profile the order was taxed with. */
 export interface EditTaxProfileRow {
   id: string;
+  taxCode: string;
   appliesTo: readonly string[] | null;
   roundingLevel: string;
   roundingMode: string | null;
@@ -185,6 +188,8 @@ export interface EditOrderRecord {
   discounts: EditStoredDiscount[];
   charges: EditStoredCharge[];
   taxLines: EditStoredTaxLine[];
+  /** Item id → the tax the rules gave it (`org_tax_lines_tr`); empty for an older order. */
+  lineTaxes: ReadonlyMap<string, RecordedLineTax>;
   /** Products of the stored lines, read without the active filter. */
   products: ReadonlyMap<string, ProductFacts>;
   taxProfiles: ReadonlyMap<string, EditTaxProfileRow>;
@@ -197,7 +202,7 @@ export interface EditOrderRecord {
 /** The reads `readEditOrderRecord` needs (the Prisma client or a transaction client). */
 export type EditRecordDb = Pick<PrismaClient,
   | 'org_orders_mst' | 'org_order_items_dtl' | 'org_order_item_pieces_dtl' | 'org_order_preferences_dtl'
-  | 'org_order_discounts_dtl' | 'org_order_charges_dtl' | 'org_order_taxes_dtl' | 'org_product_data_mst'
+  | 'org_order_discounts_dtl' | 'org_order_charges_dtl' | 'org_order_taxes_dtl' | 'org_tax_lines_tr' | 'org_product_data_mst'
   | 'org_tax_profiles_cf' | 'org_discount_rules_cf' | 'org_promotions_mst'>;
 
 const text = (value: { toString(): string } | null | undefined): string | null => (value == null ? null : value.toString());
@@ -277,19 +282,19 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
     .map((d) => d.source_id).filter((id): id is string => id != null))];
   const promotionIds = [...new Set(discounts.filter((d) => d.source_type === DISCOUNT_SOURCE_TYPE.PROMO_CODE)
     .map((d) => d.promotion_id ?? d.source_id).filter((id): id is string => id != null))];
-  const [products, profiles, rules, promotions] = await Promise.all([
+  const [products, profiles, rules, promotions, recordedTaxLines] = await Promise.all([
     db.org_product_data_mst.findMany({
       where: { tenant_org_id: tenantOrgId, id: { in: productIds } },
         select: {
           is_retail_item: true,
           id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
-          turnaround_hh: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true,
+          turnaround_hh: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true, tax_item_class_code: true,
         },
     }),
     db.org_tax_profiles_cf.findMany({
       where: { tenant_org_id: tenantOrgId, id: { in: profileIds } },
       select: {
-        id: true, applies_to: true, rounding_level: true, rounding_mode: true,
+        id: true, tax_code: true, applies_to: true, rounding_level: true, rounding_mode: true,
         output_decimal_places: true, rounding_increment_minor: true,
       },
     }),
@@ -308,7 +313,27 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
         },
       })
       : [],
+    db.org_tax_lines_tr.findMany({
+      where: {
+        tenant_org_id: tenantOrgId, source_doc_type_code: DOC_SEQ_TYPES.ORDER, source_doc_id: orderId,
+        source_doc_line_id: { not: null }, reverses_tax_line_id: null, is_active: true, rec_status: 1,
+      },
+      orderBy: { applied_seq: 'asc' },
+      select: { source_doc_line_id: true, tax_profile_id: true, tax_rule_id: true, tax_category_code: true, tax_code: true },
+    }),
   ]);
+
+  const lineTaxes = new Map<string, RecordedLineTax & { profileIds: string[] }>();
+  for (const row of recordedTaxLines) {
+    const lineId = row.source_doc_line_id as string;
+    const entry = lineTaxes.get(lineId) ?? { ruleId: row.tax_rule_id, zeroCode: null, profileIds: [] };
+    if (row.tax_category_code !== TAX_CATEGORIES.STANDARD) {
+      entry.zeroCode = { profileId: row.tax_profile_id as string, taxCode: row.tax_code };
+    } else if (row.tax_profile_id && !entry.profileIds.includes(row.tax_profile_id)) {
+      entry.profileIds.push(row.tax_profile_id);
+    }
+    lineTaxes.set(lineId, entry);
+  }
 
   const s = order;
   const snapshot = s.commercial_level && s.tax_pricing_mode && s.extra_price_pricing_mode && s.disc_alloc_mode && s.disc_alloc_basis
@@ -407,9 +432,12 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
       taxCategoryCode: p.tax_category_code,
       taxSupplyCode: p.tax_supply_code,
       taxExemptReason: p.tax_exempt_reason,
+      taxItemClassCode: p.tax_item_class_code,
     }])),
+    lineTaxes,
     taxProfiles: new Map(profiles.map((p) => [p.id, {
       id: p.id,
+      taxCode: p.tax_code,
       appliesTo: p.applies_to,
       roundingLevel: p.rounding_level,
       roundingMode: p.rounding_mode,
@@ -509,7 +537,7 @@ const isGeneral = (appliesTo: readonly string[] | null) => !appliesTo || applies
  * @param record the stored tax lines and profile rows
  * @returns the recorded profiles and their labels
  */
-export function recordedTaxContext(record: Pick<EditOrderRecord, 'taxLines' | 'taxProfiles'>): Pick<RecordedCommercialSnapshot, 'taxProfiles' | 'taxProfileLabels'> {
+export function recordedTaxContext(record: Pick<EditOrderRecord, 'taxLines' | 'taxProfiles' | 'lineTaxes'>): Pick<RecordedCommercialSnapshot, 'taxProfiles' | 'taxProfileLabels' | 'lineTaxes'> {
   const taxProfiles: RecordedTaxProfile[] = [];
   const taxProfileLabels = new Map<string, { label: string; label2: string | null }>();
   for (const line of record.taxLines) {
@@ -518,6 +546,7 @@ export function recordedTaxContext(record: Pick<EditOrderRecord, 'taxLines' | 't
     const appliesTo = row?.appliesTo ?? null;
     taxProfiles.push({
       id,
+      ...(row?.taxCode ? { taxCode: row.taxCode } : {}),
       taxType: line.taxType,
       ratePercent: line.ratePercent,
       isCompound: line.isCompound,
@@ -531,7 +560,7 @@ export function recordedTaxContext(record: Pick<EditOrderRecord, 'taxLines' | 't
     });
     taxProfileLabels.set(id, { label: line.label, label2: line.label2 });
   }
-  return { taxProfiles, taxProfileLabels };
+  return { taxProfiles, taxProfileLabels, lineTaxes: record.lineTaxes };
 }
 
 /**
@@ -744,6 +773,7 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
           taxCategoryCode: item.taxCategoryCode ?? 'STANDARD',
           taxSupplyCode: product?.taxSupplyCode ?? null,
           taxExemptReason: item.taxExemptReason,
+          taxItemClassCode: product?.taxItemClassCode ?? null,
         },
         standard,
         // A changed speed reads the rule in force today; the ready-by is counted again.

@@ -233,7 +233,20 @@
     "priceTypeChangeHint": "تغيير النوع يمسح المبلغ، لأن معناه يختلف من نوع إلى آخر.",
     "multiplierExample": "مثال: 0.30 يضيف 30% إلى السعر العادي.",
     "multiplierHint": "يضيف {percent}% إلى السعر العادي.",
-    "turnaroundHint": "اختياري. عدد ساعات الإنجاز بهذه السرعة.",
+    "turnaroundHint": "اختياري. عدد ساعات العمل للإنجاز بهذه السرعة.",
+    "turnaroundDaysHint": "اختياري. 0 = نفس اليوم، 1 = يوم العمل التالي. الجاهزية في وقت الجاهزية بتقويم العمل.",
+    "cutoffTimeHint": "اختياري. الطلبات المستلمة بعده تُحسب من يوم العمل التالي. فارغ = آخر وقت للاستلام في الفرع.",
+    "discountAllowedHint": "يمكن أن تكون هذه السرعة أرخص من العادية: أدخل قيمة سالبة، مثل ‎-0.10‎ لخصم 10%.",
+    "discountHint": "يخصم {percent}% من السعر العادي.",
+    "turnaroundUnit": { "HOURS": "ساعات عمل", "WORKING_DAYS": "أيام عمل" },
+    "guidance": {
+      "title": "السرعات المعتادة (نقطة بداية)",
+      "ECONOMY": { "promise": "4–7 أيام عمل", "price": "‎−10 إلى ‎−20%" },
+      "STANDARD": { "promise": "2–3 أيام عمل", "price": "السعر الأساسي" },
+      "NEXT_DAY": { "promise": "يوم العمل التالي", "price": "‎+20 إلى ‎+30%" },
+      "EXPRESS": { "promise": "نفس اليوم إذا استُلم قبل آخر وقت للاستلام", "price": "‎+50%" },
+      "URGENT": { "promise": "2–4 ساعات عمل", "price": "‎+100%" }
+    },
     "effectiveToHint": "اتركه فارغًا إذا لم يكن للقاعدة تاريخ انتهاء.",
     "order": {
       "title": "عند انطباق عدة قواعد، تُطبَّق الأولى حسب هذا الترتيب:"
@@ -270,6 +283,9 @@
       "priceType": "نوع السعر",
       "priceBasis": "طريقة الاحتساب",
       "turnaround": "مدة الإنجاز (بالساعات)",
+      "turnaroundUnit": "تُحسب مدة الإنجاز بـ",
+      "turnaroundDays": "مدة الإنجاز (أيام عمل)",
+      "cutoffTime": "آخر وقت للاستلام لهذه السرعة",
       "effectiveFrom": "يسري من",
       "effectiveTo": "يسري حتى",
       "name": "الاسم (بالإنجليزية)",
@@ -293,10 +309,15 @@
       "sellPrice": "سعر البيع {amount}",
       "multiplier": "+{percent}",
       "fixedPerUnit": "+{amount} لكل وحدة",
-      "fixedPerLine": "+{amount} لكل بند"
+      "fixedPerLine": "+{amount} لكل بند",
+      "discountPercent": "خصم {percent}",
+      "discountAmount": "خصم {amount}"
     },
     "validation": {
       "form": "تحقق من هذه القيمة.",
+      "turnaroundUnit": "اختر طريقة حساب مدة الإنجاز.",
+      "turnaroundDaysSpeed": "أدخل عددًا صحيحًا من أيام العمل، أو اتركه فارغًا.",
+      "cutoffTimeSpeed": "أدخل وقتًا صحيحًا.",
       "serviceSpeed": "اختر سرعة غير السرعة العادية.",
       "productId": "اختر منتجًا.",
       "serviceCategoryCode": "اختر فئة.",
@@ -383,6 +404,11 @@
       "doneRetired": "{count, plural, one {تم إيقاف قاعدة واحدة.} other {تم إيقاف # من القواعد.}}",
       "doneRestored": "{count, plural, one {تمت استعادة قاعدة واحدة.} other {تمت استعادة # من القواعد.}}"
     }
+  },
+  "taxItemClass": {
+    "label": "الفئة الضريبية للصنف",
+    "hint": "تحدد طريقة فرض الضريبة على هذا الصنف. تُطبَّق على الطلبات الجديدة فقط. تحتفظ الطلبات المُنشأة بضريبتها.",
+    "useDefault": "الافتراضي للمنشأة"
   },
   "taxCategory": {
     "label": "الفئة الضريبية",

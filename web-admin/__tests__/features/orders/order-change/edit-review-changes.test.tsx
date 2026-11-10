@@ -6,6 +6,7 @@ import en from '../../../../messages/en/orders/edit.json';
 import ar from '../../../../messages/ar/orders/edit.json';
 
 let mockLocale = 'en';
+jest.mock('@features/orders/hooks/use-service-speeds', () => ({ useServiceSpeeds: () => ({ labelOf: (code: string) => code }) }));
 jest.mock('next-intl', () => ({
   useLocale: () => mockLocale,
   useTranslations: (namespace: string) => (key: string) => {

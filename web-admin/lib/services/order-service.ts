@@ -956,6 +956,7 @@ export class OrderService {
         if (childRows.discounts.length > 0) await tx.org_order_discounts_dtl.createMany({ data: childRows.discounts });
         if (childRows.charges.length > 0) await tx.org_order_charges_dtl.createMany({ data: childRows.charges });
         if (childRows.taxes.length > 0) await tx.org_order_taxes_dtl.createMany({ data: childRows.taxes });
+        await commercial.writeTaxLines(tx, { tenantOrgId: tenantId, orderId: order.id, userId });
       }
 
       if (isRetailOnlyOrder) {

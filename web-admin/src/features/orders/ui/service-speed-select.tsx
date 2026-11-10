@@ -8,6 +8,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   CmxSelectDropdown,
@@ -19,6 +20,7 @@ import {
 import { useRTL } from '@/lib/hooks/useRTL';
 import { cn } from '@/lib/utils';
 import { useServiceSpeeds } from '../hooks/use-service-speeds';
+import { useSpeedOptionPreviews, type SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
 
 /** UI-only option value of a line that follows the order speed (never sent; the request carries null). */
 const FOLLOW_ORDER_SPEED = '__FOLLOW_ORDER__';
@@ -37,6 +39,8 @@ export interface ServiceSpeedSelectProps {
   /** `line` renders a compact trigger for a cart row. */
   size?: 'default' | 'line';
   className?: string;
+  /** New Order only: prices each option and shows its promised ready time when the menu opens. */
+  preview?: SpeedOptionPreviewSource;
 }
 
 /**
@@ -53,12 +57,17 @@ export function ServiceSpeedSelect({
   ariaLabel,
   size = 'default',
   className,
+  preview,
 }: ServiceSpeedSelectProps) {
   const t = useTranslations('newOrder.serviceSpeed');
   const isRTL = useRTL();
   const { speeds, labelOf, isLoading, isError } = useServiceSpeeds();
   const isLine = orderSpeed !== undefined;
   const selected = isLine && value == null ? FOLLOW_ORDER_SPEED : value ?? '';
+  // Only what this organization offers, but a speed already on the order or line stays visible.
+  const options = speeds.filter((s) => s.is_offered || s.code === value || s.code === orderSpeed);
+  const [open, setOpen] = useState(false);
+  const previews = useSpeedOptionPreviews(options.map((s) => s.code), preview, open);
   const display = selected === FOLLOW_ORDER_SPEED
     ? t('followOrder', { speed: labelOf(orderSpeed ?? '') })
     : labelOf(selected);
@@ -72,6 +81,7 @@ export function ServiceSpeedSelect({
         isLoading={isLoading}
         loadingLabel={t('loading')}
         emptyLabel={t('unavailable')}
+        onOpenChange={setOpen}
       >
         <CmxSelectDropdownTrigger
           aria-label={ariaLabel}
@@ -86,11 +96,18 @@ export function ServiceSpeedSelect({
               {t('followOrder', { speed: labelOf(orderSpeed ?? '') })}
             </CmxSelectDropdownItem>
           ) : null}
-          {speeds.map((speed) => (
-            <CmxSelectDropdownItem key={speed.code} value={speed.code}>
-              {labelOf(speed.code)}
-            </CmxSelectDropdownItem>
-          ))}
+          {options.map((speed) => {
+            const option = previews.get(speed.code);
+            return (
+              <CmxSelectDropdownItem key={speed.code} value={speed.code} disabled={option?.notOffered && speed.code !== selected}>
+                <span className="flex flex-col">
+                  <span>{labelOf(speed.code)}</span>
+                  {option?.notOffered ? <span className="text-[11px] opacity-70">{t('notOfferedForItems')}</span> : null}
+                  {option?.total ? <span className="text-[11px] opacity-70">{t('optionPreview', { total: option.total, ready: option.ready })}</span> : null}
+                </span>
+              </CmxSelectDropdownItem>
+            );
+          })}
         </CmxSelectDropdownContent>
       </CmxSelectDropdown>
     </div>

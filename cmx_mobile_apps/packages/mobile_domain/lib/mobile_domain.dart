@@ -10,6 +10,7 @@ export 'src/branch_option_model.dart';
 export 'src/customer_auth_challenge_model.dart';
 export 'src/customer_session_model.dart';
 export 'src/new_address_input_model.dart';
+export 'src/booking_service_speed_model.dart';
 export 'src/order_booking_draft_model.dart';
 export 'src/order_detail_model.dart';
 export 'src/order_financial_statement_model.dart';

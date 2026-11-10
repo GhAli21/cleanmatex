@@ -53,6 +53,7 @@ import { sumMoney } from '@/lib/commercial';
 import { OrderService, type CreateOrderParams } from '@/lib/services/order-service';
 import { quoteCheckout, type CheckoutQuoteParams } from '@/lib/services/commercial/commercial-checkout.service';
 import type { CommercialDb } from '@/lib/services/commercial/commercial-context.loader';
+import { activeTaxSetup, taxCodeColumns } from '../../helpers/tax-engine-fixtures';
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const SHIRT = 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -69,8 +70,9 @@ function catalogDb(): CommercialDb {
     sys_service_speed_cd: [{ code: 'STANDARD' }],
     org_tax_profiles_cf: [{
       id: 'vat', name: 'VAT', name2: null, tax_type: 'VAT', rate: '5', is_compound: false, is_default: true, applies_to: [],
-      rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null,
+      rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null, ...taxCodeColumns('VAT_STD'),
     }],
+    ...activeTaxSetup('VAT_STD'),
     sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
     org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 0, branch_id: null }],
     sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 0 }],
@@ -96,8 +98,9 @@ function recordingTx() {
     create: async ({ data }: { data: Rec }) => store(name, data),
     createMany: async ({ data }: { data: Rec[] }) => { data.forEach((d) => store(name, d)); return { count: data.length }; },
     createManyAndReturn: async ({ data }: { data: Rec[] }) => data.map((d) => store(name, d)),
-    findFirst: async () => null,
-    findMany: async () => { throw new Error(`unexpected read of ${name}`); },
+    findFirst: async () => (name === 'org_orders_mst' ? rows[name]?.[0] ?? null : null),
+    deleteMany: async () => ({ count: 0 }),
+    findMany: async () => { if (name === 'org_tax_lines_tr') return []; throw new Error(`unexpected read of ${name}`); },
   });
   const tx = new Proxy({}, { get: (_t, prop: string) => (prop === '$executeRaw' ? jest.fn() : model(prop)) });
   return { tx, rows };
@@ -438,7 +441,11 @@ describe('P6-01c Edit writes the calculated order', () => {
       updateMany: jest.fn(async ({ where, data }: { where: Rec; data: Rec }) => { retired[name] = { where, data }; return { count: 1 }; }),
       createMany: jest.fn(async ({ data }: { data: Rec[] }) => { written[name] = data; return { count: data.length }; }),
     });
-    const tx = { org_order_discounts_dtl: model('discounts'), org_order_charges_dtl: model('charges'), org_order_taxes_dtl: model('taxes') };
+    const tx = {
+      org_order_discounts_dtl: model('discounts'), org_order_charges_dtl: model('charges'), org_order_taxes_dtl: model('taxes'),
+      org_orders_mst: { findFirst: async () => ({ order_no: 'ORD-1', branch_id: null, customer_id: null, currency_code: 'OMR', base_cur_currency_code: 'OMR', currency_ex_rate: 1 }) },
+      org_tax_lines_tr: { deleteMany: async () => ({ count: 0 }), findMany: async () => [], createMany: async () => ({ count: 0 }) },
+    };
     await replaceEditChildRows(tx as unknown as EditChildRowsTx, {
       tenantOrgId: TENANT, orderId: record.orderId, currencyCode: 'OMR', userId: 'user-1', at: new Date(), edit,
     });

@@ -37,7 +37,7 @@ import { MODIFIER_PLACEMENTS, priceLine, type LinePricingInput, type LinePricing
 import { ZERO, sumMoney, toMoney, type Money, type MoneyInput } from './money';
 import { resolveReadyBy, type ReadyByInput, type ReadyByLineInput, type ReadyByLineResult } from './ready-by';
 import type { RoundingRule } from './rounding';
-import { calculateTax, type TaxLineResult, type TaxProfileInput, type TaxRowInput, type TaxRowResult } from './tax';
+import { calculateTax, type RowProfileTax, type TaxLineResult, type TaxProfileInput, type TaxRowInput, type TaxRowResult } from './tax';
 
 /**
  * The calculator version written to `org_orders_mst.commercial_calc_version`.
@@ -122,6 +122,8 @@ export interface CommercialRowTax {
   exemptReason: string | null;
   taxProfileId: string | null;
   taxRate: Money;
+  /** The row's tax per code, in calculation order (`org_tax_lines_tr`). */
+  profileTaxes: RowProfileTax[];
 }
 
 /** One stored item or piece row. */
@@ -210,6 +212,7 @@ const rowTaxOf = (result: TaxRowResult): CommercialRowTax => ({
   exemptReason: result.exemptReason,
   taxProfileId: result.taxProfileId,
   taxRate: result.taxRate,
+  profileTaxes: result.profileTaxes,
 });
 
 const taxRow = (rowId: string, netAmount: MoneyInput, tax: CommercialTaxInput): TaxRowInput => ({

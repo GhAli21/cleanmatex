@@ -148,6 +148,28 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: SETTINGS_NOTES,
   },
   {
+    routePattern: '/dashboard/settings/calendar',
+    label: 'Business Calendar',
+    page: {
+      permissions: ['settings:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      saveOrganization: { label: 'Save the organization calendar and holidays', requirement: { permissions: ['settings:organization'] } },
+      saveBranch: { label: 'Save a branch calendar', requirement: { permissions: ['branches:settings'] } },
+    },
+    apiDependencies: [
+      { label: 'Organization calendar', method: 'GET', path: '/api/v1/settings/calendar', requirement: { permissions: ['settings:read'] } },
+      { label: 'Save organization calendar', method: 'PUT', path: '/api/v1/settings/calendar', requirement: { permissions: ['settings:organization'] } },
+      { label: 'Branch calendar', method: 'GET', path: '/api/v1/settings/branches/[id]/calendar', requirement: { permissions: ['branches:read'] } },
+      { label: 'Save branch calendar', method: 'PUT', path: '/api/v1/settings/branches/[id]/calendar', requirement: { permissions: ['branches:settings'] } },
+      { label: 'Holidays', method: 'GET', path: '/api/v1/settings/holidays', requirement: { permissions: ['settings:read'] } },
+      { label: 'Add holiday', method: 'POST', path: '/api/v1/settings/holidays', requirement: { permissions: ['settings:organization'] } },
+      { label: 'Edit holiday', method: 'PATCH', path: '/api/v1/settings/holidays/[id]', requirement: { permissions: ['settings:organization'] } },
+      { label: 'Delete holiday', method: 'DELETE', path: '/api/v1/settings/holidays/[id]', requirement: { permissions: ['settings:organization'] } },
+    ],
+  },
+  {
     routePattern: '/dashboard/settings/preferences',
     label: 'Settings Preferences',
     page: {},
@@ -241,6 +263,148 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/settings/tax/exemptions',
         notes: ['Auth-only local route.'],
+      },
+      {
+        label: 'Tax setup',
+        method: 'GET',
+        path: '/api/v1/tax/config',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Save tax setup',
+        method: 'PUT',
+        path: '/api/v1/tax/config',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Tax form lookups',
+        method: 'GET',
+        path: '/api/v1/tax/options',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Why this tax',
+        method: 'POST',
+        path: '/api/v1/tax/explain',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Change tax code',
+        method: 'PATCH',
+        path: '/api/v1/tax/codes/[id]',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Starter packages',
+        method: 'GET',
+        path: '/api/v1/tax/kits',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Apply tax kit',
+        method: 'POST',
+        path: '/api/v1/tax/kits/apply',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Tax codes',
+        method: 'GET',
+        path: '/api/v1/tax/codes',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Add tax code',
+        method: 'POST',
+        path: '/api/v1/tax/codes',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Tax rules',
+        method: 'GET',
+        path: '/api/v1/tax/rules',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Add tax rule',
+        method: 'POST',
+        path: '/api/v1/tax/rules',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Change tax rule',
+        method: 'PATCH',
+        path: '/api/v1/tax/rules/[id]',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Item tax classes',
+        method: 'GET',
+        path: '/api/v1/tax/item-classes',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Add item tax class',
+        method: 'POST',
+        path: '/api/v1/tax/item-classes',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Change item tax class',
+        method: 'PATCH',
+        path: '/api/v1/tax/item-classes/[id]',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+    ],
+  },
+  {
+    routePattern: '/dashboard/settings/tax/setup',
+    label: 'Review tax setup',
+    page: {
+      permissions: ['tax:view_config'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      confirm: {
+        label: 'Confirm tax setup',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Tax setup',
+        method: 'GET',
+        path: '/api/v1/tax/config',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Save tax setup',
+        method: 'PUT',
+        path: '/api/v1/tax/config',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Tax form lookups',
+        method: 'GET',
+        path: '/api/v1/tax/options',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Why this tax',
+        method: 'POST',
+        path: '/api/v1/tax/explain',
+        requirement: { permissions: ['tax:view_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Change tax code',
+        method: 'PATCH',
+        path: '/api/v1/tax/codes/[id]',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Confirm tax setup',
+        method: 'POST',
+        path: '/api/v1/tax/config/confirm',
+        requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
       },
     ],
   },
@@ -455,7 +619,13 @@ export const SETTINGS_SETTINGS_ROLES_ACCESS =
 export const SETTINGS_SETTINGS_TAX_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/tax')!
 
+export const SETTINGS_TAX_SETUP_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/tax/setup')!
+
 export const SETTINGS_WORKFLOWS_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/workflows')!
+export const SETTINGS_SETTINGS_CALENDAR_ACCESS =
+  SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/calendar')!
+
 export const SETTINGS_SETTINGS_FINANCE_ACCESS =
   SETTINGS_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/settings/finance')!

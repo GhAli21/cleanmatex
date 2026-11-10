@@ -18,6 +18,7 @@ class OrderBookingDraftModel {
     this.isAsap = true,
     this.scheduledAt,
     this.newAddressInput,
+    this.serviceSpeed,
   });
 
   final ServiceOptionModel? service;
@@ -39,6 +40,9 @@ class OrderBookingDraftModel {
   final DateTime? scheduledAt;
   final NewAddressInputModel? newAddressInput;
 
+  /// A `sys_service_speed_cd` code; null books at the Standard speed.
+  final String? serviceSpeed;
+
   OrderBookingDraftModel copyWith({
     ServiceOptionModel? service,
     AddressOptionModel? address,
@@ -53,6 +57,7 @@ class OrderBookingDraftModel {
     DateTime? scheduledAt,
     NewAddressInputModel? newAddressInput,
     bool clearNewAddress = false,
+    String? serviceSpeed,
   }) {
     return OrderBookingDraftModel(
       service: service ?? this.service,
@@ -70,6 +75,7 @@ class OrderBookingDraftModel {
       scheduledAt: scheduledAt ?? this.scheduledAt,
       newAddressInput:
           clearNewAddress ? null : (newAddressInput ?? this.newAddressInput),
+      serviceSpeed: serviceSpeed ?? this.serviceSpeed,
     );
   }
 }

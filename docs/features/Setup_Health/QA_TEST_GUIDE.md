@@ -27,9 +27,12 @@ Owner-runnable checks. Plan: [PLAN.md](PLAN.md) · Status: [STATUS.md](STATUS.md
 | H5 | HQ user without `tenant_setup_health:view` | same URL | Open | Error box "Could not load setup health" (API answers 403) |
 | H7 | same as H1 | An Omani demo organization (after 0716) | Look under Business calendar | *Public holiday dates are not confirmed yet* (Info, no Fix button). Not shown in the tenant app |
 | H6 | same as H1, Arabic | same | Switch to Arabic | Arabic text, mirrored layout |
+| H8 | HQ sidebar › Tenant Organizations — `/tenants` | Demo organization `11111111-…` (has 1 warning on remote) | Look at the **Setup** column; hover it; click it | Amber "1 warning"; organizations with no blocker or warning show green "OK"; hover shows the last check date; click opens that organization's Setup Health. In Arabic: "تحذير واحد", "سليم", mirrored |
+| H9 | same as H8 | same | **Setup Health** filter › *Blockers or warnings*, then *Has blockers*, then **Clear filters** | First: only organizations with a warning or blocker, with the total matching; the URL has `setupHealth=needs_attention`. Second: empty until Tax M8 adds blocker checks. Clear: full list |
+| H10 | Organization › Setup Health, then `/tenants` | An organization with the business-hours warning | Add business hours in the tenant app, open its HQ Setup Health page, go back to the list | The warning is gone from the page and the list shows OK (the list updates only after that page is opened, or after the 02:15 UTC job) |
 
 ## Automated checks (already run)
 
 - `web-admin`: `npx jest __tests__/services/setup-health.service.test.ts __tests__/api/setup-health.route.test.ts __tests__/features/setup-health`
 - `web-admin` DB (local Supabase): `npm run test:db-integration -- __tests__/db-integration/setup-health.db.test.ts`
-- `platform-api`: `npx jest src/modules/tenant-setup-health`
+- `platform-api`: `npx jest src/modules/tenant-setup-health src/modules/tenants/__tests__/tenants.service.find-all.spec.ts`

@@ -863,7 +863,7 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — Express ON → `DENIED`, `Not allowed: CHANGE_REASON_REQUIRED • DENY`, Review again disabled, **0 textboxes / 0 checkboxes** in dialog. Code unchanged in d16ff51e (`order-change-capability.service.ts:247,287-288`).
 - **P1 FET-EOV2-S13:** Discard without confirm (V2). **Evidence:** Discard restores immediately with no confirm dialog. **Where:** `edit-shared-workspace.tsx:197-205` (wired `edit-order-context-bar.tsx:28`). **Fix:** `cmxMessage.confirm` before `reloadKey++`.
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — "Discard changes" discards immediately, no confirm (`edit-shared-workspace.tsx:197-205` unchanged).
-- **P1 FET-EOV2-S14:** Review totals 4-dp + raw codes untranslated. **Evidence:** est `41.1700`; codes `SIGNER_UNAVAILABLE`/`OUTSTANDING`/`CHANGE_*` in EN and AR Review (`r2_07`/`r2_18`). **Where:** `order-change-preview-reads.ts:52-57`, `edit-review-dialog.tsx:66-83`. **Fix:** tenant money format (2 dp SAR) + i18n maps for status/ops/outcome.
+- **P1 FET-EOV2-S14:** Review totals 4-dp + raw codes untranslated. **Evidence:** est `41.1700`; codes `SIGNER_UNAVAILABLE`/`OUTSTANDING`/`CHANGE_*` in EN and AR Review (`r2_07`/`r2_18`). **Where:** `order-change-preview-reads.ts:52-57`, `edit-review-dialog.tsx:66-83`. **Fix:** tenant money format (2 dp SAR) + i18n maps for status/ops/outcome. — Retest 2026-11-09: reproduced (raw codes still untranslated in EN/AR Review).
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — est **41.1700** (4 dp) on qty +1 (29.6700 on notes-only); codes READY/OUTSTANDING/CHANGE_ITEM_QUANTITY/ADD_PIECE untranslated in AR Review.
 - **P1 FET-EOV2-S15:** Draft line total drift after qty +1/−1. **Evidence:** Fitness Leggings **10.30→10.00** while **+0.30** chip stays. **Where:** `edit-workspace-adapter.ts:62-84` missing `servicePrefCharge`; `new-order-reducer.ts:271-275`. **Fix:** hydrate charge from prefs sum; keep charge consistent on qty change.
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — qty +1 (10.30→20.00, total 35.50) then −1 → line **10.00** with "+0.30 Eco-Friendly Wash" label still shown; total **25.50** (was 25.80); header **"0 unsaved changes"** (see S23).
@@ -1075,3 +1075,285 @@ No DB SELECTs were needed, because the cause is deterministic in code.
 3. MAN-UI-012: REMOVE_ITEM with the warning checked → Apply → check the follow-up and settlement wording (outstanding balance 18.00 → new balance). Run only if a controlled Apply on test data is authorized.
 4. Recheck S26 messages, S27 label, S12 reason field, S13 Discard confirm, S14 2-dp and S16 focus.
 5. Re-pull F: before merging; FET section only; keep dev notes; no passwords.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch 2)
+
+**Run:** 2026-11-07 14:34 Asia/Muscat (UTC+4), Preview, Demo Laundry LLC (`11111111-1111-1111-1111-111111111111`), admin, EN/AR, 1920×1072. Returned UI evidence; no order/payment/workflow writes, no printing sent. English restored; no dirty draft.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN-UI-001 | PARTIAL | Header Edit on 0003 UUID `cd4ac165-9a37-4b5e-9300-59152ca8e236` opens authoritative clean workspace: revision2, processing,0 unsaved, No money change,total1.926 OMR. Customer/branch/currency locked per policy context; branch visibly disabled. Dirty/Review/Apply/Discard behavior not exercised; no Review/Apply interaction. |
+| MAN-UI-003 (baseline only) | PARTIAL | Price readonly: `Change Item Price is not allowed at the current status.` Discount same restriction; speed disabled: `The service speed cannot be changed on this order.` Correct preconfiguration fail-closed baseline, NOT a product defect. Required REMOVE_ITEM DENY/other-allowed-op flow not tested. |
+| MAN-UI-009 (clean only) | PARTIAL | Arabic same amounts and RTL observed. Some headings English, exact strings pending; full interactive Edit/Review flow not tested. |
+
+Policy info: Standard Order Change V1, PILOT rev3, organization override, WF_V2_SIMPLE v4. Matches observed current policy baseline. No postconfiguration claims.
+
+**OC-UI-001 companion:** route/context-load and clean-state subchecks only supported by MAN-UI-001 evidence; full OC-UI-001 not signed off. No other OC parent PASS implied. Matrix canonical file not edited by this batch.
+
+**Evidence:** `/workspace/qa-20261107/shots/man001-01-order0003-policy-info.png`, `man001-02-order0003-edit-items-controls.png`, `man001-03-order0003-edit-ar-rtl.png`, `man001-04-order0003-detail-ar-rtl.png`, `man001-05-order0003-en-restored.png`.
+
+**Provisional parent counts:** PARTIAL3 (001,003 baseline,009 clean); remaining11 NOT RUN this run. Clean-state subchecks are not full scenario passes.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch 2)
+- **FET-EOV2-Nov07-PolicyBaseline:** Preserve evidence of disabled per-line controls/reasons before new policy versions; retest allowed controls only after effective policy source/revision is verified. Current missing/denied rules are intended fail-closed behavior, not defects.
+- **Localization observation:** Capture exact English headings in AR before recommending specific translation changes. No source diagnosis performed.
+- **Ancillary navigation observation:** Background `/api/navigation` HTTP504 while pages rendered; diagnosis pending.
+
+### Test data left behind
+No dirty draft; EN restored. No order/payment/workflow/printing writes; policy/role unchanged.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch 3: HQ prerequisites)
+
+**Run:** 2026-11-07 14:48 Asia/Muscat (UTC+4), HQ, English1920×1072, visible user System Administrator. Inventory only; no draft/create/clone/publish/role mutation activated. Setup inventory is not a product-test PASS.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN-UI-003 baseline prerequisite | PARTIAL / required configured flow BLOCKED | Disabled price/discount/speed baseline aligns with HQ simulations. REMOVE_ITEM DENY/allowed-other-control flow remains untested. |
+| MAN-UI-004 policy fixtures | BLOCKED (setup only) | Intended WARN/OVERRIDE/permission/reason fixtures not configured by this inventory batch; no Review flow claimed. |
+
+STANDARD (`f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`) PILOT rev3,230/702 rules. More actions offers Clone to new draft, Create draft, Publish; none activated. All five requested Processing pairs simulate DENY `CAPABILITY_POLICY_NOT_ENABLED`: CHANGE_SERVICE_SPEED ITEM/PIECE, CHANGE_DISCOUNT ITEM/PIECE, CHANGE_ITEM_PRICE ITEM. Processing existing15 rules comprise4 WARN and11 REQUIRE_OVERRIDE; ORDER speed Require override; ORDER discount absent; Item price has no ORDER counterpart. Preserve operation/target distinctions; no invented decisions.
+
+WF_V2_SIMPLE v4 coverage307 issues, incomplete: missing five pairs at Processing/Preparing and inactive-status issues. Fill deny NOT used. Demo organization assignment is All profiles, no defaults. Starter description says Unassigned despite current assignment (minor stale-description observation).
+
+FULL_PATH (`346dc050-cbbd-48e3-9e86-afebe126f531`) PILOT rev8,260/702, unassigned. Processing Item price explicit Deny, `CAPABILITY_POLICY_NOT_ENABLED`, `orderChange.policy.notEnabled`. Do not replace explicit denial with a presumed allowance or reactivate obsolete tenant PROFILE linkage.
+
+Evidence under `/workspace/qa-20261107/shots/`: `hq-policy-inventory-list.png`, `hq-policy-inventory-standard-processing.png`, `hq-policy-inventory-processing-simulation-deny.png`, `hq-policy-inventory-processing-speed-piece-deny.png`, `hq-policy-inventory-coverage.png`, `hq-policy-inventory-standard-assignment.png`, `hq-policy-inventory-fullpath-item-price-deny.png`.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch 3)
+- **FET-EOV2-Nov07-PolicyPrereq:** Maintain distinction between disabled correct baseline and a governed editable scenario. New draft/version publication must preserve intentional protected decisions and be followed by source/revision/link checks before MAN-UI-004/005/006/012 execution.
+- **P3 FET-EOV2-Nov07-Description:** Starter Unassigned description conflicts with displayed live assignment; clarify explanatory copy after verifying semantics, not resolver cause.
+
+No new full manual PASS. Prior clean-context PARTIAL evidence preserved. No configuration or order mutations.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch5: policy draft attempt)
+
+**Run:** 2026-11-07 15:25 Asia/Muscat (UTC+4), HQ policy prerequisite attempt; returned UI evidence. This is setup, not an Edit scenario PASS.
+
+| # | Result | Evidence |
+|---|---|---|
+| Requested five ITEM/PIECE capability-rule setup | BLOCKED | Separate Draft created but required operation-target rows absent from editor, no per-cell add observed. No rule changes/publication/assignment completed. |
+
+**Original unchanged:** `f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`, `ORDER_CHANGE_STANDARD_V1`, PILOT rev3, read-only. **Leftover separate clone:** `a6f6c2ef-8d69-4ab1-9770-d99e33730b62`, `ORDER_CHANGE_STANDARD_QA_20261107_V1`, name `Standard Order Change 20261107`, DRAFT rev2 (clone rev1, metadata save rev2), unassigned at every scope,230/702 inherited rules. This is a separate policy, NOT a new revision in the original policy lineage.
+
+Owner intent: Allow with warning on editable statuses, preserving explicit DENY. Current active-v4 candidate editable statuses seen: Intake/Preparing/Processing; Awaiting collection and Ready/Delivered/Cancelled retain15 DENY cells; Assembly/QA/Packing inactive. These observations are not permission to alter protected rules or other versions. Five requested rows: CHANGE_SERVICE_SPEED ITEM/PIECE; CHANGE_DISCOUNT ITEM/PIECE; CHANGE_ITEM_PRICE ITEM. They were absent as editable rows; only Fill missing only and Reset suggestions available, neither used. Coverage307 issues incomplete. No new rule saved, Publish/Start pilot not activated, no assignment/default changed.
+
+**Documented method check (read-only existing plan):** Extend_Order_Edit_policy_Plan.md line565 requires HQ matrix to load pairs from catalog, not a fixed13-code list. Lines1388–1390 specify active-status matrix and Smart fill as a proposal only; lines415–417 no automatic ALLOW backfill and money/payment proposals DENY. Lines188–189 document read-only catalog and Smart fill; they do NOT explain Fill missing only versus Reset suggestions preservation semantics, a target-filter repair step, or how to add missing per-cell rows. Therefore no verified safe normal-UI method to expose these five absent rows was established from available docs. Do not use Reset suggestions on assumption it preserves populated cells. Do not clone other profiles while same blocker persists; no internal API/DB-write bypass.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch5)
+- **P1 candidate FET-Policy-Nov07-MissingTargetRows:** Editor cannot currently expose requested operation-target rows for this setup attempt. Confirm catalog availability and normal UI filters/target selection through documented UI; if absent, editor should render all active catalog pairs—including the five requested ITEM/PIECE pairs—as independently editable missing cells while preserving populated decisions. Document Fill missing only/Reset suggestions semantics and preview a non-destructive diff. Cause not diagnosed; no source defect asserted beyond observed UI deficiency.
+
+**Evidence** under `/workspace/qa-20261107/shots/`: `hq-standard-draft-original-pilot-readonly.png`, `hq-standard-draft-details-rev2.png`, `hq-standard-draft-unassigned.png`, `hq-standard-draft-wf-v2-simple-v4.png`, `hq-standard-draft-rules-preparing.png`, `hq-standard-draft-deny-cells.png`, `hq-standard-draft-coverage-v4.png`.
+
+### Test data left behind
+Separate unassigned DRAFT clone above, rev2, metadata saved. Source policy/rules/links unchanged; no publish/pilot/assignment, order/payment/workflow writes. No other profile cloned in this attempt. Existing subject scenario results remain unchanged; setup BLOCKED tracked separately.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch8: controlled core Edit)
+
+**Retest r5/core Edit:** 2026-11-07 16:37:44 Asia/Muscat (UTC+4), Demo Laundry/admin, EN1440×985 CSS; AR clean-context check then EN restored. Only dedicated `ORD-20261107-00001` UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9` changed. Detailed returned evidence `/workspace/qa-20261107/man-core-edit-ledger.md`.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN-UI-001 | FAIL identity UI subcheck; remaining context PARTIAL | Baseline rev1 processing0unsaved/total2.536. Branch locked but customer Select Customer/Clear/Edit customer enabled. No identity change attempted; not proof of server security bypass. Notes1dirty→warning Review→cancel/discard restored0dirty; independent rev1/2.536 unchanged, local staging/noncommit PASS. |
+| MAN-UI-004 | PARTIAL | Note WARN acknowledgement checkbox required, no Apply performed. Quantity override blank reason REASON_REQUIRED; entered reason READY/Apply enabled. Missing no-override-permission role and DENY comparison coverage. Reopen retained visible reason yet REASON_REQUIRED until reentry: stale reason-state finding. |
+| MAN-UI-005 | PARTIAL | Quantity Review localized operation names/before→after, current2.536/projected4.7830/tax.166→.313; qty and Add piece2ops. Apply once succeeded: exactly1history record/rev1→2 independently reloaded. Prior generic Apply422 no longer reproduced on THIS fixture. UI remained stale dirty/revision/Updating after success; reason persisted but Applied by Unknown user. Other target combinations/visual matrix pending. Historical failures preserved, not erased. |
+| MAN-UI-010 | PARTIAL; focus restore subcheck FAIL/uncertain | Escape closes READY Review without applying; draft/history safe. Snapshot active page root, not clear opener restoration. Full focus/trap/keyboard coverage unproven; do not claim complete accessibility PASS. |
+| MAN-UI-012 | PARTIAL; follow-up separation PASS | After Apply: Balance after this change / Collect4.7830 OMR on existing collection screen / This screen does not take payment. Back to order selected; no auto-payment/workflow. Paid20→15/overpayment example not exercised. |
+| MAN-UI-009 | PARTIAL clean-context retest | AR reload rev2/0unsaved/total4.783/locked branch, no AR edit/review/apply; EN restored. |
+| MAN-UI-008 / 011 | NOT RUN this batch | Discard is NOT unsaved-navigation protection; one desktop screenshot is NOT responsive/POS coverage. |
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch8)
+- **P1 candidate FET-EOV2-Nov07-IdentityControls:** Customer Select/Clear/Edit enabled despite locked identity contract, branch disabled. Align UI affordances; server bypass not tested/proven. — Retest 2026-11-09: reproduced.
+- **P1 FET-EOV2-Nov07-StaleAfterApply:** Successful persisted Apply leaves editor prior revision/dirty/Updating state. Reload correctly shows rev2; synchronize committed editor baseline without misleading stale state. — Retest 2026-11-09: not reproduced after Discard (no stuck Updating); Apply path not retested this pass.
+- **P2 FET-EOV2-Nov07-ReasonReopen:** Visible reason survives dialog reopen but review says REASON_REQUIRED until same reason reentered. Confirm state synchronization; cause pending.
+- **P2 candidate FET-EOV2-Nov07-Focus:** Escape snapshot page-root focus rather than Review opener; capture exact active element/refocus in next keyboard pass.
+- **P1 candidate FET-EOV2-Nov07-AuditActor:** Single history record says Applied by Unknown user despite successful signed-in operation and persisted reason. Diagnose identity rendering/audit attribution without assuming DB actor absent. — Retest 2026-11-09: reproduced.
+
+**Notes clarification:** Show notes reveals static Save caption, NOT a separate Save button. Earlier Create-note absence remains provisional; omitted explicit Save button is NOT established. No lost-data root cause inferred.
+
+Bathrobe quantity1→2 preserves override2.100/unit,line4.200; Shirt.300−discount.030=net.270 retained. Live card new4.783/was2.536/delta+2.247/balance4.783/To collect. Review matches numbers, but Updating persisted>25s and stale after Apply. Independent reload total4.783,tax.313,paid0,credits0,due4.783 POC/Reconciled; processing/preparation pending unchanged.
+
+History exactly1Change#1,2ops,reason `QA-20261107 controlled quantity retest`,source order-edit,revision1→2,workflow version1; Applied by Unknown user. ItemUUID `2e052d4b-0c4e-4f20-a408-c29988ccbc80`; added pieceUUID `db4b929d-e1aa-4e96-8d2c-fd39428f7da6`,piece2/processing/expected. Single Apply click proves only observed single record, NOT lost-response retry or durable idempotency.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `man-core-baseline.png`, `man-core-note-review.png`, `man-core-note-discarded.png`, `man-core-quantity-staged.png`, `man-core-quantity-review-required.png`, `man-core-review-reason-required.png`, `man-core-review-reason-entered.png`, `man-core-review-ready.png`, `man-core-post-apply-balance.png`, `man-core-change-history.png`, `man-core-final-items.png`, `man-core-ar-context.png`, `man-core-final-en.png`.
+
+### Test data left behind / current fixture state
+Dedicated order now revision2,total4.783/tax.313/paid0/due4.783 OMR,POC,processing/pending,OPEN; Bathrobeqty2 atoverride2.100 and Shirtqty1 net.270;3pieces;one change/twoops/above reason. Note-only draft discarded. No other order/policy/payment/collection/refund/workflow/print/message changes. Final independent EN detail, no dirty draft. Original Create ledger remains historical baseline, not current total.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch11: stale guard and navigation)
+
+**Run:** returned17:17 Asia/Muscat (UTC+4), underlying16:57–17:15 about18minutes (exceeded15minbound). Demo admin,own `ORD-20261107-00001` UUID `cce8a46e-a8f4-4346-8ca1-790182d1e1d9`; EN,final reportedCSS1920×1072/computer capture1280×800. Authoritative `/workspace/qa-20261107/man-stale-nav-ledger.md` read completely. Finalone clean detailtab `/dashboard/orders/{UUID}?tab=change_history`.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN006 / OC006 | PARTIAL | B note `QA-20261107-STALE-B-DO-NOT-SAVE` WARNack/Reviewagain initiallySTALE thenREADY asynchronously. Second editor A blocked `Close the other edit window before opening this order again.` Limited single-editor guard evidence PASS; NO concurrent committedstaleApply,no409/networkcapture,no full conflict-recovery PASS. B canceled/discarded before A opened. |
+| MAN008 / OC008 | PARTIAL | NAVdraft `QA-20261107-NAV-DRAFT-DO-NOT-SAVE`; Backprompt `Leave without saving?` / `You have unsaved changes. Are you sure you want to discard them?` Cancel/Confirm. Cancel retained draft/route; explicit Discard restored savedAnote/0dirty. Sidebar Orders/Expand wouldnotopen,aria-expandedfalse,noAppmessage; AllOrdersprompt/Leavepath not reached. Backafterdiscard didn'tnavigate; normal detailroute used. |
+| MAN013 / OC004 | BLOCKED fixture | Bathrobe+Shirt are NOTsameproductcommittedduplicates. No duplicate draft attempt; missingprecondition,not productFAIL. |
+| MAN011 / OC011 | NOT RUN | No responsivevisualpass. |
+| OC007 | NOT RUN | One Apply doesnotprove durableidempotency/retry. |
+
+**A notes-only controlled Apply:** after Bclosed,revision2 note `QA-20261107-STALE-A-COMMIT`,1dirty,No money change,total4.783. WARNack→Reviewagain initiallypending/stale thenREADY,no reasonrequested. Applyonce,toast `The change was saved.` Followup `Collect 4.7830 OMR on the existing collection screen. This screen does not take payment.` Backtoorder,no collection.
+
+Independentreload revision3/exactly2historyrecords: oldquantityChange#1 unchanged2ops; newChange#2 oneChange notes op,revision2→3,delta0.000,total4.783/tax0.313,paid0/due4.783,POCprocessing/pending. Newrecord AppliedbyUnknownuser,No reason recorded (none requested),sourceorder-edit,A note persisted. B/NAVnotes absent. No quantity/speed/price/discount/payment/workflow/customer/branch/policy changes.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch11)
+- **FET-EOV2-Nov07-SingleEditorBoundary:** Record single-session guard rather than claiming stale409. Full concurrent stale review test needs supported isolated sessions/testharness; do not bypass guard by internalAPI.
+- **P2 candidate FET-EOV2-Nov07-SidebarNav:** Sidebar Orders/Expand didnotopen,preventing remaining navtest; capture current shell interaction on repeat,sourcecause unconfirmed. BackCancel/explicitDiscard passes don't prove sidebarLeavepath.
+- **FET-EOV2-Nov07-ReviewPending:** Brief STALE→READY after acknowledged Reviewagain observed without repeat; record asyncsequence,not definitive conflictresult.
+- **FET-EOV2-Nov07-NotesScope:** Editnotes persistence nowpasses; prior Createnotes absence remains provisional/separateflow,not resolved by Edit.
+
+**Evidence** `/workspace/qa-20261107/shots/`: `man-stale-b-review-stale.webp`,`man-stale-b-ready-review.webp`,`man-stale-concurrent-edit-block.webp`,`man-stale-a-ready-review.webp`,`man-stale-a-applied-balance.webp`,`man-stale-a-history.webp`,`man-stale-final-en.webp`,`man-nav-draft-staged.webp`,`man-nav-back-prompt.webp`,`man-nav-back-stay.webp`,`man-nav-draft-discarded.webp`.
+
+### Test data left behind / latest fixture
+Revision3,total4.783,tax0.313,paid0,due4.783,POCprocessing/pending;2totalChanges(2oldqtyops+1newnotesop). A note intentionallysaved,B/NAVnot;onecleanENdetailtab. No other saved changes. These actualstates supersede expectedrevision3 in brief,not historicalrecords. No Arabiccheck thisbatch.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch14: reviewed read-only diagnosis)
+
+**Supportingreadmethod:**2026-11-07 17:35:04–17:36:05 and17:37:26 Asia/Muscat(UTC+4),remoteDBviaestablisheduser-machinepsql;serverdefault_transaction_read_only=on verified,statementtimeout20s,onlyminimalcatalog/tenant-orderSELECTs. Credentialvaluesneverprinted/copied,sessionsecretcleared. No source/APIinspection,DBmutations or policy/role/taxwrites. Parentreviewed supporting `/workspace/qa-20261107/db-diagnosis.md`;sanitizedqueryresults`db-diagnosis-data1/2/3.txt`and`db-diagnosis-workspace.txt`. This adds diagnosiscontext,notnewUIrun/changedverdict.
+
+### Tester suggestions / supporting evidence — Applied by Unknown user
+**FET-Nov07-ActorDomain-Clarification:** Own2Changesactor_user_id/created_by`370466e6-8b45-4e7d-b377-f0f9421deb59`,actor_nameNULL. Tenantorguserslookupby`user_id`resolvesorguserPK`831fe553-d124-477c-a0f5-3be04d03e35c`,display`Admin Demo Lanudry`;lookupbyorguserPK=actorIDdoesnotmatch. Storedactorisresolvableauth-IDdomain,NOTabsentactor. TwoChangesrev1→2(twoops,16:30:15.240Muscat),2→3(oneop,17:07:33.680Muscat). WrongPKjoinisplausiblebutUNPROVENUIpath;NULLsnapshotnameisconfirmed.
+One-linefixrecommendation: respectdocumentedactorIDdomain(tenant-scopedorgusers.user_idforauthID)and/orcaptureactor_name onsave;verifyrender/querycontractbeforeassigningrootcause. No currentfile:lineclaim,noDBauditrewrite.
+
+### Notes / unchanged data boundary
+Currentowninternal_notes`QA-20261107-STALE-A-COMMIT`persisted;customer_notesempty. CannotrecoverunwrittenCreate-notehistoryorresolveoriginalCreateabsencefromcurrentEditnote. OriginalCreatefindingremainsprovisional,separateflow. No changesmade:ownlastverifiedrevision3,total/due4.783,tax.313,paid0,2Changes;priorUIverdictsandtestcountsunchanged.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch15: public tracking and small Edit subset)
+
+**Follow-up:**17:33–17:41:29 Asia/Muscat(UTC+4),Demo admin,ownrev3ordercce8a46e-a8f4-4346-8ca1-790182d1e1d9;EN,final1920×1072CSS. ActualChromeUIincognito/clipboardpaste/device-toolbarused;noShellclipboard/API. Authoritativeupdated`/workspace/qa-20261107/public-fin-customitem-ledger.md`. No savedchanges;existingcustomdraftalreadyloggednotdoublecounted.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN-UI-011 | PARTIAL | Configured360device-toolbarcleanEditvisualsubsetonly;fullPOS/width/Reviewflowpending. |
+
+**MAN011/OC011 PARTIAL:** ChromeDevToolsdevice-toolbarconfigured360×985(notzoom). Playwrightreported434×1188whileemulated,so360evidenceisDeviceToolbarsetting,NOTindependentactualCSSmeasurement. Cleanrev3/0dirty,total4.783;Branchdisabled,Reviewvisible/enabled,Discardvisible/disabledclean. Servicecategorybarhorizontal-scrollshowsWash&Iron/DryCleaning,latersclipped;contexttabs1–3visible,laterstepsclipped. RecordP2responsiveusabilitycandidate;horizontal-scrollaloneisnotautomaticallybugifalltabsreachable—verifyreachability/primaryactionsbeforefullFAIL. Full1440/1024/smallPOSmatrixandReviewdialognotcoveredbythissubset. Desktoprestored.
+Evidence`shots/custom-item-mobile-360-branch.png`,`custom-item-mobile-360-review-discard.png`,`custom-item-mobile-360-category-overflow.png`,`custom-item-mobile-360-context-tabs.png`under`/workspace/qa-20261107/`.
+
+### Tester suggestions — Financial_Expert_Tester(batch15)
+- **P2 candidate FET-EOV2-Nov07-360Tabs:** Validatehorizontal-scrollaccessibilityandlatercontexttabreachabilityatmeasuredsmallwidth;capturefullprimaryactioncoveragebeforeresponsiveFAIL.
+
+### Test data left behind
+None;ownrev3,total/due4.783,tax.313,paid0,processing/pending,twoChanges;customdraftdiscarded(noadditionalcustomattemptcount). ENcleandetail,incognitoclosed,desktoprestored. No messages/linksend/revoke/payment/workflow/printing/policy/settings.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch17: entry candidate piece and tablet retest)
+
+**Run:** tasktimestamp17:42,lastcheck17:52:52 Asia/Muscat(UTC+4);startsecondnotcaptured,10minboundmaybeslightlyexceeded. EN,responsivetoolbar1024×985/1440×985,lastowncleandetail1440×985. Read `/workspace/qa-20261107/man-entry-piece-tablet-ledger.md` completely. No savedorder/ReviewonDelivered/Apply/Delete/pieceAddRemove/workflow/paymentchanges. Ownrev3/total4.783 unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| MAN002 | PARTIAL candidate inspection; entryDENY fixture pending | DeliveredQAorder4248955a-2dc1-4a81-b44f-ae4d5736ac6f headerEditOPEN,rev1/delivered/0dirty/19.260. Allbusinessoperationsrestrictionsvisible;noedits/Review. CandidateunsuitableforentryDENYcontract;NOTaFAILthatdeniedentryopened,sinceentryDENYwasnotestablished. |
+| MAN007 | PARTIAL selector UX retest | OwnBathrobeqty2→1localdraft,totalpieces3→2,noprompt/chooser. ExpandedPiecepanelonlyPiece1/AddPiece/RemovePiece,noprotected/eligibilityexplanation. NoAddRemove/Review/Apply;Discardrestoredqty2/Pieces2/rev3/0dirty. Missingchooserhistoricalfindingreobservedbutprotectedpiecefixture/serverinvariantnotproven;notconfirmedwrongpersistedpieceremoval. |
+| MAN011 | PARTIAL | 1024headerReview/Discardvisible/nooverlap;bottomhorizontalscroll/itemtableclipped.1440controls/steps/wideritemtablevisible/noapparentoverlap. BothwidthsnotesReviewACKNOWLEDGEMENT_REQUIRED,current4.783/projected4.7830,OUTSTANDING,Allowedwithwarning/CAPABILITY_POLICY_WARNING;checkboxleftunchecked,Cancel+Discard. ARskipped/fullPOSmatrixpending. |
+
+Deliveredrestrictionsincludeditemprice/discount/ADD_ITEM/REMOVE_ITEM/quantity/Addpiece/Removepiece/speed/readyby/notesnotallowed;Readybydatemustbefuturealsoobserved,notactedon. DeliveredExitdidnotcompletenavigation;normalown-detailrouteused. Do nottreatper-opDENYasentryDENY.
+
+### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch17)
+- **P2 candidate FET-EOV2-Nov07-PieceSelector-Retest:** Localqtydecreaseauto-reducedvisiblepiececountwithoutchooser,matchingpriorUXobservation. Verifyintendedeligiblepiece-selectionworkflowwithrealprotectedpiecefixture;noDBwrong-removalclaim.
+- **P2 candidate FET-EOV2-Nov07-1024Table:** Horizontallyclippeditemtableat1024whileReview/Discardvisible. Testscrollreachability/contentbeforebroadunusableclaim;1440cleanlayoutlooksbetter.
+- **FET-EOV2-Nov07-EntryFixture:** DeliveredwithclosedoperationsisnotanentryDENYsample;preparegenuineentryDENYthroughpermittedexistingfixture/account,nopolicychangetojustmanufactureit.
+
+**Evidence** `/workspace/qa-20261107/shots/man-entry-delivered-denials.png`,`man-piece-quantity1-piece-list.png`,`man-tablet-1024-controls.png`,`man-tablet-1024-review-dialog.png`,`man-desktop-1440-review-dialog.png`.
+
+### Test data left behind
+No persistentchanges. Owncce8a46e-a8f4-4346-8ca1-790182d1e1d9rev3/0dirty/Bathrobeqty2,Shirtdiscountunchanged,total/due4.783,paid0,tax.313,savedAnoterestored;2Changesunchanged. Deliveredcandidateunchangedrev1/19.260. EN1440×985owndetail. Existinghistoricalresultsretained,notrewritten.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (progress batch18: long bilingual Review and financial previews)
+
+**Run:**2026-11-07 17:54:09–18:06:54 Asia/Muscat(UTC+4),12m45s(2m45over10minbound);owncce8a46e-a8f4-4346-8ca1-790182d1e1d9,EN/AR→EN1440×985CSS. Fullauthoritative`/workspace/qa-20261107/man014-oc009-p6-05-p6-03-ledger.md`read. No Apply/payment/taxdoc/refund/void/credit/workflow/printing/PDFsave.
+
+| # | Result | Exact scope |
+|---|---|---|
+| MAN014 | PARTIAL visual parent; ARreasonfunctional subcheckFAIL |310charfield/footerreachableEN/AR;ENREADY,ARREASON_REQUIREDwithsamevisiblereason;noApply. No broadall-warning/errorlayoutcoverageorcodecause. |
+| MAN009 | FAIL bilingualReview subcheck; widerflowcoveragepartial |ActualARReviewagainfailedreasonprogressionwithsamevisible310chartext,plusexactENrawcodes. ENworksinthisdraft. FullsavedARflowuntested. |
+
+**LongReview:** localBathrobeqty2→3,subtotal6.600,4pieces. BlankreasonREASON_REQUIRED;exact`QA-20261107 long review reason `repeated10=310charactersverified. ENReviewagainREADY,current4.783/projected7.0300,tax.313→.460,line4.200→6.300,OUTSTANDING,qty+Addpiece3/unit2.100/processing/expected;bothCAPABILITY_POLICY_OVERRIDE_REQUIRED. ReachableApply/Cancel;Applynotclicked.
+ARwithsamedraftandexactreasonvisibleinالسبب:oneمراجعةمرةأخرىattemptremainedREASON_REQUIRED,noApply;Reviewagain/Cancelreachable,noretries. This is functionalreason-stateFAILsubcheck,noserver/securityrootcause. ExactrawUIresidue READY,REASON_REQUIRED,OUTSTANDING,CAPABILITY_POLICY_OVERRIDE_REQUIRED,processing,expected,CHANGE_ORDER_NOTES,CHANGE_ITEM_QUANTITY,ADD_PIECE;intentionalENreasonisnottranslationdefect. Cancel+Discardrestoresrev3/qty2/0dirty/4.783.
+Evidence`shots/man-long-en-reason-field.png`,`man-long-en-ready-bottom.png`,`man-long-ar-review.png`under`/workspace/qa-20261107/`.
+
+### Tester suggestions — Financial_Expert_Tester(batch18)
+- **P1 candidate FET-EOV2-Nov07-ARReason310:** EN310charreasonREADY,ARsamefieldafteroneReviewagainREASON_REQUIRED. Verifyreasonstateacrosslocale/dialogandservervalidation;don'tinventauthorizationcause.
+- **P2 FET-EOV2-Nov07-ARReviewCodes:** Localizeexactstatus/outcome/operation/scan-statecodesabovewherecustomer-facingbusinesslabelsrequired;do nottranslateauthoredreasontext. — Retest 2026-11-09: reproduced.
+
+### Test data left behind
+No savedchanges;alldraftsdiscarded,ownrev3/Bathrobeqty2,total4.783,tax.313,paid0,due4.783,POCprocessing/pending,twoChanges. EN1440×985cleandetail,nomodal;no printing/payment. Priorfailures/roundstextpreserved.
+
+Cumulative provisional ledger recount: PASS 0 / FAIL 2 / PARTIAL 11 / BLOCKED 1 / NOT RUN 0 (14 parent scenarios). Subcheck PASS does not imply parent PASS.
+
+
+## Financial_Expert_Tester Results — 2026-11-07 (FINAL reconciliation: INCOMPLETE)
+
+**INCOMPLETE — NO OVERALL PASS.** Original requested QA pass stopped after the completed evidence below; no further testing. Parent PARTIAL/BLOCKED/NOT RUN are unresolved coverage, and NOT RUN0 never means all subchecks passed. Earlier rounds/leaf FAILs remain unchanged. This is own final reconciliation, not an edit of author requirements or other editors' results. No source/spec additions or execution.
+
+**Final parent counts:** PASS 0 / FAIL 2 / PARTIAL 10 / BLOCKED 2 / NOT RUN 0.
+
+**FAIL IDs:** MAN-UI-001, MAN-UI-009
+**PARTIAL IDs:** MAN-UI-002, MAN-UI-004, MAN-UI-005, MAN-UI-006, MAN-UI-007, MAN-UI-008, MAN-UI-010, MAN-UI-011, MAN-UI-012, MAN-UI-014
+**BLOCKED IDs:** MAN-UI-003, MAN-UI-013
+**NOT RUN IDs:** none
+
+
+### Latest completed OC003 / MAN003 read-only evidence
+18:55:26–18:59:06 Asia/Muscat(UTC+4), Demo super_admin EN1440px. Full `oc003-policy-affordance-ledger.md` read. Own actual `/dashboard/orders/cce8a46e-a8f4-4346-8ca1-790182d1e1d9/edit`: revision3,processing,0unsaved,Bathrobeqty2,total4.783. Edit Policy Info: Standard Order Change V1; Organization-wide override; policyrev3/PILOT; workflowprofile version4/PILOT. Remove an item(Item) **Needs an override**, NOT Not allowed/DENY. Exact explanation: `You can change this while editing. Review checks the current policy before anything is saved.` / `A person with override permission must approve this before Apply.` / `Review asks for a reason before Apply.` Change notes showed allowed-with-warning, read only. Enabled-looking Remove item hover gave no accessible tooltip; explanation existed in Policy Info. No Remove clicked, no fields changed/Review/Apply. No enforcement PASS or warning-as-failure. Required real REMOVE_ITEM DENY plus allowed-operation fixture remains missing: parent BLOCKED prerequisite, enforcement target NOT RUN.
+
+**Manual-scope correction:** Original user explicitly said no Playwright spec exists and for now checks are manual. Absence of a new OC-UI spec is NOT a blocker to manual OC003. Missing real DENY fixture is the blocker; do not add a spec/code. OC007 lost-response/same-key/payload retry remains NOT RUN because no safe supported harness, not because visual evidence failed. No guard/SCM bypass.
+Evidence under `shots/`: `oc003-policy-info-editor.webp`,`oc003-policy-remove-item.png`,`oc003-policy-remove-affordance.webp`. Clean EN detail restored; no saved change.
+### Tester suggestions — Financial_Expert_Tester final
+- P1 FET-FINAL-MAN: Regress actual AR same-visible310charreason→REASON_REQUIRED vs ENREADY, stale post-save editor/Updating and enabled identity affordances. Do not infer authorization bypass. — Retest 2026-11-09: identity affordances reproduced; Updating after Discard not reproduced; AR 310char reason path not retested this pass.
+- P2 FET-FINAL-Audit: Applied by Unknown user despite stored auth actor resolvable via orgusers.user_id and null actor_name: verify documented actor-ID/display contract. Wrong-PK join is plausible but UNPROVEN; no confirmed file/line cause. — Retest 2026-11-09: reproduced.
+- P2 FET-FINAL-DENYFixture: Supply genuine permitted-entry/REMOVE_ITEM-DENY fixture for manual003; current override/reason behavior isn't DENY or failure. Other full stale-Apply/protected-piece/duplicate/keyboard/POS/AR cases remain incomplete.
+### Test data left behind
+No fields/Remove/Review/Apply in final read-only batch. Own rev3,total/due4.783,paid0,2Changes preserved; no extra records/messages/printing/password changes.
+
+
+## Financial_Expert_Tester Results — 2026-11-08 (remote-only policy/access retest and parity adaptation)
+
+**Remote UI evidence:**2026-11-08 16:36:02–16:41:06 Asia/Muscat(UTC+4),HQ System Administrator; full `hq-policy-role-retest.md` read. No toggles/fill/reset/save/publish/assignment/grant/account change. REMOTE ONLY per user direction: tenant `https://cmx.cleanmatex.com`, HQ `https://hqsaas.cleanmatex.com`; no more localhost/listener checks or service actions. cmx is tenant web-admin, NOT a newly supplied customer mobile app.
+
+| # | Result | Evidence |
+|---|---|---|
+| Line-control policy prerequisites; MAN004 context | Missing five pairs remains BLOCKED prerequisite; existing warning/override coverage remains PARTIAL | No new tenant Review/Apply and no manual control tests in this HQ batch. |
+| MAN003 | BLOCKED true-DENY fixture unchanged | Five missing pairs do not establish REMOVE_ITEM DENY. Prior Remove override/reason is NOT DENY. Manual testing remains permitted despite no new OC spec. |
+Source actual `/en/order-change-config/edit-policies/f0fc3115-d9f4-4f6d-9350-5a16e4ab3bb6`:ORDER_CHANGE_STANDARD_V1 Pilotrev3,230/702. Processing15rules,4Allow with warning/11Require override/0Deny. CHANGE_SERVICE_SPEED Order=Require override, reason/orders:edit_override; NOT a substitute for Item/Piece. All five requested pairs still absent: CHANGE_SERVICE_SPEED Item/Piece, CHANGE_DISCOUNT Item/Piece, CHANGE_ITEM_PRICE Item. No row means no decision combobox/per-row disabled reason; no exposed per-cell add. Smart fill note only adds missing cells, NOT activated or validated as safe pair-add mechanism.
+Existing clone actual `/en/order-change-config/edit-policies/a6f6c2ef-8d69-4ab1-9770-d99e33730b62`:ORDER_CHANGE_STANDARD_QA_20261107_V1 Draftrev2/230of702,unassigned/unpublished per current description; Processing same15/4WARN/11override/0DENY, same five pairs absent. Fill missing only/Reset suggestions NOT used; no new clone/type or protected decision changes. Source Pilot badge/list vs adjacent `Unassigned Draft starter matrix. HQ must review, promote, and assign it before any tenant can use it.` is qualified descriptive UX inconsistency, NOT proven lifecycle/backend resolution bug. No current tenant-side parity tested in this evidence.
+### Tester suggestions — Financial_Expert_Tester(Nov8 remote policy)
+- **P2 FET-MAN-Nov08-PolicyScope:** Preserve distinction between source/clone rows, effective tenant resolution and actual denied/allowed control tests. HQ inventory is not MAN003 enforcement or full MAN004 PASS.
+- **P3 FET-MAN-Nov08-PilotDescription:** Correct stale draft description through owner process after confirmation; do not infer lifecycle/authorization defect from text.
+Parent counts unchanged FAIL2/PARTIAL10/BLOCKED2.
+
+### Test data left behind
+None created/changed by this retest. Existing source Pilotrev3 and clone Draftrev2 preserved; no publish/assignment/grant. Order last-known Nov7 state is NOT independently verified by HQ-only retest. Final clean EN policy list; no messages/printing/password changes.
+
+
+## Financial_Expert_Tester Results — Retest 2026-11-09 (remote, read-only, no Apply)
+
+**Remote UI evidence:** 2026-11-09 16:21–16:32 Asia/Muscat(UTC+4), tenant `https://cmx.cleanmatex.com` Demo Laundry admin; own order ORD-20261107-00001. No Apply; drafts discarded; order still Revision 3 / 4.783 OMR / 2 changes. Source ledger `/workspace/qa-20261109/tenant-editor-recheck.md`. Defect rechecks only — parent scenario counts unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| Change History actors | FAIL — prior defect reproduced | Both Change #1 (Nov 7 4:30 PM) and #2 (5:07 PM) show "Unknown user". References **FET-EOV2-Nov07-AuditActor** / **FET-FINAL-Audit**. |
+| MAN001 identity controls | PARTIAL — prior defect reproduced | Customer picker locked; helper "Customer, branch, and currency stay locked on this screen." Name and Phone still accept focus/appear editable; helper "Changes apply to this order only, not to customer profile." References **FET-EOV2-Nov07-IdentityControls**. |
+| Stuck Updating after Discard | PASS — prior stale-display not reproduced | No stuck "Updating…" after discard in this flow. Related **FET-EOV2-Nov07-StaleAfterApply** Apply path not retested. |
+| Piece-level Notes → Review | FAIL (new) | Piece 1 Notes draft: editor says "Review will ask you to confirm a warning…", but Review returns raw `OPERATION_NOT_AVAILABLE`, toast "The review could not be completed." (EN); AR shows same raw code with English toast persisting. Piece notes not in policy; pre-check vs Review disagree. See **FET-MAN-Nov09-PieceNotesOpUnavailable**. |
+| Customer notes Review (Allow with warning) | PASS path / see financial + i18n rows | Draft Before None → After QA-20261109-REASON-CHECK: Review `ACKNOWLEDGEMENT_REQUIRED`, "Change notes", "Allowed with a warning", `CAPABILITY_POLICY_WARNING`, checkbox "I understand this warning."; no reason field (correct for Allow-with-warning). Prior REASON_REQUIRED for this path not reproduced. |
+| EN/AR raw Review codes | FAIL — prior defect reproduced | Arabic Review: warning/checkbox translated; raw codes untranslated: `ACKNOWLEDGEMENT_REQUIRED`, `OUTSTANDING`, `CAPABILITY_POLICY_WARNING`, `CHANGE_ORDER_NOTES`. References **FET-EOV2-Nov07-ARReviewCodes** / **FET-EOV2-S14**. |
+| Unexpected operation list | FAIL (new) | Arabic Review also listed `CHANGE_ITEM_QUANTITY`, `ADD_PIECE` though the draft did not make those operations (possible leakage/residue). See **FET-MAN-Nov09-UnexpectedOpList**. |
+
+Editor banners observed: "Change Item Price is not allowed at the current status." / "Change Discount is not allowed at the current status."
+
+### Tester suggestions — Financial_Expert_Tester (Nov9 tenant editor recheck)
+- **P2 FET-MAN-Nov09-PieceNotesOpUnavailable:** Piece Notes draft promises an Allow-with-warning Review, but Review returns `OPERATION_NOT_AVAILABLE` and a non-localized EN toast. Align editor pre-check with policy/target availability; show a localized capability message instead of the raw code.
+- **P2 FET-MAN-Nov09-UnexpectedOpList:** Review listed `CHANGE_ITEM_QUANTITY` and `ADD_PIECE` for a Customer-notes-only draft. Clear residual ops from the Review payload/UI so only staged operations appear.
+- Prior **FET-EOV2-Nov07-AuditActor**, **FET-FINAL-Audit**, **FET-EOV2-Nov07-IdentityControls**, **FET-EOV2-Nov07-ARReviewCodes**, **FET-EOV2-S14** annotated in place (reproduced). **FET-EOV2-Nov07-StaleAfterApply** / **FET-FINAL-MAN** annotated for Discard Updating (not reproduced) / identity (reproduced). Notes-only Estimated-total mismatch logged in Line-Level guide (**FET-LLMS-Nov09-NotesOnlyEstTotal**).
+
+**Parent counts unchanged:** FAIL2 / PARTIAL10 / BLOCKED2. Defect rechecks only — MAN001 remains PARTIAL (identity), history actor still FAIL; no author scenario newly fully satisfied. Overall workstream remains INCOMPLETE.
+
+### Test data left behind
+Nothing persisted. Drafts discarded; order ORD-20261107-00001 unchanged at Revision 3 / total 4.783 OMR / 2 changes. No Apply/payment/workflow/password changes; no messages/printing. Screens under `/workspace/qa-20261109/shots/` (sand-subagent-8addfd1b-*).

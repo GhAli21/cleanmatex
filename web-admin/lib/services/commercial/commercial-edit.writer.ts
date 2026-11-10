@@ -29,6 +29,7 @@ import {
   type ChargeMeta,
   type LineMoneyColumns,
 } from './commercial-line.writer';
+import { writeOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
 
 /** The §6.1 columns of every active row, and the header facts that move with them. */
 export interface EditMoneyColumns {
@@ -151,4 +152,9 @@ export async function replaceEditChildRows(
     });
   }
   if (rows.taxes.length > 0) await tx.org_order_taxes_dtl.createMany({ data: rows.taxes });
+  await writeOrderTaxLines(tx as unknown as Prisma.TransactionClient, {
+    tenantOrgId, orderId, userId, at, quote: edit.quote,
+    itemIds: identity(result.lines.map((l) => l.lineId)),
+    pieceIds: identity(result.lines.flatMap((l) => l.pieces.map((p) => p.rowId))),
+  });
 }

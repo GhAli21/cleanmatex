@@ -3,6 +3,7 @@ import 'server-only';
 import { prisma } from '@/lib/db/prisma';
 import {
   TAX_DOCUMENT_STATUSES,
+  TAX_DOCUMENT_TYPES,
 } from '@/lib/constants/order-financial';
 import type {
   TaxDocumentCreateInput,
@@ -15,6 +16,7 @@ import { resolveEInvoiceActivation } from '@/lib/services/e-invoice.service';
 import { resolveInitialEInvoiceStatus } from '@/lib/payments/e-invoice';
 import { addMoney, toMoneyString } from '@/lib/utils/money';
 import { logger } from '@/lib/utils/logger';
+import { finalizeOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -166,7 +168,7 @@ export async function issueTaxDocumentTx(
 ): Promise<{ documentNo: string; sequenceNumber: number }> {
   const doc = await tx.org_tax_documents_mst.findUnique({
     where: { id: documentId, tenant_org_id: tenantId },
-    select: { document_type: true, fiscal_year: true, status: true, tenant_org_id: true },
+    select: { document_type: true, fiscal_year: true, status: true, tenant_org_id: true, order_id: true },
   });
 
   if (!doc) {
@@ -206,6 +208,11 @@ export async function issueTaxDocumentTx(
       updated_by:      issuedBy,
     },
   });
+
+  // The invoice is the tax point: the order's tax record stops changing here.
+  if (doc.document_type === TAX_DOCUMENT_TYPES.INVOICE || doc.document_type === TAX_DOCUMENT_TYPES.SIMPLIFIED_INVOICE) {
+    await finalizeOrderTaxLines(tx, { tenantOrgId: tenantId, orderId: doc.order_id, userId: issuedBy, at: new Date() });
+  }
 
   return { documentNo, sequenceNumber };
 }

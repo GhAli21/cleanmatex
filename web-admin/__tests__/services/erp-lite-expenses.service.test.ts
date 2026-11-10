@@ -1,3 +1,9 @@
+jest.mock('@/lib/services/tax/purchase-tax.service', () => ({
+  // Tax setup not active: the typed tax is kept and nothing is recorded (covered by __tests__/lib/tax/purchase-tax.test.ts).
+  resolvePurchaseTax: jest.fn().mockResolvedValue(null),
+  writePurchaseTaxLines: jest.fn(),
+}));
+
 jest.mock('@prisma/client', () => ({
   Prisma: {
     sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({

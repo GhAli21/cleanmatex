@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useServiceSpeeds } from '../hooks/use-service-speeds';
 import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { ORDER_CHANGE_OPERATION_CODES } from '@/lib/constants/order-change';
 import type { EditReviewOperation } from './edit-review-view';
@@ -34,6 +35,7 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
 }) {
   const t = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
+  const { labelOf: speedLabel } = useServiceSpeeds();
   const locale = useLocale();
   const labels: Record<string, string> = {
     serviceSpeed: t('workspace.serviceSpeed'), readyBy: t('workspace.readyBy'), priority: tCommon('priority'),
@@ -60,8 +62,7 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
     if (value == null || value === '') return t('review.none');
     if (typeof value === 'boolean') return value ? tCommon('yes') : tCommon('no');
     if (key === 'serviceSpeed' || key === 'service_speed') {
-      if (value === 'STANDARD') return t('workspace.standard');
-      if (value === 'EXPRESS') return t('workspace.express');
+      return speedLabel(String(value));
     }
     // A line discount (P6-02c) is a percent or an amount; its type is shown on its own row.
     if (key === 'discountType') return value === DISCOUNT_CALC_TYPE.PERCENTAGE ? t('review.fields.discountPercent') : t('review.fields.discountAmount');

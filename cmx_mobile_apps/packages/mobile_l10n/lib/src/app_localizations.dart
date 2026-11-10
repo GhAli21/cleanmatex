@@ -348,6 +348,9 @@ class AppLocalizations {
           'The piece details do not match the selected quantity. Review your items and try again.',
       'booking.speedInvalidError':
           'The selected service speed is no longer available. Refresh and try again.',
+      'booking.speedLabel': 'How fast do you need it?',
+      'booking.speedNotOfferedError':
+          'This speed is not available for one of your items. Choose another speed.',
       'booking.priceUnavailableError':
           'One or more selected items have no price at this laundry yet. Remove them or contact the laundry.',
       'booking.setupUnavailableError':
@@ -726,6 +729,9 @@ class AppLocalizations {
           'تفاصيل القطع لا تطابق الكمية المختارة. راجع القطع وحاول مرة أخرى.',
       'booking.speedInvalidError':
           'سرعة الخدمة المختارة لم تعد متاحة. حدّث البيانات وحاول مرة أخرى.',
+      'booking.speedLabel': 'ما السرعة التي تحتاجها؟',
+      'booking.speedNotOfferedError':
+          'هذه السرعة غير متاحة لأحد أصنافك. اختر سرعة أخرى.',
       'booking.priceUnavailableError':
           'بعض القطع المختارة ليس لها سعر لدى هذه المغسلة بعد. احذفها أو تواصل مع المغسلة.',
       'booking.setupUnavailableError':

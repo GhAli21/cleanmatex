@@ -27,6 +27,8 @@ Fix the problem in that screen, come back, and the list refreshes by itself.
 
 You see four counters (Blockers, Warnings, Info, Could not check), the same checks as the organization plus HQ-only ones (for example *Public holiday dates are not confirmed yet*), each check's code, and **Fix** buttons that open the HQ screen. **Recheck** runs the checks again.
 
+**Organizations list:** the **Setup** column shows the number of blockers (red) and warnings (amber), **OK**, or **Not checked**. Hover to see when it was last checked; click to open that organization's Setup Health. The **Setup Health** filter shows only organizations with **Has blockers** or **Blockers or warnings**, across all pages. The numbers update when someone opens the organization's Setup Health page, and every night.
+
 ## العربية
 
 ### لمسؤولي المنشأة
@@ -51,3 +53,5 @@ You see four counters (Blockers, Warnings, Info, Could not check), the same chec
 **المكان:** المنشآت › افتح منشأة › **صحة الإعداد** (بعد النظرة العامة). يتطلب صلاحية `tenant_setup_health:view`.
 
 تظهر أربعة عدّادات (الموانع، التحذيرات، المعلومات، تعذّر الفحص)، ونفس فحوصات المنشأة إضافة إلى فحوصات خاصة بإدارة المنصة (مثل *مواعيد العطل الرسمية غير مؤكدة بعد*)، ورمز كل فحص، وأزرار **إصلاح** تفتح شاشة إدارة المنصة. زر **إعادة الفحص** يشغّل الفحوصات من جديد.
+
+**قائمة المنشآت:** يعرض عمود **الإعداد** عدد الموانع (أحمر) والتحذيرات (كهرماني)، أو **سليم**، أو **لم يُفحص**. مرّر المؤشر لمعرفة وقت آخر فحص، واضغط لفتح صحة الإعداد لتلك المنشأة. يعرض مرشّح **صحة الإعداد** المنشآت التي **بها موانع** أو **موانع أو تحذيرات** فقط، عبر كل الصفحات. تتحدّث الأعداد عند فتح صفحة صحة الإعداد للمنشأة، وكل ليلة.

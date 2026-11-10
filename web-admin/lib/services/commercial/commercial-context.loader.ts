@@ -24,7 +24,7 @@
  */
 import 'server-only';
 
-import type { PrismaClient, org_tax_profiles_cf } from '@prisma/client';
+import type { Prisma, PrismaClient, org_tax_profiles_cf } from '@prisma/client';
 import {
   COMMERCIAL_LEVELS,
   DISC_ALLOC_BASIS,
@@ -58,6 +58,9 @@ import {
   type MoneyInput,
   toMoney, speedRulesForProduct, type ResolvedCalendar } from '@/lib/commercial';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { TAX_CONFIG_STATUS } from '@/lib/constants/tax';
+import { decideOrderLineTax, taxPartyScope, type OrderTaxCode, type OrderTaxEngine, type OrderTaxRecord } from '@/lib/tax/order-line-tax';
+import { loadActiveTaxRules } from '@/lib/services/tax/tax-rule-reader';
 import { resolveExtraPricePricingMode, resolveTaxPricingMode } from '../pricing-mode-resolver.service';
 import {
   BRANCH_CALENDAR_SELECT, TENANT_CALENDAR_SELECT, loadResolvedCalendar, timeColumnToText, type CalendarDb,
@@ -67,7 +70,8 @@ import {
 export type CommercialDb = Pick<PrismaClient,
   | 'org_tenants_mst' | 'org_branches_mst' | 'org_customers_mst' | 'org_product_data_mst'
   | 'org_price_lists_mst' | 'org_price_list_items_dtl' | 'org_speed_price_rules_cf'
-  | 'org_tax_profiles_cf' | 'org_tax_exemptions_cf' | 'org_service_preference_cf'
+  | 'org_tax_profiles_cf' | 'org_tax_exemptions_cf' | 'org_tax_config_cf' | 'org_tax_rules_cf'
+  | 'org_tax_rule_codes_dtl' | 'org_tax_item_classes_cf' | 'org_service_preference_cf'
   | 'org_packing_preference_cf' | 'sys_service_preference_cd' | 'sys_service_category_cd'
   | 'sys_service_speed_cd' | 'sys_currency_rounding_rules_cf'> & CalendarDb;
 
@@ -198,12 +202,6 @@ export interface CommercialOrderIntent {
   recordedCharges?: readonly RecordedChargeIntent[];
   /** Resolved order discounts in the order they apply (manual → rule → promo); evaluation stays in discount-service. */
   orderAdjustments: readonly AdjustmentInput[];
-  /**
-   * The general tax profiles the cashier picked in the payment panel; they
-   * replace the tenant defaults. Each must be an active, effective profile of
-   * the tenant. Omitted or empty: the defaults. Supply-code profiles still apply.
-   */
-  taxProfileIds?: readonly string[];
 }
 
 /** A stored non-preference charge Edit keeps as it is. */
@@ -236,6 +234,13 @@ export interface RecordedCommercialSnapshot {
   /** The profiles on the order's tax lines, at their recorded rates. */
   taxProfiles: readonly RecordedTaxProfile[];
   taxProfileLabels: ReadonlyMap<string, { label: string; label2: string | null }>;
+  /** Item id → what the rules chose for it. Empty for an order taxed before the rules engine. */
+  lineTaxes: ReadonlyMap<string, RecordedLineTax>;
+}
+
+/** The tax a line of a rule-taxed order already carries (`org_tax_lines_tr`). */
+export interface RecordedLineTax extends OrderTaxRecord {
+  profileIds: readonly string[];
 }
 
 /**
@@ -245,6 +250,7 @@ export interface RecordedCommercialSnapshot {
  */
 export interface RecordedTaxProfile {
   id: string;
+  taxCode?: string;
   taxType: string;
   ratePercent: string;
   isCompound: boolean;
@@ -273,6 +279,8 @@ export interface ProductFacts {
   taxCategoryCode: string;
   taxSupplyCode: string | null;
   taxExemptReason: string | null;
+  /** Null: the organization's default sales class. */
+  taxItemClassCode: string | null;
 }
 
 /** One enabled preference with its tenant price. */
@@ -302,11 +310,15 @@ export interface CommercialFacts {
   speedRanks: ReadonlyMap<string, number>;
   /** The branch calendar; null = clock hours (`CALENDAR_NOT_CONFIGURED`). */
   calendar: ResolvedCalendar | null;
-  /** Category code → hours at standard and at any other speed. */
-  categoryHours: ReadonlyMap<string, { standard: string | null; other: string | null }>;
+  /** Category code → its standard hours, the last turnaround before the platform default at any speed. */
+  categoryHours: ReadonlyMap<string, string | null>;
   taxProfiles: readonly TaxProfileInput[];
   /** Profile id → label for the header tax lines (the fallback included). */
   taxProfileLabels: ReadonlyMap<string, { label: string; label2: string | null }>;
+  /** Rules, codes and party facts; null while the tax setup is not active (no tax, ADR-061). */
+  taxEngine: OrderTaxEngine | null;
+  /** Edit: what each existing line already carries. Empty for a new order. */
+  recordedLineTaxes: ReadonlyMap<string, RecordedLineTax>;
   /** `${kind}:${code}` → price and minutes. */
   preferences: ReadonlyMap<string, PreferenceFacts>;
 }
@@ -319,8 +331,6 @@ export const COMMERCIAL_CONTEXT_ERRORS = {
   SPEED_NOT_OFFERED: 'SPEED_NOT_OFFERED',
   PREFERENCE_NOT_AVAILABLE: 'PREFERENCE_NOT_AVAILABLE',
   TIMEZONE_NOT_CONFIGURED: 'TIMEZONE_NOT_CONFIGURED',
-  /** Same code the payment quote has always returned for a bad selection. */
-  INVALID_TAX_PROFILE_SELECTION: 'INVALID_TAX_PROFILE_SELECTION',
 } as const;
 /** Derived union of the context error codes. */
 export type CommercialContextErrorCode = (typeof COMMERCIAL_CONTEXT_ERRORS)[keyof typeof COMMERCIAL_CONTEXT_ERRORS];
@@ -370,6 +380,9 @@ const preferenceKey = (kind: string, code: string) => `${kind}:${code}`;
  */
 export const TENANT_RATE_PROFILE_ID = 'tenant-vat-rate';
 
+const TAX_FLOW_OUTPUT = 'OUTPUT';
+const TAX_PARTY_CLASS_CONSUMER = 'CONSUMER';
+
 const lineSpeed = (intent: CommercialOrderIntent, line: LineIntent) => line.serviceSpeed ?? intent.serviceSpeed;
 
 /**
@@ -411,19 +424,19 @@ export async function loadCommercialFacts(
     // org_tenants_mst is keyed by the tenant id itself (no tenant_org_id column).
     db.org_tenants_mst.findFirst({
       where: { id: tenantOrgId },
-      select: { commercial_level: true, disc_alloc_mode: true, disc_alloc_basis: true, ...TENANT_CALENDAR_SELECT },
+      select: { commercial_level: true, disc_alloc_mode: true, disc_alloc_basis: true, country: true, ...TENANT_CALENDAR_SELECT },
     }),
     intent.branchId
-      ? db.org_branches_mst.findFirst({ where: { id: intent.branchId, tenant_org_id: tenantOrgId }, select: BRANCH_CALENDAR_SELECT })
+      ? db.org_branches_mst.findFirst({ where: { id: intent.branchId, tenant_org_id: tenantOrgId }, select: { ...BRANCH_CALENDAR_SELECT, country: true } })
       : null,
     intent.customerId
-      ? db.org_customers_mst.findFirst({ where: { id: intent.customerId, tenant_org_id: tenantOrgId }, select: { type: true, preferences: true } })
+      ? db.org_customers_mst.findFirst({ where: { id: intent.customerId, tenant_org_id: tenantOrgId }, select: { type: true, preferences: true, tax_party_class_code: true, tax_country: true } })
       : null,
     db.org_product_data_mst.findMany({
       where: { tenant_org_id: tenantOrgId, id: { in: productIds }, is_active: true, rec_status: 1 },
       select: {
         id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
-        turnaround_hh: true, is_retail_item: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true,
+        turnaround_hh: true, is_retail_item: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true, tax_item_class_code: true,
       },
     }),
     db.org_price_list_items_dtl.findMany({
@@ -441,12 +454,10 @@ export async function loadCommercialFacts(
       where: { code: { in: [...new Set([...speeds, SERVICE_SPEEDS.STANDARD])] }, is_active: true, rec_status: 1 },
       select: { code: true, display_order: true },
     }),
-    // Edit uses the order's recorded profiles (D22), never today's.
-    deps.recorded ? Promise.resolve([] as org_tax_profiles_cf[]) : db.org_tax_profiles_cf.findMany({
-      where: {
-        tenant_org_id: tenantOrgId, is_active: true, rec_status: 1,
-        effective_from: { lte: at }, OR: [{ effective_to: null }, { effective_to: { gte: at } }],
-      },
+    // Edit keeps each line's recorded tax (D22); only a line added to a rule-taxed order needs today's codes.
+    // Every version is read: the rule picks the one in force by business date.
+    deps.recorded && deps.recorded.lineTaxes.size === 0 ? Promise.resolve([] as org_tax_profiles_cf[]) : db.org_tax_profiles_cf.findMany({
+      where: { tenant_org_id: tenantOrgId, is_active: true, rec_status: 1, tax_flow_code: TAX_FLOW_OUTPUT },
       orderBy: { created_at: 'asc' },
     }),
     db.sys_currency_rounding_rules_cf.findFirst({
@@ -475,6 +486,11 @@ export async function loadCommercialFacts(
     deps.recorded ? deps.recorded.pricingMode : resolveTaxPricingMode(db as PrismaClient, tenantOrgId, intent.branchId),
     deps.recorded ? deps.recorded.extraPriceMode : resolveExtraPricePricingMode(db as PrismaClient, tenantOrgId, intent.branchId),
   ]);
+  const taxConfig = deps.recorded && deps.recorded.lineTaxes.size === 0 ? null : await db.org_tax_config_cf.findFirst({
+    where: { tenant_org_id: tenantOrgId, is_active: true, rec_status: 1 },
+    select: { status: true, tax_enabled: true },
+  });
+  const taxEngineOn = taxConfig?.status === TAX_CONFIG_STATUS.ACTIVE && taxConfig.tax_enabled;
 
   // ─── Business date ─────────────────────────────────────────────────────
   const timezone = [branch?.timezone_code, tenant?.timezone].find((tz) => isValidTimeZone(tz));
@@ -489,7 +505,7 @@ export async function loadCommercialFacts(
     ...products.map((p) => p.service_category_code),
     ...intent.lines.map((l) => l.customItem?.serviceCategoryCode ?? l.pinned?.product.serviceCategoryCode ?? null),
   ].filter((c): c is string => Boolean(c)))];
-  const [lists, categories, sysPrefs, exemptions, calendar] = await Promise.all([
+  const [lists, categories, sysPrefs, exemptions, calendar, taxRules, defaultClass] = await Promise.all([
     listIds.length > 0
       ? db.org_price_lists_mst.findMany({
         where: { tenant_org_id: tenantOrgId, id: { in: listIds } },
@@ -499,7 +515,7 @@ export async function loadCommercialFacts(
     categoryCodes.length > 0
       ? db.sys_service_category_cd.findMany({
         where: { service_category_code: { in: categoryCodes } },
-        select: { service_category_code: true, turnaround_hh: true, turnaround_hh_express: true },
+        select: { service_category_code: true, turnaround_hh: true },
       })
       : [],
     serviceCodes.length > 0
@@ -528,39 +544,61 @@ export async function loadCommercialFacts(
       ? loadResolvedCalendar(db, tenantOrgId, tenant, branch, intent.branchId ?? null,
         businessDateForTimezone(timezone, intent.readyByStartAt ?? at))
       : null,
+    taxEngineOn ? loadActiveTaxRules(tenantOrgId, db as unknown as Prisma.TransactionClient) : [],
+    taxEngineOn
+      ? db.org_tax_item_classes_cf.findFirst({
+        where: { tenant_org_id: tenantOrgId, tax_flow_code: TAX_FLOW_OUTPUT, is_default: true, is_active: true, rec_status: 1 },
+        select: { class_code: true },
+      })
+      : null,
   ]);
 
   // ─── Rounding ──────────────────────────────────────────────────────────
   const accountingMode = accounting && isRoundingMode(accounting.rounding_mode) ? accounting.rounding_mode : 'HALF_UP';
   const rounding: RoundingRule = { decimalPlaces: deps.currency.decimalPlaces, mode: accountingMode as RoundingMode };
 
-  // ─── Tax profiles (none applicable: no tax line, never an assumed rate; B15) ─
-  const selected = new Set(intent.taxProfileIds ?? []);
-  const missing = [...selected].filter((id) => !profiles.some((p) => p.id === id));
-  if (missing.length > 0) {
-    throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.INVALID_TAX_PROFILE_SELECTION,
-      'A selected tax profile is not an active profile of this tenant.', { profileIds: missing.join(',') });
-  }
-  // A cashier selection replaces the default set; supply-code profiles are untouched.
-  const isDefaultProfile = (p: { id: string; is_default: boolean }) => (selected.size > 0 ? selected.has(p.id) : p.is_default);
-  const taxProfileLabels = new Map(profiles.map((p) => [p.id, { label: p.name, label2: p.name2 }]));
-  let taxProfiles: TaxProfileInput[] = profiles.map((p) => ({
+  // ─── Tax codes (setup not active: no tax line, never an assumed rate; ADR-061) ─
+  const taxCodes: OrderTaxCode[] = taxEngineOn ? profiles.map((p) => ({
     id: p.id,
+    taxCode: p.tax_code,
     taxType: p.tax_type,
-    ratePercent: p.rate.toString(),
+    ratePercent: (p.rate ?? 0).toString(),
+    rateMissing: p.rate == null,
     isCompound: p.is_compound,
-    isDefault: isDefaultProfile(p),
-    appliesTo: p.applies_to,
+    isDefault: false,
+    appliesTo: null,
     roundingLevel: p.rounding_level as TaxProfileInput['roundingLevel'],
     rounding: {
       decimalPlaces: p.output_decimal_places ?? rounding.decimalPlaces,
       mode: isRoundingMode(p.rounding_mode) ? p.rounding_mode : rounding.mode,
       incrementMinor: p.rounding_increment_minor,
     },
-  }));
+    versionNo: p.version_no,
+    effectiveFrom: dateOnly(p.effective_from) as string,
+    effectiveTo: dateOnly(p.effective_to),
+    amountKind: p.amount_kind,
+    calcLevel: p.calc_level,
+    categoryCode: p.tax_category_code,
+    exemptReasonCode: p.exempt_reason_code,
+  })) : [];
+  const businessDate = businessDateForTimezone(timezone, at);
+  const supplyCountry = branch?.country ?? tenant?.country ?? '';
+  const taxEngine: OrderTaxEngine | null = taxEngineOn ? {
+    rules: taxRules,
+    codes: taxCodes,
+    date: businessDate,
+    branchId: intent.branchId,
+    placeOfSupplyCountry: supplyCountry,
+    defaultItemClass: defaultClass?.class_code ?? null,
+    partyTaxClass: customer?.tax_party_class_code ?? TAX_PARTY_CLASS_CONSUMER,
+    partyCountryScope: taxPartyScope(customer?.tax_country ?? null, supplyCountry),
+  } : null;
+  const taxProfileLabels = new Map(profiles.map((p) => [p.id, { label: p.name, label2: p.name2 }]));
+  let taxProfiles: TaxProfileInput[] = taxCodes;
   if (deps.recorded) {
     taxProfiles = deps.recorded.taxProfiles.map((p) => ({
       id: p.id,
+      ...(p.taxCode ? { taxCode: p.taxCode } : {}),
       taxType: p.taxType,
       ratePercent: p.ratePercent,
       isCompound: p.isCompound,
@@ -574,6 +612,8 @@ export async function loadCommercialFacts(
       },
       ...(p.isTenantRateFallback ? { isTenantRateFallback: true } : {}),
     }));
+    // A line added to a rule-taxed order may need a code the order does not carry yet.
+    taxProfiles = [...taxProfiles, ...taxCodes.filter((c) => !taxProfiles.some((p) => p.id === c.id))];
     for (const [id, label] of deps.recorded.taxProfileLabels) taxProfileLabels.set(id, label);
   }
 
@@ -627,7 +667,7 @@ export async function loadCommercialFacts(
     discAllocBasis: deps.recorded?.discAllocBasis ?? (tenant?.disc_alloc_basis as DiscAllocBasis | undefined) ?? DISC_ALLOC_BASIS.PROPORTIONAL_NET,
     pricingMode,
     extraPriceMode,
-    businessDate: businessDateForTimezone(timezone, at),
+    businessDate,
     rounding,
     customerListType: customer ? customerPriceListType(customer.type, customer.preferences) : null,
     customerExempt: exemptions.some((e) => intent.customerId != null && e.customer_id === intent.customerId),
@@ -643,6 +683,7 @@ export async function loadCommercialFacts(
       taxCategoryCode: p.tax_category_code,
       taxSupplyCode: p.tax_supply_code,
       taxExemptReason: p.tax_exempt_reason,
+      taxItemClassCode: p.tax_item_class_code,
     }])),
     priceCandidates,
     speedRules: speedRules.map((r) => ({
@@ -667,11 +708,11 @@ export async function loadCommercialFacts(
     activeSpeeds: new Set(activeSpeeds.map((s) => s.code)),
     speedRanks: new Map(activeSpeeds.map((s) => [s.code, s.display_order] as const)),
     calendar,
-    categoryHours: new Map(categories.map((c) => [c.service_category_code, {
-      standard: text(c.turnaround_hh), other: text(c.turnaround_hh_express),
-    }] as const)),
+    categoryHours: new Map(categories.map((c) => [c.service_category_code, text(c.turnaround_hh)] as const)),
     taxProfiles,
     taxProfileLabels,
+    taxEngine,
+    recordedLineTaxes: deps.recorded?.lineTaxes ?? new Map(),
     preferences,
   };
 }
@@ -730,6 +771,7 @@ function customProductFacts(custom: CustomItemIntent) {
     taxCategoryCode: null,
     taxExemptReason: null,
     taxSupplyCode: null,
+    taxItemClassCode: null,
   };
 }
 
@@ -743,20 +785,22 @@ export interface ResolvedLinePrice {
   speed: SpeedPricingResult;
   /** Pieces on their own speed (P9-01); the writer stores it on the piece row. */
   pieceSpeeds?: ReadonlyMap<string, { serviceSpeed: string; ruleId: string | null }>;
+  /** Why this line carries its tax; absent on an order taxed before the rules engine. */
+  taxRecord?: OrderTaxRecord | null;
 }
 
 /**
  * Turns the intents into the calculator's input, using only server facts.
  * @param intent the client's order intents
  * @param facts what `loadCommercialFacts` read
- * @returns the calculator input, and each line's resolved standard and speed price
+ * @returns the calculator input, each line's resolved standard and speed price, and the rule behind order-level charges
  * @throws CommercialContextError PRODUCT_NOT_FOUND, SERVICE_SPEED_INVALID, PREFERENCE_NOT_AVAILABLE
  * @throws CommercialRuleError PRICE_NOT_RESOLVED
  */
 export function buildCommercialOrderInput(
   intent: CommercialOrderIntent,
   facts: CommercialFacts,
-): { input: CommercialOrderInput; prices: ResolvedLinePrice[] } {
+): { input: CommercialOrderInput; prices: ResolvedLinePrice[]; chargeTaxRecord: OrderTaxRecord | null } {
   const placement = placementForExtraPrice(facts.extraPriceMode, 'LINE');
   const preferenceOf = (p: PreferenceIntent): PreferenceFacts => {
     const found = facts.preferences.get(preferenceKey(p.kind, p.code));
@@ -780,9 +824,9 @@ export function buildCommercialOrderInput(
     const rank = facts.speedRanks.get(code);
     return rank != null && standardRank != null && rank < standardRank;
   };
-  /** D5: a speed is offered only where an active rule reaches the product. EXPRESS keeps its legacy category hours until S6. */
+  /** D5: a speed is offered only where an active rule reaches the product. */
   const requireOffered = (result: SpeedPricingResult, productId: string | null) => {
-    if (result.outcome === SPEED_PRICING_OUTCOMES.NO_RULE && result.serviceSpeed !== SERVICE_SPEEDS.EXPRESS) {
+    if (result.outcome === SPEED_PRICING_OUTCOMES.NO_RULE) {
       throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.SPEED_NOT_OFFERED,
         `Service speed ${result.serviceSpeed} is not offered for this item.`,
         { serviceSpeed: result.serviceSpeed, ...(productId ? { productId } : {}) });
@@ -838,14 +882,14 @@ export function buildCommercialOrderInput(
       discountAllowed: discountAllowed(serviceSpeed),
     }), product.id);
     const pieceSpeeds = new Map<string, { serviceSpeed: string; ruleId: string | null }>();
-    prices.push({ lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds });
+    const price: ResolvedLinePrice = { lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds };
+    prices.push(price);
 
     const pieces = line.pieces ?? Array.from({ length: Math.max(1, Math.ceil(line.quantity)) }, (_, k) => ({
       pieceId: `${line.lineId}-p${k + 1}`, preferences: [],
     }));
-    const hours = facts.categoryHours.get(product.serviceCategoryCode ?? '');
+    const categoryHours = facts.categoryHours.get(product.serviceCategoryCode ?? '') ?? null;
     const extraMinutes = minutesOf(line.preferences) + pieces.reduce((s, p) => s + minutesOf(p.preferences), 0);
-    const hoursAt = (code: string) => (code === SERVICE_SPEEDS.STANDARD ? hours?.standard ?? null : hours?.other ?? null);
     const pieceInput = (piece: PieceIntent) => {
       const base = { pieceId: piece.pieceId, modifiers: modifiersOf(piece.preferences, piece.pieceId), adjustments: piece.discounts ?? [] };
       const code = piece.serviceSpeed;
@@ -859,7 +903,7 @@ export function buildCommercialOrderInput(
             serviceSpeed: code,
             speedRuleHours: null,
             productHours: product.turnaroundHours,
-            categoryHours: hoursAt(code),
+            categoryHours,
             extraMinutes,
             recordedReadyByAt: piece.pinnedSpeed.readyByAt,
           },
@@ -889,20 +933,35 @@ export function buildCommercialOrderInput(
           serviceSpeed: code,
           ...readyByRule(own),
           productHours: product.turnaroundHours,
-          categoryHours: hoursAt(code),
+          categoryHours,
           extraMinutes,
           recordedReadyByAt: null,
         },
       };
     };
-    const { category, exemptReason } = line.pinned
-      ? { category: line.pinned.tax.taxCategoryCode, exemptReason: line.pinned.tax.exemptReason }
-      : resolveTaxCategory({
-        productCategory: product.taxCategoryCode,
-        productExemptReason: product.taxExemptReason,
-        customerExempt: facts.customerExempt,
-        serviceExempt: product.serviceCategoryCode != null && facts.exemptServiceCategories.has(product.serviceCategoryCode),
-      });
+    const serviceExempt = product.serviceCategoryCode != null && facts.exemptServiceCategories.has(product.serviceCategoryCode);
+    const recordedTax = line.pinned ? facts.recordedLineTaxes.get(line.lineId) : undefined;
+    const decided = !line.pinned && facts.taxEngine
+      ? decideOrderLineTax(facts.taxEngine, {
+        itemClass: product.taxItemClassCode, serviceCategory: product.serviceCategoryCode, customerExempt: facts.customerExempt, serviceExempt,
+      })
+      : null;
+    const { category, exemptReason } = decided
+      ? { category: decided.taxCategoryCode, exemptReason: decided.exemptReason }
+      : line.pinned
+        ? { category: line.pinned.tax.taxCategoryCode, exemptReason: line.pinned.tax.exemptReason }
+        : resolveTaxCategory({
+          productCategory: product.taxCategoryCode,
+          productExemptReason: product.taxExemptReason,
+          customerExempt: facts.customerExempt,
+          serviceExempt,
+        });
+    price.taxRecord = decided?.record ?? (recordedTax ? { ruleId: recordedTax.ruleId, zeroCode: recordedTax.zeroCode } : null);
+    const lineProfiles = decided
+      ? decided.profiles
+      : recordedTax
+        ? recordedTax.profileIds.flatMap((id) => facts.taxProfiles.filter((p) => p.id === id))
+        : selectTaxProfiles(facts.taxProfiles, product.taxSupplyCode);
 
     return {
       lineId: line.lineId,
@@ -923,7 +982,7 @@ export function buildCommercialOrderInput(
       tax: {
         taxCategoryCode: category,
         exemptReason,
-        profiles: selectTaxProfiles(facts.taxProfiles, product.taxSupplyCode),
+        profiles: lineProfiles,
       },
       // The calculator puts piece extras on the item or the piece, by the line's basis.
       pieces: pieces.map(pieceInput),
@@ -931,7 +990,7 @@ export function buildCommercialOrderInput(
         serviceSpeed,
         ...readyByRule(speed),
         productHours: product.turnaroundHours,
-        categoryHours: hoursAt(serviceSpeed),
+        categoryHours,
         extraMinutes,
         recordedReadyByAt: line.pinned?.readyByAt ?? null,
       },
@@ -940,14 +999,19 @@ export function buildCommercialOrderInput(
 
   // L25: an order preference extra is part of the service supply, so it is
   // taxed like a standard line with no supply code; a customer exemption applies.
+  const chargeDecided = facts.taxEngine
+    ? decideOrderLineTax(facts.taxEngine, { itemClass: null, serviceCategory: null, customerExempt: facts.customerExempt, serviceExempt: false })
+    : null;
   const chargeCategory = resolveTaxCategory({
     productCategory: null, productExemptReason: null, customerExempt: facts.customerExempt, serviceExempt: false,
   });
-  const chargeTax = {
-    taxCategoryCode: chargeCategory.category,
-    exemptReason: chargeCategory.exemptReason,
-    profiles: selectTaxProfiles(facts.taxProfiles, null),
-  };
+  const chargeTax = chargeDecided
+    ? { taxCategoryCode: chargeDecided.taxCategoryCode, exemptReason: chargeDecided.exemptReason, profiles: chargeDecided.profiles }
+    : {
+      taxCategoryCode: chargeCategory.category,
+      exemptReason: chargeCategory.exemptReason,
+      profiles: selectTaxProfiles(facts.taxProfiles, null),
+    };
   const charges: CommercialChargeInput[] = [
     ...intent.orderPreferences.map((p) => ({
       chargeId: `order:${p.kind}:${p.rowId ?? p.code}`, kind: p.kind, amount: preferenceOf(p).amount, tax: chargeTax,
@@ -959,6 +1023,7 @@ export function buildCommercialOrderInput(
 
   return {
     prices,
+    chargeTaxRecord: chargeDecided?.record ?? null,
     input: {
       level: facts.level,
       pricingMode: facts.pricingMode,

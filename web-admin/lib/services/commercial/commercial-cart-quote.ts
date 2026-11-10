@@ -76,6 +76,7 @@ export function toCartQuote(checkout: CheckoutQuote, requestId: string): CartQuo
     },
     lines,
     readyByAt: result.orderReadyBy.toISOString(),
+    timezone: quote.facts.calendar?.timeZone ?? null,
     disclosures,
   };
 }

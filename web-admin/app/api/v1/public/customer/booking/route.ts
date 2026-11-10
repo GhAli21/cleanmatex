@@ -1,10 +1,11 @@
-import { getDefaultVatRate } from '@/lib/services/tax-engine.service';
+import { getDefaultSalesVatRate } from '@/lib/services/tax/tax-explain.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { z } from 'zod';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { listActiveServiceSpeeds } from '@/lib/services/lookups/service-speed-lookup.service';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
 import { quoteCheckout, type CheckoutQuote } from '@/lib/services/commercial/commercial-checkout.service';
@@ -420,8 +421,8 @@ export async function GET(request: NextRequest) {
     ] =
       await Promise.all([
         tenantSettings.getCurrencyConfig(tenantId, branchId),
-        // Display only: the submit is priced by the commercial calculator from the tax profiles.
-        getDefaultVatRate(tenantId),
+        // Display only: the submit is priced by the commercial calculator from the tax rules.
+        getDefaultSalesVatRate(tenantId),
         PreferenceCatalogService.getServicePreferences(supabase, tenantId, branchId),
         PreferenceCatalogService.getPackingPreferences(supabase, tenantId),
         PreferenceCatalogService.getPreferenceKinds(supabase, tenantId, false),
@@ -517,8 +518,12 @@ export async function GET(request: NextRequest) {
       hasPackingPreferences: pickupPreferences.length > 0,
     });
 
+    // Offered speeds only, slowest first; on a read failure the booking stays Standard.
+    const speeds = await listActiveServiceSpeeds(supabase, tenantId);
+
     const response = {
       bookingEnabled: true,
+      serviceSpeeds: (speeds.data ?? []).filter((speed) => speed.is_offered).map(({ code, name, name2, description, description2 }) => ({ code, name, name2, description, description2 })),
       disabledReasonKey: null,
       currencyCode: moneyConfig.currencyCode,
       vatRate,

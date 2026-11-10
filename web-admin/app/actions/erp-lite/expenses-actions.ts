@@ -3,6 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { purchaseTaxErrorMessage } from '@/lib/services/tax/purchase-tax-message';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 
 function getRequiredString(formData: FormData, key: string): string {
@@ -16,6 +17,15 @@ function getRequiredString(formData: FormData, key: string): string {
 function getOptionalString(formData: FormData, key: string): string | null {
   const value = formData.get(key);
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/** A blank number field is null (the tax code decides), never 0. */
+function optionalNumber(formData: FormData, key: string): number | null {
+  const raw = getOptionalString(formData, key);
+  if (raw === null) return null;
+  const value = Number(raw);
+  if (Number.isNaN(value)) throw new Error(`Invalid number field: ${key}`);
+  return value;
 }
 
 function getRequiredNumber(formData: FormData, key: string): number {
@@ -43,7 +53,9 @@ export async function createErpLiteExpenseAction(formData: FormData) {
       expense_date: getRequiredString(formData, 'expense_date'),
       currency_code: getRequiredString(formData, 'currency_code'),
       subtotal_amount: getRequiredNumber(formData, 'subtotal_amount'),
-      tax_amount: Number(getOptionalString(formData, 'tax_amount') ?? '0'),
+      tax_amount: optionalNumber(formData, 'tax_amount'),
+      tax_item_class_code: getOptionalString(formData, 'tax_item_class_code'),
+      supplier_id: getOptionalString(formData, 'supplier_id'),
       payee_name: getOptionalString(formData, 'payee_name'),
       description: getOptionalString(formData, 'description'),
       settlement_code: getRequiredString(formData, 'settlement_code') as 'CASH' | 'BANK',
@@ -56,7 +68,7 @@ export async function createErpLiteExpenseAction(formData: FormData) {
           ? 'expense-created-post-skipped'
           : 'expense-created';
   } catch (error) {
-    redirectExpenses(undefined, error instanceof Error ? error.message : 'expense-create-failed');
+    redirectExpenses(undefined, (await purchaseTaxErrorMessage(error)) ?? (error instanceof Error ? error.message : 'expense-create-failed'));
   }
 
   revalidatePath('/dashboard/erp-lite/expenses');

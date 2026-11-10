@@ -67,8 +67,12 @@ export default async function ErpLitePoPage({
     usage_code_options: [],
   };
 
+  let taxOptions: Awaited<ReturnType<typeof ErpLiteV2Service.getPurchaseTaxFormOptions>> = { tax_class_options: [], supplier_options: [] };
   try {
-    snapshot = await ErpLiteV2Service.getPoDashboardSnapshot(locale);
+    [snapshot, taxOptions] = await Promise.all([
+      ErpLiteV2Service.getPoDashboardSnapshot(locale),
+      ErpLiteV2Service.getPurchaseTaxFormOptions(locale),
+    ]);
   } catch (loadFailure) {
     loadError =
       loadFailure instanceof Error
@@ -139,7 +143,14 @@ export default async function ErpLitePoPage({
                 />
                 <CmxInput name="currency_code" label={t('forms.po.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="subtotal_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.subtotal')} required />
-                <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.tax')} />
+                <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.tax')} placeholder={tCommon('tax.amountBlank')} />
+                <CmxSelect
+                  name="tax_item_class_code"
+                  label={tCommon('tax.itemClass')}
+                  defaultValue=""
+                  placeholder={tCommon('tax.itemClassDefault')}
+                  options={taxOptions.tax_class_options.map((item) => ({ value: item.id, label: item.label }))}
+                />
                 <div className="space-y-1">
                   <label htmlFor="erp-po-description" className="block text-sm font-medium text-gray-700">
                     {t('forms.po.fields.description')}

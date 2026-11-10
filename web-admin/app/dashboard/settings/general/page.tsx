@@ -21,12 +21,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin, Lock } from 'lucide-react'
-import { BusinessHoursEditor } from '@features/settings/ui/BusinessHoursEditor'
+import Link from 'next/link'
+import { CmxButton } from '@ui/primitives'
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token'
-
-interface BusinessHours {
-  [key: string]: { open: string; close: string; closed: boolean }
-}
 
 interface GeneralSettings {
   businessName: string
@@ -39,22 +36,11 @@ interface GeneralSettings {
   timezone: string
   currency: string
   defaultLanguage: string
-  businessHours: BusinessHours
 }
 
 interface IsLocked {
   currency: boolean
   country: boolean
-}
-
-const DEFAULT_HOURS: BusinessHours = {
-  monday: { open: '09:00', close: '18:00', closed: false },
-  tuesday: { open: '09:00', close: '18:00', closed: false },
-  wednesday: { open: '09:00', close: '18:00', closed: false },
-  thursday: { open: '09:00', close: '18:00', closed: false },
-  friday: { open: '09:00', close: '18:00', closed: false },
-  saturday: { open: '09:00', close: '14:00', closed: false },
-  sunday: { open: '00:00', close: '00:00', closed: true }
 }
 
 const INITIAL_SETTINGS: GeneralSettings = {
@@ -68,7 +54,6 @@ const INITIAL_SETTINGS: GeneralSettings = {
   timezone: 'Asia/Muscat',
   currency: 'OMR',
   defaultLanguage: 'en',
-  businessHours: DEFAULT_HOURS,
 }
 
 /**
@@ -112,7 +97,6 @@ export default function GeneralSettingsPage() {
           timezone: data.timezone || 'Asia/Muscat',
           currency: data.currency || 'OMR',
           defaultLanguage: data.defaultLanguage || 'en',
-          businessHours: data.businessHours ?? DEFAULT_HOURS,
         }
         setSettings(next)
         setBaseline(next)
@@ -177,7 +161,6 @@ export default function GeneralSettingsPage() {
         timezone: data.timezone,
         currency: data.currency,
         defaultLanguage: data.defaultLanguage,
-        businessHours: data.businessHours,
       }
       setSettings(next)
       setBaseline(next)
@@ -405,10 +388,10 @@ export default function GeneralSettingsPage() {
           {t('businessHours')}
         </h2>
 
-        <BusinessHoursEditor
-          hours={settings.businessHours}
-          onChange={(hours) => setSettings({ ...settings, businessHours: hours })}
-        />
+        <p className="text-sm text-gray-600 mb-4">{t('calendar.movedFromGeneral')}</p>
+        <CmxButton asChild variant="outline">
+          <Link href="/dashboard/settings/calendar">{t('calendar.openPage')}</Link>
+        </CmxButton>
       </div>
 
       {/* Save Button */}

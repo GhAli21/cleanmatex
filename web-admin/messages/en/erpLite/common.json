@@ -1,3 +1,20 @@
 {
-  "loadError": "ERP-Lite could not load this screen completely. Review tenant finance setup and ERP-Lite reference data, then try again."
+  "loadError": "ERP-Lite could not load this screen completely. Review tenant finance setup and ERP-Lite reference data, then try again.",
+  "tax": {
+    "itemClass": "Item tax class",
+    "itemClassDefault": "Organization default",
+    "amountBlank": "Blank = from the tax code",
+    "supplier": "Supplier",
+    "supplierNone": "No supplier (one-off payee)",
+    "errors": {
+      "NO_TAX_RULE": "No tax rule covers this purchase. Ask a manager to check Tax Setup.",
+      "TAX_RULE_AMBIGUOUS": "Two tax rules match this purchase. Ask a manager to check Tax Setup.",
+      "TAX_CODE_VERSION_MISSING": "Tax code {taxCode} has no rate in force on this date. Ask a manager to check Tax Setup.",
+      "TAX_CODE_UNSUPPORTED": "Tax code {taxCode} cannot be used on purchases yet.",
+      "PURCHASE_TAX_MISMATCH": "The tax amount {entered} does not match the tax code ({expected}). Leave the tax blank to use {expected}, or choose the item tax class that matches the supplier invoice.",
+      "TAX_CLASS_INVALID": "This item tax class cannot be used for purchases.",
+      "WHT_POSTING_NOT_READY": "Withholding tax ({amount}) applies to this payment, but recording withholding is not available yet. Ask a manager to check Tax Setup.",
+      "TAX_CURRENCY_UNSUPPORTED": "Tax is on, so this purchase must be in {baseCurrency}. It is in {currency}."
+    }
+  }
 }

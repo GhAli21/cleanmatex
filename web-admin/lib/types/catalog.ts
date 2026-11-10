@@ -40,7 +40,6 @@ export interface ServiceCategory {
   ctg_name2: string | null;      // Arabic name
   ctg_desc: string | null;       // Description
   turnaround_hh: number | null;
-  turnaround_hh_express: number | null;
   multiplier_express: number | null;
   is_builtin: boolean;
   has_fee: boolean;
@@ -97,6 +96,7 @@ export interface Product {
   turnaround_hh: number | null;
   product_order: number | null;
   tax_category_code: string | null;
+  tax_item_class_code: string | null;
   tags: Record<string, any> | null;
   id_sku: string | null;
   is_active: boolean;
@@ -158,6 +158,7 @@ export interface ProductCreateRequest {
   turnaround_hh?: number;
   product_order?: number;
   tax_category_code?: string;
+  tax_item_class_code?: string | null;
   tags?: Record<string, any>;
   id_sku?: string;
   is_active?: boolean;
@@ -376,6 +377,7 @@ export interface AdvancedCSVRow extends BasicCSVRow {
   /** The EXPRESS rule's hours; needs `price_express` or `express_multiplier`. */
   turnaround_hh_express?: number;
   tax_category_code?: string;
+  tax_item_class_code?: string | null;
   is_active?: string | boolean;
 }
 

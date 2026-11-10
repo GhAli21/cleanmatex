@@ -39,6 +39,7 @@ function makeTx(overrides: Record<string, unknown> = {}) {
     $queryRaw: jest.fn().mockResolvedValue([]),
     org_orders_mst: { findUnique: jest.fn() },
     org_tax_documents_mst: { findFirst: jest.fn(), update: jest.fn() },
+    org_tax_lines_tr: { findMany: jest.fn().mockResolvedValue([]) },
     ...overrides,
   };
 }

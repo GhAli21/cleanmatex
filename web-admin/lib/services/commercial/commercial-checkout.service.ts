@@ -226,7 +226,6 @@ export function checkoutIntentOf(params: CheckoutQuoteParams, receivedAt: Date):
     lines,
     orderPreferences: prefsOf(params.orderServicePrefs, null),
     orderAdjustments: [],
-    taxProfileIds: params.taxProfileIds,
   };
 }
 

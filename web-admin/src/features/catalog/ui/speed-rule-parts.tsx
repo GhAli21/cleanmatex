@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton, Label } from '@ui/primitives';
+import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxListOfValuesDialog } from '@ui/forms';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -97,8 +98,10 @@ export function useSpeedRuleValueText() {
     if (rule.speedPriceType === SPEED_PRICE_TYPES.SELL_PRICE) return t('sellPrice', { amount: money(rule.defaultSpeedSellPrice) });
     if (rule.speedPriceType === SPEED_PRICE_TYPES.MULTIPLIER) {
       const percent = new Intl.NumberFormat(locale === 'ar' ? 'ar' : 'en', { style: 'percent', maximumFractionDigits: 2 });
-      return t('multiplier', { percent: percent.format(Number(rule.multiplierSpeed ?? 0)) });
+      const multiplier = Number(rule.multiplierSpeed ?? 0);
+      return multiplier < 0 ? t('discountPercent', { percent: percent.format(-multiplier) }) : t('multiplier', { percent: percent.format(multiplier) });
     }
+    if (Number(rule.speedExtraAmount ?? 0) < 0) return t('discountAmount', { amount: money(String(-Number(rule.speedExtraAmount))) });
     return rule.priceBasis === PRICE_BASIS.PER_LINE
       ? t('fixedPerLine', { amount: money(rule.speedExtraAmount) })
       : t('fixedPerUnit', { amount: money(rule.speedExtraAmount) });
@@ -126,5 +129,33 @@ export function SpeedRuleScopeText({ rule, categoryLabel, branchLabel }: {
         {t(`level.${rule.level}`)} · {rule.branchId ? branchLabel(rule.branchId) : t('scope.allBranches')}
       </div>
     </div>
+  );
+}
+
+/** The speeds the guidance card describes, slowest first (PLAN §3). */
+const GUIDANCE_SPEEDS = ['ECONOMY', 'STANDARD', 'NEXT_DAY', 'EXPRESS', 'URGENT'] as const;
+
+/**
+ * Typical promise and price per speed, as a starting point when writing rules.
+ * @param props - how to name a speed
+ * @returns the card
+ */
+export function SpeedRuleGuidanceCard({ speedLabel }: { speedLabel: (code: string) => string }) {
+  const t = useTranslations('catalog.speedPricing.guidance');
+  return (
+    <CmxCard>
+      <CmxCardContent className="space-y-2 pt-6">
+        <p className="text-sm font-medium">{t('title')}</p>
+        <div className="space-y-1 text-sm">
+          {GUIDANCE_SPEEDS.map((code) => (
+            <div key={code} className="grid gap-x-4 sm:grid-cols-[8rem_1fr_8rem]">
+              <span className="font-medium">{speedLabel(code)}</span>
+              <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t(`${code}.promise`)}</span>
+              <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t(`${code}.price`)}</span>
+            </div>
+          ))}
+        </div>
+      </CmxCardContent>
+    </CmxCard>
   );
 }

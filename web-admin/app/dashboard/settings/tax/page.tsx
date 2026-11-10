@@ -1,8 +1,8 @@
-import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { TaxSetupClient } from '@features/settings/tax/ui/tax-setup-client';
+import { TaxSettingsScreen } from '@features/tax/ui/tax-settings-screen';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { SETTINGS_SETTINGS_TAX_ACCESS } from '@features/settings/access/settings-access'
 import type { Metadata } from 'next'
@@ -12,13 +12,12 @@ export const metadata: Metadata = { title: 'Tax Setup' }
 
 /** Loads the tenant-scoped tax setup surface. */
 export default async function TaxSetupPage() {
-  const t = await getTranslations('taxSetup');
   const { tenantId } = await getAuthContext();
 
   const [profiles, exemptions] = await Promise.all([
     withTenantContext(tenantId, () =>
       prisma.org_tax_profiles_cf.findMany({
-        where:   { tenant_org_id: tenantId, rec_status: 1 },
+        where:   { tenant_org_id: tenantId, rec_status: 1, source: 'TENANT' },
         orderBy: { created_at: 'asc' },
       })
     ),
@@ -49,16 +48,11 @@ export default async function TaxSetupPage() {
 
   return (
     <RequireAnyPermission permissions={SETTINGS_SETTINGS_TAX_ACCESS.page.permissions ?? []}>
-      <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">{t('title')}</h1>
-        <p className="mt-1 text-muted-foreground">{t('description')}</p>
-      </div>
-      <TaxSetupClient
-        initialProfiles={serializedProfiles}
-        initialExemptions={serializedExemptions}
+      <TaxSettingsScreen
+        currentOrderTax={
+          <TaxSetupClient initialProfiles={serializedProfiles} initialExemptions={serializedExemptions} />
+        }
       />
-    </div>
     </RequireAnyPermission>
   );
 }

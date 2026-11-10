@@ -3,6 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { purchaseTaxErrorMessage } from '@/lib/services/tax/purchase-tax-message';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import type { ImportErpLiteBankStatementLineInput } from '@/lib/types/erp-lite-v2';
 
@@ -17,6 +18,15 @@ function getRequiredString(formData: FormData, key: string): string {
 function getOptionalString(formData: FormData, key: string): string | null {
   const value = formData.get(key);
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/** A blank number field is null (the tax code decides), never 0. */
+function optionalNumber(formData: FormData, key: string): number | null {
+  const raw = getOptionalString(formData, key);
+  if (raw === null) return null;
+  const value = Number(raw);
+  if (Number.isNaN(value)) throw new Error(`Invalid number field: ${key}`);
+  return value;
 }
 
 function getRequiredNumber(formData: FormData, key: string): number {
@@ -123,7 +133,8 @@ export async function createErpLiteApInvoiceAction(formData: FormData) {
       due_date: getOptionalString(formData, 'due_date'),
       currency_code: getRequiredString(formData, 'currency_code'),
       subtotal_amount: getRequiredNumber(formData, 'subtotal_amount'),
-      tax_amount: Number(getOptionalString(formData, 'tax_amount') ?? '0'),
+      tax_amount: optionalNumber(formData, 'tax_amount'),
+      tax_item_class_code: getOptionalString(formData, 'tax_item_class_code'),
       description: getRequiredString(formData, 'description'),
       description2: getOptionalString(formData, 'description2'),
       usage_code_id: getOptionalString(formData, 'usage_code_id'),
@@ -131,7 +142,7 @@ export async function createErpLiteApInvoiceAction(formData: FormData) {
     });
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;
-    redirectWithParams('/dashboard/erp-lite/ap', undefined, error instanceof Error ? error.message : 'ap-invoice-create-failed');
+    redirectWithParams('/dashboard/erp-lite/ap', undefined, (await purchaseTaxErrorMessage(error)) ?? (error instanceof Error ? error.message : 'ap-invoice-create-failed'));
   }
 
   revalidatePath('/dashboard/erp-lite/ap');
@@ -156,7 +167,7 @@ export async function createErpLiteApPaymentAction(formData: FormData) {
     });
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;
-    redirectWithParams('/dashboard/erp-lite/ap', undefined, error instanceof Error ? error.message : 'ap-payment-create-failed');
+    redirectWithParams('/dashboard/erp-lite/ap', undefined, (await purchaseTaxErrorMessage(error)) ?? (error instanceof Error ? error.message : 'ap-payment-create-failed'));
   }
 
   revalidatePath('/dashboard/erp-lite/ap');
@@ -172,14 +183,15 @@ export async function createErpLitePurchaseOrderAction(formData: FormData) {
       expected_date: getOptionalString(formData, 'expected_date'),
       currency_code: getRequiredString(formData, 'currency_code'),
       subtotal_amount: getRequiredNumber(formData, 'subtotal_amount'),
-      tax_amount: Number(getOptionalString(formData, 'tax_amount') ?? '0'),
+      tax_amount: optionalNumber(formData, 'tax_amount'),
+      tax_item_class_code: getOptionalString(formData, 'tax_item_class_code'),
       description: getRequiredString(formData, 'description'),
       description2: getOptionalString(formData, 'description2'),
       usage_code_id: getOptionalString(formData, 'usage_code_id'),
     });
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;
-    redirectWithParams('/dashboard/erp-lite/po', undefined, error instanceof Error ? error.message : 'po-create-failed');
+    redirectWithParams('/dashboard/erp-lite/po', undefined, (await purchaseTaxErrorMessage(error)) ?? (error instanceof Error ? error.message : 'po-create-failed'));
   }
 
   revalidatePath('/dashboard/erp-lite/po');

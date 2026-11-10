@@ -24,6 +24,7 @@ import {
   type CommercialOrderIntent,
   type ResolvedLinePrice,
 } from './commercial-context.loader';
+import type { OrderTaxRecord } from '@/lib/tax/order-line-tax';
 
 /** What a resolver can read about the priced lines. */
 export interface OrderAdjustmentContext {
@@ -48,6 +49,8 @@ export interface CommercialQuote {
   result: CommercialOrderResult;
   prices: ResolvedLinePrice[];
   facts: CommercialFacts;
+  /** The rule behind order-level charges; null when no rule was involved. */
+  chargeTaxRecord: OrderTaxRecord | null;
   /** The order discounts that were applied (the intent's, or the resolver's). */
   orderAdjustments: readonly AdjustmentInput[];
 }
@@ -73,7 +76,7 @@ export async function quoteCommercialOrder(
   resolveOrderAdjustments?: OrderAdjustmentResolver,
 ): Promise<CommercialQuote> {
   const facts = await loadCommercialFacts(db, tenantOrgId, intent, deps);
-  const { input, prices } = buildCommercialOrderInput(intent, facts);
+  const { input, prices, chargeTaxRecord } = buildCommercialOrderInput(intent, facts);
   let orderAdjustments = input.orderAdjustments;
   if (resolveOrderAdjustments) {
     const netAfter = (adjustments: readonly AdjustmentInput[]) =>
@@ -86,5 +89,5 @@ export async function quoteCommercialOrder(
     orderAdjustments = await resolveOrderAdjustments({ linesNet: netAfter([]), netAfter, rounding: facts.rounding, serviceCategories });
   }
   const result = calculateCommercialOrder({ ...input, orderAdjustments });
-  return { result, prices, facts, orderAdjustments };
+  return { result, prices, facts, chargeTaxRecord, orderAdjustments };
 }

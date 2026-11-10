@@ -173,7 +173,10 @@ export interface CreateErpLitePurchaseOrderInput {
   expected_date?: string | null;
   currency_code: string;
   subtotal_amount: number;
-  tax_amount?: number;
+  /** Typed tax; null/omitted = the tax code's amount once the tax setup is active. */
+  tax_amount?: number | null;
+  /** Item tax class (org_tax_item_classes_cf, INPUT); null = the default purchase class. */
+  tax_item_class_code?: string | null;
   description: string;
   description2?: string | null;
   usage_code_id?: string | null;
@@ -188,7 +191,10 @@ export interface CreateErpLiteApInvoiceInput {
   due_date?: string | null;
   currency_code: string;
   subtotal_amount: number;
-  tax_amount?: number;
+  /** Typed tax; null/omitted = the tax code's amount once the tax setup is active. */
+  tax_amount?: number | null;
+  /** Item tax class (org_tax_item_classes_cf, INPUT); null = the default purchase class. */
+  tax_item_class_code?: string | null;
   description: string;
   description2?: string | null;
   usage_code_id?: string | null;

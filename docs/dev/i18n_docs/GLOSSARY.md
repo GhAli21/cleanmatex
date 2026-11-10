@@ -61,6 +61,9 @@ much as possible, even across different namespaces.
 | `speed_premium` | Speed premium | رسوم السرعة | What a faster speed adds to a line, set by a Speed Pricing rule (`speed_premium_amount`). When it sits inside the line price, say "(included)" / "(مشمولة)". Line-Level Money Snapshot, 2026-11-07. |
 | `tax_category` | Tax category | الفئة الضريبية | The tax basis a line carries (`sys_tax_category_cd`: Standard, Zero-rated, Exempt, Out of scope). Matches the catalog product form. Line-Level Money Snapshot, 2026-11-07. |
 | `line_net` | After discounts | بعد الخصومات | A line's amount after its own discount and its share of the order discount, before tax (`net_amount`). Shown as "After discounts", not "Net", in the line breakdown. Line-Level Money Snapshot, 2026-11-07. |
+| `cutoff_time` | Cut-off time | آخر وقت للاستلام | The last drop-off counted as today; later orders count from the next working day (`order_cutoff_time`). Service Speeds, 2026-11-08. |
+| `ready_time` | Ready time | وقت الجاهزية | When orders promised in working days are ready (`ready_time`). Service Speeds, 2026-11-08. |
+| `working_day` | Working day | يوم عمل | A day the branch is open by its Business Calendar, holidays excluded. Service Speeds, 2026-11-08. |
 
 ## Adding a new term
 

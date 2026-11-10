@@ -68,6 +68,15 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'List sales tax classes',
+        method: 'GET',
+        path: '/api/v1/products/tax-classes',
+        requirement: {
+          permissions: ['products:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'List categories',
         method: 'GET',
         path: '/api/v1/categories',
@@ -100,6 +109,15 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     apiDependencies: [
+      {
+        label: 'List sales tax classes',
+        method: 'GET',
+        path: '/api/v1/products/tax-classes',
+        requirement: {
+          permissions: ['products:read'],
+          requireAllPermissions: true,
+        },
+      },
       {
         label: 'Get product',
         method: 'GET',

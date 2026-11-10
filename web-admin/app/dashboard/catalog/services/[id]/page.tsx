@@ -40,7 +40,7 @@ export default function EditProductPage() {
             default_sell_price: p.default_sell_price,
             min_quantity: p.min_quantity,
             turnaround_hh: p.turnaround_hh,
-            tax_category_code: p.tax_category_code,
+            tax_item_class_code: p.tax_item_class_code,
             is_active: p.is_active,
             product_image: p.product_image ?? null,
             product_icon: p.product_icon ?? null,

@@ -19,6 +19,7 @@ jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({
   resolveExtraPricePricingMode: jest.fn().mockResolvedValue('INCLUDED_IN_ITEM_PRICE'),
 }));
 
+import { TAX_ENGINE_MODELS, activeTaxSetup, taxCodeColumns } from '../../helpers/tax-engine-fixtures';
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const BRANCH = '22222222-2222-2222-2222-222222222222';
 const CUSTOMER = '33333333-3333-3333-3333-333333333333';
@@ -38,7 +39,7 @@ function mockDb(fixtures: Fixtures) {
   const names = ['org_tenants_mst', 'org_branches_mst', 'org_customers_mst', 'org_product_data_mst', 'org_price_lists_mst',
     'org_price_list_items_dtl', 'org_speed_price_rules_cf', 'org_tax_profiles_cf', 'org_tax_exemptions_cf',
     'org_service_preference_cf', 'org_packing_preference_cf', 'sys_service_preference_cd', 'sys_service_category_cd',
-    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', 'org_holidays_cf', 'sys_public_holidays_cf'];
+    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', 'org_holidays_cf', 'sys_public_holidays_cf', ...TAX_ENGINE_MODELS];
   return { db: Object.fromEntries(names.map((n) => [n, model(n)])) as unknown as CommercialDb, calls };
 }
 
@@ -68,13 +69,14 @@ const baseFixtures = (): Fixtures => ({
   sys_service_speed_cd: [{ code: 'STANDARD', display_order: 2 }, { code: 'EXPRESS', display_order: 4 }],
   org_tax_profiles_cf: [{
     id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false, is_default: true, applies_to: [],
-    rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null,
+    rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null, ...taxCodeColumns('VAT_STD'),
   }],
+  ...activeTaxSetup('VAT_STD'),
   sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
   org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 30, branch_id: null }],
   sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 60 }],
   org_packing_preference_cf: [{ packing_pref_code: 'HANGER', extra_price: '0.100' }],
-  sys_service_category_cd: [{ service_category_code: 'DRY_CLEAN', turnaround_hh: '48', turnaround_hh_express: '12' }],
+  sys_service_category_cd: [{ service_category_code: 'DRY_CLEAN', turnaround_hh: '48' }],
   org_tax_exemptions_cf: [],
 });
 
@@ -151,17 +153,23 @@ describe('loadCommercialFacts', () => {
     expect((await loadCommercialFacts(db, TENANT, intent(), deps)).taxProfileLabels.get('vat')).toEqual({ label: 'VAT', label2: 'ضريبة' });
   });
 
-  it('a cashier tax selection replaces the defaults; an unknown id is rejected', async () => {
+  it('a setup that is not confirmed charges no tax and writes no tax record', async () => {
     const fixtures = baseFixtures();
-    fixtures.org_tax_profiles_cf = [
-      ...(fixtures.org_tax_profiles_cf as object[]),
-      { id: 'lux', name: 'Lux', name2: null, tax_type: 'CUSTOM', rate: '2', is_compound: false, is_default: false, applies_to: [],
-        rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null },
-    ];
-    const facts = await loadCommercialFacts(mockDb(fixtures).db, TENANT, intent({ taxProfileIds: ['lux'] }), deps);
-    expect(facts.taxProfiles.map((p) => [p.id, p.isDefault])).toEqual([['vat', false], ['lux', true]]);
-    await expect(loadCommercialFacts(mockDb(fixtures).db, TENANT, intent({ taxProfileIds: ['nope'] }), deps))
-      .rejects.toMatchObject({ code: 'INVALID_TAX_PROFILE_SELECTION' });
+    fixtures.org_tax_config_cf = [{ status: 'PENDING_CONFIRMATION', tax_enabled: false }];
+    const facts = await loadCommercialFacts(mockDb(fixtures).db, TENANT, intent(), deps);
+    expect(facts.taxEngine).toBeNull();
+    expect(facts.taxProfiles).toEqual([]);
+    const { input, prices, chargeTaxRecord } = buildCommercialOrderInput(intent(), facts);
+    expect(input.lines[0].tax.profiles).toEqual([]);
+    expect(prices[0].taxRecord).toBeNull();
+    expect(chargeTaxRecord).toBeNull();
+  });
+
+  it('a confirmed setup with no rule for the line is refused, never a silent zero', async () => {
+    const fixtures = baseFixtures();
+    fixtures.org_tax_rules_cf = [];
+    const facts = await loadCommercialFacts(mockDb(fixtures).db, TENANT, intent(), deps);
+    expect(() => buildCommercialOrderInput(intent(), facts)).toThrow(expect.objectContaining({ code: 'NO_TAX_RULE' }));
   });
 
   it('refuses to guess a time zone', async () => {
@@ -289,7 +297,7 @@ describe('Service Speeds S3: calendar, offered speeds, ECONOMY discount', () => 
     expect(prices[0].speed.warnings).toEqual([]);
   });
 
-  it('a speed with no rule is not offered (SPEED_NOT_OFFERED); EXPRESS keeps its legacy hours until S6', async () => {
+  it('a speed with no rule is not offered (SPEED_NOT_OFFERED), EXPRESS included', async () => {
     const { db } = mockDb(calendarFixtures());
     const facts = await loadCommercialFacts(db, TENANT, oneLine('URGENT'), deps);
     expect(() => buildCommercialOrderInput(oneLine('URGENT'), facts)).toThrow(expect.objectContaining({ code: 'SPEED_NOT_OFFERED' }));

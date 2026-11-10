@@ -1,12 +1,12 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-07T06:10:13.585Z
-Git SHA: b83055c7
+Generated: 2026-11-09T12:58:20.245Z
+Git SHA: 11d464cd
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 166 |
+| Access contracts | 168 |
 | Permission usages | 467 |
 | Feature flag usages | 86 |
 | Setting usages | 23 |
@@ -158,6 +158,7 @@ Git SHA: b83055c7
 | /dashboard/settings/branches | Branches List | — | — | 0 |
 | /dashboard/settings/branches/[id] | Branch Settings | — | — | 0 |
 | /dashboard/settings/branding | Branding Settings | — | — | 0 |
+| /dashboard/settings/calendar | Business Calendar | settings:read | — | 2 |
 | /dashboard/settings/finance | Finance Settings | settings:read | — | 0 |
 | /dashboard/settings/finance/currency-fx | Currencies & FX | currencies:view | — | 7 |
 | /dashboard/settings/general | General Settings | — | — | 0 |
@@ -170,6 +171,7 @@ Git SHA: b83055c7
 | /dashboard/settings/roles | Roles Management | *:*, settings:* | — | 0 |
 | /dashboard/settings/security | Security & Sessions | auth_config:read | — | 0 |
 | /dashboard/settings/tax | Tax Setup | tax:view_config | — | 0 |
+| /dashboard/settings/tax/setup | Review tax setup | tax:view_config | — | 1 |
 | /dashboard/settings/tenant | Tenant Settings | — | — | 0 |
 | /dashboard/settings/users | Settings Users | — | — | 0 |
 | /dashboard/settings/workflows | Workflows | settings:workflow | — | 0 |

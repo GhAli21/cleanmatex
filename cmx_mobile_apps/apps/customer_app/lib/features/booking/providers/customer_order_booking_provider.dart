@@ -42,6 +42,7 @@ class BookingState {
     this.pickupPreferenceOptions = const [],
     this.itemSearchQuery = '',
     this.vatRate = 0.0,
+    this.serviceSpeeds = const [],
     this.currencyCode = 'OMR',
   });
 
@@ -69,6 +70,7 @@ class BookingState {
   final List<BookingPreferenceOptionModel> pickupPreferenceOptions;
   final String itemSearchQuery;
   final double vatRate;
+  final List<BookingServiceSpeedModel> serviceSpeeds;
   final String currencyCode;
 
   // ── Computed getters ────────────────────────────────────────────────────
@@ -276,6 +278,7 @@ class BookingState {
     List<BookingPreferenceOptionModel>? pickupPreferenceOptions,
     String? itemSearchQuery,
     double? vatRate,
+    List<BookingServiceSpeedModel>? serviceSpeeds,
     String? currencyCode,
   }) {
     return BookingState(
@@ -308,6 +311,7 @@ class BookingState {
           pickupPreferenceOptions ?? this.pickupPreferenceOptions,
       itemSearchQuery: itemSearchQuery ?? this.itemSearchQuery,
       vatRate: vatRate ?? this.vatRate,
+      serviceSpeeds: serviceSpeeds ?? this.serviceSpeeds,
       currencyCode: currencyCode ?? this.currencyCode,
     );
   }
@@ -349,6 +353,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         servicePreferenceOptions: bootstrap.servicePreferences,
         pickupPreferenceOptions: bootstrap.pickupPreferences,
         vatRate: bootstrap.vatRate,
+        serviceSpeeds: bootstrap.serviceSpeeds,
         currencyCode: bootstrap.currencyCode,
         draft: state.draft.copyWith(
           address: state.draft.address ?? _defaultAddress(bootstrap.addresses),
@@ -641,6 +646,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
   }
 
   // ── Legacy / compat ─────────────────────────────────────────────────────
+
+  void chooseServiceSpeed(String code) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(serviceSpeed: code),
+    );
+  }
 
   void chooseService(ServiceOptionModel value) {
     state = state.copyWith(

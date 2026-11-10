@@ -15,5 +15,8 @@
   "service_speed": "سرعة الخدمة",
   "speed_premium": "رسوم السرعة",
   "tax_category": "الفئة الضريبية",
-  "line_net": "بعد الخصومات"
+  "line_net": "بعد الخصومات",
+  "cutoff_time": "آخر وقت للاستلام",
+  "ready_time": "وقت الجاهزية",
+  "working_day": "يوم عمل"
 }

@@ -15,5 +15,8 @@
   "service_speed": "Service speed",
   "speed_premium": "Speed premium",
   "tax_category": "Tax category",
-  "line_net": "After discounts"
+  "line_net": "After discounts",
+  "cutoff_time": "Cut-off time",
+  "ready_time": "Ready time",
+  "working_day": "Working day"
 }

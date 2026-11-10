@@ -18,7 +18,7 @@ import { SpeedRulesApiError, deleteSpeedRuleApi, fetchSpeedRules, updateSpeedRul
 import { useSpeedRuleLookups } from '../hooks/use-speed-rule-lookups';
 import { SpeedRuleBulkStatusDialog } from './speed-rule-bulk-status-dialog';
 import { SpeedRuleEditorDialog } from './speed-rule-editor-dialog';
-import { SpeedRuleProductField, SpeedRuleScopeText, useSpeedRuleValueText, type PickedProduct } from './speed-rule-parts';
+import { SpeedRuleGuidanceCard, SpeedRuleProductField, SpeedRuleScopeText, useSpeedRuleValueText, type PickedProduct } from './speed-rule-parts';
 import { SpeedRuleResolverPanel } from './speed-rule-resolver-panel';
 
 type Editor = { mode: 'create' | 'bulk' } | { mode: 'edit'; rule: SpeedRuleView };
@@ -34,6 +34,9 @@ const toInput = (rule: SpeedRuleView, isActive: boolean): SpeedRuleCreateInput =
   speedExtraAmount: rule.speedExtraAmount,
   priceBasis: rule.priceBasis,
   turnaroundHhSpeed: rule.turnaroundHhSpeed,
+  turnaroundUnit: rule.turnaroundUnit,
+  turnaroundDaysSpeed: rule.turnaroundDaysSpeed,
+  cutoffTimeSpeed: rule.cutoffTimeSpeed,
   name: rule.name,
   name2: rule.name2,
   effectiveFrom: rule.effectiveFrom,
@@ -176,6 +179,8 @@ export function SpeedPricingScreen() {
           </ol>
         </CmxCardContent>
       </CmxCard>
+
+      <SpeedRuleGuidanceCard speedLabel={speedLabel} />
 
       <CmxCard>
         <CmxCardContent className="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-5">
