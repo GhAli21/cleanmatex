@@ -69,6 +69,7 @@ export function factToLine(fact: OrderFinFactInput, sign: OrderFinLine['sign']):
     state: fact.state,
     countsInTotal: fact.state === 'normal' && unit === 'money' && role === 'additive',
     ...(Object.keys(meta).length ? { meta } : {}),
+    ...(fact.taxParts?.length ? { taxParts: fact.taxParts } : {}),
   };
 }
 

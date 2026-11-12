@@ -11,8 +11,8 @@ Plan: [PLAN.md](PLAN.md) (APPROVED 2026-11-07). Migration numbers are not reserv
 | S3 — loaders, services, APIs | **Done** 2026-11-07 (owner QA after S4 UI) | see "S3 — what it does" |
 | S4 — UI, i18n, access, nav | **Done** 2026-11-08 (owner QA: [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md)) | see "S4 — what it does" |
 | S5 — HQ seeders, onboarding, mobile | **Done** 2026-11-09 (0720 applied by owner) | see "S5 — what it does" |
-| S6 — legacy retirement migration | **Code done; migration `0723_retire_category_express_hours.sql` written, waiting for owner to apply** | see "S6 — what it does" |
-| S7 — docs | Not started | |
+| S6 — legacy retirement migration | **Done** 2026-11-10 (applied as `0721_retire_category_express_hours`) | see "S6 — what it does" |
+| S7 — docs | **Done** 2026-11-10 | README, developer_guide, user_guide (EN/AR), QA_TEST_GUIDE §9–12, CHANGELOG |
 
 ## 0707 — what it does
 
@@ -99,7 +99,7 @@ Plan: [PLAN.md](PLAN.md) (APPROVED 2026-11-07). Migration numbers are not reserv
 
 - Code no longer reads `sys_service_category_cd.turnaround_hh_express` in either repo. A speed rule with no hours now falls back to the category's standard hours.
 - The EXPRESS exemption is gone: with no rule, EXPRESS is `SPEED_NOT_OFFERED` and not listed.
-- **0723** moves the legacy hours into category-scoped EXPRESS rules with a 0 premium (no price change), then drops the column. Skips organizations with an active all-products EXPRESS rule.
+- **0721** (written as 0723, renamed to 0721 before applying) moves the legacy hours into category-scoped EXPRESS rules with a 0 premium (no price change), then drops the column. Skips organizations with an active all-products EXPRESS rule.
 - **To know:** a 0-premium category rule outranks an all-products EXPRESS rule added later; change or remove it on Speed Pricing.
 
 **Checks:** jest commercial, services/commercial, lookups 210 ✓ · `tsc`: only the tax session's in-progress `tax-explain.service.ts` and the older pos-session test.
@@ -119,7 +119,9 @@ Plan: [PLAN.md](PLAN.md) (APPROVED 2026-11-07). Migration numbers are not reserv
 - 2026-11-07 — 0707 written → applied by owner.
 - 2026-11-07 — 0711 written (0710 taken by a parallel session) → applied by owner; Prisma + types regenerated both repos.
 - 2026-11-07 — S2 pure engine + HQ code-table field done; checks green.
+- 2026-11-10 — 0721 verified on remote (column gone; 21 category Express rules in 3 organizations; every organization has an active Express rule; Prisma already pulled). S6 + S7 done. Tenant full `eslint . --quiet` 0 and `npm run build` ✓. Program complete; owner QA + commit left.
 - 2026-11-10 — HQ tenant-workspace Calendar view added (S5 gap closed): HQ web tsc/eslint/check:i18n ✓, HQ API tsc clean outside older specs, tenants jest 17 ✓.
+- 2026-11-12 — Closing checks: HQ API `tenants.service.get-calendar.spec.ts` added (tenant filter on every org_* read, year bounds, not-found, no-country, sub-read failure) — 4 ✓; HQ web `npm run build` ✓. No engineering left; owner F4 (commit) + F5 (QA) close the plan.
 - 2026-11-09 — S5 done after 0720 applied; S6 code done, 0723 written (0721 taken by a parallel session); STOP for owner to apply.
 - 2026-11-08 — 0720 written (0719 taken by a parallel session; seeder unit fix + NEXT_DAY/EXPRESS/URGENT samples); STOP for owner to apply.
 - 2026-11-08 — S4 done: Business Calendar, speed menu previews, Speed Pricing fields, General links to the calendar; checks in the S4 section.
@@ -133,4 +135,5 @@ Plan: [PLAN.md](PLAN.md) (APPROVED 2026-11-07). Migration numbers are not reserv
 
 ## Next
 
-After 0723 is applied: Prisma pull + types, then S7 docs.
+Engineering done. Owner: QA ([QA_TEST_GUIDE.md](QA_TEST_GUIDE.md)), F7 decision, commit ([followups_by_user.md](followups_by_user.md)).
+- 2026-11-12 — Fix (found by Tax M4b test run): a retail item in an Express order threw `SPEED_NOT_OFFERED` (an all-products rule never reaches a retail item). `requireOffered` now lets a retail item keep its normal price. The 2 loader tests that still expected the old EXPRESS exemption were updated (EXPRESS with no rule is refused). QA: Tax QA guide #31f.

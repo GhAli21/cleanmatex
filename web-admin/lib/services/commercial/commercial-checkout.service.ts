@@ -452,7 +452,7 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
   };
 
   const selection = params.taxProfileIds ?? [];
-  const inEffect = facts.taxProfiles.filter((p) => p.isDefault && !p.isTenantRateFallback && (!p.appliesTo || p.appliesTo.length === 0));
+  const inEffect = facts.taxProfiles.filter((p) => p.isDefault && !p.isTenantRateFallback);
   // The cashier's order when selected; otherwise by tax type, as the panel always listed them.
   const ordered = selection.length > 0
     ? selection.map((id) => inEffect.find((p) => p.id === id)).filter((p): p is (typeof inEffect)[number] => Boolean(p))

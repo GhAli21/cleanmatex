@@ -17,8 +17,7 @@ const OMR = { decimalPlaces: 3, mode: 'HALF_UP' as const };
 const START = new Date('2026-10-24T08:00:00Z');
 
 const vat5 = (roundingLevel: 'LINE' | 'DOCUMENT' = 'DOCUMENT'): TaxProfileInput => ({
-  id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true,
-  appliesTo: null, roundingLevel, rounding: OMR,
+  id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true, roundingLevel, rounding: OMR,
 });
 const standard = (roundingLevel: 'LINE' | 'DOCUMENT' = 'DOCUMENT'): CommercialTaxInput => ({
   taxCategoryCode: 'STANDARD', exemptReason: null, profiles: [vat5(roundingLevel)],

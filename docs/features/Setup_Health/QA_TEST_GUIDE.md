@@ -30,6 +30,7 @@ Owner-runnable checks. Plan: [PLAN.md](PLAN.md) · Status: [STATUS.md](STATUS.md
 | H8 | HQ sidebar › Tenant Organizations — `/tenants` | Demo organization `11111111-…` (has 1 warning on remote) | Look at the **Setup** column; hover it; click it | Amber "1 warning"; organizations with no blocker or warning show green "OK"; hover shows the last check date; click opens that organization's Setup Health. In Arabic: "تحذير واحد", "سليم", mirrored |
 | H9 | same as H8 | same | **Setup Health** filter › *Blockers or warnings*, then *Has blockers*, then **Clear filters** | First: only organizations with a warning or blocker, with the total matching; the URL has `setupHealth=needs_attention`. Second: empty until Tax M8 adds blocker checks. Clear: full list |
 | H10 | Organization › Setup Health, then `/tenants` | An organization with the business-hours warning | Add business hours in the tenant app, open its HQ Setup Health page, go back to the list | The warning is gone from the page and the list shows OK (the list updates only after that page is opened, or after the 02:15 UTC job) |
+| H11 | `/tenants` › an Omani organization › Setup Health (needs 0724 applied) | "Public holiday dates are not confirmed yet" (AR "مواعيد العطل الرسمية غير مؤكدة بعد") shows Fail | Click **Fix** on that row, mark the estimated dates confirmed (clear *Estimated*) in the Public holidays list, go back and click **Recheck** | Fix opens `/products-items-config/public-holidays`; after recheck the row is OK |
 
 ## Automated checks (already run)
 

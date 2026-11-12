@@ -8,6 +8,7 @@ import {
   SV_FUNDING_TENDER_STATUS,
 } from '@/lib/constants/order-financial';
 import { GIFT_CARD_STATUS, GIFT_CARD_TXN_TYPE } from '@/lib/constants/gift-card';
+import { reversePrepaidTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 
 /** Prisma interactive-transaction client shared with voucher reverse. */
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -226,6 +227,10 @@ async function unwindGiftCardSale(
       fin_voucher_trx_line_id: params.reversalLineId,
     },
   });
+  // T6: an unused single-purpose card's sale tax goes back with the sale.
+  await reversePrepaidTaxTx(tx, {
+    tenantOrgId: params.tenantOrgId, prepayment: { giftCardId: card.id }, reversalVoucherId: params.reversalVoucherId, userId: params.userId, at: new Date(),
+  });
 }
 
 async function unwindAdvanceReceipt(
@@ -297,6 +302,10 @@ async function unwindAdvanceReceipt(
       fin_voucher_trx_line_id: params.reversalLineId,
       rec_status: 1,
     },
+  });
+  // T6: the receipt's advance tax (what is still unspent on it) goes back with the money.
+  await reversePrepaidTaxTx(tx, {
+    tenantOrgId: params.tenantOrgId, prepayment: { voucherLineId: params.originalLineId }, reversalVoucherId: params.reversalVoucherId, userId: params.userId, at: new Date(),
   });
 }
 

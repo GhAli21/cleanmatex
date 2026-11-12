@@ -117,3 +117,28 @@ export const taxExplainSchema = z.object({
   service_category_code: criterion,
   date: isoDay,
 })
+
+/** A tax period's dates; the database refuses overlaps (TAX_PERIOD_OVERLAP). */
+export const taxPeriodCreateSchema = z
+  .object({ periodStart: isoDay, periodEnd: isoDay })
+  .refine((v) => v.periodEnd >= v.periodStart, { message: 'TAX_PERIOD_DATES_INVALID' })
+
+/** Close needs nothing; reopen needs a reason (kept on the period). */
+export const taxPeriodActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('close') }),
+  z.object({ action: z.literal('reopen'), reason: z.string().trim().min(3).max(500) }),
+])
+
+/** VAT return for a date range (a period's dates, or any range). */
+export const taxReturnQuerySchema = z
+  .object({ from: isoDay, to: isoDay })
+  .refine((v) => v.to >= v.from, { message: 'TAX_PERIOD_DATES_INVALID' })
+
+/** Lines behind one return box. */
+export const taxReturnLinesQuerySchema = z.object({
+  from: isoDay,
+  to: isoDay,
+  box: z.string().trim().min(1).max(10),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(CMX_DEFAULT_PAGE_SIZE),
+})

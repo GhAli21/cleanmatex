@@ -8593,13 +8593,13 @@ isOneToOne: false
                   ]
                 },"org_product_data_mst": {
                   Row: {
-                    "created_at": string | null,"created_by": string | null,"created_info": string | null,"default_packing_pref": string | null,"default_sell_price": number | null,"extra_days": number | null,"hint_text": string | null,"id": string,"id_sku": string | null,"is_active": boolean,"is_retail_item": boolean | null,"item_type_code": string | null,"last_purchase_cost": number | null,"max_stock_level": number | null,"min_quantity": number | null,"min_sell_price": number | null,"min_stock_level": number | null,"pieces_per_product": number | null,"price_type": string | null,"product_code": string,"product_color1": string | null,"product_color2": string | null,"product_color3": string | null,"product_cost": number | null,"product_group1": string | null,"product_group2": string | null,"product_group3": string | null,"product_icon": string | null,"product_image": string | null,"product_name": string | null,"product_name2": string | null,"product_order": number | null,"product_type": number | null,"product_unit": string | null,"qty_on_hand": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"reorder_point": number | null,"service_category_code": string,"storage_location": string | null,"tags": Json | null,"tax_category_code": string,"tax_exempt_reason": string | null,"tax_item_class_code": string | null,"tax_supply_code": string | null,"tenant_org_id": string,"turnaround_hh": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                    "created_at": string | null,"created_by": string | null,"created_info": string | null,"default_packing_pref": string | null,"default_sell_price": number | null,"extra_days": number | null,"hint_text": string | null,"id": string,"id_sku": string | null,"is_active": boolean,"is_retail_item": boolean | null,"item_type_code": string | null,"last_purchase_cost": number | null,"max_stock_level": number | null,"min_quantity": number | null,"min_sell_price": number | null,"min_stock_level": number | null,"pieces_per_product": number | null,"price_type": string | null,"product_code": string,"product_color1": string | null,"product_color2": string | null,"product_color3": string | null,"product_cost": number | null,"product_group1": string | null,"product_group2": string | null,"product_group3": string | null,"product_icon": string | null,"product_image": string | null,"product_name": string | null,"product_name2": string | null,"product_order": number | null,"product_type": number | null,"product_unit": string | null,"qty_on_hand": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"reorder_point": number | null,"service_category_code": string,"storage_location": string | null,"tags": Json | null,"tax_category_code": string,"tax_exempt_reason": string | null,"tax_item_class_code": string | null,"tenant_org_id": string,"turnaround_hh": number | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code": string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code": string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_item_class_code"?: string | null,"tax_supply_code"?: string | null,"tenant_org_id": string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code": string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code": string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_item_class_code"?: string | null,"tenant_org_id": string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code"?: string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code"?: string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_item_class_code"?: string | null,"tax_supply_code"?: string | null,"tenant_org_id"?: string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                    "created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"default_packing_pref"?: string | null,"default_sell_price"?: number | null,"extra_days"?: number | null,"hint_text"?: string | null,"id"?: string,"id_sku"?: string | null,"is_active"?: boolean,"is_retail_item"?: boolean | null,"item_type_code"?: string | null,"last_purchase_cost"?: number | null,"max_stock_level"?: number | null,"min_quantity"?: number | null,"min_sell_price"?: number | null,"min_stock_level"?: number | null,"pieces_per_product"?: number | null,"price_type"?: string | null,"product_code"?: string,"product_color1"?: string | null,"product_color2"?: string | null,"product_color3"?: string | null,"product_cost"?: number | null,"product_group1"?: string | null,"product_group2"?: string | null,"product_group3"?: string | null,"product_icon"?: string | null,"product_image"?: string | null,"product_name"?: string | null,"product_name2"?: string | null,"product_order"?: number | null,"product_type"?: number | null,"product_unit"?: string | null,"qty_on_hand"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"reorder_point"?: number | null,"service_category_code"?: string,"storage_location"?: string | null,"tags"?: Json | null,"tax_category_code"?: string,"tax_exempt_reason"?: string | null,"tax_item_class_code"?: string | null,"tenant_org_id"?: string,"turnaround_hh"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -9577,13 +9577,13 @@ isOneToOne: false
                   ]
                 },"org_tax_profiles_cf": {
                   Row: {
-                    "amount_kind": string,"applies_to": (string)[] | null,"calc_level": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"display_order": number,"effective_from": string,"effective_to": string | null,"exempt_reason_code": string | null,"fixed_amount": number | null,"id": string,"is_active": boolean,"is_compound": boolean,"is_default": boolean,"is_reverse_charge": boolean,"is_tenant_modified": boolean,"kit_version_id": string | null,"name": string,"name2": string | null,"output_decimal_places": number | null,"priority": number,"rate": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recoverable_pct": number,"rounding_increment_minor": number | null,"rounding_level": string,"rounding_mode": string,"source": string,"tax_category_code": string,"tax_code": string,"tax_flow_code": string,"tax_type": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"version_no": number
+                    "amount_kind": string,"calc_level": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"display_order": number,"effective_from": string,"effective_to": string | null,"exempt_reason_code": string | null,"fixed_amount": number | null,"id": string,"is_active": boolean,"is_compound": boolean,"is_reverse_charge": boolean,"is_tenant_modified": boolean,"kit_version_id": string | null,"name": string,"name2": string | null,"output_decimal_places": number | null,"priority": number,"rate": number | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"recoverable_pct": number,"rounding_increment_minor": number | null,"rounding_level": string,"rounding_mode": string,"source": string,"tax_category_code": string,"tax_code": string,"tax_flow_code": string,"tax_type": string,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"version_no": number
                   }
                   Insert: {
-                    "amount_kind"?: string,"applies_to"?: (string)[] | null,"calc_level"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"effective_from": string,"effective_to"?: string | null,"exempt_reason_code"?: string | null,"fixed_amount"?: number | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_default"?: boolean,"is_reverse_charge"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name": string,"name2"?: string | null,"output_decimal_places"?: number | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"source"?: string,"tax_category_code": string,"tax_code": string,"tax_flow_code"?: string,"tax_type": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number
+                    "amount_kind"?: string,"calc_level"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"effective_from": string,"effective_to"?: string | null,"exempt_reason_code"?: string | null,"fixed_amount"?: number | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_reverse_charge"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name": string,"name2"?: string | null,"output_decimal_places"?: number | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"source"?: string,"tax_category_code": string,"tax_code": string,"tax_flow_code"?: string,"tax_type": string,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number
                   }
                   Update: {
-                    "amount_kind"?: string,"applies_to"?: (string)[] | null,"calc_level"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"effective_from"?: string,"effective_to"?: string | null,"exempt_reason_code"?: string | null,"fixed_amount"?: number | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_default"?: boolean,"is_reverse_charge"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name"?: string,"name2"?: string | null,"output_decimal_places"?: number | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"source"?: string,"tax_category_code"?: string,"tax_code"?: string,"tax_flow_code"?: string,"tax_type"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number
+                    "amount_kind"?: string,"calc_level"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"display_order"?: number,"effective_from"?: string,"effective_to"?: string | null,"exempt_reason_code"?: string | null,"fixed_amount"?: number | null,"id"?: string,"is_active"?: boolean,"is_compound"?: boolean,"is_reverse_charge"?: boolean,"is_tenant_modified"?: boolean,"kit_version_id"?: string | null,"name"?: string,"name2"?: string | null,"output_decimal_places"?: number | null,"priority"?: number,"rate"?: number | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"recoverable_pct"?: number,"rounding_increment_minor"?: number | null,"rounding_level"?: string,"rounding_mode"?: string,"source"?: string,"tax_category_code"?: string,"tax_code"?: string,"tax_flow_code"?: string,"tax_type"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"version_no"?: number
                   }
                   Relationships: [
                     {
@@ -14185,6 +14185,56 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"sys_tax_return_box_cd": {
+                  Row: {
+                    "box_code": string,"box_kind": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"is_verified": boolean,"kit_code": string,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"section_code": string,"shows_amount": boolean,"shows_tax": boolean,"source_url": string | null,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "box_code": string,"box_kind": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order": number,"is_active"?: boolean,"is_verified"?: boolean,"kit_code": string,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"section_code": string,"shows_amount": boolean,"shows_tax": boolean,"source_url"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "box_code"?: string,"box_kind"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"display_order"?: number,"is_active"?: boolean,"is_verified"?: boolean,"kit_code"?: string,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"section_code"?: string,"shows_amount"?: boolean,"shows_tax"?: boolean,"source_url"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_strb_kit"
+      columns: ["kit_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_kits_mst"
+      referencedColumns: ["kit_code"]
+    }
+                  ]
+                },"sys_tax_return_box_map_dtl": {
+                  Row: {
+                    "box_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"emirate_code": string | null,"is_active": boolean,"is_reverse_charge": boolean | null,"kit_code": string,"map_no": number,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"sign": number,"source_box_code": string | null,"source_kind": string,"tax_category_code": string | null,"tax_flow_code": string | null,"tax_measure": string | null,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "box_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"emirate_code"?: string | null,"is_active"?: boolean,"is_reverse_charge"?: boolean | null,"kit_code": string,"map_no": number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sign"?: number,"source_box_code"?: string | null,"source_kind": string,"tax_category_code"?: string | null,"tax_flow_code"?: string | null,"tax_measure"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "box_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"emirate_code"?: string | null,"is_active"?: boolean,"is_reverse_charge"?: boolean | null,"kit_code"?: string,"map_no"?: number,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sign"?: number,"source_box_code"?: string | null,"source_kind"?: string,"tax_category_code"?: string | null,"tax_flow_code"?: string | null,"tax_measure"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_strbm_box"
+      columns: ["kit_code","box_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_return_box_cd"
+      referencedColumns: ["kit_code","box_code"]
+    },{
+      foreignKeyName: "fk_strbm_category"
+      columns: ["tax_category_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_category_cd"
+      referencedColumns: ["code"]
+    },{
+      foreignKeyName: "fk_strbm_src_box"
+      columns: ["kit_code","source_box_code"]
+isOneToOne: false
+      referencedRelation: "sys_tax_return_box_cd"
+      referencedColumns: ["kit_code","box_code"]
+    }
+                  ]
                 },"sys_tax_segment_cd": {
                   Row: {
                     "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"display_order": number,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"segment_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
@@ -15702,6 +15752,27 @@ isOneToOne: false
 "fn_shc_speed_no_rules":
 { Args: { "p_branch": string,"p_tenant": string }; Returns: Json
                            },
+"fn_shc_tax_doc_type_no_rule":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_tax_exemption_expired":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_tax_kit_fact_unverified":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_tax_kit_update_pending":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_tax_products_no_class":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_tax_reg_no_missing":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_tax_setup_not_confirmed":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
 "fn_stng_compute_cache_hash":
 { Args: { "p_branch_id"?: string,"p_tenant_id": string,"p_user_id"?: string }; Returns: string
                            },
@@ -15742,6 +15813,24 @@ isOneToOne: false
                            },
 "fn_tax_kit_apply":
 { Args: { "p_activate"?: boolean,"p_actor": string,"p_note"?: string,"p_pkg_code": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_tax_kit_update":
+{ Args: { "p_actor": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_tax_kit_update_all":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"fn_tax_kit_version_check":
+{ Args: { "p_version_id": string }; Returns: Json
+                           },
+"fn_tax_kit_version_clone":
+{ Args: { "p_actor": string,"p_version_id": string }; Returns: string
+                           },
+"fn_tax_kit_version_discard":
+{ Args: { "p_version_id": string }; Returns: undefined
+                           },
+"fn_tax_kit_version_publish":
+{ Args: { "p_actor": string,"p_version_id": string }; Returns: Json
                            },
 "fn_tax_profile_is_used":
 { Args: { "p_profile_id": string,"p_tenant": string }; Returns: boolean

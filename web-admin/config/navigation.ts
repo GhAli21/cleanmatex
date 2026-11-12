@@ -676,6 +676,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'accountant', 'finance_manager'],
         permissions: ['cash_drawer:view_reports'],
       },
+      {
+        key: 'reports_tax_return',
+        label: 'VAT Return',
+        label2: 'الإقرار الضريبي',
+        path: '/dashboard/reports/tax-return',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'accountant', 'finance_manager'],
+        permissions: ['tax:view_reports'],
+      },
     ],
   },
   {

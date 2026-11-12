@@ -7,7 +7,7 @@ import { buildOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
 import type { CommercialFacts, ResolvedLinePrice } from '@/lib/services/commercial/commercial-context.loader';
 
 const vat = {
-  id: 'vat-1', taxCode: 'VAT_STD', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: false, appliesTo: null,
+  id: 'vat-1', taxCode: 'VAT_STD', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: false,
   roundingLevel: 'LINE' as const, rounding: { decimalPlaces: 3, mode: 'HALF_UP' as const },
 };
 const standardTax = { taxCategoryCode: 'STANDARD', exemptReason: null, profiles: [vat] };

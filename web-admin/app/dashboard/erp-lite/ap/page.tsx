@@ -229,7 +229,7 @@ export default async function ErpLiteApPage({
                 />
                 <CmxInput name="payment_date" type="date" label={t('forms.payment.fields.paymentDate')} required />
                 <CmxInput name="currency_code" label={t('forms.payment.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
-                <CmxInput name="amount_total" type="number" step="0.0001" min="0" label={t('forms.payment.fields.amount')} required />
+                <CmxInput name="amount_total" type="number" step="0.0001" min="0" label={t('forms.payment.fields.amount')} helpText={t('forms.payment.fields.amountHelp')} required />
                 <CmxSelect
                   name="settlement_code"
                   label={t('forms.payment.fields.settlement')}
@@ -323,6 +323,14 @@ export default async function ErpLiteApPage({
                     <div className="mt-3 text-sm font-semibold">
                       {formatErpLiteMoney(item.amount_total, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })} · {t(`settlement.${item.settlement_code.toLowerCase()}`)}
                     </div>
+                    {item.wht_amount > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {t('lists.payments.withheld', {
+                          withheld: formatErpLiteMoney(item.wht_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode }),
+                          paid: formatErpLiteMoney(item.amount_total - item.wht_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode }),
+                        })}
+                      </div>
+                    )}
                   </div>
                 ))
               )}

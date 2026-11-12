@@ -48,11 +48,11 @@ function mockDb() {
     org_tenants_mst: [{ commercial_level: 'ITEM', disc_alloc_mode: 'DOCUMENT_LEVEL', disc_alloc_basis: 'PROPORTIONAL_NET', timezone: 'Asia/Muscat' }],
     org_product_data_mst: [{
       id: SHIRT, service_category_code: 'LAUNDRY', price_type: 'PER_PC', default_sell_price: '2.000', min_sell_price: null,
-      turnaround_hh: '24', tax_category_code: 'STANDARD', tax_supply_code: null, tax_exempt_reason: null,
+      turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null,
     }],
     sys_service_speed_cd: [{ code: 'STANDARD' }, { code: 'EXPRESS' }],
     org_tax_profiles_cf: [{
-      id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false, is_default: true, applies_to: [],
+      id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false,
       rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null, ...taxCodeColumns('VAT_STD'),
     }],
     ...activeTaxSetup('VAT_STD'),

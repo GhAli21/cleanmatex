@@ -18,5 +18,14 @@
   "line_net": "بعد الخصومات",
   "cutoff_time": "آخر وقت للاستلام",
   "ready_time": "وقت الجاهزية",
-  "working_day": "يوم عمل"
+  "working_day": "يوم عمل",
+  "tax_return": "الإقرار الضريبي",
+  "tax_period": "الفترة الضريبية",
+  "withholding_tax": "ضريبة الاستقطاع",
+  "tax_code": "رمز الضريبة",
+  "tax_rule": "قاعدة ضريبية",
+  "tax_kit": "الإعداد الضريبي الجاهز",
+  "item_tax_class": "الفئة الضريبية للصنف",
+  "party_tax_class": "الفئة الضريبية للطرف",
+  "reverse_charge": "الاحتساب العكسي"
 }

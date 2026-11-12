@@ -1,50 +1,17 @@
 'use server';
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
-import { legacyTaxProfileIdentity } from '@/lib/services/tax/legacy-tax-profile';
-import { taxProfileRoundingColumns, taxProfileRoundingSchema, type TaxProfileRoundingInput } from '@/lib/validations/tax-profile-rounding-schema';
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { TAX_PERMISSIONS } from '@/lib/constants/permissions/tax-perm';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
 
 const REVALIDATE_PATH = '/dashboard/settings/tax';
 
-// ---------------------------------------------------------------------------
-// Tax Profile types
-// ---------------------------------------------------------------------------
-
-export interface TaxProfile {
-  id: string;
-  tenant_org_id: string;
-  name: string;
-  name2: string | null;
-  tax_type: string;
-  rate: number;
-  is_compound: boolean;
-  applies_to: string[];
-  rounding_level: string;
-  rounding_mode: string | null;
-  output_decimal_places: number | null;
-  rounding_increment_minor: number | null;
-  effective_from: Date | null;
-  effective_to: Date | null;
-  is_default: boolean;
-  is_active: boolean;
-  rec_status: number;
-  created_at: Date;
-}
-
-export interface CreateTaxProfileInput extends TaxProfileRoundingInput {
-  name: string;
-  name2?: string;
-  taxType: 'VAT' | 'GST' | 'CUSTOM';
-  rate: number;
-  appliesTo?: string;
-  isDefault?: boolean;
-  effectiveFrom?: string;
-  effectiveTo?: string;
-}
+/** An exemption changes what orders are taxed, so writes need the tax setup permission. */
+const canManage = () => hasPermissionServer(TAX_PERMISSIONS.MANAGE_CONFIG);
 
 // ---------------------------------------------------------------------------
 // Tax Exemption types
@@ -72,18 +39,6 @@ export interface CreateTaxExemptionInput {
   serviceType?: string;
 }
 
-export interface UpdateTaxProfileInput extends TaxProfileRoundingInput {
-  name?: string;
-  name2?: string;
-  taxType?: 'VAT' | 'GST' | 'CUSTOM';
-  rate?: number;
-  isCompound?: boolean;
-  appliesTo?: string;
-  effectiveFrom?: string;
-  effectiveTo?: string | null;
-  isDefault?: boolean;
-}
-
 export interface UpdateTaxExemptionInput {
   exemptionType?: string;
   certificateNo?: string;
@@ -95,174 +50,6 @@ export interface UpdateTaxExemptionInput {
 // ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
-
-/** Fetch all tax profiles for the tenant (active, inactive, and soft-deleted) */
-export async function getTaxProfilesAction(): Promise<{
-  success: boolean;
-  data?: TaxProfile[];
-  error?: string;
-}> {
-  try {
-    const { tenantId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const profiles = await prisma.org_tax_profiles_cf.findMany({
-        where: { tenant_org_id: tenantId },
-        orderBy: { created_at: 'asc' },
-      });
-      return { success: true, data: profiles as unknown as TaxProfile[] };
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch tax profiles',
-    };
-  }
-}
-
-/** Create a new tax profile for the tenant */
-export async function createTaxProfileAction(input: CreateTaxProfileInput): Promise<{
-  success: boolean;
-  data?: TaxProfile;
-  error?: string;
-}> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    // A server action is a callable endpoint: validate the rounding fields at the boundary.
-    const rounding = taxProfileRoundingSchema.safeParse(input);
-    if (!rounding.success) return { success: false, error: 'Invalid rounding settings' };
-    return withTenantContext(tenantId, async () => {
-      const appliesToArr = input.appliesTo
-        ? input.appliesTo.split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
-
-      const profile = await prisma.org_tax_profiles_cf.create({
-        data: {
-          tenant_org_id:  tenantId,
-          ...legacyTaxProfileIdentity(input.rate),
-          name:           input.name,
-          name2:          input.name2 ?? null,
-          tax_type:       input.taxType,
-          rate:           input.rate,
-          is_compound:    false,
-          applies_to:     appliesToArr,
-          effective_from: input.effectiveFrom ? new Date(input.effectiveFrom) : new Date(),
-          effective_to:   input.effectiveTo ? new Date(input.effectiveTo) : null,
-          is_default:     input.isDefault ?? false,
-          ...taxProfileRoundingColumns(rounding.data),
-          is_active:      true,
-          rec_status:     1,
-          created_by:     userId,
-          created_at:     new Date(),
-        },
-      });
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true, data: profile as unknown as TaxProfile };
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create tax profile',
-    };
-  }
-}
-
-/** Set a tax profile as the default for the tenant */
-export async function setDefaultTaxProfileAction(id: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      // Clear existing default
-      await prisma.org_tax_profiles_cf.updateMany({
-        where: { tenant_org_id: tenantId, is_default: true },
-        data: { is_default: false, updated_by: userId, updated_at: new Date() },
-      });
-      // Set new default
-      await prisma.org_tax_profiles_cf.update({
-        where: { id, tenant_org_id: tenantId },
-        data: { is_default: true, updated_by: userId, updated_at: new Date() },
-      });
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true };
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to set default tax profile',
-    };
-  }
-}
-
-/** Toggle a tax profile to inactive (is_active=false, rec_status unchanged) */
-export async function deactivateTaxProfileAction(id: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      await prisma.org_tax_profiles_cf.update({
-        where: { id, tenant_org_id: tenantId },
-        data: { is_active: false, updated_by: userId, updated_at: new Date() },
-      });
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true };
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to deactivate tax profile',
-    };
-  }
-}
-
-/** Toggle a tax profile back to active */
-export async function activateTaxProfileAction(id: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      await prisma.org_tax_profiles_cf.update({
-        where: { id, tenant_org_id: tenantId },
-        data: { is_active: true, rec_status: 1, updated_by: userId, updated_at: new Date() },
-      });
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true };
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to activate tax profile',
-    };
-  }
-}
-
-/** Soft-delete a tax profile (is_active=false, rec_status=0 — shown in red, no further edits) */
-export async function softDeleteTaxProfileAction(id: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      await prisma.org_tax_profiles_cf.update({
-        where: { id, tenant_org_id: tenantId },
-        data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
-      });
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true };
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete tax profile',
-    };
-  }
-}
 
 /** Fetch all active tax exemptions for the tenant */
 export async function getTaxExemptionsAction(): Promise<{
@@ -287,56 +74,13 @@ export async function getTaxExemptionsAction(): Promise<{
   }
 }
 
-/** Update an existing tax profile */
-export async function updateTaxProfileAction(
-  id: string,
-  input: UpdateTaxProfileInput
-): Promise<{ success: boolean; data?: TaxProfile; error?: string }> {
-  try {
-    const { tenantId, userId } = await getAuthContext();
-    const rounding = taxProfileRoundingSchema.safeParse(input);
-    if (!rounding.success) return { success: false, error: 'Invalid rounding settings' };
-    return withTenantContext(tenantId, async () => {
-      const existing = await prisma.org_tax_profiles_cf.findFirst({
-        where: { id, tenant_org_id: tenantId, rec_status: 1 },
-      });
-      if (!existing) return { success: false, error: 'Tax profile not found' };
-
-      const appliesToArr =
-        input.appliesTo !== undefined
-          ? input.appliesTo.split(',').map((s) => s.trim()).filter(Boolean)
-          : undefined;
-
-      const profile = await prisma.org_tax_profiles_cf.update({
-        where: { id, tenant_org_id: tenantId },
-        data: {
-          ...(input.name !== undefined && { name: input.name }),
-          ...(input.name2 !== undefined && { name2: input.name2 || null }),
-          ...(input.taxType !== undefined && { tax_type: input.taxType }),
-          ...(input.rate !== undefined && { rate: input.rate }),
-          ...(input.isCompound !== undefined && { is_compound: input.isCompound }),
-          ...(appliesToArr !== undefined && { applies_to: appliesToArr }),
-          ...(input.effectiveFrom !== undefined && { effective_from: new Date(input.effectiveFrom) }),
-          ...(input.effectiveTo !== undefined && { effective_to: input.effectiveTo ? new Date(input.effectiveTo) : null }),
-          ...taxProfileRoundingColumns(rounding.data),
-          updated_by: userId,
-          updated_at: new Date(),
-        },
-      });
-      revalidatePath(REVALIDATE_PATH);
-      return { success: true, data: profile as unknown as TaxProfile };
-    });
-  } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to update tax profile' };
-  }
-}
-
 /** Update an existing tax exemption */
 export async function updateTaxExemptionAction(
   id: string,
   input: UpdateTaxExemptionInput
 ): Promise<{ success: boolean; data?: TaxExemption; error?: string }> {
   try {
+    if (!(await canManage())) return { success: false, error: 'PERMISSION_DENIED' };
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_tax_exemptions_cf.findFirst({
@@ -367,6 +111,7 @@ export async function updateTaxExemptionAction(
 /** Soft-deactivate a tax exemption */
 export async function deactivateTaxExemptionAction(id: string): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!(await canManage())) return { success: false, error: 'PERMISSION_DENIED' };
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       await prisma.org_tax_exemptions_cf.update({
@@ -388,6 +133,7 @@ export async function createTaxExemptionAction(input: CreateTaxExemptionInput): 
   error?: string;
 }> {
   try {
+    if (!(await canManage())) return { success: false, error: 'PERMISSION_DENIED' };
     const { tenantId, userId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const exemption = await prisma.org_tax_exemptions_cf.create({

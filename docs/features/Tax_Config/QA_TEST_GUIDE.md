@@ -54,6 +54,20 @@ Apply `0722` first. To see the tax record, run in the database: `select tax_code
 | 30 | **Customer app › Booking** before and after confirming | VAT shown is 0 before, the kit rate after |
 | 31 | Arabic | New messages and the Item tax class field are in Arabic |
 
+### T4 leftovers — old engine removed (M4b) and tax by code per line
+
+Apply `0727` first, then `npm run prisma:pull` and regenerate types in both repos.
+
+| # | Do | Expect |
+|---|---|---|
+| 31a | Open an order (organization `11111111…`, confirmed) › order detail › money panel › **Items**, expanded | Under each item: "Tax VAT_STD 5% 0.250" and "Tax … 2% 0.100" — one entry per code, matching the line's tax |
+| 31b | Edit that order, change an item's quantity, save, open the money panel again | Each item shows its new tax by code; no doubled entries |
+| 31c | Customer tracking link for that order | The money panel shows no tax-by-code entries (staff only) |
+| 31d | **Settings › Tax Setup** | Tabs: Overview, (Advanced: Tax codes, Tax rules, Item classes), Tax periods, Exemptions. No old tax profile editor |
+| 31e | As a user **without** `tax:manage_config`, try to add or change an exemption | Refused (permission denied); nothing saved |
+| 31f | New order with **Express** speed, one service item and one retail item (e.g. hanger) | Order is accepted; the retail item keeps its normal price, the service item gets the Express price |
+| 31g | **HQ › organization › Tax kit › Apply** (or Update kit now) after `0727` | Works as before; no error about `is_default` / `applies_to` |
+
 ## T5 — Purchases taxed by rules (organization app, ERP-Lite)
 
 Needs ERP-Lite expenses, PO and AP turned on, and a confirmed tax setup. Tax record: `select tax_code, tax_flow_code, line_status, taxable_amount, tax_amount, recoverable_amount from org_tax_lines_tr where source_doc_id = '<document id>';`
@@ -71,3 +85,64 @@ Needs ERP-Lite expenses, PO and AP turned on, and a confirmed tax setup. Tax rec
 | 40 | Expense in another currency while tax is on | Refused: must be in the organization currency |
 | 41 | Organization still waiting for confirmation: expense with tax 3 typed | Saved with 3; no tax rows |
 | 42 | Arabic | Item tax class, supplier and refusal messages in Arabic |
+
+## T6 — Advances and gift cards (organization app)
+
+Needs a confirmed tax setup with an OM/SA/AE/BH kit (they tax advances). Tax record: `select source_doc_type_code, tax_code, line_status, taxable_amount, tax_amount, reverses_tax_line_id from org_tax_lines_tr where party_id = '<customer id>' or source_doc_id in ('<card id>', '<invoice id>') order by created_at;`
+
+| # | Do | Expect |
+|---|---|---|
+| 43 | **Customers › customer › Stored value**: receive an advance of 105 by cash | One FINAL `VAT_STD` row on the receipt voucher: taxable 100, tax 5 |
+| 44 | Pay a new order of 105 from that advance, then issue its invoice | Order rows FINAL (tax 5); one reversal row on the invoice taking back 5 from the advance. Net tax 5, not 10 |
+| 45 | Issue the invoice first, then pay the order from the advance | Same rows; the reversal appears when the payment is made |
+| 46 | Pay only 52.500 from the advance | Reversal takes back 2.500; 2.500 stays on the advance |
+| 47 | Reverse the advance receipt voucher before it is used | A reversal row on the reversal voucher takes back the 5 |
+| 48 | Organization with the generic kit (no tax on advances): receive an advance | No tax rows |
+| 49 | **Marketing › Gift cards › Sell card** (`/dashboard/marketing/gift-cards`), mode **Multi-purpose**, 105 | No tax rows at sale. Paying an order with it: order taxed as usual, no reversal |
+| 50 | Sell a **Single-purpose** card of 105 | One FINAL row on the card: taxable 100, tax 5; no card code in `source_doc_no` |
+| 51 | Pay an order of 105 with that card and issue the invoice | Reversal row on the invoice takes back 5 from the card |
+| 52 | Reverse the sale of an unused single-purpose card | Its tax is taken back on the reversal voucher |
+| 53 | Arabic | The "When tax is charged" field and its help in Arabic |
+
+## T7 — VAT return, tax periods, tax postings, withholding (organization app)
+
+Needs a confirmed tax setup with a VAT kit, and ERP-Lite on for the posting checks. Postings: **ERP-Lite › Journals** or `select * from org_fin_post_log_tr where source_doc_type_code = 'TAX_LINE' order by created_at desc;`
+
+| # | Do | Expect |
+|---|---|---|
+| 54 | **Settings › Tax Setup › Tax periods** (`/dashboard/settings/tax`) as an owner: add 1–30 of this month | Period listed as Open |
+| 55 | Add a period that overlaps it | Refused: "This period overlaps another tax period" |
+| 56 | Close the period that contains today, then issue a tax invoice for an order | Refused with "This tax period is closed…" (final tax lines are dated today); reopen asks for a reason (at least 3 characters), then the invoice issues |
+| 57 | A user without `tax:manage_periods` (e.g. branch manager) | Sees the periods, no Add / Close / Reopen buttons |
+| 58 | **Reports › VAT Return** (`/dashboard/reports/tax-return`): choose the period | Boxes in form order under Sales, Purchases and Tax due; the "Box numbers to confirm" warning shows |
+| 59 | After a taxed order of 105 (5%) and a refund of it | Standard-rated sales box: amount and tax net to 0 |
+| 60 | After an expense with recoverable input tax | Purchases box shows its amount and recoverable tax; Tax due = sales tax − recoverable |
+| 61 | Click a box number | The lines behind it open, newest first, with reversals marked |
+| 62 | UAE organization with a branch that has no emirate | Its sales appear under "Tax lines not on this return" |
+| 63 | **Export CSV** | File `vat-return-<from>-<to>.csv` opens in Excel with Arabic names readable |
+| 64 | Receive an advance of 105 (T6 #43) with ERP-Lite on | A journal moves 5 from Customer Advance Liability to Output VAT |
+| 65 | Use it on an invoiced order | A journal moves 5 back from Output VAT to the advance liability |
+| 66 | Single-purpose gift card sale / use | Same two journals on Gift Card Liability |
+| 67 | **ERP-Lite › Expenses**: expense of 100 + 5 recoverable tax | Journal: Dr expense 100, Dr Input VAT 5, Cr cash 105. An expense without the tax engine still posts the full total to the expense |
+| 68 | Supplier with a withholding rule above 0%: **ERP-Lite › AP** pay 1,000 at 10% | Payment saved; list shows "Withheld 100 · paid to supplier 900"; invoice settled by 1,000; bank match accepts up to 900 |
+| 69 | Arabic | Periods tab, VAT Return and the withholding note read correctly right-to-left |
+
+## T8 — Tax health checks, kit versions, kit updates, onboarding (both apps)
+
+| # | Do | Expect |
+|---|---|---|
+| 70 | Organization app with a pending tax setup: open the dashboard | Banner "Orders are not taxed: tax setup is not confirmed" with a link to Review tax setup |
+| 71 | **Settings › Setup Health** (organization) | Tax section lists the checks; registration and document-rule checks show "not applicable" until tax is active |
+| 72 | Confirm the tax setup, then clear the registration number on the organization and a branch | "Tax registration number missing" fails for that branch |
+| 73 | Product with no tax class (or an inactive class) | "Products without a tax class" fails, link opens the catalog |
+| 74 | HQ › tenant › Setup Health | Also shows "Tax kit facts not verified" (HQ only) for OM/SA/AE/BH kits |
+| 75 | HQ › **Master System Codes › Tax Kits** (`/system-codes/tax-kits`), open OM_VAT | Version picker; on a published version: "New draft from this version" (needs `tax_packs.manage`) |
+| 76 | Create the draft; edit facts with an effective date in the past | Refused: "Choose today or a later date" |
+| 77 | In the draft change VAT_STD rate to 6, then **Check examples** | Examples fail (expected 0.500, got 0.600) |
+| 78 | Edit the two examples to the new tax (0.600 / 0.566 inclusive) and check again | All pass |
+| 79 | **Compare with previous** | Shows VAT_STD rate 5 → 6 and the changed examples |
+| 80 | **Publish** with a date of tomorrow | Published; version 1 now ends today. Try editing version 1 in the database: refused (`TAX_KIT_VERSION_LOCKED`) |
+| 81 | Next day (or HQ › tenant › Tax kit › **Update kit now**) | OM organizations move to version 2; an active setup stays active; Setup Health "Tax setup update needs review" is OK, or lists conflicts if the organization had edited VAT_STD |
+| 82 | Discard a draft | Draft gone; published versions untouched |
+| 83 | HQ: create a new organization (country OM) | Its tax setup exists as "waiting for confirmation" with the OM default package |
+| 84 | Arabic | HQ kit draft screens, dialogs and messages read correctly right-to-left |

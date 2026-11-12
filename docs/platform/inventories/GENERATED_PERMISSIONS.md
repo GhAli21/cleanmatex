@@ -3,13 +3,13 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-09T12:58:20.245Z
+Generated: 2026-11-12T15:39:23.242Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 357 |
+| api | 375 |
 | middleware | 4 |
 | screen | 103 |
 | service | 3 |
@@ -451,6 +451,7 @@ Generated: 2026-11-09T12:58:20.245Z
 | products:export | service | app/dashboard/catalog/services/page.tsx | 54 | /dashboard/catalog/services |
 | products:export | api | app/api/v1/products/export/route.ts | 28 | /api/v1/products/export |
 | products:read | api | app/api/v1/products/route.ts | 52 | /api/v1/products |
+| products:read | api | app/api/v1/products/tax-classes/route.ts | 8 | /api/v1/products/tax-classes |
 | products:read | api | app/api/v1/products/[id]/route.ts | 36 | /api/v1/products/[id] |
 | products:update | api | app/api/v1/products/[id]/route.ts | 88 | /api/v1/products/[id] |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
@@ -468,9 +469,9 @@ Generated: 2026-11-09T12:58:20.245Z
 | reconciliation:view | api | app/api/v1/orders/[id]/financial-reconciliation/route.ts | 31 | /api/v1/orders/[id]/financial-reconciliation |
 | settings:branding | api | app/api/v1/settings/branding/logo/route.ts | 32 | /api/v1/settings/branding/logo |
 | settings:branding | api | app/api/v1/settings/branding/route.ts | 75 | /api/v1/settings/branding |
-| settings:organization | api | app/api/v1/settings/general/route.ts | 115 | /api/v1/settings/general |
+| settings:organization | api | app/api/v1/settings/general/route.ts | 116 | /api/v1/settings/general |
 | settings:read | api | app/api/v1/settings/branding/route.ts | 45 | /api/v1/settings/branding |
-| settings:read | api | app/api/v1/settings/general/route.ts | 83 | /api/v1/settings/general |
+| settings:read | api | app/api/v1/settings/general/route.ts | 84 | /api/v1/settings/general |
 | settings:workflow | api | app/api/v1/workflows/config/route.ts | 52 | /api/v1/workflows/config |
 | stored_value:issue_advance | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 109 | src/features/customers/ui/customer-stored-value-tab.tsx |
 | stored_value:issue_advance | api | app/api/v1/customers/[id]/advance/issue/route.ts | 28 | /api/v1/customers/[id]/advance/issue |
@@ -484,10 +485,27 @@ Generated: 2026-11-09T12:58:20.245Z
 | tax_document:issue | screen | src/features/orders/ui/order-financial/order-tax-document-panel.tsx | 35 | src/features/orders/ui/order-financial/order-tax-document-panel.tsx |
 | tax_document:issue | api | app/api/v1/orders/[id]/tax-documents/issue/route.ts | 34 | /api/v1/orders/[id]/tax-documents/issue |
 | tax:manage_config | api | app/api/v1/settings/tax/exemptions/route.ts | 55 | /api/v1/settings/tax/exemptions |
-| tax:manage_config | api | app/api/v1/settings/tax/profiles/route.ts | 52 | /api/v1/settings/tax/profiles |
-| tax:manage_config | api | app/api/v1/settings/tax/profiles/[profileId]/route.ts | 29 | /api/v1/settings/tax/profiles/[profileId] |
+| tax:manage_config | api | app/api/v1/tax/codes/route.ts | 22 | /api/v1/tax/codes |
+| tax:manage_config | api | app/api/v1/tax/codes/[id]/route.ts | 12 | /api/v1/tax/codes/[id] |
+| tax:manage_config | api | app/api/v1/tax/config/confirm/route.ts | 12 | /api/v1/tax/config/confirm |
+| tax:manage_config | api | app/api/v1/tax/config/route.ts | 20 | /api/v1/tax/config |
+| tax:manage_config | api | app/api/v1/tax/item-classes/route.ts | 21 | /api/v1/tax/item-classes |
+| tax:manage_config | api | app/api/v1/tax/item-classes/[id]/route.ts | 12 | /api/v1/tax/item-classes/[id] |
+| tax:manage_config | api | app/api/v1/tax/kits/apply/route.ts | 12 | /api/v1/tax/kits/apply |
+| tax:manage_config | api | app/api/v1/tax/rules/route.ts | 22 | /api/v1/tax/rules |
+| tax:manage_config | api | app/api/v1/tax/rules/[id]/route.ts | 12 | /api/v1/tax/rules/[id] |
+| tax:manage_periods | api | app/api/v1/tax/periods/route.ts | 20 | /api/v1/tax/periods |
+| tax:manage_periods | api | app/api/v1/tax/periods/[id]/route.ts | 12 | /api/v1/tax/periods/[id] |
 | tax:view_config | api | app/api/v1/settings/tax/exemptions/route.ts | 13 | /api/v1/settings/tax/exemptions |
-| tax:view_config | api | app/api/v1/settings/tax/profiles/route.ts | 14 | /api/v1/settings/tax/profiles |
+| tax:view_config | api | app/api/v1/tax/codes/route.ts | 11 | /api/v1/tax/codes |
+| tax:view_config | api | app/api/v1/tax/config/route.ts | 11 | /api/v1/tax/config |
+| tax:view_config | api | app/api/v1/tax/explain/route.ts | 13 | /api/v1/tax/explain |
+| tax:view_config | api | app/api/v1/tax/item-classes/route.ts | 11 | /api/v1/tax/item-classes |
+| tax:view_config | api | app/api/v1/tax/kits/route.ts | 8 | /api/v1/tax/kits |
+| tax:view_config | api | app/api/v1/tax/options/route.ts | 8 | /api/v1/tax/options |
+| tax:view_config | api | app/api/v1/tax/rules/route.ts | 11 | /api/v1/tax/rules |
+| tax:view_reports | api | app/api/v1/tax/returns/lines/route.ts | 9 | /api/v1/tax/returns/lines |
+| tax:view_reports | api | app/api/v1/tax/returns/route.ts | 9 | /api/v1/tax/returns |
 | user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 40 | src/features/users/ui/user-detail-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |

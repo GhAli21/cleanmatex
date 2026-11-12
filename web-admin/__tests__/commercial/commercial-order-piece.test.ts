@@ -16,7 +16,7 @@ const HOUR = 3_600_000;
 const tax = {
   taxCategoryCode: 'STANDARD',
   exemptReason: null,
-  profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true, appliesTo: null, roundingLevel: 'DOCUMENT' as const, rounding: OMR }],
+  profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true, roundingLevel: 'DOCUMENT' as const, rounding: OMR }],
 };
 const readyBy = { serviceSpeed: 'STANDARD', speedRuleHours: null, productHours: 24, categoryHours: null, extraMinutes: 0 };
 

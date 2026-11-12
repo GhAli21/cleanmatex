@@ -1518,7 +1518,6 @@ model org_product_data_mst {
   storage_location          String?                     @db.VarChar(100)
   default_packing_pref      String?                     @db.VarChar(50)
   tax_category_code         String                      @default("STANDARD")
-  tax_supply_code           String?
   tax_exempt_reason         String?
   tax_item_class_code       String?
   org_inv_stock_by_branch   org_inv_stock_by_branch[]
@@ -8178,10 +8177,8 @@ model org_tax_profiles_cf {
   tax_type                  String
   rate                      Decimal?                    @db.Decimal(5, 2)
   is_compound               Boolean                     @default(false)
-  applies_to                String[]
   effective_from            DateTime                    @db.Date
   effective_to              DateTime?                   @db.Date
-  is_default                Boolean                     @default(false)
   is_active                 Boolean                     @default(true)
   rec_status                Int                         @default(1) @db.SmallInt
   created_at                DateTime                    @default(now()) @db.Timestamptz(6)
@@ -8227,7 +8224,7 @@ model org_tax_profiles_cf {
 
   @@unique([tenant_org_id, id], map: "uq_org_tax_prof_tenant_id")
   @@unique([tenant_org_id, tax_code, version_no], map: "uq_otp_code_version")
-  @@index([tenant_org_id, is_active, is_default], map: "idx_tax_profiles_tenant")
+  @@index([tenant_org_id, is_active], map: "idx_tax_profiles_tenant")
   @@index([tenant_org_id, tax_code, version_no(sort: Desc)], map: "idx_otp_tenant_code")
   @@schema("public")
 }
@@ -16826,30 +16823,31 @@ model sys_service_speed_cd {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_tax_category_cd {
-  code                      String                      @id
-  name                      String
-  name2                     String?
-  description               String?
-  description2              String?
-  uncl5305_code             String
-  display_order             Int                         @default(0)
-  is_default                Boolean                     @default(false)
-  is_active                 Boolean                     @default(true)
-  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
-  created_by                String?                     @db.Uuid
-  updated_at                DateTime?                   @db.Timestamptz(6)
-  updated_by                String?                     @db.Uuid
-  rec_status                Int                         @default(1) @db.SmallInt
-  org_order_charges_dtl     org_order_charges_dtl[]
-  org_order_discounts_dtl   org_order_discounts_dtl[]
-  org_order_item_pieces_dtl org_order_item_pieces_dtl[]
-  org_order_items_dtl       org_order_items_dtl[]
-  org_product_data_mst      org_product_data_mst[]
-  org_tax_doc_items_dtl     org_tax_doc_items_dtl[]
-  org_tax_lines_tr          org_tax_lines_tr[]
-  org_tax_profiles_cf       org_tax_profiles_cf[]
-  sys_tax_exempt_reason_cd  sys_tax_exempt_reason_cd[]
-  sys_tax_kit_codes_dtl     sys_tax_kit_codes_dtl[]
+  code                       String                       @id
+  name                       String
+  name2                      String?
+  description                String?
+  description2               String?
+  uncl5305_code              String
+  display_order              Int                          @default(0)
+  is_default                 Boolean                      @default(false)
+  is_active                  Boolean                      @default(true)
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?                      @db.Uuid
+  updated_at                 DateTime?                    @db.Timestamptz(6)
+  updated_by                 String?                      @db.Uuid
+  rec_status                 Int                          @default(1) @db.SmallInt
+  org_order_charges_dtl      org_order_charges_dtl[]
+  org_order_discounts_dtl    org_order_discounts_dtl[]
+  org_order_item_pieces_dtl  org_order_item_pieces_dtl[]
+  org_order_items_dtl        org_order_items_dtl[]
+  org_product_data_mst       org_product_data_mst[]
+  org_tax_doc_items_dtl      org_tax_doc_items_dtl[]
+  org_tax_lines_tr           org_tax_lines_tr[]
+  org_tax_profiles_cf        org_tax_profiles_cf[]
+  sys_tax_exempt_reason_cd   sys_tax_exempt_reason_cd[]
+  sys_tax_kit_codes_dtl      sys_tax_kit_codes_dtl[]
+  sys_tax_return_box_map_dtl sys_tax_return_box_map_dtl[]
 
   @@index([is_active, display_order], map: "idx_tax_category_active")
   @@schema("public")
@@ -17937,6 +17935,7 @@ model sys_tax_kits_mst {
   sys_starter_pkg_mst      sys_starter_pkg_mst[]
   sys_tax_kit_versions_mst sys_tax_kit_versions_mst[]
   sys_country_cd           sys_country_cd?            @relation(fields: [country_code], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_stk_country")
+  sys_tax_return_box_cd    sys_tax_return_box_cd[]
 
   @@schema("public")
 }
@@ -18308,6 +18307,82 @@ model org_tax_lines_tr {
   @@unique([tenant_org_id, id], map: "uq_otl_tenant_id")
   @@index([tenant_org_id, tax_date, tax_flow_code], map: "idx_otl_date_flow")
   @@index([tenant_org_id, source_doc_type_code, source_doc_id], map: "idx_otl_source")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_return_box_cd {
+  kit_code                                                                                              String
+  box_code                                                                                              String
+  section_code                                                                                          String
+  box_kind                                                                                              String
+  shows_amount                                                                                          Boolean
+  shows_tax                                                                                             Boolean
+  name                                                                                                  String
+  name2                                                                                                 String?
+  description                                                                                           String?
+  description2                                                                                          String?
+  display_order                                                                                         Int
+  is_verified                                                                                           Boolean                      @default(false)
+  source_url                                                                                            String?
+  created_at                                                                                            DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                                                                                            String?
+  created_info                                                                                          String?
+  updated_at                                                                                            DateTime?                    @db.Timestamptz(6)
+  updated_by                                                                                            String?
+  updated_info                                                                                          String?
+  updated_count                                                                                         Int                          @default(0)
+  deleted_at                                                                                            DateTime?                    @db.Timestamptz(6)
+  deleted_by                                                                                            String?
+  deleted_info                                                                                          String?
+  rec_status                                                                                            Int                          @default(1) @db.SmallInt
+  rec_order                                                                                             Int?
+  rec_notes                                                                                             String?
+  is_active                                                                                             Boolean                      @default(true)
+  sys_tax_kits_mst                                                                                      sys_tax_kits_mst             @relation(fields: [kit_code], references: [kit_code], onUpdate: NoAction, map: "fk_strb_kit")
+  sys_tax_return_box_map_dtl_sys_tax_return_box_map_dtl_kit_code_box_codeTosys_tax_return_box_cd        sys_tax_return_box_map_dtl[] @relation("sys_tax_return_box_map_dtl_kit_code_box_codeTosys_tax_return_box_cd")
+  sys_tax_return_box_map_dtl_sys_tax_return_box_map_dtl_kit_code_source_box_codeTosys_tax_return_box_cd sys_tax_return_box_map_dtl[] @relation("sys_tax_return_box_map_dtl_kit_code_source_box_codeTosys_tax_return_box_cd")
+
+  @@id([kit_code, box_code], map: "pk_sys_tax_return_box")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tax_return_box_map_dtl {
+  kit_code                                                                                         String
+  box_code                                                                                         String
+  map_no                                                                                           Int                    @db.SmallInt
+  source_kind                                                                                      String
+  tax_flow_code                                                                                    String?
+  tax_category_code                                                                                String?
+  is_reverse_charge                                                                                Boolean?
+  emirate_code                                                                                     String?
+  tax_measure                                                                                      String?
+  source_box_code                                                                                  String?
+  sign                                                                                             Int                    @default(1) @db.SmallInt
+  created_at                                                                                       DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                                                                                       String?
+  created_info                                                                                     String?
+  updated_at                                                                                       DateTime?              @db.Timestamptz(6)
+  updated_by                                                                                       String?
+  updated_info                                                                                     String?
+  updated_count                                                                                    Int                    @default(0)
+  deleted_at                                                                                       DateTime?              @db.Timestamptz(6)
+  deleted_by                                                                                       String?
+  deleted_info                                                                                     String?
+  rec_status                                                                                       Int                    @default(1) @db.SmallInt
+  rec_order                                                                                        Int?
+  rec_notes                                                                                        String?
+  is_active                                                                                        Boolean                @default(true)
+  sys_tax_return_box_cd_sys_tax_return_box_map_dtl_kit_code_box_codeTosys_tax_return_box_cd        sys_tax_return_box_cd  @relation("sys_tax_return_box_map_dtl_kit_code_box_codeTosys_tax_return_box_cd", fields: [kit_code, box_code], references: [kit_code, box_code], onUpdate: NoAction, map: "fk_strbm_box")
+  sys_tax_category_cd                                                                              sys_tax_category_cd?   @relation(fields: [tax_category_code], references: [code], onDelete: Restrict, onUpdate: NoAction, map: "fk_strbm_category")
+  sys_tax_return_box_cd_sys_tax_return_box_map_dtl_kit_code_source_box_codeTosys_tax_return_box_cd sys_tax_return_box_cd? @relation("sys_tax_return_box_map_dtl_kit_code_source_box_codeTosys_tax_return_box_cd", fields: [kit_code, source_box_code], references: [kit_code, box_code], onUpdate: NoAction, map: "fk_strbm_src_box")
+
+  @@id([kit_code, box_code, map_no], map: "pk_sys_tax_return_box_map")
   @@schema("public")
 }
 

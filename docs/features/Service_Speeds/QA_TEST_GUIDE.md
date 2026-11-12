@@ -59,3 +59,30 @@ Open an order, **Edit** → the speed menu lists offered speeds (no price previe
 ## 8. Split
 
 Split the Standard lines out of an order that also has an Express line → the sub-order shows Standard.
+
+## 9. Express needs a rule (after 0721)
+
+1. **Catalog › Speed Pricing** lists category Express rules created by the migration (premium 0, hours = the old category Express hours).
+2. New order on a product in such a category at **Express** → same price as before, ready-by from those hours.
+3. Deactivate every Express rule reaching a product → Express is greyed out for it; ordering it anyway is refused ("not available").
+
+## 10. HQ — Calendars (Products & Items Config)
+
+HQ (`cleanmatexsaas`) › **Products & Items Config** › **Calendars**.
+
+1. **Calendar templates**: open `OM`, change a day's hours, Save → kept on reload. A closing time before opening → refused.
+2. **Public holidays**: filter OM, open an estimated row, turn off **Estimated**, Save → the tenant app's holiday list no longer says "(estimated)" for that date.
+3. Add a holiday with a date already used for that country and code → refused as duplicate.
+
+## 11. HQ — new organization and workspace Calendar
+
+1. HQ › Tenants › create an organization in Saudi Arabia → in the tenant app, **Business Calendar** shows the SA template hours, cut-off and ready time.
+2. HQ › Tenants › open that organization › **Calendar** → the same hours, branch rows say "Organization's", holidays per year with **Previous year / Next year**.
+3. Switch HQ to Arabic → labels in Arabic, times and dates left-to-right.
+
+## 12. Customer app — speed choice
+
+1. Organization offers Standard and Express → booking step **Schedule** shows "How fast do you need it?" with both; Standard selected by default.
+2. Choose Express, finish booking → the order in the tenant app shows Express and the Express price.
+3. Organization offers only Standard → the speed section is hidden.
+4. Remove the Express rule while the app is open, then submit with Express → "This speed is not available for one of your items. Choose another speed."

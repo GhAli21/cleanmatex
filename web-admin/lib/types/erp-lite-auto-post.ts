@@ -120,6 +120,8 @@ export interface ErpLiteExpenseAutoPostInput {
   expense_date: string;
   subtotal_amount: number;
   tax_amount?: number;
+  /** Input tax that can be reclaimed (T7): debited to Input VAT; the rest of the total is the expense. */
+  recoverable_tax_amount?: number;
   total_amount: number;
   settlement_code: 'CASH' | 'BANK';
   created_by?: string | null;
@@ -280,6 +282,20 @@ export interface ErpLiteCustomerAdvanceReceivedInput {
   exchange_rate?: number;
   funded_date: string;
   payment_method_code: PaymentMethodCode;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
+/** Tax Engine T7 — tax inside a prepayment moved between its liability and Output VAT (always a positive amount). */
+export interface ErpLiteTaxReclassInput {
+  tenant_org_id?: string;
+  event_code: 'TAX_ADVANCE_RECORDED' | 'TAX_ADVANCE_NETTED' | 'TAX_GIFT_CARD_RECORDED' | 'TAX_GIFT_CARD_NETTED';
+  /** First tax line of the batch: unique per batch, so a retry never posts twice. */
+  tax_line_id: string;
+  source_doc_no?: string | null;
+  tax_amount: number;
+  currency_code: string;
+  tax_date: string;
   branch_id?: string | null;
   created_by?: string | null;
 }

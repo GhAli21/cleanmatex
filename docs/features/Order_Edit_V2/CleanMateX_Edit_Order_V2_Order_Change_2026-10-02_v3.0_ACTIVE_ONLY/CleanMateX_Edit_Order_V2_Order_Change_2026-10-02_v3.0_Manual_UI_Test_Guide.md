@@ -863,7 +863,7 @@ Saudi Demo SAR inventory for this run: **only Processing** orders available. Edi
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — Express ON → `DENIED`, `Not allowed: CHANGE_REASON_REQUIRED • DENY`, Review again disabled, **0 textboxes / 0 checkboxes** in dialog. Code unchanged in d16ff51e (`order-change-capability.service.ts:247,287-288`).
 - **P1 FET-EOV2-S13:** Discard without confirm (V2). **Evidence:** Discard restores immediately with no confirm dialog. **Where:** `edit-shared-workspace.tsx:197-205` (wired `edit-order-context-bar.tsx:28`). **Fix:** `cmxMessage.confirm` before `reloadKey++`.
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — "Discard changes" discards immediately, no confirm (`edit-shared-workspace.tsx:197-205` unchanged).
-- **P1 FET-EOV2-S14:** Review totals 4-dp + raw codes untranslated. **Evidence:** est `41.1700`; codes `SIGNER_UNAVAILABLE`/`OUTSTANDING`/`CHANGE_*` in EN and AR Review (`r2_07`/`r2_18`). **Where:** `order-change-preview-reads.ts:52-57`, `edit-review-dialog.tsx:66-83`. **Fix:** tenant money format (2 dp SAR) + i18n maps for status/ops/outcome. — Retest 2026-11-09: reproduced (raw codes still untranslated in EN/AR Review).
+- **P1 FET-EOV2-S14:** Review totals 4-dp + raw codes untranslated. **Evidence:** est `41.1700`; codes `SIGNER_UNAVAILABLE`/`OUTSTANDING`/`CHANGE_*` in EN and AR Review (`r2_07`/`r2_18`). **Where:** `order-change-preview-reads.ts:52-57`, `edit-review-dialog.tsx:66-83`. **Fix:** tenant money format (2 dp SAR) + i18n maps for status/ops/outcome. — Retest 2026-11-09: reproduced (raw codes still untranslated in EN/AR Review). — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL (Arabic Review still shows raw codes ACKNOWLEDGEMENT_REQUIRED, CAPABILITY_POLICY_WARNING, OUTSTANDING, and history ops CHANGE_ORDER_NOTES / CHANGE_ITEM_QUANTITY, ADD_PIECE).
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — est **41.1700** (4 dp) on qty +1 (29.6700 on notes-only); codes READY/OUTSTANDING/CHANGE_ITEM_QUANTITY/ADD_PIECE untranslated in AR Review.
 - **P1 FET-EOV2-S15:** Draft line total drift after qty +1/−1. **Evidence:** Fitness Leggings **10.30→10.00** while **+0.30** chip stays. **Where:** `edit-workspace-adapter.ts:62-84` missing `servicePrefCharge`; `new-order-reducer.ts:271-275`. **Fix:** hydrate charge from prefs sum; keep charge consistent on qty change.
   - Retest r3 2026-10-17 (Saudi, d16ff51e): **STILL OPEN** — qty +1 (10.30→20.00, total 35.50) then −1 → line **10.00** with "+0.30 Eco-Friendly Wash" label still shown; total **25.50** (was 25.80); header **"0 unsaved changes"** (see S23).
@@ -1166,11 +1166,11 @@ Separate unassigned DRAFT clone above, rev2, metadata saved. Source policy/rules
 | MAN-UI-008 / 011 | NOT RUN this batch | Discard is NOT unsaved-navigation protection; one desktop screenshot is NOT responsive/POS coverage. |
 
 ### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch8)
-- **P1 candidate FET-EOV2-Nov07-IdentityControls:** Customer Select/Clear/Edit enabled despite locked identity contract, branch disabled. Align UI affordances; server bypass not tested/proven. — Retest 2026-11-09: reproduced.
+- **P1 candidate FET-EOV2-Nov07-IdentityControls:** Customer Select/Clear/Edit enabled despite locked identity contract, branch disabled. Align UI affordances; server bypass not tested/proven. — Retest 2026-11-09: reproduced. — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL (page says customer is locked and branch is disabled, but picker Clear / Select Customer / Edit are active; Name, Phone, and Email remain editable).
 - **P1 FET-EOV2-Nov07-StaleAfterApply:** Successful persisted Apply leaves editor prior revision/dirty/Updating state. Reload correctly shows rev2; synchronize committed editor baseline without misleading stale state. — Retest 2026-11-09: not reproduced after Discard (no stuck Updating); Apply path not retested this pass.
 - **P2 FET-EOV2-Nov07-ReasonReopen:** Visible reason survives dialog reopen but review says REASON_REQUIRED until same reason reentered. Confirm state synchronization; cause pending.
 - **P2 candidate FET-EOV2-Nov07-Focus:** Escape snapshot page-root focus rather than Review opener; capture exact active element/refocus in next keyboard pass.
-- **P1 candidate FET-EOV2-Nov07-AuditActor:** Single history record says Applied by Unknown user despite successful signed-in operation and persisted reason. Diagnose identity rendering/audit attribution without assuming DB actor absent. — Retest 2026-11-09: reproduced.
+- **P1 candidate FET-EOV2-Nov07-AuditActor:** Single history record says Applied by Unknown user despite successful signed-in operation and persisted reason. Diagnose identity rendering/audit attribution without assuming DB actor absent. — Retest 2026-11-09: reproduced. — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL (both Change History entries still "Unknown user"; Order Edit Status "Committed by" shows raw UUID 370466e6-…).
 
 **Notes clarification:** Show notes reveals static Save caption, NOT a separate Save button. Earlier Create-note absence remains provisional; omitted explicit Save button is NOT established. No lost-data root cause inferred.
 
@@ -1280,7 +1280,7 @@ Evidence`shots/man-long-en-reason-field.png`,`man-long-en-ready-bottom.png`,`man
 
 ### Tester suggestions — Financial_Expert_Tester(batch18)
 - **P1 candidate FET-EOV2-Nov07-ARReason310:** EN310charreasonREADY,ARsamefieldafteroneReviewagainREASON_REQUIRED. Verifyreasonstateacrosslocale/dialogandservervalidation;don'tinventauthorizationcause.
-- **P2 FET-EOV2-Nov07-ARReviewCodes:** Localizeexactstatus/outcome/operation/scan-statecodesabovewherecustomer-facingbusinesslabelsrequired;do nottranslateauthoredreasontext. — Retest 2026-11-09: reproduced.
+- **P2 FET-EOV2-Nov07-ARReviewCodes:** Localizeexactstatus/outcome/operation/scan-statecodesabovewherecustomer-facingbusinesslabelsrequired;do nottranslateauthoredreasontext. — Retest 2026-11-09: reproduced. — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL (Arabic Review still shows raw codes ACKNOWLEDGEMENT_REQUIRED, CAPABILITY_POLICY_WARNING, OUTSTANDING; AR history lists CHANGE_ORDER_NOTES / CHANGE_ITEM_QUANTITY, ADD_PIECE).
 
 ### Test data left behind
 No savedchanges;alldraftsdiscarded,ownrev3/Bathrobeqty2,total4.783,tax.313,paid0,due4.783,POCprocessing/pending,twoChanges. EN1440×985cleandetail,nomodal;no printing/payment. Priorfailures/roundstextpreserved.
@@ -1306,8 +1306,8 @@ Cumulative provisional ledger recount: PASS 0 / FAIL 2 / PARTIAL 11 / BLOCKED 1 
 **Manual-scope correction:** Original user explicitly said no Playwright spec exists and for now checks are manual. Absence of a new OC-UI spec is NOT a blocker to manual OC003. Missing real DENY fixture is the blocker; do not add a spec/code. OC007 lost-response/same-key/payload retry remains NOT RUN because no safe supported harness, not because visual evidence failed. No guard/SCM bypass.
 Evidence under `shots/`: `oc003-policy-info-editor.webp`,`oc003-policy-remove-item.png`,`oc003-policy-remove-affordance.webp`. Clean EN detail restored; no saved change.
 ### Tester suggestions — Financial_Expert_Tester final
-- P1 FET-FINAL-MAN: Regress actual AR same-visible310charreason→REASON_REQUIRED vs ENREADY, stale post-save editor/Updating and enabled identity affordances. Do not infer authorization bypass. — Retest 2026-11-09: identity affordances reproduced; Updating after Discard not reproduced; AR 310char reason path not retested this pass.
-- P2 FET-FINAL-Audit: Applied by Unknown user despite stored auth actor resolvable via orgusers.user_id and null actor_name: verify documented actor-ID/display contract. Wrong-PK join is plausible but UNPROVEN; no confirmed file/line cause. — Retest 2026-11-09: reproduced.
+- P1 FET-FINAL-MAN: Regress actual AR same-visible310charreason→REASON_REQUIRED vs ENREADY, stale post-save editor/Updating and enabled identity affordances. Do not infer authorization bypass. — Retest 2026-11-09: identity affordances reproduced; Updating after Discard not reproduced; AR 310char reason path not retested this pass. — Retest r2 2026-11-10 (remote, new deploy, read-only): identity affordances STILL FAIL (picker Clear/Select/Edit active; Name/Phone/Email editable); Updating still not reproduced; AR 310char reason path not retested.
+- P2 FET-FINAL-Audit: Applied by Unknown user despite stored auth actor resolvable via orgusers.user_id and null actor_name: verify documented actor-ID/display contract. Wrong-PK join is plausible but UNPROVEN; no confirmed file/line cause. — Retest 2026-11-09: reproduced. — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL (Unknown user still shown; "Committed by" is a raw UUID).
 - P2 FET-FINAL-DENYFixture: Supply genuine permitted-entry/REMOVE_ITEM-DENY fixture for manual003; current override/reason behavior isn't DENY or failure. Other full stale-Apply/protected-piece/duplicate/keyboard/POS/AR cases remain incomplete.
 ### Test data left behind
 No fields/Remove/Review/Apply in final read-only batch. Own rev3,total/due4.783,paid0,2Changes preserved; no extra records/messages/printing/password changes.
@@ -1349,11 +1349,47 @@ None created/changed by this retest. Existing source Pilotrev3 and clone Draftre
 Editor banners observed: "Change Item Price is not allowed at the current status." / "Change Discount is not allowed at the current status."
 
 ### Tester suggestions — Financial_Expert_Tester (Nov9 tenant editor recheck)
-- **P2 FET-MAN-Nov09-PieceNotesOpUnavailable:** Piece Notes draft promises an Allow-with-warning Review, but Review returns `OPERATION_NOT_AVAILABLE` and a non-localized EN toast. Align editor pre-check with policy/target availability; show a localized capability message instead of the raw code.
-- **P2 FET-MAN-Nov09-UnexpectedOpList:** Review listed `CHANGE_ITEM_QUANTITY` and `ADD_PIECE` for a Customer-notes-only draft. Clear residual ops from the Review payload/UI so only staged operations appear.
+- **P2 FET-MAN-Nov09-PieceNotesOpUnavailable:** Piece Notes draft promises an Allow-with-warning Review, but Review returns `OPERATION_NOT_AVAILABLE` and a non-localized EN toast. Align editor pre-check with policy/target availability; show a localized capability message instead of the raw code. — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL (raw OPERATION_NOT_AVAILABLE; EN "The review could not be completed." / AR "تعذر إكمال المراجعة.").
+- **P2 FET-MAN-Nov09-UnexpectedOpList:** Review listed `CHANGE_ITEM_QUANTITY` and `ADD_PIECE` for a Customer-notes-only draft. Clear residual ops from the Review payload/UI so only staged operations appear. — Retest r2 2026-11-10 (remote, new deploy, read-only): FIXED (notes-only Review no longer lists CHANGE_ITEM_QUANTITY / ADD_PIECE as current operations).
 - Prior **FET-EOV2-Nov07-AuditActor**, **FET-FINAL-Audit**, **FET-EOV2-Nov07-IdentityControls**, **FET-EOV2-Nov07-ARReviewCodes**, **FET-EOV2-S14** annotated in place (reproduced). **FET-EOV2-Nov07-StaleAfterApply** / **FET-FINAL-MAN** annotated for Discard Updating (not reproduced) / identity (reproduced). Notes-only Estimated-total mismatch logged in Line-Level guide (**FET-LLMS-Nov09-NotesOnlyEstTotal**).
 
 **Parent counts unchanged:** FAIL2 / PARTIAL10 / BLOCKED2. Defect rechecks only — MAN001 remains PARTIAL (identity), history actor still FAIL; no author scenario newly fully satisfied. Overall workstream remains INCOMPLETE.
 
 ### Test data left behind
 Nothing persisted. Drafts discarded; order ORD-20261107-00001 unchanged at Revision 3 / total 4.783 OMR / 2 changes. No Apply/payment/workflow/password changes; no messages/printing. Screens under `/workspace/qa-20261109/shots/` (sand-subagent-8addfd1b-*).
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-10 (remote, new deploy, read-only)
+
+**Remote UI evidence:** 2026-11-10 ~14:30 Asia/Muscat(UTC+4), tenant `https://cmx.cleanmatex.com` Demo Laundry admin; own order ORD-20261107-00001 (cce8a46e-a8f4-4346-8ca1-790182d1e1d9). No Apply; drafts discarded; order still Revision 3 / 4.783 OMR / 2 changes. Source ledger `/workspace/qa-20261110/tenant-editor-retest.md`. Defect rechecks + new findings — parent scenario counts unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| Change History actors | FAIL — prior defect still present | Both Change History entries still "Applied by: Unknown user". Order Edit Status panel "Committed by" shows a raw UUID (370466e6-…). References **FET-EOV2-Nov07-AuditActor** / **FET-FINAL-Audit**. |
+| MAN001 identity controls | FAIL — prior defect still present | Page text still "Customer, branch, and currency stay locked on this screen." Branch disabled, but the side-panel customer picker has active Clear / Select Customer / Edit; Name, Phone, and Email remain editable ("Changes apply to this order only, not to customer profile"). References **FET-EOV2-Nov07-IdentityControls**. |
+| Unexpected operation list | PASS — prior defect FIXED | Customer-notes-only EN Review no longer lists `CHANGE_ITEM_QUANTITY` or `ADD_PIECE` as current operations. See **FET-MAN-Nov09-UnexpectedOpList**. |
+| Piece-level Notes → Review | FAIL — prior defect still present | Piece-notes-only Review (Bathrobe/Robe piece 1) still returns raw `OPERATION_NOT_AVAILABLE`; popup "The review could not be completed." / AR "تعذر إكمال المراجعة.". See **FET-MAN-Nov09-PieceNotesOpUnavailable**. |
+| EN/AR raw Review codes | FAIL — prior defect still present | Arabic Review still shows raw codes `ACKNOWLEDGEMENT_REQUIRED`, `CAPABILITY_POLICY_WARNING`, `OUTSTANDING`; AR history lists past ops as raw codes (`CHANGE_ORDER_NOTES`; `CHANGE_ITEM_QUANTITY`, `ADD_PIECE`). References **FET-EOV2-Nov07-ARReviewCodes** / **FET-EOV2-S14**. |
+| Edit / Change History tabs | FAIL (new P2) | Tab labels appear swapped: Edit History opens the Change History list; Change History shows the status panel and "No edit history for this order". See **FET-MAN-Nov10-HistoryTabsSwapped**. |
+| Premature editor banners | FAIL (new P2) | On editor open, before any change: red banner "Change Item Price is not allowed at the current status." / "Change Discount is not allowed at the current status.", "Ready by date must be in the future" (08/11/2026 04:00 PM), and "This change needs an override before it can be saved." See **FET-MAN-Nov10-PrematureBanners**. |
+| Review change history empty | FAIL (new P2) | English Review Change history says "No applied changes yet." even though the order has 2 changes. See **FET-MAN-Nov10-ReviewHistoryEmpty**. |
+| Piece count vs cart qty | PARTIAL (new P3) | Piece tab says "Bathrobe/Robe x2 pieces" while the cart shows quantity 1. See **FET-MAN-Nov10-PieceCountMismatch**. |
+| Items Loading delay | PARTIAL (new P3) | "Items Loading…" stays on screen for more than 10 seconds with grey placeholders. See **FET-MAN-Nov10-ItemsLoadingSlow**. |
+
+Customer-notes Review acknowledgement path still PASS: `ACKNOWLEDGEMENT_REQUIRED`, checkbox "I understand this warning.", no reason asked; raw `CAPABILITY_POLICY_WARNING` still visible in EN. Financial residual (4-decimal Estimated 4.7830 and OUTSTANDING with no money change) is logged in the Line-Level guide.
+
+### Tester suggestions — Financial_Expert_Tester (Nov10 tenant editor retest)
+- **P2 FET-MAN-Nov10-HistoryTabsSwapped:** Edit History and Change History tab labels appear swapped on the order (Edit History opens the change list; Change History shows the status panel + "No edit history for this order"). Swap or relabel the tabs so each pane matches its heading.
+- **P2 FET-MAN-Nov10-PrematureBanners:** Opening the editor with no staged change already shows price/discount "not allowed" banners, a past ready-by date error (08/11/2026 04:00 PM), and "This change needs an override before it can be saved." Do not surface save/override blockers until the operator actually stages a change.
+- **P2 FET-MAN-Nov10-ReviewHistoryEmpty:** English Review Change history says "No applied changes yet." while the same order shows 2 changes on the detail/history views. Bind Review history to the existing applied-change list.
+- **P3 FET-MAN-Nov10-PieceCountMismatch:** Piece tab shows "Bathrobe/Robe x2 pieces" against cart quantity 1. Align piece-count labeling with the cart quantity (or explain when they legitimately differ).
+- **P3 FET-MAN-Nov10-ItemsLoadingSlow:** "Items Loading…" with grey placeholders remains more than 10 seconds after the editor opens. Reduce the wait or keep previously loaded lines visible.
+- Prior **FET-MAN-Nov09-UnexpectedOpList** annotated in place: FIXED (notes-only Review no longer lists CHANGE_ITEM_QUANTITY / ADD_PIECE as current ops).
+- Prior **FET-MAN-Nov09-PieceNotesOpUnavailable** annotated in place: STILL FAIL (raw OPERATION_NOT_AVAILABLE; EN "The review could not be completed." / AR "تعذر إكمال المراجعة.").
+- Prior **FET-EOV2-Nov07-AuditActor**, **FET-FINAL-Audit** annotated in place: STILL FAIL (Unknown user; "Committed by" raw UUID).
+- Prior **FET-EOV2-Nov07-IdentityControls**, **FET-FINAL-MAN** annotated in place: STILL FAIL (picker Clear/Select/Edit active; Name/Phone/Email editable despite locked helper text).
+- Prior **FET-EOV2-Nov07-ARReviewCodes**, **FET-EOV2-S14** annotated in place: STILL FAIL (Arabic Review/history still raw codes). Notes-only financial residual logged in Line-Level (**FET-LLMS-Nov10-NoChangeOutstanding**).
+
+**Parent counts unchanged:** FAIL2 / PARTIAL10 / BLOCKED2. Defect rechecks only — no author scenario newly fully satisfied. Overall workstream remains INCOMPLETE.
+
+### Test data left behind
+Nothing applied/saved. Drafts discarded; order ORD-20261107-00001 still 4.783 OMR, 2 changes, rev3. No passwords changed. No Apply/payment/workflow changes; no messages/printing. Screens under `/workspace/qa-20261110/shots/`.

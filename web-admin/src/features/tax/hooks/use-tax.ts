@@ -78,6 +78,39 @@ export function useTaxClasses(includeInactive: boolean) {
   })
 }
 
+/** @returns The organization's tax return periods, newest first. */
+export function useTaxPeriods() {
+  const tenantId = useTenantKey()
+  return useQuery({ queryKey: [...ROOT, tenantId, 'periods'], queryFn: ({ signal }) => taxApi.periods(signal), enabled: !!tenantId })
+}
+
+/**
+ * @param range - First and last tax date; null waits until one is chosen
+ * @returns The VAT return boxes for the range
+ */
+export function useTaxReturn(range: { from: string; to: string } | null) {
+  const tenantId = useTenantKey()
+  return useQuery({
+    queryKey: [...ROOT, tenantId, 'return', range],
+    queryFn: ({ signal }) => taxApi.taxReturn(range!, signal),
+    enabled: !!tenantId && !!range,
+  })
+}
+
+/**
+ * @param q - Range, box and page; null while no box is open
+ * @returns One page of the lines behind a return box
+ */
+export function useTaxReturnLines(q: { from: string; to: string; box: string; page: number; pageSize: number } | null) {
+  const tenantId = useTenantKey()
+  return useQuery({
+    queryKey: [...ROOT, tenantId, 'return-lines', q],
+    queryFn: ({ signal }) => taxApi.taxReturnLines(q!, signal),
+    enabled: !!tenantId && !!q,
+    placeholderData: keepPreviousData,
+  })
+}
+
 /** @returns A function that turns a failed tax request into translated text. */
 export function useTaxErrorText() {
   const t = useTranslations('taxSetup.errors')

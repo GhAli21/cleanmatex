@@ -194,12 +194,19 @@ export async function periodIdFor(tx: Tx, tenantOrgId: string, taxDate: string):
 }
 
 /** The final lines of a document, each with what is left after earlier reversals. */
-async function remainingFinalLines(tx: Tx, tenantOrgId: string, orderId: string) {
+const remainingFinalLines = (tx: Tx, tenantOrgId: string, orderId: string) =>
+  remainingTaxLines(tx, tenantOrgId, { source_doc_type_code: DOC_SEQ_TYPES.ORDER, source_doc_id: orderId });
+
+/**
+ * Final, non-reversal lines matching `where`, oldest first, each with what is left after its reversals.
+ * @param tx - The open transaction
+ * @param tenantOrgId - Organization; every query filters it
+ * @param where - Which lines (document, party, rules)
+ * @returns Lines with remaining taxable and tax; fully reversed lines are left out
+ */
+export async function remainingTaxLines(tx: Tx, tenantOrgId: string, where: Prisma.org_tax_lines_trWhereInput) {
   const finals = await tx.org_tax_lines_tr.findMany({
-    where: {
-      tenant_org_id: tenantOrgId, source_doc_type_code: DOC_SEQ_TYPES.ORDER, source_doc_id: orderId,
-      line_status: STATUS.FINAL, reverses_tax_line_id: null, is_active: true, rec_status: 1,
-    },
+    where: { ...where, tenant_org_id: tenantOrgId, line_status: STATUS.FINAL, reverses_tax_line_id: null, is_active: true, rec_status: 1 },
     orderBy: [{ created_at: 'asc' }, { applied_seq: 'asc' }],
   });
   if (finals.length === 0) return [];
@@ -217,9 +224,10 @@ async function remainingFinalLines(tx: Tx, tenantOrgId: string, orderId: string)
   }).filter((r) => !r.taxable.isZero() || !r.tax.isZero());
 }
 
-type FinalRemaining = Awaited<ReturnType<typeof remainingFinalLines>>[number];
+export type FinalRemaining = Awaited<ReturnType<typeof remainingTaxLines>>[number];
 
-const reversalOf = (
+/** A FINAL row on `doc` that takes `amounts` back from one line at its original code and rate. */
+export const reversalOf = (
   { line }: FinalRemaining,
   amounts: { taxable: Money; tax: Money },
   doc: { typeCode: string; id: string; no: string | null; taxDate: string; at: Date; periodId: string | null; userId: string | null },

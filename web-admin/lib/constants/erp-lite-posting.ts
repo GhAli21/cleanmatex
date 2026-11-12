@@ -95,6 +95,11 @@ export const ERP_LITE_TXN_EVENT_CODES = {
   // A6-1b (migration 0546) — cash change rounding gain/loss.
   CASH_ROUND_LOSS: 'CASH_ROUND_LOSS',
   CASH_ROUND_GAIN: 'CASH_ROUND_GAIN',
+  // Tax Engine T7 (migration 0725) — tax inside prepayments moved between the liability and Output VAT.
+  TAX_ADVANCE_RECORDED:   'TAX_ADVANCE_RECORDED',
+  TAX_ADVANCE_NETTED:     'TAX_ADVANCE_NETTED',
+  TAX_GIFT_CARD_RECORDED: 'TAX_GIFT_CARD_RECORDED',
+  TAX_GIFT_CARD_NETTED:   'TAX_GIFT_CARD_NETTED',
 } as const;
 
 export const ERP_LITE_BLOCKING_MODES = {

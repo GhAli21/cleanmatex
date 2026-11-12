@@ -30,8 +30,7 @@ type Level = 'ITEM' | 'PIECE';
 const OMR = { decimalPlaces: 3, mode: 'HALF_UP' as const };
 
 const vat5 = (roundingLevel: 'LINE' | 'DOCUMENT' = 'DOCUMENT'): TaxProfileInput => ({
-  id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true,
-  appliesTo: null, roundingLevel, rounding: OMR,
+  id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true, roundingLevel, rounding: OMR,
 });
 
 /** One line of a test order. */

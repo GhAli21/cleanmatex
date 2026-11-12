@@ -49,7 +49,7 @@ import {
   OUTBOX_EVENT_TYPES,
   SV_FUNDING_TENDER_STATUS,
 } from '@/lib/constants/order-financial';
-import { GIFT_CARD_STATUS } from '@/lib/constants/gift-card';
+import { GIFT_CARD_STATUS, type GiftCardVoucherTaxMode } from '@/lib/constants/gift-card';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 import { hashPayload } from '@/lib/utils/idempotency';
 import bcrypt from 'bcryptjs';
@@ -104,6 +104,8 @@ export interface GiftCardSaleDetails {
   cardName2?: string;
   expiryDate?: string;
   issuedToCustomerId?: string;
+  /** When the card is taxed; omitted = MPV (the column default). */
+  voucherTaxMode?: GiftCardVoucherTaxMode;
 }
 
 export interface FundStoredValueParams {
@@ -297,6 +299,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
           expiry_date: giftCard!.expiryDate ? new Date(giftCard!.expiryDate) : undefined,
           issued_to_customer_id: giftCard!.issuedToCustomerId,
           purchased_by_cust_id: customerId,
+          voucher_tax_mode: giftCard!.voucherTaxMode,
           issue_type: 'SOLD',
           gift_card_type: 'FIXED_VALUE',
           currency_code: resolvedCurrency,
@@ -647,6 +650,7 @@ export async function finalizeStoredValueFundingIfReady(
       idempotencyKey: creditIdempotencyKey,
       voucherId,
       voucherLineId: triggeringLineId,
+      taxVoucher: { voucherId, voucherLineId: triggeringLineId },
     });
 
     // B6/D008 — DR Cash/Clearing, CR Customer Advance Liability.

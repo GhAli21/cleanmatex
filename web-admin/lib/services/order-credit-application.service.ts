@@ -18,6 +18,7 @@ import {
   redeemWalletTx,
 } from '@/lib/services/stored-value.service';
 import { emitEventTx } from '@/lib/services/outbox.service';
+import { netPrepaidTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { requireCurrencyCode } from '@/lib/money/currency-resolution';
 import type { StoredValueSummaryResponse } from '@/lib/types/payment-quote';
@@ -219,7 +220,7 @@ export async function applyStoredValueDebitTx(
     return undefined;
   }
 
-  return tx.org_order_credit_apps_dtl.create({
+  const app = await tx.org_order_credit_apps_dtl.create({
     data: {
       tenant_org_id:           tenantId,
       order_id:                orderId,
@@ -239,6 +240,11 @@ export async function applyStoredValueDebitTx(
       rec_status:              1,
     },
   });
+  // T6: an already-invoiced order paid from a taxed prepayment nets that tax now.
+  if (creditType === CREDIT_APPLICATION_TYPES.ADVANCE || creditType === CREDIT_APPLICATION_TYPES.GIFT_CARD) {
+    await netPrepaidTaxTx(tx, { tenantOrgId: tenantId, orderId, userId: appliedBy, at: new Date() });
+  }
+  return app;
 }
 
 /**

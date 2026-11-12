@@ -13,7 +13,6 @@
       "TAX_CODE_UNSUPPORTED": "Tax code {taxCode} cannot be used on purchases yet.",
       "PURCHASE_TAX_MISMATCH": "The tax amount {entered} does not match the tax code ({expected}). Leave the tax blank to use {expected}, or choose the item tax class that matches the supplier invoice.",
       "TAX_CLASS_INVALID": "This item tax class cannot be used for purchases.",
-      "WHT_POSTING_NOT_READY": "Withholding tax ({amount}) applies to this payment, but recording withholding is not available yet. Ask a manager to check Tax Setup.",
       "TAX_CURRENCY_UNSUPPORTED": "Tax is on, so this purchase must be in {baseCurrency}. It is in {currency}."
     }
   }

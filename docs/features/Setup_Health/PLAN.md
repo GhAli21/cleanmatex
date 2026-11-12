@@ -109,8 +109,8 @@ Tick each task when done. The last task of every step updates [STATUS.md](STATUS
 - [x] Wait for the Speeds public-holidays table to exist (0711 applied)
 - [x] Write `0716_setup_health_cal_holidays.sql` (check function + registry row) → STOP
 - [x] Owner applies 0716 (2026-11-07); verified on remote
-- [ ] Set `hq_fix_route` (new migration) once the Speeds HQ public-holidays screen exists
-- [ ] Update STATUS.md + this list
+- [x] Set `hq_fix_route` (new migration) once the Speeds HQ public-holidays screen exists — 0724 applied local + remote 2026-11-10
+- [x] Update STATUS.md + this list
 
 **Step 2 — Permissions + navigation migration (0710)**
 - [x] Load `/create-update-rbac-permission`, `/navigation`

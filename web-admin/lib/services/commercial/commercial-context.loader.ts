@@ -255,7 +255,6 @@ export interface RecordedTaxProfile {
   ratePercent: string;
   isCompound: boolean;
   isDefault: boolean;
-  appliesTo: readonly string[] | null;
   roundingLevel: string;
   outputDecimalPlaces: number | null;
   roundingMode: string | null;
@@ -277,7 +276,6 @@ export interface ProductFacts {
   /** A rule for all products does not reach a retail item. */
   isRetailItem: boolean;
   taxCategoryCode: string;
-  taxSupplyCode: string | null;
   taxExemptReason: string | null;
   /** Null: the organization's default sales class. */
   taxItemClassCode: string | null;
@@ -436,7 +434,7 @@ export async function loadCommercialFacts(
       where: { tenant_org_id: tenantOrgId, id: { in: productIds }, is_active: true, rec_status: 1 },
       select: {
         id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
-        turnaround_hh: true, is_retail_item: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true, tax_item_class_code: true,
+        turnaround_hh: true, is_retail_item: true, tax_category_code: true, tax_exempt_reason: true, tax_item_class_code: true,
       },
     }),
     db.org_price_list_items_dtl.findMany({
@@ -566,7 +564,6 @@ export async function loadCommercialFacts(
     rateMissing: p.rate == null,
     isCompound: p.is_compound,
     isDefault: false,
-    appliesTo: null,
     roundingLevel: p.rounding_level as TaxProfileInput['roundingLevel'],
     rounding: {
       decimalPlaces: p.output_decimal_places ?? rounding.decimalPlaces,
@@ -603,7 +600,6 @@ export async function loadCommercialFacts(
       ratePercent: p.ratePercent,
       isCompound: p.isCompound,
       isDefault: p.isDefault,
-      appliesTo: p.appliesTo,
       roundingLevel: p.roundingLevel as TaxProfileInput['roundingLevel'],
       rounding: {
         decimalPlaces: p.outputDecimalPlaces ?? rounding.decimalPlaces,
@@ -681,7 +677,6 @@ export async function loadCommercialFacts(
       turnaroundHours: text(p.turnaround_hh),
       isRetailItem: p.is_retail_item === true,
       taxCategoryCode: p.tax_category_code,
-      taxSupplyCode: p.tax_supply_code,
       taxExemptReason: p.tax_exempt_reason,
       taxItemClassCode: p.tax_item_class_code,
     }])),
@@ -770,7 +765,6 @@ function customProductFacts(custom: CustomItemIntent) {
     isRetailItem: false,
     taxCategoryCode: null,
     taxExemptReason: null,
-    taxSupplyCode: null,
     taxItemClassCode: null,
   };
 }
@@ -824,9 +818,9 @@ export function buildCommercialOrderInput(
     const rank = facts.speedRanks.get(code);
     return rank != null && standardRank != null && rank < standardRank;
   };
-  /** D5: a speed is offered only where an active rule reaches the product. */
-  const requireOffered = (result: SpeedPricingResult, productId: string | null) => {
-    if (result.outcome === SPEED_PRICING_OUTCOMES.NO_RULE) {
+  /** D5: a speed is offered only where an active rule reaches the product. A retail item has no speed: it keeps its price. */
+  const requireOffered = (result: SpeedPricingResult, productId: string | null, isRetailItem: boolean) => {
+    if (result.outcome === SPEED_PRICING_OUTCOMES.NO_RULE && !isRetailItem) {
       throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.SPEED_NOT_OFFERED,
         `Service speed ${result.serviceSpeed} is not offered for this item.`,
         { serviceSpeed: result.serviceSpeed, ...(productId ? { productId } : {}) });
@@ -880,7 +874,7 @@ export function buildCommercialOrderInput(
       quantity: line.quantity,
       rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
       discountAllowed: discountAllowed(serviceSpeed),
-    }), product.id);
+    }), product.id, product.isRetailItem);
     const pieceSpeeds = new Map<string, { serviceSpeed: string; ruleId: string | null }>();
     const price: ResolvedLinePrice = { lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds };
     prices.push(price);
@@ -924,7 +918,7 @@ export function buildCommercialOrderInput(
         quantity: 1,
         rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
         discountAllowed: discountAllowed(code),
-      }), product.id);
+      }), product.id, product.isRetailItem);
       pieceSpeeds.set(piece.pieceId, { serviceSpeed: code, ruleId: own.ruleId });
       return {
         ...base,
@@ -961,7 +955,7 @@ export function buildCommercialOrderInput(
       ? decided.profiles
       : recordedTax
         ? recordedTax.profileIds.flatMap((id) => facts.taxProfiles.filter((p) => p.id === id))
-        : selectTaxProfiles(facts.taxProfiles, product.taxSupplyCode);
+        : selectTaxProfiles(facts.taxProfiles);
 
     return {
       lineId: line.lineId,
@@ -1010,7 +1004,7 @@ export function buildCommercialOrderInput(
     : {
       taxCategoryCode: chargeCategory.category,
       exemptReason: chargeCategory.exemptReason,
-      profiles: selectTaxProfiles(facts.taxProfiles, null),
+      profiles: selectTaxProfiles(facts.taxProfiles),
     };
   const charges: CommercialChargeInput[] = [
     ...intent.orderPreferences.map((p) => ({

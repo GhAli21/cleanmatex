@@ -25,6 +25,7 @@ import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context'
 import { logger } from '@/lib/utils/logger';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
+import { recordGiftCardSaleTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 import {
   GIFT_CARD_STATUS,
   GIFT_CARD_TXN_TYPE,
@@ -408,6 +409,9 @@ export async function finalizeGiftCardSaleTx(
       notes: 'Gift card funding confirmed (B3 tender capture)',
     },
   });
+
+  // T6: a single-purpose card is taxed at sale; a multi-purpose one when it pays for an order.
+  await recordGiftCardSaleTaxTx(tx, { tenantOrgId, giftCardId, amount, branchId: branchId ?? null, userId: performedBy ?? null });
 
   return { newBalance: amount };
 }

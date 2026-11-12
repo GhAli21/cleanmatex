@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-08T12:44:52.070Z",
+  "extractedAt": "2026-11-12T15:39:19.514Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -3557,6 +3557,14 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/products/tax-classes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/products/tax-classes",
+      "permission": "products:read",
+      "line": 8,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/products/[id]/route.ts",
       "method": "GET",
       "route": "/api/v1/products/[id]",
@@ -3617,7 +3625,7 @@
       "method": "GET",
       "route": "/api/v1/settings/general",
       "permission": "settings:read",
-      "line": 83,
+      "line": 84,
       "surface": "api"
     },
     {
@@ -3625,7 +3633,7 @@
       "method": "GET",
       "route": "/api/v1/settings/general",
       "permission": "settings:organization",
-      "line": 115,
+      "line": 116,
       "surface": "api"
     },
     {
@@ -3709,27 +3717,163 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/settings/tax/profiles/route.ts",
+      "file": "app/api/v1/tax/codes/route.ts",
       "method": "GET",
-      "route": "/api/v1/settings/tax/profiles",
+      "route": "/api/v1/tax/codes",
       "permission": "tax:view_config",
-      "line": 14,
+      "line": 11,
       "surface": "api"
     },
     {
-      "file": "app/api/v1/settings/tax/profiles/route.ts",
+      "file": "app/api/v1/tax/codes/route.ts",
       "method": "GET",
-      "route": "/api/v1/settings/tax/profiles",
+      "route": "/api/v1/tax/codes",
       "permission": "tax:manage_config",
-      "line": 52,
+      "line": 22,
       "surface": "api"
     },
     {
-      "file": "app/api/v1/settings/tax/profiles/[profileId]/route.ts",
+      "file": "app/api/v1/tax/codes/[id]/route.ts",
       "method": "PATCH",
-      "route": "/api/v1/settings/tax/profiles/[profileId]",
+      "route": "/api/v1/tax/codes/[id]",
       "permission": "tax:manage_config",
-      "line": 29,
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/config/confirm/route.ts",
+      "method": "POST",
+      "route": "/api/v1/tax/config/confirm",
+      "permission": "tax:manage_config",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/config/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/config",
+      "permission": "tax:view_config",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/config/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/config",
+      "permission": "tax:manage_config",
+      "line": 20,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/explain/route.ts",
+      "method": "POST",
+      "route": "/api/v1/tax/explain",
+      "permission": "tax:view_config",
+      "line": 13,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/item-classes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/item-classes",
+      "permission": "tax:view_config",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/item-classes/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/item-classes",
+      "permission": "tax:manage_config",
+      "line": 21,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/item-classes/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/tax/item-classes/[id]",
+      "permission": "tax:manage_config",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/kits/apply/route.ts",
+      "method": "POST",
+      "route": "/api/v1/tax/kits/apply",
+      "permission": "tax:manage_config",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/kits/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/kits",
+      "permission": "tax:view_config",
+      "line": 8,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/options/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/options",
+      "permission": "tax:view_config",
+      "line": 8,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/periods/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/periods",
+      "permission": "tax:manage_periods",
+      "line": 20,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/periods/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/tax/periods/[id]",
+      "permission": "tax:manage_periods",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/returns/lines/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/returns/lines",
+      "permission": "tax:view_reports",
+      "line": 9,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/returns/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/returns",
+      "permission": "tax:view_reports",
+      "line": 9,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/rules/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/rules",
+      "permission": "tax:view_config",
+      "line": 11,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/rules/route.ts",
+      "method": "GET",
+      "route": "/api/v1/tax/rules",
+      "permission": "tax:manage_config",
+      "line": 22,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/tax/rules/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/tax/rules/[id]",
+      "permission": "tax:manage_config",
+      "line": 12,
       "surface": "api"
     },
     {

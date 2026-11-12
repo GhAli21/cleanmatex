@@ -45,7 +45,7 @@ function mockDb(fixtures: Fixtures) {
 
 const product = (id: string, over: Record<string, unknown> = {}) => ({
   id, service_category_code: 'DRY_CLEAN', price_type: 'PER_PC', default_sell_price: '1.000', min_sell_price: null,
-  turnaround_hh: '24', tax_category_code: 'STANDARD', tax_supply_code: null, tax_exempt_reason: null, ...over,
+  turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null, ...over,
 });
 
 const baseFixtures = (): Fixtures => ({
@@ -68,7 +68,7 @@ const baseFixtures = (): Fixtures => ({
   }],
   sys_service_speed_cd: [{ code: 'STANDARD', display_order: 2 }, { code: 'EXPRESS', display_order: 4 }],
   org_tax_profiles_cf: [{
-    id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false, is_default: true, applies_to: [],
+    id: 'vat', name: 'VAT', name2: 'ضريبة', tax_type: 'VAT', rate: '5', is_compound: false,
     rounding_level: 'DOCUMENT', rounding_mode: 'HALF_UP', output_decimal_places: null, rounding_increment_minor: null, ...taxCodeColumns('VAT_STD'),
   }],
   ...activeTaxSetup('VAT_STD'),
@@ -302,7 +302,7 @@ describe('Service Speeds S3: calendar, offered speeds, ECONOMY discount', () => 
     const facts = await loadCommercialFacts(db, TENANT, oneLine('URGENT'), deps);
     expect(() => buildCommercialOrderInput(oneLine('URGENT'), facts)).toThrow(expect.objectContaining({ code: 'SPEED_NOT_OFFERED' }));
     const express = await loadCommercialFacts(mockDb(calendarFixtures()).db, TENANT, oneLine('EXPRESS'), deps);
-    expect(buildCommercialOrderInput(oneLine('EXPRESS'), express).prices[0].speed.outcome).toBe('NO_RULE');
+    expect(() => buildCommercialOrderInput(oneLine('EXPRESS'), express)).toThrow(expect.objectContaining({ code: 'SPEED_NOT_OFFERED' }));
   });
 });
 

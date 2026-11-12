@@ -37,7 +37,6 @@ export const COMMERCIAL_ERROR_CODES = {
   /** A purchase line names an item tax class that is not an active purchase class. */
   TAX_CLASS_INVALID: 'TAX_CLASS_INVALID',
   /** Withholding tax applies, but its posting (T7) is not built yet; nothing is written. */
-  WHT_POSTING_NOT_READY: 'WHT_POSTING_NOT_READY',
   /** A taxed purchase is in a currency other than the organization's (ERP-Lite records no exchange rate). */
   TAX_CURRENCY_UNSUPPORTED: 'TAX_CURRENCY_UNSUPPORTED',
   /** An output breaks a money invariant I1–I6 (PLAN.md §5.2); nothing is written. */

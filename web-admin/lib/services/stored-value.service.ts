@@ -18,6 +18,7 @@ import {
   getLoyaltyConfig,
   syncAvailableLoyaltyPoints,
 } from '@/lib/services/loyalty.service';
+import { recordAdvanceReceiptTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -245,9 +246,15 @@ export async function issueAdvanceTx(
     idempotencyKey?: string;
     voucherId?: string;
     voucherLineId?: string;
+    /**
+     * T6: the receipt voucher (and line) that took this money. Set only when real money was
+     * received; its advance tax is recorded where the kit taxes advances. Restores and
+     * goodwill issues leave it unset.
+     */
+    taxVoucher?: { voucherId: string; voucherLineId: string | null } | null;
   }
 ) {
-  const { tenantId, customerId, amount, notes, performedBy, currencyCode, idempotencyKey, voucherId, voucherLineId } = params;
+  const { tenantId, customerId, amount, notes, performedBy, currencyCode, idempotencyKey, voucherId, voucherLineId, taxVoucher } = params;
 
   if (idempotencyKey) {
     const existing = await tx.org_advance_txn_dtl.findFirst({
@@ -285,6 +292,13 @@ export async function issueAdvanceTx(
     data:  { balance: { increment: amount }, updated_at: new Date() },
   });
   const balanceAfter = toNumber(updated.balance);
+
+  if (taxVoucher) {
+    await recordAdvanceReceiptTaxTx(tx, {
+      tenantOrgId: tenantId, customerId, amount, currencyCode: advance.currency_code,
+      voucherId: taxVoucher.voucherId, voucherLineId: taxVoucher.voucherLineId, userId: performedBy ?? null,
+    });
+  }
 
   return tx.org_advance_txn_dtl.create({
     data: {

@@ -1,7 +1,7 @@
 /**
  * Picks and checks the tax of one purchase line (expense, purchase order, supplier
- * invoice) or one supplier payment (withholding) from the organization's rules.
- * Pure, no I/O.
+ * invoice), one supplier payment (withholding) or one prepayment (customer advance,
+ * single-purpose gift card) from the organization's rules. Pure, no I/O.
  *
  * A supplier invoice states its own tax, so an entered amount is kept when it is within
  * one minor unit of what the code gives (supplier rounding) and refused otherwise; it is
@@ -32,7 +32,7 @@ export interface PurchaseTaxCode {
 export type PurchaseTaxRule = TaxRuleForMatch & { tax_codes: string[] };
 
 export interface PurchaseTaxFacts {
-  flow: 'INPUT' | 'WITHHOLDING';
+  flow: 'INPUT' | 'WITHHOLDING' | 'OUTPUT';
   docTypeCode: string;
   date: string;
   branchId: string | null;
@@ -41,8 +41,11 @@ export interface PurchaseTaxFacts {
   itemClass: string | null;
   partyTaxClass: string;
   partyCountryScope: string;
+  /** Amount before tax; with `inclusive`, the amount received including tax. */
   net: Money;
-  /** What the user typed; null = take the code's tax. */
+  /** True for money received (a prepayment): the tax is inside `net`. */
+  inclusive?: boolean;
+  /** What the user typed; null = take the code's tax. Ignored with `inclusive`. */
   enteredTax: Money | null;
   /** Minor-unit digits of the document currency. */
   decimals: number;
@@ -109,6 +112,18 @@ export function decidePurchaseTax(
   });
 
   const round = (m: Money) => m.toDecimalPlaces(facts.decimals);
+  if (facts.inclusive) {
+    const rates = versions.map((v) => toMoney(v.ratePercent as string));
+    const rateSum = sumMoney(rates);
+    const total = round(facts.net.times(rateSum).dividedBy(rateSum.plus(100)));
+    const taxes = total.isZero() ? rates.map(() => ZERO) : allocateLargestRemainder(total, rates, facts.decimals);
+    const taxable = facts.net.minus(total);
+    return {
+      ruleId: outcome.rule.id,
+      parts: versions.map((code, i) => ({ code, seq: i + 1, taxable, tax: taxes[i], recoverable: ZERO })),
+      taxAmount: total,
+    };
+  }
   const expected = versions.map((v) => round(facts.net.times(toMoney(v.ratePercent as string)).dividedBy(100)));
   const expectedTotal = sumMoney(expected);
   const minorUnit = toMoney(1).dividedBy(toMoney(10).pow(facts.decimals));

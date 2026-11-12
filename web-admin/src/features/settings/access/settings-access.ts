@@ -253,12 +253,6 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
-        label: 'Tax profiles',
-        method: 'GET',
-        path: '/api/v1/settings/tax/profiles',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory beyond the page gate.'],
-      },
-      {
         label: 'Tax exemptions',
         method: 'GET',
         path: '/api/v1/settings/tax/exemptions',
@@ -305,6 +299,24 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: '/api/v1/tax/kits/apply',
         requirement: { permissions: ['tax:manage_config'], requireAllPermissions: true },
+      },
+      {
+        label: 'Tax periods',
+        method: 'GET',
+        path: '/api/v1/tax/periods',
+        requirement: { permissions: ['tax:view_config', 'tax:view_reports', 'tax:manage_periods'], requireAllPermissions: false },
+      },
+      {
+        label: 'Add tax period',
+        method: 'POST',
+        path: '/api/v1/tax/periods',
+        requirement: { permissions: ['tax:manage_periods'], requireAllPermissions: true },
+      },
+      {
+        label: 'Close or reopen tax period',
+        method: 'PATCH',
+        path: '/api/v1/tax/periods/[id]',
+        requirement: { permissions: ['tax:manage_periods'], requireAllPermissions: true },
       },
       {
         label: 'Tax codes',

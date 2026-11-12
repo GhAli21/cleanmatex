@@ -22,6 +22,8 @@
 | Cross-tenant admin operations | `cleanmatexsaas` | — |
 | ADR approval | User (writes `Approved_By_Jh` in ADR file) | Both projects |
 | Order-finance settings on `org_tenants_mst` / branches (`tax_pricing_mode`, `extra_price_pricing_mode`, `commercial_level`, `disc_alloc_mode`, `disc_alloc_basis`) | `cleanmatexsaas` (Tax & Pricing, branch Pricing overrides; ADR-060 §8 — written directly by HQ, not via `sys_stng_*`) | `cleanmatex` reads them; its tenant / branch PATCH routes refuse them with `403 FIELD_MANAGED_BY_HQ` |
+| Tax kits, kit versions, starter packages (`sys_tax_kit*`, `sys_starter_pkg_*`, `sys_tax_return_box_*`) | `cleanmatexsaas` (Tax kits screen: draft → check → publish; Apply / Update kit per organization; Tax Engine ADR-061) | `cleanmatex` copies a published version into `org_tax_*` via `fn_tax_kit_apply` / `fn_tax_kit_update` (nightly cron `tax-kit-update`); the organization owns its copy, published kits are locked |
+| Organization tax setup and tax record (`org_tax_config_cf`, `org_tax_rules_cf`, `org_tax_item_classes_cf`, `org_tax_lines_tr`, `org_tax_periods_mst`) | `cleanmatex` (Settings › Tax Setup, orders, purchases, VAT return) | `cleanmatexsaas` reads them for Setup Health and the organization's Tax kit page; it writes only through `fn_tax_kit_apply` / `fn_tax_kit_update` |
 
 ---
 

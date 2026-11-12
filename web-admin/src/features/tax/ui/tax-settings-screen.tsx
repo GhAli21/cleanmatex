@@ -10,19 +10,21 @@ import { useTaxConfig, useTaxErrorText } from '../hooks/use-tax'
 import { TaxClassesTab } from './tax-classes-tab'
 import { TaxCodesTab } from './tax-codes-tab'
 import { TaxOverviewTab } from './tax-overview-tab'
+import { TaxPeriodsTab } from './tax-periods-tab'
 import { TaxRulesTab } from './tax-rules-tab'
 
 interface TaxSettingsScreenProps {
-  /** The old profiles and exemptions editor: it still drives order tax until T4. */
-  currentOrderTax: ReactNode
+  /** The customer and service tax exemptions editor (order tax reads them). */
+  exemptions: ReactNode
 }
 
 /** Tax settings: Basic overview, and in Advanced mode the codes, rules and classes. */
-export function TaxSettingsScreen({ currentOrderTax }: TaxSettingsScreenProps) {
+export function TaxSettingsScreen({ exemptions }: TaxSettingsScreenProps) {
   const t = useTranslations('taxSetup')
   const tEngine = useTranslations('taxSetup.engine.tabs')
   const errorText = useTaxErrorText()
   const canManage = useHasPermissionCode(TAX_PERMISSIONS.MANAGE_CONFIG)
+  const canManagePeriods = useHasPermissionCode(TAX_PERMISSIONS.MANAGE_PERIODS)
   const { data: view, isLoading, error, refetch } = useTaxConfig()
 
   let body: ReactNode
@@ -45,7 +47,8 @@ export function TaxSettingsScreen({ currentOrderTax }: TaxSettingsScreenProps) {
             { id: 'classes', label: tEngine('classes'), content: <TaxClassesTab canManage={canManage} /> },
           ]
         : []),
-      { id: 'current', label: tEngine('currentOrderTax'), content: currentOrderTax },
+      { id: 'periods', label: tEngine('periods'), content: <TaxPeriodsTab canManage={canManagePeriods} /> },
+      { id: 'exemptions', label: tEngine('currentOrderTax'), content: exemptions },
     ]
     body = <CmxTabsPanel tabs={tabs} />
   }

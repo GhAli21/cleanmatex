@@ -15,18 +15,33 @@ Items a person must do; the code cannot settle them. Facts and sources: [KIT_FAC
 
 Until each item is done, HQ Setup Health shows `TAX_KIT_FACT_UNVERIFIED` for that kit.
 
+## Waiting for you
+
+- Done 2026-11-12: `0727_tax_drop_legacy_columns.sql` applied. It drops `org_tax_profiles_cf.applies_to`, `org_tax_profiles_cf.is_default` and `org_product_data_mst.tax_supply_code` and re-creates `fn_tax_kit_apply` without them. `schema.prisma` already has the fields removed; after applying, run `npm run prisma:pull` and regenerate types in both repos.
+
 ## After each migration
 
 - Apply the migration (local + remote), run `npm run prisma:pull`, regenerate types in both repos, then reply so the next step can start.
 
 ## Testing
 
-- Run the scenarios in [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) for T3 (organization app and HQ) and T4 (orders).
+- Run the scenarios in [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) for T3–T8, including the T4 leftovers (31a–31g).
 
 ## Decisions to check
 
 - Demo organization `11111111…` charges an extra 2% on every order (old profile `LEGACY_05`). `0722` keeps it as a rule code so nothing changes on confirmation. If that 2% was only test data, deactivate it in Advanced mode › Tax rules.
 - Until an organization confirms its tax setup, its new orders carry no tax (ADR-061). All 4 organizations are waiting for confirmation today.
-- Supplier withholding: every kit's withholding rule is 0% (`WHT_NONE`). A real withholding rate is refused on supplier payments until T7 posts the withheld liability.
+- Supplier withholding: every kit's withholding rule is 0% (`WHT_NONE`). After T7 a real rate is recorded on the payment (cash paid = amount − withheld) and on the return; ERP-Lite does not post supplier payments to the ledger at all, so the withheld liability is not journalled.
 - Foreign-currency purchases cannot be taxed yet: ERP-Lite records no exchange rate. Decide whether ERP-Lite should store a rate, then the limit can go.
 - No kit has a reverse-charge purchase rule (foreign supplier of services). `VAT_IN_RC` exists but nothing selects it; add rules per country after checking the law.
+- Advances are taxed when received (kits OM/SA/AE/BH `tax_on_advance = true`). Confirm with a tax adviser whether a checkout overpayment kept as advance should be taxed at receipt in each country (T6 taxes it).
+- Gift cards default to Multi-purpose (tax when used). Choose Single-purpose at sale only for cards usable just for your own services (F6).
+- A single-purpose card's unused balance that expires keeps its sale tax (no reversal). Confirm the treatment of expired balances per country.
+- Map the **Input VAT** account in ERP-Lite (usage `VAT_INPUT`) before using the tax engine on expenses: expense postings now debit it with the recoverable tax.
+- Add your first tax periods (Settings › Tax Setup › Tax periods) to match your filing frequency, and close each one after filing.
+- VAT return boxes (T7) are all marked "to confirm": check each layout against the authority's current form before filing (SA/BH/OM numbering, OM box codes are placeholders).
+- The return cannot tell exports from domestic zero-rated sales (both are "zero-rated" lines); the export boxes stay for manual entry on the portal. Same for imports and tourist refunds.
+- Reverse-charge tax due is added to "VAT due" on the SA, BH and generic layouts (their forms have no separate box for it). Confirm with a tax adviser.
+- UAE: a branch without an emirate is left out of boxes 1a–1g; the report lists those lines under "not on the return". Set the emirate on every UAE branch.
+- Kit drafts copy rules and item classes as they are; editing those in a draft is not built yet. Decide whether HQ needs it (rate changes, names and examples are editable).
+- A data-fix migration that must change a published kit has to `SET LOCAL app.tax_kit_seed = 'on'` (published kits are locked).

@@ -28,6 +28,7 @@ import type {
   ErpLiteRefundAutoPostInput,
   ErpLiteWalletToppedUpInput,
   ErpLiteCashEventInput,
+  ErpLiteTaxReclassInput,
 } from '@/lib/types/erp-lite-auto-post';
 import type { ErpLitePostingRequest } from '@/lib/types/erp-lite-posting';
 import { ErpLitePostingEngineService } from '@/lib/services/erp-lite-posting-engine.service';
@@ -338,8 +339,9 @@ export class ErpLiteAutoPostService {
       currency_code: input.currency_code,
       exchange_rate: Number(input.exchange_rate ?? 1),
       amounts: {
-        net_amount: this.roundAmount(input.subtotal_amount),
-        tax_amount: this.roundAmount(input.tax_amount ?? 0),
+        // Rule EXPENSE_RECORDED_V1 (0725): Dr expense net, Dr Input VAT tax, Cr cash/bank gross.
+        net_amount: this.roundAmount(input.total_amount - (input.recoverable_tax_amount ?? 0)),
+        tax_amount: this.roundAmount(input.recoverable_tax_amount ?? 0),
         gross_amount: this.roundAmount(input.total_amount),
         discount_amount: 0,
         delivery_fee_amount: 0,
@@ -761,6 +763,32 @@ export class ErpLiteAutoPostService {
         payload_version: 'sv-v1',
       },
     };
+  }
+
+  /** Tax Engine T7: moves prepayment tax between its liability account and Output VAT, inside the caller's transaction. */
+  static async dispatchTaxReclassInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteTaxReclassInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const amount = this.roundAmount(input.tax_amount);
+    const request: ErpLitePostingRequest = {
+      tenant_org_id: tenantId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES[input.event_code],
+      source_module_code: 'TAX',
+      source_doc_type_code: 'TAX_LINE',
+      source_doc_id: input.tax_line_id,
+      source_doc_no: input.source_doc_no ?? null,
+      journal_date: input.tax_date,
+      posting_date: input.tax_date,
+      currency_code: input.currency_code,
+      exchange_rate: 1,
+      amounts: { net_amount: 0, tax_amount: amount, gross_amount: amount, discount_amount: 0, delivery_fee_amount: 0, rounding_amount: 0 },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: { created_by: input.created_by ?? null, source_context: 'tax_prepayment_reclass', payload_version: 'tax-v1' },
+    };
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
   }
 
   // ============================================================================

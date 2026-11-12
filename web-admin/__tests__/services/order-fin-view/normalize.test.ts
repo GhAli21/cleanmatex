@@ -146,3 +146,14 @@ describe('normalizeOrderFinSources: included parts', () => {
     expect(notLoaded.snapshot).toMatchObject({ extrasIncluded: null, speedPremiumIncluded: null });
   });
 });
+
+describe('normalizeFacts — item tax by code (Tax Engine T4)', () => {
+  it('carries the tax parts of each line; a line without any has none', () => {
+    const facts = normalizeFacts(data({ items: [
+      { id: 'L1', total_price: '10', taxParts: [{ taxCode: 'VAT_STD', ratePercent: 5, taxAmount: 0.5 }, { taxCode: 'MUNI', ratePercent: 2, taxAmount: 0.2 }] },
+      { id: 'L2', total_price: '4', taxParts: [] },
+    ] }));
+    expect(facts.items?.[0].taxParts).toEqual([{ taxCode: 'VAT_STD', ratePercent: 5, amount: 0.5 }, { taxCode: 'MUNI', ratePercent: 2, amount: 0.2 }]);
+    expect(facts.items?.[1].taxParts).toBeUndefined();
+  });
+});

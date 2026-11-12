@@ -170,6 +170,24 @@ author: CleanMateX Team
   - Functions: `sys_otp_generate_code()`, `sys_otp_validate_code()`
   - Views: `sys_otp_pending_verifications_vw`
 
+### ERP Lite (module marker — not a plain feature abbreviation)
+- **Marker**: `erplt`
+- **Scope**: `org_erplt_` (tenant only; ERP Lite has no sys_ objects today)
+- **Rule**: Every NEW ERP Lite database object MUST include `erplt` right after the scope prefix, followed by its sub-feature abbreviation: `org_erplt_{sub_feature}_{object}_{suffix}`. See `conventions.md` → "ERP Lite Module Marker" for the full rule and why (disambiguates from unrelated `fin`/`exp`/`bank` usage elsewhere, e.g. Order Fin).
+- **Sub-feature abbreviations under `erplt`**:
+  - `fin` — chart of accounts, journals, posting, GL
+  - `exp` — expenses
+  - `pty` — petty cash
+  - `bank` — bank core & reconciliation
+  - `sup` — supplier master
+  - `ap` — AP docs, PO/AP, AP payments
+  - `cst` — cost allocation/runs
+- **Examples**:
+  - Tables: `org_erplt_fin_acct_mst`, `org_erplt_exp_petty_cash_mst`, `org_erplt_ap_supplier_mst`
+  - Functions: `org_erplt_fin_calculate_total()`
+  - Views: `org_erplt_fin_active_journals_vw`
+- **Not retroactive**: existing objects from migrations `0175`–`0203` (e.g. `org_fin_acct_mst`) are grandfathered; do not bulk-rename.
+
 ### Notifications
 - **Abbreviation**: `ntf`
 - **Scope**: `sys_ntf_` (system/global catalog), `org_ntf_` (tenant runtime)
@@ -241,6 +259,7 @@ author: CleanMateX Team
 | Audit | `aud` | `sys_aud_` | `org_aud_` |
 | OTP | `otp` | `sys_otp_` | - |
 | Notifications | `ntf` | `sys_ntf_` | `org_ntf_` |
+| ERP Lite (module marker) | `erplt` | - | `org_erplt_` |
 
 ---
 

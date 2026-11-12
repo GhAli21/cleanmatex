@@ -74,6 +74,19 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
     let note: React.ReactNode;
     if (l.unit === 'points') note = t('orders.finView.lines.points', { points: l.amount ?? 0 });
     else if (l.role !== 'additive' && l.amount != null) note = money(l.amount, { size: 'sm', tone: 'muted' });
+    if (l.taxParts?.length) {
+      // The line's tax by code, from the tax record; text only, never summed.
+      note = (
+        <span className="inline-flex flex-wrap items-center gap-x-2">
+          {l.taxParts.map((p) => (
+            <span key={`${p.taxCode}-${p.ratePercent ?? ''}`} className="inline-flex items-center gap-1">
+              {t('orders.finView.lines.taxPart', { code: p.taxCode, rate: p.ratePercent == null ? '' : `${p.ratePercent}%` })}
+              {money(p.amount, { size: 'sm', tone: 'muted' })}
+            </span>
+          ))}
+        </span>
+      );
+    }
     if (l.previousAmount != null) {
       note = (
         <span className="inline-flex items-center gap-1">

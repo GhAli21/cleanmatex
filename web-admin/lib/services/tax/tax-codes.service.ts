@@ -137,8 +137,6 @@ export async function createTaxCode(tenantOrgId: string, actor: string, input: T
         // New codes round like the kit, so one document never mixes rounding styles.
         rounding_level: version?.rounding_level ?? 'LINE',
         rounding_mode: version?.rounding_mode ?? 'HALF_UP',
-        is_default: false,
-        applies_to: [],
         created_by: actor,
         created_info: 'tax codes',
       },

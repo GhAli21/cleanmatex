@@ -17,6 +17,7 @@ import { resolveInitialEInvoiceStatus } from '@/lib/payments/e-invoice';
 import { addMoney, toMoneyString } from '@/lib/utils/money';
 import { logger } from '@/lib/utils/logger';
 import { finalizeOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
+import { netPrepaidTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -168,7 +169,7 @@ export async function issueTaxDocumentTx(
 ): Promise<{ documentNo: string; sequenceNumber: number }> {
   const doc = await tx.org_tax_documents_mst.findUnique({
     where: { id: documentId, tenant_org_id: tenantId },
-    select: { document_type: true, fiscal_year: true, status: true, tenant_org_id: true, order_id: true },
+    select: { document_type: true, doc_type_code: true, fiscal_year: true, status: true, tenant_org_id: true, order_id: true },
   });
 
   if (!doc) {
@@ -211,7 +212,13 @@ export async function issueTaxDocumentTx(
 
   // The invoice is the tax point: the order's tax record stops changing here.
   if (doc.document_type === TAX_DOCUMENT_TYPES.INVOICE || doc.document_type === TAX_DOCUMENT_TYPES.SIMPLIFIED_INVOICE) {
-    await finalizeOrderTaxLines(tx, { tenantOrgId: tenantId, orderId: doc.order_id, userId: issuedBy, at: new Date() });
+    const at = new Date();
+    await finalizeOrderTaxLines(tx, { tenantOrgId: tenantId, orderId: doc.order_id, userId: issuedBy, at });
+    // Tax already recorded on advances and single-purpose gift cards that paid this order is netted here.
+    await netPrepaidTaxTx(tx, {
+      tenantOrgId: tenantId, orderId: doc.order_id, userId: issuedBy, at,
+      invoice: { id: documentId, docTypeCode: doc.doc_type_code, no: documentNo },
+    });
   }
 
   return { documentNo, sequenceNumber };

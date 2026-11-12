@@ -61,6 +61,15 @@ export interface OrderFinLine {
   state: (typeof ORDER_FIN_LINE_STATES)[number];
   countsInTotal: boolean;                                // false: shown, never summed
   meta?: { dateIso?: string; methodCode?: string; ref?: string; statusCode?: string };
+  /** Item lines only: the line's tax by code (Tax Engine), shown under the line; never summed. */
+  taxParts?: OrderFinTaxPart[];
+}
+
+/** One tax code's share of an item line's tax, as stored in the tax record. */
+export interface OrderFinTaxPart {
+  taxCode: string;
+  ratePercent: number | null;
+  amount: number;
 }
 
 /** One section's payload. `lines` only when loaded in a detail mode. */
@@ -161,6 +170,7 @@ export interface OrderFinFactInput {
   dateIso?: string | null;
   methodCode?: string | null;               // payment method, credit type, charge type…
   ref?: string | null;                      // short display ref only (never a gateway reference)
+  taxParts?: OrderFinTaxPart[];             // item lines: tax by code
 }
 
 export interface OrderFinSourceSet {

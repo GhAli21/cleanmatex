@@ -164,7 +164,6 @@ export interface EditStoredTaxLine {
 export interface EditTaxProfileRow {
   id: string;
   taxCode: string;
-  appliesTo: readonly string[] | null;
   roundingLevel: string;
   roundingMode: string | null;
   outputDecimalPlaces: number | null;
@@ -288,13 +287,13 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
         select: {
           is_retail_item: true,
           id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
-          turnaround_hh: true, tax_category_code: true, tax_supply_code: true, tax_exempt_reason: true, tax_item_class_code: true,
+          turnaround_hh: true, tax_category_code: true, tax_exempt_reason: true, tax_item_class_code: true,
         },
     }),
     db.org_tax_profiles_cf.findMany({
       where: { tenant_org_id: tenantOrgId, id: { in: profileIds } },
       select: {
-        id: true, tax_code: true, applies_to: true, rounding_level: true, rounding_mode: true,
+        id: true, tax_code: true, rounding_level: true, rounding_mode: true,
         output_decimal_places: true, rounding_increment_minor: true,
       },
     }),
@@ -430,7 +429,6 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
       turnaroundHours: text(p.turnaround_hh),
       isRetailItem: p.is_retail_item === true,
       taxCategoryCode: p.tax_category_code,
-      taxSupplyCode: p.tax_supply_code,
       taxExemptReason: p.tax_exempt_reason,
       taxItemClassCode: p.tax_item_class_code,
     }])),
@@ -438,7 +436,6 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
     taxProfiles: new Map(profiles.map((p) => [p.id, {
       id: p.id,
       taxCode: p.tax_code,
-      appliesTo: p.applies_to,
       roundingLevel: p.rounding_level,
       roundingMode: p.rounding_mode,
       outputDecimalPlaces: p.output_decimal_places,
@@ -528,12 +525,10 @@ export interface EditIntent {
 /** The calculator id of a stored charge Edit keeps unchanged. */
 export const keptChargeId = (chargeRowId: string): string => `kept:${chargeRowId}`;
 
-const isGeneral = (appliesTo: readonly string[] | null) => !appliesTo || appliesTo.length === 0;
-
 /**
  * The profiles an order was taxed with (D22): the rate on its tax line, the
- * rounding and scope of the profile row. A general profile is a default; a
- * supply-code profile is chosen by its code, as at creation.
+ * rounding of the profile row. Each applies to every line of the order, as
+ * at creation (no product carried a supply code).
  * @param record the stored tax lines and profile rows
  * @returns the recorded profiles and their labels
  */
@@ -543,15 +538,13 @@ export function recordedTaxContext(record: Pick<EditOrderRecord, 'taxLines' | 't
   for (const line of record.taxLines) {
     const id = line.profileId ?? TENANT_RATE_PROFILE_ID;
     const row = line.profileId ? record.taxProfiles.get(line.profileId) : undefined;
-    const appliesTo = row?.appliesTo ?? null;
     taxProfiles.push({
       id,
       ...(row?.taxCode ? { taxCode: row.taxCode } : {}),
       taxType: line.taxType,
       ratePercent: line.ratePercent,
       isCompound: line.isCompound,
-      isDefault: isGeneral(appliesTo),
-      appliesTo,
+      isDefault: true,
       roundingLevel: row?.roundingLevel ?? 'DOCUMENT',
       outputDecimalPlaces: row?.outputDecimalPlaces ?? null,
       roundingMode: row?.roundingMode ?? null,
@@ -771,7 +764,6 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
           turnaroundHours: product?.turnaroundHours ?? null,
           isRetailItem: product?.isRetailItem ?? false,
           taxCategoryCode: item.taxCategoryCode ?? 'STANDARD',
-          taxSupplyCode: product?.taxSupplyCode ?? null,
           taxExemptReason: item.taxExemptReason,
           taxItemClassCode: product?.taxItemClassCode ?? null,
         },

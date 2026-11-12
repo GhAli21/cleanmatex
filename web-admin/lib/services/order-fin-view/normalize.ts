@@ -168,6 +168,9 @@ export function normalizeFacts(data: OrderFinSourceData): Partial<Record<OrderFi
       amount: num(r.total_price),
       state: 'normal',
       methodCode: r.service_category_code,
+      ...(r.taxParts?.length
+        ? { taxParts: r.taxParts.map((p) => ({ taxCode: p.taxCode, ratePercent: p.ratePercent, amount: p.taxAmount })) }
+        : {}),
     }));
   }
   if (data.charges) {

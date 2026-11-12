@@ -109,6 +109,12 @@
       "debit": "Debit",
       "pinOptional": "PIN (optional)",
       "sameAsBuyer": "Same as buyer",
+      "voucherTaxMode": "When tax is charged",
+      "voucherTaxModeHelp": "Single-purpose: the card buys only this business's services, so tax is charged now. Multi-purpose: tax is charged when the card pays for an order.",
+      "voucherTaxModes": {
+        "MPV": "Multi-purpose (tax when used)",
+        "SPV": "Single-purpose (tax at sale)"
+      },
       "generatedNotice": "Card will be created in Generated status. Activate it manually from the list.",
       "newBalancePreview": "New balance after adjustment: {balance}",
       "cardName2": "Card Name (Arabic)",

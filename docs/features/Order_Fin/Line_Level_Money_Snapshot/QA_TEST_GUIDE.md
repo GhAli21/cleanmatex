@@ -595,7 +595,7 @@ Order0003 UUID `cd4ac165-9a37-4b5e-9300-59152ca8e236`: saved/reference figures t
 | S8.1 identity retest | FAIL identity subcheck; amounts PASS | Independent reload00008 UUID `0a27746d-5667-4342-999a-055d8ced7d4d` confirms detail Jh Test dev21 versus Ready Test Customer2 Mohammed Ahmed. Ready financial amounts remain correct; do not confuse amount regression pass with identity integrity pass. |
 
 ### Tester suggestions — Financial_Expert_Tester (2026-11-07 batch4)
-- **P1 FET-LLMS-Nov07-WorkspaceTotal:** Subject financial reader shows0.000 on workspace versus saved/reference1.926. Diagnose snapshot display path before assigning cause; align authoritative total and add regression. Evidence `shots/reuse-device-en-1440-workspace-mismatch.png`. — Retest 2026-11-09: not reproduced (own-order editor totals now match 4.783).
+- **P1 FET-LLMS-Nov07-WorkspaceTotal:** Subject financial reader shows0.000 on workspace versus saved/reference1.926. Diagnose snapshot display path before assigning cause; align authoritative total and add regression. Evidence `shots/reuse-device-en-1440-workspace-mismatch.png`. — Retest 2026-11-09: not reproduced (own-order editor totals now match 4.783). — Retest r2 2026-11-10 (remote, new deploy, read-only): fix holds (editor Total 4.783, "No money change").
 - **P1 candidate FET-LLMS-Nov07-S8-Identity (retest):** Independent loaded screenshots reproduce mismatch: `shots/reuse-device-en-1440-00008-detail-reload-loaded.png` / `reuse-device-en-1440-00008-ready-recheck-loaded.png`. Cause pending; prior finding not overwritten.
 
 **Provisional cumulative Line-Level parent counts unchanged:** PARTIAL4 (S1,S5,S7,S8),BLOCKED4 (S9,S10,S13,S22 prerequisites),NOT RUN15; no parent PASS/FAIL. Workspace and identity subchecks FAIL, recorded explicitly without claiming all S8 executed. No Manual Edit interactions in this batch; no Manual guide appendix justified.
@@ -879,7 +879,7 @@ No saved changes. Own `cce8a46e-a8f4-4346-8ca1-790182d1e1d9` remains rev3, manua
 **NOT RUN IDs:** none
 
 ### Qualified unresolved findings / recommendations
-- P1 FET-FINAL-LL: Workspace header0.000 vs saved1.926 is financial display inconsistency; actual-order read-only DB confirmed nonzero storage, UI path cause unproven. Use server snapshot consistently. — Retest 2026-11-09: workspace 0.000 not reproduced on own order; new notes-only Estimated-total mismatch tracked as FET-LLMS-Nov09-NotesOnlyEstTotal.
+- P1 FET-FINAL-LL: Workspace header0.000 vs saved1.926 is financial display inconsistency; actual-order read-only DB confirmed nonzero storage, UI path cause unproven. Use server snapshot consistently. — Retest 2026-11-09: workspace 0.000 not reproduced on own order; new notes-only Estimated-total mismatch tracked as FET-LLMS-Nov09-NotesOnlyEstTotal. — Retest r2 2026-11-10 (remote, new deploy, read-only): workspace/editor 4.783 fix holds ("No money change"). Residual notes-only OUTSTANDING tracked as FET-LLMS-Nov10-NoChangeOutstanding.
 - P1 FET-FINAL-Identity: detail/Ready labels disagree for same valid tenant customer; different stored display-name fields explain available data, NOT proven wrong customer/cross-tenant leak. Align tenant display contract, no DB overwrite.
 - P2 FET-FINAL-LLPrereqs: Customer app, customer exemption, normal Catalog admin:manage/price fixture, missing ITEM/PIECE policy controls, automatic-rule/promo, QuickDrop and special fixtures remain required. Own notes-only Edit persistence does not resolve provisional original Create-note absence/save semantics.
 ### Test data left behind
@@ -914,10 +914,30 @@ None created/changed by this retest. Existing source Pilotrev3 and clone Draftre
 | Notes-only Review Estimated total | FAIL (new P1) | Customer-notes-only draft (Before None → After QA-20261109-REASON-CHECK): Review Estimated total **4.830** vs Current **4.783** (+0.047); Financial result **OUTSTANDING**. Notes-only change must not shift estimated total. See **FET-LLMS-Nov09-NotesOnlyEstTotal**. |
 
 ### Tester suggestions — Financial_Expert_Tester (Nov9 line-level / editor money)
-- **P1 FET-LLMS-Nov09-NotesOnlyEstTotal:** A notes-only change shows Estimated total 4.830 vs Current 4.783 with financial result OUTSTANDING. Keep notes-only Review financially neutral (estimated == current; no OUTSTANDING from notes alone); diagnose preview/calculation path. Evidence in `/workspace/qa-20261109/tenant-editor-recheck.md` and shots sand-subagent-8addfd1b-*.
+- **P1 FET-LLMS-Nov09-NotesOnlyEstTotal:** A notes-only change shows Estimated total 4.830 vs Current 4.783 with financial result OUTSTANDING. Keep notes-only Review financially neutral (estimated == current; no OUTSTANDING from notes alone); diagnose preview/calculation path. Evidence in `/workspace/qa-20261109/tenant-editor-recheck.md` and shots sand-subagent-8addfd1b-*. — Retest r2 2026-11-10 (remote, new deploy, read-only): amount FIXED (Estimated 4.7830 equals Current 4.783) but residual PARTIAL — 4-decimal display and Financial result OUTSTANDING with no money change. Residual tracked as FET-LLMS-Nov10-NoChangeOutstanding.
 - Prior **FET-LLMS-Nov07-WorkspaceTotal** and **FET-FINAL-LL** annotated in place: workspace 0.000 not reproduced on own order.
 
 **Parent counts unchanged:** PARTIAL12 / BLOCKED11. Defect recheck + new finding only — no author scenario newly fully satisfied. Overall workstream remains INCOMPLETE.
 
 ### Test data left behind
 Nothing persisted. Drafts discarded; order ORD-20261107-00001 unchanged at Revision 3 / total 4.783 OMR / 2 changes. No Apply/payment/workflow/password changes; no messages/printing. Screens under `/workspace/qa-20261109/shots/` (sand-subagent-8addfd1b-*).
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-10 (remote, new deploy, read-only)
+
+**Remote UI evidence:** 2026-11-10 ~14:30 Asia/Muscat(UTC+4), tenant `https://cmx.cleanmatex.com` Demo Laundry admin; own order ORD-20261107-00001. No Apply; drafts discarded; order still 4.783 OMR / 2 changes / rev3. Source ledger `/workspace/qa-20261110/tenant-editor-retest.md`. Defect rechecks + residual financial finding — parent scenario counts unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| Workspace / editor totals match | PASS — prior fix holds | Editor workspace total 4.783; "No money change". No stuck "Updating…". Prior workspace header 0.000 vs saved total still not reproduced. References **FET-LLMS-Nov07-WorkspaceTotal** / **FET-FINAL-LL**. |
+| Notes-only Review Estimated total | PARTIAL — amount FIXED, residual remains | Customer-notes-only draft: Current 4.783; Estimated **4.7830** (equals 4.783; no longer 4.830). Financial result still **OUTSTANDING** despite no money change. 4-decimal Estimated display. See **FET-LLMS-Nov09-NotesOnlyEstTotal** and residual **FET-LLMS-Nov10-NoChangeOutstanding**. |
+| No-change financial result | FAIL (new P2 residual) | Notes-only Review (no money change) still marks Financial result OUTSTANDING and shows Estimated as 4.7830 vs Current 4.783. A financially neutral change should not be outstanding. See **FET-LLMS-Nov10-NoChangeOutstanding**. |
+
+### Tester suggestions — Financial_Expert_Tester (Nov10 line-level / editor money)
+- **P2 FET-LLMS-Nov10-NoChangeOutstanding:** Notes-only Review is now amount-neutral (Estimated 4.7830 equals Current 4.783) but still shows Financial result OUTSTANDING and a 4-decimal estimated total. Keep a no-money-change Review financially settled (no OUTSTANDING) and format Estimated with the same 3-decimal OMR scale as Current. Evidence in `/workspace/qa-20261110/tenant-editor-retest.md` and shots under `/workspace/qa-20261110/shots/`.
+- Prior **FET-LLMS-Nov09-NotesOnlyEstTotal** annotated in place: amount FIXED (4.7830 = 4.783) but residual PARTIAL (4-decimal display + OUTSTANDING with no money change).
+- Prior **FET-LLMS-Nov07-WorkspaceTotal** and **FET-FINAL-LL** annotated in place: workspace/editor 4.783 fix holds ("No money change").
+
+**Parent counts unchanged:** PARTIAL12 / BLOCKED11. Defect recheck + residual finding only — no author scenario newly fully satisfied. Overall workstream remains INCOMPLETE.
+
+### Test data left behind
+Nothing applied/saved. Drafts discarded; order ORD-20261107-00001 still 4.783 OMR, 2 changes, rev3. No passwords changed. No Apply/payment/workflow changes; no messages/printing. Screens under `/workspace/qa-20261110/shots/`.

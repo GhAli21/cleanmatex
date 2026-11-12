@@ -27,7 +27,7 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
+import { CmxButton, CmxMoneyFieldController, CmxSelect } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 import { Alert, AlertDescription } from '@ui/primitives';
@@ -41,6 +41,7 @@ import {
   type StoredValueTenderResult,
 } from '@features/customers/ui/stored-value-tender-fields';
 import type { CustomerSearchItem } from '@/lib/api/customers';
+import { GIFT_CARD_VOUCHER_TAX_MODES } from '@/lib/constants/gift-card';
 
 // ---------------------------------------------------------------------------
 // Lazy-loaded customer picker (avoids SSR issues)
@@ -69,6 +70,7 @@ const schema = z.object({
   currency_code:         z.string().min(1).max(10),
   rec_notes:             z.string().max(500).optional(),
   same_as_buyer:         z.boolean().optional(),
+  voucher_tax_mode:      z.enum([GIFT_CARD_VOUCHER_TAX_MODES.MPV, GIFT_CARD_VOUCHER_TAX_MODES.SPV]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -141,6 +143,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       currency_code:         '',
       rec_notes:             '',
       same_as_buyer:         false,
+      voucher_tax_mode:      GIFT_CARD_VOUCHER_TAX_MODES.MPV,
     },
   });
 
@@ -221,6 +224,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       cash_tendered:            tender.cashTendered,
       cash_drawer_session_id:   tender.cashDrawerSessionId,
       idempotency_key:          idempotencyKey,
+      voucher_tax_mode:         values.voucher_tax_mode,
     });
 
     if (result.success === false) {
@@ -253,6 +257,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       issued_to_customer_id: '', card_pin: '',
       currency_code: tenantCurrency || '',
       rec_notes: '', same_as_buyer: false,
+      voucher_tax_mode: GIFT_CARD_VOUCHER_TAX_MODES.MPV,
     });
     setServerError(null);
     setGeneratedCode(null);
@@ -383,6 +388,18 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                   />
                 )}
               </div>
+
+              {/* When the card is taxed (T6) */}
+              <CmxSelect
+                id="sell-voucher-tax-mode"
+                label={t('fields.voucherTaxMode')}
+                helpText={t('fields.voucherTaxModeHelp')}
+                options={[
+                  { value: GIFT_CARD_VOUCHER_TAX_MODES.MPV, label: t('fields.voucherTaxModes.MPV') },
+                  { value: GIFT_CARD_VOUCHER_TAX_MODES.SPV, label: t('fields.voucherTaxModes.SPV') },
+                ]}
+                {...form.register('voucher_tax_mode')}
+              />
 
               {/* Expiry Date */}
               <div>

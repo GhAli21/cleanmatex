@@ -24,6 +24,7 @@ import type {
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
 import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
+import { sumMoney } from '@/lib/commercial/money';
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -276,6 +277,8 @@ export class ErpLiteExpensesService {
           expense_date: expense.expense_date,
           subtotal_amount: expense.subtotal_amount,
           tax_amount: expense.tax_amount,
+          // Only tax decided by the rules is reclaimed; a typed amount without tax lines stays in the expense.
+          recoverable_tax_amount: tax ? sumMoney(tax.parts.map((p) => p.recoverable)).toNumber() : 0,
           total_amount: expense.total_amount,
           settlement_code:
             expense.settlement_code === 'BANK' ? 'BANK' : 'CASH',

@@ -2,7 +2,7 @@ import { CommercialRuleError } from '@/lib/commercial/errors';
 import { decideOrderLineTax, taxPartyScope, type OrderTaxCode, type OrderTaxEngine, type OrderTaxRule } from '@/lib/tax/order-line-tax';
 
 const code = (taxCode: string, categoryCode: string, ratePercent: string, over: Partial<OrderTaxCode> = {}): OrderTaxCode => ({
-  id: `${taxCode}-1`, taxCode, taxType: 'VAT', ratePercent, rateMissing: false, isCompound: false, isDefault: false, appliesTo: null,
+  id: `${taxCode}-1`, taxCode, taxType: 'VAT', ratePercent, rateMissing: false, isCompound: false, isDefault: false,
   roundingLevel: 'LINE', rounding: { decimalPlaces: 3, mode: 'HALF_UP' }, versionNo: 1, effectiveFrom: '2020-01-01', effectiveTo: null,
   amountKind: 'PERCENT', calcLevel: 'LINE', categoryCode, exemptReasonCode: null, ...over,
 });

@@ -82,7 +82,8 @@
     "points": "{points, plural, one {# نقطة} other {# نقاط}}",
     "informational": "الإجمالي {amount}",
     "wasNow": "{previous} ← {current}",
-    "removed": "أُزيل"
+    "removed": "أُزيل",
+    "taxPart": "ضريبة {code} {rate}"
   },
   "lineStates": {
     "pending": "معلّق · غير محتسب",

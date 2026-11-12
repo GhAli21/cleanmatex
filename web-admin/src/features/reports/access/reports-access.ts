@@ -109,6 +109,38 @@ export const REPORTS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
   },
+  {
+    routePattern: '/dashboard/reports/tax-return',
+    label: 'VAT Return',
+    page: {
+      permissions: ['tax:view_reports'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'VAT return boxes',
+        method: 'GET',
+        path: '/api/v1/tax/returns',
+        requirement: { permissions: ['tax:view_reports'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Lines behind a return box',
+        method: 'GET',
+        path: '/api/v1/tax/returns/lines',
+        requirement: { permissions: ['tax:view_reports'], requireAllPermissions: true },
+        enforcement: 'permission',
+      },
+      {
+        label: 'Tax period picker',
+        method: 'GET',
+        path: '/api/v1/tax/periods',
+        requirement: { permissions: ['tax:view_config', 'tax:view_reports', 'tax:manage_periods'], requireAllPermissions: false },
+        enforcement: 'permission',
+      },
+    ],
+    notes: ['Tax Engine T7 return from final tax lines. Nav entry: migration 0725 / navigation.ts reports_tax_return.'],
+  },
 ]
 
 export const REPORTS_REPORTS_ACCESS = REPORTS_ACCESS_CONTRACTS[0]!
@@ -122,3 +154,4 @@ export const REPORTS_REPORTS_PRINT_ACCESS = REPORTS_ACCESS_CONTRACTS[7]!
 export const REPORTS_REPORTS_RECONCILIATION_ACCESS = REPORTS_ACCESS_CONTRACTS[8]!
 export const REPORTS_REPORTS_CASH_VARIANCE_ACCESS = REPORTS_ACCESS_CONTRACTS[9]!
 export const REPORTS_REPORTS_CASH_VARIANCE_PRINT_ACCESS = REPORTS_ACCESS_CONTRACTS[10]!
+export const REPORTS_REPORTS_TAX_RETURN_ACCESS = REPORTS_ACCESS_CONTRACTS[11]!

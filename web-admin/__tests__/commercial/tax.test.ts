@@ -21,17 +21,15 @@ const profile = (over: Partial<TaxProfileInput> = {}): TaxProfileInput => ({
   ratePercent: '5',
   isCompound: false,
   isDefault: true,
-  appliesTo: null,
   roundingLevel: 'DOCUMENT',
   rounding: OMR,
   ...over,
 });
 
-// Tenant 1111… on remote: VAT 5% + municipal 2% (both default, stacking), plus special 0% profiles.
+// VAT 5% + municipal 2% (both default, stacking).
 const vat5 = profile();
-const muni2 = profile({ id: 'muni', taxType: 'CUSTOM', ratePercent: '2', appliesTo: [] });
-const exemptSvc = profile({ id: 'exempt', ratePercent: '0', isDefault: false, appliesTo: ['EXEMPT_SERVICE'] });
-const tobacco = profile({ id: 'tobacco', taxType: 'CUSTOM', ratePercent: '100', isDefault: false, appliesTo: ['TOBACCO'] });
+const muni2 = profile({ id: 'muni', taxType: 'CUSTOM', ratePercent: '2' });
+const tobacco = profile({ id: 'tobacco', taxType: 'CUSTOM', ratePercent: '100', isDefault: false });
 
 const row = (rowId: string, net: string, over: Partial<TaxRowInput> = {}): TaxRowInput => ({
   rowId, netAmount: net, taxCategoryCode: 'STANDARD', exemptReason: null, profiles: [vat5], ...over,
@@ -43,24 +41,13 @@ const run = (rows: TaxRowInput[], over: Partial<Parameters<typeof calculateTax>[
 const s = (value: { toString(): string } | undefined) => value?.toString();
 
 describe('selectTaxProfiles', () => {
-  const all = [vat5, exemptSvc, muni2, tobacco, profile({ id: 'nondefault', isDefault: false })];
-
-  it('a row with no supply code gets every default general profile (stacking, as today)', () => {
-    expect(selectTaxProfiles(all, null).map((p) => p.id)).toEqual(['vat', 'muni']);
-  });
-
-  it('PF-06: a listed supply code gets its own profiles instead of the defaults', () => {
-    expect(selectTaxProfiles(all, 'EXEMPT_SERVICE').map((p) => p.id)).toEqual(['exempt']);
-    expect(selectTaxProfiles(all, 'TOBACCO').map((p) => p.id)).toEqual(['tobacco']);
-  });
-
-  it('an unlisted supply code falls back to the defaults', () => {
-    expect(selectTaxProfiles(all, 'UNKNOWN').map((p) => p.id)).toEqual(['vat', 'muni']);
+  it('a line with no rule decision gets the order default profiles (stacking)', () => {
+    expect(selectTaxProfiles([vat5, muni2, profile({ id: 'nondefault', isDefault: false })]).map((p) => p.id)).toEqual(['vat', 'muni']);
   });
 
   it('puts compound profiles last', () => {
     const compound = profile({ id: 'cmp', isCompound: true });
-    expect(selectTaxProfiles([compound, vat5], null).map((p) => p.id)).toEqual(['vat', 'cmp']);
+    expect(selectTaxProfiles([compound, vat5]).map((p) => p.id)).toEqual(['vat', 'cmp']);
   });
 });
 

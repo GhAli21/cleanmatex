@@ -10,6 +10,9 @@ import type {
   TaxOptions,
   TaxPackage,
   TaxPage,
+  TaxPeriodRow,
+  TaxReturnLineRow,
+  TaxReturnView,
   TaxRuleRow,
 } from '../model/tax-types'
 
@@ -70,4 +73,15 @@ export const taxApi = {
   createClass: (data: unknown) => send<TaxClassRow>('POST', '/api/v1/tax/item-classes', data),
   updateClass: (id: string, data: unknown) => send<TaxClassRow>('PATCH', `/api/v1/tax/item-classes/${id}`, data),
   explain: (facts: TaxExplainFacts) => send<TaxExplainResponse>('POST', '/api/v1/tax/explain', facts),
+  periods: (signal?: AbortSignal) => request<TaxPeriodRow[]>('/api/v1/tax/periods', { signal }),
+  createPeriod: (data: { periodStart: string; periodEnd: string }) => send<TaxPeriodRow>('POST', '/api/v1/tax/periods', data),
+  changePeriod: (id: string, data: { action: 'close' } | { action: 'reopen'; reason: string }) =>
+    send<TaxPeriodRow>('PATCH', `/api/v1/tax/periods/${id}`, data),
+  taxReturn: (range: { from: string; to: string }, signal?: AbortSignal) =>
+    request<TaxReturnView>(`/api/v1/tax/returns?${new URLSearchParams(range)}`, { signal }),
+  taxReturnLines: (q: { from: string; to: string; box: string; page: number; pageSize: number }, signal?: AbortSignal) =>
+    request<{ items: TaxReturnLineRow[]; total: number }>(
+      `/api/v1/tax/returns/lines?${new URLSearchParams({ ...q, page: String(q.page), pageSize: String(q.pageSize) })}`,
+      { signal },
+    ),
 }

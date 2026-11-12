@@ -162,3 +162,53 @@ export interface TaxExplainFacts {
 }
 
 export type TaxPartyScopeValue = TaxExplainFacts['party_country_scope']
+
+/** A tax return period (`/api/v1/tax/periods`). */
+export interface TaxPeriodRow {
+  id: string
+  periodStart: string
+  periodEnd: string
+  status: 'OPEN' | 'CLOSED'
+  closedAt: string | null
+  closedBy: string | null
+  reopenedAt: string | null
+  reopenReason: string | null
+}
+
+/** One box of the VAT return; amounts are decimal strings in the organization currency. */
+export interface TaxReturnBoxRow {
+  code: string
+  section: 'SALES' | 'PURCHASES' | 'NET'
+  kind: 'LINES' | 'TOTAL' | 'MANUAL'
+  name: string
+  name2: string | null
+  showsAmount: boolean
+  showsTax: boolean
+  isVerified: boolean
+  amount: string
+  tax: string
+}
+
+export interface TaxReturnView {
+  kitCode: string | null
+  from: string
+  to: string
+  currencyCode: string | null
+  currencyDecimals: number | null
+  boxes: TaxReturnBoxRow[]
+  notOnReturn: { flow: string; category: string; reverseCharge: boolean; emirate: string | null; taxable: string; tax: string; lineCount: number }[]
+  lineCount: number
+}
+
+export interface TaxReturnLineRow {
+  id: string
+  tax_date: string
+  source_doc_type_code: string
+  source_doc_no: string | null
+  tax_code: string
+  rate: string | null
+  taxable: string
+  tax: string
+  recoverable: string
+  is_reversal: boolean
+}

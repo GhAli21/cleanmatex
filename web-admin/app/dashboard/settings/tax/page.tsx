@@ -14,29 +14,12 @@ export const metadata: Metadata = { title: 'Tax Setup' }
 export default async function TaxSetupPage() {
   const { tenantId } = await getAuthContext();
 
-  const [profiles, exemptions] = await Promise.all([
-    withTenantContext(tenantId, () =>
-      prisma.org_tax_profiles_cf.findMany({
-        where:   { tenant_org_id: tenantId, rec_status: 1, source: 'TENANT' },
-        orderBy: { created_at: 'asc' },
-      })
-    ),
-    withTenantContext(tenantId, () =>
-      prisma.org_tax_exemptions_cf.findMany({
-        where:   { tenant_org_id: tenantId, rec_status: 1, is_active: true },
-        orderBy: { created_at: 'asc' },
-      })
-    ),
-  ]);
-
-  const serializedProfiles = profiles.map((p) => ({
-    ...p,
-    rate:         Number(p.rate),
-    effective_from: p.effective_from.toISOString(),
-    effective_to:   p.effective_to?.toISOString() ?? null,
-    created_at:   p.created_at.toISOString(),
-    updated_at:   p.updated_at?.toISOString() ?? null,
-  }));
+  const exemptions = await withTenantContext(tenantId, () =>
+    prisma.org_tax_exemptions_cf.findMany({
+      where:   { tenant_org_id: tenantId, rec_status: 1, is_active: true },
+      orderBy: { created_at: 'asc' },
+    })
+  );
 
   const serializedExemptions = exemptions.map((e) => ({
     ...e,
@@ -49,9 +32,7 @@ export default async function TaxSetupPage() {
   return (
     <RequireAnyPermission permissions={SETTINGS_SETTINGS_TAX_ACCESS.page.permissions ?? []}>
       <TaxSettingsScreen
-        currentOrderTax={
-          <TaxSetupClient initialProfiles={serializedProfiles} initialExemptions={serializedExemptions} />
-        }
+        exemptions={<TaxSetupClient initialExemptions={serializedExemptions} />}
       />
     </RequireAnyPermission>
   );

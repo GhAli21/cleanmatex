@@ -20,7 +20,7 @@ import type { CommercialFacts, ResolvedLinePrice } from '@/lib/services/commerci
 const OMR = { decimalPlaces: 3, mode: 'HALF_UP' as const };
 const vat: CommercialTaxInput = {
   taxCategoryCode: 'STANDARD', exemptReason: null,
-  profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true, appliesTo: null, roundingLevel: 'DOCUMENT', rounding: OMR }],
+  profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: '5', isCompound: false, isDefault: true, roundingLevel: 'DOCUMENT', rounding: OMR }],
 };
 const exempt: CommercialTaxInput = { taxCategoryCode: 'EXEMPT', exemptReason: 'SERVICE_EXEMPTION', profiles: [] };
 

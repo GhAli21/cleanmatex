@@ -35,6 +35,8 @@ import type {
   GiftCardTransactionLogRow,
 } from '@/lib/types/payment';
 import type { GiftCardStatus, GiftCardTxnType } from '@/lib/constants/gift-card';
+import { GIFT_CARD_VOUCHER_TAX_MODES } from '@/lib/constants/gift-card';
+import { purchaseTaxErrorMessage } from '@/lib/services/tax/purchase-tax-message';
 
 // ---------------------------------------------------------------------------
 // Validation schemas
@@ -69,6 +71,7 @@ const sellGiftCardWithTenderSchema = z.object({
   cash_drawer_session_id:      z.string().uuid().optional(),
   pos_session_id:              z.string().uuid().optional(),
   idempotency_key:             z.string().min(1),
+  voucher_tax_mode:            z.enum([GIFT_CARD_VOUCHER_TAX_MODES.SPV, GIFT_CARD_VOUCHER_TAX_MODES.MPV]).optional(),
 });
 
 const adjustGiftCardSchema = z.object({
@@ -238,6 +241,7 @@ export async function sellGiftCardWithTenderAction(
         cardPin: data.card_pin,
         expiryDate: data.expiry_date,
         issuedToCustomerId: data.issued_to_customer_id,
+        voucherTaxMode: data.voucher_tax_mode,
       },
     });
 
@@ -261,6 +265,9 @@ export async function sellGiftCardWithTenderAction(
     if (error instanceof PosSessionError) {
       return { success: false, error: error.code, errorDetails: error.details };
     }
+    // T6: a single-purpose card is taxed at sale; a tax refusal arrives translated.
+    const taxMessage = await purchaseTaxErrorMessage(error);
+    if (taxMessage) return { success: false, error: taxMessage };
     const raw = error instanceof Error ? error.message : 'Failed to sell gift card';
     if (
       raw.includes('original_amount_check') ||

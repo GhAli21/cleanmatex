@@ -18,5 +18,14 @@
   "line_net": "After discounts",
   "cutoff_time": "Cut-off time",
   "ready_time": "Ready time",
-  "working_day": "Working day"
+  "working_day": "Working day",
+  "tax_return": "VAT return",
+  "tax_period": "Tax period",
+  "withholding_tax": "Withholding tax",
+  "tax_code": "Tax code",
+  "tax_rule": "Tax rule",
+  "tax_kit": "Tax kit",
+  "item_tax_class": "Item tax class",
+  "party_tax_class": "Party tax class",
+  "reverse_charge": "Reverse charge"
 }

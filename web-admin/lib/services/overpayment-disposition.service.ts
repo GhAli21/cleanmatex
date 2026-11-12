@@ -96,6 +96,8 @@ export async function executeOverpaymentDispositionTx(
         notes: `Checkout overpayment → customer advance (order ${orderId})`,
         performedBy: userId,
         currencyCode,
+        // Money received over the order: an advance for later services.
+        taxVoucher: voucherId ? { voucherId, voucherLineId: null } : null,
       });
       targetRef = advanceTxn.id;
     } else if (line.resolutionCode === OVERPAYMENT_RESOLUTIONS.SAVE_AS_CUSTOMER_CREDIT) {

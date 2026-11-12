@@ -3,6 +3,7 @@ export const TAX_PERMISSIONS = {
   VIEW_CONFIG: 'tax:view_config',
   MANAGE_CONFIG: 'tax:manage_config',
   VIEW_REPORTS: 'tax:view_reports',
+  MANAGE_PERIODS: 'tax:manage_periods',
 } as const
 
 export type TaxPermissionCode = (typeof TAX_PERMISSIONS)[keyof typeof TAX_PERMISSIONS]

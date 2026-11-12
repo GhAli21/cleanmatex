@@ -6,6 +6,7 @@ import { CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
 import type { WiringHandler, VoucherLineForWiring, LinkedEffect } from '@/lib/types/voucher-wiring';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { safeDispatchAutoPost } from '@/lib/services/erp-lite-auto-post.util';
+import { netPrepaidTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 
 export const orderCreditApplicationWiringHandler: WiringHandler = {
   canHandle(line: VoucherLineForWiring): boolean {
@@ -61,6 +62,11 @@ export const orderCreditApplicationWiringHandler: WiringHandler = {
       },
       select: { id: true },
     });
+
+    // T6: an already-invoiced order paid from a taxed prepayment nets that tax now.
+    if (line.credit_application_type === CREDIT_APPLICATION_TYPES.ADVANCE || line.credit_application_type === CREDIT_APPLICATION_TYPES.GIFT_CARD) {
+      await netPrepaidTaxTx(tx, { tenantOrgId, orderId: line.order_id!, userId, at: now });
+    }
 
     // B6 — a WALLET credit application is an order-settlement event
     // (D007: "Stored-value redemption" row — spending an existing wallet

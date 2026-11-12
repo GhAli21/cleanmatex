@@ -46,6 +46,8 @@ export interface ErpLiteApPaymentListItem {
   supplier_name: string;
   branch_name: string | null;
   amount_total: number;
+  /** Tax withheld for the authority; the supplier received amount_total − wht_amount. */
+  wht_amount: number;
   currency_code: string;
   settlement_code: 'BANK' | 'CASH';
   status_code: string;

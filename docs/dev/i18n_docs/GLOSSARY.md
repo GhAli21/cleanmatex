@@ -60,6 +60,15 @@ much as possible, even across different namespaces.
 | `service_speed` | Service speed | سرعة الخدمة | How fast an order or line is done (`sys_service_speed_cd`: Standard, Express…). Line-Level Money Snapshot, 2026-11-07. Matches `newOrder` / `catalog` copy. |
 | `speed_premium` | Speed premium | رسوم السرعة | What a faster speed adds to a line, set by a Speed Pricing rule (`speed_premium_amount`). When it sits inside the line price, say "(included)" / "(مشمولة)". Line-Level Money Snapshot, 2026-11-07. |
 | `tax_category` | Tax category | الفئة الضريبية | The tax basis a line carries (`sys_tax_category_cd`: Standard, Zero-rated, Exempt, Out of scope). Matches the catalog product form. Line-Level Money Snapshot, 2026-11-07. |
+| `tax_return` | VAT return | الإقرار الضريبي | The periodic return filed with the tax authority; boxes filled from final tax lines (`sys_tax_return_box_cd`). Tax Engine T7, 2026-11-11. |
+| `tax_period` | Tax period | الفترة الضريبية | A return period (`org_tax_periods_mst`); closing it stops new final tax lines dated inside it. Tax Engine T7, 2026-11-11. |
+| `withholding_tax` | Withholding tax | ضريبة الاستقطاع | Tax kept from a supplier payment for the authority (`wht_amount`). Tax Engine T7, 2026-11-11. |
+| `tax_code` | Tax code | رمز الضريبة | One tax with its rate and versions (`org_tax_profiles_cf`, one row per version), e.g. standard VAT 5%. Tax Engine T9, 2026-11-12. |
+| `tax_rule` | Tax rule | قاعدة ضريبية | A row that picks the tax codes for a document type, item tax class and party (`org_tax_rules_cf`). Tax Engine T9, 2026-11-12. |
+| `tax_kit` | Tax kit | الإعداد الضريبي الجاهز | A ready country tax setup published by HQ (codes, classes, rules, examples), copied to an organization. Tax Engine T9, 2026-11-12. |
+| `item_tax_class` | Item tax class | الفئة الضريبية للصنف | How an item is taxed (standard, zero-rated, exempt…); rules match on it. Tax Engine T9, 2026-11-12. |
+| `party_tax_class` | Party tax class | الفئة الضريبية للطرف | How a customer or supplier is taxed (registered business, consumer, export…). Tax Engine T9, 2026-11-12. |
+| `reverse_charge` | Reverse charge | الاحتساب العكسي | The buyer accounts for the tax instead of the seller; the code records tax without charging it. Tax Engine T9, 2026-11-12. |
 | `line_net` | After discounts | بعد الخصومات | A line's amount after its own discount and its share of the order discount, before tax (`net_amount`). Shown as "After discounts", not "Net", in the line breakdown. Line-Level Money Snapshot, 2026-11-07. |
 | `cutoff_time` | Cut-off time | آخر وقت للاستلام | The last drop-off counted as today; later orders count from the next working day (`order_cutoff_time`). Service Speeds, 2026-11-08. |
 | `ready_time` | Ready time | وقت الجاهزية | When orders promised in working days are ready (`ready_time`). Service Speeds, 2026-11-08. |

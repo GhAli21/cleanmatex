@@ -2,13 +2,11 @@
  * Tax per row (ADR-060 §6, PLAN.md §8.1 steps 9–10, §8.2, §9, L14, L22).
  *
  * Why: today one tax figure is computed for the whole order, an exemption on
- * any line exempts the whole order (PF-05), and `applies_to` is never read
- * (PF-06). Here every row (an item, a piece, or a taxed charge) gets its own
+ * any line exempts the whole order (PF-05). Here every row (an item, a piece, or a taxed charge) gets its own
  * category, profiles, taxable base and tax, and the header is built from the
  * rows, so tax documents can carry item lines (ZATCA / PINT OM).
  *
- * Kept from today's engine (`tax-engine.service.ts`): all default profiles
- * stack; compound profiles run after the others on base + prior tax; under
+ * Kept from the old engine: all default profiles stack; compound profiles run after the others on base + prior tax; under
  * TAX_INCLUSIVE the tax is extracted from the price with the combined rate.
  *
  * Rounding (L22): exact decimals throughout; each stored tax figure is
@@ -41,9 +39,8 @@ export interface TaxProfileInput {
   /** Percent, e.g. 15 for 15%. */
   ratePercent: MoneyInput;
   isCompound: boolean;
+  /** True for a profile an order taxed before the rules engine carries: it applies to every line of that order. */
   isDefault: boolean;
-  /** Supply codes this profile applies to; NULL or empty means a default for every line. */
-  appliesTo: readonly string[] | null;
   roundingLevel: TaxRoundingLevel;
   /** Profile mode + decimals/increment, falling back to the currency ACCOUNTING rule. */
   rounding: RoundingRule;
@@ -55,28 +52,15 @@ export interface TaxProfileInput {
   isTenantRateFallback?: boolean;
 }
 
-const isGeneral = (profile: TaxProfileInput) => !profile.appliesTo || profile.appliesTo.length === 0;
-
 /**
- * Chooses the profiles for a row (ADR-060 §6).
- *
- * A row with a supply code gets the profiles that list that code; those
- * replace the defaults (an `EXEMPT_SERVICE` line must not also carry the
- * standard VAT). A row with no supply code, or a code no profile lists, gets
- * the defaults. Order: non-compound first, then compound, each in input order
- * (the loader passes profiles by `created_at`, as today).
- * @param profiles the tenant's active, effective profiles in `created_at` order
- * @param supplyCode the product's `tax_supply_code`, or null
+ * The profiles of a line that has no tax rule decision: the default profiles
+ * an order taxed before the rules engine carries (ADR-061). Order: non-compound
+ * first, then compound, each in input order.
+ * @param profiles the order's profiles in `created_at` order
  * @returns the profiles to apply, in calculation order
  */
-export function selectTaxProfiles(
-  profiles: readonly TaxProfileInput[],
-  supplyCode: string | null,
-): TaxProfileInput[] {
-  const special = supplyCode
-    ? profiles.filter((p) => !isGeneral(p) && p.appliesTo!.includes(supplyCode))
-    : [];
-  const chosen = special.length > 0 ? special : profiles.filter((p) => p.isDefault && isGeneral(p));
+export function selectTaxProfiles(profiles: readonly TaxProfileInput[]): TaxProfileInput[] {
+  const chosen = profiles.filter((p) => p.isDefault);
   return [...chosen.filter((p) => !p.isCompound), ...chosen.filter((p) => p.isCompound)];
 }
 

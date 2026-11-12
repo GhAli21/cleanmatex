@@ -7,7 +7,6 @@ import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-conte
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
 import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
-import { COMMERCIAL_ERROR_CODES, CommercialRuleError } from '@/lib/commercial/errors';
 import type {
   CreateErpLiteBankMatchInput,
   CreateErpLiteApInvoiceInput,
@@ -127,7 +126,8 @@ interface StatementLineValidationRow {
 
 interface ApPaymentValidationRow {
   id: string;
-  amount_total: number;
+  /** Cash that left the bank or cashbox: amount_total − wht_amount. */
+  cash_paid: number;
   status_code: string;
 }
 
@@ -675,12 +675,8 @@ export class ErpLiteV2Service {
           branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: null,
           currencyCode: input.currency_code.trim(), net: amountTotal, enteredTax: null,
         });
-        // shortcut: withheld tax is only recorded; posting it (cash paid = amount − withheld, liability) comes with T7, so a non-zero rate is refused until then.
-        if (tax && !tax.taxAmount.isZero()) {
-          throw new CommercialRuleError(COMMERCIAL_ERROR_CODES.WHT_POSTING_NOT_READY, 'Withholding tax applies to this payment, and its posting is not available yet.', {
-            amount: tax.taxAmount.toString(),
-          });
-        }
+        // Withheld tax stays with the organization (owed to the authority): the invoice is settled in full, cash paid = amount − withheld.
+        const whtAmount = tax ? tax.taxAmount.toNumber() : 0; // ck_ofap_wht keeps it within the payment
 
         const apPmtNo = await this.generateSequentialNo(
           tenantId,
@@ -702,6 +698,7 @@ export class ErpLiteV2Service {
             currency_code,
             exchange_rate,
             amount_total,
+            wht_amount,
             settlement_code,
             payment_method_code,
             ext_ref_no,
@@ -721,6 +718,7 @@ export class ErpLiteV2Service {
             ${input.currency_code.trim()},
             1,
             ${amountTotal},
+            ${whtAmount},
             ${input.settlement_code},
             ${input.payment_method_code?.trim() || null},
             ${input.ext_ref_no?.trim() || null},
@@ -1053,7 +1051,7 @@ export class ErpLiteV2Service {
         if (matchAmount > lineAbsoluteAmount) {
           throw new Error('Bank match amount cannot exceed the selected statement-line amount');
         }
-        if (matchAmount > apPayment.amount_total) {
+        if (matchAmount > apPayment.cash_paid) {
           throw new Error('Bank match amount cannot exceed the selected AP payment amount');
         }
 
@@ -1362,6 +1360,7 @@ export class ErpLiteV2Service {
           ELSE b.name
         END AS branch_name,
         p.amount_total::float8 AS amount_total,
+        p.wht_amount::float8 AS wht_amount,
         p.currency_code,
         p.settlement_code,
         p.status_code
@@ -1845,7 +1844,7 @@ export class ErpLiteV2Service {
     const rows = await prisma.$queryRaw<{ id: string; label: string }[]>(Prisma.sql`
       SELECT
         id::text AS id,
-        ap_pmt_no || ' · ' || amount_total::text || ' ' || currency_code AS label
+        ap_pmt_no || ' · ' || (amount_total - wht_amount)::text || ' ' || currency_code AS label
       FROM public.org_fin_ap_pmt_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND is_active = true
@@ -2254,7 +2253,7 @@ export class ErpLiteV2Service {
     const rows = await db.$queryRaw<ApPaymentValidationRow[]>(Prisma.sql`
       SELECT
         id::text AS id,
-        amount_total::float8 AS amount_total,
+        (amount_total - wht_amount)::float8 AS cash_paid,
         status_code
       FROM public.org_fin_ap_pmt_mst
       WHERE tenant_org_id = ${tenantId}::uuid

@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-09T12:58:20.245Z
-Git SHA: 11d464cd
+Generated: 2026-11-12T15:39:23.242Z
+Git SHA: 3da50547
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 168 |
-| Permission usages | 467 |
+| Access contracts | 169 |
+| Permission usages | 485 |
 | Feature flag usages | 86 |
 | Setting usages | 23 |
 | Plan limit usages | 2 |
-| Navigation entries | 111 |
+| Navigation entries | 112 |
 | Flag catalog entries | 298 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -152,6 +152,7 @@ Git SHA: 11d464cd
 | /dashboard/reports/print | Print Reports | — | advanced_analytics | 0 |
 | /dashboard/reports/reconciliation | Reconciliation Reports | finance_reports:view | advanced_analytics | 0 |
 | /dashboard/reports/revenue | Revenue Report | — | advanced_analytics | 0 |
+| /dashboard/reports/tax-return | VAT Return | tax:view_reports | — | 0 |
 | /dashboard/setting | Settings Redirect | — | — | 0 |
 | /dashboard/settings | Settings | — | — | 0 |
 | /dashboard/settings/allsettings | All Settings | — | — | 0 |

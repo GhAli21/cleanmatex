@@ -56,6 +56,7 @@ function session(overrides: Partial<PosSessionRow> = {}): PosSessionRow {
     id: '22222222-2222-4222-8222-222222222222',
     tenant_org_id: '33333333-3333-4333-8333-333333333333',
     branch_id: branchId,
+    doc_type_code: 'POS_SESSION',
     user_id: '44444444-4444-4444-8444-444444444444',
     terminal_id: null,
     cash_drawer_id: null,

@@ -70,7 +70,7 @@ function calculatedEdit(lines: Array<{ id: string; unitPrice: string; quantity?:
       },
       tax: {
         taxCategoryCode: 'STANDARD', exemptReason: null,
-        profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: 15, isCompound: false, isDefault: true, appliesTo: null, roundingLevel: 'DOCUMENT', rounding: { decimalPlaces: 3, mode: 'HALF_UP' } }],
+        profiles: [{ id: 'vat', taxType: 'VAT', ratePercent: 15, isCompound: false, isDefault: true, roundingLevel: 'DOCUMENT', rounding: { decimalPlaces: 3, mode: 'HALF_UP' } }],
       },
       pieces: (line.pieceIds ?? []).map((pieceId) => ({ pieceId })),
       readyBy: { serviceSpeed: line.speed ?? 'STANDARD', speedRuleHours: null, productHours: '24', categoryHours: null, extraMinutes: 0 },

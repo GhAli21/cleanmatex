@@ -82,7 +82,8 @@
       "codes": "Tax codes",
       "rules": "Tax rules",
       "classes": "Item tax classes",
-      "currentOrderTax": "Exemptions"
+      "currentOrderTax": "Exemptions",
+      "periods": "Tax periods"
     },
     "flows": {
       "OUTPUT": "Sales",
@@ -306,6 +307,33 @@
       "codeMissing": "{code}: no version covers this date",
       "rateMissing": "rate not entered",
       "alsoMatched": "Also matched, but less specific: {rules}"
+    },
+    "periods": {
+      "description": "Return periods. Closing a period stops new tax lines dated inside it; corrections then go into the next open period.",
+      "add": "Add period",
+      "addTitle": "Add tax period",
+      "addHelp": "Use the same length your tax authority uses (usually a month or a quarter). Periods cannot overlap.",
+      "start": "First day",
+      "end": "Last day",
+      "endBeforeStart": "The last day must be on or after the first day.",
+      "status": "Status",
+      "statuses": {
+        "OPEN": "Open",
+        "CLOSED": "Closed"
+      },
+      "actions": "Actions",
+      "close": "Close period",
+      "reopen": "Reopen",
+      "closeTitle": "Close the period {start} – {end}?",
+      "closeHelp": "After closing, no new tax line can be dated inside this period. Close it once the return is filed.",
+      "reopenTitle": "Reopen the period {start} – {end}?",
+      "reopenHelp": "Reopening lets new tax lines be dated inside a period whose return may already be filed. Write why (at least 3 characters); it is kept on the period.",
+      "reopenReason": "Reason for reopening",
+      "added": "Tax period added.",
+      "closed": "Tax period closed.",
+      "reopened": "Tax period reopened.",
+      "empty": "No tax periods yet.",
+      "loadError": "Tax periods could not be loaded."
     }
   },
   "errors": {
@@ -332,6 +360,61 @@
     "TAX_APPLY_COUNTRY_MISMATCH": "This package is for another country.",
     "TAX_APPLY_NO_PUBLISHED_VERSION": "This tax kit has no published version yet.",
     "TAX_APPLY_ACTIVE_NEEDS_ACTIVATE": "Your setup is active, so the kit must be activated when applied.",
-    "TAX_ACTIVATE_NOT_READY": "The setup is not ready to activate. Open Review tax setup to see what is missing."
+    "TAX_ACTIVATE_NOT_READY": "The setup is not ready to activate. Open Review tax setup to see what is missing.",
+    "TAX_PERIOD_OVERLAP": "This period overlaps another tax period. Change the dates.",
+    "TAX_PERIOD_STATE": "This period was already changed. Refresh and try again.",
+    "TAX_PERIOD_NOT_FOUND": "This tax period was not found.",
+    "TAX_PERIOD_DATES_INVALID": "The last day must be on or after the first day.",
+    "TAX_PERIOD_CLOSED": "This tax period is closed. Reopen it, or date the change in an open period.",
+    "TAX_RETURN_BOX_NOT_FOUND": "This box is not on your return form."
+  },
+  "return": {
+    "title": "VAT Return",
+    "description2": "Return boxes filled from the final tax lines dated in the period. Check the figures before filing on the tax authority portal.",
+    "period": "Tax period",
+    "periodPlaceholder": "Choose a period",
+    "customRange": "Custom dates",
+    "from": "From",
+    "to": "To",
+    "statuses": {
+      "OPEN": "Open",
+      "CLOSED": "Closed"
+    },
+    "pickRange": "Choose a tax period or custom dates to see the return.",
+    "noLayout": "There is no return layout for your tax setup. Confirm a VAT tax kit in Tax Setup first.",
+    "box": "Box",
+    "description": "Description",
+    "amount": "Amount",
+    "tax": "Tax",
+    "export": "Export CSV",
+    "sections": {
+      "SALES": "Sales",
+      "PURCHASES": "Purchases",
+      "NET": "Tax due"
+    },
+    "manualHelp": "Not recorded in the system; enter it on the tax authority portal if it applies.",
+    "unverifiedTitle": "Box numbers to confirm",
+    "unverifiedHelp": "This layout has not yet been checked against the authority's current form. Use the descriptions, and confirm the box numbers on the portal before filing.",
+    "notOnReturn": "Tax lines not on this return",
+    "notOnReturnHelp": "These lines match no box (for example withholding tax, out-of-scope items, or a UAE branch without an emirate). Check them before filing.",
+    "flows": {
+      "OUTPUT": "Sales",
+      "INPUT": "Purchases",
+      "WITHHOLDING": "Withholding tax"
+    },
+    "reverseCharge": "Reverse charge",
+    "lineCount": "{count, plural, one {# line} other {# lines}}",
+    "footnote": "{count, plural, one {# tax line} other {# tax lines}} in {currency}. Credit notes and reversals are already netted.",
+    "loadError": "The lines could not be loaded.",
+    "lines": {
+      "title": "Box {box}: {name}",
+      "open": "Show the lines of box {box}",
+      "date": "Tax date",
+      "document": "Document",
+      "code": "Tax code",
+      "recoverable": "Recoverable",
+      "reversal": "Reversal",
+      "empty": "No tax lines in this box."
+    }
   }
 }

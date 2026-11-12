@@ -1737,11 +1737,31 @@ None created/changed by this retest. Existing source Pilotrev3 and clone Draftre
 | §11.4 steps 1–6 remote | NOT RUN | Need controlled fixtures and/or approved publish/assign/deactivate writes; not authorized in this read-only batch. Step 1 needs no-authority fixture (do not remove live Demo override). Step 2 needs publish + version-default write. Step 3–4 need ADD_ITEM DENY-vs-ALLOW fixture. Step 5 needs deactivation. Step 6 superseded by ORGANIZATION→VERSION_DEFAULT→PROFILE; no obsolete profile-beats-default expectation. |
 
 ### Tester suggestions — Financial_Expert_Tester (Nov9 remote step7)
-- **P2 FET-Policy-Nov09-PreviewStale:** HQ Effective Preview result panel does not clear/refresh when the selected operation changes; first Change-notes pass showed a stale "Require override" until a full page reload. Clear or re-fetch the result panel on operation/target change.
-- **P2 FET-Policy-Nov09-UncoveredProcessing:** HQ "Uncovered statuses" lists `processing` while an Organization override resolves for Processing. Reconcile uncovered-status labeling with effective resolution so covered statuses are not listed as uncovered.
-- **P3 FET-Policy-Nov09-AssignmentIdLabel:** Tenant Policy Info shows "Assignment ID: Not assigned" for an in-effect Organization override that HQ Assignments shows as In effect. Fix the label or surface the real assignment id when an org override is winning.
+- **P2 FET-Policy-Nov09-PreviewStale:** HQ Effective Preview result panel does not clear/refresh when the selected operation changes; first Change-notes pass showed a stale "Require override" until a full page reload. Clear or re-fetch the result panel on operation/target change. — Retest r2 2026-11-10 (remote, new deploy, read-only): FIXED (panel updated every time; only a loading spinner while fetching).
+- **P2 FET-Policy-Nov09-UncoveredProcessing:** HQ "Uncovered statuses" lists `processing` while an Organization override resolves for Processing. Reconcile uncovered-status labeling with effective resolution so covered statuses are not listed as uncovered. — Retest r2 2026-11-10 (remote, new deploy, read-only): STILL FAIL — "Uncovered statuses: awaiting_collection, cancelled, delivered, draft, intake, on_hold, out_for_collection, out_for_delivery, preparing, processing, ready, ready_for_pickup, stopped" still listed on runs resolving an Organization override for Processing.
+- **P3 FET-Policy-Nov09-AssignmentIdLabel:** Tenant Policy Info shows "Assignment ID: Not assigned" for an in-effect Organization override that HQ Assignments shows as In effect. Fix the label or surface the real assignment id when an org override is winning. — Retest r2 2026-11-10 (remote, new deploy, read-only): not retested.
 
 **Counts:** §11.4 step 7 existing-state PASS1 (3 matched ops, ID/revision GAP noted); steps 1–6 NOT RUN remote. Historical local BLOCKED and Nov8 remote PENDING remain history. Overall §11.4 workstream still INCOMPLETE (six transition steps outstanding).
 
 ### Test data left behind
 Nothing created/changed. Own order ORD-20261107-00001 unchanged at Revision 3 / total 4.783 OMR. Source ORDER_CHANGE_STANDARD_V1 Pilot rev 3 and clone a6f6c2ef-8d69-4ab1-9770-d99e33730b62 Draft rev 2 unassigned/unpublished preserved. No publish/assignment/grant/password changes; no messages/printing. Screens under `/workspace/qa-20261109/shots/`.
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-10 (remote, new deploy, read-only)
+
+**Remote UI evidence:** 2026-11-10 ~14:35 Asia/Muscat(UTC+4). User-directed remote retest after a new deploy: HQ `https://hqsaas.cleanmatex.com` Effective Preview `/en/order-change-config/effective-preview` (Demo Laundry LLC, WF_V2_SIMPLE, v4 PILOT, Processing). No reload between runs; nothing saved. Source ledger `/workspace/qa-20261110/hq-preview-retest.md`. Author §11.4 original steps retained unchanged; existing-state parity for step 7 only. Defect rechecks — parent scenario counts unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| §11.4 step 7 existing-state remote parity (5 preview runs) | PASS (policy ID/revision GAP still open) | Same Demo / WF_V2_SIMPLE v4 PILOT / Processing context. All Resolution level Organization override, Policy code ORDER_CHANGE_STANDARD_V1. Notes(Order) Allow with warning / CAPABILITY_POLICY_WARNING; Service speed(Item) Deny CELL_NOT_COVERED / CAPABILITY_POLICY_NOT_ENABLED; Remove item(Item) Require override / CAPABILITY_POLICY_OVERRIDE_REQUIRED; Notes again Allow with warning; Service speed(Order) Require override. Tenant op maps to the Order target; Change service speed therefore differs by target (Item = Deny vs Order = Require override). GAP still open: HQ preview still shows no policy ID/name/revision/lifecycle. |
+| §11.4 steps 1–6 remote | NOT RUN | Still need controlled fixtures and/or approved publish/assign/deactivate writes; not authorized in this read-only batch. |
+
+### Tester suggestions — Financial_Expert_Tester (Nov10 remote step7 retest)
+- Prior **FET-Policy-Nov09-PreviewStale** annotated in place: FIXED (panel updated every time; only a loading spinner while fetching).
+- Prior **FET-Policy-Nov09-UncoveredProcessing** annotated in place: STILL FAIL — Uncovered statuses still lists `processing` (and awaiting_collection, cancelled, delivered, draft, intake, on_hold, out_for_collection, out_for_delivery, preparing, ready, ready_for_pickup, stopped) on runs resolving an Organization override for Processing.
+- Prior **FET-Policy-Nov09-AssignmentIdLabel** annotated in place: not retested this pass.
+- ID/revision GAP still open (no policy ID/name/revision/lifecycle in HQ preview). Note Service speed target Item vs Order difference (Deny vs Require override); tenant op maps to Order target.
+
+**Counts:** §11.4 step 7 existing-state still PASS (ops matched, ID/revision GAP still open); steps 1–6 still NOT RUN remote. Historical local BLOCKED and Nov8 remote PENDING remain history. Overall §11.4 workstream still INCOMPLETE (six transition steps outstanding). Parent scenario counts unchanged.
+
+### Test data left behind
+Nothing applied/saved. Order ORD-20261107-00001 still 4.783 OMR, 2 changes, rev3. No passwords changed. Source ORDER_CHANGE_STANDARD_V1 Pilot rev 3 and clone a6f6c2ef-8d69-4ab1-9770-d99e33730b62 Draft rev 2 unassigned/unpublished preserved. No publish/assignment/grant changes; no messages/printing. Screens under `/workspace/qa-20261110/shots/`.

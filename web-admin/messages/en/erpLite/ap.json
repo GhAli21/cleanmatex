@@ -72,7 +72,8 @@
         "bankAccount": "Bank Account",
         "cashbox": "Cash Box",
         "paymentMethod": "Payment Method Code",
-        "referenceNo": "Reference No"
+        "referenceNo": "Reference No",
+        "amountHelp": "If withholding tax applies to this supplier, it is kept from this amount for the tax authority; the supplier receives the rest. The invoice is settled by the full amount."
       }
     }
   },
@@ -90,7 +91,8 @@
     "payments": {
       "title": "Recent AP Payments",
       "subtitle": "Latest AP settlements created for this tenant.",
-      "empty": "No AP payments created yet."
+      "empty": "No AP payments created yet.",
+      "withheld": "Withheld {withheld} · paid to supplier {paid}"
     },
     "aging": {
       "title": "AP Aging",

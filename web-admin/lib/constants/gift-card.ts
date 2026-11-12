@@ -26,6 +26,18 @@ export const GIFT_CARD_STATUS = {
  */
 export type GiftCardStatus = (typeof GIFT_CARD_STATUS)[keyof typeof GIFT_CARD_STATUS];
 
+/**
+ * When a sold card is taxed (org_gift_cards_mst.voucher_tax_mode, CHECK ck_ogc_voucher_tax_mode).
+ * SPV (single purpose): at sale. MPV (multi purpose, the default): when it pays for an order.
+ */
+export const GIFT_CARD_VOUCHER_TAX_MODES = {
+  SPV: 'SPV',
+  MPV: 'MPV',
+} as const;
+
+/** One of GIFT_CARD_VOUCHER_TAX_MODES. */
+export type GiftCardVoucherTaxMode = (typeof GIFT_CARD_VOUCHER_TAX_MODES)[keyof typeof GIFT_CARD_VOUCHER_TAX_MODES];
+
 export const GIFT_CARD_TXN_TYPE = {
   ISSUE:        'ISSUE',
   SALE:         'SALE',

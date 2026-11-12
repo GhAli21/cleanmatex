@@ -195,6 +195,8 @@ async function applyAllocationLineTx(
       notes: `Receipt allocation fallback advance (order ${params.sourceOrderId})`,
       performedBy: params.userId,
       currencyCode: params.currencyCode,
+      // Money received and not spent on an order: an advance for later services.
+      taxVoucher: params.voucherId ? { voucherId: params.voucherId, voucherLineId: null } : null,
     });
     targetRef = advance.id;
   } else if (

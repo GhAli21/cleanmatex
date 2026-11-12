@@ -82,7 +82,8 @@
     "points": "{points, plural, one {# pt} other {# pts}}",
     "informational": "Total {amount}",
     "wasNow": "{previous} → {current}",
-    "removed": "Removed"
+    "removed": "Removed",
+    "taxPart": "Tax {code} {rate}"
   },
   "lineStates": {
     "pending": "Pending · not counted",
