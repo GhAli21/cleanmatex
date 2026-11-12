@@ -545,7 +545,8 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/settings/roles',
     label: 'Roles Management',
     page: {
-      permissions: ['*:*', 'settings:*'],
+      // roles:update = admin, super_admin, tenant_admin (same as the menu gate).
+      permissions: ['roles:update'],
       permissionPrefixes: ['roles:'],
       tenantRoles: ['admin', 'tenant_admin'],
     },
@@ -586,7 +587,8 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/settings/permissions',
     label: 'Permissions Management',
     page: {
-      permissions: ['*:*', 'settings:*'],
+      // roles:update = admin, super_admin, tenant_admin (same as the menu gate).
+      permissions: ['roles:update'],
       permissionPrefixes: ['permissions:'],
       tenantRoles: ['admin', 'tenant_admin'],
     },

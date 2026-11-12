@@ -101,6 +101,9 @@ const PENDING_CHECK_METHOD = {
 };
 
 const makeTx = () => ({
+  // The organization's tax kit sets the gift card tax timing (OM-style kit: single-purpose).
+  org_tax_config_cf: { findFirst: jest.fn().mockResolvedValue({ kit_version_id: 'kv-om' }) },
+  sys_tax_kit_versions_mst: { findUnique: jest.fn().mockResolvedValue({ voucher_tax_mode: 'SPV' }) },
   org_idempotency_keys: {
     findFirst: jest.fn().mockResolvedValue(null),
     upsert: jest.fn().mockResolvedValue({}),
@@ -203,11 +206,32 @@ describe('stored-value-funding.service — fundStoredValue', () => {
           original_amount: 15,
           current_balance: 0,
           available_amount: 0,
+          voucher_tax_mode: 'SPV',
         }),
       }),
     );
     expect(result.giftCardId).toBe('card-1');
     expect(result.giftCardCode).toBe('CMX-AAAA-BBBB-CCCC');
+  });
+
+  it('a cashier choice wins over the kit default; no tax setup means MPV', async () => {
+    const tx = makeTx();
+    tx.org_tax_config_cf.findFirst.mockResolvedValue(null);
+    mockGenerateGiftCardCode.mockResolvedValue('CMX-AAAA-BBBB-DDDD');
+    mockListEffectivePaymentMethodConfigs.mockResolvedValue([CASH_METHOD]);
+    mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx));
+    const base = {
+      tenantId: TENANT, fundingType: FUNDING_TYPES.GIFT_CARD_SALE, currencyCode: 'OMR', fundedAmount: 15,
+      tenderLegs: [{ paymentMethodId: CASH_METHOD.id, amount: 15 }], performedBy: 'user-1',
+    };
+    await fundStoredValue({ ...base, idempotencyKey: 'fund-gc-kit-1', giftCard: { cardName: 'A' } });
+    expect(tx.org_gift_cards_mst.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ voucher_tax_mode: 'MPV' }) }));
+    expect(tx.org_tax_config_cf.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ tenant_org_id: TENANT }) }));
+    await fundStoredValue({ ...base, idempotencyKey: 'fund-gc-kit-2', giftCard: { cardName: 'B', voucherTaxMode: 'SPV' } });
+    expect(tx.org_gift_cards_mst.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ voucher_tax_mode: 'SPV' }) }));
   });
 
   it('rejects a non-positive funded amount before creating a gift card', async () => {

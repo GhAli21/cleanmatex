@@ -1,0 +1,11 @@
+---
+description: ERP Lite module (finance/GL, expenses, petty cash, bank, AP/PO, cost allocation) — naming marker and other standing module rules
+globs: web-admin/app/dashboard/erp-lite/**,web-admin/app/actions/erp-lite/**,web-admin/src/features/erp-lite/**,web-admin/lib/services/erp-lite-*,web-admin/lib/constants/erp-lite-*,supabase/migrations/*erp_lite*,docs/features/ERP_Lite/**
+alwaysApply: false
+---
+
+# ERP Lite
+
+Canonical source for ERP-Lite-specific rules: `docs/features/ERP_Lite/RULES.md` — read it before writing ERP Lite code or migrations, and add any new ERP-Lite-only rule there (not here).
+
+**Active now:** every NEW identifier owned by ERP Lite (DB objects, permission codes, feature flag keys, routes/folders, i18n namespaces, TS constant files) must carry the literal token `erplt`. DB pattern: `{scope}_erplt_{sub_feature}_{object_name}_{suffix}` (e.g. `org_erplt_fin_acct_mst`). Not retroactive — see `docs/features/ERP_Lite/RULES.md` §1 and the `/database` skill (`feature-abbreviations.md`, `conventions.md`) for the full rule and grandfathered exceptions.

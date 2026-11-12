@@ -13,6 +13,11 @@ jest.mock("next-intl", () => ({
     `${namespace}.${key}`,
 }));
 jest.mock("@/lib/hooks/useRTL", () => ({ useRTL: () => false }));
+// Shared money UI imports a server action; the page test never calls it.
+jest.mock("@/app/actions/tenant/get-currency-config", () => ({
+  getCurrencyConfigAction: jest.fn(),
+  getCurrencyConfigOutcomeAction: jest.fn(),
+}));
 jest.mock("@/src/features/receipts/ui/receipt-preview", () => ({
   ReceiptPreview: () => <div data-testid="receipt-preview" />,
 }));
@@ -25,15 +30,15 @@ describe("ReceiptPage order identity", () => {
   });
 
   it("shows the human order number and never renders the route UUID", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          success: true,
-          data: { order_no: "ORD-261107-0042", customer_type: "retail" },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    // jsdom has no fetch/Response: a minimal stand-in for the one call the page makes.
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        data: { order_no: "ORD-261107-0042", customer_type: "retail" },
+      }),
+    }) as unknown as typeof fetch;
 
     render(<ReceiptPage />);
 

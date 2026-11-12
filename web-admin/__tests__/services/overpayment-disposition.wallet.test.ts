@@ -174,7 +174,11 @@ function makeRecalcTx(disposedAmount: number) {
       }),
       update: jest.fn().mockResolvedValue({}),
     },
-    org_order_items_dtl: { aggregate: jest.fn().mockResolvedValue({ _sum: { total_price: 80 } }) },
+    org_order_items_dtl: {
+      aggregate: jest.fn().mockResolvedValue({ _sum: { total_price: 80 } }),
+      // Header tax-category buckets read the lines; no lines in this scenario.
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     org_order_item_pieces_dtl: { aggregate: jest.fn().mockResolvedValue({ _sum: { service_pref_charge: 0 } }) },
     org_order_preferences_dtl: { aggregate: jest.fn().mockResolvedValue({ _sum: { extra_price: 0 } }) },
     org_order_charges_dtl: { findMany: jest.fn().mockResolvedValue([]) },

@@ -1,3 +1,6 @@
+// The outbox handler chain imports the browser Supabase client at module load; this test never calls it.
+jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn(() => ({})), supabase: {} }));
+
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

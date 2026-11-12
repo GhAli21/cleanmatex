@@ -6,6 +6,8 @@ author: CleanMateX Team
 
 # ERP-Lite Feature
 
+**Module rules (naming, governance, etc.):** see [RULES.md](./RULES.md) — the home for any new ERP-Lite-specific standing rule.
+
 ## Overview
 
 ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who do not have an external ERP. It provides Chart of Accounts, General Ledger, financial reports, AR aging, bank reconciliation, and optional AP/PO/expense management—all within the platform.

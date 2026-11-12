@@ -69,3 +69,19 @@ sales at 5% · sales at 0% · exempt sales · exports (GCC / non-GCC) · purchas
 - Oman simplified-invoice conditions.
 - KSA B2C simplified invoice for any amount (current ZATCA e-invoicing rule).
 - Voucher (SPV/MPV) rules per country.
+
+## 6. Results of the 2026-11-12 check (applied by `0728`)
+
+| Fact | Result | Confidence | Source |
+|---|---|---|---|
+| OM return boxes | 1a–1f, 2a–2b, 3a, 4a–4b, 5a = 1a+1f+2a+2b+4a, 5b, 6a–6d, 7a = 5a+5b, 7b = 6a+6b+6c+6d, 7c = 7a−7b; 1d, 1e, 2a not activated until the GCC rules apply | Official | [Tax Authority — VAT Return Filing guide, June 2021](https://tms.taxoman.gov.om/portal/documents/20126/1414820/VAT+Taxpayer+Guide+-+VAT+Return+Filing.pdf/fae31d0c-e7e7-0014-9f28-a4c506b36614?t=1733169613409) |
+| OM simplified invoice | Tax Authority approval; supply value < OMR 500 excl. VAT; full invoice when the customer asks | Official (unofficial English translation of the regulation) | [Executive Regulations 53/2021, Art. 146–149](https://mzv.gov.cz/public/aa/7/49/4259098_2607346_VAT_Regulation_unofficial_english_version.pdf) |
+| OM vouchers | Single-purpose: tax at issue and each resale, none at redemption; multi-purpose: tax at redemption (Art. 33–34, value Art. 36) | Official (translation) | same |
+| SA return boxes | 1 standard sales · 2 private healthcare / education / first house to citizens · 3 zero-rated domestic · 4 exports · 5 exempt · 6 total sales · 7 standard domestic purchases · 8 imports VAT paid at customs · 9 imports reverse charge · 10 zero-rated purchases · 11 exempt purchases · 12 total purchases · 13 VAT due · 14 corrections (±SAR 5,000) · 15 credit carried forward · 16 net VAT due | Consistent (portal form copy) | [GAZT portal form copy](https://tallysolutions.com/mena/wp-content/uploads/2018/vat/VAT%20Return.pdf) |
+| SA simplified invoice | B2C any amount | Official | [ZATCA E-Invoicing Detailed Guidelines](https://zatca.gov.sa/en/E-Invoicing/Introduction/Guidelines/Documents/E-Invoicing_Detailed__Guideline.pdf) |
+| SA vouchers | Issue of a face-value voucher is not a supply; VAT at redemption; amount paid above face value taxed at issue → kit MPV | Official | [ZATCA VAT Implementing Regulations (EN)](https://zatca.gov.sa/en/RulesRegulations/Taxes/Documents/Implmenting%20Regulations%20of%20the%20VAT%20Law_EN.pdf) |
+| AE vouchers | Supplied when issued (Decree-Law 8/2017); Executive Regulation Art. 28 vouchers → laundry's own card SPV | Consistent | [Decree-Law 8/2017](https://tax.gov.ae/DataFolder/Files/Pdf/VAT-Decree-Law-No-8-of-2017.pdf), [Cabinet Resolution 52/2017](https://uaelegislation.gov.ae/en/legislations/1226/download) |
+| BH vouchers | Redeemable at one VAT rate → single-purpose, supply at issue | Official (NBR guide) | [NBR VAT Retail and Wholesale Guide v1.2](https://s3-me-south-1.amazonaws.com/nbrproduserdata-bh/media/iSEc2JU8NaNKMwggqtL7DNV7aWC4d0ZZ3CuRZt6a.pdf) |
+| BH return | 17 lines, line 17 = net VAT (positive payable, negative refundable); titles of lines 1–16 not printed as text in the manual | Official (line 17 only) | NBR VAT Return Filing Manual v1.2 (updated 27 Feb 2025) |
+
+**Laundry consequence:** a laundry's own prepaid gift card (usable only for its own standard-rated services) is single-purpose in OM, BH and AE, so VAT is charged when the card is **sold**; in SA it is charged when the card is **used**. The kit sets this default (`voucher_tax_mode`); the cashier can still choose per card.

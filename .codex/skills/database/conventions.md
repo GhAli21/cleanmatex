@@ -14,6 +14,22 @@
   - Applies to: Tables, Functions, Procedures, Packages, Views, Triggers, Sequences, Types, etc.
   - Examples: `org_auth_users_mst`, `org_ord_orders_mst`, `org_ord_calculate_total()`
 
+### ERP Lite Module Marker (`erplt`)
+
+**CRITICAL — for NEW database objects only (not retroactive on existing applied objects):** any object belonging to the ERP Lite module (`docs/features/ERP_Lite/`) MUST carry the literal token `erplt` immediately after the `sys_`/`org_` scope prefix, before the sub-feature abbreviation. This disambiguates ERP Lite's own finance/expense/bank/AP/cost objects from unrelated same-named abbreviations elsewhere in the schema (e.g. Order Fin's `fin` usage).
+
+- Pattern: `{scope}_erplt_{sub_feature}_{object_name}_{suffix}`
+- Examples:
+  - `org_erplt_fin_acct_mst` (chart of accounts)
+  - `org_erplt_fin_journals_tr` (journals)
+  - `org_erplt_exp_petty_cash_mst` (petty cash)
+  - `org_erplt_bank_recon_tr` (bank reconciliation)
+  - `org_erplt_ap_supplier_mst` (AP supplier master)
+  - `org_erplt_fin_calculate_total()` (function)
+  - `org_erplt_fin_active_journals_vw` (view)
+- Existing ERP Lite objects created before this rule (e.g. `org_fin_acct_mst`) are grandfathered — do not rename them in a bulk migration; only rename if already touching that object for another reason, as its own reviewed migration.
+- This marker requirement also applies outside the database to anything ERP Lite owns: permission codes (`erplt_fin:read`, not bare `fin_vouchers:create`), feature flag keys, route segments/folders, i18n namespaces, and TypeScript constant files — see CLAUDE.md Database/Code Quick Rules.
+
 ### New Objects Only Rule
 
 **For NEW database objects created from 2025-11-14 onwards:**

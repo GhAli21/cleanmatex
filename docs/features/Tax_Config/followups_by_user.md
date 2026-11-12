@@ -17,6 +17,13 @@ Until each item is done, HQ Setup Health shows `TAX_KIT_FACT_UNVERIFIED` for tha
 
 ## Waiting for you
 
+
+
+- From 2026-11-14: check that organizations on OM/SA/AE/BH moved to kit version 2 (nightly kit update), or press HQ › organization › Tax kit › Update kit now. Then QA 31l–31n.
+
+- Bahrain: log in to the NBR portal, compare VAT return lines 1–16 with HQ › Tax Kits › BH return boxes, correct any title, mark them verified (the last open fact; line 17 is already verified).
+- Oman organizations: a simplified tax invoice needs the Tax Authority's approval (Executive Regulations Art. 146–148). Each Oman customer must apply for it before using simplified invoices.
+
 - Done 2026-11-12: `0727_tax_drop_legacy_columns.sql` applied. It drops `org_tax_profiles_cf.applies_to`, `org_tax_profiles_cf.is_default` and `org_product_data_mst.tax_supply_code` and re-creates `fn_tax_kit_apply` without them. `schema.prisma` already has the fields removed; after applying, run `npm run prisma:pull` and regenerate types in both repos.
 
 ## After each migration

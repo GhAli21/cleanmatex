@@ -2,7 +2,7 @@
 
 Which tax applies to each sale and purchase, how much, and how it is recorded, reported and posted. A tax rule picks the tax codes for each document type, item tax class and party. Countries start from a ready tax kit that HQ publishes.
 
-**Version:** 1.0.1 (2026-11-12) · **Status:** engineering done (T0–T9), owner QA pending — see [STATUS.md](STATUS.md)
+**Version:** 1.0.3 (2026-11-13) · **Status:** engineering done (T0–T9), owner QA pending — see [STATUS.md](STATUS.md)
 
 | Doc | For |
 |---|---|
@@ -14,6 +14,7 @@ Which tax applies to each sale and purchase, how much, and how it is recorded, r
 | [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) | Manual test scenarios T3–T8 |
 | [followups_by_user.md](followups_by_user.md) | Owner actions: facts to verify, decisions |
 | [KIT_FACTS.md](KIT_FACTS.md) | Country rates, thresholds and their sources |
+| [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md) | **Handover: current state, what to verify, what is left** |
 | [CHANGELOG.md](CHANGELOG.md) · [version.txt](version.txt) | Changes per version |
 
 Older plans in this folder (`TENANT_TAX_CONFIG_IMPLEMENTATION_PLAN.md`, `TAX_CALCULATION_AND_FINANCIAL_POSTING_SPEC.md`, `CROSS_PROJECT_TAX_IMPLEMENTATION_COORDINATION_PLAN.md`) are superseded; kept for history.
@@ -37,4 +38,4 @@ Older plans in this folder (`TENANT_TAX_CONFIG_IMPLEMENTATION_PLAN.md`, `TAX_CAL
 | Permissions | Tenant `tax:view_config`, `tax:manage_config`, `tax:view_reports`, `tax:manage_periods` · HQ `tax_packs.view`, `tax_packs.manage` |
 | Settings / flags | None. No `sys_stng_*`: typed tables only. No feature flag, no plan limit |
 | Jobs | pg_cron `tax-kit-update` 02:05 daily (`fn_tax_kit_update_all`), `setup-health-refresh` 02:15 |
-| Migrations | 0708, 0712, 0713, 0718, 0719, 0722, 0723, 0725, 0726, 0727 (drops the old engine's columns) |
+| Migrations | 0708, 0712, 0713, 0718, 0719, 0722, 0723, 0725, 0726, 0727 (drops the old engine's columns), 0728 (kit facts verified), 0729 (menu gates), 0730 (UAE return boxes verified), 0731 (purchase reverse charge, kit v2) — all applied |

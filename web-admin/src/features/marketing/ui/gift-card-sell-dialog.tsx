@@ -70,7 +70,8 @@ const schema = z.object({
   currency_code:         z.string().min(1).max(10),
   rec_notes:             z.string().max(500).optional(),
   same_as_buyer:         z.boolean().optional(),
-  voucher_tax_mode:      z.enum([GIFT_CARD_VOUCHER_TAX_MODES.MPV, GIFT_CARD_VOUCHER_TAX_MODES.SPV]),
+  // '' = the organization's tax kit decides (server side).
+  voucher_tax_mode:      z.enum(['', GIFT_CARD_VOUCHER_TAX_MODES.MPV, GIFT_CARD_VOUCHER_TAX_MODES.SPV]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -143,7 +144,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       currency_code:         '',
       rec_notes:             '',
       same_as_buyer:         false,
-      voucher_tax_mode:      GIFT_CARD_VOUCHER_TAX_MODES.MPV,
+      voucher_tax_mode:      '',
     },
   });
 
@@ -224,7 +225,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       cash_tendered:            tender.cashTendered,
       cash_drawer_session_id:   tender.cashDrawerSessionId,
       idempotency_key:          idempotencyKey,
-      voucher_tax_mode:         values.voucher_tax_mode,
+      voucher_tax_mode:         values.voucher_tax_mode || undefined,
     });
 
     if (result.success === false) {
@@ -257,7 +258,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       issued_to_customer_id: '', card_pin: '',
       currency_code: tenantCurrency || '',
       rec_notes: '', same_as_buyer: false,
-      voucher_tax_mode: GIFT_CARD_VOUCHER_TAX_MODES.MPV,
+      voucher_tax_mode: '',
     });
     setServerError(null);
     setGeneratedCode(null);
@@ -395,6 +396,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                 label={t('fields.voucherTaxMode')}
                 helpText={t('fields.voucherTaxModeHelp')}
                 options={[
+                  { value: '', label: t('fields.voucherTaxModes.KIT') },
                   { value: GIFT_CARD_VOUCHER_TAX_MODES.MPV, label: t('fields.voucherTaxModes.MPV') },
                   { value: GIFT_CARD_VOUCHER_TAX_MODES.SPV, label: t('fields.voucherTaxModes.SPV') },
                 ]}

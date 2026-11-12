@@ -112,6 +112,7 @@
       "voucherTaxMode": "When tax is charged",
       "voucherTaxModeHelp": "Single-purpose: the card buys only this business's services, so tax is charged now. Multi-purpose: tax is charged when the card pays for an order.",
       "voucherTaxModes": {
+        "KIT": "As in tax setup",
         "MPV": "Multi-purpose (tax when used)",
         "SPV": "Single-purpose (tax at sale)"
       },

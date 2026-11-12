@@ -224,7 +224,7 @@ export const LabelDataService = {
 
     const publicTrackingPath = includePublicTracking
       ? await getPublicTrackingPathForOrderId({ tenantId, orderId })
-      : undefined;
+      : null;
 
     return { order: orderLabel, pieces: tags, settings, publicTrackingPath };
   },

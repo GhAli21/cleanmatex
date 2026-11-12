@@ -10648,7 +10648,7 @@ model org_fin_ap_inv_mst {
   invoice_date        DateTime              @db.Date
   due_date            DateTime?             @db.Date
   currency_code       String                @db.VarChar(10)
-  exchange_rate       Decimal               @default(1) @db.Decimal(19, 4)
+  exchange_rate       Decimal               @default(1) @db.Decimal(22, 10)
   subtotal_amount     Decimal               @default(0) @db.Decimal(19, 4)
   tax_amount          Decimal               @default(0) @db.Decimal(19, 4)
   total_amount        Decimal               @default(0) @db.Decimal(19, 4)
@@ -10665,6 +10665,9 @@ model org_fin_ap_inv_mst {
   rec_notes           String?               @db.VarChar(200)
   is_active           Boolean               @default(true)
   doc_type_code       String                @default("ERP_AP_INVOICE")
+  fx_rate_date        DateTime?             @db.Date
+  fx_rate_source      String?
+  fx_rate_id          String?               @db.Uuid
   org_fin_ap_alloc_tr org_fin_ap_alloc_tr[]
   org_fin_ap_inv_dtl  org_fin_ap_inv_dtl[]
   sys_doc_seq_type_cd sys_doc_seq_type_cd   @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fai_doc_type")
@@ -10694,7 +10697,7 @@ model org_fin_ap_pmt_mst {
   ap_pmt_no             String                 @db.VarChar(40)
   payment_date          DateTime               @db.Date
   currency_code         String                 @db.VarChar(10)
-  exchange_rate         Decimal                @default(1) @db.Decimal(19, 4)
+  exchange_rate         Decimal                @default(1) @db.Decimal(22, 10)
   amount_total          Decimal                @default(0) @db.Decimal(19, 4)
   settlement_code       String                 @db.VarChar(12)
   payment_method_code   String?                @db.VarChar(40)
@@ -10712,6 +10715,9 @@ model org_fin_ap_pmt_mst {
   is_active             Boolean                @default(true)
   doc_type_code         String                 @default("ERP_AP_PAYMENT")
   wht_amount            Decimal                @default(0) @db.Decimal(19, 4)
+  fx_rate_date          DateTime?              @db.Date
+  fx_rate_source        String?
+  fx_rate_id            String?                @db.Uuid
   org_fin_ap_alloc_tr   org_fin_ap_alloc_tr[]
   sys_doc_seq_type_cd   sys_doc_seq_type_cd    @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fap_doc_type")
   org_fin_bank_acct_mst org_fin_bank_acct_mst? @relation(fields: [bank_account_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofap_bank")
@@ -11316,7 +11322,7 @@ model org_fin_exp_mst {
   status_code         String              @default("RECORDED") @db.VarChar(20)
   settlement_code     String              @default("CASH") @db.VarChar(20)
   currency_code       String              @db.VarChar(10)
-  exchange_rate       Decimal             @default(1) @db.Decimal(19, 8)
+  exchange_rate       Decimal             @default(1) @db.Decimal(22, 10)
   subtotal_amount     Decimal             @default(0) @db.Decimal(19, 4)
   tax_amount          Decimal             @default(0) @db.Decimal(19, 4)
   total_amount        Decimal             @default(0) @db.Decimal(19, 4)
@@ -11337,6 +11343,9 @@ model org_fin_exp_mst {
   is_active           Boolean             @default(true)
   doc_type_code       String              @default("ERP_EXPENSE")
   supplier_id         String?             @db.Uuid
+  fx_rate_date        DateTime?           @db.Date
+  fx_rate_source      String?
+  fx_rate_id          String?             @db.Uuid
   org_fin_exp_dtl     org_fin_exp_dtl[]
   sys_doc_seq_type_cd sys_doc_seq_type_cd @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fex_doc_type")
   org_branches_mst    org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ofe_branch")
@@ -11616,7 +11625,7 @@ model org_fin_po_mst {
   po_date             DateTime             @db.Date
   expected_date       DateTime?            @db.Date
   currency_code       String               @db.VarChar(10)
-  exchange_rate       Decimal              @default(1) @db.Decimal(19, 4)
+  exchange_rate       Decimal              @default(1) @db.Decimal(22, 10)
   subtotal_amount     Decimal              @default(0) @db.Decimal(19, 4)
   tax_amount          Decimal              @default(0) @db.Decimal(19, 4)
   total_amount        Decimal              @default(0) @db.Decimal(19, 4)
@@ -11632,6 +11641,9 @@ model org_fin_po_mst {
   rec_notes           String?              @db.VarChar(200)
   is_active           Boolean              @default(true)
   doc_type_code       String               @default("ERP_PO")
+  fx_rate_date        DateTime?            @db.Date
+  fx_rate_source      String?
+  fx_rate_id          String?              @db.Uuid
   org_fin_ap_inv_mst  org_fin_ap_inv_mst[]
   org_fin_po_dtl      org_fin_po_dtl[]
   sys_doc_seq_type_cd sys_doc_seq_type_cd  @relation(fields: [doc_type_code], references: [doc_type_code], onUpdate: Restrict, map: "fk_fpo_doc_type")
@@ -17890,6 +17902,7 @@ model sys_tax_kit_versions_mst {
   rec_order                    Int?
   rec_notes                    String?
   is_active                    Boolean                        @default(true)
+  voucher_tax_mode             String                         @default("MPV")
   org_tax_config_cf            org_tax_config_cf[]
   org_tax_item_classes_cf      org_tax_item_classes_cf[]
   org_tax_profiles_cf          org_tax_profiles_cf[]

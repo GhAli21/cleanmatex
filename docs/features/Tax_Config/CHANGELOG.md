@@ -1,5 +1,19 @@
 # Tax Engine — Changelog
 
+## 1.0.3 — 2026-11-13
+
+- `0733`: ERP-Lite purchase documents store a real FX rate (DECIMAL(22,10)) with its date, source and rate id; services to use it next.
+
+- `0732` + HQ: draft kit versions can add and change rules (with their ordered tax codes) and item classes in HQ › Tax Kits; ties between rules are refused; the flow default class moves safely.
+
+- Menu gates follow the page access contracts (`0729`); UAE VAT 201 return boxes verified against the FTA manual (`0730`).
+- Purchase reverse charge (`0731`, kit version 2 of OM/SA/AE/BH): GCC suppliers reverse-charged; foreign reverse charge for every segment (v1 only ENTERPRISE); rule precedence fixed (a foreign purchase with an item class was refused as ambiguous); new code `VAT_IN_RC_NONREC`; kit check runs purchase examples (`flow`, `country_scope`).
+- HQ: test debt cleared (platform-api tsc 0); tenant permission service and runtime guard bugs fixed.
+
+## 1.0.2 — 2026-11-12
+
+- Kit facts checked against official sources (`0728`): OM return layout replaced by the official 20 boxes; OM simplified invoice limit OMR 500 (with Tax Authority approval); SA return boxes and simplified-invoice rule verified; gift card tax timing per kit (OM, BH, AE at sale; SA when used) used as the default when a card is sold; HQ kit drafts can change it. BH return lines 1–16 still to confirm.
+
 ## 1.0.1 — 2026-11-12
 
 - **T4 leftovers done.** Order money panel shows each item's tax by code (from `org_tax_lines_tr`, staff views only).

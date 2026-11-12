@@ -68,6 +68,15 @@ Apply `0727` first, then `npm run prisma:pull` and regenerate types in both repo
 | 31f | New order with **Express** speed, one service item and one retail item (e.g. hanger) | Order is accepted; the retail item keeps its normal price, the service item gets the Express price |
 | 31g | **HQ › organization › Tax kit › Apply** (or Update kit now) after `0727` | Works as before; no error about `is_default` / `applies_to` |
 
+### Kit facts verified (`0728`)
+
+| # | Do | Expect |
+|---|---|---|
+| 31h | Oman organization: **Marketing › Gift Cards › Sell**, keep "When tax is charged" = **As in tax setup**, sell 10.000 | The card is single-purpose: tax lines appear at sale (VAT inside 10.000). Using the card later adds no tax |
+| 31i | Saudi organization (or switch the demo kit): same | Multi-purpose: no tax at sale; tax when the card pays for an order |
+| 31j | Oman organization: **Reports › VAT Return** for a period with orders and expenses | Boxes 1a–7c in the official order; 5a = 1a + 1f + 2a + 2b + 4a; 7c = 7a − 7b |
+| 31k | **HQ › Tax Kits** › OM / SA / AE: version facts | Verified; "Gift cards taxed" shows At sale (OM, AE, BH) / When used (SA). New draft → **Edit facts** shows the gift card setting and saves it. BH return boxes 1–16 still marked unverified |
+
 ## T5 — Purchases taxed by rules (organization app, ERP-Lite)
 
 Needs ERP-Lite expenses, PO and AP turned on, and a confirmed tax setup. Tax record: `select tax_code, tax_flow_code, line_status, taxable_amount, tax_amount, recoverable_amount from org_tax_lines_tr where source_doc_id = '<document id>';`
@@ -146,3 +155,19 @@ Needs a confirmed tax setup with a VAT kit, and ERP-Lite on for the posting chec
 | 82 | Discard a draft | Draft gone; published versions untouched |
 | 83 | HQ: create a new organization (country OM) | Its tax setup exists as "waiting for confirmation" with the OM default package |
 | 84 | Arabic | HQ kit draft screens, dialogs and messages read correctly right-to-left |
+
+### Purchase reverse charge (`0731`, kit version 2 from 2026-11-14)
+
+| # | Do | Expect |
+|---|---|---|
+| 31l | **HQ › Tax Kits** › OM (also SA, AE, BH) | Version 2 Published from 2026-11-14, version 1 ends 2026-11-13; version 2 rules include `IN_GCC_RC`, `IN_FOREIGN_RC_NONREC`, `IN_GCC_RC_NONREC`; code `VAT_IN_RC_NONREC`; Check passes 7 examples |
+| 31m | Organization on version 2 (any segment, e.g. SME): **ERP-Lite › Expenses › New**, supplier whose tax country is another GCC state (e.g. Oman organization, Saudi supplier), item class "Standard purchase", 100 | Tax line uses `VAT_IN_RC` (reverse charge): due tax and recoverable tax both shown; the VAT return counts it in the reverse-charge boxes (OM 2b, AE 3 + 10, SA 9, BH reverse-charge lines) |
+| 31n | Same, supplier tax country outside the GCC, item class "Standard purchase" | Reverse charge (`VAT_IN_RC`), not refused as ambiguous; with item class "Not reclaimable" → `VAT_IN_RC_NONREC` (recoverable 0); with "No VAT" → no tax |
+
+### HQ draft rules and item classes (`0732`)
+
+| # | Do | Expect |
+|---|---|---|
+| 31o | **HQ › Tax Kits** › OM › version 2 › **New draft from this version** | Draft version 3; the Item classes and Rules sections show **Add** buttons and an **Edit** button on each row (not on published versions) |
+| 31p | Draft › Rules › **Add rule**: code `IN_TEST`, Purchases, Party country "Outside the GCC", priority 50, tax code `VAT_IN_RC`, save | Refused: "Another rule can apply… same priority" (ties with `IN_FOREIGN_RC`). Change priority to 60 → saved; the rule shows in the table. Edit `IN_GCC_RC`, untick its code → Save stays disabled until one code is ticked |
+| 31q | Draft › Item classes › **Add item class** `PURCHASE_TEST` (Purchases), turn on Default → saved; `PURCHASE_STANDARD` is no longer default. Edit `PURCHASE_NON_REC`, switch off Active | Refused: an active rule uses the class. Then **Check examples** → pass; **Discard draft** → draft gone |

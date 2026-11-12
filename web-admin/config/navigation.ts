@@ -208,7 +208,9 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Delivery',
         path: '/dashboard/delivery',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
-        permissions: ['orders:read'],
+        // Same as the page contract. The DB menu gate is drivers:read (every holder also has orders:read).
+        permissions: ['drivers:read', 'orders:read'],
+        requireAllPermissions: true,
       },
     ],
   },
@@ -246,14 +248,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['drivers:read', 'orders:read'],
       },
     ],
-  },
-  {
-    key: 'delivery',
-    label: 'Delivery',
-    icon: Truck,
-    path: '/dashboard/delivery',
-    roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
-    permissions: ['orders:read'],
   },
   {
     key: 'users',
@@ -389,7 +383,8 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Services preferences',
         path: '/dashboard/catalog/preferences',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-        permissions: ['config:preferences_manage'],
+        // Any of these opens the page; the DB menu gate is orders:read, the widest one.
+        permissions: ['orders:service_prefs_view', 'orders:read', 'config:preferences_manage'],
       },
       {
         key: 'catalog_order_sources',
@@ -1023,14 +1018,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Roles & Permissions',
         path: '/dashboard/settings/roles',
         roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['settings:read'],
+        permissions: ['roles:update'],
       },
       {
         key: 'settings_permissions',
         label: 'Permissions',
         path: '/dashboard/settings/permissions',
         roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['settings:read'],
+        permissions: ['roles:update'],
       },
       {
         key: 'settings_security',
@@ -1067,7 +1062,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Payment Setup',
         path: '/dashboard/settings/payments',
         roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['settings:read'],
+        permissions: ['payment_config:view'],
       },
       {
         key: 'settings_cash_control',

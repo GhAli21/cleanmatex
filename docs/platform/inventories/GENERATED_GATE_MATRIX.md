@@ -1,8 +1,8 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-12T15:39:23.242Z
-Git SHA: 3da50547
+Generated: 2026-11-12T18:49:12.171Z
+Git SHA: 7d7a0093
 ## Summary
 | Domain | Count |
 | --- | --- |
@@ -11,7 +11,7 @@ Git SHA: 3da50547
 | Feature flag usages | 86 |
 | Setting usages | 23 |
 | Plan limit usages | 2 |
-| Navigation entries | 112 |
+| Navigation entries | 111 |
 | Flag catalog entries | 298 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -166,10 +166,10 @@ Git SHA: 3da50547
 | /dashboard/settings/labels | Labels & Tags | settings:read | — | 0 |
 | /dashboard/settings/payments | Payment Setup | payment_config:view | — | 0 |
 | /dashboard/settings/payments/cash-control-settings | Cash Control Settings | cash_control:view | — | 0 |
-| /dashboard/settings/permissions | Permissions Management | *:*, settings:* | — | 0 |
+| /dashboard/settings/permissions | Permissions Management | roles:update | — | 0 |
 | /dashboard/settings/pos-settings | POS Settings | cash_control:view | — | 0 |
 | /dashboard/settings/preferences | Settings Preferences | — | — | 0 |
-| /dashboard/settings/roles | Roles Management | *:*, settings:* | — | 0 |
+| /dashboard/settings/roles | Roles Management | roles:update | — | 0 |
 | /dashboard/settings/security | Security & Sessions | auth_config:read | — | 0 |
 | /dashboard/settings/tax | Tax Setup | tax:view_config | — | 0 |
 | /dashboard/settings/tax/setup | Review tax setup | tax:view_config | — | 1 |

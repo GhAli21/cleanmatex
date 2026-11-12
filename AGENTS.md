@@ -196,6 +196,7 @@ npm run prisma:pull                # Sync Prisma from repo root (no cd web-admin
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. See CRITICAL RULE #10.
 - **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.
 - **Prisma-safe composite FKs** — Postgres ignores unique column order; Prisma 6 does not. Child FK + 1:1 UNIQUE + referenced parent key MUST use the same columns in the same order. If the parent key is `(id, tenant_org_id)`, the child is `(parent_id, tenant_org_id)` (tenant **second** — this is `0553`). If the parent is `(tenant_org_id, id)`, the child is tenant-first. List indexes stay tenant-first. Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. After `db pull`, fix P1012 unique-order bugs in a NEW SQL migration; `SetNull` warnings are not P1012. Full rule: `/database` skill.
+- **ERP Lite objects carry the `erplt` marker** — every NEW DB object owned by the ERP Lite module (`docs/features/ERP_Lite/`) must include the literal token `erplt` right after the `sys_`/`org_` scope prefix: `org_erplt_{sub_feature}_{object}_{suffix}` (e.g. `org_erplt_fin_acct_mst`, `org_erplt_exp_petty_cash_mst`). Not retroactive — existing `org_fin_*`/etc. ERP Lite objects from migrations `0175`–`0203` are grandfathered. See `/database` skill → `feature-abbreviations.md`.
 
 ---
 
@@ -213,6 +214,7 @@ npm run prisma:pull                # Sync Prisma from repo root (no cd web-admin
 - TypeScript strict, no `any`
 - No hardcoded secrets
 - In `web-admin`, use the centralized tenant-context utilities where the implementation requires them
+- **ERP Lite identifiers carry the `erplt` marker** — beyond DB objects, anything NEW that the ERP Lite module owns (permission codes, feature flag keys, route segments/folder names, i18n namespaces, TS constant files) must contain `erplt` so it reads as ERP Lite at a glance and isn't confused with unrelated same-named concepts (e.g. Order Fin's `fin`). Example: `erplt_fin:read` not `fin_vouchers:create`; `ERPLT_FIN_ENABLED` not a bare finance flag name. Not retroactive on already-shipped identifiers (e.g. existing `fin_vouchers:*` permissions, `erp_lite` nav key) — only required going forward.
 - In `cmx-api`, pass tenant context explicitly through guards/request context and service boundaries
 
 **Feature docs:** When implementing any feature, document: permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md`.

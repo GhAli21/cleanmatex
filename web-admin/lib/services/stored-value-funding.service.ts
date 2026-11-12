@@ -49,7 +49,7 @@ import {
   OUTBOX_EVENT_TYPES,
   SV_FUNDING_TENDER_STATUS,
 } from '@/lib/constants/order-financial';
-import { GIFT_CARD_STATUS, type GiftCardVoucherTaxMode } from '@/lib/constants/gift-card';
+import { GIFT_CARD_STATUS, GIFT_CARD_VOUCHER_TAX_MODES, type GiftCardVoucherTaxMode } from '@/lib/constants/gift-card';
 import { SETTLEMENT_MONEY_EPSILON } from '@/lib/constants/settlement-catalog';
 import { hashPayload } from '@/lib/utils/idempotency';
 import bcrypt from 'bcryptjs';
@@ -104,7 +104,7 @@ export interface GiftCardSaleDetails {
   cardName2?: string;
   expiryDate?: string;
   issuedToCustomerId?: string;
-  /** When the card is taxed; omitted = MPV (the column default). */
+  /** When the card is taxed; omitted = the default of the organization's tax kit (MPV without a kit). */
   voucherTaxMode?: GiftCardVoucherTaxMode;
 }
 
@@ -143,6 +143,26 @@ export interface FundStoredValueResult {
  * creates the tender-leg rows and credits the ledger exactly once, within the same
  * transaction; a cash leg's drawer effect is stamped by the cash-drawer ledger gate.
  */
+/**
+ * The gift card tax timing the organization's tax kit sets (KIT_FACTS §4): SPV in OM, BH, AE; MPV in SA.
+ * No tax setup yet: MPV, so nothing is taxed before the setup says so.
+ * @param tx open transaction
+ * @param tenantOrgId tenant resolved server-side by the caller
+ * @returns SPV or MPV
+ */
+async function kitVoucherTaxMode(tx: PrismaTransactionClient, tenantOrgId: string): Promise<GiftCardVoucherTaxMode> {
+  const config = await tx.org_tax_config_cf.findFirst({
+    where: { tenant_org_id: tenantOrgId, rec_status: 1 },
+    select: { kit_version_id: true },
+  });
+  if (!config?.kit_version_id) return GIFT_CARD_VOUCHER_TAX_MODES.MPV;
+  const version = await tx.sys_tax_kit_versions_mst.findUnique({
+    where: { id: config.kit_version_id },
+    select: { voucher_tax_mode: true },
+  });
+  return version?.voucher_tax_mode === GIFT_CARD_VOUCHER_TAX_MODES.SPV ? GIFT_CARD_VOUCHER_TAX_MODES.SPV : GIFT_CARD_VOUCHER_TAX_MODES.MPV;
+}
+
 export async function fundStoredValue(params: FundStoredValueParams): Promise<FundStoredValueResult> {
   const {
     tenantId,
@@ -299,7 +319,7 @@ export async function fundStoredValue(params: FundStoredValueParams): Promise<Fu
           expiry_date: giftCard!.expiryDate ? new Date(giftCard!.expiryDate) : undefined,
           issued_to_customer_id: giftCard!.issuedToCustomerId,
           purchased_by_cust_id: customerId,
-          voucher_tax_mode: giftCard!.voucherTaxMode,
+          voucher_tax_mode: giftCard!.voucherTaxMode ?? await kitVoucherTaxMode(tx, tenantId),
           issue_type: 'SOLD',
           gift_card_type: 'FIXED_VALUE',
           currency_code: resolvedCurrency,
