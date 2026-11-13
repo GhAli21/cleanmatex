@@ -13,7 +13,10 @@
       "TAX_CODE_UNSUPPORTED": "Tax code {taxCode} cannot be used on purchases yet.",
       "PURCHASE_TAX_MISMATCH": "The tax amount {entered} does not match the tax code ({expected}). Leave the tax blank to use {expected}, or choose the item tax class that matches the supplier invoice.",
       "TAX_CLASS_INVALID": "This item tax class cannot be used for purchases.",
-      "TAX_CURRENCY_UNSUPPORTED": "Tax is on, so this purchase must be in {baseCurrency}. It is in {currency}."
+      "TAX_CURRENCY_UNSUPPORTED": "Tax is on, so this purchase must be in {baseCurrency}. It is in {currency}.",
+      "FX_RATE_NOT_FOUND": "No exchange rate from {currency} to {baseCurrency} on {date}. Add an approved rate in Settings › Currencies & FX.",
+      "PETTY_CASH_FX_UNSUPPORTED": "Petty cash must stay in {baseCurrency}. This entry is in {currency}, and petty cash does not keep an exchange rate."
     }
-  }
+  },
+  "exchangeRate": "Exchange Rate"
 }

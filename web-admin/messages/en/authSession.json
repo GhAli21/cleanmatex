@@ -59,7 +59,7 @@
   },
   "password": {
     "title": "Change password",
-    "changeHint": "Enter your current password, then choose a new one. You will stay signed in on this device; all your other devices will be signed out.",
+    "changeHint": "Enter your current password, then choose a new one. This password is the same at every organization. Saving it signs you out of every organization, including this one.",
     "currentPassword": "Current password",
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
@@ -90,7 +90,7 @@
       }
     },
     "submitChange": "Change password",
-    "changed": "{count, plural, =0 {Password changed.} one {Password changed. 1 other device was signed out.} other {Password changed. # other devices were signed out.}}",
+    "changed": "Password changed. You were signed out of every organization.",
     "errors": {
       "currentRequired": "Enter your current password.",
       "wrongPassword": "The current password is incorrect.",
@@ -107,7 +107,7 @@
       "selfReset": "Use Account security to change your own password.",
       "userNotFound": "User not found."
     },
-    "changeHintNoCurrent": "Choose a new password and type it twice. You will stay signed in on this device; all your other devices will be signed out.",
+    "changeHintNoCurrent": "Choose a new password and type it twice. This password is the same at every organization. Saving it signs you out of every organization, including this one.",
     "reauthSignIn": "Sign in again",
     "link": {
       "title": "Prefer an emailed link?",
@@ -117,14 +117,14 @@
     },
     "changedDialog": {
       "title": "Password changed",
-      "body": "{count, plural, =0 {Your password was changed.} one {Your password was changed. 1 other device was signed out.} other {Your password was changed. # other devices were signed out.}}",
-      "question": "Do you want to sign out of this device now, or later?",
-      "later": "Later",
-      "signOutNow": "Sign out now"
+      "body": "Your password was changed. You were signed out of every organization.",
+      "question": "Sign in again with the new password.",
+      "later": "Close",
+      "signOutNow": "Sign in again"
     },
     "forced": {
       "title": "Set a new password",
-      "subtitle": "An administrator gave you a temporary password. Choose your own password to continue.",
+      "subtitle": "An administrator gave you a temporary password. Choose your own password to continue. This password is the same at every organization, and saving it signs you out of every organization.",
       "submit": "Save and continue",
       "signOut": "Sign out"
     }
@@ -222,7 +222,7 @@
     "notLocked": "The account was not locked.",
     "title": "Reset password for {user}",
     "modeSet": "Choose the password",
-    "modeSetHint": "Set a temporary password and give it to the user in person. All their devices are signed out.",
+    "modeSetHint": "Set a temporary password and give it to the user directly. They are signed out of every organization.",
     "modeLink": "Email a link",
     "modeLinkHint": "The user receives a one-time link at {email} and chooses their own password. The password is never emailed.",
     "modeLinkNoEmail": "Not available: this user has no email address.",
@@ -232,8 +232,8 @@
     "copyFailed": "Could not copy. Select and copy it manually.",
     "mustChange": "Require the user to change it at next sign-in",
     "mustChangeHint": "Recommended. The user must choose their own password before using the app.",
-    "revokeNow": "Also sign the user out of all devices now",
-    "revokeNowHint": "Use this if the account may be compromised.",
+    "revokeNow": "Also sign the user out of every organization now",
+    "revokeNowHint": "Use this if the account may be compromised. This ends sessions at every organization.",
     "cancel": "Cancel",
     "submitSet": "Set password",
     "submitLink": "Send link",

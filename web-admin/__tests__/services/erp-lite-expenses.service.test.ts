@@ -4,6 +4,18 @@ jest.mock('@/lib/services/tax/purchase-tax.service', () => ({
   writePurchaseTaxLines: jest.fn(),
 }));
 
+jest.mock('@/lib/services/fx/doc-fx-rate', () => ({
+  resolveDocFxRate: jest.fn().mockResolvedValue({
+    baseCurrencyCode: 'OMR',
+    exchangeRate: '1',
+    fxRateDate: null,
+    fxRateSource: null,
+    fxRateId: null,
+    baseMinorUnit: 3,
+  }),
+  assertOrgBaseCurrency: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@prisma/client', () => ({
   Prisma: {
     sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -38,8 +50,15 @@ jest.mock('@/lib/services/erp-lite-auto-post.service', () => ({
   },
 }));
 
+import { COMMERCIAL_ERROR_CODES, CommercialRuleError } from '@/lib/commercial/errors';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { assertOrgBaseCurrency, resolveDocFxRate } from '@/lib/services/fx/doc-fx-rate';
+import { resolvePurchaseTax } from '@/lib/services/tax/purchase-tax.service';
+
+const mockResolveDocFxRate = resolveDocFxRate as jest.Mock;
+const mockAssertOrgBaseCurrency = assertOrgBaseCurrency as jest.Mock;
+const mockResolvePurchaseTax = resolvePurchaseTax as jest.Mock;
 
 const mockDispatchExpenseRecordedInTransaction =
   ErpLiteAutoPostService.dispatchExpenseRecordedInTransaction as jest.Mock;
@@ -118,6 +137,93 @@ describe('ErpLiteExpensesService', () => {
     const seqQuery = mockTxQueryRaw.mock.calls[2]?.[0];
     expect(seqQuery?.values).toContain('tenant-123');
     expect(seqQuery?.values).toContain('EXP-202603%');
+    const insertQuery = mockTxQueryRaw.mock.calls[3]?.[0];
+    expect(insertQuery?.values).toContain('1');
+    expect(mockDispatchExpenseRecordedInTransaction).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ exchange_rate: 1, currency_code: 'OMR' }),
+    );
+  });
+
+  it('stores a USD rate and posts that rate so the ledger is in base currency', async () => {
+    mockResolveDocFxRate.mockResolvedValueOnce({
+      baseCurrencyCode: 'OMR',
+      exchangeRate: '0.3846153846',
+      fxRateDate: '2026-11-01',
+      fxRateSource: 'HQ:CBO',
+      fxRateId: 'rate-1',
+      baseMinorUnit: 3,
+    });
+    mockTxQueryRaw
+      .mockResolvedValueOnce([{ id: 'branch-1' }])
+      .mockResolvedValueOnce([{ usage_code_id: 'usage-expense' }])
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([
+        {
+          id: 'expense-usd',
+          expense_no: 'EXP-202603-00001',
+          tenant_org_id: 'tenant-123',
+          branch_id: 'branch-1',
+          expense_date: '2026-11-13',
+          currency_code: 'USD',
+          exchange_rate: 0.3846153846,
+          subtotal_amount: 100,
+          tax_amount: 0,
+          total_amount: 100,
+          settlement_code: 'CASH',
+        },
+      ])
+      .mockResolvedValueOnce([{ id: 'line-1' }]);
+    mockDispatchExpenseRecordedInTransaction.mockResolvedValue({
+      status: 'executed',
+      execute_result: { success: true },
+    });
+
+    await ErpLiteExpensesService.createExpense({
+      branch_id: 'branch-1',
+      expense_date: '2026-11-13',
+      currency_code: 'USD',
+      subtotal_amount: 100,
+      tax_amount: 0,
+      settlement_code: 'CASH',
+    });
+
+    const insertQuery = mockTxQueryRaw.mock.calls[3]?.[0];
+    expect(insertQuery?.values).toEqual(expect.arrayContaining([
+      '0.3846153846',
+      '2026-11-01',
+      'HQ:CBO',
+      'rate-1',
+    ]));
+    expect(mockResolvePurchaseTax).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        currencyCode: 'USD',
+        fx: expect.objectContaining({ exchangeRate: '0.3846153846', baseCurrencyCode: 'OMR' }),
+      }),
+    );
+    expect(mockDispatchExpenseRecordedInTransaction).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ currency_code: 'USD', exchange_rate: Number('0.3846153846') }),
+    );
+  });
+
+  it('refuses an expense when no exchange rate exists for the document date', async () => {
+    mockResolveDocFxRate.mockRejectedValueOnce(new CommercialRuleError(
+      COMMERCIAL_ERROR_CODES.FX_RATE_NOT_FOUND,
+      'missing',
+      { currency: 'USD', baseCurrency: 'OMR', date: '2026-11-13' },
+    ));
+    mockTxQueryRaw.mockResolvedValueOnce([{ id: 'branch-1' }]);
+
+    await expect(ErpLiteExpensesService.createExpense({
+      branch_id: 'branch-1',
+      expense_date: '2026-11-13',
+      currency_code: 'USD',
+      subtotal_amount: 10,
+      settlement_code: 'CASH',
+    })).rejects.toMatchObject({ code: COMMERCIAL_ERROR_CODES.FX_RATE_NOT_FOUND });
+    expect(mockDispatchExpenseRecordedInTransaction).not.toHaveBeenCalled();
   });
 
   it('creates a petty cash transaction with tenant-scoped numbering and dispatches governed posting', async () => {
@@ -193,6 +299,27 @@ describe('ErpLiteExpensesService', () => {
       })
     ).rejects.toThrow('Petty cash transaction currency must match the cashbox currency');
 
+    expect(mockDispatchPettyCashTransactionInTransaction).not.toHaveBeenCalled();
+    expect(mockAssertOrgBaseCurrency).not.toHaveBeenCalled();
+  });
+
+  it('refuses a petty cash transaction in a foreign currency even when it matches the cash box', async () => {
+    mockTxQueryRaw
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([{ id: 'cashbox-1', branch_id: 'branch-2', currency_code: 'USD' }]);
+    mockAssertOrgBaseCurrency.mockRejectedValueOnce(new CommercialRuleError(
+      COMMERCIAL_ERROR_CODES.PETTY_CASH_FX_UNSUPPORTED,
+      'foreign petty cash',
+      { currency: 'USD', baseCurrency: 'OMR' },
+    ));
+
+    await expect(ErpLiteExpensesService.createCashTransaction({
+      cashbox_id: 'cashbox-1',
+      txn_type_code: 'SPEND',
+      txn_date: '2026-03-31',
+      currency_code: 'USD',
+      amount_total: 1,
+    })).rejects.toMatchObject({ code: COMMERCIAL_ERROR_CODES.PETTY_CASH_FX_UNSUPPORTED });
     expect(mockDispatchPettyCashTransactionInTransaction).not.toHaveBeenCalled();
   });
 

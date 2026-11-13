@@ -7,8 +7,8 @@
  *  - on  → current password + new password + re-type;
  *  - off → just new password + re-type (allowed shortly after sign-in; an older session is offered the emailed
  *          link or a fresh sign-in instead).
- * A wrong current password counts toward the account lockout server-side. On success every OTHER device is signed
- * out, and the user chooses whether to sign out of this device now or later.
+ * A wrong current password counts toward the account lockout server-side. On success every organization
+ * session is signed out, including this one. The user signs in again with the new password.
  */
 
 import { useRef, useState, type FormEvent } from 'react'

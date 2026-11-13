@@ -40,7 +40,7 @@ Order money panel: `lib/services/order-fin-view/sources/items.source.ts` sums th
 ## 3. Return and posting
 
 - `lib/tax/tax-return.ts` — pure: boxes LINES (filters: flow, category, reverse charge, emirate; measure TAX or RECOVERABLE), TOTAL (signed sum of boxes, cycle check), MANUAL. `lib/services/tax/tax-return.service.ts` loads FINAL lines in base currency grouped by tax date; every joined `org_*` table filtered by tenant.
-- ERP-Lite: `TAX_ADVANCE_RECORDED/NETTED`, `TAX_GIFT_CARD_RECORDED/NETTED` (NON_BLOCKING) via `dispatchTaxReclassInTransaction`; `EXPENSE_RECORDED_V1` debits `VAT_INPUT` with the recoverable tax. Supplier payment `wht_amount`: cash paid = amount − withheld (AP is not posted to the GL by ERP-Lite).
+- ERP-Lite: `TAX_ADVANCE_RECORDED/NETTED`, `TAX_GIFT_CARD_RECORDED/NETTED` (NON_BLOCKING) via `dispatchTaxReclassInTransaction`; `EXPENSE_RECORDED_V1` debits `VAT_INPUT` with the recoverable tax. `AP_INVOICE_POSTED` debits the expense and recoverable Input VAT and credits `AP_CONTROL`; `AP_PAYMENT_RECORDED` debits `AP_CONTROL`, credits cash or bank for the cash paid, and credits `WHT_PAYABLE` for `wht_amount`. Both use the document exchange rate (`0735` applied).
 
 ## 4. Setup Health checks (0726)
 
@@ -87,4 +87,4 @@ HQ: `/tax-setup/*` (`kits`, `kit-versions/:id` + `verify|unverify|draft|check|di
 
 ## 9. Known limits
 
-See [followups_by_user.md](followups_by_user.md): drafts do not edit rules / item classes; fixed-amount / document-level codes refused (`TAX_CODE_UNSUPPORTED`); foreign-currency purchases not taxed; no reverse-charge purchase rules seeded.
+See [followups_by_user.md](followups_by_user.md): fixed-amount / document-level codes refused (`TAX_CODE_UNSUPPORTED`); petty cash must be in the organization currency; a purchase exchange rate is taken from Currencies & FX (no manual override); a chart without Accounts Payable (`211001`) or Withholding Tax Payable (`212003`) cannot post supplier invoices and payments; reverse-charge VAT is still part of the supplier invoice total.

@@ -4,6 +4,17 @@ jest.mock('@/lib/services/tax/purchase-tax.service', () => ({
   writePurchaseTaxLines: jest.fn(),
 }));
 
+jest.mock('@/lib/services/fx/doc-fx-rate', () => ({
+  resolveDocFxRate: jest.fn().mockResolvedValue({
+    baseCurrencyCode: 'OMR',
+    exchangeRate: '1',
+    fxRateDate: null,
+    fxRateSource: null,
+    fxRateId: null,
+    baseMinorUnit: 3,
+  }),
+}));
+
 jest.mock('@prisma/client', () => ({
   Prisma: {
     sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
@@ -32,7 +43,26 @@ jest.mock('@/lib/db/tenant-context', () => ({
   ),
 }));
 
+jest.mock('@/lib/services/erp-lite-auto-post.service', () => ({
+  ErpLiteAutoPostService: {
+    dispatchApInvoicePostedInTransaction: jest.fn().mockResolvedValue({
+      status: 'executed',
+      policy: { blocking_mode: 'NON_BLOCKING', required_success: false },
+      execute_result: { success: true },
+    }),
+    dispatchApPaymentRecordedInTransaction: jest.fn().mockResolvedValue({
+      status: 'executed',
+      policy: { blocking_mode: 'NON_BLOCKING', required_success: false },
+      execute_result: { success: true },
+    }),
+  },
+}));
+
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { resolveDocFxRate } from '@/lib/services/fx/doc-fx-rate';
+
+const mockResolveDocFxRate = resolveDocFxRate as jest.Mock;
 
 describe('ErpLiteV2Service', () => {
   beforeEach(() => {
@@ -120,6 +150,17 @@ describe('ErpLiteV2Service', () => {
     const updateQuery = mockTxQueryRaw.mock.calls[7]?.[0];
     expect(updateQuery?.values).toContain(5);
     expect(updateQuery?.values).toContain('PARTIAL');
+    expect(ErpLiteAutoPostService.dispatchApPaymentRecordedInTransaction).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        ap_payment_id: 'payment-1',
+        amount_total: 10,
+        wht_amount: 0,
+        exchange_rate: 1,
+        settlement_code: 'BANK',
+        currency_code: 'OMR',
+      })
+    );
   });
 
   it('rejects AP payment when bank account currency does not match', async () => {
@@ -379,5 +420,43 @@ describe('ErpLiteV2Service', () => {
 
     const updateQuery = mockQueryRaw.mock.calls[1]?.[0];
     expect(updateQuery?.values).toContain('recon-1');
+  });
+
+  it('stores the document-date rate on a foreign-currency purchase order', async () => {
+    mockResolveDocFxRate.mockResolvedValueOnce({
+      baseCurrencyCode: 'OMR',
+      exchangeRate: '0.3846153846',
+      fxRateDate: '2026-11-01',
+      fxRateSource: 'HQ:CBO',
+      fxRateId: 'rate-1',
+      baseMinorUnit: 3,
+    });
+    mockTxQueryRaw
+      .mockResolvedValueOnce([{
+        id: 'supp-1', branch_id: 'branch-1', payable_acct_id: 'acct-1',
+        currency_code: 'USD', status_code: 'ACTIVE', posting_hold: false,
+      }])
+      .mockResolvedValueOnce([{ id: 'branch-1' }])
+      .mockResolvedValueOnce([{ usage_code_id: 'usage-1' }])
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([{ id: 'po-1', po_no: 'PO-202611-00001' }])
+      .mockResolvedValueOnce([]);
+
+    await ErpLiteV2Service.createPurchaseOrder({
+      supplier_id: 'supp-1',
+      branch_id: 'branch-1',
+      po_date: '2026-11-13',
+      currency_code: 'USD',
+      subtotal_amount: 100,
+      description: 'Imported detergent',
+    });
+
+    const insertQuery = mockTxQueryRaw.mock.calls[4]?.[0];
+    expect(insertQuery?.values).toEqual(expect.arrayContaining([
+      '0.3846153846',
+      '2026-11-01',
+      'HQ:CBO',
+      'rate-1',
+    ]));
   });
 });

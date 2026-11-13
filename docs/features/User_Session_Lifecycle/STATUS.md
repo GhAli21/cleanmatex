@@ -6,12 +6,12 @@
 **Next migration number:** 0588+ (ours: 0561, 0563, 0568, 0570, 0573, 0575, 0576, 0577, 0581, 0584, 0585 — ALWAYS re-list the folder before numbering; other programs use 0578-0580, 0582-0583, 0586, 0587)
 
 ## Decisions (user-confirmed)
-- One auth account per tenant membership; session bound to one tenant at sign-in; **no tenant switching** (sign out → sign in to the other tenant).
+- One global user (`sys_users_mst`) can have many organization memberships. One sign-in binds one organization until logout. Changing organization means sign out, then sign in, then the picker. Supersedes the October 2026 “one auth account per tenant membership” decision (`docs/features/Tenants_Users/PLAN.md`, migrations `0734`, `0736`, `0737`).
 - Sign-in by globally unique `user_code` **or** email + password.
 - Dedicated audit table `sys_auth_audit_log` (+ `sys_auth_event_cd`); `sys_audit_log` only locked down.
 - Auth config in two tables: `sys_auth_admin_config_cf` (global catalog) + `org_auth_admin_config_cf` (tenant override, only where `is_allow_tenant_change`).
-- Optional modules in scope: concurrent session limit, new-device alert. Deferred: MFA, cmx-api enforcement (full list with reasons in [REMAINING_WORK.md](REMAINING_WORK.md) §3).
-- Password management (added 2026-10-09): defaults accepted + all suggestions, with the two-field self-service change (new + re-type) and a "sign out now / later" prompt.
+- Optional modules in scope: concurrent session limit, new-device alert. cmx-api staff calls use `fn_auth_session_validate` (13 Nov 2026). Deferred: MFA (full list with reasons in [REMAINING_WORK.md](REMAINING_WORK.md) §3).
+- Password management (added 2026-10-09, updated 2026-11-13): the password is global. Saving it signs the user out of every organization, including this one.
 - Plan downgrade does not clear tenant overrides automatically; HQ's manual action is enough for now (owner, 2026-10-09).
 
 ## Progress

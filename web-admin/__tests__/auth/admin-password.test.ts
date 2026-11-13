@@ -12,7 +12,7 @@ const mockAcceptable = jest.fn();
 const mockSendLink = jest.fn();
 
 jest.mock('@/lib/services/auth/session/auth-session.repository', () => ({
-  revokeUserSessions: (...a: unknown[]) => mockRevoke(...a),
+  revokeAllGlobalUserSessions: (...a: unknown[]) => mockRevoke(...a),
   logAuthEvent: (...a: unknown[]) => mockLog(...a),
 }));
 jest.mock('@lib/notifications/event-emitter', () => ({ emitNotificationEvent: (...a: unknown[]) => mockEmit(...a) }));
@@ -100,7 +100,7 @@ describe('adminSetPassword', () => {
     const flag = calls.find((c) => c.op === 'update');
     expect(flag?.payload).toEqual({ pwd_must_change: true });
     expect(flag?.filters).toEqual({ tenant_org_id: 'tenant-1', user_id: 'user-2' }); // explicit tenant predicate
-    expect(mockRevoke).toHaveBeenCalledWith(admin, expect.objectContaining({ authUserId: 'user-2', tenantOrgId: 'tenant-1', reason: 'PASSWORD_CHANGED', exceptAuthSessionId: null, actorId: 'admin-1' }));
+    expect(mockRevoke).toHaveBeenCalledWith(admin, expect.objectContaining({ authUserId: 'user-2', reason: 'PASSWORD_CHANGED', actorId: 'admin-1' }));
     expect(mockLog).toHaveBeenCalledWith(admin, expect.objectContaining({ eventCode: 'PASSWORD_RESET_BY_ADMIN', details: expect.objectContaining({ actor_id: 'admin-1', must_change: true }) }));
     expect(mockEmit).toHaveBeenCalledWith(expect.objectContaining({ code: 'security.password.changed', recipientUserIds: ['user-2'] }));
   });

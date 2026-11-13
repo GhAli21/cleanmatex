@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ErpLitePoDashboardSnapshot } from '@/lib/types/erp-lite-v2'
-import { formatErpLiteMoney, type ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
+import { formatErpLiteDocumentRate, formatErpLiteMoney, type ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
 import { CmxDataTable } from '@ui/data-display'
 
 interface ErpLitePoListTableProps {
@@ -19,6 +19,7 @@ interface ErpLitePoListTableProps {
  */
 export function ErpLitePoListTable({ items, displayConfig }: ErpLitePoListTableProps) {
   const t = useTranslations('erpLite.po')
+  const tCommon = useTranslations('erpLite.common')
 
   const columns: ColumnDef<ErpLitePoDashboardSnapshot['po_list'][number]>[] = [
     { accessorKey: 'po_no', header: t('lists.po.columns.no'), cell: ({ row }) => <div className="font-medium">{row.original.po_no}</div> },
@@ -26,6 +27,16 @@ export function ErpLitePoListTable({ items, displayConfig }: ErpLitePoListTableP
     { accessorKey: 'supplier_name', header: t('lists.po.columns.supplier') },
     { accessorKey: 'branch_name', header: t('lists.po.columns.branch'), cell: ({ row }) => row.original.branch_name ?? '—' },
     { accessorKey: 'status_code', header: t('lists.po.columns.status') },
+    {
+      id: 'exchange_rate',
+      header: tCommon('exchangeRate'),
+      cell: ({ row }) => formatErpLiteDocumentRate(
+        row.original.exchange_rate,
+        row.original.fx_rate_date,
+        row.original.fx_rate_source,
+        displayConfig.locale,
+      ),
+    },
     {
       id: 'total_amount',
       header: () => <div className="text-right">{t('lists.po.columns.amount')}</div>,

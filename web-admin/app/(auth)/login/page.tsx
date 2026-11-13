@@ -22,6 +22,8 @@ import { setLocale as persistLocale, type Locale } from '@/lib/utils/locale.clie
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { Alert, AlertDescription, CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives'
 import { CmxForm, CmxFormField } from '@ui/forms'
+import { TenantPickerDialog } from '@features/auth/ui/tenant-picker-dialog'
+import type { LaundryChoiceResult } from '@/types/auth'
 
 interface LoginFormValues {
   /** User code or email. */
@@ -100,7 +102,7 @@ function LoginLanguageSwitcher() {
  */
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const { signIn, isLoading } = useAuth()
+  const { signIn, chooseLaundry, signOut, isLoading } = useAuth()
   const t = useTranslations('auth')
 
   const form = useForm<LoginFormValues>({
@@ -113,6 +115,7 @@ export default function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [generalError, setGeneralError] = useState<string | null>(null)
+  const [picker, setPicker] = useState<LaundryChoiceResult | null>(null)
 
   // Why the user is here (idle timeout, revoked, ...) and where to return to after signing in. Both come from
   // the URL, so both are validated: unknown reasons show nothing; the return path must be a safe internal path.
@@ -155,15 +158,20 @@ export default function LoginPage() {
     }
 
     try {
-      await signIn(normalizeLoginIdentifier(values.identifier), values.password, values.rememberMe, redirectTo)
+      const result = await signIn(normalizeLoginIdentifier(values.identifier), values.password, values.rememberMe, redirectTo)
+      if (result?.chooseLaundry) {
+        setPicker(result)
+      }
     } catch (error: unknown) {
       // Unknown identifier and wrong password share one server code (no account enumeration).
       const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined
       setGeneralError(
         code === LOGIN_ERROR_CODES.INVALID_CREDENTIALS
           ? t('login.invalidCredentials')
-          : code === SESSION_ERROR_CODES.SESSION_LIMIT_REACHED
+            : code === SESSION_ERROR_CODES.SESSION_LIMIT_REACHED
             ? t('login.sessionLimitReached')
+            : code === 'LOCKED'
+              ? t('login.locked')
             : getLoginErrorMessage(error, t('login.invalidCredentials'))
       )
     }
@@ -171,6 +179,35 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[rgb(var(--cmx-background-rgb,255_255_255))]">
+      <TenantPickerDialog
+        open={picker !== null}
+        laundries={picker?.laundries ?? []}
+        lastChosenTenantId={picker?.lastChosenTenantId ?? null}
+        isSubmitting={isSubmitting}
+        title={t('login.chooseOrganization')}
+        hint={t('login.chooseOrganizationHint')}
+        lastLabel={t('login.lastOrganization')}
+        cancelLabel={t('login.cancelSignIn')}
+        onChoose={async (orgUserId) => {
+          setGeneralError(null)
+          try {
+            await chooseLaundry(orgUserId, redirectTo)
+          } catch (error: unknown) {
+            const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined
+            setGeneralError(
+              code === SESSION_ERROR_CODES.SESSION_LIMIT_REACHED
+                ? t('login.sessionLimitReached')
+                : code === 'LOCKED'
+                  ? t('login.locked')
+                  : getLoginErrorMessage(error, t('login.invalidCredentials'))
+            )
+          }
+        }}
+        onCancel={() => {
+          setPicker(null)
+          void signOut('user')
+        }}
+      />
       <div className="absolute inset-0 bg-gradient-to-br from-stone-100 via-amber-50 to-slate-100" />
       <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/12 blur-3xl" />
       <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-slate-900/8 blur-3xl" />

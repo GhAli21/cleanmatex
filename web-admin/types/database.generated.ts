@@ -9935,13 +9935,13 @@ isOneToOne: false
                   ]
                 },"org_users_mst": {
                   Row: {
-                    "address": string | null,"area": string | null,"building": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"display_name": string | null,"email": string | null,"failed_login_attempts": number | null,"first_name": string | null,"floor": string | null,"id": string,"is_active": boolean,"is_user": boolean,"last_failed_login_at": string | null,"last_login_at": string | null,"last_name": string | null,"lock_reason": string | null,"locked_until": string | null,"login_count": number | null,"main_branch_id": string | null,"name": string | null,"name2": string | null,"password_hash": string | null,"phone": string | null,"preferences": Json | null,"pwd_changed_at": string | null,"pwd_must_change": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"role": string | null,"tenant_org_id": string,"type": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"user_code": string,"user_id": string
+                    "address": string | null,"area": string | null,"building": string | null,"created_at": string | null,"created_by": string | null,"created_info": string | null,"display_name": string | null,"email": string | null,"failed_login_attempts": number | null,"first_name": string | null,"floor": string | null,"id": string,"is_active": boolean,"is_membership_locked": boolean,"is_user": boolean,"last_failed_login_at": string | null,"last_login_at": string | null,"last_name": string | null,"lock_reason": string | null,"locked_until": string | null,"login_count": number | null,"main_branch_id": string | null,"membership_locked_at": string | null,"membership_locked_by": string | null,"name": string | null,"name2": string | null,"password_hash": string | null,"phone": string | null,"preferences": Json | null,"pwd_changed_at": string | null,"pwd_must_change": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"role": string | null,"tenant_org_id": string,"type": string | null,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"user_code": string,"user_id": string
                   }
                   Insert: {
-                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"display_name"?: string | null,"email"?: string | null,"failed_login_attempts"?: number | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_user"?: boolean,"last_failed_login_at"?: string | null,"last_login_at"?: string | null,"last_name"?: string | null,"lock_reason"?: string | null,"locked_until"?: string | null,"login_count"?: number | null,"main_branch_id"?: string | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"phone"?: string | null,"preferences"?: Json | null,"pwd_changed_at"?: string | null,"pwd_must_change"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"role"?: string | null,"tenant_org_id": string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_code"?: string,"user_id": string
+                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"display_name"?: string | null,"email"?: string | null,"failed_login_attempts"?: number | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_membership_locked"?: boolean,"is_user"?: boolean,"last_failed_login_at"?: string | null,"last_login_at"?: string | null,"last_name"?: string | null,"lock_reason"?: string | null,"locked_until"?: string | null,"login_count"?: number | null,"main_branch_id"?: string | null,"membership_locked_at"?: string | null,"membership_locked_by"?: string | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"phone"?: string | null,"preferences"?: Json | null,"pwd_changed_at"?: string | null,"pwd_must_change"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"role"?: string | null,"tenant_org_id": string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_code"?: string,"user_id": string
                   }
                   Update: {
-                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"display_name"?: string | null,"email"?: string | null,"failed_login_attempts"?: number | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_user"?: boolean,"last_failed_login_at"?: string | null,"last_login_at"?: string | null,"last_name"?: string | null,"lock_reason"?: string | null,"locked_until"?: string | null,"login_count"?: number | null,"main_branch_id"?: string | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"phone"?: string | null,"preferences"?: Json | null,"pwd_changed_at"?: string | null,"pwd_must_change"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"role"?: string | null,"tenant_org_id"?: string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_code"?: string,"user_id"?: string
+                    "address"?: string | null,"area"?: string | null,"building"?: string | null,"created_at"?: string | null,"created_by"?: string | null,"created_info"?: string | null,"display_name"?: string | null,"email"?: string | null,"failed_login_attempts"?: number | null,"first_name"?: string | null,"floor"?: string | null,"id"?: string,"is_active"?: boolean,"is_membership_locked"?: boolean,"is_user"?: boolean,"last_failed_login_at"?: string | null,"last_login_at"?: string | null,"last_name"?: string | null,"lock_reason"?: string | null,"locked_until"?: string | null,"login_count"?: number | null,"main_branch_id"?: string | null,"membership_locked_at"?: string | null,"membership_locked_by"?: string | null,"name"?: string | null,"name2"?: string | null,"password_hash"?: string | null,"phone"?: string | null,"preferences"?: Json | null,"pwd_changed_at"?: string | null,"pwd_must_change"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number | null,"role"?: string | null,"tenant_org_id"?: string,"type"?: string | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_code"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -9965,7 +9965,7 @@ isOneToOne: false
     },{
       foreignKeyName: "org_users_mst_user_id_fkey"
       columns: ["user_id"]
-isOneToOne: true
+isOneToOne: false
       referencedRelation: "admin_locked_accounts"
       referencedColumns: ["user_id"]
     }
@@ -10422,13 +10422,13 @@ isOneToOne: false
                   ]
                 },"sys_auth_user_sessions_mst": {
                   Row: {
-                    "auth_session_id": string,"auth_user_id": string,"created_at": string,"device_id_hash": string | null,"device_label": string | null,"end_reason_code": string | null,"ended_at": string | null,"ended_by": string | null,"expires_at": string,"id": string,"idle_timeout_sec": number,"idle_warning_sec": number,"is_remember_me": boolean,"last_activity_at": string,"last_ip": unknown,"last_seen_at": string,"login_ip": unknown,"login_method": string,"org_user_id": string | null,"status": string,"tenant_org_id": string,"updated_at": string | null,"user_agent": string | null
+                    "auth_session_id": string,"auth_user_id": string,"created_at": string,"device_id_hash": string | null,"device_label": string | null,"end_reason_code": string | null,"ended_at": string | null,"ended_by": string | null,"expires_at": string,"id": string,"idle_timeout_sec": number,"idle_warning_sec": number,"is_remember_me": boolean,"last_activity_at": string,"last_ip": unknown,"last_seen_at": string,"login_ip": unknown,"login_method": string,"org_user_id": string | null,"status": string,"tenant_org_id": string | null,"updated_at": string | null,"user_agent": string | null
                   }
                   Insert: {
-                    "auth_session_id": string,"auth_user_id": string,"created_at"?: string,"device_id_hash"?: string | null,"device_label"?: string | null,"end_reason_code"?: string | null,"ended_at"?: string | null,"ended_by"?: string | null,"expires_at": string,"id"?: string,"idle_timeout_sec"?: number,"idle_warning_sec"?: number,"is_remember_me"?: boolean,"last_activity_at"?: string,"last_ip"?: unknown,"last_seen_at"?: string,"login_ip"?: unknown,"login_method"?: string,"org_user_id"?: string | null,"status"?: string,"tenant_org_id": string,"updated_at"?: string | null,"user_agent"?: string | null
+                    "auth_session_id": string,"auth_user_id": string,"created_at"?: string,"device_id_hash"?: string | null,"device_label"?: string | null,"end_reason_code"?: string | null,"ended_at"?: string | null,"ended_by"?: string | null,"expires_at": string,"id"?: string,"idle_timeout_sec"?: number,"idle_warning_sec"?: number,"is_remember_me"?: boolean,"last_activity_at"?: string,"last_ip"?: unknown,"last_seen_at"?: string,"login_ip"?: unknown,"login_method"?: string,"org_user_id"?: string | null,"status"?: string,"tenant_org_id"?: string | null,"updated_at"?: string | null,"user_agent"?: string | null
                   }
                   Update: {
-                    "auth_session_id"?: string,"auth_user_id"?: string,"created_at"?: string,"device_id_hash"?: string | null,"device_label"?: string | null,"end_reason_code"?: string | null,"ended_at"?: string | null,"ended_by"?: string | null,"expires_at"?: string,"id"?: string,"idle_timeout_sec"?: number,"idle_warning_sec"?: number,"is_remember_me"?: boolean,"last_activity_at"?: string,"last_ip"?: unknown,"last_seen_at"?: string,"login_ip"?: unknown,"login_method"?: string,"org_user_id"?: string | null,"status"?: string,"tenant_org_id"?: string,"updated_at"?: string | null,"user_agent"?: string | null
+                    "auth_session_id"?: string,"auth_user_id"?: string,"created_at"?: string,"device_id_hash"?: string | null,"device_label"?: string | null,"end_reason_code"?: string | null,"ended_at"?: string | null,"ended_by"?: string | null,"expires_at"?: string,"id"?: string,"idle_timeout_sec"?: number,"idle_warning_sec"?: number,"is_remember_me"?: boolean,"last_activity_at"?: string,"last_ip"?: unknown,"last_seen_at"?: string,"login_ip"?: unknown,"login_method"?: string,"org_user_id"?: string | null,"status"?: string,"tenant_org_id"?: string | null,"updated_at"?: string | null,"user_agent"?: string | null
                   }
                   Relationships: [
                     {
@@ -14368,6 +14368,37 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"sys_users_mst": {
+                  Row: {
+                    "attack_lock_reason": string | null,"attack_locked_until": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"email": string | null,"failed_login_attempts": number,"globally_locked_at": string | null,"globally_locked_by": string | null,"id": string,"idp_provider": string,"idp_subject": string,"is_globally_locked": boolean,"last_chosen_tenant_id": string | null,"last_failed_login_at": string | null,"name": string | null,"name2": string | null,"phone_e164": string | null,"status": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"user_code": string
+                  }
+                  Insert: {
+                    "attack_lock_reason"?: string | null,"attack_locked_until"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"email"?: string | null,"failed_login_attempts"?: number,"globally_locked_at"?: string | null,"globally_locked_by"?: string | null,"id": string,"idp_provider"?: string,"idp_subject": string,"is_globally_locked"?: boolean,"last_chosen_tenant_id"?: string | null,"last_failed_login_at"?: string | null,"name"?: string | null,"name2"?: string | null,"phone_e164"?: string | null,"status"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_code": string
+                  }
+                  Update: {
+                    "attack_lock_reason"?: string | null,"attack_locked_until"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"email"?: string | null,"failed_login_attempts"?: number,"globally_locked_at"?: string | null,"globally_locked_by"?: string | null,"id"?: string,"idp_provider"?: string,"idp_subject"?: string,"is_globally_locked"?: boolean,"last_chosen_tenant_id"?: string | null,"last_failed_login_at"?: string | null,"name"?: string | null,"name2"?: string | null,"phone_e164"?: string | null,"status"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null,"user_code"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sys_users_hint_tenant"
+      columns: ["last_chosen_tenant_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_sys_users_hint_tenant"
+      columns: ["last_chosen_tenant_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_sys_users_hint_tenant"
+      columns: ["last_chosen_tenant_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
                 },"sys_wf_action_trans_cd": {
                   Row: {
                     "action_code": string,"created_at": string,"id": string,"is_active": boolean,"screen_key": string,"transition_id": string
@@ -15419,6 +15450,11 @@ isOneToOne: false
 "fn_auth_log_event":
 { Args: { "p_auth_session_id"?: string,"p_auth_user_id"?: string,"p_details"?: Json,"p_device_label"?: string,"p_event_code": string,"p_ip_address"?: unknown,"p_login_identifier"?: string,"p_org_user_id"?: string,"p_outcome": string,"p_reason_code"?: string,"p_tenant_org_id"?: string,"p_user_agent"?: string }; Returns: string
                            },
+"fn_auth_own_laundries":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "laundry_name": string,"laundry_name2": string,"org_user_id": string,"tenant_org_id": string
+            }[]
+                           },
 "fn_auth_pwd_reuse_check":
 { Args: { "p_auth_user_id": string,"p_depth": number,"p_new_password": string }; Returns: boolean
                            },
@@ -15427,11 +15463,19 @@ isOneToOne: false
               "auth_user_id": string,"email": string,"is_active": boolean,"org_user_id": string,"tenant_org_id": string,"user_code": string
             }[]
                            },
+"fn_auth_session_choose_laundry":
+{ Args: { "p_org_user_id": string }; Returns: {
+              "alert_new_device": boolean,"ended_sessions": number,"expires_at": string,"idle_timeout_sec": number,"idle_warning_sec": number,"new_device": boolean,"result_status": string,"session_row_id": string,"tenant_org_id": string
+            }[]
+                           },
 "fn_auth_session_end":
 { Args: { "p_actor"?: string,"p_auth_session_id": string,"p_reason": string }; Returns: boolean
                            },
 "fn_auth_session_end_internal":
 { Args: { "p_actor"?: string,"p_auth_session_id": string,"p_reason": string }; Returns: boolean
+                           },
+"fn_auth_session_open_picker":
+{ Args: { "p_device_id_hash"?: string,"p_device_label"?: string,"p_ip_address"?: unknown,"p_remember_me"?: boolean,"p_user_agent"?: string }; Returns: string
                            },
 "fn_auth_session_policy":
 { Args: { "p_tenant_org_id": string }; Returns: {
@@ -15450,6 +15494,9 @@ isOneToOne: false
                            },
 "fn_auth_sessions_revoke":
 { Args: { "p_actor"?: string,"p_auth_user_id": string,"p_except_auth_session_id"?: string,"p_reason": string,"p_tenant_org_id": string }; Returns: number
+                           },
+"fn_auth_sessions_revoke_global_user":
+{ Args: { "p_actor"?: string,"p_auth_user_id": string,"p_reason": string }; Returns: number
                            },
 "fn_auth_sessions_sweep":
 { Args: { "p_retention_days"?: number }; Returns: number

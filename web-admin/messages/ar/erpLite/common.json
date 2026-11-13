@@ -13,7 +13,10 @@
       "TAX_CODE_UNSUPPORTED": "لا يمكن استخدام رمز الضريبة {taxCode} في المشتريات بعد.",
       "PURCHASE_TAX_MISMATCH": "مبلغ الضريبة {entered} لا يطابق رمز الضريبة ({expected}). اترك حقل الضريبة فارغًا لاستخدام {expected}، أو اختر الفئة الضريبية للصنف المطابقة لفاتورة المورد.",
       "TAX_CLASS_INVALID": "لا يمكن استخدام هذه الفئة الضريبية للصنف في المشتريات.",
-      "TAX_CURRENCY_UNSUPPORTED": "الضريبة مفعّلة، لذا يجب أن تكون هذه المشتريات بعملة {baseCurrency}. عملتها الحالية {currency}."
+      "TAX_CURRENCY_UNSUPPORTED": "الضريبة مفعّلة، لذا يجب أن تكون هذه المشتريات بعملة {baseCurrency}. عملتها الحالية {currency}.",
+      "FX_RATE_NOT_FOUND": "لا يوجد سعر صرف من {currency} إلى {baseCurrency} في {date}. أضف سعرًا معتمدًا من الإعدادات › العملات وأسعار الصرف.",
+      "PETTY_CASH_FX_UNSUPPORTED": "يجب أن تبقى العهدة النقدية بعملة {baseCurrency}. هذه الحركة بعملة {currency}، والعهدة النقدية لا تحفظ سعر صرف."
     }
-  }
+  },
+  "exchangeRate": "سعر الصرف"
 }

@@ -48,9 +48,19 @@ export interface UserFilters {
   sortOrder?: 'asc' | 'desc'
 }
 
+export type GlobalUserLookupOutcome = 'new' | 'add' | 'open' | 'activate'
+
+/** Result of looking up a login before creating an organization user. */
+export interface GlobalUserLookup {
+  outcome: GlobalUserLookupOutcome
+  user?: { id: string; name: string | null; name2: string | null }
+  membershipId?: string
+}
+
 export interface CreateUserData {
   email: string
-  password: string
+  /** Required only when the lookup outcome is a new global user. */
+  password?: string
   display_name: string
   role: string
   first_name?: string
@@ -220,6 +230,25 @@ export async function fetchUser(
  * Create a new user under a tenant.
  * POST /tenants/:tenantId/users
  */
+/**
+ * Look up an email or phone before save. Does not list other organizations.
+ *
+ * @param tenantId - Current organization
+ * @param query - Email and/or phone typed on the create screen
+ * @param accessToken - Session access token
+ */
+export async function lookupGlobalUser(
+  tenantId: string,
+  query: { email?: string; phone?: string },
+  accessToken: string
+): Promise<GlobalUserLookup> {
+  return rbacFetch<GlobalUserLookup>(
+    `/tenants/${encodeURIComponent(tenantId)}/users/lookup`,
+    accessToken,
+    { queryParams: { email: query.email, phone: query.phone } }
+  )
+}
+
 export async function createUser(
   tenantId: string,
   data: CreateUserData,

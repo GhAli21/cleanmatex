@@ -8,7 +8,7 @@
 
 ## 1. What BF-23 really is (re-verified 2026-10-30)
 
-The original BF-23 text says these routes "take the first tenant instead of the session tenant, so a user in several organizations can act in the wrong one". **That premise is wrong today.** Evidence from the remote DB:
+The original BF-23 text says these routes "take the first tenant instead of the session tenant, so a user in several organizations can act in the wrong one". **Identity changed on 13 Nov 2026.** Migrations `0734`, `0736`, and `0737` allow one global user to have many organization memberships, and `current_tenant_id()` reads the open session. The table below records the database as it was when this plan was written.
 
 | Fact | Evidence |
 |---|---|

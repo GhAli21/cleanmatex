@@ -5,7 +5,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
+import { resolveDocFxRate } from '@/lib/services/fx/doc-fx-rate';
 import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
 import type {
   CreateErpLiteBankMatchInput,
@@ -371,6 +374,7 @@ export class ErpLiteV2Service {
         this.assertPositiveAmount(input.subtotal_amount, 'subtotal_amount');
         this.assertNonNegativeAmount(input.tax_amount ?? 0, 'tax_amount');
         this.assertRequiredString(input.description, 'description');
+        const fx = await resolveDocFxRate(tenantId, input.currency_code, input.po_date);
 
         if (supplier.posting_hold) {
           throw new Error('Selected supplier is currently on posting hold');
@@ -390,7 +394,7 @@ export class ErpLiteV2Service {
         const tax = await resolvePurchaseTax(tx, {
           tenantOrgId: tenantId, flow: 'INPUT', docTypeCode: DOC_SEQ_TYPES.ERP_PO, date: input.po_date,
           branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: input.tax_item_class_code ?? null,
-          currencyCode: input.currency_code.trim(), net: subtotalAmount, enteredTax: input.tax_amount ?? null,
+          currencyCode: input.currency_code.trim(), fx, net: subtotalAmount, enteredTax: input.tax_amount ?? null,
         });
         const taxAmount = tax ? tax.taxAmount.toNumber() : this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
@@ -405,6 +409,9 @@ export class ErpLiteV2Service {
             expected_date,
             currency_code,
             exchange_rate,
+            fx_rate_date,
+            fx_rate_source,
+            fx_rate_id,
             subtotal_amount,
             tax_amount,
             total_amount,
@@ -421,7 +428,10 @@ export class ErpLiteV2Service {
             ${input.po_date}::date,
             ${input.expected_date ?? null}::date,
             ${input.currency_code.trim()},
-            1,
+            ${fx.exchangeRate}::numeric,
+            ${fx.fxRateDate}::date,
+            ${fx.fxRateSource},
+            ${fx.fxRateId}::uuid,
             ${subtotalAmount},
             ${taxAmount},
             ${totalAmount},
@@ -501,6 +511,7 @@ export class ErpLiteV2Service {
         this.assertPositiveAmount(input.subtotal_amount, 'subtotal_amount');
         this.assertNonNegativeAmount(input.tax_amount ?? 0, 'tax_amount');
         this.assertRequiredString(input.description, 'description');
+        const fx = await resolveDocFxRate(tenantId, input.currency_code, input.invoice_date);
 
         if (supplier.posting_hold) {
           throw new Error('Selected supplier is currently on posting hold');
@@ -520,7 +531,7 @@ export class ErpLiteV2Service {
         const tax = await resolvePurchaseTax(tx, {
           tenantOrgId: tenantId, flow: 'INPUT', docTypeCode: DOC_SEQ_TYPES.ERP_AP_INVOICE, date: input.invoice_date,
           branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: input.tax_item_class_code ?? null,
-          currencyCode: input.currency_code.trim(), net: subtotalAmount, enteredTax: input.tax_amount ?? null,
+          currencyCode: input.currency_code.trim(), fx, net: subtotalAmount, enteredTax: input.tax_amount ?? null,
         });
         const taxAmount = tax ? tax.taxAmount.toNumber() : this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
@@ -540,6 +551,9 @@ export class ErpLiteV2Service {
             due_date,
             currency_code,
             exchange_rate,
+            fx_rate_date,
+            fx_rate_source,
+            fx_rate_id,
             subtotal_amount,
             tax_amount,
             total_amount,
@@ -559,7 +573,10 @@ export class ErpLiteV2Service {
             ${input.invoice_date}::date,
             ${dueDate}::date,
             ${input.currency_code.trim()},
-            1,
+            ${fx.exchangeRate}::numeric,
+            ${fx.fxRateDate}::date,
+            ${fx.fxRateSource},
+            ${fx.fxRateId}::uuid,
             ${subtotalAmount},
             ${taxAmount},
             ${totalAmount},
@@ -622,6 +639,24 @@ export class ErpLiteV2Service {
             lineId: lines[0]?.id ?? null, userId: input.created_by ?? null, at: new Date(), tax,
           });
         }
+
+        const recoverableTax = tax
+          ? this.roundAmount(tax.parts.reduce((sum, part) => sum + part.recoverable.toNumber(), 0))
+          : 0;
+        const posting = await ErpLiteAutoPostService.dispatchApInvoicePostedInTransaction(tx, {
+          tenant_org_id: tenantId,
+          ap_invoice_id: apInvoice.id,
+          ap_inv_no: apInvoice.ap_inv_no,
+          branch_id: input.branch_id ?? null,
+          currency_code: input.currency_code.trim(),
+          exchange_rate: Number(fx.exchangeRate),
+          invoice_date: input.invoice_date,
+          subtotal_amount: subtotalAmount,
+          recoverable_tax_amount: recoverableTax,
+          total_amount: totalAmount,
+          created_by: input.created_by ?? null,
+        });
+        this.assertBlockingApAutoPostSucceeded(posting, 'supplier invoice');
       });
     });
   }
@@ -669,11 +704,12 @@ export class ErpLiteV2Service {
           throw new Error('AP payment amount cannot exceed the selected invoice open amount');
         }
 
+        const fx = await resolveDocFxRate(tenantId, input.currency_code, input.payment_date);
         // Rules decide the tax once the tax setup is active; a typed amount must match the code (never rewritten).
         const tax = await resolvePurchaseTax(tx, {
           tenantOrgId: tenantId, flow: 'WITHHOLDING', docTypeCode: DOC_SEQ_TYPES.ERP_AP_PAYMENT, date: input.payment_date,
           branchId: input.branch_id ?? null, supplierId: input.supplier_id, itemClass: null,
-          currencyCode: input.currency_code.trim(), net: amountTotal, enteredTax: null,
+          currencyCode: input.currency_code.trim(), fx, net: amountTotal, enteredTax: null,
         });
         // Withheld tax stays with the organization (owed to the authority): the invoice is settled in full, cash paid = amount − withheld.
         const whtAmount = tax ? tax.taxAmount.toNumber() : 0; // ck_ofap_wht keeps it within the payment
@@ -697,6 +733,9 @@ export class ErpLiteV2Service {
             payment_date,
             currency_code,
             exchange_rate,
+            fx_rate_date,
+            fx_rate_source,
+            fx_rate_id,
             amount_total,
             wht_amount,
             settlement_code,
@@ -716,7 +755,10 @@ export class ErpLiteV2Service {
             ${apPmtNo},
             ${input.payment_date}::date,
             ${input.currency_code.trim()},
-            1,
+            ${fx.exchangeRate}::numeric,
+            ${fx.fxRateDate}::date,
+            ${fx.fxRateSource},
+            ${fx.fxRateId}::uuid,
             ${amountTotal},
             ${whtAmount},
             ${input.settlement_code},
@@ -780,6 +822,21 @@ export class ErpLiteV2Service {
           WHERE tenant_org_id = ${tenantId}::uuid
             AND id = ${input.ap_invoice_id}::uuid
         `);
+
+        const posting = await ErpLiteAutoPostService.dispatchApPaymentRecordedInTransaction(tx, {
+          tenant_org_id: tenantId,
+          ap_payment_id: apPayment.id,
+          ap_pmt_no: apPayment.ap_pmt_no,
+          branch_id: input.branch_id ?? null,
+          currency_code: input.currency_code.trim(),
+          exchange_rate: Number(fx.exchangeRate),
+          payment_date: input.payment_date,
+          amount_total: amountTotal,
+          wht_amount: whtAmount,
+          settlement_code: input.settlement_code,
+          created_by: input.created_by ?? null,
+        });
+        this.assertBlockingApAutoPostSucceeded(posting, 'supplier payment');
       });
     });
   }
@@ -1326,6 +1383,9 @@ export class ErpLiteV2Service {
         i.total_amount::float8 AS total_amount,
         i.open_amount::float8 AS open_amount,
         i.currency_code,
+        i.exchange_rate::text AS exchange_rate,
+        CASE WHEN i.fx_rate_date IS NULL THEN NULL ELSE TO_CHAR(i.fx_rate_date, 'YYYY-MM-DD') END AS fx_rate_date,
+        i.fx_rate_source,
         i.status_code
       FROM public.org_fin_ap_inv_mst i
       JOIN public.org_fin_supp_mst s
@@ -1362,6 +1422,9 @@ export class ErpLiteV2Service {
         p.amount_total::float8 AS amount_total,
         p.wht_amount::float8 AS wht_amount,
         p.currency_code,
+        p.exchange_rate::text AS exchange_rate,
+        CASE WHEN p.fx_rate_date IS NULL THEN NULL ELSE TO_CHAR(p.fx_rate_date, 'YYYY-MM-DD') END AS fx_rate_date,
+        p.fx_rate_source,
         p.settlement_code,
         p.status_code
       FROM public.org_fin_ap_pmt_mst p
@@ -1440,6 +1503,9 @@ export class ErpLiteV2Service {
         END AS branch_name,
         p.total_amount::float8 AS total_amount,
         p.currency_code,
+        p.exchange_rate::text AS exchange_rate,
+        CASE WHEN p.fx_rate_date IS NULL THEN NULL ELSE TO_CHAR(p.fx_rate_date, 'YYYY-MM-DD') END AS fx_rate_date,
+        p.fx_rate_source,
         p.status_code
       FROM public.org_fin_po_mst p
       JOIN public.org_fin_supp_mst s
@@ -2542,6 +2608,47 @@ export class ErpLiteV2Service {
 
   private static roundAmount(value: number): number {
     return Number((value ?? 0).toFixed(4));
+  }
+
+  /**
+   * A blocking policy must refuse the document. A missing policy does not:
+   * before migration 0735 there is nothing to post, and the supplier document
+   * is still the record. Once the policy exists, NON_BLOCKING keeps the document
+   * when the engine returns a failed result without aborting the transaction.
+   */
+  private static assertBlockingApAutoPostSucceeded(
+    dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchApInvoicePostedInTransaction>>,
+    flowName: 'supplier invoice' | 'supplier payment'
+  ): void {
+    if (
+      dispatchResult.status === 'skipped' &&
+      (dispatchResult.skip_reason === 'FEATURE_NOT_ENABLED' ||
+        dispatchResult.skip_reason === 'POLICY_NOT_FOUND')
+    ) {
+      return;
+    }
+
+    const shouldBlock =
+      !dispatchResult.policy ||
+      dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
+      dispatchResult.policy.required_success === true;
+
+    if (!shouldBlock) {
+      return;
+    }
+
+    const success =
+      dispatchResult.status === 'executed' && dispatchResult.execute_result?.success === true;
+    if (success) {
+      return;
+    }
+
+    const failureMessage =
+      dispatchResult.status === 'skipped'
+        ? `ERP-Lite auto-post policy prevented ${flowName} completion (${dispatchResult.skip_reason}).`
+        : dispatchResult.execute_result?.error_message ??
+          `ERP-Lite auto-post failed for the ${flowName}.`;
+    throw new Error(failureMessage);
   }
 
   private static assertPositiveAmount(value: number, field: string): void {

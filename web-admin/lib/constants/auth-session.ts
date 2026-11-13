@@ -30,6 +30,8 @@ export const SESSION_STATES = {
   NOT_REGISTERED: 'NOT_REGISTERED',
   /** No authenticated user / no session_id claim. */
   NO_SESSION: 'NO_SESSION',
+  /** Password accepted, laundry not chosen. Not a business session. */
+  PENDING: 'PENDING',
 } as const;
 
 export type SessionState = (typeof SESSION_STATES)[keyof typeof SESSION_STATES];
@@ -41,6 +43,10 @@ export const SESSION_REGISTER_STATUS = {
   /** Concurrent-session limit with policy BLOCK_NEW: nothing registered, sign-in must be refused. */
   BLOCKED_SESSION_LIMIT: 'BLOCKED_SESSION_LIMIT',
   NO_MEMBERSHIP: 'NO_MEMBERSHIP',
+  /** More than one eligible laundry. A PENDING row is opened; nothing is bound yet. */
+  CHOOSE_LAUNDRY: 'CHOOSE_LAUNDRY',
+  /** Global lock or password-attack lock. Every laundry is denied. */
+  LOCKED: 'LOCKED',
 } as const;
 
 export type SessionRegisterStatus =

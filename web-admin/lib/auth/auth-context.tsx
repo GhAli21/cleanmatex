@@ -4,7 +4,7 @@
  * Authentication Context Provider
  *
  * Manages authentication state and operations across the application
- * Handles multi-tenant user support with tenant switching
+ * The open organization is the session row. This client does not switch laundries.
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
@@ -28,7 +28,9 @@ import type {
   UserTenant,
   AuthSession,
   UserRole,
+  LaundryChoiceResult,
 } from '@/types/auth'
+import { selectSessionTenant } from '@/lib/auth/session-tenant'
 import { trackLogout, type LogoutReason } from '@/lib/auth/logout-tracker'
 import { getSafeRedirectPath } from '@/lib/security/safe-redirect'
 import { LOGIN_REASONS, type LoginReason } from '@/lib/constants/auth-session'
@@ -136,6 +138,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      const { data: validationRows, error: validationError } = await supabase.rpc('fn_auth_session_validate', {
+        p_touch: false,
+      })
+      if (validationError) throw validationError
+      const validation = Array.isArray(validationRows) ? validationRows[0] : null
+      const sessionTenantId = validation?.state === 'ACTIVE' ? validation.tenant_org_id : null
+
       const { data, error } = await supabase.rpc('get_user_tenants')
 
       if (error) throw error
@@ -158,19 +167,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         s_current_plan: t.s_current_plan ?? 'FREE_TRIAL',
       }))
 
-      setAvailableTenants(tenants)
+      const sessionTenant = selectSessionTenant(tenants, sessionTenantId)
+      setAvailableTenants(sessionTenant ? [sessionTenant] : [])
       tenantFetchFailedRef.current = false
-
-      // Set current tenant if not already set (using functional update to avoid dependency)
-      setCurrentTenant((prevTenant) => {
-        if (!prevTenant && tenants.length > 0) {
-          const newTenant = tenants[0]
-          currentTenantRef.current = newTenant
-          return newTenant
-        }
-        currentTenantRef.current = prevTenant
-        return prevTenant
-      })
+      setCurrentTenant(sessionTenant)
+      currentTenantRef.current = sessionTenant
       
     } catch (error) {
       console.error('Error fetching tenants:', error)
@@ -293,13 +294,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw signInError
       }
 
-      const { user: authUser, session: authSession, tenants: rawTenants } = loginData
+      const { user: authUser, session: authSession, tenants: rawTenants, tenantOrgId, chooseLaundry, laundries, lastChosenTenantId } = loginData
 
       if (!authUser || !authSession) {
         throw new Error('Invalid response from login API')
       }
 
-      // Update Supabase client session
       console.log(`[LOGIN:client] [${Date.now() - t0}ms] ▶ supabase.auth.setSession`)
       await supabase.auth.setSession({
         access_token: authSession.access_token,
@@ -315,6 +315,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expires_at: authSession.expires_at ?? null,
         expires_in: authSession.expires_in ?? null,
       })
+
+      if (chooseLaundry === true && Array.isArray(laundries)) {
+        return {
+          chooseLaundry: true,
+          laundries,
+          lastChosenTenantId: typeof lastChosenTenantId === 'string' ? lastChosenTenantId : null,
+        } satisfies LaundryChoiceResult
+      }
 
       // Transform tenants already returned by the login API (avoids a duplicate get_user_tenants call)
       const prefetchedTenants: UserTenant[] = Array.isArray(rawTenants)
@@ -346,14 +354,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ fetchAuthData done — permissions: ${authData.permissions.length}, tenants: ${authData.tenants.length}`)
 
       // Block inactive users — sign out immediately before touching any state
-      const activeTenant = authData.tenants.find(t => t.is_active)
+      const activeTenant = selectSessionTenant(authData.tenants, typeof tenantOrgId === 'string' ? tenantOrgId : null)
       if (!activeTenant) {
         await supabase.auth.signOut()
         throw new Error('Your account has been deactivated. Please contact your administrator.')
       }
 
-      // Set all state at once to minimize re-renders
-      setAvailableTenants(authData.tenants)
+      setAvailableTenants([activeTenant])
       setCurrentTenant(activeTenant)
       currentTenantRef.current = activeTenant
       // Cache everything
@@ -372,6 +379,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: unknown) {
       // Error handling is done in API route, just re-throw
       throw error
+    } finally {
+      setIsLoading(false)
+      isLoggingInRef.current = false
+    }
+  }, [router])
+
+  /**
+   * Bind the pending sign-in to the organization the global user chose.
+   *
+   * @param orgUserId - Membership id from the picker. The server checks it.
+   * @param redirectTo - Page to open after the session is bound
+   */
+  const chooseLaundry = useCallback(async (orgUserId: string, redirectTo?: string) => {
+    if (isLoggingInRef.current) return
+    isLoggingInRef.current = true
+    setIsLoading(true)
+    try {
+      const csrfToken = await getCSRFToken()
+      const response = await fetch('/api/auth/choose-laundry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
+        body: JSON.stringify({ orgUserId }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        const chooseError = new Error(data.error || 'That organization is not available.') as Error & { code?: string }
+        chooseError.code = typeof data.code === 'string' ? data.code : undefined
+        throw chooseError
+      }
+      const rawTenants = Array.isArray(data.tenants) ? data.tenants : []
+      const mapped: UserTenant[] = rawTenants.map((t: {
+        tenant_id: string
+        tenant_name: string
+        tenant_slug: string
+        user_role: string
+        is_active: boolean
+        last_login_at: string | null
+        s_current_plan?: string
+      }) => ({
+        tenant_id: t.tenant_id,
+        tenant_name: t.tenant_name,
+        tenant_slug: t.tenant_slug,
+        user_role: t.user_role as UserRole,
+        is_active: t.is_active,
+        last_login_at: t.last_login_at,
+        s_current_plan: t.s_current_plan ?? 'FREE_TRIAL',
+      }))
+      const activeTenant = selectSessionTenant(mapped, typeof data.tenantOrgId === 'string' ? data.tenantOrgId : null)
+      if (!activeTenant) {
+        throw new Error('That organization is not available.')
+      }
+      const authData = await fetchAuthData({ prefetchedTenants: [activeTenant] })
+      setAvailableTenants([activeTenant])
+      setCurrentTenant(activeTenant)
+      currentTenantRef.current = activeTenant
+      setCachedPermissions(activeTenant.tenant_id, authData.permissions)
+      setPermissions(authData.permissions)
+      permissionsLoadedForTenantRef.current = activeTenant.tenant_id
+      setIsTenantContextReady(true)
+      router.push(getSafeRedirectPath(redirectTo))
     } finally {
       setIsLoading(false)
       isLoggingInRef.current = false
@@ -751,6 +821,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Methods
     signIn,
+    chooseLaundry,
     signUp,
     signOut,
     resetPassword,

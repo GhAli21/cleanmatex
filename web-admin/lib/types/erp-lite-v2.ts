@@ -23,6 +23,10 @@ export interface ErpLitePoListItem {
   branch_name: string | null;
   total_amount: number;
   currency_code: string;
+  /** Exact rate into the organization currency. `1` when the order is already in that currency. */
+  exchange_rate: string;
+  fx_rate_date: string | null;
+  fx_rate_source: string | null;
   status_code: string;
 }
 
@@ -36,6 +40,10 @@ export interface ErpLiteApInvoiceListItem {
   total_amount: number;
   open_amount: number;
   currency_code: string;
+  /** Exact rate into the organization currency. `1` when the invoice is already in that currency. */
+  exchange_rate: string;
+  fx_rate_date: string | null;
+  fx_rate_source: string | null;
   status_code: string;
 }
 
@@ -49,6 +57,10 @@ export interface ErpLiteApPaymentListItem {
   /** Tax withheld for the authority; the supplier received amount_total − wht_amount. */
   wht_amount: number;
   currency_code: string;
+  /** Exact rate into the organization currency. `1` when the payment is already in that currency. */
+  exchange_rate: string;
+  fx_rate_date: string | null;
+  fx_rate_source: string | null;
   settlement_code: 'BANK' | 'CASH';
   status_code: string;
 }

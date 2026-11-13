@@ -128,6 +128,45 @@ export interface ErpLiteExpenseAutoPostInput {
 }
 
 /**
+ * Supplier invoice journal. `recoverable_tax_amount` is the part that can be
+ * reclaimed; the rest of `total_amount` stays on the expense debit. The credit
+ * is the full invoice total so it matches the payable the payment later clears.
+ */
+export interface ErpLiteApInvoiceAutoPostInput {
+  tenant_org_id?: string;
+  ap_invoice_id: string;
+  ap_inv_no: string;
+  branch_id?: string | null;
+  currency_code: string;
+  /** Document rate (base = amount × rate). The engine still multiplies in JS. */
+  exchange_rate?: number;
+  invoice_date: string;
+  subtotal_amount: number;
+  recoverable_tax_amount?: number;
+  total_amount: number;
+  created_by?: string | null;
+}
+
+/**
+ * Supplier payment journal. `amount_total` settles the invoice in full.
+ * `wht_amount` is kept by the organization and credited to withholding payable;
+ * cash or bank is credited with the remainder.
+ */
+export interface ErpLiteApPaymentAutoPostInput {
+  tenant_org_id?: string;
+  ap_payment_id: string;
+  ap_pmt_no: string;
+  branch_id?: string | null;
+  currency_code: string;
+  exchange_rate?: number;
+  payment_date: string;
+  amount_total: number;
+  wht_amount?: number;
+  settlement_code: 'CASH' | 'BANK';
+  created_by?: string | null;
+}
+
+/**
  *
  */
 export interface ErpLitePettyCashAutoPostInput {

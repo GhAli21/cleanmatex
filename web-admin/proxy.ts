@@ -18,7 +18,7 @@ import { generateCSRFToken, getCSRFTokenFromRequest, setCSRFTokenInResponse } fr
 import { isPublicRoutePath } from './lib/security/public-routes'
 import { guardSession, isSessionActive } from './lib/auth/session-guard'
 import { readRequestMeta } from './lib/services/auth/session/request-meta'
-import { DEVICE_COOKIE_NAME, FORCED_PASSWORD_CHANGE_PATH, loginReasonForEndReason } from './lib/constants/auth-session'
+import { DEVICE_COOKIE_NAME, FORCED_PASSWORD_CHANGE_PATH, loginReasonForEndReason, SESSION_STATES } from './lib/constants/auth-session'
 
 /** Cookie storing "Remember me" choice; when "0" or missing, auth cookies are session-only. */
 const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
@@ -161,9 +161,27 @@ export async function proxy(request: NextRequest) {
   // 1. If user is authenticated and trying to access auth routes (login, register)
   // Redirect to dashboard
   if (user && !authError && isAuthRoute) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = DEFAULT_REDIRECT
-    return NextResponse.redirect(redirectUrl)
+    try {
+      const validation = await guardSession(
+        supabase,
+        readRequestMeta(request.headers, request.cookies.get(DEVICE_COOKIE_NAME)?.value)
+      )
+      if (validation.state === SESSION_STATES.PENDING) {
+        // Password is accepted and the laundry is not chosen. Stay on the login page.
+      } else if (isSessionActive(validation)) {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = DEFAULT_REDIRECT
+        return NextResponse.redirect(redirectUrl)
+      } else {
+        return redirectToLoginClearingSession(request, loginReasonForEndReason(validation.endReason))
+      }
+    } catch (sessionError) {
+      console.error('Proxy session validation failed:', sessionError)
+      return new NextResponse('Service temporarily unavailable. Please try again.', {
+        status: 503,
+        headers: { 'Retry-After': '5' },
+      })
+    }
   }
 
   // 2. If route is public, allow access (set CSRF cookie first for login/register)
@@ -195,6 +213,12 @@ export async function proxy(request: NextRequest) {
       readRequestMeta(request.headers, request.cookies.get(DEVICE_COOKIE_NAME)?.value)
     )
     if (!isSessionActive(validation)) {
+      if (validation.state === SESSION_STATES.PENDING) {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = LOGIN_PATH
+        redirectUrl.search = ''
+        return NextResponse.redirect(redirectUrl)
+      }
       return redirectToLoginClearingSession(request, loginReasonForEndReason(validation.endReason))
     }
 

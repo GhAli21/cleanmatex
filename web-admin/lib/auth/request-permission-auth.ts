@@ -6,6 +6,7 @@ import { requirePermission, type AuthContext } from '@/lib/middleware/require-pe
 import { createBearerSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { isValidUUID } from '@/lib/utils/validation-helpers';
+import { SESSION_STATES } from '@/lib/constants/auth-session';
 
 // PostgreSQL accepts UUID-shaped legacy IDs that do not encode an RFC version.
 const tenantIdSchema = z.string().refine(isValidUUID, 'Invalid tenant UUID.');
@@ -79,8 +80,14 @@ export async function requireRequestPermission(
     return invalidBearerResponse();
   }
 
-  const tenantId = tenantIdSchema.safeParse(user.user_metadata?.tenant_org_id);
-  if (!tenantId.success) {
+  const { data: validationRows, error: validationError } = await supabase.rpc('fn_auth_session_validate', {
+    p_touch: false,
+  });
+  const validation = Array.isArray(validationRows) ? validationRows[0] : null;
+  const tenantId = tenantIdSchema.safeParse(
+    validation?.state === SESSION_STATES.ACTIVE ? validation.tenant_org_id : null,
+  );
+  if (validationError || !tenantId.success) {
     logger.warn('Bearer API token has no valid tenant context', {
       feature: 'api_auth',
       action: 'authenticate_bearer',

@@ -24,7 +24,7 @@ Back to [README.md](README.md). العربية أدناه.
 - **Why this tax?** shows which rule is used for a case and which others also matched.
 - Two rules that could tie are refused when you save.
 
-**5. Purchases** — expenses, purchase orders and supplier invoices pick their tax from the purchase rules once the setup is confirmed. The recoverable part goes to Input VAT. On a supplier payment you can record **withholding tax**; the supplier is paid the amount minus the withheld part.
+**5. Purchases** — expenses, purchase orders and supplier invoices pick their tax from the purchase rules once the setup is confirmed. The recoverable part goes to Input VAT. On a supplier payment you can record **withholding tax**; the supplier is paid the amount minus the withheld part. A supplier invoice posts to the expense, Input VAT and Accounts Payable. A supplier payment clears Accounts Payable, pays cash or bank, and holds the withheld tax on Withholding Tax Payable.
 
 **6. Advances and gift cards** — money received in advance is taxed when received (if your kit says so) and netted when the order is invoiced. Gift cards: *multi-purpose* are taxed when used, *single-purpose* when sold.
 
@@ -65,7 +65,7 @@ Back to [README.md](README.md). العربية أدناه.
 - **لماذا هذه الضريبة؟** تعرض القاعدة المطبقة على حالة ما والقواعد الأخرى التي طابقت.
 - تُرفض عند الحفظ قاعدتان قد تتساويان.
 
-**5. المشتريات** — بعد التأكيد تأخذ المصروفات وأوامر الشراء وفواتير الموردين ضريبتها من قواعد المشتريات. ويُسجَّل الجزء القابل للاسترداد في ضريبة المدخلات. وعند الدفع للمورد يمكنك تسجيل **ضريبة الاستقطاع**، فيُدفع للمورد المبلغ ناقص الجزء المستقطع.
+**5. المشتريات** — بعد التأكيد تأخذ المصروفات وأوامر الشراء وفواتير الموردين ضريبتها من قواعد المشتريات. ويُسجَّل الجزء القابل للاسترداد في ضريبة المدخلات. وعند الدفع للمورد يمكنك تسجيل **ضريبة الاستقطاع**، فيُدفع للمورد المبلغ ناقص الجزء المستقطع. وتُرحَّل فاتورة المورد إلى المصروف وضريبة المدخلات وحسابات الدائنين، وتُسقِط دفعة المورد حسابات الدائنين وتدفع نقداً أو من البنك وتُبقي المستقطع في ضريبة الاستقطاع المستحقة.
 
 **6. الدفعات المقدمة وبطاقات الهدايا** — تُحتسب ضريبة المبلغ المقدم عند استلامه (إذا نص الإعداد على ذلك) وتُسوّى عند إصدار فاتورة الطلب. بطاقات الهدايا: *متعددة الأغراض* تُحتسب ضريبتها عند الاستخدام، و*أحادية الغرض* عند البيع.
 

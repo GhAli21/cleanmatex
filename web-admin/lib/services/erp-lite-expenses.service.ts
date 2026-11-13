@@ -23,6 +23,7 @@ import type {
 } from '@/lib/types/erp-lite-expenses';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
+import { assertOrgBaseCurrency, resolveDocFxRate } from '@/lib/services/fx/doc-fx-rate';
 import { resolvePurchaseTax, writePurchaseTaxLines } from '@/lib/services/tax/purchase-tax.service';
 import { sumMoney } from '@/lib/commercial/money';
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
@@ -141,6 +142,7 @@ export class ErpLiteExpensesService {
         await this.assertValidBranch(tenantId, input.branch_id, tx);
         this.assertPositiveAmount(input.subtotal_amount, 'subtotal_amount');
         this.assertNonNegativeAmount(input.tax_amount ?? 0, 'tax_amount');
+        const fx = await resolveDocFxRate(tenantId, input.currency_code, input.expense_date);
         const usageCodeId = await this.findUsageCodeId(EXPENSE_USAGE_CODE, tx);
         const expenseNo = await this.generateSequentialNo(
           tenantId,
@@ -161,7 +163,7 @@ export class ErpLiteExpensesService {
         const tax = await resolvePurchaseTax(tx, {
           tenantOrgId: tenantId, flow: 'INPUT', docTypeCode: DOC_SEQ_TYPES.ERP_EXPENSE, date: input.expense_date,
           branchId: input.branch_id ?? null, supplierId: input.supplier_id ?? null, itemClass: input.tax_item_class_code ?? null,
-          currencyCode: input.currency_code, net: subtotalAmount, enteredTax: input.tax_amount ?? null,
+          currencyCode: input.currency_code, fx, net: subtotalAmount, enteredTax: input.tax_amount ?? null,
         });
         const taxAmount = tax ? tax.taxAmount.toNumber() : this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
@@ -178,6 +180,9 @@ export class ErpLiteExpensesService {
             settlement_code,
             currency_code,
             exchange_rate,
+            fx_rate_date,
+            fx_rate_source,
+            fx_rate_id,
             subtotal_amount,
             tax_amount,
             total_amount,
@@ -197,7 +202,10 @@ export class ErpLiteExpensesService {
             'RECORDED',
             ${input.settlement_code},
             ${input.currency_code},
-            1,
+            ${fx.exchangeRate}::numeric,
+            ${fx.fxRateDate}::date,
+            ${fx.fxRateSource},
+            ${fx.fxRateId}::uuid,
             ${subtotalAmount},
             ${taxAmount},
             ${totalAmount},
@@ -273,7 +281,8 @@ export class ErpLiteExpensesService {
           expense_no: expense.expense_no,
           branch_id: expense.branch_id,
           currency_code: expense.currency_code,
-          exchange_rate: expense.exchange_rate,
+          // The engine multiplies with a JS number. The document column keeps the exact decimal.
+          exchange_rate: Number(fx.exchangeRate),
           expense_date: expense.expense_date,
           subtotal_amount: expense.subtotal_amount,
           tax_amount: expense.tax_amount,
@@ -316,6 +325,7 @@ export class ErpLiteExpensesService {
           'cashbox_code',
           'org_fin_cashbox_mst'
         ));
+      await assertOrgBaseCurrency(tenantId, input.currency_code);
 
       await prisma.$queryRaw(Prisma.sql`
         INSERT INTO public.org_fin_cashbox_mst (
@@ -375,6 +385,7 @@ export class ErpLiteExpensesService {
         if (cashbox.currency_code && cashbox.currency_code !== input.currency_code) {
           throw new Error('Petty cash transaction currency must match the cashbox currency');
         }
+        await assertOrgBaseCurrency(tenantId, input.currency_code);
 
         const inserted = await tx.$queryRaw<CashTxnInsertRow[]>(Prisma.sql`
           INSERT INTO public.org_fin_cash_txn_tr (
@@ -794,6 +805,9 @@ export class ErpLiteExpensesService {
         e.settlement_code,
         e.total_amount::float8 AS total_amount,
         e.currency_code,
+        e.exchange_rate::text AS exchange_rate,
+        CASE WHEN e.fx_rate_date IS NULL THEN NULL ELSE TO_CHAR(e.fx_rate_date, 'YYYY-MM-DD') END AS fx_rate_date,
+        e.fx_rate_source,
         e.status_code,
         ${payeeNameSql} AS payee_name
       FROM public.org_fin_exp_mst e

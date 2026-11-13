@@ -125,7 +125,7 @@ model users {
   org_order_status_history                             org_order_status_history[]
   org_orders_mst_org_orders_mst_edit_blocked_byTousers org_orders_mst[]                  @relation("org_orders_mst_edit_blocked_byTousers")
   org_orders_mst_org_orders_mst_committed_byTousers    org_orders_mst[]                  @relation("org_orders_mst_committed_byTousers")
-  org_users_mst                                        org_users_mst?
+  org_users_mst                                        org_users_mst[]
   sys_audit_log                                        sys_audit_log[]
   sys_auth_audit_log                                   sys_auth_audit_log[]
   sys_auth_user_sessions_mst                           sys_auth_user_sessions_mst[]
@@ -1823,6 +1823,7 @@ model org_tenants_mst {
   sys_ntf_tenant_pause_cf          sys_ntf_tenant_pause_cf[]
   sys_tenant_lifecycle             sys_tenant_lifecycle?
   sys_tenant_metrics_daily         sys_tenant_metrics_daily[]
+  sys_users_mst                    sys_users_mst[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
   @@index([stng_profile_code], map: "idx_org_tenants_profile")
@@ -1862,7 +1863,7 @@ model org_usage_tracking {
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model org_users_mst {
   id                           String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                      String                         @unique(map: "uq_org_users_mst_user_id") @db.Uuid
+  user_id                      String                         @db.Uuid
   tenant_org_id                String                         @db.Uuid
   display_name                 String?                        @db.VarChar(255)
   role                         String?
@@ -1900,6 +1901,9 @@ model org_users_mst {
   user_code                    String                         @default(dbgenerated("fn_org_user_code_next()"))
   pwd_must_change              Boolean                        @default(false)
   pwd_changed_at               DateTime?                      @db.Timestamptz(6)
+  is_membership_locked         Boolean                        @default(false)
+  membership_locked_at         DateTime?                      @db.Timestamptz(6)
+  membership_locked_by         String?                        @db.Uuid
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst[]
   org_drivers_mst              org_drivers_mst[]
   org_fin_cash_ctrl_audit_dtl  org_fin_cash_ctrl_audit_dtl[]
@@ -1915,6 +1919,7 @@ model org_users_mst {
   @@unique([user_id, tenant_org_id])
   @@index([last_login_at(sort: Desc)], map: "idx_org_users_last_login")
   @@index([user_id], map: "idx_org_users_user")
+  @@index([user_id, is_active], map: "idx_ou_user_active")
   @@schema("public")
 }
 
@@ -15859,7 +15864,7 @@ model sys_auth_user_sessions_mst {
   auth_session_id          String                    @unique @db.Uuid
   auth_user_id             String                    @db.Uuid
   org_user_id              String?                   @db.Uuid
-  tenant_org_id            String                    @db.Uuid
+  tenant_org_id            String?                   @db.Uuid
   status                   String                    @default("ACTIVE")
   end_reason_code          String?
   ended_at                 DateTime?                 @db.Timestamptz(6)
@@ -15881,7 +15886,7 @@ model sys_auth_user_sessions_mst {
   users                    users                     @relation(fields: [auth_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   sys_auth_sess_end_rsn_cd sys_auth_sess_end_rsn_cd? @relation(fields: [end_reason_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_users_mst            org_users_mst?            @relation(fields: [org_user_id], references: [id], onUpdate: NoAction)
-  org_tenants_mst          org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_tenants_mst          org_tenants_mst?          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([tenant_org_id, status, last_activity_at(sort: Desc)], map: "idx_auth_sess_tenant_status")
   @@index([auth_user_id, status], map: "idx_auth_sess_user_status")
@@ -18396,6 +18401,39 @@ model sys_tax_return_box_map_dtl {
   sys_tax_return_box_cd_sys_tax_return_box_map_dtl_kit_code_source_box_codeTosys_tax_return_box_cd sys_tax_return_box_cd? @relation("sys_tax_return_box_map_dtl_kit_code_source_box_codeTosys_tax_return_box_cd", fields: [kit_code, source_box_code], references: [kit_code, box_code], onUpdate: NoAction, map: "fk_strbm_src_box")
 
   @@id([kit_code, box_code, map_no], map: "pk_sys_tax_return_box_map")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sys_users_mst {
+  id                    String           @id @db.Uuid
+  email                 String?
+  phone_e164            String?
+  user_code             String
+  name                  String?
+  name2                 String?
+  idp_provider          String           @default("supabase")
+  idp_subject           String
+  status                String           @default("ACTIVE")
+  is_globally_locked    Boolean          @default(false)
+  globally_locked_at    DateTime?        @db.Timestamptz(6)
+  globally_locked_by    String?          @db.Uuid
+  failed_login_attempts Int              @default(0)
+  last_failed_login_at  DateTime?        @db.Timestamptz(6)
+  attack_locked_until   DateTime?        @db.Timestamptz(6)
+  attack_lock_reason    String?
+  last_chosen_tenant_id String?          @db.Uuid
+  created_at            DateTime         @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?        @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  org_tenants_mst       org_tenants_mst? @relation(fields: [last_chosen_tenant_id], references: [id], onUpdate: NoAction, map: "fk_sys_users_hint_tenant")
+
   @@schema("public")
 }
 

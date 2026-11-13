@@ -4,6 +4,8 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { IdempotencyStore } from './services/idempotency.store';
 import { IdempotencyInterceptor } from './interceptors/idempotency.interceptor';
+import { StaffSessionService } from './session/staff-session.service';
+import { TenantGuard } from './guards/tenant.guard';
 
 @Global()
 @Module({
@@ -18,7 +20,9 @@ import { IdempotencyInterceptor } from './interceptors/idempotency.interceptor';
     },
     IdempotencyStore,
     IdempotencyInterceptor,
+    StaffSessionService,
+    TenantGuard,
   ],
-  exports: [IdempotencyStore, IdempotencyInterceptor],
+  exports: [IdempotencyStore, IdempotencyInterceptor, StaffSessionService, TenantGuard],
 })
 export class CommonModule {}

@@ -20,6 +20,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { UserSessionsTab } from '@features/auth-session/ui/user-sessions-tab'
 import { UserCredentialActions } from '@features/auth-session/ui/user-credential-actions'
+import { MembershipLockAction } from './membership-lock-action'
 import { fetchUser } from '@/lib/api/users'
 import type { TenantUser } from '@/lib/api/users'
 import { UserProfileTab } from './user-profile-tab'
@@ -155,11 +156,14 @@ export function UserDetailScreen() {
             </div>
           </div>
           {/* Credential administration: gated by users:reset_password inside; hidden on the admin's own account */}
-          <UserCredentialActions
-            userId={userId}
-            userLabel={user.display_name || user.email}
-            userEmail={user.email}
-          />
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <MembershipLockAction userId={userId} />
+            <UserCredentialActions
+              userId={userId}
+              userLabel={user.display_name || user.email}
+              userEmail={user.email}
+            />
+          </div>
         </div>
       </div>
 

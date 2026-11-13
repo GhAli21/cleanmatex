@@ -1,8 +1,8 @@
 /**
  * Session lifecycle use-cases — sign-in registration and sign-out.
  *
- * Business rules over the repository. Tenant is never an input: the DB resolves it from the user's single
- * membership (one account per tenant, migration 0563), so callers cannot choose or spoof it.
+ * Business rules over the repository. One eligible laundry is bound by the database.
+ * More than one returns CHOOSE_LAUNDRY and binds nothing.
  */
 
 import type { createAdminSupabaseClient } from '@/lib/supabase/server'

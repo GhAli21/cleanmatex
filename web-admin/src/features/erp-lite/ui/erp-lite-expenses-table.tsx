@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ErpLiteExpensesDashboardSnapshot } from '@/lib/types/erp-lite-expenses'
-import { formatErpLiteMoney, type ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
+import { formatErpLiteDocumentRate, formatErpLiteMoney, type ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
 import { CmxDataTable } from '@ui/data-display'
 
 interface ErpLiteExpensesTableProps {
@@ -19,6 +19,7 @@ interface ErpLiteExpensesTableProps {
  */
 export function ErpLiteExpensesTable({ items, displayConfig }: ErpLiteExpensesTableProps) {
   const t = useTranslations('erpLite.expenses')
+  const tCommon = useTranslations('erpLite.common')
 
   const columns: ColumnDef<ErpLiteExpensesDashboardSnapshot['expense_list'][number]>[] = [
     { accessorKey: 'expense_no', header: t('lists.expenses.columns.no'), cell: ({ row }) => <div className="font-medium">{row.original.expense_no}</div> },
@@ -26,6 +27,16 @@ export function ErpLiteExpensesTable({ items, displayConfig }: ErpLiteExpensesTa
     { accessorKey: 'payee_name', header: t('lists.expenses.columns.payee'), cell: ({ row }) => row.original.payee_name ?? '—' },
     { accessorKey: 'branch_name', header: t('lists.expenses.columns.branch'), cell: ({ row }) => row.original.branch_name ?? '—' },
     { id: 'settlement_code', header: t('lists.expenses.columns.settlement'), cell: ({ row }) => t(`settlement.${row.original.settlement_code.toLowerCase()}`) },
+    {
+      id: 'exchange_rate',
+      header: tCommon('exchangeRate'),
+      cell: ({ row }) => formatErpLiteDocumentRate(
+        row.original.exchange_rate,
+        row.original.fx_rate_date,
+        row.original.fx_rate_source,
+        displayConfig.locale,
+      ),
+    },
     {
       id: 'total_amount',
       header: () => <div className="text-right">{t('lists.expenses.columns.amount')}</div>,

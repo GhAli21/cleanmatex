@@ -14,8 +14,9 @@ export interface ResolvedLoginAccount {
   authUserId: string
   /** auth.users email — passed to signInWithPassword (may be synthetic for users without a real email). */
   email: string
-  orgUserId: string
-  tenantOrgId: string
+  /** Set only when exactly one laundry is eligible. Null when the user must choose. */
+  orgUserId: string | null
+  tenantOrgId: string | null
   isActive: boolean
   userCode: string
 }

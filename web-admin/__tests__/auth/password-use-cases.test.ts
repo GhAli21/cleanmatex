@@ -9,7 +9,7 @@ const mockEnd = jest.fn();
 const mockLog = jest.fn();
 
 jest.mock('@/lib/services/auth/session/auth-session.repository', () => ({
-  revokeUserSessions: (...a: unknown[]) => mockRevoke(...a),
+  revokeAllGlobalUserSessions: (...a: unknown[]) => mockRevoke(...a),
   endSession: (...a: unknown[]) => mockEnd(...a),
   logAuthEvent: (...a: unknown[]) => mockLog(...a),
 }));
@@ -57,7 +57,7 @@ beforeEach(() => {
 });
 
 describe('changeOwnPassword — current-password mode (policy default)', () => {
-  it('verifies the current password, updates, ends the OTHER sessions as PASSWORD_CHANGED, audits and notifies', async () => {
+  it('verifies the current password, updates, ends every organization session as PASSWORD_CHANGED, audits and notifies', async () => {
     const d = deps();
     const out = await changeOwnPassword(admin, d, actor, { currentPassword: CURRENT, newPassword: STRONG_NEW });
 
@@ -66,9 +66,7 @@ describe('changeOwnPassword — current-password mode (policy default)', () => {
     expect(d.updatePassword).toHaveBeenCalledWith(STRONG_NEW);
     expect(mockRevoke).toHaveBeenCalledWith(admin, {
       authUserId: 'user-1',
-      tenantOrgId: 'tenant-1',
       reason: 'PASSWORD_CHANGED',
-      exceptAuthSessionId: 'sess-current', // the session the user is on survives
       actorId: 'user-1',
     });
     expect(mockLog).toHaveBeenCalledWith(
@@ -194,7 +192,7 @@ describe('completePasswordReset', () => {
     const out = await completePasswordReset(admin, d, actor, { newPassword: STRONG_NEW });
 
     expect(out).toEqual({ revokedSessions: 2 });
-    expect(mockRevoke).toHaveBeenCalledWith(admin, expect.objectContaining({ exceptAuthSessionId: null, reason: 'PASSWORD_CHANGED' }));
+    expect(mockRevoke).toHaveBeenCalledWith(admin, expect.objectContaining({ authUserId: 'user-1', reason: 'PASSWORD_CHANGED' }));
     // The recovery session may be unregistered, so it is ended explicitly too.
     expect(mockEnd).toHaveBeenCalledWith(admin, { authSessionId: 'sess-current', reason: 'PASSWORD_CHANGED', actorId: 'user-1' });
     expect(mockLog).toHaveBeenCalledWith(admin, expect.objectContaining({ reasonCode: 'RESET', outcome: 'SUCCESS' }));

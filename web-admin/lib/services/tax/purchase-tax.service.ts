@@ -9,7 +9,9 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import { COMMERCIAL_ERROR_CODES, CommercialRuleError } from '@/lib/commercial/errors';
 import { toMoney, type Money } from '@/lib/commercial/money';
+import { roundMoney } from '@/lib/commercial/rounding';
 import { TAX_CONFIG_STATUS } from '@/lib/constants/tax';
+import type { DocFxRate } from '@/lib/services/fx/doc-fx-rate';
 import { isoDate } from '@/lib/tax/determine';
 import { taxPartyScope } from '@/lib/tax/order-line-tax';
 import { decidePurchaseTax, type PurchaseTaxCode, type PurchaseTaxResult } from '@/lib/tax/purchase-tax';
@@ -33,6 +35,8 @@ export interface PurchaseTaxRequest {
   /** Chosen item tax class; null = the organization's default purchase class. Ignored for withholding. */
   itemClass: string | null;
   currencyCode: string;
+  /** Rate into the organization currency, already resolved for `date`. */
+  fx: DocFxRate;
   net: number;
   /** Typed tax; null = take the code's tax. */
   enteredTax: number | null;
@@ -46,6 +50,7 @@ export interface PurchaseTax extends PurchaseTaxResult {
   date: string;
   currencyCode: string;
   flow: 'INPUT' | 'WITHHOLDING';
+  fx: DocFxRate;
 }
 
 /**
@@ -53,7 +58,7 @@ export interface PurchaseTax extends PurchaseTaxResult {
  * @param tx - The document's transaction
  * @param req - Organization, document facts and amounts
  * @returns The decision; null while the tax setup is not active (the typed tax is kept and nothing is recorded, ADR-061)
- * @throws CommercialRuleError on a missing/tied rule, a bad class, a tax mismatch or a foreign currency
+ * @throws CommercialRuleError on a missing/tied rule, a bad class or a tax mismatch
  */
 export async function resolvePurchaseTax(tx: Tx, req: PurchaseTaxRequest): Promise<PurchaseTax | null> {
   const { tenantOrgId } = req;
@@ -83,12 +88,6 @@ export async function resolvePurchaseTax(tx: Tx, req: PurchaseTaxRequest): Promi
       : null,
   ]);
 
-  // shortcut: ERP-Lite stores exchange_rate 1, so a foreign-currency purchase cannot be valued in base; allow it once ERP-Lite records a rate.
-  if (tenant?.currency && tenant.currency !== req.currencyCode) {
-    throw new CommercialRuleError(COMMERCIAL_ERROR_CODES.TAX_CURRENCY_UNSUPPORTED, 'A taxed purchase must be in the organization currency.', {
-      currency: req.currencyCode, baseCurrency: tenant.currency,
-    });
-  }
   // Never tax with a default party class when the named supplier is not this organization's.
   if (req.supplierId && !supplier) throw new Error('Selected supplier was not found for this tenant');
   if (req.flow === 'INPUT' && req.itemClass && !cls) {
@@ -123,7 +122,27 @@ export async function resolvePurchaseTax(tx: Tx, req: PurchaseTaxRequest): Promi
     enteredTax: req.enteredTax == null ? null : toMoney(req.enteredTax),
     decimals: currency?.minor_unit ?? 2,
   });
-  return { ...result, itemClass, supplierId: req.supplierId, branchId: req.branchId, date: req.date, currencyCode: req.currencyCode, flow: req.flow };
+  return {
+    ...result, itemClass, supplierId: req.supplierId, branchId: req.branchId, date: req.date,
+    currencyCode: req.currencyCode, flow: req.flow, fx: req.fx,
+  };
+}
+
+/**
+ * Document amount in the organization currency, rounded to the base minor unit.
+ * Same currency keeps the document amount: a second rounding would change a figure the user already accepted.
+ * @param amount - Taxable or tax in the document currency
+ * @param currencyCode - Document currency
+ * @param fx - Rate facts for the document
+ * @returns DECIMAL(19,4) storage string
+ */
+function baseStorage(amount: Money, currencyCode: string, fx: DocFxRate): string {
+  if (currencyCode.trim().toUpperCase() === fx.baseCurrencyCode) return amount.toFixed(4);
+  const converted = roundMoney(amount.times(toMoney(fx.exchangeRate)), {
+    decimalPlaces: fx.baseMinorUnit,
+    mode: 'HALF_UP',
+  });
+  return converted.toFixed(4);
 }
 
 /**
@@ -143,6 +162,7 @@ export async function writePurchaseTaxLines(tx: Tx, input: {
   tax: PurchaseTax;
 }): Promise<void> {
   const { tenantOrgId, tax } = input;
+  const sameCurrency = tax.currencyCode.trim().toUpperCase() === tax.fx.baseCurrencyCode;
   const periodId = await periodIdFor(tx, tenantOrgId, tax.date);
   await tx.org_tax_lines_tr.createMany({
     data: tax.parts.map((p) => ({
@@ -169,9 +189,13 @@ export async function writePurchaseTaxLines(tx: Tx, input: {
       tax_amount: money(p.tax),
       recoverable_amount: money(p.recoverable),
       currency_code: tax.currencyCode,
-      base_currency_code: tax.currencyCode,
-      base_taxable_amount: money(p.taxable),
-      base_tax_amount: money(p.tax),
+      base_currency_code: tax.fx.baseCurrencyCode,
+      base_taxable_amount: baseStorage(p.taxable, tax.currencyCode, tax.fx),
+      base_tax_amount: baseStorage(p.tax, tax.currencyCode, tax.fx),
+      fx_rate: sameCurrency ? null : tax.fx.exchangeRate,
+      fx_rate_date: sameCurrency || !tax.fx.fxRateDate ? null : new Date(tax.fx.fxRateDate),
+      fx_rate_source: sameCurrency ? null : tax.fx.fxRateSource,
+      fx_rate_id: sameCurrency ? null : tax.fx.fxRateId,
       compound_base: false,
       applied_seq: p.seq,
       period_id: periodId,

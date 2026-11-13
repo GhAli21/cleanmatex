@@ -1,6 +1,6 @@
 # Session Management Guide
 
-**Last updated:** 2026-10-08
+**Last updated:** 2026-11-13
 **Audience:** Developers changing auth or session behaviour
 **Feature docs (same folder):** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) · [STATUS.md](STATUS.md) · [QA_TEST_GUIDE.md](QA_TEST_GUIDE.md) · [ADR](ADR-session-registry-and-tenant-claim.md)
 
@@ -12,7 +12,7 @@ This guide describes the full session lifecycle of web-admin: sign-in, the serve
 
 Supabase Auth owns credentials and tokens. On top of it the platform keeps a **session registry** (`sys_auth_user_sessions_mst`): one row per Supabase session (`auth.sessions.id`, the `session_id` claim of the JWT), bound to **one tenant** and carrying a **policy snapshot** taken at sign-in (idle timeout, absolute lifetime, remember-me). The **server is authoritative**: every protected request is validated against the registry; the browser only shows warnings. Ending a session = marking the registry row ended **and** deleting the `auth.sessions` row, so the refresh token dies with it.
 
-Identity rules: one auth account per tenant membership (`UNIQUE(user_id)` on `org_users_mst`), **no tenant switching** (sign out, then sign in with the other tenant's account). Users sign in with a globally unique **user code or email** plus password.
+Identity rules: one global user (`sys_users_mst`) can belong to many organizations. A membership is an organization user (`org_users_mst`). One sign-in binds one organization until logout. When more than one membership is eligible, the user chooses in the picker; there is no in-session switch. Users sign in with a globally unique **user code**, an email, or a mobile, plus password. The session row is the organization authority. A tenant claim on the token is ignored. See `docs/features/Tenants_Users/PLAN.md`.
 
 ---
 

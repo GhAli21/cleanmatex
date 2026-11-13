@@ -64,11 +64,12 @@ This module does not own a separate database. It connects to the shared Supabase
 
 ## Auth And Tenant Rules
 
-Tenant resolution is a hard requirement:
+Staff organization resolution is a hard requirement:
 
-1. JWT claim `tenant_org_id`
-2. `X-Tenant-Id` header only for approved platform operations
-3. reject requests when tenant context cannot be resolved safely
+1. `JwtAuthGuard` verifies the bearer token and ignores any tenant claim on it
+2. `TenantGuard` calls `fn_auth_session_validate` with that token
+3. The organization is the ACTIVE session row, or the request is rejected
+4. `X-Tenant-Id` is not a staff override
 
 Protected endpoints should document authentication and tenant requirements clearly in OpenAPI.
 

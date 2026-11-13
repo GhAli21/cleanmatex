@@ -22,7 +22,7 @@ import { PASSWORD_ERROR_CODES, SESSION_END_REASONS, type PasswordErrorCode } fro
 import { PasswordError } from '@/lib/services/auth/password/password-error'
 import type { PasswordActorKind } from '@/lib/services/auth/password/password-notify'
 import type { PasswordPolicy } from '@/lib/services/auth/password/password-policy'
-import { endSession, logAuthEvent, revokeUserSessions } from '../auth-session.repository'
+import { endSession, logAuthEvent, revokeAllGlobalUserSessions } from '../auth-session.repository'
 import type { createAdminSupabaseClient } from '@/lib/supabase/server'
 
 type AdminClient = ReturnType<typeof createAdminSupabaseClient>
@@ -75,9 +75,9 @@ export interface PasswordActor {
 }
 
 /**
- * Change the signed-in user's password and end their other sessions.
+ * Change the signed-in global user's password and end every organization session, including this one.
  *
- * @returns Number of other sessions that were signed out and which verification path was used
+ * @returns Number of sessions that were signed out and which verification path was used
  * @throws PasswordError WEAK_PASSWORD | REUSED_PASSWORD | BREACHED_PASSWORD | SAME_PASSWORD | CURRENT_REQUIRED |
  *         REAUTH_REQUIRED | ACCOUNT_LOCKED | WRONG_PASSWORD | UPDATE_FAILED
  */
@@ -152,11 +152,9 @@ export async function changeOwnPassword(
 
   if (forced) await deps.clearMustChange(actor.tenantId, actor.userId)
 
-  const revoked = await revokeUserSessions(admin, {
+  const revoked = await revokeAllGlobalUserSessions(admin, {
     authUserId: actor.userId,
-    tenantOrgId: actor.tenantId,
     reason: SESSION_END_REASONS.PASSWORD_CHANGED,
-    exceptAuthSessionId: actor.authSessionId,
     actorId: actor.userId,
   })
 
@@ -182,8 +180,8 @@ export async function changeOwnPassword(
 }
 
 /**
- * Complete a password reset from a recovery link: set the new password and end EVERY session of the user
- * (including the recovery session) so nothing opened before the reset survives it.
+ * Complete a password reset from a recovery link: set the new password and end every organization
+ * session of the global user, including the recovery session.
  *
  * @returns Number of sessions that were ended
  * @throws PasswordError WEAK_PASSWORD | REUSED_PASSWORD | BREACHED_PASSWORD | UPDATE_FAILED
@@ -205,11 +203,9 @@ export async function completePasswordReset(
   // Choosing a password through the link satisfies a pending forced change as well.
   await deps.clearMustChange(actor.tenantId, actor.userId)
 
-  const revoked = await revokeUserSessions(admin, {
+  const revoked = await revokeAllGlobalUserSessions(admin, {
     authUserId: actor.userId,
-    tenantOrgId: actor.tenantId,
     reason: SESSION_END_REASONS.PASSWORD_CHANGED,
-    exceptAuthSessionId: null,
     actorId: actor.userId,
   })
 

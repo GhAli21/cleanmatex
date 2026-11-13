@@ -17,6 +17,12 @@ export interface ErpLiteExpenseListItem {
   settlement_code: 'CASH' | 'BANK' | 'PAYABLE';
   total_amount: number;
   currency_code: string;
+  /** Exact rate into the organization currency. `1` when the expense is already in that currency. */
+  exchange_rate: string;
+  /** Rate-book date. Null when the expense currency is the organization currency. */
+  fx_rate_date: string | null;
+  /** `TENANT:CBO` or `HQ:ECB`. Null when the expense currency is the organization currency. */
+  fx_rate_source: string | null;
   status_code: string;
   payee_name: string | null;
 }

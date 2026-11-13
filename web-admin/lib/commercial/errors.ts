@@ -36,9 +36,12 @@ export const COMMERCIAL_ERROR_CODES = {
   PURCHASE_TAX_MISMATCH: 'PURCHASE_TAX_MISMATCH',
   /** A purchase line names an item tax class that is not an active purchase class. */
   TAX_CLASS_INVALID: 'TAX_CLASS_INVALID',
-  /** Withholding tax applies, but its posting (T7) is not built yet; nothing is written. */
-  /** A taxed purchase is in a currency other than the organization's (ERP-Lite records no exchange rate). */
+  /** A taxed prepayment is in a currency other than the organization's. Purchases use a stored rate instead. */
   TAX_CURRENCY_UNSUPPORTED: 'TAX_CURRENCY_UNSUPPORTED',
+  /** No approved rate converts the document currency into the organization currency on the document date. */
+  FX_RATE_NOT_FOUND: 'FX_RATE_NOT_FOUND',
+  /** Petty cash has no exchange-rate columns, so it cannot be recorded in a foreign currency. */
+  PETTY_CASH_FX_UNSUPPORTED: 'PETTY_CASH_FX_UNSUPPORTED',
   /** An output breaks a money invariant I1–I6 (PLAN.md §5.2); nothing is written. */
   COMMERCIAL_INVARIANT_FAILED: 'COMMERCIAL_INVARIANT_FAILED',
 } as const;

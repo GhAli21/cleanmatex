@@ -6,10 +6,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { guardSession, isSessionActive } from '@/lib/auth/session-guard';
+import { getCurrentRequestMeta } from '@/lib/services/auth/session/request-meta.server';
 import { uploadLogo } from '@/lib/services/tenants.service';
 
 /**
- * Get tenant ID from authenticated session
+ * Laundry for this request. The session row is the authority.
  */
 async function getTenantIdFromSession(): Promise<string> {
   const supabase = await createClient();
@@ -17,11 +19,16 @@ async function getTenantIdFromSession(): Promise<string> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !user.user_metadata?.tenant_org_id) {
+  if (!user) {
     throw new Error('Unauthorized');
   }
 
-  return user.user_metadata.tenant_org_id;
+  const validation = await guardSession(supabase, await getCurrentRequestMeta());
+  if (!isSessionActive(validation) || !validation.tenantOrgId) {
+    throw new Error('Unauthorized');
+  }
+
+  return validation.tenantOrgId;
 }
 
 /**

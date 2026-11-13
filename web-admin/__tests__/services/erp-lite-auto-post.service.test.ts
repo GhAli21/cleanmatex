@@ -190,6 +190,56 @@ describe('ErpLiteAutoPostService', () => {
     expect(bankRequest.meta?.payment_method_code).toBe(PAYMENT_METHODS.BANK_TRANSFER);
   });
 
+  it('builds a supplier invoice journal with recoverable input VAT kept off the expense', () => {
+    const request = ErpLiteAutoPostService.buildApInvoicePostingRequest(
+      {
+        ap_invoice_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        ap_inv_no: 'API-202611-00001',
+        branch_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        currency_code: 'USD',
+        exchange_rate: 0.3846153846,
+        invoice_date: '2026-11-13',
+        subtotal_amount: 100,
+        recoverable_tax_amount: 5,
+        total_amount: 105,
+      },
+      'cccccccc-cccc-cccc-cccc-cccccccccccc'
+    );
+
+    expect(request.txn_event_code).toBe(ERP_LITE_TXN_EVENT_CODES.AP_INVOICE_POSTED);
+    expect(request.exchange_rate).toBe(0.3846153846);
+    expect(request.amounts).toEqual(expect.objectContaining({
+      net_amount: 100,
+      tax_amount: 5,
+      gross_amount: 105,
+    }));
+  });
+
+  it('builds a supplier payment journal that keeps withheld tax off the cash credit', () => {
+    const request = ErpLiteAutoPostService.buildApPaymentPostingRequest(
+      {
+        ap_payment_id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+        ap_pmt_no: 'APP-202611-00001',
+        branch_id: null,
+        currency_code: 'OMR',
+        exchange_rate: 1,
+        payment_date: '2026-11-13',
+        amount_total: 100,
+        wht_amount: 5,
+        settlement_code: 'BANK',
+      },
+      'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+    );
+
+    expect(request.txn_event_code).toBe(ERP_LITE_TXN_EVENT_CODES.AP_PAYMENT_RECORDED);
+    expect(request.amounts).toEqual(expect.objectContaining({
+      net_amount: 95,
+      tax_amount: 5,
+      gross_amount: 100,
+    }));
+    expect(request.meta?.payment_method_code).toBe(PAYMENT_METHODS.BANK_TRANSFER);
+  });
+
   it('builds petty cash posting request for top-up and spend events', () => {
     const topupRequest = ErpLiteAutoPostService.buildPettyCashPostingRequest(
       {

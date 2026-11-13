@@ -12,6 +12,8 @@ import {
   type ErpLiteTxnEventCode,
 } from '@/lib/constants/erp-lite-posting';
 import type {
+  ErpLiteApInvoiceAutoPostInput,
+  ErpLiteApPaymentAutoPostInput,
   ErpLiteAutoPostDispatchResult,
   ErpLiteAutoPostPolicy,
   ErpLiteCustomerAdvanceReceivedInput,
@@ -172,6 +174,26 @@ export class ErpLiteAutoPostService {
     return withTenantContext(tenantId, async () => {
       return this.dispatchRequest(request, tx);
     });
+  }
+
+  /** Posts the supplier invoice inside the caller's transaction so the journal and the document commit together. */
+  static async dispatchApInvoicePostedInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteApInvoiceAutoPostInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildApInvoicePostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
+  }
+
+  /** Posts the supplier payment inside the caller's transaction, including any withheld tax. */
+  static async dispatchApPaymentRecordedInTransaction(
+    tx: PrismaTx,
+    input: ErpLiteApPaymentAutoPostInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildApPaymentPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request, tx));
   }
 
   static async dispatchPettyCashTransaction(
@@ -358,6 +380,90 @@ export class ErpLiteAutoPostService {
             : PAYMENT_METHODS.CASH,
         source_context: 'expense_recorded',
         payload_version: 'phase7-v1',
+      },
+    };
+  }
+
+  /**
+   * AP_INVOICE_POSTED (0735): Dr expense for the total minus recoverable VAT,
+   * Dr Input VAT for the recoverable part, Cr Accounts Payable for the total.
+   * The rate is the one stored on the invoice; the engine converts to base.
+   */
+  static buildApInvoicePostingRequest(
+    input: ErpLiteApInvoiceAutoPostInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    const recoverable = this.roundAmount(input.recoverable_tax_amount ?? 0);
+    const gross = this.roundAmount(input.total_amount);
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.AP_INVOICE_POSTED,
+      source_module_code: 'ERP_LITE_AP',
+      source_doc_type_code: 'AP_INVOICE',
+      source_doc_id: input.ap_invoice_id,
+      source_doc_no: input.ap_inv_no,
+      journal_date: input.invoice_date,
+      posting_date: input.invoice_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(gross - recoverable),
+        tax_amount: recoverable,
+        gross_amount: gross,
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        source_context: 'ap_invoice_posted',
+        payload_version: 'ap-v1',
+      },
+    };
+  }
+
+  /**
+   * AP_PAYMENT_RECORDED (0735): Dr Accounts Payable for the amount that settles
+   * the invoice, Cr cash or bank for the cash paid, Cr withholding payable for
+   * the part kept back. Cash paid = amount − withheld, so the three lines balance.
+   */
+  static buildApPaymentPostingRequest(
+    input: ErpLiteApPaymentAutoPostInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    const gross = this.roundAmount(input.amount_total);
+    const withheld = this.roundAmount(input.wht_amount ?? 0);
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.AP_PAYMENT_RECORDED,
+      source_module_code: 'ERP_LITE_AP',
+      source_doc_type_code: 'AP_PAYMENT',
+      source_doc_id: input.ap_payment_id,
+      source_doc_no: input.ap_pmt_no,
+      journal_date: input.payment_date,
+      posting_date: input.payment_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(gross - withheld),
+        tax_amount: withheld,
+        gross_amount: gross,
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        payment_method_code:
+          input.settlement_code === 'BANK'
+            ? PAYMENT_METHODS.BANK_TRANSFER
+            : PAYMENT_METHODS.CASH,
+        source_context: 'ap_payment_recorded',
+        payload_version: 'ap-v1',
       },
     };
   }

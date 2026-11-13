@@ -164,6 +164,21 @@ Needs a confirmed tax setup with a VAT kit, and ERP-Lite on for the posting chec
 | 31m | Organization on version 2 (any segment, e.g. SME): **ERP-Lite › Expenses › New**, supplier whose tax country is another GCC state (e.g. Oman organization, Saudi supplier), item class "Standard purchase", 100 | Tax line uses `VAT_IN_RC` (reverse charge): due tax and recoverable tax both shown; the VAT return counts it in the reverse-charge boxes (OM 2b, AE 3 + 10, SA 9, BH reverse-charge lines) |
 | 31n | Same, supplier tax country outside the GCC, item class "Standard purchase" | Reverse charge (`VAT_IN_RC`), not refused as ambiguous; with item class "Not reclaimable" → `VAT_IN_RC_NONREC` (recoverable 0); with "No VAT" → no tax |
 
+### Foreign-currency purchases (`0733`)
+
+| # | Do | Expect |
+|---|---|---|
+| 31r | Organization currency OMR. **ERP-Lite › Expenses › New**, currency USD, date with an approved USD→OMR rate in Settings › Currencies & FX | Saved. The expense list shows Exchange Rate with that rate, its date and source (`HQ:…` or `TENANT:…`). The ledger lines are in OMR (amount × rate). Tax lines, if tax is on, store the document amount in USD and the base amount in OMR |
+| 31s | Same expense on a date with no approved rate | Refused, in EN and AR, pointing to Settings › Currencies & FX. Nothing is saved |
+| 31t | Petty cash box or transaction in USD | Refused. Petty cash stays in OMR |
+
+### Supplier invoices and payments on the ledger (`0735` applied)
+
+| # | Do | Expect |
+|---|---|---|
+| 31u | Organization on the standard chart. **ERP-Lite › AP**: supplier invoice 100 + 5 recoverable VAT, then a bank payment of 105 with no withholding | Invoice journal: Dr expense 100, Dr Input VAT 5, Cr Accounts Payable 105. Payment journal: Dr Accounts Payable 105, Cr bank 105. Amounts are in the organization currency (× the document rate when the invoice is in another currency) |
+| 31v | Same invoice, payment whose withholding rule is not 0% (or a test rule that withholds) | The invoice is settled in full. Cash or bank is credited with amount − withheld. Withholding Tax Payable (`212003`) is credited with the withheld amount |
+
 ### HQ draft rules and item classes (`0732`)
 
 | # | Do | Expect |

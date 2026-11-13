@@ -100,6 +100,10 @@ export const ERP_LITE_TXN_EVENT_CODES = {
   TAX_ADVANCE_NETTED:     'TAX_ADVANCE_NETTED',
   TAX_GIFT_CARD_RECORDED: 'TAX_GIFT_CARD_RECORDED',
   TAX_GIFT_CARD_NETTED:   'TAX_GIFT_CARD_NETTED',
+  // Tax Config §4.1.4 (migration 0735). Supplier invoices and payments had no
+  // ledger event, so withheld tax had nowhere to go.
+  AP_INVOICE_POSTED:   'AP_INVOICE_POSTED',
+  AP_PAYMENT_RECORDED: 'AP_PAYMENT_RECORDED',
 } as const;
 
 export const ERP_LITE_BLOCKING_MODES = {

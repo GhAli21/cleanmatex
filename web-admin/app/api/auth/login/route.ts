@@ -13,7 +13,6 @@ import {
   SB_REMEMBER_ME_COOKIE,
 } from '@/lib/supabase/server';
 import { checkLoginRateLimit } from '@/lib/middleware/rate-limit';
-import { ensureTenantInUserMetadata } from '@/lib/auth/jwt-tenant-manager';
 import {
   getCSRFTokenFromHeader,
   getCSRFTokenFromRequest,
@@ -25,11 +24,10 @@ import { resolveLoginIdentifier } from '@/lib/services/auth/resolve-login-identi
 import { LOGIN_ERROR_CODES } from '@/lib/constants/auth-user';
 import { SESSION_ERROR_CODES, SESSION_REGISTER_STATUS, DEVICE_COOKIE_NAME } from '@/lib/constants/auth-session';
 import { getSessionIdFromToken } from '@/lib/auth/jwt-claims';
-import { generateDeviceId, isValidDeviceId } from '@/lib/services/auth/session/domain/device';
+import { generateDeviceId, hashDeviceId, isValidDeviceId, parseDeviceLabel } from '@/lib/services/auth/session/domain/device';
 import { deviceCookieOptions, type RequestMeta } from '@/lib/services/auth/session/request-meta';
 import { startSession } from '@/lib/services/auth/session/use-cases/session-lifecycle';
 import { notifyNewDeviceSignIn } from '@/lib/services/auth/session/use-cases/new-device-alert';
-import { parseDeviceLabel } from '@/lib/services/auth/session/domain/device';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { getSessionLifetime } from '@/lib/services/auth/session/auth-session.repository';
 
@@ -219,6 +217,59 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+    if (registration.status === SESSION_REGISTER_STATUS.LOCKED) {
+      await supabase.auth.signOut({ scope: 'local' });
+      return NextResponse.json(
+        { error: 'This sign-in is locked.', code: SESSION_REGISTER_STATUS.LOCKED },
+        { status: 423 }
+      );
+    }
+    if (registration.status === SESSION_REGISTER_STATUS.CHOOSE_LAUNDRY) {
+      const opened = await supabase.rpc('fn_auth_session_open_picker', {
+        p_remember_me: Boolean(rememberMe),
+        p_ip_address: clientIp ?? undefined,
+        p_user_agent: userAgent ?? undefined,
+        p_device_label: parseDeviceLabel(userAgent),
+        p_device_id_hash: await hashDeviceId(deviceId),
+      });
+      if (opened.error || opened.data !== 'PENDING') {
+        await supabase.auth.signOut({ scope: 'local' });
+        logger.error('Could not open the laundry picker', new Error(opened.error?.message ?? String(opened.data)), {
+          feature: 'auth',
+          action: 'login',
+        });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      }
+      const { data: laundryRows, error: laundryError } = await supabase.rpc('fn_auth_own_laundries');
+      if (laundryError || !laundryRows || laundryRows.length < 2) {
+        await supabase.auth.signOut({ scope: 'local' });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      }
+      const { data: hint } = await adminSupabase
+        .from('sys_users_mst')
+        .select('last_chosen_tenant_id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+      await adminSupabase.rpc('record_login_attempt', {
+        p_email: email,
+        p_success: true,
+        p_ip_address: clientIp ?? undefined,
+        p_user_agent: userAgent ?? undefined,
+        p_error_message: undefined,
+      });
+      return NextResponse.json({
+        chooseLaundry: true,
+        lastChosenTenantId: hint?.last_chosen_tenant_id ?? null,
+        laundries: laundryRows.map((row) => ({
+          orgUserId: row.org_user_id,
+          tenantOrgId: row.tenant_org_id,
+          name: row.laundry_name,
+          name2: row.laundry_name2,
+        })),
+        user: data.user,
+        session: data.session,
+      });
+    }
 
     // Runs after the response is sent. The hub can be slow; sign-in must not wait for it.
     // The DB already decided whether this sign-in should raise the alert.
@@ -252,36 +303,14 @@ export async function POST(request: NextRequest) {
     console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ record_login_attempt + get_user_tenants done — tenants: ${tenantsResult.data?.length ?? 0} row(s)`);
 
     const tenants = tenantsResult.data ?? [];
-    const activeTenant = tenants.find((t: { is_active: boolean }) => t.is_active) ?? tenants[0];
 
-    // Block login if the user has no active tenant membership
-    if (!tenantsResult.error && (!tenants.length || !activeTenant?.is_active)) {
+    // The session row is the laundry. A leftover token claim is not written and is not read.
+    if (!registration.tenantOrgId || (!tenantsResult.error && !tenants.some((t: { tenant_id: string; is_active: boolean }) => t.tenant_id === registration.tenantOrgId && t.is_active))) {
       await supabase.auth.signOut();
       return NextResponse.json(
         { error: 'Your account has been deactivated. Please contact your administrator.' },
         { status: 403 }
       );
-    }
-
-    // Ensure tenant context in JWT only if it differs (avoids getUser + updateUser round-trips)
-    if (!tenantsResult.error && activeTenant) {
-      if (data.user.user_metadata?.tenant_org_id !== activeTenant.tenant_id) {
-        console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ ensureTenantInUserMetadata`);
-        try {
-          await ensureTenantInUserMetadata(data.user.id, activeTenant.tenant_id);
-          console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ ensureTenantInUserMetadata done`);
-        } catch (metadataError) {
-          console.log(`[LOGIN] [${Date.now() - t0}ms] ✗ ensureTenantInUserMetadata failed`);
-          logger.warn('Failed to ensure tenant in user metadata', {
-            feature: 'auth',
-            action: 'login',
-            userId: data.user.id,
-            error: metadataError instanceof Error ? metadataError.message : String(metadataError),
-          });
-        }
-      } else {
-        console.log(`[LOGIN] [${Date.now() - t0}ms] ⏭ ensureTenantInUserMetadata skipped (JWT already correct)`);
-      }
     }
 
     // Set sb-remember-me so proxy/server/browser respect session vs persistent cookies. Remember-me only
@@ -310,6 +339,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       user: data.user,
       session: data.session,
+      tenantOrgId: registration.tenantOrgId,
       tenants,
     });
   } catch (error) {

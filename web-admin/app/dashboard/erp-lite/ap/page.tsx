@@ -20,7 +20,7 @@ import {
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
-import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
+import { formatErpLiteDocumentRate, formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
 import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import type { ErpLiteApDashboardSnapshot } from '@/lib/types/erp-lite-v2';
@@ -300,6 +300,9 @@ export default async function ErpLiteApPage({
                     <div className="mt-3 text-sm font-semibold">
                       {formatErpLiteMoney(item.open_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })} / {formatErpLiteMoney(item.total_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })}
                     </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {tCommon('exchangeRate')}: {formatErpLiteDocumentRate(item.exchange_rate, item.fx_rate_date, item.fx_rate_source, locale)}
+                    </div>
                   </div>
                 ))
               )}
@@ -322,6 +325,9 @@ export default async function ErpLiteApPage({
                     <div className="mt-2 text-xs text-muted-foreground">{item.branch_name ?? '—'} · {item.status_code}</div>
                     <div className="mt-3 text-sm font-semibold">
                       {formatErpLiteMoney(item.amount_total, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })} · {t(`settlement.${item.settlement_code.toLowerCase()}`)}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {tCommon('exchangeRate')}: {formatErpLiteDocumentRate(item.exchange_rate, item.fx_rate_date, item.fx_rate_source, locale)}
                     </div>
                     {item.wht_amount > 0 && (
                       <div className="mt-1 text-xs text-muted-foreground">

@@ -2,29 +2,26 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { StaffSessionService } from '../session/staff-session.service';
+import { StaffAuthRequest } from './jwt-auth.guard';
 
 /**
- * Tenant resolution order (contract):
- * 1. JWT claim tenant_org_id (set by JwtAuthGuard)
- * 2. Header X-Tenant-Id (platform ops only)
- * 3. Reject if unresolved
+ * Sets the organization from the caller's ACTIVE session row.
+ * A tenant claim and the X-Tenant-Id header are not staff overrides.
  */
 @Injectable()
 export class TenantGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request & { tenantOrgId?: string }>();
-    let tenantId = request.tenantOrgId;
-    if (!tenantId) {
-      const headerTenant = request.headers['x-tenant-id'];
-      tenantId = typeof headerTenant === 'string' ? headerTenant.trim() : undefined;
+  constructor(private readonly sessions: StaffSessionService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<StaffAuthRequest>();
+    const accessToken = request.accessToken;
+    if (!accessToken) {
+      throw new UnauthorizedException('Missing or invalid Authorization header');
     }
-    if (!tenantId) {
-      throw new ForbiddenException('Tenant context required (JWT tenant_org_id or X-Tenant-Id)');
-    }
-    request.tenantOrgId = tenantId;
+    request.tenantOrgId = await this.sessions.resolveActiveOrganization(accessToken);
     return true;
   }
 }

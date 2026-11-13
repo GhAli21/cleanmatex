@@ -3,9 +3,8 @@
 /**
  * PasswordChangedDialog — shown after a successful self-service password change.
  *
- * The password is already changed and every OTHER device was signed out; this device stays signed in. The user
- * decides: sign out now (and prove the new password at the login screen) or carry on ("later"). Closing the
- * dialog with Escape / X is the same as "later".
+ * The password is already changed and every organization session was ended, including this one.
+ * Closing the dialog is the same as "Close". Sign in again uses the new password.
  */
 
 import { useTranslations } from 'next-intl'
@@ -14,7 +13,7 @@ import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialo
 
 interface PasswordChangedDialogProps {
   open: boolean
-  /** Other devices that were signed out by the change. */
+  /** Organization sessions that were ended by the change, including this one. */
   revokedOtherSessions: number
   onSignOutNow: () => void
   onLater: () => void

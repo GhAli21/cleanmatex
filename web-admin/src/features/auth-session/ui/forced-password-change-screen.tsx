@@ -4,8 +4,8 @@
  * ForcedPasswordChangeScreen — "Set a new password" shown to a user whose administrator set a temporary password.
  *
  * Everything else is blocked by the proxy / API gate until this succeeds. Two fields only (new + re-type): the
- * user has just proved the temporary password by signing in. On success the user continues into the dashboard;
- * all other devices were signed out by the server. "Sign out" is always available.
+ * user has just proved the temporary password by signing in. On success every organization session ends,
+ * including this one, and the user signs in again. "Sign out" is always available.
  */
 
 import { useState, type FormEvent } from 'react'
@@ -38,8 +38,8 @@ export function ForcedPasswordChangeScreen() {
     setPending(true)
     try {
       await changePassword({ newPassword: password })
-      // Full navigation: the proxy re-reads the session (flag now cleared) and all client caches start fresh.
-      window.location.assign('/dashboard')
+      // The password change ends every organization session, including this one.
+      window.location.assign('/login')
     } catch (error) {
       setErrorKey(passwordErrorKey(error instanceof PasswordApiError ? error.code : undefined))
       setPending(false)

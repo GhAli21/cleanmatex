@@ -12,6 +12,8 @@ import { createAdminSupabaseClient, createClient, SB_REMEMBER_ME_COOKIE } from '
 import { getSessionIdFromToken } from '@/lib/auth/jwt-claims'
 import { forgetSessionValidation } from '@/lib/auth/session-guard'
 import { endOwnSession } from '@/lib/services/auth/session/use-cases/session-lifecycle'
+import { validateOwnSession } from '@/lib/services/auth/session/auth-session.repository'
+import { SESSION_STATES } from '@/lib/constants/auth-session'
 import { onLogoutInvalidate } from '@/lib/auth/on-logout-invalidate'
 import { logger } from '@/lib/utils/logger'
 
@@ -42,7 +44,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = user.id
-    const tenantId = user.user_metadata?.tenant_org_id as string | undefined
+    const validation = await validateOwnSession(supabase).catch(() => null)
+    const tenantId = validation?.state === SESSION_STATES.ACTIVE ? validation.tenantOrgId ?? undefined : undefined
 
     // Get logout reason from request body
     let reason: LogoutReason = 'user'

@@ -15,9 +15,13 @@ Items a person must do; the code cannot settle them. Facts and sources: [KIT_FAC
 
 Until each item is done, HQ Setup Health shows `TAX_KIT_FACT_UNVERIFIED` for that kit.
 
+## Not built (named so it is not assumed)
+
+- Manual exchange-rate override on an expense, purchase order, supplier invoice or supplier payment. The document uses the approved rate for its date from Settings › Currencies & FX. Petty cash stays in the organization currency.
+
 ## Waiting for you
 
-
+- Done 2026-11-13: `0735` applied (local + remote), Prisma pulled, types regenerated in both repos. Supplier invoices and payments now journal. Run QA 31u–31v.
 
 - From 2026-11-14: check that organizations on OM/SA/AE/BH moved to kit version 2 (nightly kit update), or press HQ › organization › Tax kit › Update kit now. Then QA 31l–31n.
 
@@ -38,8 +42,9 @@ Until each item is done, HQ Setup Health shows `TAX_KIT_FACT_UNVERIFIED` for tha
 
 - Demo organization `11111111…` charges an extra 2% on every order (old profile `LEGACY_05`). `0722` keeps it as a rule code so nothing changes on confirmation. If that 2% was only test data, deactivate it in Advanced mode › Tax rules.
 - Until an organization confirms its tax setup, its new orders carry no tax (ADR-061). All 4 organizations are waiting for confirmation today.
-- Supplier withholding: every kit's withholding rule is 0% (`WHT_NONE`). After T7 a real rate is recorded on the payment (cash paid = amount − withheld) and on the return; ERP-Lite does not post supplier payments to the ledger at all, so the withheld liability is not journalled.
-- Foreign-currency purchases cannot be taxed yet: ERP-Lite records no exchange rate. Decide whether ERP-Lite should store a rate, then the limit can go.
+- Supplier withholding: every kit's withholding rule is 0% (`WHT_NONE`). A non-zero rate is recorded on the payment (cash paid = amount − withheld) and on the return. The withheld amount is credited to Withholding Tax Payable (`212003`, usage `WHT_PAYABLE`) and the invoice total is credited to Accounts Payable (`211001`, usage `AP_CONTROL`). An organization whose chart has neither account cannot post those journals until the accounts are mapped.
+- A purchase exchange rate is taken from Settings › Currencies & FX for the document date. Typing a different rate is not built. Petty cash stays in the organization currency.
+- Reverse-charge VAT is still added to the supplier invoice total, so Accounts Payable includes it. The journal follows that total. Changing reverse charge so the supplier is not owed the VAT is a separate decision.
 - No kit has a reverse-charge purchase rule (foreign supplier of services). `VAT_IN_RC` exists but nothing selects it; add rules per country after checking the law.
 - Advances are taxed when received (kits OM/SA/AE/BH `tax_on_advance = true`). Confirm with a tax adviser whether a checkout overpayment kept as advance should be taxed at receipt in each country (T6 taxes it).
 - Gift cards default to Multi-purpose (tax when used). Choose Single-purpose at sale only for cards usable just for your own services (F6).

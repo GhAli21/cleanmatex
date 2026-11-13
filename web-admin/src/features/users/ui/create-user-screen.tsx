@@ -9,16 +9,17 @@
  */
 
 import { useTranslations } from 'next-intl'
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { createUser } from '@/lib/api/users'
+import { cmxMessage, CmxSummaryMessage } from '@ui/feedback'
+import { createUser, lookupGlobalUser } from '@/lib/api/users'
 import { getAllRoles } from '@/lib/api/roles'
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions'
 import { validateEmail, validatePassword } from '@/lib/auth/validation'
-import type { CreateUserData } from '@/lib/api/users'
+import type { CreateUserData, GlobalUserLookup } from '@/lib/api/users'
 import type { TenantRole } from '@/lib/api/roles'
 import type { BranchOption } from '@/lib/services/inventory-service'
 
@@ -71,6 +72,9 @@ export default function CreateUserScreen() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [lookup, setLookup] = useState<GlobalUserLookup | null>(null)
+  const lookupSeq = useRef(0)
+  const reusesLogin = lookup?.outcome === 'add' || lookup?.outcome === 'activate'
 
   // Fetch roles
   useEffect(() => {
@@ -100,20 +104,53 @@ export default function CreateUserScreen() {
     ? roles.map((r) => ({ value: r.code, label: r.name || r.code }))
     : FALLBACK_ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))
 
-  const validate = (): boolean => {
+  const runLookup = async (): Promise<GlobalUserLookup | null> => {
+    if (!currentTenant || !accessToken) return null
+    const email = formData.email.trim()
+    const phone = formData.phone.trim()
+    const seq = ++lookupSeq.current
+    if (!email && !phone) {
+      setLookup(null)
+      return null
+    }
+    try {
+      const result = await lookupGlobalUser(
+        currentTenant.tenant_id,
+        { email: email || undefined, phone: phone || undefined },
+        accessToken
+      )
+      if (seq !== lookupSeq.current) return result
+      setLookup(result)
+      return result
+    } catch (err) {
+      if (seq !== lookupSeq.current) return null
+      console.error('Failed to look up the global user:', err)
+      cmxMessage.error(t('lookupFailed'))
+      return null
+    }
+  }
+
+  const validate = (found: GlobalUserLookup | null = lookup): boolean => {
     const newErrors: Record<string, string> = {}
     const emailError = validateEmail(formData.email)
     if (emailError) newErrors.email = emailError
 
-    if (!formData.password) {
-      newErrors.password = tValidation('passwordRequired')
-    } else {
-      const pw = validatePassword(formData.password)
-      if (!pw.isValid) newErrors.password = pw.feedback.join('. ')
+    if (found?.outcome === 'open') {
+      newErrors.general = t('lookupOpen')
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = tValidation('passwordsMismatch')
+    const reuse = found?.outcome === 'add' || found?.outcome === 'activate'
+    if (!reuse && found?.outcome !== 'open') {
+      if (!formData.password) {
+        newErrors.password = tValidation('passwordRequired')
+      } else {
+        const pw = validatePassword(formData.password)
+        if (!pw.isValid) newErrors.password = pw.feedback.join('. ')
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = tValidation('passwordsMismatch')
+      }
     }
 
     if (!formData.display_name?.trim()) {
@@ -130,17 +167,19 @@ export default function CreateUserScreen() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!validate() || !currentTenant) return
+    const found = lookup ?? (await runLookup())
+    const reuse = found?.outcome === 'add' || found?.outcome === 'activate'
+    if (!validate(found) || !currentTenant || found?.outcome === 'open') return
 
     setLoading(true)
     try {
       const createData: CreateUserData = {
         email: formData.email,
-        password: formData.password,
         display_name: formData.display_name.trim(),
         role: formData.role,
         is_active: formData.is_active,
       }
+      if (!reuse) createData.password = formData.password
       if (formData.first_name?.trim()) createData.first_name = formData.first_name.trim()
       if (formData.last_name?.trim()) createData.last_name = formData.last_name.trim()
       if (formData.phone?.trim()) createData.phone = formData.phone.trim()
@@ -197,6 +236,28 @@ export default function CreateUserScreen() {
         </div>
       )}
 
+      {lookup && lookup.outcome !== 'new' ? (
+        <CmxSummaryMessage
+          type={lookup.outcome === 'open' ? 'info' : 'warning'}
+          title={t(
+            lookup.outcome === 'add'
+              ? 'lookupAdd'
+              : lookup.outcome === 'activate'
+                ? 'lookupActivate'
+                : 'lookupOpen'
+          )}
+          items={[]}
+        />
+      ) : null}
+      {lookup?.outcome === 'open' && lookup.membershipId ? (
+        <Link
+          href={`/dashboard/users/${lookup.membershipId}`}
+          className="inline-flex text-sm font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+        >
+          {t('lookupOpenAction')}
+        </Link>
+      ) : null}
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left column - Account + Personal */}
@@ -215,7 +276,13 @@ export default function CreateUserScreen() {
                     id="email"
                     required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setLookup(null)
+                      setFormData({ ...formData, email: e.target.value })
+                    }}
+                    onBlur={() => {
+                      void runLookup()
+                    }}
                     className={`${inputBase} ${errors.email ? inputError : ''}`}
                     placeholder="user@example.com"
                   />
@@ -223,6 +290,8 @@ export default function CreateUserScreen() {
                   {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
 
+                {!reusesLogin && lookup?.outcome !== 'open' ? (
+                <>
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                     {tModal('passwordLabel')} <span className="text-red-500">*</span>
@@ -289,6 +358,8 @@ export default function CreateUserScreen() {
                     <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
                   )}
                 </div>
+                </>
+                ) : null}
               </div>
             </div>
 
@@ -353,7 +424,13 @@ export default function CreateUserScreen() {
                     type="tel"
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => {
+                      setLookup(null)
+                      setFormData({ ...formData, phone: e.target.value })
+                    }}
+                    onBlur={() => {
+                      void runLookup()
+                    }}
                     className={inputBase}
                     placeholder="+968 9123 4567"
                   />

@@ -1,8 +1,16 @@
 # Tax Engine — Changelog
 
+## 1.0.5 — 2026-11-13
+
+- Supplier invoices and supplier payments post to the ledger (`0735` applied). An invoice debits the expense and recoverable Input VAT and credits Accounts Payable. A payment debits Accounts Payable, credits cash or bank for the amount paid, and credits Withholding Tax Payable for the amount withheld. The journal uses the document exchange rate.
+
+## 1.0.4 — 2026-11-13
+
+- Foreign-currency purchases use the approved exchange rate for the document date (`resolveDocFxRate`). Expenses, purchase orders, supplier invoices and supplier payments store the rate, its date, source and rate id. Tax lines are written in the organization currency. A missing rate is refused. Petty cash stays in the organization currency. The rate is shown on the document lists. A manual rate is not accepted.
+
 ## 1.0.3 — 2026-11-13
 
-- `0733`: ERP-Lite purchase documents store a real FX rate (DECIMAL(22,10)) with its date, source and rate id; services to use it next.
+- `0733`: ERP-Lite purchase documents store a real FX rate (DECIMAL(22,10)) with its date, source and rate id.
 
 - `0732` + HQ: draft kit versions can add and change rules (with their ordered tax codes) and item classes in HQ › Tax Kits; ties between rules are refused; the flow default class moves safely.
 

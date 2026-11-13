@@ -21,7 +21,7 @@ import {
   SESSION_END_REASONS,
 } from '@/lib/constants/auth-session'
 import type { createAdminSupabaseClient } from '@/lib/supabase/server'
-import { logAuthEvent, revokeUserSessions } from '@/lib/services/auth/session/auth-session.repository'
+import { logAuthEvent, revokeAllGlobalUserSessions } from '@/lib/services/auth/session/auth-session.repository'
 import { PasswordError } from './password-error'
 import { isDeliverableEmail, sendPasswordLink } from './password-link'
 import { notifyPasswordChanged } from './password-notify'
@@ -119,11 +119,9 @@ export async function adminSetPassword(
     .eq('user_id', target.authUserId)
   if (flagError) throw new PasswordError(PASSWORD_ERROR_CODES.UPDATE_FAILED, flagError.message)
 
-  const revoked = await revokeUserSessions(admin, {
+  const revoked = await revokeAllGlobalUserSessions(admin, {
     authUserId: target.authUserId,
-    tenantOrgId: actor.tenantId,
     reason: SESSION_END_REASONS.PASSWORD_CHANGED,
-    exceptAuthSessionId: null,
     actorId: actor.userId,
   })
 
@@ -169,11 +167,9 @@ export async function adminSendResetLink(
   if (!sent) throw new PasswordError(PASSWORD_ERROR_CODES.EMAIL_FAILED, 'The email could not be sent')
 
   const revoked = input.revokeSessions
-    ? await revokeUserSessions(admin, {
+    ? await revokeAllGlobalUserSessions(admin, {
         authUserId: target.authUserId,
-        tenantOrgId: actor.tenantId,
         reason: SESSION_END_REASONS.PASSWORD_CHANGED,
-        exceptAuthSessionId: null,
         actorId: actor.userId,
       })
     : 0

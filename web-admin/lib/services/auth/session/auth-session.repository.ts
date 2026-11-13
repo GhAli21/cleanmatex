@@ -153,6 +153,28 @@ export async function revokeUserSessions(
   return Number(data ?? 0)
 }
 
+/**
+ * End every ACTIVE and PENDING session of one global user, in every organization.
+ * A password is one credential, so a password change cannot leave another organization signed in.
+ *
+ * @param admin - Service-role client
+ * @returns Number of sessions ended
+ */
+export async function revokeAllGlobalUserSessions(
+  admin: AdminClient,
+  params: { authUserId: string; reason: SessionEndReason; actorId?: string | null }
+): Promise<number> {
+  const { data, error } = await admin.rpc('fn_auth_sessions_revoke_global_user', {
+    p_auth_user_id: params.authUserId,
+    p_reason: params.reason,
+    p_actor: params.actorId ?? undefined,
+  })
+  if (error) {
+    throw new AuthSessionRepositoryError(`fn_auth_sessions_revoke_global_user failed: ${error.message}`)
+  }
+  return Number(data ?? 0)
+}
+
 /** Registry columns exposed to the UI (no user agent / device hash). */
 const SESSION_COLUMNS =
   'id, auth_session_id, auth_user_id, tenant_org_id, status, end_reason_code, ended_at, is_remember_me, expires_at, last_activity_at, login_ip, last_ip, device_label, created_at'
