@@ -9,7 +9,7 @@ import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financ
 import { LOYALTY_RECONCILE_TRIGGERS } from '@/lib/constants/order-financial';
 import type { OrderChangePersistedOperation, OrderChangeRowWrite } from '@/lib/services/order-change/order-change-mutation.service';
 import type { z } from 'zod';
-import type { orderChangeApplyRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
+import type { orderChangeApplyRequestSchema, orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 
 type ApplyRequest = z.infer<typeof orderChangeApplyRequestSchema>;
 type ApplyOperation = ApplyRequest['operations'][number];
@@ -71,10 +71,32 @@ interface CommercialQueryTx {
   $executeRaw?(query: TemplateStringsArray, ...values: unknown[]): Promise<number>;
 }
 
+/**
+ * New item / piece rows added in this same Change, keyed by client ref (= the row id Apply inserts).
+ * A piece maps to its parent item id (persisted id or the new item's client ref).
+ */
+export function localParents(operations: readonly z.infer<typeof orderChangeRequestSchema>['operations'][number][]) {
+  const items = new Set<string>();
+  const pieceItem = new Map<string, string>();
+  for (const operation of operations) {
+    if (operation.code === 'ADD_ITEM') items.add(operation.payload.clientRef.toLowerCase());
+    if (operation.code === 'ADD_PIECE') {
+      const parent = operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : operation.target.clientRef;
+      pieceItem.set(operation.payload.clientRef.toLowerCase(), parent);
+    }
+  }
+  return { items, pieceItem };
+}
+
+/** True when a preference targets a local row that this Change does not add (nothing to attach it to). */
 export function preferenceParentIsLocal(operations: readonly ApplyOperation[]): boolean {
+  const parents = localParents(operations);
   return operations.some((operation) => (
     operation.code === 'ADD_PREFERENCE'
-    && (operation.target.kind === 'LOCAL_ITEM' || operation.target.kind === 'LOCAL_PIECE')
+    && (
+      (operation.target.kind === 'LOCAL_ITEM' && !parents.items.has(operation.target.clientRef.toLowerCase()))
+      || (operation.target.kind === 'LOCAL_PIECE' && !parents.pieceItem.has(operation.target.clientRef.toLowerCase()))
+    )
   ));
 }
 
@@ -94,6 +116,7 @@ export function buildCommercialWritePlan(
   const itemData = new Map<string, Record<string, unknown>>();
   const pieceData = new Map<string, Record<string, unknown>>();
   let prefsNo = facts.nextPrefsNo;
+  const parents = localParents(operations);
 
   for (const operation of operations) {
     if (operation.code === 'ADD_PREFERENCE') {
@@ -104,9 +127,13 @@ export function buildCommercialWritePlan(
       // Client references are already UUIDs and make the reviewed identity stable at Apply.
       const id = operation.payload.clientRef;
       const level = preferenceLevel(operation.target.kind);
-      const itemId = operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : null;
-      const pieceId = operation.target.kind === 'PERSISTED_PIECE' ? operation.target.id : null;
-      const parentItemId = pieceId ? facts.pieceItemIds.get(pieceId.toLowerCase()) ?? null : itemId;
+      // A row added in this Change is inserted (items, then pieces, then preferences) with its client ref as id.
+      const target = operation.target;
+      const itemId = target.kind === 'PERSISTED_ITEM' ? target.id : target.kind === 'LOCAL_ITEM' ? target.clientRef : null;
+      const pieceId = target.kind === 'PERSISTED_PIECE' ? target.id : target.kind === 'LOCAL_PIECE' ? target.clientRef : null;
+      const parentItemId = target.kind === 'LOCAL_PIECE'
+        ? parents.pieceItem.get(target.clientRef.toLowerCase()) ?? null
+        : pieceId ? facts.pieceItemIds.get(pieceId.toLowerCase()) ?? null : itemId;
       if (pieceId && !parentItemId) throw new OrderChangeApplyRejected(422, 'PREFERENCE_PARENT_UNRESOLVED');
       prefsNo += 1;
       plan.preferenceInserts.push({
@@ -283,8 +310,8 @@ async function rowsById<T>(
 }
 
 function preferenceLevel(kind: string): string {
-  if (kind === 'PERSISTED_ITEM') return PREFS_LEVEL.ITEM;
-  if (kind === 'PERSISTED_PIECE') return PREFS_LEVEL.PIECE;
+  if (kind === 'PERSISTED_ITEM' || kind === 'LOCAL_ITEM') return PREFS_LEVEL.ITEM;
+  if (kind === 'PERSISTED_PIECE' || kind === 'LOCAL_PIECE') return PREFS_LEVEL.PIECE;
   return PREFS_LEVEL.ORDER;
 }
 

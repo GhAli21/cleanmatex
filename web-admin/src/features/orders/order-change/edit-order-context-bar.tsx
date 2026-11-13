@@ -13,8 +13,9 @@ import type { OrderWorkspaceSessionValue } from './order-workspace-session';
 export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessionValue }) {
   const t = useTranslations('orders.edit');
   return (
-    <div className="flex flex-col gap-2 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white px-4 py-3 text-start">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    // Title and review messages on the start side, actions above the financial card on the end side (no empty band).
+    <div className="flex flex-col gap-3 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white px-4 py-3 text-start sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 flex-1 space-y-2">
         <div>
           <p className="text-sm font-semibold">{t('pageTitle', { orderNo: session.orderNo })}</p>
           <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
@@ -25,7 +26,20 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
             {t('workspace.dirtyCount', { count: session.dirtyCount })}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {session.accessBlocked ? (
+          <CmxSummaryMessage type="warning" title={session.accessReason || t('cannotEdit')} items={[]} />
+        ) : null}
+        {session.reviewStatus ? (
+          <CmxSummaryMessage
+            type={session.reviewStatus === 'READY' ? 'success' : 'warning'}
+            title={t('workspace.reviewStatus', { status: session.reviewStatus })}
+            // D33: totals live only in the financial card, formatted in the order currency.
+            items={[]}
+          />
+        ) : null}
+      </div>
+      <div className="flex w-full flex-col gap-2 sm:max-w-sm">
+        <div className="flex flex-wrap gap-2 sm:justify-end">
           <CmxButton
             type="button"
             variant="ghost"
@@ -44,19 +58,8 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
             {session.reviewing ? t('workspace.reviewing') : t('workspace.review')}
           </CmxButton>
         </div>
+        {session.financialCard}
       </div>
-      {session.financialCard ? <div className="w-full sm:ms-auto sm:max-w-sm">{session.financialCard}</div> : null}
-      {session.accessBlocked ? (
-        <CmxSummaryMessage type="warning" title={session.accessReason || t('cannotEdit')} items={[]} />
-      ) : null}
-      {session.reviewStatus ? (
-        <CmxSummaryMessage
-          type={session.reviewStatus === 'READY' ? 'success' : 'warning'}
-          title={t('workspace.reviewStatus', { status: session.reviewStatus })}
-          // D33: totals live only in the financial card, formatted in the order currency.
-          items={[]}
-        />
-      ) : null}
     </div>
   );
 }

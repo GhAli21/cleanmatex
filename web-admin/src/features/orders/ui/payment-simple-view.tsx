@@ -492,6 +492,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               cardBrands={cardBrands}
               creditMethodCodes={creditMethodCodes}
               showCashTenderedChange
+              cashChangeAmount={displayChangeAmount}
               currencyCode={currencyCode}
               formatAmount={formatAmount}
             />

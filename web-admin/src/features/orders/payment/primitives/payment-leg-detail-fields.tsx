@@ -84,6 +84,11 @@ export interface PaymentLegDetailFieldsProps {
    * `formatAmount`.
    */
   showCashTenderedChange?: boolean;
+  /**
+   * Change handed out for this CASH leg as the payment engine computed it
+   * (after cash change rounding). When omitted, falls back to tendered − applied.
+   */
+  cashChangeAmount?: number;
   currencyCode?: string;
   formatAmount?: (n: number) => string;
   /**
@@ -116,6 +121,7 @@ export function PaymentLegDetailFields({
   checkNumberInputRef,
   checkDateInputRef,
   showCashTenderedChange = false,
+  cashChangeAmount,
   currencyCode,
   formatAmount,
   disabled = false,
@@ -135,7 +141,7 @@ export function PaymentLegDetailFields({
   const showCash = showCashTenderedChange && leg.method === PAYMENT_METHODS.CASH;
   const cashApplied = leg.amount ?? 0;
   const cashTendered = leg.cashTendered ?? cashApplied;
-  const cashChange = Math.max(0, cashTendered - cashApplied);
+  const cashChange = cashChangeAmount ?? Math.max(0, cashTendered - cashApplied);
   // QA §4.3: a cash leg that applies nothing (other methods already cover the
   // order) but still holds a tendered figure reads like an active payment.
   // Call it out explicitly — display only, engine amounts untouched.

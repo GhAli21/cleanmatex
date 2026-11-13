@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
 import type { OrderChangeEditPolicyRule } from '@/lib/types/order-change';
 import { resolveEditControlCapability, resolveEditControlGroup } from './edit-control-capability';
@@ -21,6 +21,7 @@ export function EditControlNotice({
   targetType?: OrderChangeEditPolicyRule['targetType'];
 }) {
   const t = useTranslations('orders.edit');
+  const locale = useLocale();
   const session = useOrderWorkspaceSessionOptional();
   if (!session) return null;
   const denied = identity || !codes
@@ -40,6 +41,27 @@ export function EditControlNotice({
     );
   }
   if (!identity && (!codes || codes.length === 0)) return null;
+  // Warning / override lines name their operations, so stacked notices never read as one control's.
+  const named = (['override', 'warning'] as const)
+    .map((key) => ({
+      key,
+      codes: identity || !codes ? [] : codes.filter((code) => resolveEditControlCapability(session.editPolicy, code, targetType).reasonKey === key),
+    }))
+    .filter((row) => row.codes.length > 0);
+  if (named.length > 0) {
+    const list = new Intl.ListFormat(locale, { type: 'conjunction' });
+    return (
+      <ul role="status" className="text-start space-y-0.5 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        {named.map((row) => (
+          <li key={row.key}>
+            {t(`capability.${row.key}Operations`, {
+              operations: list.format(row.codes.map((code) => t(`policyInfo.operations.${code}`))),
+            })}
+          </li>
+        ))}
+      </ul>
+    );
+  }
   const capability = identity
     ? { reasonKey: 'locked' as const, state: 'LOCKED' as const }
     : resolveEditControlGroup(session.editPolicy, codes ?? [], targetType);

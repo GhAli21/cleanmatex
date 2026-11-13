@@ -178,6 +178,8 @@
     "missing": "No edit policy is assigned for this status, so this change stays closed.",
     "warning": "Review will ask you to confirm a warning before this change can be saved.",
     "override": "This change needs an override before it can be saved.",
+    "overrideOperations": "{operations}: needs an override before it can be saved.",
+    "warningOperations": "{operations}: Review will ask you to confirm a warning before saving.",
     "notAvailable": "This change is not available in this version.",
     "locked": "Customer, branch, and currency stay locked on this screen.",
     "totalSame": "A price change is refused because Apply keeps the order total the same."

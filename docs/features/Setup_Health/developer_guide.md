@@ -24,7 +24,7 @@ flowchart LR
 
 Every screen request runs the checks live (warm full run ≈ 9 ms). The only stored result is `org_setup_health_sum_tr` (0717): one row of counts per organization, for the HQ list only, because a filter across all pages cannot run checks per row.
 
-- **Writers:** `fn_setup_health_refresh_sum(p_tenant)` on HQ Setup Health page load (a failure is logged and never fails the page), and `fn_setup_health_refresh_all()` from the nightly job `setup-health-refresh` (02:15 UTC). Not the tenant app: it hides HQ-only checks, so its counts would differ.
+- **Writers:** `fn_setup_health_refresh_sum(p_tenant)` on HQ Setup Health page load (a failure is logged and never fails the page), and `fn_setup_health_refresh_all()` from the nightly job `setup-health-refresh` (02:15 UTC). "Check now" in the HQ list calls the same functions: `POST /tenants/:tenantId/setup-health/refresh` (row menu › Recheck Setup) and `POST /tenants/setup-health/refresh` (header › Check Setup Now); both need `tenant_setup_health:view`, not audited (derived counts only). Not the tenant app: it hides HQ-only checks, so its counts would differ.
 - **Counts** follow HQ visibility: flag-off checks are out, HQ-only checks are in. The list can be up to a day old; a new check is counted after the next refresh, with no code change.
 - **Access:** service role only (RLS on, no policy).
 

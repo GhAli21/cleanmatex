@@ -31,9 +31,62 @@ Owner-runnable checks. Plan: [PLAN.md](PLAN.md) · Status: [STATUS.md](STATUS.md
 | H9 | same as H8 | same | **Setup Health** filter › *Blockers or warnings*, then *Has blockers*, then **Clear filters** | First: only organizations with a warning or blocker, with the total matching; the URL has `setupHealth=needs_attention`. Second: empty until Tax M8 adds blocker checks. Clear: full list |
 | H10 | Organization › Setup Health, then `/tenants` | An organization with the business-hours warning | Add business hours in the tenant app, open its HQ Setup Health page, go back to the list | The warning is gone from the page and the list shows OK (the list updates only after that page is opened, or after the 02:15 UTC job) |
 | H11 | `/tenants` › an Omani organization › Setup Health (needs 0724 applied) | "Public holiday dates are not confirmed yet" (AR "مواعيد العطل الرسمية غير مؤكدة بعد") shows Fail | Click **Fix** on that row, mark the estimated dates confirmed (clear *Estimated*) in the Public holidays list, go back and click **Recheck** | Fix opens `/products-items-config/public-holidays`; after recheck the row is OK |
+| H12 | HQ sidebar › Tenant Organizations — `/tenants` | Any; best with an organization whose setup changed since the last check (e.g. after H10 in the tenant app, without opening its HQ page) | 1) Click **Check Setup Now** in the page header. 2) Open a row's **⋯** menu › **Recheck Setup**. Repeat in Arabic | 1) Button shows a spinner, then "Setup checked for N organizations" (N = active organizations); the Setup column and its hover date update without opening any organization. 2) "Setup rechecked for "<name>"", that row updates. Arabic: "فحص الإعداد الآن" / "إعادة فحص الإعداد", mirrored icons. A user without `tenant_setup_health:view` gets "Could not check setup" |
 
 ## Automated checks (already run)
 
 - `web-admin`: `npx jest __tests__/services/setup-health.service.test.ts __tests__/api/setup-health.route.test.ts __tests__/features/setup-health`
 - `web-admin` DB (local Supabase): `npm run test:db-integration -- __tests__/db-integration/setup-health.db.test.ts`
 - `platform-api`: `npx jest src/modules/tenant-setup-health src/modules/tenants/__tests__/tenants.service.find-all.spec.ts`
+## Financial_Expert_Tester Results
+
+Round 1 observe: 2026-11-12 23:51–2026-11-13 00:08 Asia/Muscat, Demo Laundry admin / viewer / operator on [cmx.cleanmatex.com](https://cmx.cleanmatex.com) and HQ SAAS Admin on [hqsaas.cleanmatex.com](https://hqsaas.cleanmatex.com). Remote only. No writes (no Recheck that completed, no Fix writes, no role changes, no holiday confirm). Retest r1 02:10–02:13 after a deploy: HQ Setup Health still empty. Retest r2 04:55–04:59 after a later deploy: HQ Setup Health and sidebar URLs **FIXED**, with a new inconsistent-counters finding. Tenant Setup Health after the owner’s tax-confirm deploy (05:04) showed 0 blockers · 2 warnings (banner gone). Jest skipped (remote-only). Mutate (T6, H10) and high-impact (H11 confirm holidays) not approved, not run while the owner was away. H5 still needs a limited HQ user (asked once; admin roles not changed).
+
+Recount: **PASS 6 · FAIL 3 · PARTIAL 3 · BLOCKED 3 · NOT RUN 2** on the first observe; after r2, H1 is PASS (was FAIL) with a new P0, H4 untested after the load fix (Recheck was enabled, not clicked), H7 observe PASS (Info row visible). See Retest lines.
+
+| # | Result | Evidence |
+|---|---|---|
+| T1 | PASS | 23:51. `/dashboard/setup-health`. Subtitle "What is missing or wrong in your setup, why it matters, and where to fix it." Refresh present. Areas Tax, Business calendar, Service speeds, Accounting (ERP-Lite). Each check: badge + plain-words why; no raw check codes. First load ~8–10s skeleton. FET: OK rows still titled as the failure (e.g. "Business hours are not set" + OK). |
+| T2 | PARTIAL | Speed check already OK, no Fix (expected Fix → `/dashboard/catalog/speed-pricing`). Direct URL: "Typical speeds" card present; 52 rules, active Economy All products 10% off. Accounting Fix → `/dashboard/erp-lite/readiness`: "This ERP-Lite module is not enabled." FET: speed OK is likely from the Economy rule while the wording is about faster speeds. |
+| T3 | PARTIAL | 23:57–00:00. Viewer "Viewer User Demo1". Setup Health not in the menu (Config And Settings only "Currencies & FX"). Direct `/dashboard/setup-health` keeps the URL and heading but the body is empty except the banner after >14s — no rows, no "Your provider sets this up. Please contact support.", no denied message. Banner ~10s late, no "Open Setup Health." Tile absent (PASS for hidden-for-non-admin). Business-hours failing case is a remote adaptation (admin session had hours OK). |
+| T4 | FAIL | Operator "Operator Demo 1". Not in the menu (PASS for that). Direct open is **not** refused: same blank page as the viewer, no 403. Guide expects refusal. |
+| T5 | PASS | Admin tile "1 blockers · 1 warnings · 0 info" (wrong plurals); click opens Setup Health. Tile absent for viewer and operator. After owner tax-confirm deploy (05:04): tile "0 blockers · 2 warnings · 0 info." |
+| T6 | NOT RUN | Mutate (add a speed rule and return). Not approved. |
+| T7 | PASS | Banner "Setup problem: some features will not work correctly • Orders are not taxed: tax setup is not confirmed." No close; chevron collapses; "Open Setup Health" for admin only (absent for viewer/operator). **Retest r2 05:04:** banner gone after tax was confirmed as part of the owner deploy — not a separate code retest of the "Review tax setup" link. |
+| T8 | PASS (minor leftovers) | RTL; title "صحة الإعداد"; areas الضريبة / تقويم العمل / سرعات الخدمة / المحاسبة (ERP-Lite); badges سليم / يحتاج إلى انتباه / مانع / تحذير / لا ينطبق. Tile "1 موانع · 1 تحذيرات · 0 معلومات." Leftover EN: top-bar "Setup Health"/"Dashboard"; sidebar Dashboard, Orders, Catalog & Pricing, Help, JWT Test. ERP-Lite stays LTR. Switched back to English. |
+| T9 | FAIL | "Accounting is not ready" shown as Needs attention + Warning with Fix, but the Fix page says ERP-Lite is not enabled. Guide: hide the row when the readiness flag is off. This is the admin tile's "1 warning" (later "2 warnings" after tax confirm). |
+| H1 | FAIL, then **PASS** (new issue) | 00:02–00:08 FAIL: `/en/tenants/11111111-1111-1111-1111-111111111111/setup-health` header + Recheck only; no counters/checks/codes/error after ~1.5 min and hard reload. Silent empty (graceful-failure fail). Sidebar `/en/tenants/undefined/tax-kit`. Breadcrumb raw UUID. Org Overview at the same UUID **does** load. Isolation untestable. **Retest r1 02:10–02:12 STILL BROKEN** (~2 min, Recheck spinning/disabled). **Retest r2 04:58 FIXED:** loaded ~10s. Counters BLOCKERS 1, WARNINGS 1, INFO 1, COULD NOT CHECK 0. "Orders are not taxed: tax setup is not confirmed" Blocker; TAX_REG_NO_MISSING Not applicable; TAX_KIT_FACT_UNVERIFIED OK; CAL_HOLIDAYS_ESTIMATED Info, 3 items; ERP_LITE_NOT_READY "Accounting is not ready" Warning. Recheck enabled, not clicked. **NEW 04:59:** opening the same page from the sidebar showed BLOCKERS 0, TAX_SETUP_NOT_CONFIRMED "OK", TAX_REG_NO_MISSING "OK" instead of N/A, while Tax kit still said "Waiting for confirmation." Only navigation in between. FET-SH-Nov13-HqHealthInconsistent (P0). |
+| H2 | BLOCKED | No *Business hours are not set* row (hours already OK on the tenant — remote adaptation). Not re-tried after H1 loaded (hours still OK). |
+| H3 | BLOCKED on first pass | No Accounting Fix to click while the page was empty. After r2 the ERP_LITE_NOT_READY Warning with Fix was visible; Fix was not clicked (leftover observe). |
+| H4 | FAIL, then untested after fix | Recheck 00:06 spun 20s–2 min, still empty. r1: Recheck spinning/disabled. r2: Recheck enabled; not clicked (would only refresh). |
+| H5 | BLOCKED | Needs an HQ user without `tenant_setup_health:view`. Asked once. Admin roles not changed. |
+| H6 | PARTIAL | First pass: `/ar/…/setup-health` RTL, "صحة الإعداد", "إعادة الفحص"; results still empty. Leftover EN: breadcrumb UUID, "CleanMateX HQ." Not fully re-run after r2 (page now loads with data). Switched back to English. |
+| H7 | BLOCKED, then **PASS** (observe) | First pass: no holiday row (empty page). **Retest r2:** CAL_HOLIDAYS_ESTIMATED Info, 3 items, as expected for an Omani org (Info, HQ only). H11 Fix/confirm not run (high-impact). |
+| H8 | PASS | `/en/tenants`. Demo Laundry LLC (`11111111-…`): Setup column "1 blocker" + "1 warning"; hover "Checked Nov 12, 2026." Qatar Laundry Demo 4, Demo Saudi Riyadh Dry Clean, BlueWave Laundry Co.: each "1 blocker." No green OK present to check. Click → real UUID Setup Health. Arabic: "مانع واحد", "تحذير واحد." Leftover EN: "Audit History", placeholders `[status]`, `[s_current_plan]`. |
+| H9 | PASS | "Blockers or warnings" applies immediately: `?setupHealth=needs_attention`, 4 orgs. "Has blockers": `?setupHealth=has_blockers`, also 4. Actual button "Reset Filters." FET: pagination "Showing 6 to 4 of 4" / "Page 2 of 1" (AR "عرض 6 إلى 4 من 4", "الصفحة 2 من 1"). Filter applies without pressing Apply, though "Apply Filters" is also present. |
+| H10 | NOT RUN | Mutate (add business hours). Hours already OK on Demo; would need another org. Not approved. |
+| H11 | NOT RUN (observe of the Info row only) | Confirming estimated public holidays is high-impact. Not done. |
+
+**Test data left behind:** none from FET. Language left English. Filters cleared on first HQ pass. Tax confirmation (tenant banner gone, HQ counters changed) was the owner's deploy, not FET.
+
+### Financial_Expert_Tester suggestions
+
+- **P0 FET-SH-Nov12-HqSetupHealthEmpty:** HQ tenant Setup Health never loaded (silent empty page, Recheck spun, sidebar `/tenants/undefined/…`, raw UUID breadcrumb). **Retest r2 04:58 FIXED** (not reproduced). Keep for history.
+- **P0 FET-SH-Nov13-HqHealthInconsistent (new r2):** At 04:58 Setup Health showed 1 blocker (tax not confirmed). At 04:59 the same page via the sidebar showed BLOCKERS 0 and tax "OK", while Tax kit still said "Waiting for confirmation." Only navigation in between. Results must be consistent and must not mark an unconfirmed setup OK.
+- **P1 FET-SH-Nov12-ErpLiteRowShown:** T9 — "Accounting is not ready" is shown (and counts as a warning) when ERP-Lite is not enabled. Hide the row when the readiness flag is off.
+- **P1 FET-SH-Nov12-DirectUrlNotRefused:** T4 — operator (and viewer) can open `/dashboard/setup-health` directly; blank page instead of a refusal / 403.
+- **P1 FET-SH-Nov12-ViewerBlankPage:** T3 — viewer sees heading + banner only; no rows and no "Your provider sets this up" message. Confusing empty state.
+- **P2 FET-SH-Nov12-OkTitlesDescribeProblem:** OK rows still use the failure title (e.g. "Business hours are not set").
+- **P2 FET-SH-Nov12-SpeedCheckOkOnEconomy:** Speed check is OK from an Economy rule; the wording is about faster speeds.
+- **P2 FET-SH-Nov12-JwtTestInSidebar:** "JWT Test" appears in the production tenant sidebar.
+- **P2 FET-SH-Nov12-HqTenantsPagination:** "Showing 6 to 4 of 4" / "Page 2 of 1."
+- **P3 FET-SH-Nov12-TilePlurals:** "1 blockers · 1 warnings" and AR "1 موانع · 1 تحذيرات."
+- **P3 FET-SH-Nov12-AdminNameTypo:** "Admin Demo Lanudry."
+- **P3 FET-SH-Nov12-ArabicNavEnglish:** several nav labels stay English in Arabic mode.
+- **P3 FET-SH-Nov12-LoginAutocomplete:** sign-in autocomplete garbles the email (and can put characters into the password field) on cmx and hqsaas. Seen on every pass, including after deploys.
+- **P3 FET-SH-Nov12-SetupHealthSlowLoad:** tenant Setup Health first load ~8–10s.
+- **P3 FET-SH-Nov12-SignOutSaysExpired:** voluntary sign-out goes to `/login?reason=session_expired` with "Your session has expired."
+- **P3 FET-SH-Nov12-ViewerBannerLate:** viewer banner ~10s late.
+- **P3 FET-SH-Nov12-HqFilterPlaceholders:** `[status]`, `[s_current_plan]`.
+- **P3 FET-SH-Nov12-HqFilterAppliesImmediately:** filter applies without Apply Filters.
+- **P3 FET-SH-Nov12-HqArabicLeftovers:** "Audit History", "CleanMateX HQ" title prefix, raw IDs.

@@ -1254,15 +1254,20 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     if (payExtraIntent) {
       return displayChangeAmount;
     }
-    return deriveChangeReturnedAmount(
+    const exactChange = deriveChangeReturnedAmount(
       activeLeg.cashTendered ?? activeLeg.amount ?? 0,
       activeLeg.amount ?? 0,
       activeLegOption?.supports_change_return === true,
       moneyEpsilon
     );
+    // Show the change actually handed out (after cash rounding), the same figure as the summary.
+    return exactChange > moneyEpsilon && cashChangeRounding
+      ? exactChange - cashChangeRounding.adjustment
+      : exactChange;
   }, [
     activeLeg,
     activeLegOption?.supports_change_return,
+    cashChangeRounding,
     displayChangeAmount,
     moneyEpsilon,
     payExtraIntent,

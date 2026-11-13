@@ -114,3 +114,75 @@ Automated coverage: `cmx-api/src/common/guards/staff-session.spec.ts` (token cla
 ## 9. What this file does not cover
 
 Customers, `sys_person_mst`, and in-session organization switching are out of this release. Do not test them here.
+
+## Financial_Expert_Tester Results
+
+**Round 1 — 2026-11-13, 20:51–21:06 Asia/Muscat.** Remote adaptation: the guide says local, then remote. Per owner direction this ran only on deployed https://cmx.cleanmatex.com (Demo Laundry LLC) and https://hqsaas.cleanmatex.com (HQ). UI-only, observe-only: no Save, Confirm, Lock, Unlock, Reset, Deactivate, or Delete was pressed. Lock and Reset password dialogs were opened only to read them, then cancelled. Roles signed in: Demo admin, operator (U000001), viewer, and HQ SAAS Admin. Credentials are in the credentials file, not here. Screenshots `tu-00`…`tu-28` are on the FET box under `/workspace/qa-20261113/shots/tenants-users/`.
+
+**Main blocker:** no shared user exists. HQ exact-email search showed operator@demo-laundry.example (U000001), admin@demo-laundry.example (U000003), and admin@saudiriyadhdemo.com (U000002) each with exactly one organization user. Creating one needs a write (scenario 3.2 Save, or HQ "Add an organization user"), which waits for owner approval.
+
+| # | Result | Evidence |
+|---|---|---|
+| 1.1 | PASS | Admin, operator, and viewer, each single-organization, went straight to `/dashboard` with no dialog. Label "Demo Laundry LLC" and sidebar "CURRENT TENANT … Role: super_admin/operator/viewer" (tu-02, tu-19, tu-22) |
+| 1.2 | BLOCKED | No shared user (see blocker). Picker dialog never shown |
+| 1.3 | BLOCKED | Needs 1.2 |
+| 1.4 | BLOCKED | Needs 1.2 |
+| 1.5 | BLOCKED | Needs 1.2 |
+| 1.6 | BLOCKED | Needs a PENDING picker session |
+| 1.7 | NOT RUN | Mutate (deactivate membership or suspend org) plus needs a shared user |
+| 1.8 | PARTIAL | `/login` switches to RTL with Arabic copy and back to EN cleanly (tu-00, tu-01). The **اختر المنشأة** picker, its hint, and keyboard reach could not be checked without a shared user |
+| 1.9 | BLOCKED | Needs a successful picker choice. DB audit row not checked |
+| 2.1 | PASS | "Demo Laundry LLC" is a plain label in the top bar. User menu shows Profile, Account security, Settings, and Sign Out, with no organization switch (tu-03). Same for operator and viewer |
+| 2.2 | PASS | Admin: Team Members → All Users and direct `/dashboard/users` both load, listing Demo Laundry staff only (tu-04). B-membership absence can't be shown without a shared user |
+| 2.3 | BLOCKED | Needs a second organization for the same login |
+| 3.1 | NOT RUN | Mutate (creates a global user). Lookup part only: `qa.nobody.tu1113@example.com` → password fields stay visible (tu-14). Nothing saved |
+| 3.2 | PARTIAL | Lookup only, as Demo admin with `admin@saudiriyadhdemo.com` (a Saudi Demo login): banner "This global user already has a login. Saving adds them to this organization. No new password is needed." Password fields hidden, no list of other employers or organization names (tu-13). Save not pressed |
+| 3.3 | PARTIAL | `operator@demo-laundry.example` → "This global user is already active in this organization." plus **Open the user** link (tu-12). Save not pressed, so "no second row" not checked. **Create User** stays enabled under the banner |
+| 3.4 | NOT RUN | Needs an inactive membership (mutate) |
+| 3.5 | BLOCKED | Needs 3.2 Save. DB not queried |
+| 3.6 | PARTIAL | Banner in AR: "هذا المستخدم العام لديه تسجيل دخول بالفعل. الحفظ يضيفه إلى هذه المنشأة. لا حاجة لكلمة مرور جديدة." Uses المنشأة, RTL OK (tu-15, tu-16). But the same page subtitle still says "إنشاء حساب مستخدم جديد لهذا **المستأجر**", and the sidebar says "المستأجر الحالي" and "إدارة المستأجر". EN subtitle: "Create a new user account for this tenant" |
+| 4.1 | PASS | Operator detail `/dashboard/users/7dbe9b05-…`: "Lock in this organization" → dialog "Lock this organization user? They are signed out of this organization only. Their login at other organizations stays usable." Cancelled. Operator still Active and unlocked (tu-07, tu-09). HQ at 21:04: "Organization-user lock: No" |
+| 4.2 | BLOCKED | Needs a shared user in 2 browsers plus a lock (mutate) |
+| 4.3 | BLOCKED | Needs 4.2 |
+| 4.4 | BLOCKED | Needs 4.2 |
+| 4.5 | PASS | Admin's own detail page has no lock button (tu-10). Operator and viewer get `/dashboard?error=insufficient_permissions` on `/dashboard/users`, `/users/new`, and admin's detail page, so no lock or reset is reachable (tu-20) |
+| 4.6 | BLOCKED | Needs 4.2 and 4.4 |
+| 5.1 | PASS | `/dashboard/account/security` EN: "Enter your current password, then choose a new one. This password is the same at every organization. Saving it signs you out of every organization, including this one." AR: "…كلمة المرور هذه واحدة لكل المنشآت. حفظها يسجّل خروجك من كل المنشآت، بما فيها هذه." (tu-17, tu-18). Same hint for operator and viewer. Nothing typed |
+| 5.2 | BLOCKED | Needs a shared user plus a password change (mutate) |
+| 5.3 | PARTIAL | Hint verified: Reset password → "Choose the password: Set a temporary password and give it to the user directly. They are signed out of every organization." Cancelled, nothing typed (tu-08). Session end in A and B not run |
+| 5.4 | NOT RUN | Needs 5.3 Set password (mutate) |
+| 6.1 | PASS | HQ sidebar "Organization Users" → `/en/org-users-manage` "Global users" (1.6 s). Exact emails each open one global user. Partial "demo-laundry" and "operator" → "No global user matches that identity", no wildcard (tu-27) |
+| 6.2 | PASS | Operator: "Operator Son Of Operator User", U000001, ACTIVE. "Not globally locked" [Lock every organization]. "No attack lock is set. Failed attempts: 0". Membership Demo Laundry LLC · Active Yes · Org-user lock No · operator [Lock this organization]. "Add an organization user" form shown. Nothing clicked (tu-26) |
+| 6.3 | NOT RUN | High-impact for a shared account (global lock). Needs approval and a test user |
+| 6.4 | BLOCKED | Needs a shared user plus a lock |
+| 6.5 | NOT RUN | Needs repeated wrong passwords (approved lockout test only) |
+| 6.6 | NOT RUN | Mutate (global plus membership lock) |
+| 7.1 | NOT RUN | Mutate (deactivate) |
+| 7.2 | NOT RUN | Delete (high-impact) |
+| 7.3 | NOT RUN | Delete (high-impact) |
+| 8.1 | NOT RUN | API header tampering is outside FET's UI-only scope. Automated coverage: `staff-session.spec.ts` |
+| 8.2 | NOT RUN | Same as 8.1 |
+| 8.3 | NOT RUN | Same as 8.1 |
+
+**Recount (Round 1):** PASS 8 · FAIL 0 · PARTIAL 5 · BLOCKED 14 · NOT RUN 13 (40 rows).
+
+**Test data left behind:** none. No user, membership, lock, or password changed. Browser left on cmx `/login` (EN), and HQ signed out.
+
+### Tester suggestions (Financial_Expert_Tester)
+
+- **P1 FET-TU-Nov13-NoSharedUserFixture.** No login belongs to two organizations on remote, so 14 scenarios (picker, binding, cross-org lock, global password) can't run. Fix: seed one QA shared user (for example `qa.shared@…` in Demo Laundry plus BlueWave or Saudi Demo) through HQ "Add an organization user", and name it in this guide's "Before you start".
+- **P2 FET-TU-Nov13-SignOutSaysExpired.** Every deliberate Sign Out (admin, operator, viewer) lands on `/login?reason=session_expired&redirect=%2Fdashboard%3Ferror%3Dinsufficient_permissions` with "Your session has expired. Please sign in again." (tu-21, tu-24). Same defect as FET-SH-Nov12-SignOutSaysExpired. Fix: a voluntary logout should use `reason=signed_out` and neutral copy.
+- **P2 FET-TU-Nov13-RedirectCarriesAcrossUsers.** The post-login `redirect` from the previous user's session (`/dashboard?error=insufficient_permissions`) is kept on `/login`, so the next account (viewer, 21:02) lands on an error URL. Fix: drop `redirect` on voluntary logout, or ignore it when the signing-in user differs.
+- **P2 FET-TU-Nov13-SilentPermissionRedirect.** Operator and viewer opening `/dashboard/users`, `/users/new`, or a user detail get `/dashboard?error=insufficient_permissions` after about 4–4.7 s with no message. Fix: show a cmxMessage ("You don't have access to Team Members") or a 403 page.
+- **P2 FET-TU-Nov13-TenantWordingLeft.** 3.6 asks for المنشأة, not مستأجر. The banner is correct, but the Add New User subtitle says "…لهذا المستأجر" / "for this tenant", and the sidebar says "CURRENT TENANT / المستأجر الحالي" and "Tenant Admin / إدارة المستأجر". HQ role "Tenant Administrator · مدير المستأجر". Fix: rename to organization / المنشأة in `users.json` (en/ar) and the shell.
+- **P2 FET-TU-Nov13-CrossOrgEmailDisclosure.** Typing any email in Add New User tells a tenant admin whether that address has a login anywhere on the platform (a Saudi Demo admin email gave "already has a login"). This is by design for attach, but it is an account-enumeration signal across tenants. Fix: keep it, but rate-limit the lookup, audit it, and consider showing the hint only on Save.
+- **P3 FET-TU-Nov13-CreateEnabledWhenActive.** With "already active in this organization", **Create User** stays enabled (tu-12). Fix: disable it and make **Open the user** the primary action.
+- **P3 FET-TU-Nov13-UnlockShownWhenUnlocked.** Operator detail shows "Unlock account" next to "Lock in this organization" while the user is not locked (tu-07). Fix: show Unlock only when a lock exists.
+- **P3 FET-TU-Nov13-DoubleAsterisk.** "Display Name * *" and "Role * *" on Add New User (tu-12). Fix: one required marker.
+- **P3 FET-TU-Nov13-UsersNewFirstRedirect.** The first direct open of `/dashboard/users/new` as admin redirected away (tu-05). It opened on the next try. Fix: check the permission-loading race on first navigation.
+- **P3 FET-TU-Nov13-HqRawValues.** On `/en/org-users-manage`: organization picker shows UUIDs ("BlueWave Laundry Co. · 20000002-2222-…"), role column shows raw `super_admin` / `tenant_admin`, status shows "ACTIVE", and role labels mix EN and AR ("Admin · مدير"). Fix: show localized labels only and hide ids.
+- **P3 FET-TU-Nov13-HqEnterDoesNotSearch.** Pressing Enter in the HQ search field does nothing. Fix: submit on Enter.
+- **P3 FET-TU-Nov13-NameMismatch.** The same login is "Operator Demo 1" in the tenant and "Operator Son Of Operator User" in HQ, and the admin name is misspelled "Admin Demo Lanudry" in the data. Fix: clarify global name vs organization display name in HQ detail, and correct the seed typo.
+- **P3 FET-TU-Nov13-HqOrgCountsZeroActive.** HQ dashboard "TOTAL ORGANIZATIONS 4 / 0 active · 0 trial" while the list shows 1 Active and 3 Trial (same as FET-SH-Nov13 HqOrgCountsZeroActive).
+
+**Needs owner approval to continue (asked once):** create one QA shared user (Demo Laundry plus a second org) and its 2-browser sessions, then lock/unlock, password change/reset, deactivate, and restore on that QA user only. Deletes (7.2, 7.3), global lock (6.3), and the attack-lock test (6.5) are high-impact and need an explicit yes.

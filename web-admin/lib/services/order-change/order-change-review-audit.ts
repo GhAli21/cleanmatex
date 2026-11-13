@@ -10,7 +10,7 @@ import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constan
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { z } from 'zod';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
-import { ITEM_FIELDS, PIECE_FIELDS } from '@/lib/services/order-change/order-change-commercial-write';
+import { ITEM_FIELDS, localParents, PIECE_FIELDS } from '@/lib/services/order-change/order-change-commercial-write';
 import type { OrderChangePreferenceDefinition } from '@/lib/services/order-change/order-change-preference-projection';
 import type { OrderChangeSpeedAudit } from '@/lib/services/order-change/order-change-preview.service';
 import { lineDiscountAuditFields } from '@/lib/services/order-change/order-change-line-money';
@@ -246,12 +246,18 @@ function projectPreviewOperationRows(input: {
     }
     if (operation.code === 'ADD_PREFERENCE') {
       const catalog = input.catalog.find((row) => keyOf(row.id) === keyOf(operation.payload.preferenceId));
-      const pieceId = operation.target.kind === 'PERSISTED_PIECE' ? operation.target.id : null;
-      const itemId = operation.target.kind === 'PERSISTED_ITEM'
-        ? operation.target.id
-        : pieceId
-          ? input.context.pieces.find((piece) => keyOf(piece.id) === keyOf(pieceId))?.orderItemId ?? null
-          : null;
+      // Same parent resolution as Apply: a row added in this Change carries its client ref as id.
+      const target = operation.target;
+      const pieceId = target.kind === 'PERSISTED_PIECE' ? target.id : target.kind === 'LOCAL_PIECE' ? target.clientRef : null;
+      const itemId = target.kind === 'PERSISTED_ITEM'
+        ? target.id
+        : target.kind === 'LOCAL_ITEM'
+          ? target.clientRef
+          : target.kind === 'LOCAL_PIECE'
+            ? localParents(input.operations).pieceItem.get(target.clientRef.toLowerCase()) ?? null
+            : pieceId
+              ? input.context.pieces.find((piece) => keyOf(piece.id) === keyOf(pieceId))?.orderItemId ?? null
+              : null;
       return {
         seq: operation.seq,
         before: {},
