@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { useTranslations } from 'next-intl';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 
 /** Keep at least this many pixels of the dialog inside the viewport while dragging. */
@@ -242,6 +243,7 @@ export function CmxDialogContent({
   onPointerDown,
   ...props
 }: CmxDialogContentProps) {
+  const tCommon = useTranslations('common');
   const context = React.useContext(DialogContext);
   const contentRef = React.useRef<HTMLDivElement>(null);
   const [dragOffset, setDragOffset] = React.useState<DragOffset>({ x: 0, y: 0 });
@@ -383,7 +385,7 @@ export function CmxDialogContent({
               'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
               'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))] rounded',
             )}
-            aria-label="Close dialog"
+            aria-label={tCommon('close')}
           >
             <X className="w-5 h-5" />
           </button>

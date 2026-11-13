@@ -33,6 +33,8 @@ import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, Cmx
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxMoneyField } from '@ui/primitives';
 import { CmxChangeDueRow } from '@ui/data-display';
+import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
+import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
 
 interface FundingMethodOption {
   id: string;
@@ -249,7 +251,16 @@ export function StoredValueTenderFields({
     reportTender,
   ]);
 
-  const changeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
+  const exactChangeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
+  // Same cash change rounding stored-value-funding.service applies, so the cashier sees what is handed out.
+  const cashChangeRoundingPolicy = useCashChangeRoundingPolicy({
+    enabled: exactChangeDue > SETTLEMENT_MONEY_EPSILON,
+    tenantOrgId,
+    branchId,
+    currencyCode,
+  });
+  const cashChangeRounding = useRoundedCashChange(cashChangeRoundingPolicy, exactChangeDue, cashTendered ?? amount);
+  const changeDue = cashChangeRounding?.roundedChange ?? exactChangeDue;
 
   if (methodsLoading) {
     return (
@@ -311,6 +322,12 @@ export function StoredValueTenderFields({
               formattedAmount={`${formatMoney(changeDue)} ${currencyCode}`}
               // Shared settlement epsilon replaces the literal 0.001 this row used.
               epsilon={SETTLEMENT_MONEY_EPSILON}
+              isRTL={isRTL}
+            />
+            <CashChangeRoundingNote
+              rounding={cashChangeRounding}
+              currencyCode={currencyCode}
+              formatAmount={formatMoney}
               isRTL={isRTL}
             />
           </div>

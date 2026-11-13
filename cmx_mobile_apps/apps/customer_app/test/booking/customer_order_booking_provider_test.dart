@@ -87,4 +87,23 @@ void main() {
     expect(state.errorMessageKey, 'booking.validationIncomplete');
     expect(state.validationIssueKeys, ['booking.missingScheduleDetail']);
   });
+
+  test('a chosen speed the organization no longer offers is cleared on reload',
+      () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final notifier = container.read(customerOrderBookingProvider.notifier);
+    notifier.chooseServiceSpeed('EXPRESS');
+    expect(
+        container.read(customerOrderBookingProvider).draft.serviceSpeed,
+        'EXPRESS');
+
+    // The mock bootstrap offers no speeds, so EXPRESS is no longer valid.
+    await notifier.load();
+
+    expect(
+        container.read(customerOrderBookingProvider).draft.serviceSpeed,
+        isNull);
+  });
 }

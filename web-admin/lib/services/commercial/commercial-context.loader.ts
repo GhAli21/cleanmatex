@@ -417,7 +417,7 @@ export async function loadCommercialFacts(
   const packingCodes = codesOf(PREFERENCE_KINDS.PACKING);
 
   // ─── Independent reads ─────────────────────────────────────────────────
-  const [tenant, branch, customer, products, listItems, speedRules, activeSpeeds, profiles, accounting,
+  const [tenant, branch, customer, products, listItems, activeSpeeds, profiles, accounting,
     servicePrefs, packingPrefs, pricingMode, extraPriceMode] = await Promise.all([
     // org_tenants_mst is keyed by the tenant id itself (no tenant_org_id column).
     db.org_tenants_mst.findFirst({
@@ -444,9 +444,6 @@ export async function loadCommercialFacts(
         min_quantity: true, max_quantity: true, is_active: true, rec_status: true,
       },
     }),
-    otherSpeeds.length > 0
-      ? db.org_speed_price_rules_cf.findMany({ where: { tenant_org_id: tenantOrgId, service_speed: { in: otherSpeeds } } })
-      : [],
     // STANDARD is always read: its rank decides which speeds may discount.
     db.sys_service_speed_cd.findMany({
       where: { code: { in: [...new Set([...speeds, SERVICE_SPEEDS.STANDARD])] }, is_active: true, rec_status: 1 },
@@ -503,7 +500,9 @@ export async function loadCommercialFacts(
     ...products.map((p) => p.service_category_code),
     ...intent.lines.map((l) => l.customItem?.serviceCategoryCode ?? l.pinned?.product.serviceCategoryCode ?? null),
   ].filter((c): c is string => Boolean(c)))];
-  const [lists, categories, sysPrefs, exemptions, calendar, taxRules, defaultClass] = await Promise.all([
+  // Only the rules in force on the business date are read (history stays out of every quote).
+  const ruleDate = new Date(`${businessDateForTimezone(timezone, at)}T00:00:00Z`);
+  const [lists, categories, sysPrefs, exemptions, calendar, taxRules, defaultClass, speedRules] = await Promise.all([
     listIds.length > 0
       ? db.org_price_lists_mst.findMany({
         where: { tenant_org_id: tenantOrgId, id: { in: listIds } },
@@ -549,6 +548,15 @@ export async function loadCommercialFacts(
         select: { class_code: true },
       })
       : null,
+    otherSpeeds.length > 0
+      ? db.org_speed_price_rules_cf.findMany({
+        where: {
+          tenant_org_id: tenantOrgId, service_speed: { in: otherSpeeds }, is_active: true, rec_status: 1,
+          effective_from: { lte: ruleDate },
+          OR: [{ effective_to: null }, { effective_to: { gte: ruleDate } }],
+        },
+      })
+      : [],
   ]);
 
   // ─── Rounding ──────────────────────────────────────────────────────────
@@ -833,6 +841,8 @@ export function buildCommercialOrderInput(
     speedRuleUnit: result.turnaroundUnit,
     speedRuleDays: result.turnaroundDays,
     speedRuleCutoffTime: result.cutoffTime,
+    // With no configured hours, a speed ranked below STANDARD must not be promised faster than STANDARD.
+    slowerThanStandard: discountAllowed(result.serviceSpeed),
   });
 
   const prices: ResolvedLinePrice[] = [];

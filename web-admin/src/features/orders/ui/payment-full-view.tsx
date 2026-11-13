@@ -2738,6 +2738,7 @@ export function PaymentFullView({
             {/* Split-tender capability dialog — opened in-place from the Simple
                 fast-lane quick action (portal overlay; engine owns leg state). */}
             <SplitTenderDialog
+              cashChangeRounding={cashChangeRounding}
               open={splitDialogOpen}
               onOpenChange={setSplitDialogOpen}
               actions={splitTenderActions}

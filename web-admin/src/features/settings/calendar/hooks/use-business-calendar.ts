@@ -5,18 +5,21 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { fetchSpeedRuleBranches } from '@features/catalog/api/speed-rules-api';
-import { fetchBranchCalendar, fetchHolidays, fetchOrganizationCalendar } from '../api/business-calendar-api';
+import { fetchBranchCalendar, fetchHolidays, fetchOrganizationCalendar, fetchReadyPreview } from '../api/business-calendar-api';
 
 /** Every Business Calendar query carries the session organization. */
 const calendarKey = (tenantId: string | undefined, ...rest: unknown[]) => ['business-calendar', tenantId, ...rest];
 
-/** @returns the organization's calendar */
-export function useOrganizationCalendar() {
+/**
+ * @param enabled - false skips the read (a caller without `settings:read` would only get a 403)
+ * @returns the organization's calendar
+ */
+export function useOrganizationCalendar(enabled = true) {
   const tenantId = useAuth().currentTenant?.tenant_id;
   return useQuery({
     queryKey: calendarKey(tenantId, 'organization'),
     queryFn: ({ signal }) => fetchOrganizationCalendar(signal),
-    enabled: !!tenantId,
+    enabled: !!tenantId && enabled,
   });
 }
 
@@ -30,6 +33,22 @@ export function useBranchCalendar(branchId: string) {
     queryKey: calendarKey(tenantId, 'branch', branchId),
     queryFn: ({ signal }) => fetchBranchCalendar(branchId, signal),
     enabled: !!tenantId && !!branchId,
+  });
+}
+
+/**
+ * Ready times for an order placed now (saved settings); refreshed after every save.
+ * @param branchId - a branch, or '' for the organization
+ * @returns the preview
+ */
+export function useReadyPreview(branchId: string) {
+  const tenantId = useAuth().currentTenant?.tenant_id;
+  return useQuery({
+    queryKey: calendarKey(tenantId, 'preview', branchId || null),
+    queryFn: ({ signal }) => fetchReadyPreview(branchId || undefined, signal),
+    enabled: !!tenantId,
+    // "Now" moves: a minute-old answer is stale, and a refresh on mount keeps the card honest.
+    staleTime: 60_000,
   });
 }
 

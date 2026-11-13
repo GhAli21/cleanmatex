@@ -41,6 +41,18 @@ Errors use `{ success:false, error:{ code, messageKey } }`; codes `SPEED_NOT_OFF
 | Mobile | `mobile_domain/.../booking_service_speed_model.dart`, `order_booking_service.dart`, customer_app booking step 3 |
 | i18n | tenant `settings.json › calendar`, `catalog.json`, `newOrder/serviceSpeed.json`; HQ `tenants/calendar.json`, `productsItemsConfig/*`; glossary `cutoff_time`, `ready_time`, `working_day` |
 
+## Rules to keep (review 2026-11-13)
+
+- **Dates and times at the edge:** use `lib/validations/iso-date.ts` for `YYYY-MM-DD` (a regex alone lets 30 Feb through and Node rolls it to March). A holiday row is a TIME column: `24:00` is valid only in the weekly hours JSON, never in `org_holidays_cf` (`textToTimeColumn` throws).
+- **Stored hours are untrusted:** `parseBusinessHours` reads a bad or overnight day as closed and a week with no open day as "not set" (the organization's hours apply). The engine never throws on a malformed time.
+- **Scan limit:** `CalendarScanLimitError` (400 days). `resolveReadyBy` falls back to clock hours for that line and adds the note `CALENDAR_UNRESOLVABLE`; rule caps are 60 working days / 500 hours (`speed-rule-schemas.ts`).
+- **Fallback order of a rule with no hours:** rule → category → 12 h default, capped at STANDARD's hours for a faster speed; a speed ranked below STANDARD (`slowerThanStandard`, set by the loader from rank) defaults to STANDARD's hours.
+- **Offered speeds:** `listActiveServiceSpeeds` returns `offered_scope`: `ALL` (an organization-wide rule), `SOME` (branch / category / product rules only), null. Anything that cannot price a specific cart first (customer app) must use `ALL` only. The staff speed cache is keyed by organization.
+- **Rule edits:** a rule that priced order lines keeps speed, branch, category and product (`RULE_SCOPE_LOCKED`); dates mean the organization's business date (`tenantBusinessDate`).
+- **Ids:** calendar and speed-rule inputs use `z.guid()`; seeded demo ids (`11111111-…`) are not RFC UUIDs and `z.uuid()` rejects them.
+- **HQ code tables:** `CodeTableField.derived` + `CodeTableDef.derive` compute a column on the server (`weekend_days` from `business_hours`); `uniqueColumn` puts a duplicate-key error on a field.
+- **Known limits (decided):** a branch cannot say "no cut-off" (null inherits); no overnight hours; STANDARD always uses hours, so a 24 h category on 12 h days promises two working days.
+
 ## Add a speed
 
 Insert a `sys_service_speed_cd` row with its `display_order` (rank) in a new migration; add Speed Pricing rules for organizations that should offer it. No code change: menus, the engine and the customer app read the list.

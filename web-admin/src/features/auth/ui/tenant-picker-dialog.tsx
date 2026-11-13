@@ -2,12 +2,12 @@
 
 import { CmxButton } from '@ui/primitives'
 import { CmxDialog, CmxDialogContent, CmxDialogDescription, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
-import type { LaundryChoice } from '@/types/auth'
+import type { TenantChoice } from '@/types/auth'
 
 /** Props for the organization picker shown after a multi-organization password success. */
 export interface TenantPickerDialogProps {
   open: boolean
-  laundries: LaundryChoice[]
+  tenants: TenantChoice[]
   lastChosenTenantId: string | null
   isSubmitting: boolean
   title: string
@@ -25,7 +25,7 @@ export interface TenantPickerDialogProps {
  */
 export function TenantPickerDialog({
   open,
-  laundries,
+  tenants,
   lastChosenTenantId,
   isSubmitting,
   title,
@@ -43,7 +43,7 @@ export function TenantPickerDialog({
           <CmxDialogDescription>{hint}</CmxDialogDescription>
         </CmxDialogHeader>
         <ul className="flex flex-col gap-2" role="list">
-          {laundries.map((tenant) => {
+          {tenants.map((tenant) => {
             const highlighted = tenant.tenantOrgId === lastChosenTenantId
             return (
               <li key={tenant.orgUserId}>

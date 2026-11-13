@@ -39,7 +39,7 @@ export function ForcedPasswordChangeScreen() {
     try {
       await changePassword({ newPassword: password })
       // The password change ends every organization session, including this one.
-      window.location.assign('/login')
+      window.location.assign('/login?reason=password_changed')
     } catch (error) {
       setErrorKey(passwordErrorKey(error instanceof PasswordApiError ? error.code : undefined))
       setPending(false)

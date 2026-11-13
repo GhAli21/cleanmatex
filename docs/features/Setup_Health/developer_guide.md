@@ -14,7 +14,7 @@ flowchart LR
   H --> W[HQ tenant workspace page]
 ```
 
-1. **Registry** — `sys_setup_health_domain_cd` (groups) and `sys_setup_health_check_cd` (one row per check: severity, EN/AR texts, `fix_route`, `hq_fix_route`, `fix_permission`, `feature_flag_key`, `shows_banner`, `is_hq_only`, `fn_name`). Read-only for users (RLS + grants); only migrations and the service role write.
+1. **Registry** — `sys_setup_health_domain_cd` (groups) and `sys_setup_health_check_cd` (one row per check: severity, EN/AR texts, `fix_route`, `hq_fix_route`, `fix_permission`, `feature_flag_keys`, `ok_name`/`ok_name2`, `shows_banner`, `is_hq_only`, `fn_name`). Read-only for users (RLS + grants); only migrations and the service role write.
 2. **Check function** — `fn_shc_<check>(p_tenant uuid, p_branch uuid) → jsonb {status: OK|FAIL|NA, count, sample_ids, details}`.
 3. **Dispatcher** — `fn_setup_health_run(p_tenant, p_branch, p_domain)` runs each active check and returns one row per check with the registry metadata. A check that throws gives one `ERROR` row; the run continues.
 4. **Tenant guard** — `fn_shc_guard_tenant(p_tenant)` (SECURITY DEFINER) raises `42501` when an end-user caller is not an active member of `p_tenant`. Server and service-role connections pass.
@@ -24,7 +24,7 @@ flowchart LR
 
 Every screen request runs the checks live (warm full run ≈ 9 ms). The only stored result is `org_setup_health_sum_tr` (0717): one row of counts per organization, for the HQ list only, because a filter across all pages cannot run checks per row.
 
-- **Writers:** `fn_setup_health_refresh_sum(p_tenant)` on HQ Setup Health page load (a failure is logged and never fails the page), and `fn_setup_health_refresh_all()` from the nightly job `setup-health-refresh` (02:15 UTC). "Check now" in the HQ list calls the same functions: `POST /tenants/:tenantId/setup-health/refresh` (row menu › Recheck Setup) and `POST /tenants/setup-health/refresh` (header › Check Setup Now); both need `tenant_setup_health:view`, not audited (derived counts only). Not the tenant app: it hides HQ-only checks, so its counts would differ.
+- **Writers:** `fn_setup_health_refresh_sum(p_tenant)` on HQ Setup Health page load (a failure is logged and never fails the page), and `fn_setup_health_refresh_all()` from the nightly job `setup-health-refresh` (02:15 UTC). "Run setup checks" in the HQ list (migration 0738): `GET /tenants/setup-health/checks` (catalog for the picker) and `POST /tenants/setup-health/runs` `{ tenantIds?: uuid[1..500], checkCodes?: string[] }` (omit = all) → `fn_setup_health_run_bulk(p_tenants, p_checks, p_store)`: one row per organization (`OK` / `NOT_FOUND` / `ERROR`, one failing organization never stops the rest), counts and failing checks. The API stores the counts (`p_store`) only when `checkCodes` is omitted; the SQL function refuses `p_store` with a check list. Service role only; `tenant_setup_health:view`; not audited (derived counts only). Registry v2 (0738): `feature_flag_keys TEXT[]` (all flags must be on; helper `fn_setup_health_flags_on`), `ok_name` / `ok_name2` (passing-state title, NOT NULL: **every new check row must set them**), `fn_setup_health_run(..., p_checks TEXT[] DEFAULT NULL)`. The tenant app resolves fix links only for failing checks, and the banner/home-card summary resolves none. Not the tenant app: it hides HQ-only checks, so its counts would differ.
 - **Counts** follow HQ visibility: flag-off checks are out, HQ-only checks are in. The list can be up to a day old; a new check is counted after the next refresh, with no code change.
 - **Access:** service role only (RLS on, no policy).
 
@@ -37,7 +37,7 @@ One new migration (number = last seq + 1 when written), nothing else:
    - Every `org_*` read filters `tenant_org_id = p_tenant`.
    - Return `status` (`OK`/`FAIL`/`NA`), `count`, up to 5 `sample_ids`, `details`.
 2. `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated, service_role;` and `COMMENT ON FUNCTION`.
-3. Registry row in `sys_setup_health_check_cd` with `ON CONFLICT (check_code) DO UPDATE`. Rules enforced by CHECKs: code `^[A-Z][A-Z0-9_]*$`, `fn_name` `^fn_shc_[a-z0-9_]+$`, `shows_banner` only for tenant-visible `BLOCKER`s.
+3. Registry row in `sys_setup_health_check_cd` with `ON CONFLICT (check_code) DO UPDATE`. Since 0738 the row **must** set `ok_name` and `ok_name2` (the title shown when the check passes, NOT NULL, no default) next to `name`/`name2` (the problem title), and names feature flags in `feature_flag_keys TEXT[]` (all must be on; `'{}'` = always shown). The old `feature_flag_key` column no longer exists. Rules enforced by CHECKs: code `^[A-Z][A-Z0-9_]*$`, `fn_name` `^fn_shc_[a-z0-9_]+$`, `shows_banner` only for tenant-visible `BLOCKER`s.
 4. Copy the verification `DO` block from 0716 (one row per check per active tenant, no `ERROR`).
 
 The texts come from the registry, so the apps need no code or i18n change.

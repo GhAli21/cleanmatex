@@ -1,6 +1,6 @@
 # Tenant Users — QA Test Guide
 
-Owner-runnable scenarios for one global user (`sys_users_mst`) with many organization memberships (`org_users_mst`). One sign-in stays with one organization until logout. These scenarios are not marked passed. Run them on local, then remote, after migrations `0734`, `0736`, and `0737`.
+Owner-runnable scenarios for one global user (`sys_users_mst`) with many organization memberships (`org_users_mst`). One sign-in stays with one organization until logout. Migrations `0734`, `0736`, and `0737` are applied. Remote results from Financial_Expert_Tester are in the results sections below: Round 2 recount is PASS 33, FAIL 2, PARTIAL 2, NOT RUN 3.
 
 **Related:** [PLAN.md](PLAN.md) · session [QA_TEST_GUIDE.md](../User_Session_Lifecycle/QA_TEST_GUIDE.md)
 
@@ -33,7 +33,7 @@ A `PENDING` session is the picker. It is not a business session. An `ACTIVE` ses
 | 1.6 | Pending cannot open the dashboard | Stop on the picker. Open `/dashboard` in the same browser | Sent back to `/login`. The picker can be shown again. Business pages do not load |
 | 1.7 | Inactive or suspended organization is absent | Deactivate the membership in B, or suspend organization B. Sign in as the shared user | B is not in the list. If A is the only eligible row, sign-in goes straight to A. If none remain, sign-in is denied with a clear locked or inactive message |
 | 1.8 | Arabic and RTL | Switch the login page to Arabic and repeat 1.2 | **اختر المنشأة**. Hint says the sign-in stays with the chosen organization until sign-out. Layout is RTL. Keyboard can reach every organization and Cancel |
-| 1.9 | Audit | After a successful choice | `sys_auth_audit_log` has `LAUNDRY_CHOSEN` for that global user and organization. No password or token in the row |
+| 1.9 | Audit | After a successful choice | `sys_auth_audit_log` has `TENANT_CHOSEN` for that global user and organization. No password or token in the row |
 
 ## 2. One organization per sign-in
 
@@ -98,8 +98,8 @@ Workspace: `/org-users-manage`. A tenant-app token must receive 403 on these HQ 
 | # | Scenario | Steps | Expected |
 |---|---|---|---|
 | 7.1 | Deactivate one membership | Deactivate the organization user in A | Sessions for A end. A session already open in B stays. The auth user still exists |
-| 7.2 | Hard delete while another membership remains | Delete the organization user in A while B remains | `auth.users` and `sys_users_mst` remain. They can still sign in to B |
-| 7.3 | Hard delete of the last membership | Delete the only remaining organization user | That auth user and `sys_users_mst` row are removed. The email can be used again for a new global user |
+| 7.2 | Deactivate while another membership remains | Deactivate the organization user in A while B remains | A becomes inactive. `auth.users`, `sys_users_mst`, and the B membership stay. They can still sign in to B. There is no Delete action |
+| 7.3 | Deactivate the last membership | Deactivate the only remaining organization user | That membership becomes inactive. The auth user and `sys_users_mst` row stay. The same email can be activated again. Nothing is deleted |
 
 ## 8. Staff API does not trust a tenant claim
 
@@ -186,3 +186,62 @@ Customers, `sys_person_mst`, and in-session organization switching are out of th
 - **P3 FET-TU-Nov13-HqOrgCountsZeroActive.** HQ dashboard "TOTAL ORGANIZATIONS 4 / 0 active · 0 trial" while the list shows 1 Active and 3 Trial (same as FET-SH-Nov13 HqOrgCountsZeroActive).
 
 **Needs owner approval to continue (asked once):** create one QA shared user (Demo Laundry plus a second org) and its 2-browser sessions, then lock/unlock, password change/reset, deactivate, and restore on that QA user only. Deletes (7.2, 7.3), global lock (6.3), and the attack-lock test (6.5) are high-impact and need an explicit yes.
+
+### Financial_Expert_Tester Results — Round 2 (owner-approved writes), 2026-11-13 21:17–22:29 Asia/Muscat
+
+Owner approved, on a disposable QA user only, the shared-user setup, locks, global lock, attack lockout, password reset and change, deactivate, and both deletes. QA shared user: `qa.shared.tu1113@example.com`, sign-in code U000007, global id `9e9ceeaa-da53-4d70-a4cb-ed9465852a3e`, operator in **Org A = Demo Laundry LLC** and **Org B = Demo Saudi Riyadh Dry Clean**. It was created in B (Saudi admin) and attached in A (Demo admin, 3.2). Three browser contexts were used (normal, Incognito, Guest). Passwords are not recorded here. Screenshots `tu-B*`, `tu-C*`, `tu-D*` and `shotlog.txt` are on the FET box under `/workspace/qa-20261113/shots/tenants-users/`. Round 1 rows above are unchanged. The verdicts below supersede the Round 1 BLOCKED / NOT RUN / PARTIAL rows they name.
+
+| # | Result | Evidence |
+|---|---|---|
+| 1.2 | PASS | Dialog "Choose an organization", only the two organization names, hint "This sign-in stays with the organization you choose until you sign out." No roles or people (tu-B04) |
+| 1.3 | PASS | Chose Saudi: Saudi label, SAR, no switcher in top bar or user menu |
+| 1.4 | PASS | Next sign-in: Saudi row marked "المنشأة السابقة" (last organization) but not auto-chosen. Choosing Demo worked (OMR / ر.ع) |
+| 1.5 | PASS | Escape → clean `/login`, both fields empty. Next sign-in showed the picker again |
+| 1.6 | PASS | With the picker open, a new tab to `/dashboard` went to `/login`. The picker was still there afterwards |
+| 1.7 | PASS | After Demo membership deactivated (7.1), sign-in went straight to Saudi with no picker (tu-D05-W1-straight-saudi, 22:13) |
+| 1.8 | PASS | Arabic "اختر المنشأة", RTL. Tab / Shift+Tab reach every row and Cancel, and focus stays inside the dialog. Minor: X button still labelled "Close dialog" in AR |
+| 1.9 | PARTIAL | Demo admin → QA user → Activity "Recent activity (last 20)" shows no organization-chosen / `LAUNDRY_CHOSEN` entry (tu-D01-W3-activity-recent, 21:59). `sys_auth_audit_log` not queried (UI-only) |
+| 2.2 | PASS | Round 1 plus: as operator in Saudi, `/dashboard/users` → `insufficient_permissions` (expected for operator) |
+| 2.3 | PASS | Sign out, sign in, choose the other organization: dashboard is the chosen organization. The previous session's window was signed out |
+| 3.1 | PASS | Saudi admin, new email: no banner, password fields visible. Create User returned to the Users list. Direct `/dashboard/users/new` redirected to `insufficient_permissions` (21:20, 21:22); the sidebar route worked |
+| 3.2 | PASS | Demo admin: "This global user already has a login. Saving adds them to this organization. No new password is needed." Password fields hidden, no employers list. Saved without password, email or mobile prompt |
+| 3.3 | PASS | `operator@saudiriyadhdemo.com` → "This global user is already active in this organization." Create User refused with the same text in red. Still one row |
+| 3.4 | PASS | After 7.1: "This organization user is inactive. Saving turns the membership back on. No new password is needed." One QA row Active. HQ still exactly 2 organization users, both Yes (tu-D06-*, 22:22–22:23). No toast |
+| 3.5 | PASS | HQ: one global user U000007, ACTIVE, two organization users (Saudi, Demo Laundry LLC), both active and unlocked. Membership ids are not shown in cmx or HQ. DB not queried |
+| 3.6 | PARTIAL | Unchanged from Round 1: the banner uses المنشأة, but the page and sidebar still say المستأجر |
+| 4.2 | PASS | Demo admin "Lock in this organization" → W1 (Demo) sent to sign-in. W2 (Saudi) Orders still worked (tu-C01-*) |
+| 4.3 | PASS | Sign-in while Demo locked went straight to Saudi, no picker (tu-C02) |
+| 4.4 | PASS | "Unlock in this organization" → picker lists both, Demo opens (tu-C03-*) |
+| 4.6 | PASS | QA user Activity: "Membership locked" 09:34 PM, "Membership unlocked" 09:36 PM, plus "Session revoked" (tu-C04-W3-activity). DB not queried, so the organization id was not checked |
+| 5.2 | PASS | QA signed in A and B. Change password in A → "Password changed" (~4.5 s). Both windows had to sign in. New password worked for A and B. Old one rejected: "Invalid user code, email or password. Please try again." (tu-D04-*, 22:08–22:10) |
+| 5.3 | PASS | Demo admin Reset password, "Choose the password … They are signed out of every organization.", require change checked. A and B sessions both signed out on reload (tu-D02-*, 22:01–22:02) |
+| 5.4 | PASS | `/change-password` "Set a new password — An administrator gave you a temporary password. Choose your own password to continue. This password is the same at every organization, and saving it signs you out of every organization." Save and continue → `/login` (~6 s, no success message) (tu-D03-*). The picker appeared before the forced-change screen |
+| 6.3 | PASS | HQ "Lock every organization" → W1 and W2 signed out. Sign-in → "This sign-in is locked." HQ global unlock → sign-in works (tu-C05-*) |
+| 6.4 | PASS | HQ "Lock this organization" on the Demo row → W1 signed out, W2 kept working. Unlock OK (tu-C06-*) |
+| 6.5 | PASS | 5 wrong passwords → "Too many failed login attempts. Your account has been locked for 255 minutes. Please try again later or contact support if you need assistance." (tu-C08-W1-lockout-msg, 21:49). HQ: "Locked until 11/13/2026, 10:04:02 PM · Failed attempts: 5" (tu-C08-W3-hq-attack-locked). Tenant "Unlock account" gave a "not locked" toast, and the correct password was still "This sign-in is locked." HQ "Clear the attack lock" → sign-in works, picker shows both |
+| 6.6 | PASS | Global plus Demo membership lock, then clear only the membership → still "This sign-in is locked." Clear global → picker (tu-C07-*) |
+| 7.1 | PASS | Users list row "Deactivate" → native confirm "Are you sure you want to deactivate qa.shared.tu1113@example.com?" → Inactive. W1 (Demo) signed out on reload, W2 (Saudi) stayed. HQ: Demo Active No, global user exists (tu-D05-*). No toast, and the "Active Users 5" card did not update. Edit User has no Active checkbox |
+| 7.2 | **FAIL** | Detail page has no Delete. List bulk "Delete" with only the QA row: "Delete 1 user? This cannot be undone." → row stays, shown **Inactive** with Activate, also after reload. HQ still 2 organization users (Demo Active No) (tu-D07-*, 22:24–22:25). Delete behaves as deactivate. The QA sign-in to B after delete was not checked |
+| 7.3 | **FAIL** | Saudi admin bulk Delete, same dialog → row Inactive, not removed (tu-D08-*, 22:28). Global user and both organization users still exist, so "auth user removed / email reusable" can't be true. HQ search and the email-reuse check were not run |
+
+**Recount after Round 2 (40 rows):** PASS 33 · FAIL 2 · PARTIAL 2 (1.9, 3.6) · BLOCKED 0 · NOT RUN 3 (8.1–8.3, API-only).
+
+**Test data left behind (owner action needed):** the QA global user `qa.shared.tu1113@example.com` (U000007, `9e9ceeaa-da53-4d70-a4cb-ed9465852a3e`) still exists in `sys_users_mst` / auth, with **both organization users inactive** (Demo Laundry LLC, Demo Saudi Riyadh Dry Clean) after the 7.2 and 7.3 "Delete" did not remove them. It cannot sign in to any organization. Its final password was set during 5.2 and is not recorded. Remove it with the dev hard-delete once 7.2/7.3 are fixed, or by DB. No other user, lock, or setting was changed. All locks were cleared (HQ tu-C08-W3-hq-clean-final: no global lock, no attack lock, 0 failed attempts).
+
+### Tester suggestions (Financial_Expert_Tester) — Round 2 additions
+
+- **P1 FET-TU-Nov13-DeleteIsDeactivate.** Users list bulk **Delete** says "Delete 1 user? This cannot be undone." but only sets the organization user Inactive (Demo 22:24, Saudi 22:28). HQ still lists the membership, and the last-membership delete leaves the global user and auth row. Guide 7.2/7.3 expect hard delete (keep auth plus `sys_users_mst` while another membership remains, remove both on the last one). Fix: call the hard-delete path, or if soft delete is intended, change the copy to "Deactivate" and update 7.2/7.3. Either way the dialog must not say "cannot be undone" for a reversible change.
+
+**Product decision (13 Nov 2026):** a global user and an organization user are never deleted. Deactivate only. 7.2 and 7.3 above now expect that. The list Delete action is removed. `?hardDelete=true` is refused. The QA user `qa.shared.tu1113@example.com` stays inactive until the owner asks to activate or clean it up. Do not hard-delete it.
+- **P1 FET-TU-Nov13-AdminUsersRedirectIntermittent.** super_admin (Demo 21:17, 21:24) and Saudi admin (21:20, 21:22) are intermittently sent from `/dashboard/users` and `/dashboard/users/new` to `/dashboard?error=insufficient_permissions`, sometimes about 4 s after the form rendered, or right after typing the email and Tab. The sidebar route usually works. At 20:55 the same URLs worked. Looks like a permissions-load race on direct navigation or the lookup call. Fix: wait for permissions before the route guard decides, and don't redirect from a lookup API 403.
+- **P2 FET-TU-Nov13-LockoutMinutesMismatch.** The lockout banner says "locked for 255 minutes", while HQ shows "Locked until … 10:04:02 PM", about 15 minutes after the 21:49 lockout. The same 255-minute text was seen in USL QA (Oct 9). Fix: build the message from the real lock expiry.
+- **P2 FET-TU-Nov13-TenantUnlockMisleads.** The tenant "Unlock account" button opens no confirmation and says the account is not locked while an attack lock is active (HQ shows 5 failed attempts). The user stays locked out. Fix: show the attack-lock state and say "Only HQ can clear a password-attack lock", or hide the button.
+- **P2 FET-TU-Nov13-DeactivateNoFeedback.** Deactivate uses a native browser `confirm()`, shows no toast, and the "Active Users" card doesn't refresh. Edit User has no Active field. Fix: Cmx confirm dialog, cmxMessage on success, refresh the counters.
+- **P2 FET-TU-Nov13-ChosenOrgNotAudited.** 1.9 expects a `LAUNDRY_CHOSEN` audit row. The user's Activity tab shows lock, unlock, and session events but no organization-chosen entry. Fix: surface `LAUNDRY_CHOSEN` in Activity, or confirm the row is written (DB check by dev).
+- **P3 FET-TU-Nov13-LastLoginNever.** Demo detail shows "Last login Never · Login count 0" for the QA user after many Demo sign-ins (22:11), while Saudi detail shows "Nov 13 2026 10:13 PM · 1". Fix: update the last-login per organization user on bind.
+- **P3 FET-TU-Nov13-NameFieldsCopied.** Attaching in Demo (3.2) left First and Last name blank, but the Demo detail shows both as "QA Shared TU1113". Fix: don't copy the display name into both.
+- **P3 FET-TU-Nov13-MemberSinceUtc.** "Member since … 05:21 PM" for a user created at 21:21 Asia/Muscat (UTC shown). Fix: format in the tenant time zone.
+- **P3 FET-TU-Nov13-LoginRawHintKey.** The login page showed a raw `identifier-_r_3_-hint` text. Fix: render the label and hint, not the generated id.
+- **P3 FET-TU-Nov13-PickerCloseLabelEn.** The Arabic picker's X button has aria/title "Close dialog". Fix: localize it.
+- **P3 FET-TU-Nov13-ForcedChangeNoConfirm.** After "Save and continue" on `/change-password` the user lands on `/login` with no "Password saved, sign in again" message (~6 s). Fix: add a reason banner.
+- **P3 FET-TU-Nov13-CrossAppHttp500.** Opening hqsaas and cmx in the same browser session (Guest window) gave HTTP 500 on the second app several times. A fresh window fixed it. Fix: check for a cookie or session name clash between the two apps on the shared parent domain.

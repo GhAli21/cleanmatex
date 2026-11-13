@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-12T18:49:07.188Z",
+  "extractedAt": "2026-11-13T19:11:04.866Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -455,7 +455,7 @@
       "route": "src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 202,
+      "line": 205,
       "surface": "screen"
     },
     {
@@ -763,6 +763,14 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/users/ui/membership-lock-action.tsx",
+      "route": "src/features/users/ui/membership-lock-action.tsx",
+      "permission": "users:update",
+      "component": "useHasPermission",
+      "line": 36,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/users/ui/user-code-field.tsx",
       "route": "src/features/users/ui/user-code-field.tsx",
       "permission": "users:update",
@@ -775,7 +783,7 @@
       "route": "src/features/users/ui/user-detail-screen.tsx",
       "permission": "user_sessions:read",
       "component": "useHasPermission",
-      "line": 40,
+      "line": 41,
       "surface": "screen"
     },
     {
@@ -837,9 +845,25 @@
     {
       "file": "src/features/users/access/users-access.ts",
       "route": "src/features/users/access/users-access.ts",
-      "permission": "users:reset_password",
+      "permission": "users:read",
       "component": "requirePermission",
       "line": 122,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/users/access/users-access.ts",
+      "route": "src/features/users/access/users-access.ts",
+      "permission": "users:update",
+      "component": "requirePermission",
+      "line": 130,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/users/access/users-access.ts",
+      "route": "src/features/users/access/users-access.ts",
+      "permission": "users:reset_password",
+      "component": "requirePermission",
+      "line": 138,
       "surface": "screen"
     },
     {
@@ -946,6 +970,22 @@
       "route": "/api/users/[userId]/activity",
       "permission": "audit:read",
       "line": 33,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/users/[userId]/membership-lock/route.ts",
+      "method": "GET",
+      "route": "/api/users/[userId]/membership-lock",
+      "permission": "users:read",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/users/[userId]/membership-lock/route.ts",
+      "method": "GET",
+      "route": "/api/users/[userId]/membership-lock",
+      "permission": "users:update",
+      "line": 63,
       "surface": "api"
     },
     {

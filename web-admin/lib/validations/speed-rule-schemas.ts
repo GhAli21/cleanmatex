@@ -11,29 +11,36 @@
 import { z } from 'zod';
 
 import { PRICE_BASIS, SERVICE_SPEEDS, SPEED_PRICE_TYPES, TURNAROUND_UNITS } from '@/lib/constants/commercial';
+import { isoDateSchema } from '@/lib/validations/iso-date';
+
+/** Longest turnaround a rule may ask for: the calendar engine scans 400 days, so more would never resolve. */
+export const MAX_TURNAROUND_WORKING_DAYS = 60;
+/** Longest HOURS turnaround (about three working weeks of 24 h). */
+export const MAX_TURNAROUND_HOURS = 500;
 
 const money = z.string().regex(/^\d{1,15}(\.\d{1,4})?$/, 'Amount with up to 4 decimals');
 /** A premium that may be a discount (negative): allowed by rank in the service. */
 const signedMoney = z.string().regex(/^-?\d{1,15}(\.\d{1,4})?$/, 'Amount with up to 4 decimals');
 const units = Object.values(TURNAROUND_UNITS) as [string, ...string[]];
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
+const date = isoDateSchema;
 const types = Object.values(SPEED_PRICE_TYPES) as [string, ...string[]];
 const bases = Object.values(PRICE_BASIS) as [string, ...string[]];
 
 const ruleFields = z.object({
   serviceSpeed: z.string().min(1).max(40).refine((v) => v !== SERVICE_SPEEDS.STANDARD, 'STANDARD has no premium'),
-  branchId: z.string().uuid().nullable(),
+  branchId: z.string().guid().nullable(),
   serviceCategoryCode: z.string().min(1).max(60).nullable(),
-  productId: z.string().uuid().nullable(),
+  productId: z.string().guid().nullable(),
   speedPriceType: z.enum(types),
   defaultSpeedSellPrice: money.nullable().optional(),
   multiplierSpeed: z.string().regex(/^-?\d{1,4}(\.\d{1,4})?$/).nullable().optional(),
   speedExtraAmount: signedMoney.nullable().optional(),
   priceBasis: z.enum(bases).nullable().optional(),
-  turnaroundHhSpeed: z.string().regex(/^\d{1,4}(\.\d{1,2})?$/).nullable().optional(),
+  turnaroundHhSpeed: z.string().regex(/^\d{1,4}(\.\d{1,2})?$/)
+    .refine((v) => Number(v) <= MAX_TURNAROUND_HOURS, `At most ${MAX_TURNAROUND_HOURS} hours`).nullable().optional(),
   turnaroundUnit: z.enum(units).nullable().optional(),
   /** WORKING_DAYS only: 0 = same day (before the cut-off). */
-  turnaroundDaysSpeed: z.number().int().min(0).max(365).nullable().optional(),
+  turnaroundDaysSpeed: z.number().int().min(0).max(MAX_TURNAROUND_WORKING_DAYS).nullable().optional(),
   /** `HH:MM`: this speed's own last drop-off time; null = the branch's cut-off. */
   cutoffTimeSpeed: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM').nullable().optional(),
   name: z.string().max(200).nullable().optional(),
@@ -109,9 +116,9 @@ export type SpeedRuleBulkStatusInput = z.infer<typeof speedRuleBulkStatusSchema>
 /** GET list filters. */
 export const speedRuleListQuerySchema = z.object({
   serviceSpeed: z.string().max(40).optional(),
-  branchId: z.string().uuid().optional(),
+  branchId: z.string().guid().optional(),
   serviceCategoryCode: z.string().max(60).optional(),
-  productId: z.string().uuid().optional(),
+  productId: z.string().guid().optional(),
   active: z.enum(['true', 'false']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
@@ -120,8 +127,8 @@ export const speedRuleListQuerySchema = z.object({
 /** GET resolve: which rule would price this product at this speed, branch and date. */
 export const speedRuleResolveQuerySchema = z.object({
   serviceSpeed: z.string().min(1).max(40),
-  productId: z.string().uuid().optional(),
+  productId: z.string().guid().optional(),
   serviceCategoryCode: z.string().max(60).optional(),
-  branchId: z.string().uuid().optional(),
+  branchId: z.string().guid().optional(),
   date: date.optional(),
 });

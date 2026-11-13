@@ -1,4 +1,4 @@
-import { copyHoursToOpenDays, draftToWeek, weekToDraft } from '@features/settings/calendar/model/calendar-form-model';
+import { calendarWarnings, copyHoursToOpenDays, draftToWeek, weekToDraft } from '@features/settings/calendar/model/calendar-form-model';
 import { branchCalendarSchema, organizationCalendarSchema } from '@/lib/validations/business-calendar-schemas';
 
 const stored = { sun: { open: '08:00', close: '20:00' }, mon: { open: '09:00', close: '17:00' }, fri: null };
@@ -27,5 +27,24 @@ describe('Business Calendar form model', () => {
 
   it('a branch that follows the organization sends nulls', () => {
     expect(branchCalendarSchema.safeParse({ businessHours: null, cutoffTime: null, readyTime: null }).success).toBe(true);
+  });
+
+  describe('calendarWarnings (review G1)', () => {
+    const week = weekToDraft(stored); // earliest open 08:00, latest close 20:00
+
+    it('says nothing for a sensible setup or when no day is open', () => {
+      expect(calendarWarnings(week, '11:00', '18:00')).toEqual([]);
+      expect(calendarWarnings(weekToDraft(null), '11:00', '18:00')).toEqual([]);
+    });
+    it('a cut-off at or before the earliest opening pushes every drop-off to the next day', () => {
+      expect(calendarWarnings(week, '08:00', '')).toEqual(['CUTOFF_BEFORE_OPENING']);
+    });
+    it('a cut-off at or after the latest closing never applies', () => {
+      expect(calendarWarnings(week, '20:00', '')).toEqual(['CUTOFF_AFTER_CLOSING']);
+    });
+    it('a ready time outside all opening hours is capped at closing', () => {
+      expect(calendarWarnings(week, '', '22:00')).toEqual(['READY_OUTSIDE_HOURS']);
+      expect(calendarWarnings(week, '', '07:00')).toEqual(['READY_OUTSIDE_HOURS']);
+    });
   });
 });

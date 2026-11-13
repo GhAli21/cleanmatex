@@ -60,6 +60,8 @@ export function CalendarHolidayDialog({ draft, branchOptions, onClose, onSaved }
       for (const issue of parsed.error.issues) {
         const field = String(issue.path[0] ?? 'form');
         next[field] = t.has(`validation.${field}`) ? t(`validation.${field}` as never) : t('validation.closeAfterOpen');
+        // closeTime also carries the order rule (a custom issue), which has its own wording.
+        if (field === 'closeTime' && issue.code === 'custom') next[field] = t('validation.closeAfterOpen');
       }
       setErrors(next);
       return;

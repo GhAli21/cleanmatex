@@ -29,7 +29,7 @@ function row(over: Record<string, unknown>) {
     check_code: 'X', domain_code: 'CALENDAR', severity: 'WARNING', status: 'FAIL',
     issue_count: 1, sample_ids: [], details: {}, name: 'n', name2: 'n2',
     description: 'd', description2: 'd2', fix_route: '/dashboard/x', hq_fix_route: null,
-    fix_permission: null, feature_flag_key: null, shows_banner: false, is_hq_only: false,
+    fix_permission: null, feature_flag_keys: [], ok_name: 'ok', ok_name2: 'ok2', shows_banner: false, is_hq_only: false,
     domain_order: 1, display_order: 1, ...over,
   }
 }
@@ -44,12 +44,27 @@ describe('listSetupHealth', () => {
   it('passes the tenant id to the check runner and hides flag-off and HQ-only checks', async () => {
     mockQueryRaw.mockResolvedValue([
       row({ check_code: 'A' }),
-      row({ check_code: 'ERP', feature_flag_key: 'erp_lite_readiness_enabled' }),
+      row({ check_code: 'ERP', feature_flag_keys: ['erp_lite_enabled', 'erp_lite_readiness_enabled'] }),
       row({ check_code: 'HQ', is_hq_only: true }),
     ])
     const items = await listSetupHealth('tenant-1')
     expect(items.map((i) => i.checkCode)).toEqual(['A'])
     expect(mockQueryRaw.mock.calls[0][0].values[0]).toBe('tenant-1')
+  })
+
+  it('hides a check unless EVERY flag it names is on (QA T9: readiness flag on, ERP-Lite off)', async () => {
+    mockGetFlags.mockResolvedValue({ erp_lite_enabled: false, erp_lite_readiness_enabled: true })
+    mockQueryRaw.mockResolvedValue([row({ check_code: 'ERP', feature_flag_keys: ['erp_lite_enabled', 'erp_lite_readiness_enabled'] })])
+    expect(await listSetupHealth('tenant-1')).toEqual([])
+
+    mockGetFlags.mockResolvedValue({ erp_lite_enabled: true, erp_lite_readiness_enabled: true })
+    expect((await listSetupHealth('tenant-1')).map((i) => i.checkCode)).toEqual(['ERP'])
+  })
+
+  it('exposes both titles so the screen can show the passing one', async () => {
+    mockQueryRaw.mockResolvedValue([row({ check_code: 'A', status: 'OK' })])
+    const [item] = await listSetupHealth('tenant-1')
+    expect(item).toMatchObject({ name: 'n', name2: 'n2', okName: 'ok', okName2: 'ok2' })
   })
 
   it('keeps the fix link only when the user holds the fix permission', async () => {
@@ -64,6 +79,24 @@ describe('listSetupHealth', () => {
       ALLOWED: '/dashboard/x',
       NO_ROUTE: null,
     })
+  })
+})
+
+describe('fix-link lookups (performance)', () => {
+  it('looks up permissions only for failing rows that have a fix route', async () => {
+    mockQueryRaw.mockResolvedValue([
+      row({ check_code: 'OK_ROW', status: 'OK', fix_permission: 'perm:ok' }),
+      row({ check_code: 'FAIL_ROW', fix_permission: 'perm:fail' }),
+      row({ check_code: 'NO_ROUTE', fix_route: null, fix_permission: 'perm:none' }),
+    ])
+    await listSetupHealth('tenant-1')
+    expect(mockHasPermission.mock.calls.map((c) => c[0])).toEqual(['perm:fail'])
+  })
+
+  it('the summary does no fix-permission lookups, only the view permission', async () => {
+    mockQueryRaw.mockResolvedValue([row({ check_code: 'A', fix_permission: 'perm:a' }), row({ check_code: 'B', fix_permission: 'perm:b' })])
+    await getSetupHealthSummary('tenant-1')
+    expect(mockHasPermission.mock.calls.map((c) => c[0])).toEqual(['setup_health:view'])
   })
 })
 

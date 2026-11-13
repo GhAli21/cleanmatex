@@ -301,26 +301,15 @@ export async function updateUser(
 }
 
 /**
- * Delete a user.
- * DELETE /tenants/:tenantId/users/:userId
+ * Deactivate an organization user.
+ * A global user and a membership are never deleted. This calls the deactivate route.
  */
 export async function deleteUser(
   tenantId: string,
   userId: string,
   accessToken: string = ''
 ): Promise<UserActionResult> {
-  try {
-    await rbacFetch<void>(
-      `/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}`,
-      accessToken,
-      { method: 'DELETE' }
-    )
-    return { success: true, message: 'User deleted successfully' }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to delete user'
-    console.error('Error deleting user:', err)
-    return { success: false, message, error: message }
-  }
+  return deactivateUser(tenantId, userId, accessToken)
 }
 
 /**

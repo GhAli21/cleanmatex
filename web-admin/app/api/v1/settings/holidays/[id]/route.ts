@@ -10,7 +10,7 @@ import { holidaySchema } from '@/lib/validations/business-calendar-schemas';
 
 export const dynamic = 'force-dynamic';
 
-const idOf = async (params: Promise<{ id: string }>) => z.string().uuid().safeParse((await params).id);
+const idOf = async (params: Promise<{ id: string }>) => z.string().guid().safeParse((await params).id);
 
 /**
  * PATCH /api/v1/settings/holidays/[id] — replace a holiday (`settings:organization`, CSRF).

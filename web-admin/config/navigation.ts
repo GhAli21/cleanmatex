@@ -217,7 +217,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
 
   {
     key: 'assembly',
-    label: 'AssemblyJh',
+    label: 'Assembly',
     icon: ScanBarcode,
     path: '/dashboard/assembly',
     //roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],

@@ -85,7 +85,7 @@ export const deleteSpeedRuleApi = (id: string, csrfToken: string | null) =>
  * @param csrfToken - CSRF token
  */
 export const bulkCreateSpeedRulesApi = (rule: SpeedRuleCreateInput, csrfToken: string | null) =>
-  send<{ created: number; skipped: number }>(`${BASE}/bulk`, 'POST', csrfToken, rule);
+  send<{ created: number; skipped: number; belowStandard: number }>(`${BASE}/bulk`, 'POST', csrfToken, rule);
 
 /**
  * Retires or restores the product rules of a speed; `dryRun` only counts them.

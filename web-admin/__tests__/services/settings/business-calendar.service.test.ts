@@ -28,7 +28,9 @@ import {
   createHoliday,
   deleteHoliday,
   getBranchCalendar,
+  getOrganizationCalendar,
   listHolidays,
+  previewReadyTimes,
   updateBranchCalendar,
   updateOrganizationCalendar,
 } from '@/lib/services/settings/business-calendar.service';
@@ -111,5 +113,94 @@ describe('business-calendar.service', () => {
     fixtures['org_holidays_cf.deleteMany'] = { count: 0 };
     await expect(deleteHoliday(TENANT, 'h1')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expectTenantFiltered();
+  });
+
+  describe('concurrent edits (review E7)', () => {
+    it('a save made on an older version is refused and writes nothing', async () => {
+      const stored = await getOrganizationCalendar(TENANT);
+      fixtures['org_tenants_mst.findFirst'] = { ...tenantRow, ready_time: time('17:00') }; // someone saved meanwhile
+      calls.length = 0;
+      await expect(updateOrganizationCalendar(TENANT, 'u1', { businessHours: week, cutoffTime: '11:00', readyTime: '18:00', version: stored.version }))
+        .rejects.toMatchObject({ code: 'CALENDAR_CHANGED', status: 409 });
+      expect(calls.some((c) => c.op === 'updateMany')).toBe(false);
+    });
+
+    it('a save on the current version only matches the row it read (timestamp compare-and-swap)', async () => {
+      const updatedAt = new Date('2026-11-13T10:00:00Z');
+      fixtures['org_tenants_mst.findFirst'] = { ...tenantRow, updated_at: updatedAt };
+      const { version } = await getOrganizationCalendar(TENANT);
+      await updateOrganizationCalendar(TENANT, 'u1', { businessHours: week, cutoffTime: '11:00', readyTime: '19:00', version });
+      expect(calls.find((c) => c.op === 'updateMany')!.args.where).toEqual({ id: TENANT, updated_at: updatedAt });
+    });
+
+    it('a write that lost the race (no row matched) is CALENDAR_CHANGED, not NOT_FOUND', async () => {
+      const { version } = await getOrganizationCalendar(TENANT);
+      fixtures['org_tenants_mst.updateMany'] = { count: 0 };
+      await expect(updateOrganizationCalendar(TENANT, 'u1', { businessHours: week, cutoffTime: '11:00', readyTime: '18:00', version }))
+        .rejects.toMatchObject({ code: 'CALENDAR_CHANGED' });
+    });
+
+    it('a branch save is checked the same way', async () => {
+      fixtures['org_branches_mst.findFirst'] = { id: BRANCH, name: 'B', name2: null, timezone_code: null, business_hours: null, order_cutoff_time: null, ready_time: time('17:00'), updated_at: null };
+      await expect(updateBranchCalendar(TENANT, 'u1', BRANCH, { businessHours: null, cutoffTime: null, readyTime: null, version: 'stale-version' }))
+        .rejects.toMatchObject({ code: 'CALENDAR_CHANGED', status: 409 });
+    });
+  });
+
+  describe('country template (review E2)', () => {
+    it('offers the organization\'s own template, else its country\'s, else GENERIC', async () => {
+      const row = (calendar_code: string, country_code: string | null) => ({
+        calendar_code, country_code, name: calendar_code, name2: null, business_hours: week, order_cutoff_time: time('11:00'), ready_time: time('18:00'),
+      });
+      fixtures['sys_calendar_templates_mst.findMany'] = [row('GENERIC', null), row('SA', 'SA'), row('OM', 'OM')];
+      expect((await getOrganizationCalendar(TENANT)).template).toMatchObject({ code: 'OM', cutoffTime: '11:00' });
+      fixtures['org_tenants_mst.findFirst'] = { ...tenantRow, calendar_template_code: null, country: 'sa' };
+      expect((await getOrganizationCalendar(TENANT)).template?.code).toBe('SA');
+      fixtures['org_tenants_mst.findFirst'] = { ...tenantRow, calendar_template_code: null, country: 'XX' };
+      expect((await getOrganizationCalendar(TENANT)).template?.code).toBe('GENERIC');
+    });
+  });
+
+  describe('previewReadyTimes (review E1)', () => {
+    const speed = (code: string) => ({ code, name: code, name2: null });
+    const rule = (service_speed: string, over: Record<string, unknown> = {}) => ({
+      service_speed, branch_id: null, effective_from: new Date('2026-01-01T00:00:00Z'),
+      turnaround_hh_speed: null, turnaround_unit: null, turnaround_days_speed: null, cutoff_time_speed: null, ...over,
+    });
+    // Sunday 2026-11-08 09:00 in Muscat (UTC+4), before the 11:00 cut-off.
+    const NOW = new Date('2026-11-08T05:00:00Z');
+
+    it('promises each offered speed with the same engine as order entry', async () => {
+      fixtures['sys_service_speed_cd.findMany'] = [speed('ECONOMY'), speed('STANDARD'), speed('NEXT_DAY'), speed('EXPRESS')];
+      fixtures['org_speed_price_rules_cf.findMany'] = [
+        rule('NEXT_DAY', { turnaround_unit: 'WORKING_DAYS', turnaround_days_speed: 1 }),
+        rule('EXPRESS', { turnaround_unit: 'HOURS', turnaround_hh_speed: { toString: () => '6.00' } }),
+      ];
+      const out = await previewReadyTimes(TENANT, null, NOW);
+      expect(out).toMatchObject({ configured: true, timezone: 'Asia/Muscat', openNow: true });
+      // ECONOMY has no organization-wide rule: not offered, not listed.
+      expect(out.rows.map((r) => [r.speed, r.source, r.unit, r.amount, r.readyByAt])).toEqual([
+        ['STANDARD', 'EXAMPLE', 'HOURS', 24, '2026-11-10T05:00:00.000Z'], // Sun 11 h + Mon 12 h + Tue 1 h = Tue 09:00
+        ['NEXT_DAY', 'SPEED_RULE', 'WORKING_DAYS', 1, '2026-11-09T14:00:00.000Z'], // Mon at the 18:00 ready time
+        ['EXPRESS', 'SPEED_RULE', 'HOURS', 6, '2026-11-08T11:00:00.000Z'], // Sun 15:00
+      ]);
+      expectTenantFiltered();
+    });
+
+    it('reads only organization-wide rules in force today, for the organization or this branch', async () => {
+      fixtures['org_branches_mst.findFirst'] = { timezone_code: null, country: null, business_hours: null, order_cutoff_time: null, ready_time: null };
+      await previewReadyTimes(TENANT, BRANCH, NOW);
+      const where = calls.find((c) => c.model === 'org_speed_price_rules_cf')!.args.where as Record<string, unknown>;
+      expect(where).toMatchObject({ tenant_org_id: TENANT, is_active: true, rec_status: 1, product_id: null, service_category_code: null });
+      expect(JSON.stringify(where)).toContain(BRANCH);
+      expectTenantFiltered();
+    });
+
+    it('says "not configured" without business hours, and refuses a branch of another organization', async () => {
+      fixtures['org_tenants_mst.findFirst'] = { ...tenantRow, business_hours: null };
+      expect(await previewReadyTimes(TENANT, null, NOW)).toMatchObject({ configured: false, rows: [] });
+      fixtures['org_tenants_mst.findFirst'] = tenantRow;
+      await expect(previewReadyTimes(TENANT, BRANCH, NOW)).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
+    });
   });
 });

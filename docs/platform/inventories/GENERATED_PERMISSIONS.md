@@ -3,15 +3,15 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-12T18:49:12.171Z
+Generated: 2026-11-13T21:01:54.283Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 375 |
+| api | 377 |
 | middleware | 4 |
-| screen | 103 |
+| screen | 106 |
 | service | 3 |
 
 ## All permission usages
@@ -274,7 +274,7 @@ Generated: 2026-11-12T18:49:12.171Z
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 77 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 120 | /dashboard/delivery |
 | orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 48 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
-| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 202 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
+| orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 205 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 41 | /api/v1/orders/[id]/collect-payment |
 | orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 45 | /api/v1/orders/[id]/payments |
 | orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 33 | src/features/auth/ui/RequirePermission.tsx |
@@ -506,16 +506,21 @@ Generated: 2026-11-12T18:49:12.171Z
 | tax:view_config | api | app/api/v1/tax/rules/route.ts | 11 | /api/v1/tax/rules |
 | tax:view_reports | api | app/api/v1/tax/returns/lines/route.ts | 9 | /api/v1/tax/returns/lines |
 | tax:view_reports | api | app/api/v1/tax/returns/route.ts | 9 | /api/v1/tax/returns |
-| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 40 | src/features/users/ui/user-detail-screen.tsx |
+| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 41 | src/features/users/ui/user-detail-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |
 | users:read | screen | src/features/users/access/users-access.ts | 106 | src/features/users/access/users-access.ts |
+| users:read | screen | src/features/users/access/users-access.ts | 122 | src/features/users/access/users-access.ts |
+| users:read | api | app/api/users/[userId]/membership-lock/route.ts | 26 | /api/users/[userId]/membership-lock |
 | users:read | api | app/api/users/[userId]/user-code/route.ts | 35 | /api/users/[userId]/user-code |
 | users:reset_password | screen | src/features/auth-session/ui/user-credential-actions.tsx | 36 | src/features/auth-session/ui/user-credential-actions.tsx |
-| users:reset_password | screen | src/features/users/access/users-access.ts | 122 | src/features/users/access/users-access.ts |
+| users:reset_password | screen | src/features/users/access/users-access.ts | 138 | src/features/users/access/users-access.ts |
 | users:reset_password | api | app/api/users/[userId]/password/link/route.ts | 28 | /api/users/[userId]/password/link |
 | users:reset_password | api | app/api/users/[userId]/password/route.ts | 34 | /api/users/[userId]/password |
 | users:reset_password | api | app/api/users/[userId]/unlock/route.ts | 26 | /api/users/[userId]/unlock |
+| users:update | screen | src/features/users/ui/membership-lock-action.tsx | 36 | src/features/users/ui/membership-lock-action.tsx |
 | users:update | screen | src/features/users/ui/user-code-field.tsx | 34 | src/features/users/ui/user-code-field.tsx |
 | users:update | screen | src/features/users/access/users-access.ts | 114 | src/features/users/access/users-access.ts |
+| users:update | screen | src/features/users/access/users-access.ts | 130 | src/features/users/access/users-access.ts |
+| users:update | api | app/api/users/[userId]/membership-lock/route.ts | 63 | /api/users/[userId]/membership-lock |
 | users:update | api | app/api/users/[userId]/user-code/route.ts | 73 | /api/users/[userId]/user-code |

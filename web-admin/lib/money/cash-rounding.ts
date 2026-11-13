@@ -127,3 +127,17 @@ export function computeCashChangeRounding(input: {
   if (adjustmentMinor === 0) return unrounded;
   return { exactChange, roundedChange, adjustment: adjustmentMinor / scale };
 }
+
+/**
+ * True when `amount` can be handed over in physical cash: a whole multiple of the
+ * cash increment (smallest coin/note step). With no increment every amount is payable.
+ * Example: OMR 17.532 with a 5-baisa increment is not payable; 17.535 is.
+ * @param amount major units
+ * @param decimalPlaces currency minor-unit digits
+ * @param incrementMinor cash increment in minor units, `null` when none applies
+ */
+export function isCashPayableAmount(amount: number, decimalPlaces: number, incrementMinor: number | null): boolean {
+  if (incrementMinor == null || incrementMinor <= 1) return true;
+  const minor = Math.round(amount * 10 ** decimalPlaces);
+  return minor % incrementMinor === 0;
+}

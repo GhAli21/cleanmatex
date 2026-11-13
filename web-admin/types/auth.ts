@@ -63,18 +63,18 @@ export interface AuthState {
   isTenantContextReady: boolean
 }
 
-/** One organization the signed-in global user may choose. Names only. */
-export interface LaundryChoice {
+/** One tenant the signed-in global user may choose. Names only. */
+export interface TenantChoice {
   orgUserId: string
   tenantOrgId: string
   name: string
   name2: string | null
 }
 
-/** Login stopped before a business session because more than one organization is eligible. */
-export interface LaundryChoiceResult {
-  chooseLaundry: true
-  laundries: LaundryChoice[]
+/** Login stopped before a business session because more than one tenant is eligible. */
+export interface TenantChoiceResult {
+  chooseTenant: true
+  tenants: TenantChoice[]
   lastChosenTenantId: string | null
 }
 
@@ -93,8 +93,8 @@ export interface SignOutOptions {
 
 export interface AuthContextType extends AuthState {
   // Authentication methods
-  signIn: (identifier: string, password: string, rememberMe?: boolean, redirectTo?: string) => Promise<LaundryChoiceResult | void>
-  chooseLaundry: (orgUserId: string, redirectTo?: string) => Promise<void>
+  signIn: (identifier: string, password: string, rememberMe?: boolean, redirectTo?: string) => Promise<TenantChoiceResult | void>
+  chooseTenant: (orgUserId: string, redirectTo?: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: (reason?: LogoutReason, options?: SignOutOptions) => Promise<void>
   resetPassword: (email: string) => Promise<void>

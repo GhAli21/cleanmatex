@@ -518,12 +518,17 @@ export async function GET(request: NextRequest) {
       hasPackingPreferences: pickupPreferences.length > 0,
     });
 
-    // Offered speeds only, slowest first; on a read failure the booking stays Standard.
+    // Speeds any cart can use (an organization-wide rule), slowest first. A speed with rules only for some
+    // branches or items is left out: the customer app cannot tell which cart it fits. On a read failure the
+    // booking stays Standard, and the failure is logged (a silent empty list would hide a broken picker).
     const speeds = await listActiveServiceSpeeds(supabase, tenantId);
+    if (!speeds.success) {
+      logger.warn('Public customer booking speeds unavailable', { ...requestContext, error: speeds.error });
+    }
 
     const response = {
       bookingEnabled: true,
-      serviceSpeeds: (speeds.data ?? []).filter((speed) => speed.is_offered).map(({ code, name, name2, description, description2 }) => ({ code, name, name2, description, description2 })),
+      serviceSpeeds: (speeds.data ?? []).filter((speed) => speed.offered_scope === 'ALL').map(({ code, name, name2, description, description2 }) => ({ code, name, name2, description, description2 })),
       disabledReasonKey: null,
       currencyCode: moneyConfig.currencyCode,
       vatRate,
@@ -1103,7 +1108,9 @@ export async function POST(request: NextRequest) {
         data: {
           orderId: creationResult.order.id,
           orderNo: creationResult.order.orderNo,
-          promisedWindow: body.scheduledAt ?? createdOrder?.ready_by ?? null,
+          // The calculator's ready-by (speed and business calendar included); the pickup slot is its own field.
+          promisedWindow: createdOrder?.ready_by ?? body.scheduledAt ?? null,
+          scheduledAt: body.scheduledAt ?? null,
           // What the customer owes, as the calculator priced it.
           totalAmount: createdOrder?.total_amount != null ? String(createdOrder.total_amount) : String(checkout.totals.saleTotal),
           currencyCode: checkout.totals.currencyCode,

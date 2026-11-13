@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton, CmxInput, CmxSwitch, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardFooter, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
@@ -8,7 +8,7 @@ import { CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import type { BusinessHours, Weekday } from '@/lib/commercial/calendar';
 import { branchCalendarSchema, organizationCalendarSchema } from '@/lib/validations/business-calendar-schemas';
 import { BusinessCalendarApiError } from '../api/business-calendar-api';
-import { draftToWeek, weekToDraft } from '../model/calendar-form-model';
+import { calendarWarnings, draftToWeek, weekToDraft } from '../model/calendar-form-model';
 import { CalendarWeekEditor } from './calendar-week-editor';
 
 /** The three calendar fields an organization or a branch holds. */
@@ -25,6 +25,10 @@ export interface CalendarHoursFormProps {
   organization?: CalendarValues;
   canSave: boolean;
   onSave: (values: CalendarValues) => Promise<void>;
+  /** Organization form only: HQ's starting calendar for this country; "Fill from the template" loads it into the form (not saved until Save). */
+  template?: { name: string; values: CalendarValues } | null;
+  /** Told whenever the form differs from what was loaded (an unsaved change). */
+  onDirtyChange?: (dirty: boolean) => void;
   idPrefix: string;
 }
 
@@ -44,7 +48,7 @@ function InheritSwitch({ id, checked, disabled, onChange, label }: { id: string;
  * @param props - starting values, permission and save handler
  * @returns the form
  */
-export function CalendarHoursForm({ initial, organization, canSave, onSave, idPrefix }: CalendarHoursFormProps) {
+export function CalendarHoursForm({ initial, organization, canSave, onSave, onDirtyChange, template, idPrefix }: CalendarHoursFormProps) {
   const t = useTranslations('settings.calendar');
   const tCommon = useTranslations('common');
   const isBranch = !!organization;
@@ -60,6 +64,30 @@ export function CalendarHoursForm({ initial, organization, canSave, onSave, idPr
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Unsaved-change flag: the form against its first render (a save refetches and remounts it with a new baseline).
+  const snapshot = JSON.stringify({ week, cutoff, ready, inheritHours, inheritCutoff, inheritReady });
+  const [baseline] = useState(snapshot);
+  const dirty = snapshot !== baseline;
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+
+  // Hints on the effective setup (a branch that follows the organization is judged on the organization's values).
+  const warnings = calendarWarnings(
+    inheritHours ? weekToDraft(organization?.businessHours ?? null) : week,
+    (inheritCutoff ? organization?.cutoffTime : cutoff) ?? '',
+    (inheritReady ? organization?.readyTime : ready) ?? '',
+  );
+
+  const fillFromTemplate = () => {
+    if (!template) return;
+    setWeek(weekToDraft(template.values.businessHours));
+    setCutoff(template.values.cutoffTime ?? '');
+    setReady(template.values.readyTime ?? '');
+    setDayErrors({});
+    setFieldErrors({});
+    // Nothing is saved yet: the user reviews the values and presses Save.
+    cmxMessage.info(t('template.filled'));
+  };
+
   const save = async () => {
     const values: CalendarValues = {
       businessHours: inheritHours ? null : draftToWeek(week),
@@ -72,8 +100,11 @@ export function CalendarHoursForm({ initial, organization, canSave, onSave, idPr
     let form: string | null = null;
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
-        const [field, day] = issue.path;
-        if (field === 'businessHours' && typeof day === 'string') days[day as Weekday] = t('validation.closeAfterOpen');
+        const [field, day, part] = issue.path;
+        // A custom issue is the order rule (opens before it closes); a format issue is a missing or malformed time.
+        if (field === 'businessHours' && typeof day === 'string') {
+          days[day as Weekday] = issue.code === 'custom' ? t('validation.closeAfterOpen') : part === 'open' ? t('validation.openTime') : t('validation.closeTime');
+        }
         else if (field === 'businessHours') form = t('validation.oneOpenDay');
         else if (field === 'cutoffTime' || field === 'readyTime') fields[field] = t('validation.time');
       }
@@ -102,6 +133,7 @@ export function CalendarHoursForm({ initial, organization, canSave, onSave, idPr
       </CmxCardHeader>
       <CmxCardContent className="space-y-6">
         {formError ? <CmxSummaryMessage type="error" title={t('errors.title')} items={[formError]} onDismiss={() => setFormError(null)} /> : null}
+        {warnings.length > 0 ? <CmxSummaryMessage type="warning" title={t('warnings.title')} items={warnings.map((w) => t(`warnings.${w}`))} /> : null}
 
         {isBranch ? (
           <InheritSwitch id={`${idPrefix}-inherit-hours`} checked={inheritHours} disabled={!canSave} onChange={setInheritHours} label={t('branch.useOrganizationHours')} />
@@ -138,7 +170,8 @@ export function CalendarHoursForm({ initial, organization, canSave, onSave, idPr
         </div>
       </CmxCardContent>
       {canSave ? (
-        <CmxCardFooter className="justify-end">
+        <CmxCardFooter className="justify-end gap-2">
+          {template ? <CmxButton type="button" variant="outline" onClick={fillFromTemplate} disabled={saving}>{t('template.fill', { name: template.name })}</CmxButton> : null}
           <CmxButton type="button" onClick={save} loading={saving}>{tCommon('save')}</CmxButton>
         </CmxCardFooter>
       ) : null}

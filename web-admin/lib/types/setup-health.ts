@@ -17,6 +17,9 @@ export interface SetupHealthItem {
   details: Record<string, unknown>
   name: string
   name2: string
+  /** Title for status OK; name is the problem title, used for every other status. */
+  okName: string
+  okName2: string
   description: string
   description2: string
   /** Tenant fix screen, only when one exists AND the user holds its permission; otherwise null = "contact support". */

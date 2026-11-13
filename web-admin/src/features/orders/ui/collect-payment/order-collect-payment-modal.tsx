@@ -68,6 +68,9 @@ import { POS_SESSION_STATUS } from '@/lib/constants/pos-session';
 import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
 import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
+import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
+import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
+import { isCashPayableAmount } from '@/lib/money/cash-rounding';
 
 /**
  * Collect-payment view of a checkout settlement option.
@@ -349,8 +352,26 @@ export function OrderCollectPaymentModal({
 
   const cashDrawerBlocksSubmit = cashDrawerRequired && !!cashDrawerBlockingMessage;
 
+  // Cash increment + change rounding policy (same one the server applies on collection).
+  const cashChangeRoundingPolicy = useCashChangeRoundingPolicy({
+    enabled: open && isCash,
+    tenantOrgId,
+    branchId,
+    currencyCode,
+  });
+  // An amount coins cannot pay (OMR 17.532 with a 5-baisa step) is not assumed as the cash
+  // handed over: the tendered field stays empty and the cashier enters the real cash.
+  const cashAmountPayable =
+    !isCash
+    || !cashChangeRoundingPolicy
+    || isCashPayableAmount(amount, cashChangeRoundingPolicy.decimalPlaces, cashChangeRoundingPolicy.incrementMinor);
+  const tenderedDefault = cashAmountPayable ? amount : undefined;
+  const cashTenderedRequired = isCash && cashTendered == null && !cashAmountPayable && amount > SETTLEMENT_MONEY_EPSILON;
+
   // Change to return to the customer when cash tendered exceeds the collected amount.
-  const changeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
+  const exactChangeDue = isCash ? Math.max(0, (cashTendered ?? amount) - amount) : 0;
+  const cashChangeRounding = useRoundedCashChange(cashChangeRoundingPolicy, exactChangeDue, cashTendered ?? amount);
+  const changeDue = cashChangeRounding?.roundedChange ?? exactChangeDue;
 
   // Mirrors the server's CASH_TENDERED_LESS_THAN_AMOUNT guard so the cashier is
   // told at entry time instead of on a rejected submit. Replaces the old
@@ -790,6 +811,10 @@ export function OrderCollectPaymentModal({
       cmxMessage.error(t('cashTenderedBelowAmount', { amount: formatMoneyWithCode(amount) }));
       return;
     }
+    if (cashTenderedRequired) {
+      cmxMessage.error(tPayment('cashAmountNotPayable', { amount: formatMoneyWithCode(amount) }));
+      return;
+    }
     setSubmitting(true);
     setSubmitError(null);
     setPosSessionRequired(null);
@@ -909,6 +934,7 @@ export function OrderCollectPaymentModal({
     needsResolution ||
     cashDrawerBlocksSubmit ||
     cashTenderedBelowAmount ||
+    cashTenderedRequired ||
     referenceMissing;
 
   const requiredMark = (
@@ -1166,7 +1192,7 @@ export function OrderCollectPaymentModal({
                       <CmxMoneyField
                         id="collect-tendered"
                         ref={tenderedFieldRef}
-                        value={cashTendered ?? amount}
+                        value={cashTendered ?? tenderedDefault}
                         draftValue={keypadTarget === 'tendered' ? keypadDraft : undefined}
                         decimalPlaces={decimalPlaces}
                         showZero
@@ -1203,6 +1229,11 @@ export function OrderCollectPaymentModal({
                       disabled={submitting}
                       isRTL={isRTL}
                     />
+                    {cashTenderedRequired ? (
+                      <p role="status" className="text-xs text-amber-700">
+                        {tPayment('cashAmountNotPayable', { amount: formatMoneyWithCode(amount) })}
+                      </p>
+                    ) : null}
                     {cashTenderedBelowAmount ? (
                       <p
                         id="collect-tendered-error"
@@ -1323,6 +1354,14 @@ export function OrderCollectPaymentModal({
                     isRTL={isRTL}
                     size="lg"
                     amountTestId="collect-change-due"
+                  />
+                ) : null}
+                {isCash ? (
+                  <CashChangeRoundingNote
+                    rounding={cashChangeRounding}
+                    currencyCode={currencyCode}
+                    formatAmount={formatAmount}
+                    isRTL={isRTL}
                   />
                 ) : null}
 

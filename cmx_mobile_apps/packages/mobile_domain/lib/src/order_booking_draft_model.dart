@@ -58,6 +58,7 @@ class OrderBookingDraftModel {
     NewAddressInputModel? newAddressInput,
     bool clearNewAddress = false,
     String? serviceSpeed,
+    bool clearServiceSpeed = false,
   }) {
     return OrderBookingDraftModel(
       service: service ?? this.service,
@@ -75,7 +76,8 @@ class OrderBookingDraftModel {
       scheduledAt: scheduledAt ?? this.scheduledAt,
       newAddressInput:
           clearNewAddress ? null : (newAddressInput ?? this.newAddressInput),
-      serviceSpeed: serviceSpeed ?? this.serviceSpeed,
+      serviceSpeed:
+          clearServiceSpeed ? null : (serviceSpeed ?? this.serviceSpeed),
     );
   }
 }

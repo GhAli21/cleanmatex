@@ -38,6 +38,8 @@ jest.mock('@/lib/db/prisma', () => {
           .filter(([code]) => where.code.in.includes(code as string)).map(([code, display_order]) => ({ code, display_order })),
       },
       org_branches_mst: { findFirst: async () => ({ id: 'b1' }) },
+      // The organization's time zone decides today's date for rule dates.
+      org_tenants_mst: { findFirst: async () => ({ timezone: 'Asia/Muscat' }) },
       sys_service_category_cd: { findFirst: async () => ({ service_category_code: 'DRY' }) },
       $transaction: (fn: (t: typeof tx) => unknown) => fn(tx),
     },
@@ -211,6 +213,48 @@ describe('updateSpeedRule', () => {
   });
 });
 
+describe('updateSpeedRule on a used rule (review B13)', () => {
+  it('refuses to move the speed or scope of a rule that priced order lines', async () => {
+    rules.findFirst.mockResolvedValue(row());
+    items.count.mockResolvedValue(3);
+    await expect(updateSpeedRule(TENANT, USER, 'r1', speedRuleCreateSchema.parse({ ...input, serviceSpeed: 'URGENT' })))
+      .rejects.toMatchObject({ code: 'RULE_SCOPE_LOCKED', status: 409 });
+    expect(rules.updateMany).not.toHaveBeenCalled();
+    expect(items.count.mock.calls[0][0].where).toEqual({ tenant_org_id: TENANT, speed_rule_id: 'r1' });
+  });
+
+  it('still lets a used rule change its values and end date', async () => {
+    const after = row({ multiplier_speed: { toString: () => '0.4' } });
+    rules.findFirst.mockResolvedValueOnce(row()).mockResolvedValueOnce(null).mockResolvedValue(after);
+    rules.findFirstOrThrow.mockResolvedValue(after);
+    items.count.mockResolvedValue(3);
+    await updateSpeedRule(TENANT, USER, 'r1', speedRuleCreateSchema.parse({ ...input, multiplierSpeed: '0.4', effectiveTo: '2026-12-31' }));
+    expect(rules.updateMany).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('database check refusals (review B23)', () => {
+  it('a discount the DB CHECK refuses (a speed it does not know as slower) is DISCOUNT_NOT_ALLOWED, not a 500', async () => {
+    rules.create.mockRejectedValue(new Error('new row violates check constraint "chk_org_spd_price_rules_multiplier"'));
+    await expect(createSpeedRule(TENANT, USER, speedRuleCreateSchema.parse({ ...input, serviceSpeed: 'ECONOMY', multiplierSpeed: '-0.1' })))
+      .rejects.toMatchObject({ code: 'DISCOUNT_NOT_ALLOWED', status: 422 });
+  });
+});
+
+describe('bulkCreateSpeedRules with a fixed sell price (review B11)', () => {
+  const sell = speedRuleBulkSchema.parse({
+    ...input, serviceCategoryCode: 'DRY', speedPriceType: 'SELL_PRICE', multiplierSpeed: null, defaultSpeedSellPrice: '8',
+  });
+
+  it('leaves out products priced above the speed price and reports them', async () => {
+    products.findMany.mockResolvedValue([{ id: 'cheap', default_sell_price: '6' }, { id: 'dear', default_sell_price: '10' }]);
+    rules.findMany.mockResolvedValue([]);
+    rules.createManyAndReturn.mockResolvedValue([row({ id: 'r9', product_id: 'cheap' })]);
+    await expect(bulkCreateSpeedRules(TENANT, USER, sell)).resolves.toEqual({ created: 1, skipped: 0, belowStandard: 1 });
+    expect(rules.createManyAndReturn.mock.calls[0][0].data.map((d: { product_id: string }) => d.product_id)).toEqual(['cheap']);
+  });
+});
+
 describe('deleteSpeedRule', () => {
   it('answers RULE_IN_USE when an order line used the rule, and deletes nothing', async () => {
     rules.findFirst.mockResolvedValue(row());
@@ -241,7 +285,7 @@ describe('bulkCreateSpeedRules', () => {
     rules.findMany.mockResolvedValue([{ product_id: 'p1' }]);
     rules.createManyAndReturn.mockResolvedValue([row({ id: 'r2', product_id: 'p2' })]);
 
-    await expect(bulkCreateSpeedRules(TENANT, USER, bulk)).resolves.toEqual({ created: 1, skipped: 1 });
+    await expect(bulkCreateSpeedRules(TENANT, USER, bulk)).resolves.toEqual({ created: 1, skipped: 1, belowStandard: 0 });
 
     const { data } = rules.createManyAndReturn.mock.calls[0][0];
     expect(data).toHaveLength(1);
@@ -253,7 +297,7 @@ describe('bulkCreateSpeedRules', () => {
   it('writes nothing when every product already has a rule', async () => {
     products.findMany.mockResolvedValue([{ id: 'p1' }]);
     rules.findMany.mockResolvedValue([{ product_id: 'p1' }]);
-    await expect(bulkCreateSpeedRules(TENANT, USER, bulk)).resolves.toEqual({ created: 0, skipped: 1 });
+    await expect(bulkCreateSpeedRules(TENANT, USER, bulk)).resolves.toEqual({ created: 0, skipped: 1, belowStandard: 0 });
     expect(rules.createManyAndReturn).not.toHaveBeenCalled();
   });
 });

@@ -219,7 +219,7 @@
     "open": "Reset password",
     "unlock": "Unlock account",
     "unlocked": "The account was unlocked.",
-    "notLocked": "The account was not locked.",
+    "notLocked": "This organization user is not locked here. A password-attack lock is cleared only in HQ.",
     "title": "Reset password for {user}",
     "modeSet": "Choose the password",
     "modeSetHint": "Set a temporary password and give it to the user directly. They are signed out of every organization.",

@@ -55,7 +55,8 @@ export interface BranchCalendarRow {
   ready_time: Date | null;
 }
 
-const HH_MM = /^([01]\d|2[0-4]):[0-5]\d$/;
+/** `HH:MM`, or `24:00` as an end-of-day closing time (no other 24:xx). */
+const HH_MM = /^(([01]\d|2[0-3]):[0-5]\d|24:00)$/;
 
 /**
  * A Postgres TIME column (Prisma: a Date on 1970-01-01 UTC) as `HH:MM`.
@@ -68,29 +69,37 @@ export function timeColumnToText(value: Date | null | undefined): string | null 
 
 /**
  * `HH:MM` as a value for a Prisma TIME column.
- * @param value `HH:MM`, or null
+ * @param value `HH:MM` (00:00–23:59), or null
  * @returns a Date on 1970-01-01 UTC, or null
+ * @throws Error on `24:00` or a malformed value: a TIME column cannot hold it (it would wrap to 00:00)
  */
 export function textToTimeColumn(value: string | null): Date | null {
-  return value ? new Date(`1970-01-01T${value}:00.000Z`) : null;
+  if (!value) return null;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new Error(`Not a time of day for a TIME column: ${value}`);
+  return new Date(`1970-01-01T${value}:00.000Z`);
 }
 
 /**
  * Reads a `business_hours` JSON value. The DB CHECK validates the keys only, so
- * a day whose value is not `{ open: 'HH:MM', close: 'HH:MM' }` reads as closed.
+ * a day whose value is not `{ open: 'HH:MM', close: 'HH:MM' }` with open < close
+ * reads as closed. A week with no open day reads as not set, so the organization's
+ * hours apply to a branch (instead of the whole calendar resolving to nothing).
  * @param value the JSON column
- * @returns the hours, or null when the column is empty
+ * @returns the hours, or null when the column is empty or no day opens
  */
 export function parseBusinessHours(value: unknown): BusinessHours | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
   const hours: BusinessHours = {};
+  let anyOpen = false;
   for (const day of WEEKDAYS) {
     const d = raw[day] as { open?: unknown; close?: unknown } | null | undefined;
-    const ok = d && typeof d.open === 'string' && typeof d.close === 'string' && HH_MM.test(d.open) && HH_MM.test(d.close);
+    const ok = d && typeof d.open === 'string' && typeof d.close === 'string'
+      && HH_MM.test(d.open) && HH_MM.test(d.close) && d.open < d.close;
     hours[day] = ok ? { open: d.open as string, close: d.close as string } : null;
+    anyOpen ||= Boolean(ok);
   }
-  return hours;
+  return anyOpen ? hours : null;
 }
 
 /**

@@ -23,7 +23,7 @@ import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { Alert, AlertDescription, CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives'
 import { CmxForm, CmxFormField } from '@ui/forms'
 import { TenantPickerDialog } from '@features/auth/ui/tenant-picker-dialog'
-import type { LaundryChoiceResult } from '@/types/auth'
+import type { TenantChoiceResult } from '@/types/auth'
 
 interface LoginFormValues {
   /** User code or email. */
@@ -102,7 +102,7 @@ function LoginLanguageSwitcher() {
  */
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const { signIn, chooseLaundry, signOut, isLoading } = useAuth()
+  const { signIn, chooseTenant, signOut, isLoading } = useAuth()
   const t = useTranslations('auth')
 
   const form = useForm<LoginFormValues>({
@@ -115,7 +115,7 @@ export default function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [generalError, setGeneralError] = useState<string | null>(null)
-  const [picker, setPicker] = useState<LaundryChoiceResult | null>(null)
+  const [picker, setPicker] = useState<TenantChoiceResult | null>(null)
 
   // Why the user is here (idle timeout, revoked, ...) and where to return to after signing in. Both come from
   // the URL, so both are validated: unknown reasons show nothing; the return path must be a safe internal path.
@@ -159,7 +159,7 @@ export default function LoginPage() {
 
     try {
       const result = await signIn(normalizeLoginIdentifier(values.identifier), values.password, values.rememberMe, redirectTo)
-      if (result?.chooseLaundry) {
+      if (result?.chooseTenant) {
         setPicker(result)
       }
     } catch (error: unknown) {
@@ -181,7 +181,7 @@ export default function LoginPage() {
     <div className="relative min-h-screen overflow-hidden bg-[rgb(var(--cmx-background-rgb,255_255_255))]">
       <TenantPickerDialog
         open={picker !== null}
-        laundries={picker?.laundries ?? []}
+        tenants={picker?.tenants ?? []}
         lastChosenTenantId={picker?.lastChosenTenantId ?? null}
         isSubmitting={isSubmitting}
         title={t('login.chooseOrganization')}
@@ -191,7 +191,7 @@ export default function LoginPage() {
         onChoose={async (orgUserId) => {
           setGeneralError(null)
           try {
-            await chooseLaundry(orgUserId, redirectTo)
+            await chooseTenant(orgUserId, redirectTo)
           } catch (error: unknown) {
             const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined
             setGeneralError(

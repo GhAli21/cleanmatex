@@ -90,10 +90,23 @@ export function parseTimeOfDay(value: string): number {
   return h * 60 + m + s / 60;
 }
 
+/** No opening within `MAX_SCAN_DAYS`: a rule asks for more working time than the calendar offers. */
+export class CalendarScanLimitError extends Error {
+  constructor() {
+    super('Calendar has no opening within the scan limit.');
+    this.name = 'CalendarScanLimitError';
+  }
+}
+
+/** A day's window; a malformed time (stored JSON the API never validated) reads as closed, not as a crash. */
 const windowOf = (open: string | null | undefined, close: string | null | undefined): DayWindow | null => {
   if (!open || !close) return null;
-  const w = { open: parseTimeOfDay(open), close: parseTimeOfDay(close) };
-  return w.open < w.close ? w : null;
+  try {
+    const w = { open: parseTimeOfDay(open), close: parseTimeOfDay(close) };
+    return w.open < w.close ? w : null;
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -219,7 +232,7 @@ export function openWindow(cal: ResolvedCalendar, date: string): DayWindow | nul
  * @param cal the calendar
  * @param instant where to start
  * @returns the instant itself when open, else the next opening
- * @throws Error when no opening exists within the scan limit
+ * @throws CalendarScanLimitError when no opening exists within the scan limit
  */
 export function nextOpening(cal: ResolvedCalendar, instant: Date): Date {
   return addWorkingMinutes(cal, instant, 0);
@@ -248,7 +261,8 @@ export function countingStart(cal: ResolvedCalendar, dropOff: Date, cutoffMinute
  * @param start where to start
  * @param minutes working minutes to add (0 = next opening)
  * @returns the instant the minutes run out
- * @throws Error on negative minutes or when no opening exists within the scan limit
+ * @throws Error on negative minutes
+ * @throws CalendarScanLimitError when no opening exists within the scan limit
  */
 export function addWorkingMinutes(cal: ResolvedCalendar, start: Date, minutes: number): Date {
   if (minutes < 0) throw new Error('Working minutes cannot be negative.');
@@ -266,7 +280,7 @@ export function addWorkingMinutes(cal: ResolvedCalendar, start: Date, minutes: n
     date = addDays(date, 1);
     at = 0;
   }
-  throw new Error('Calendar has no opening within the scan limit.');
+  throw new CalendarScanLimitError();
 }
 
 /**
@@ -276,7 +290,8 @@ export function addWorkingMinutes(cal: ResolvedCalendar, start: Date, minutes: n
  * @param start the counting start (an open moment, from `countingStart`)
  * @param days working days (0 = same day)
  * @returns the promised instant (never before `start`)
- * @throws Error on negative days or when no opening exists within the scan limit
+ * @throws Error on negative days
+ * @throws CalendarScanLimitError when no opening exists within the scan limit
  */
 export function addWorkingDays(cal: ResolvedCalendar, start: Date, days: number): Date {
   if (days < 0 || !Number.isInteger(days)) throw new Error('Working days must be a whole number ≥ 0.');
@@ -284,7 +299,7 @@ export function addWorkingDays(cal: ResolvedCalendar, start: Date, days: number)
   let date = local.date;
   let counted = 0;
   for (let i = 0; counted < days; i += 1) {
-    if (i >= MAX_SCAN_DAYS) throw new Error('Calendar has no opening within the scan limit.');
+    if (i >= MAX_SCAN_DAYS) throw new CalendarScanLimitError();
     date = addDays(date, 1);
     if (openWindow(cal, date)) counted += 1;
   }

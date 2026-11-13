@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { ServiceSpeedLookupRow } from '@/lib/services/lookups/service-speed-lookup.service';
 
 /** Speeds change only when HQ edits the catalog; one read per session is enough. */
@@ -17,15 +18,18 @@ async function fetchServiceSpeeds(signal: AbortSignal): Promise<ServiceSpeedLook
 
 /**
  * The active service speeds (`sys_service_speed_cd`) for the speed menus
- * (Line-Level P5-03b, PLAN §5.4). An HQ catalog: the same for every
- * organization, so it is not keyed by tenant.
+ * (Line-Level P5-03b, PLAN §5.4). The speeds are an HQ catalog, but `is_offered`
+ * / `offered_scope` are this organization's Speed Pricing rules, so the cache is keyed by tenant.
  * @returns `speeds` in display order, `labelOf(code)` in the screen language, loading and error flags
  * @example const { speeds, labelOf } = useServiceSpeeds(); labelOf('EXPRESS'); // "Express" / "سريع"
  */
 export function useServiceSpeeds() {
   const locale = useLocale();
+  const { currentTenant } = useAuth();
+  const tenantId = currentTenant?.tenant_id ?? null;
   const query = useQuery({
-    queryKey: ['lookups', 'service-speeds'],
+    queryKey: ['lookups', 'service-speeds', tenantId],
+    enabled: tenantId != null,
     queryFn: ({ signal }) => fetchServiceSpeeds(signal),
     staleTime: SPEEDS_STALE_MS,
     retry: 1,

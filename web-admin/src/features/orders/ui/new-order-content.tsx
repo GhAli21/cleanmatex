@@ -1059,6 +1059,7 @@ export function NewOrderContent() {
         }
         serviceSpeed={state.state.serviceSpeed}
         onServiceSpeedChange={handleServiceSpeedChange}
+        speedPreview={state.state.isEditMode ? undefined : { requestFor: (code: string) => ({ ...cartQuoteRequest, serviceSpeed: code }) }}
         categories={state.state.categories}
         selectedCategory={state.state.selectedCategory}
         onSelectCategory={handleSelectCategory}

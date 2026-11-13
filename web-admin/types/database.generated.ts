@@ -13791,13 +13791,13 @@ isOneToOne: false
                   ]
                 },"sys_setup_health_check_cd": {
                   Row: {
-                    "check_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string,"description2": string,"display_order": number,"domain_code": string,"feature_flag_key": string | null,"fix_permission": string | null,"fix_route": string | null,"fn_name": string,"hq_fix_route": string | null,"is_active": boolean,"is_hq_only": boolean,"name": string,"name2": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"severity": string,"shows_banner": boolean,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                    "check_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string,"description2": string,"display_order": number,"domain_code": string,"feature_flag_keys": (string)[],"fix_permission": string | null,"fix_route": string | null,"fn_name": string,"hq_fix_route": string | null,"is_active": boolean,"is_hq_only": boolean,"name": string,"name2": string,"ok_name": string,"ok_name2": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"severity": string,"shows_banner": boolean,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
                   }
                   Insert: {
-                    "check_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description": string,"description2": string,"display_order"?: number,"domain_code": string,"feature_flag_key"?: string | null,"fix_permission"?: string | null,"fix_route"?: string | null,"fn_name": string,"hq_fix_route"?: string | null,"is_active"?: boolean,"is_hq_only"?: boolean,"name": string,"name2": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"severity": string,"shows_banner"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                    "check_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description": string,"description2": string,"display_order"?: number,"domain_code": string,"feature_flag_keys"?: (string)[],"fix_permission"?: string | null,"fix_route"?: string | null,"fn_name": string,"hq_fix_route"?: string | null,"is_active"?: boolean,"is_hq_only"?: boolean,"name": string,"name2": string,"ok_name": string,"ok_name2": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"severity": string,"shows_banner"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Update: {
-                    "check_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string,"description2"?: string,"display_order"?: number,"domain_code"?: string,"feature_flag_key"?: string | null,"fix_permission"?: string | null,"fix_route"?: string | null,"fn_name"?: string,"hq_fix_route"?: string | null,"is_active"?: boolean,"is_hq_only"?: boolean,"name"?: string,"name2"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"severity"?: string,"shows_banner"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                    "check_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string,"description2"?: string,"display_order"?: number,"domain_code"?: string,"feature_flag_keys"?: (string)[],"fix_permission"?: string | null,"fix_route"?: string | null,"fn_name"?: string,"hq_fix_route"?: string | null,"is_active"?: boolean,"is_hq_only"?: boolean,"name"?: string,"name2"?: string,"ok_name"?: string,"ok_name2"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"severity"?: string,"shows_banner"?: boolean,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -15450,9 +15450,9 @@ isOneToOne: false
 "fn_auth_log_event":
 { Args: { "p_auth_session_id"?: string,"p_auth_user_id"?: string,"p_details"?: Json,"p_device_label"?: string,"p_event_code": string,"p_ip_address"?: unknown,"p_login_identifier"?: string,"p_org_user_id"?: string,"p_outcome": string,"p_reason_code"?: string,"p_tenant_org_id"?: string,"p_user_agent"?: string }; Returns: string
                            },
-"fn_auth_own_laundries":
+"fn_auth_own_tenants":
 { Args: Record<PropertyKey, never>; Returns: {
-              "laundry_name": string,"laundry_name2": string,"org_user_id": string,"tenant_org_id": string
+              "org_user_id": string,"tenant_name": string,"tenant_name2": string,"tenant_org_id": string
             }[]
                            },
 "fn_auth_pwd_reuse_check":
@@ -15463,7 +15463,7 @@ isOneToOne: false
               "auth_user_id": string,"email": string,"is_active": boolean,"org_user_id": string,"tenant_org_id": string,"user_code": string
             }[]
                            },
-"fn_auth_session_choose_laundry":
+"fn_auth_session_choose_tenant":
 { Args: { "p_org_user_id": string }; Returns: {
               "alert_new_device": boolean,"ended_sessions": number,"expires_at": string,"idle_timeout_sec": number,"idle_warning_sec": number,"new_device": boolean,"result_status": string,"session_row_id": string,"tenant_org_id": string
             }[]
@@ -15773,6 +15773,9 @@ isOneToOne: false
 "fn_recalc_order_totals":
 { Args: { "p_order": string,"p_tenant": string }; Returns: undefined
                            },
+"fn_setup_health_flags_on":
+{ Args: { "p_flags": Json,"p_keys": (string)[] }; Returns: boolean
+                           },
 "fn_setup_health_refresh_all":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -15780,11 +15783,25 @@ isOneToOne: false
 { Args: { "p_tenant": string }; Returns: Json
                            },
 "fn_setup_health_run":
-{ Args: { "p_branch": string,"p_domain": string,"p_tenant": string }; Returns: {
-              "check_code": string,"description": string,"description2": string,"details": Json,"display_order": number,"domain_code": string,"domain_order": number,"feature_flag_key": string,"fix_permission": string,"fix_route": string,"hq_fix_route": string,"is_hq_only": boolean,"issue_count": number,"name": string,"name2": string,"sample_ids": Json,"severity": string,"shows_banner": boolean,"status": string
+{ Args: { "p_branch": string,"p_checks"?: (string)[],"p_domain": string,"p_tenant": string }; Returns: {
+              "check_code": string,"description": string,"description2": string,"details": Json,"display_order": number,"domain_code": string,"domain_order": number,"feature_flag_keys": (string)[],"fix_permission": string,"fix_route": string,"hq_fix_route": string,"is_hq_only": boolean,"issue_count": number,"name": string,"name2": string,"ok_name": string,"ok_name2": string,"sample_ids": Json,"severity": string,"shows_banner": boolean,"status": string
             }[]
                            },
+"fn_setup_health_run_bulk":
+{ Args: { "p_checks"?: (string)[],"p_store"?: boolean,"p_tenants"?: (string)[] }; Returns: {
+              "blockers": number,"error_message": string,"errors": number,"failing": Json,"infos": number,"run_status": string,"tenant_id": string,"tenant_name": string,"tenant_name2": string,"tenant_slug": string,"warnings": number
+            }[]
+                           },
+"fn_setup_health_store_sum":
+{ Args: { "p_sum": Json,"p_tenant": string }; Returns: undefined
+                           },
+"fn_setup_health_summarize":
+{ Args: { "p_checks"?: (string)[],"p_tenant": string }; Returns: Json
+                           },
 "fn_shc_cal_holidays_estimated":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
+                           },
+"fn_shc_cal_holidays_missing":
 { Args: { "p_branch": string,"p_tenant": string }; Returns: Json
                            },
 "fn_shc_cal_no_business_hours":
@@ -15795,6 +15812,9 @@ isOneToOne: false
                            },
 "fn_shc_guard_tenant":
 { Args: { "p_tenant": string }; Returns: undefined
+                           },
+"fn_shc_speed_no_express":
+{ Args: { "p_branch": string,"p_tenant": string }; Returns: Json
                            },
 "fn_shc_speed_no_rules":
 { Args: { "p_branch": string,"p_tenant": string }; Returns: Json

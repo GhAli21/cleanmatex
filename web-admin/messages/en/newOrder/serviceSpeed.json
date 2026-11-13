@@ -9,6 +9,7 @@
   "unavailable": "Speeds unavailable",
   "optionPreview": "{total} · Ready {ready}",
   "notOfferedForItems": "Not available for the items in this cart",
+  "someItemsOnly": "Some items only",
   "premiumIncluded": "incl. {speed} +{amount}",
   "premiumInCart": "{speed} price is shown in the cart",
   "repricedTitle": "{count, plural, one {The speed change re-priced # line} other {The speed change re-priced # lines}}",

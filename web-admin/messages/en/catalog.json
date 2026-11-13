@@ -235,6 +235,7 @@
     "multiplierHint": "Adds {percent}% to the normal price.",
     "turnaroundHint": "Optional. Working hours to finish at this speed.",
     "turnaroundDaysHint": "Optional. 0 = same day, 1 = next working day. Ready at the Business Calendar's ready time.",
+    "cutoffCurrent": "Organization cut-off: {time}.",
     "cutoffTimeHint": "Optional. Orders received later count from the next working day. Empty = the branch's cut-off.",
     "discountAllowedHint": "This speed can cost less than Standard: enter a negative value, for example -0.10 for 10% off.",
     "discountHint": "Takes {percent}% off the normal price.",
@@ -336,6 +337,7 @@
       "NOT_FOUND": "This rule no longer exists. Refresh the list.",
       "DUPLICATE_SCOPE": "A rule for this speed, scope and start date already exists. Edit that rule, or choose another start date.",
       "RULE_IN_USE": "Orders were priced with this rule, so it cannot be deleted. Deactivate it instead.",
+      "RULE_SCOPE_LOCKED": "Orders were priced with this rule, so its speed, branch, category and product cannot change. Change the dates or values, or add a new rule.",
       "INVALID_REFERENCE": "The speed, product, branch or category is no longer available. Choose another one.",
       "DISCOUNT_NOT_ALLOWED": "Only a speed slower than Standard (Economy) can lower the price. Use a value of 0 or more for this speed.",
       "VALIDATION_FAILED": "Some values are not valid. Check them and try again.",
@@ -351,7 +353,8 @@
       "title": "Add rules for a category",
       "description": "Creates one rule for each active product in the category. A product that already has a rule for this speed, branch and start date keeps it. To cover the whole category with one rule, use Add rule instead.",
       "create": "Create rules",
-      "done": "{created, plural, one {# rule created} other {# rules created}}, {skipped} skipped."
+      "done": "{created, plural, one {# rule created} other {# rules created}}, {skipped} skipped.",
+      "belowStandard": "{count, plural, one {# product was left out} other {# products were left out}}: its price is higher than this fixed price, and only a slower speed may cost less than Standard."
     },
     "resolver": {
       "title": "Which rule applies?",

@@ -10,7 +10,7 @@ import { speedRuleUpdateSchema } from '@/lib/validations/speed-rule-schemas';
 
 export const dynamic = 'force-dynamic';
 
-const idOf = async (params: Promise<{ id: string }>) => z.string().uuid().safeParse((await params).id);
+const idOf = async (params: Promise<{ id: string }>) => z.string().guid().safeParse((await params).id);
 
 /**
  * GET /api/v1/catalog/speed-rules/[id] (`pricing:read`).

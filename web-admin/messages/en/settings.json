@@ -51,16 +51,50 @@
       "deleted": "Holiday deleted",
       "deleteTitle": "Delete this holiday?",
       "deleteDescription": "Promised ready times will treat this date as a normal day. Saved orders do not change.",
+      "overridden": "Overridden by your own day",
+      "noPublicYear": "No public holiday dates are loaded for {country} in {year}. Ask the platform team to add them; until then ready times ignore public holidays.",
       "emptyTitle": "No holidays this year",
       "emptyDescription": "Add the days you close, or short working days.",
       "noCountry": "Public holidays cannot be shown because the organization has no country."
     },
     "validation": {
+      "openTime": "Enter the opening time.",
+      "closeTime": "Enter a closing time.",
+      "name2": "Use at most 200 characters.",
+      "branchId": "Choose a branch.",
       "closeAfterOpen": "Enter both times; closing must be after opening.",
       "oneOpenDay": "Open at least one day.",
       "time": "Enter a valid time.",
       "holidayDate": "Choose a date.",
-      "name": "Enter a name."
+      "name": "Enter a name of up to 200 characters."
+    },
+    "warnings": {
+      "title": "Check these times",
+      "CUTOFF_BEFORE_OPENING": "The cut-off is at or before opening, so every order is counted from the next working day.",
+      "CUTOFF_AFTER_CLOSING": "The cut-off is at or after closing, so it never applies.",
+      "READY_OUTSIDE_HOURS": "The ready time is outside the opening hours, so promised times are cut to closing time or start at opening."
+    },
+    "preview": {
+  "title": "If an order is placed now",
+  "subtitle": "From the saved settings, in the same way order entry promises a ready time. Standard is shown for an item that takes 24 working hours.",
+  "openNow": "Open now",
+  "closedNow": "Closed now",
+  "countingStarts": "Counting starts: {when}",
+  "ready": "Ready {when}",
+  "hours": "{count, plural, one {# working hour} other {# working hours}}",
+  "days": "{count, plural, one {# working day} other {# working days}}",
+  "example": "example item",
+  "noHours": "rule has no hours",
+  "notConfigured": "Set the opening hours (and the organization time zone) to see ready times. Until then orders count clock hours, including closed days.",
+  "loadFailed": "Could not load the preview. Refresh the page to try again."
+},
+"template": {
+  "fill": "Fill from the {name} template",
+  "filled": "Template values loaded. Review them, then press Save."
+},
+"discard": {
+      "title": "Discard your changes?",
+      "description": "This branch has unsaved changes. Switching branch discards them."
     },
     "errors": {
       "title": "Could not save",
@@ -69,6 +103,12 @@
       "HOLIDAY_DUPLICATE": "This date already has a holiday for the same branch.",
       "NOT_FOUND": "This record no longer exists.",
       "INVALID_REFERENCE": "The selected branch is not available.",
+      "CSRF_REJECTED": "Your session needs refreshing. Reload the page and try again.",
+      "VALIDATION_FAILED": "Some values are not valid. Check them and try again.",
+      "UNAUTHORIZED": "Your session has ended. Sign in again.",
+      "FORBIDDEN": "You do not have permission to do this.",
+      "branchesFailed": "Could not load the branches. Refresh the page to try again.",
+      "CALENDAR_CHANGED": "Someone else changed this calendar. Their values were loaded; make your change again and save.",
       "INTERNAL_ERROR": "Something went wrong. Please try again."
     }
   },

@@ -4,7 +4,7 @@
   "addUser": "Add User",
   "create": {
     "title": "Add New User",
-    "subtitle": "Create a new user account for this tenant",
+    "subtitle": "Create a new user account for this organization",
     "backToUsers": "Back to Users",
     "accountInfo": "Account Information",
     "accountInfoDesc": "Login credentials and email",
@@ -69,7 +69,7 @@
     "activeFilters": "Active filters:",
     "selectedCount": "{count, plural, one {# user selected} other {# users selected}}",
     "processing": "Processing...",
-    "deleteConfirm": "{count, plural, one {Delete # user? This cannot be undone.} other {Delete # users? This cannot be undone.}}"
+    "deleteConfirm": "{count, plural, one {Deactivate # organization user? The sign-in stays and can be activated again.} other {Deactivate # organization users? The sign-ins stay and can be activated again.}}"
   },
   "table": {
     "lastLogin": "Last Login",
@@ -79,7 +79,9 @@
     "noUsers": "No users found",
     "noName": "No name",
     "never": "Never",
-    "confirmDeactivate": "Are you sure you want to deactivate {email}?"
+    "confirmDeactivate": "Deactivate {email} in this organization? They can be activated again. The sign-in itself stays.",
+    "deactivated": "This organization user is now inactive.",
+    "deactivateFailed": "Could not deactivate this organization user."
   },
   "pagination": {
     "showing": "Showing {from} to {to} of {total} results"

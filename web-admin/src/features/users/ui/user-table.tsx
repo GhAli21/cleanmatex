@@ -13,6 +13,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { activateUser, deactivateUser } from '@/lib/api/users'
 import { useAuth } from '@/lib/auth/auth-context'
+import { cmxMessage } from '@ui/feedback'
 import type { TenantUser } from '@/lib/api/users'
 
 interface PaginationData {
@@ -119,14 +120,24 @@ export default function UserTable({
 
   const handleDeactivate = async (user: TenantUser) => {
     if (!currentTenant) return
-    if (!confirm(t('confirmDeactivate', { email: user.email }))) return
+    const confirmed = await cmxMessage.confirm({
+      title: t('deactivate'),
+      description: t('confirmDeactivate', { email: user.email }),
+      confirmLabel: t('deactivate'),
+      cancelLabel: tCommon('cancel'),
+      variant: 'warning',
+    })
+    if (!confirmed) return
 
     setActionLoading(user.user_id)
     const result = await deactivateUser(currentTenant.tenant_id, user.user_id, accessToken)
     setActionLoading(null)
 
     if (result.success) {
+      cmxMessage.success(t('deactivated'))
       onRefresh()
+    } else {
+      cmxMessage.error(result.message || t('deactivateFailed'))
     }
   }
 

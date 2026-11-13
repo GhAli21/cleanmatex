@@ -53,6 +53,9 @@ export function CalendarHolidaysTab({ canManage, branchOptions }: CalendarHolida
     return t.has(`errors.${code}`) ? t(`errors.${code}` as never) : t('errors.INTERNAL_ERROR');
   };
 
+  // A public holiday the organization already overrides (own row on the same date) is shown as overridden.
+  const overriddenDates = useMemo(() => new Set((list.data?.holidays ?? []).map((h) => h.holidayDate)), [list.data]);
+
   const rows = useMemo<HolidayRow[]>(() => {
     const own: HolidayRow[] = (list.data?.holidays ?? []).map((h) => ({ key: h.id, date: h.holidayDate, own: h }));
     const pub: HolidayRow[] = (list.data?.publicHolidays ?? []).map((h) => ({ key: `${h.holidayCode}-${h.holidayDate}`, date: h.holidayDate, pub: h }));
@@ -90,7 +93,10 @@ export function CalendarHolidaysTab({ canManage, branchOptions }: CalendarHolida
     {
       key: 'hours',
       header: t('holidays.hours'),
-      render: (row) => (row.own && !row.own.isClosed ? <span dir="ltr">{row.own.openTime} – {row.own.closeTime}</span> : t('holidays.closedAllDay')),
+      render: (row) => {
+        if (row.pub && overriddenDates.has(row.date)) return t('holidays.overridden');
+        return row.own && !row.own.isClosed ? <span dir="ltr">{row.own.openTime} – {row.own.closeTime}</span> : t('holidays.closedAllDay');
+      },
       sortable: false,
     },
     { key: 'branch', header: t('holidays.appliesTo'), render: (row) => branchLabel(row.own ? row.own.branchId : null), sortable: false },
@@ -100,6 +106,8 @@ export function CalendarHolidaysTab({ canManage, branchOptions }: CalendarHolida
       render: (row) => {
         if (!canManage) return null;
         if (row.pub) {
+          // Already overridden: a second override would be refused as a duplicate (edit the own row instead).
+          if (overriddenDates.has(row.date)) return null;
           return (
             <CmxButton
               type="button" size="sm" variant="outline"
@@ -148,6 +156,7 @@ export function CalendarHolidaysTab({ canManage, branchOptions }: CalendarHolida
       </CmxCard>
 
       {list.data && !list.data.country ? <CmxSummaryMessage type="info" title={t('holidays.noCountry')} items={[]} /> : null}
+      {list.data?.country && list.data.publicHolidays.length === 0 ? <CmxSummaryMessage type="info" title={t('holidays.noPublicYear', { country: list.data.country, year })} items={[]} /> : null}
       {list.isError ? <CmxSummaryMessage type="error" title={t('errors.title')} items={[errorText(list.error)]} /> : null}
 
       {/* A year's list is small and already fully loaded, so it pages in the browser. */}

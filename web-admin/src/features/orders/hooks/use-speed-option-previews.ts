@@ -66,6 +66,11 @@ export function useSpeedOptionPreviews(
       return;
     }
     const line = source?.lineIndex === undefined ? null : data.lines.find((l) => l.index === source.lineIndex);
+    // A line menu never shows the order's figures as the line's: no such line in the quote → no figures.
+    if (source?.lineIndex !== undefined && !line) {
+      previews.set(code, { total: null, ready: null, notOffered: false });
+      return;
+    }
     const amount = line ? line.lineTotalAmount : data.totals.saleTotal;
     const readyAt = line ? line.readyByAt : data.readyByAt;
     previews.set(code, {
@@ -73,7 +78,8 @@ export function useSpeedOptionPreviews(
         style: 'currency', currency: data.currencyCode, minimumFractionDigits: data.decimalPlaces, maximumFractionDigits: data.decimalPlaces,
       }).format(amount),
       ready: new Intl.DateTimeFormat(locale, {
-        weekday: 'short', hour: 'numeric', minute: '2-digit', ...(data.timezone ? { timeZone: data.timezone } : {}),
+        // The date too: a next-day or 5-working-day promise is ambiguous as a bare weekday.
+        weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', ...(data.timezone ? { timeZone: data.timezone } : {}),
       }).format(new Date(readyAt)),
       notOffered: false,
     });

@@ -121,6 +121,9 @@ function UserAuditLogTable({ userId, tenantId, formatDate }: UserAuditLogTablePr
               <tr key={entry.id} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
                 <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
                   <span>{label}</span>
+                  {entry.action && entry.action !== label ? (
+                    <span className="ms-2 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{entry.action}</span>
+                  ) : null}
                   {flagged ? (
                     <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">{t(`activityOutcome.${flagged}`)}</span>
                   ) : null}

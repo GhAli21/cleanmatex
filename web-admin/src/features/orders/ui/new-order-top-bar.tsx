@@ -7,6 +7,7 @@
 'use client';
 
 import { ServiceSpeedSelect } from './service-speed-select';
+import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
 import { memo, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -50,6 +51,8 @@ interface NewOrderTopBarProps {
   /** The order speed code (`sys_service_speed_cd`). */
   serviceSpeed: string;
   onServiceSpeedChange: (serviceSpeed: string) => void;
+  /** New Order only: prices each speed option for the cart, as the summary panel menu does. */
+  speedPreview?: SpeedOptionPreviewSource;
   categories: ServiceCategory[];
   selectedCategory: string;
   onSelectCategory: (code: string) => void;
@@ -86,6 +89,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   onEditCustomer,
   serviceSpeed,
   onServiceSpeedChange,
+  speedPreview,
   categories,
   selectedCategory,
   onSelectCategory,
@@ -178,6 +182,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           disabled={!speedCapability.interactive}
           disabledReason={t('serviceSpeed.locked')}
           ariaLabel={t('serviceSpeed.orderAria')}
+          preview={speedPreview}
         />
 
         {/* Order-wide preferences pill — always visible on every step, so staff don't

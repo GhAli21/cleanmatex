@@ -9,7 +9,20 @@ import {
 } from '@/lib/constants/commercial';
 import { textToTimeColumn, timeColumnToText } from '@/lib/services/commercial/calendar-facts';
 import { prisma } from '@/lib/db/prisma';
+import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
+
+/**
+ * Today's business date (`YYYY-MM-DD`) in the organization's time zone, as the order loader reads rule dates.
+ * Falls back to the UTC date only when the organization has no valid zone.
+ * @param tenantId session tenant
+ * @returns the local date
+ */
+async function tenantBusinessDate(tenantId: string): Promise<string> {
+  // org_tenants_mst is keyed by the tenant id itself (no tenant_org_id column).
+  const tenant = await prisma.org_tenants_mst.findFirst({ where: { id: tenantId }, select: { timezone: true } });
+  return isValidTimeZone(tenant?.timezone) ? businessDateForTimezone(tenant.timezone) : new Date().toISOString().slice(0, 10);
+}
 
 /**
  * Speed Pricing rules (Line-Level P7-01, PLAN §7, §10.1): CRUD and the
@@ -29,7 +42,7 @@ import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput
 /** A refused request; `status` is the HTTP status the route answers. */
 export class SpeedRuleError extends Error {
   constructor(
-    public readonly code: 'NOT_FOUND' | 'DUPLICATE_SCOPE' | 'RULE_IN_USE' | 'INVALID_REFERENCE' | 'DISCOUNT_NOT_ALLOWED',
+    public readonly code: 'NOT_FOUND' | 'DUPLICATE_SCOPE' | 'RULE_IN_USE' | 'RULE_SCOPE_LOCKED' | 'INVALID_REFERENCE' | 'DISCOUNT_NOT_ALLOWED',
     public readonly status: number,
   ) {
     super(code);
@@ -227,7 +240,16 @@ async function checkReferences(tenantId: string, input: SpeedRuleCreateInput) {
   }
 }
 
-/** Prevented before save (UX rule); `duplicateToError` covers two saves racing past this check. */
+/** How many order items and pieces were priced by this rule. */
+async function ruleUseCount(tenantId: string, ruleId: string): Promise<number> {
+  const [items, pieces] = await Promise.all([
+    prisma.org_order_items_dtl.count({ where: { tenant_org_id: tenantId, speed_rule_id: ruleId } }),
+    prisma.org_order_item_pieces_dtl.count({ where: { tenant_org_id: tenantId, speed_rule_id: ruleId } }),
+  ]);
+  return items + pieces;
+}
+
+/** Prevented before save (UX rule); `writeError` covers two saves racing past this check. */
 async function checkScopeFree(tenantId: string, input: SpeedRuleCreateInput, selfId: string | null) {
   const clash = await prisma.org_speed_price_rules_cf.findFirst({
     where: {
@@ -246,9 +268,15 @@ async function checkScopeFree(tenantId: string, input: SpeedRuleCreateInput, sel
 
 const prismaCode = (e: unknown) => (e as { code?: string } | null)?.code;
 
-/** The unique scope index refused a save that raced past `checkScopeFree`. */
-function duplicateToError(e: unknown): never {
-  throw prismaCode(e) === 'P2002' ? new SpeedRuleError('DUPLICATE_SCOPE', 409) : e;
+/**
+ * Maps a database refusal of a rule write to a screen error: the unique scope
+ * index (two saves racing past `checkScopeFree`), and the ECONOMY-only discount
+ * CHECKs (a speed ranked below STANDARD that the DB does not know yet).
+ */
+function writeError(e: unknown): never {
+  if (prismaCode(e) === 'P2002') throw new SpeedRuleError('DUPLICATE_SCOPE', 409);
+  if (/chk_org_spd_price_rules_(multiplier|extra)/.test(e instanceof Error ? e.message : '')) throw new SpeedRuleError('DISCOUNT_NOT_ALLOWED', 422);
+  throw e;
 }
 
 /** One column holds the value, whichever the type uses (CHECK `chk_org_spd_price_rules_value_cols`). */
@@ -312,7 +340,7 @@ export async function createSpeedRule(tenantId: string, userId: string, input: S
     });
     await tx.org_price_history_audit.create({ data: auditRow(tenantId, userId, 'CREATE', null, created) });
     return created;
-  }).catch(duplicateToError);
+  }).catch(writeError);
   return getSpeedRule(tenantId, row.id);
 }
 
@@ -322,16 +350,24 @@ export async function createSpeedRule(tenantId: string, userId: string, input: S
  * @param tenantId - session tenant
  * @param userId - actor
  * @param input - the rule to copy, with the category
- * @returns how many rules were created and how many products were skipped
+ * @returns how many rules were created, how many products already had one (skipped), and how many were left out because their price is above a fixed sell price a faster speed cannot undercut
  * @throws SpeedRuleError INVALID_REFERENCE
  * @example await bulkCreateSpeedRules(tenantId, userId, { ...rule, serviceCategoryCode: 'DRY_CLEAN', productId: null })
  */
-export async function bulkCreateSpeedRules(tenantId: string, userId: string, input: SpeedRuleBulkInput): Promise<{ created: number; skipped: number }> {
+export async function bulkCreateSpeedRules(tenantId: string, userId: string, input: SpeedRuleBulkInput): Promise<{ created: number; skipped: number; belowStandard: number }> {
   await checkReferences(tenantId, input);
-  const products = await prisma.org_product_data_mst.findMany({
+  const found = await prisma.org_product_data_mst.findMany({
     where: { tenant_org_id: tenantId, service_category_code: input.serviceCategoryCode, is_active: true, rec_status: 1 },
-    select: { id: true },
+    select: { id: true, default_sell_price: true },
   });
+  // A fixed sell price below a product's own price would make the speed cheaper than Standard, which only a
+  // slower speed may be: the calculator holds that premium at 0, so the speed would be free. Leave those products out and say so.
+  const mayDiscount = rankAllowsDiscount(await speedRanks([input.serviceSpeed]), input.serviceSpeed);
+  const isBelowStandard = (p: { default_sell_price: unknown }) => !mayDiscount && input.speedPriceType === SPEED_PRICE_TYPES.SELL_PRICE
+    && p.default_sell_price != null && input.defaultSpeedSellPrice != null
+    && Number(input.defaultSpeedSellPrice) < Number(String(p.default_sell_price));
+  const products = found.filter((p) => !isBelowStandard(p));
+  const belowStandard = found.length - products.length;
   const base = columns({ ...input, serviceCategoryCode: null });
   const taken = await prisma.org_speed_price_rules_cf.findMany({
     where: {
@@ -346,13 +382,13 @@ export async function bulkCreateSpeedRules(tenantId: string, userId: string, inp
   });
   const takenIds = new Set(taken.map((r) => r.product_id));
   const data = products.filter((p) => !takenIds.has(p.id)).map((p) => ({ ...base, product_id: p.id, tenant_org_id: tenantId, created_by: userId }));
-  if (data.length === 0) return { created: 0, skipped: products.length };
+  if (data.length === 0) return { created: 0, skipped: products.length, belowStandard };
   const created = await prisma.$transaction(async (tx) => {
     const rows = await tx.org_speed_price_rules_cf.createManyAndReturn({ data, skipDuplicates: true });
     await tx.org_price_history_audit.createMany({ data: rows.map((r) => auditRow(tenantId, userId, 'CREATE', null, r)) });
     return rows.length;
   });
-  return { created, skipped: products.length - created };
+  return { created, skipped: products.length - created, belowStandard };
 }
 
 /**
@@ -372,7 +408,7 @@ export async function setProductRulesActive(tenantId: string, userId: string, in
   const categoryProducts = serviceCategoryCode
     ? await prisma.org_product_data_mst.findMany({ where: { tenant_org_id: tenantId, service_category_code: serviceCategoryCode }, select: { id: true } })
     : null;
-  const today = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  const today = new Date(`${await tenantBusinessDate(tenantId)}T00:00:00Z`);
   const [rows, generalRules] = await Promise.all([
     prisma.org_speed_price_rules_cf.findMany({
       where: {
@@ -421,10 +457,14 @@ export async function setProductRulesActive(tenantId: string, userId: string, in
  * @param userId - actor
  * @param id - rule id
  * @param input - the rule as it should be
- * @throws SpeedRuleError NOT_FOUND | INVALID_REFERENCE | DUPLICATE_SCOPE
+ * @throws SpeedRuleError NOT_FOUND | INVALID_REFERENCE | DUPLICATE_SCOPE | RULE_SCOPE_LOCKED (the rule priced order lines, so its speed and scope are fixed)
  */
 export async function updateSpeedRule(tenantId: string, userId: string, id: string, input: SpeedRuleCreateInput): Promise<SpeedRuleView> {
   const before = await findRule(tenantId, id);
+  // An order line keeps a pointer to the rule that priced it: what the rule covers must not move once it was used.
+  const moved = before.service_speed !== input.serviceSpeed || before.branch_id !== input.branchId
+    || before.service_category_code !== input.serviceCategoryCode || before.product_id !== input.productId;
+  if (moved && await ruleUseCount(tenantId, id) > 0) throw new SpeedRuleError('RULE_SCOPE_LOCKED', 409);
   await checkReferences(tenantId, input);
   await checkScopeFree(tenantId, input, id);
   await prisma.$transaction(async (tx) => {
@@ -434,7 +474,7 @@ export async function updateSpeedRule(tenantId: string, userId: string, id: stri
     });
     const after = await tx.org_speed_price_rules_cf.findFirstOrThrow({ where: { id, tenant_org_id: tenantId } });
     await tx.org_price_history_audit.create({ data: auditRow(tenantId, userId, 'UPDATE', before, after) });
-  }).catch(duplicateToError);
+  }).catch(writeError);
   return getSpeedRule(tenantId, id);
 }
 
@@ -447,11 +487,7 @@ export async function updateSpeedRule(tenantId: string, userId: string, id: stri
  */
 export async function deleteSpeedRule(tenantId: string, userId: string, id: string): Promise<void> {
   const before = await findRule(tenantId, id);
-  const [items, pieces] = await Promise.all([
-    prisma.org_order_items_dtl.count({ where: { tenant_org_id: tenantId, speed_rule_id: id } }),
-    prisma.org_order_item_pieces_dtl.count({ where: { tenant_org_id: tenantId, speed_rule_id: id } }),
-  ]);
-  if (items + pieces > 0) throw new SpeedRuleError('RULE_IN_USE', 409);
+  if (await ruleUseCount(tenantId, id) > 0) throw new SpeedRuleError('RULE_IN_USE', 409);
   await prisma.$transaction(async (tx) => {
     await tx.org_price_history_audit.create({ data: auditRow(tenantId, userId, 'DELETE', before, null) });
     await tx.org_speed_price_rules_cf.deleteMany({ where: { id, tenant_org_id: tenantId } });
@@ -493,7 +529,7 @@ export async function listProductExpressRules(tenantId: string): Promise<Map<str
     list.push(toCandidate(row));
     byProduct.set(row.product_id!, list);
   }
-  const businessDate = new Date().toISOString().slice(0, 10);
+  const businessDate = await tenantBusinessDate(tenantId);
   const result = new Map<string, ProductExpressRule>();
   for (const [productId, rules] of byProduct) {
     const selected = selectSpeedRule({ serviceSpeed: SERVICE_SPEEDS.EXPRESS, productId, serviceCategoryCode: null, branchId: null, businessDate }, rules);
@@ -536,7 +572,7 @@ export async function resolveSpeedRule(tenantId: string, q: {
     productId: q.productId ?? null,
     serviceCategoryCode: product?.service_category_code ?? q.serviceCategoryCode ?? null,
     branchId: q.branchId ?? null,
-    businessDate: q.date ?? new Date().toISOString().slice(0, 10),
+    businessDate: q.date ?? await tenantBusinessDate(tenantId),
   };
   const [rows, ranks] = await Promise.all([
     prisma.org_speed_price_rules_cf.findMany({ where: { tenant_org_id: tenantId, service_speed: q.serviceSpeed, rec_status: 1 } }),

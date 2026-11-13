@@ -3,7 +3,7 @@ import { PreSubmissionPiecesManager } from '@features/orders/ui/pre-submission-p
 import type { OrderChangeEditPolicyInfo } from '@/lib/types/order-change';
 
 let mockSession: { editPolicy: OrderChangeEditPolicyInfo } | null = null;
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }));
 jest.mock('@/lib/hooks/useRTL', () => ({ useRTL: () => false }));
 // Load the real controls without the barrel's unrelated authenticated money field.
 jest.mock('@ui/primitives', () => ({

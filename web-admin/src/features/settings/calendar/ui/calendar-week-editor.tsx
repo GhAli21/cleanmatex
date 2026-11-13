@@ -46,8 +46,8 @@ export function CalendarWeekEditor({ value, onChange, readOnly = false, errors, 
             </div>
             {row.isOpen ? (
               <>
-                <CmxInput label={tSettings('opens')} type="time" dir="ltr" value={row.open} disabled={readOnly} onChange={(e) => setDay(day, { open: e.target.value })} />
-                <CmxInput label={tSettings('closes')} type="time" dir="ltr" value={row.close} disabled={readOnly} onChange={(e) => setDay(day, { close: e.target.value })} error={errors?.[day]} />
+                <CmxInput label={tSettings('opens')} aria-label={`${tSettings(DAY_LABEL_KEY[day])} ${tSettings('opens')}`} type="time" dir="ltr" value={row.open} disabled={readOnly} onChange={(e) => setDay(day, { open: e.target.value })} />
+                <CmxInput label={tSettings('closes')} aria-label={`${tSettings(DAY_LABEL_KEY[day])} ${tSettings('closes')}`} type="time" dir="ltr" value={row.close} disabled={readOnly} onChange={(e) => setDay(day, { close: e.target.value })} error={errors?.[day]} />
                 {readOnly ? <span /> : (
                   <div className="sm:pt-6">
                     <CmxButton type="button" size="sm" variant="ghost" onClick={() => onChange(copyHoursToOpenDays(value, day))}>{t('copyToOpenDays')}</CmxButton>

@@ -4,7 +4,7 @@
  * Authentication Context Provider
  *
  * Manages authentication state and operations across the application
- * The open organization is the session row. This client does not switch laundries.
+ * The open organization is the session row. This client does not switch tenants.
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
@@ -28,7 +28,7 @@ import type {
   UserTenant,
   AuthSession,
   UserRole,
-  LaundryChoiceResult,
+  TenantChoiceResult,
 } from '@/types/auth'
 import { selectSessionTenant } from '@/lib/auth/session-tenant'
 import { trackLogout, type LogoutReason } from '@/lib/auth/logout-tracker'
@@ -294,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw signInError
       }
 
-      const { user: authUser, session: authSession, tenants: rawTenants, tenantOrgId, chooseLaundry, laundries, lastChosenTenantId } = loginData
+      const { user: authUser, session: authSession, tenants: rawTenants, tenantOrgId, chooseTenant, lastChosenTenantId } = loginData
 
       if (!authUser || !authSession) {
         throw new Error('Invalid response from login API')
@@ -316,12 +316,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expires_in: authSession.expires_in ?? null,
       })
 
-      if (chooseLaundry === true && Array.isArray(laundries)) {
+      if (chooseTenant === true && Array.isArray(rawTenants)) {
         return {
-          chooseLaundry: true,
-          laundries,
+          chooseTenant: true,
+          tenants: rawTenants,
           lastChosenTenantId: typeof lastChosenTenantId === 'string' ? lastChosenTenantId : null,
-        } satisfies LaundryChoiceResult
+        } satisfies TenantChoiceResult
       }
 
       // Transform tenants already returned by the login API (avoids a duplicate get_user_tenants call)
@@ -391,13 +391,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * @param orgUserId - Membership id from the picker. The server checks it.
    * @param redirectTo - Page to open after the session is bound
    */
-  const chooseLaundry = useCallback(async (orgUserId: string, redirectTo?: string) => {
+  const chooseTenant = useCallback(async (orgUserId: string, redirectTo?: string) => {
     if (isLoggingInRef.current) return
     isLoggingInRef.current = true
     setIsLoading(true)
     try {
       const csrfToken = await getCSRFToken()
-      const response = await fetch('/api/auth/choose-laundry', {
+      const response = await fetch('/api/auth/choose-tenant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -502,6 +502,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * @param options.returnTo - Page to return to after the next sign-in (validated; ignored for plain sign-outs)
    */
   const signOut = useCallback(async (reason: LogoutReason = 'user', options: SignOutOptions = {}) => {
+    // One sign-out at a time. While the first one ends the server session, the session poller can notice the
+    // ended session and call signOut('session_expired'); that second call would win the redirect and a normal
+    // sign-out would land on "Your session has expired". The flag is cleared by the next SIGNED_IN or a failure.
+    if (isSigningOutRef.current) return
     isSigningOutRef.current = true
     setIsLoading(true)
     try {
@@ -556,13 +560,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
 
-      router.push(buildLoginUrl(loginReason, options.returnTo))
+      router.push(buildLoginUrl(loginReason, reason === 'user' ? undefined : options.returnTo))
     } catch (error) {
       console.error('Error signing out:', error)
+      isSigningOutRef.current = false
       throw error
     } finally {
       setIsLoading(false)
-      isSigningOutRef.current = false
     }
   }, [router, user, currentTenant, queryClient])
 
@@ -698,6 +702,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         if (event === 'SIGNED_IN' && currentSession) {
+          isSigningOutRef.current = false
           setUser(currentSession.user as AuthUser)
           setSession({
             user: currentSession.user as AuthUser,
@@ -821,7 +826,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Methods
     signIn,
-    chooseLaundry,
+    chooseTenant,
     signUp,
     signOut,
     resetPassword,

@@ -7,7 +7,9 @@
  * serves both ready-by services:
  * - standard speed: product `turnaround_hh` → category `turnaround_hh` → default;
  * - another speed: the speed rule's `turnaround_hh_speed` → the category's
- *   hours for that speed → default. No second halving.
+ *   hours → default (12 h). A faster speed is never promised slower than
+ *   STANDARD (capped at its hours); a speed ranked below STANDARD defaults to
+ *   STANDARD's hours. No second halving.
  * Each line adds its own preference minutes; order-level preference minutes
  * apply to every line. The order is ready when its slowest line is, unless
  * the cashier entered a time (kept as today).
@@ -17,7 +19,7 @@
  */
 import { SERVICE_SPEEDS, TURNAROUND_UNITS, type TurnaroundUnit } from '@/lib/constants/commercial';
 import {
-  addWorkingDays, addWorkingMinutes, countingStart, parseTimeOfDay, type ResolvedCalendar,
+  CalendarScanLimitError, addWorkingDays, addWorkingMinutes, countingStart, parseTimeOfDay, type ResolvedCalendar,
 } from './calendar';
 import { toMoney, type MoneyInput } from './money';
 
@@ -51,7 +53,12 @@ export interface ReadyByLineInput {
   speedRuleDays?: number | null;
   /** `resolveSpeedPricing(...).cutoffTime` (`HH:MM`); null = the calendar's cut-off. */
   speedRuleCutoffTime?: string | null;
-  /** `org_product_data_mst.turnaround_hh` (standard speed). */
+  /**
+   * The speed ranks below STANDARD (e.g. ECONOMY). With no configured hours it
+   * defaults to STANDARD's, never to the faster non-standard default.
+   */
+  slowerThanStandard?: boolean;
+  /** `org_product_data_mst.turnaround_hh`: the item's own hours (STANDARD, and the fallback of a speed whose rule sets none). */
   productHours: MoneyInput | null;
   /** `sys_service_category_cd.turnaround_hh`: the last configured hours at any speed. */
   categoryHours: MoneyInput | null;
@@ -84,6 +91,8 @@ export interface ReadyByInput {
 export const READY_BY_NOTES = {
   /** No business hours / time zone: clock hours were used, ignoring closed days. */
   CALENDAR_NOT_CONFIGURED: 'CALENDAR_NOT_CONFIGURED',
+  /** A line asks for more working time than the calendar offers in a year: that line used clock hours. */
+  CALENDAR_UNRESOLVABLE: 'CALENDAR_UNRESOLVABLE',
 } as const;
 /** Derived union of ready-by notes. */
 export type ReadyByNote = (typeof READY_BY_NOTES)[keyof typeof READY_BY_NOTES];
@@ -133,14 +142,24 @@ const hoursOf = (value: MoneyInput | null): number | null => {
  */
 export function resolveTurnaround(line: ReadyByLineInput): { hours: number; source: TurnaroundSource } {
   const standard = line.serviceSpeed === SERVICE_SPEEDS.STANDARD;
-  const chain: [number | null, TurnaroundSource][] = standard
-    ? [[hoursOf(line.productHours), TURNAROUND_SOURCES.PRODUCT], [hoursOf(line.categoryHours), TURNAROUND_SOURCES.CATEGORY]]
-    : [[hoursOf(line.speedRuleHours), TURNAROUND_SOURCES.SPEED_RULE], [hoursOf(line.categoryHours), TURNAROUND_SOURCES.CATEGORY]];
-  for (const [hours, source] of chain) if (hours != null) return { hours, source };
-  return {
-    hours: standard ? DEFAULT_TURNAROUND_HOURS.STANDARD : DEFAULT_TURNAROUND_HOURS.OTHER_SPEED,
-    source: TURNAROUND_SOURCES.DEFAULT,
+  const product: [number | null, TurnaroundSource] = [hoursOf(line.productHours), TURNAROUND_SOURCES.PRODUCT];
+  const category: [number | null, TurnaroundSource] = [hoursOf(line.categoryHours), TURNAROUND_SOURCES.CATEGORY];
+  const standardTurnaround = (): { hours: number; source: TurnaroundSource } => {
+    for (const [hours, source] of [product, category]) if (hours != null) return { hours, source };
+    return { hours: DEFAULT_TURNAROUND_HOURS.STANDARD, source: TURNAROUND_SOURCES.DEFAULT };
   };
+  if (standard) return standardTurnaround();
+
+  const rule = hoursOf(line.speedRuleHours);
+  if (rule != null) return { hours: rule, source: TURNAROUND_SOURCES.SPEED_RULE };
+  // A speed ranked below STANDARD with no hours is never promised faster than STANDARD.
+  if (line.slowerThanStandard) return category[0] != null ? { hours: category[0], source: category[1] } : standardTurnaround();
+  // A faster speed with no hours uses the category's hours, else the default, but never more than STANDARD would take.
+  const fallback = category[0] != null
+    ? { hours: category[0], source: category[1] }
+    : { hours: DEFAULT_TURNAROUND_HOURS.OTHER_SPEED, source: TURNAROUND_SOURCES.DEFAULT };
+  const standardFor = standardTurnaround();
+  return fallback.hours > standardFor.hours ? standardFor : fallback;
 }
 
 /**
@@ -200,9 +219,19 @@ export function resolveReadyBy(input: ReadyByInput): ReadyByResult {
     }
     const spec = resolveTurnaroundSpec(line);
     const extraMinutes = line.extraMinutes + input.orderExtraMinutes;
-    const readyByAt = cal
-      ? onCalendar(cal, input.startAt, line, spec, extraMinutes)
-      : new Date(start + Math.round(spec.hours * HOUR_MS) + extraMinutes * MINUTE_MS);
+    const clockHours = () => new Date(start + Math.round(spec.hours * HOUR_MS) + extraMinutes * MINUTE_MS);
+    let readyByAt: Date;
+    if (!cal) readyByAt = clockHours();
+    else {
+      try {
+        readyByAt = onCalendar(cal, input.startAt, line, spec, extraMinutes);
+      } catch (error) {
+        // An unreachable promise must not block the order: this line falls back to clock hours, flagged.
+        if (!(error instanceof CalendarScanLimitError)) throw error;
+        readyByAt = clockHours();
+        if (!notes.includes(READY_BY_NOTES.CALENDAR_UNRESOLVABLE)) notes.push(READY_BY_NOTES.CALENDAR_UNRESOLVABLE);
+      }
+    }
     return { lineId: line.lineId, hours: spec.hours, unit: spec.unit, days: spec.days, source: spec.source, extraMinutes, readyByAt };
   });
 

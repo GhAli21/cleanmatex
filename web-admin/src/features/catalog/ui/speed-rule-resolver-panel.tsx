@@ -31,7 +31,7 @@ export function SpeedRuleResolverPanel({ speedOptions, branchOptions, categoryOp
   const [product, setProduct] = useState<PickedProduct | null>(null);
   const [categoryCode, setCategoryCode] = useState('');
   const [branchId, setBranchId] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const serviceSpeed = speedChoice || speedOptions[0]?.value || '';
 
   const resolve = useMutation({

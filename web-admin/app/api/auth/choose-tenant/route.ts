@@ -1,7 +1,7 @@
 /**
  * Bind the pending sign-in to one eligible membership.
  *
- * POST /api/auth/choose-laundry
+ * POST /api/auth/choose-tenant
  * Body: { orgUserId }. The tenant is read from that membership in the database.
  */
 
@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient()
-  const { data: chosen, error } = await supabase.rpc('fn_auth_session_choose_laundry', {
+  const { data: chosen, error } = await supabase.rpc('fn_auth_session_choose_tenant', {
     p_org_user_id: orgUserId,
   })
   if (error) {
-    logger.error('Laundry choice failed', new Error(error.message), { feature: 'auth', action: 'choose_laundry' })
+    logger.error('Tenant choice failed', new Error(error.message), { feature: 'auth', action: 'choose_tenant' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 

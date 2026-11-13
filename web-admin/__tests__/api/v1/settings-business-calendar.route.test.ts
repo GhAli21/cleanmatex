@@ -18,6 +18,7 @@ const service = {
   createHoliday: jest.fn(),
   updateHoliday: jest.fn(),
   deleteHoliday: jest.fn(),
+  previewReadyTimes: jest.fn(),
 };
 const checked: string[] = [];
 let allowed = true;
@@ -31,7 +32,7 @@ jest.mock('@/lib/services/settings/business-calendar.service', () => {
     BusinessCalendarError,
     // Names listed (jest hoists this factory above `service`), each calling it lazily.
     ...Object.fromEntries(['getOrganizationCalendar', 'updateOrganizationCalendar', 'getBranchCalendar', 'updateBranchCalendar',
-      'listHolidays', 'createHoliday', 'updateHoliday', 'deleteHoliday']
+      'listHolidays', 'createHoliday', 'updateHoliday', 'deleteHoliday', 'previewReadyTimes']
       .map((k) => [k, (...a: unknown[]) => service[k as keyof typeof service](...a)])),
   };
 });
@@ -47,6 +48,7 @@ jest.mock('@/lib/middleware/require-permission', () => ({
 
 import { BusinessCalendarError } from '@/lib/services/settings/business-calendar.service';
 import { GET as calGET, PUT as calPUT } from '@/app/api/v1/settings/calendar/route';
+import { GET as previewGET } from '@/app/api/v1/settings/calendar/preview/route';
 import { GET as branchGET, PUT as branchPUT } from '@/app/api/v1/settings/branches/[id]/calendar/route';
 import { GET as holGET, POST as holPOST } from '@/app/api/v1/settings/holidays/route';
 import { DELETE as holDELETE, PATCH as holPATCH } from '@/app/api/v1/settings/holidays/[id]/route';
@@ -134,5 +136,26 @@ describe('Business Calendar routes', () => {
     allowed = false;
     expect((await holDELETE(req(`/api/v1/settings/holidays/${ID}`, 'DELETE'), params)).status).toBe(403);
     expect(service.deleteHoliday).not.toHaveBeenCalled();
+  });
+
+  it('ready-time preview: settings:read for the organization, branches:read too for a branch, the session tenant, bad id 400', async () => {
+    service.previewReadyTimes.mockResolvedValue({ configured: true, rows: [] });
+    expect((await previewGET(req('/api/v1/settings/calendar/preview'))).status).toBe(200);
+    expect(checked).toEqual(['settings:read']);
+    expect(service.previewReadyTimes).toHaveBeenCalledWith('tenant-1', null);
+
+    checked.length = 0;
+    expect((await previewGET(req(`/api/v1/settings/calendar/preview?branchId=${ID}`))).status).toBe(200);
+    expect(checked).toEqual(['settings:read', 'branches:read']);
+    expect(service.previewReadyTimes).toHaveBeenLastCalledWith('tenant-1', ID);
+
+    expect((await previewGET(req('/api/v1/settings/calendar/preview?branchId=nope'))).status).toBe(400);
+  });
+
+  it('a stale save answers 409 CALENDAR_CHANGED with its message key', async () => {
+    service.updateOrganizationCalendar.mockRejectedValue(new BusinessCalendarError('CALENDAR_CHANGED', 409));
+    const res = await calPUT(req('/api/v1/settings/calendar', 'PUT', { ...calendar, version: 'old' }));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ success: false, error: { code: 'CALENDAR_CHANGED', messageKey: 'settings.calendar.errors.CALENDAR_CHANGED' } });
   });
 });

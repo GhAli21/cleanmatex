@@ -12,7 +12,13 @@
 - [ ] **Preference on a new item / new piece** (was `PREFERENCE_PARENT_NOT_PERSISTED`): add an item, give it (or one of its pieces) a preference, Review → Apply. Expected: saved; the preference sits on the new line/piece. Apply attaches it to the new row's id (`order-change-commercial-write.ts` `localParents`), and Review signs the same parent (`order-change-review-audit.ts`). A preference on a local row that is not added in the same change is still refused.
 - [ ] **Edit header**: no empty band beside the financial card. Title + Review result on the left, Exit / Discard / Review above the card on the right (`edit-order-context-bar.tsx`).
 - [ ] **Policy notes in the side panel** name their operations ("Change service speed: needs an override…", "Add an item, Remove an item…: Review will ask you to confirm a warning…") instead of two unlabeled lines under Speed (`edit-control-notice.tsx`, keys `capability.overrideOperations` / `warningOperations`).
-- [ ] **Payment modal (New Order, cash)**: the "Change Returned" box under the amount shows the rounded change (e.g. SAR 2.20), the same as the summary, not the exact 2.17. Full view leg change uses the same figure. The split-tender dialog still shows exact per-leg change.
+- [ ] **Payment modal (New Order, cash)**: the "Change Returned" box under the amount shows the rounded change (e.g. SAR 2.20), the same as the summary, not the exact 2.17. Full view leg change uses the same figure.
+- [ ] **Rounded change everywhere**: Split payment dialog (cash leg), Collect payment modal (Ready / Financial tab / Delivery), wallet top-up and customer receipt (shared `StoredValueTenderFields`) all show the rounded change plus the "rounded from … to …" note — the same amount the server saves.
+- [ ] **Cash prefill only when coins can pay it** (`isCashPayableAmount`, cash increment = tenant cash-control setting or HQ rounding unit). Example OMR, 5-baisa step, balance 17.532:
+  - New Order payment modal: choosing Cash (or pressing "Exact") leaves the amount empty with the message "… cannot be paid exactly in cash … enter the cash the customer hands over". Enter 17.535 → change 0.003 rounds to 0.000.
+  - Collect payment: amount stays 17.532 (exact settlement), "Cash tendered" is empty and required; Submit stays disabled until it is entered.
+  - A balance of 17.500 prefills as before.
+- [ ] HQ: `/tenants/<id>/permissions/<code>` and `/edit` now await `params` (Next 16), like the tax-kit / calendar / setup-health / settings / order-fin-settings pages.
 
 ## 2. Edit Policy manual check (Extend Edit Policy, Phase 5)
 

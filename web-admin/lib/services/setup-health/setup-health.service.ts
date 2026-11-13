@@ -28,12 +28,14 @@ interface SetupHealthRunRow {
   details: unknown
   name: string
   name2: string
+  ok_name: string
+  ok_name2: string
   description: string
   description2: string
   fix_route: string | null
   hq_fix_route: string | null
   fix_permission: string | null
-  feature_flag_key: string | null
+  feature_flag_keys: string[]
   shows_banner: boolean
   is_hq_only: boolean
   domain_order: number
@@ -48,15 +50,31 @@ export interface SetupHealthFilter {
   branchId?: string
 }
 
+/** Options for {@link listSetupHealth}. */
+export interface SetupHealthListOptions {
+  /**
+   * Resolve fix links (one permission lookup per distinct fix permission). Default true.
+   * Only failing checks ever show a Fix button, so passing checks never cost a lookup;
+   * callers that do not show Fix buttons (the banner / home card summary) pass false.
+   */
+  withFixLinks?: boolean
+}
+
 /**
  * Runs every check for the tenant and returns the ones this user may see.
  * @param tenantOrgId - Tenant resolved server-side from the authenticated session
  * @param filter - Optional domain / branch
+ * @param options - Optional: skip fix-link resolution
  * @returns Visible checks in screen order
  * @example
  * const items = await listSetupHealth(auth.tenantId, { domain: 'CALENDAR' })
  */
-export async function listSetupHealth(tenantOrgId: string, filter: SetupHealthFilter = {}): Promise<SetupHealthItem[]> {
+export async function listSetupHealth(
+  tenantOrgId: string,
+  filter: SetupHealthFilter = {},
+  options: SetupHealthListOptions = {}
+): Promise<SetupHealthItem[]> {
+  const withFixLinks = options.withFixLinks ?? true
   const [rows, flags] = await Promise.all([
     withTenantContext(tenantOrgId, () =>
       // The tenant id is the function's tenant filter: every org_* read inside filters tenant_org_id = p_tenant.
@@ -72,7 +90,8 @@ export async function listSetupHealth(tenantOrgId: string, filter: SetupHealthFi
 
   const flagValues = flags as unknown as Record<string, unknown>
   const visible = rows.filter(
-    (r) => !r.is_hq_only && (!r.feature_flag_key || Boolean(flagValues[r.feature_flag_key]))
+    // A check is shown only when EVERY flag it names is on (same rule as SQL fn_setup_health_flags_on).
+    (r) => !r.is_hq_only && (r.feature_flag_keys ?? []).every((k) => Boolean(flagValues[k]))
   )
 
   for (const r of visible) {
@@ -87,13 +106,14 @@ export async function listSetupHealth(tenantOrgId: string, filter: SetupHealthFi
     }
   }
 
-  // One permission lookup per distinct fix permission (few codes), not per row.
-  const fixPerms = [...new Set(visible.map((r) => r.fix_permission).filter((p): p is string => !!p))]
+  // One permission lookup per distinct fix permission, and only for rows that can show a Fix button.
+  const needsLink = (r: SetupHealthRunRow) => withFixLinks && r.status === SETUP_HEALTH_STATUS.FAIL && !!r.fix_route
+  const fixPerms = [...new Set(visible.filter(needsLink).map((r) => r.fix_permission).filter((p): p is string => !!p))]
   const allowed = new Map(
     await Promise.all(fixPerms.map(async (p) => [p, await hasPermissionServer(p)] as const))
   )
 
-  return visible.map((r) => toItem(r, r.fix_route && (!r.fix_permission || allowed.get(r.fix_permission)) ? r.fix_route : null))
+  return visible.map((r) => toItem(r, needsLink(r) && (!r.fix_permission || allowed.get(r.fix_permission)) ? r.fix_route : null))
 }
 
 /**
@@ -105,7 +125,8 @@ export async function listSetupHealth(tenantOrgId: string, filter: SetupHealthFi
  */
 export async function getSetupHealthSummary(tenantOrgId: string): Promise<SetupHealthSummary> {
   const [items, canView] = await Promise.all([
-    listSetupHealth(tenantOrgId),
+    // The summary shows counts and banner titles only: no Fix buttons, so no fix-permission lookups.
+    listSetupHealth(tenantOrgId, {}, { withFixLinks: false }),
     hasPermissionServer(SETUP_HEALTH_PERMISSIONS.VIEW),
   ])
   const failing = items.filter((i) => i.status === SETUP_HEALTH_STATUS.FAIL)
@@ -147,6 +168,8 @@ function toItem(r: SetupHealthRunRow, fixRoute: string | null): SetupHealthItem 
     details: r.details && typeof r.details === 'object' ? (r.details as Record<string, unknown>) : {},
     name: r.name,
     name2: r.name2,
+    okName: r.ok_name,
+    okName2: r.ok_name2,
     description: r.description,
     description2: r.description2,
     fixRoute,

@@ -13,5 +13,6 @@
   "promoOrGiftCard": "Promo code or gift card",
   "paymentNotes": "Payment notes",
   "paymentNotesPlaceholder": "Optional payment-related notes...",
-  "voucherCreated": "Receipt Voucher {voucherNo} created"
+  "voucherCreated": "Receipt Voucher {voucherNo} created",
+  "cashAmountNotPayable": "{amount} cannot be paid exactly in cash (no coin for it). Enter the cash the customer hands over."
 }

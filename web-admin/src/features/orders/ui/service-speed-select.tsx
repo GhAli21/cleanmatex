@@ -103,6 +103,7 @@ export function ServiceSpeedSelect({
                 <span className="flex flex-col">
                   <span>{labelOf(speed.code)}</span>
                   {option?.notOffered ? <span className="text-[11px] opacity-70">{t('notOfferedForItems')}</span> : null}
+                  {!option && speed.offered_scope === 'SOME' ? <span className="text-[11px] opacity-70">{t('someItemsOnly')}</span> : null}
                   {option?.total ? <span className="text-[11px] opacity-70">{t('optionPreview', { total: option.total, ready: option.ready })}</span> : null}
                 </span>
               </CmxSelectDropdownItem>

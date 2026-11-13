@@ -7,6 +7,9 @@ import { CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { PRICE_BASIS, SPEED_PRICE_TYPES, TURNAROUND_UNITS } from '@/lib/constants/commercial';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
+import { SETTINGS_PERMISSIONS } from '@/lib/constants/permissions/settings-perm';
+import { useOrganizationCalendar } from '@features/settings/calendar/hooks/use-business-calendar';
 import type { SpeedRuleView } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleBulkSchema, speedRuleCreateSchema } from '@/lib/validations/speed-rule-schemas';
 import { SpeedRulesApiError, bulkCreateSpeedRulesApi, createSpeedRuleApi, updateSpeedRuleApi } from '../api/speed-rules-api';
@@ -60,9 +63,12 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
     rule?.turnaroundUnit ?? speedOptions.find((s) => s.value === serviceSpeed)?.defaultUnit ?? TURNAROUND_UNITS.HOURS,
   );
   const [cutoffTime, setCutoffTime] = useState(rule?.cutoffTimeSpeed ?? '');
+  // Shows the cut-off this field overrides; skipped without settings:read (the calendar read would be refused).
+  const canReadCalendar = useHasPermissionCode(SETTINGS_PERMISSIONS.READ);
+  const organizationCutoff = useOrganizationCalendar(canReadCalendar).data?.cutoffTime ?? null;
   const [name, setName] = useState(rule?.name ?? '');
   const [name2, setName2] = useState(rule?.name2 ?? '');
-  const [effectiveFrom, setEffectiveFrom] = useState(rule?.effectiveFrom ?? new Date().toISOString().slice(0, 10));
+  const [effectiveFrom, setEffectiveFrom] = useState(rule?.effectiveFrom ?? new Date().toLocaleDateString('en-CA'));
   const [effectiveTo, setEffectiveTo] = useState(rule?.effectiveTo ?? '');
   const [isActive, setIsActive] = useState(rule?.isActive ?? true);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -130,6 +136,8 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
       if (mode === 'bulk') {
         const result = await bulkCreateSpeedRulesApi(parsed.data, csrfToken);
         cmxMessage.success(t('bulk.done', result));
+        // Products left out because a fixed price below theirs would make this speed free for them.
+        if (result.belowStandard > 0) cmxMessage.warning(t('bulk.belowStandard', { count: result.belowStandard }));
       } else if (mode === 'edit' && rule) {
         await updateSpeedRuleApi(rule.id, parsed.data, csrfToken);
         cmxMessage.success(t('saved'));
@@ -262,7 +270,7 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
               value={cutoffTime}
               onChange={(e) => setCutoffTime(e.target.value)}
               error={fieldErrors.cutoffTimeSpeed}
-              helpText={t('cutoffTimeHint')}
+              helpText={organizationCutoff ? `${t('cutoffTimeHint')} ${t('cutoffCurrent', { time: organizationCutoff })}` : t('cutoffTimeHint')}
             />
           </div>
 

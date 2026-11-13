@@ -2,7 +2,7 @@
  * Session lifecycle use-cases — sign-in registration and sign-out.
  *
  * Business rules over the repository. One eligible laundry is bound by the database.
- * More than one returns CHOOSE_LAUNDRY and binds nothing.
+ * More than one returns CHOOSE_TENANT and binds nothing.
  */
 
 import type { createAdminSupabaseClient } from '@/lib/supabase/server'

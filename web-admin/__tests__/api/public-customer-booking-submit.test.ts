@@ -119,7 +119,7 @@ describe('customer booking submit', () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       success: true,
-      data: { orderId: ORDER, orderNo: 'ORD-1', promisedWindow: '2026-10-29T08:00:00.000Z', totalAmount: '4.6200', currencyCode: 'OMR' },
+      data: { orderId: ORDER, orderNo: 'ORD-1', promisedWindow: '2026-10-29T08:00:00.000Z', scheduledAt: null, totalAmount: '4.6200', currencyCode: 'OMR' },
     });
     // Codes and quantities only: the catalog price (99) never reaches the quote.
     expect(mockQuote).toHaveBeenCalledWith(expect.objectContaining({
@@ -144,6 +144,17 @@ describe('customer booking submit', () => {
       expect.objectContaining({ pieceSeq: 2, color: 'BLUE' }),
     ]);
     expect(created.order.items[0]).toMatchObject({ pricePerUnit: 0, totalPrice: 0 });
+  });
+
+  it('promises the calculated ready-by, not the scheduled pickup slot (review B8)', async () => {
+    const response = await POST(request({
+      serviceSpeed: 'EXPRESS', isAsap: false, scheduledAt: '2026-10-28T06:00:00.000Z', servicePreferenceIds: [], pickupPreferenceIds: [],
+      items: [{ itemId: SHIRT, qty: 1 }],
+    }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.data.promisedWindow).toBe('2026-10-29T08:00:00.000Z');
+    expect(body.data.scheduledAt).toBe('2026-10-28T06:00:00.000Z');
   });
 
   it('rejects piece details that do not fit the quantity before pricing anything', async () => {

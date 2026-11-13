@@ -113,14 +113,9 @@ export async function POST(request: NextRequest) {
       console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ is_account_locked done — ${lockStatus?.length ?? 0} row(s)`);
 
       if (!lockError && lockStatus && lockStatus.length > 0 && lockStatus[0].is_locked) {
-        const lockedUntil = new Date(lockStatus[0].locked_until);
-        const minutesRemaining = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
-
         return NextResponse.json(
-          {
-            error: `Account is temporarily locked due to too many failed login attempts. Please try again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}.`,
-          },
-          { status: 423 } // 423 Locked
+          { error: await lockedSignInMessage(adminSupabase, email, lockStatus[0].locked_until) },
+          { status: 423 }
         );
       }
     } catch (lockCheckError: unknown) {
@@ -156,13 +151,11 @@ export async function POST(request: NextRequest) {
       console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ record_login_attempt (failed) done — ${loginResult?.length ?? 0} row(s)`);
 
       if (loginResult && loginResult.length > 0 && loginResult[0].is_locked) {
-        const lockedUntil = new Date(loginResult[0].locked_until);
-        const minutesRemaining = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000);
-
+        // The RPC returns locked_until as timestamp without time zone, so a UTC+4
+        // server reads a UTC instant about four hours late (255 minutes for a 15-minute lock).
+        // The column on sys_users_mst is timestamptz and is the authority.
         return NextResponse.json(
-          {
-            error: `Too many failed login attempts. Your account has been locked for ${minutesRemaining} minutes. Please try again later or contact support if you need assistance.`,
-          },
+          { error: await lockedSignInMessage(adminSupabase, email, loginResult[0].locked_until) },
           { status: 423 }
         );
       }
@@ -224,7 +217,7 @@ export async function POST(request: NextRequest) {
         { status: 423 }
       );
     }
-    if (registration.status === SESSION_REGISTER_STATUS.CHOOSE_LAUNDRY) {
+    if (registration.status === SESSION_REGISTER_STATUS.CHOOSE_TENANT) {
       const opened = await supabase.rpc('fn_auth_session_open_picker', {
         p_remember_me: Boolean(rememberMe),
         p_ip_address: clientIp ?? undefined,
@@ -234,14 +227,14 @@ export async function POST(request: NextRequest) {
       });
       if (opened.error || opened.data !== 'PENDING') {
         await supabase.auth.signOut({ scope: 'local' });
-        logger.error('Could not open the laundry picker', new Error(opened.error?.message ?? String(opened.data)), {
+        logger.error('Could not open the tenant picker', new Error(opened.error?.message ?? String(opened.data)), {
           feature: 'auth',
           action: 'login',
         });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
       }
-      const { data: laundryRows, error: laundryError } = await supabase.rpc('fn_auth_own_laundries');
-      if (laundryError || !laundryRows || laundryRows.length < 2) {
+      const { data: tenantRows, error: tenantError } = await supabase.rpc('fn_auth_own_tenants');
+      if (tenantError || !tenantRows || tenantRows.length < 2) {
         await supabase.auth.signOut({ scope: 'local' });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
       }
@@ -258,13 +251,13 @@ export async function POST(request: NextRequest) {
         p_error_message: undefined,
       });
       return NextResponse.json({
-        chooseLaundry: true,
+        chooseTenant: true,
         lastChosenTenantId: hint?.last_chosen_tenant_id ?? null,
-        laundries: laundryRows.map((row) => ({
+        tenants: tenantRows.map((row) => ({
           orgUserId: row.org_user_id,
           tenantOrgId: row.tenant_org_id,
-          name: row.laundry_name,
-          name2: row.laundry_name2,
+          name: row.tenant_name,
+          name2: row.tenant_name2,
         })),
         user: data.user,
         session: data.session,
@@ -353,5 +346,31 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Minutes left on a password-attack lock.
+ * The lock RPC returns `timestamp without time zone`, so a UTC+4 host reads a
+ * UTC instant about four hours late. `sys_users_mst.attack_locked_until` is timestamptz.
+ */
+async function lockedSignInMessage(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  email: string,
+  fallbackUntil: unknown,
+): Promise<string> {
+  const { data: lockRow } = await admin
+    .from('sys_users_mst')
+    .select('attack_locked_until')
+    .ilike('email', email)
+    .maybeSingle()
+  const raw = lockRow?.attack_locked_until ?? fallbackUntil
+  const lockedUntil = raw instanceof Date ? raw : new Date(typeof raw === 'string' ? raw : '')
+  const minutesRemaining = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000)
+  if (Number.isFinite(minutesRemaining) && minutesRemaining > 0 && minutesRemaining <= 180) {
+    const unit = minutesRemaining === 1 ? 'minute' : 'minutes'
+    return `Too many failed login attempts. This sign-in is locked for ${minutesRemaining} ${unit}. Please try again later or contact support if you need assistance.`
+  }
+  const untilText = Number.isNaN(lockedUntil.getTime()) ? '' : ` until ${lockedUntil.toISOString()}`
+  return `Too many failed login attempts. This sign-in is locked${untilText}. Please try again later or contact support if you need assistance.`
 }
 

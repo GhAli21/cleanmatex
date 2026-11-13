@@ -355,8 +355,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         vatRate: bootstrap.vatRate,
         serviceSpeeds: bootstrap.serviceSpeeds,
         currencyCode: bootstrap.currencyCode,
-        draft: state.draft.copyWith(
-          address: state.draft.address ?? _defaultAddress(bootstrap.addresses),
+        draft: _draftWithOfferedSpeed(
+          state.draft.copyWith(
+            address:
+                state.draft.address ?? _defaultAddress(bootstrap.addresses),
+          ),
+          bootstrap.serviceSpeeds,
         ),
       );
       AppLogger.info(
@@ -842,18 +846,45 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         error: error,
         stackTrace: stackTrace,
       );
+      // A speed the server refuses for these items: send the customer back to
+      // the speed step with the choice cleared, instead of leaving the error
+      // on a review step that has no speed picker.
+      final speedRefused = error is OrderBookingServiceException &&
+          error.messageKey == 'booking.speedNotOfferedError';
       state = state.copyWith(
         isSubmitting: false,
         errorMessageKey: error is AppException
             ? error.messageKey
             : 'booking.submitErrorBody',
         validationIssueKeys: _validationIssueKeysForSubmitError(error),
+        draft: speedRefused
+            ? state.draft.copyWith(clearServiceSpeed: true)
+            : null,
+        stepIndex: speedRefused ? _scheduleStepIndex : null,
       );
     }
   }
 
+  /// The step that shows the speed picker (step 3, zero-based).
+  static const int _scheduleStepIndex = 2;
+
   void clearError() {
     state = state.copyWith(clearErrorMessage: true);
+  }
+
+  /// A speed the organization no longer offers must not stay on the draft:
+  /// the picker would not show it and the submit would be refused. Standard
+  /// (no choice) is always valid.
+  OrderBookingDraftModel _draftWithOfferedSpeed(
+    OrderBookingDraftModel draft,
+    List<BookingServiceSpeedModel> offered,
+  ) {
+    final chosen = draft.serviceSpeed;
+    if (chosen == null || offered.any((speed) => speed.code == chosen)) {
+      return draft;
+    }
+    AppLogger.warning('booking_provider.speed_reset code=$chosen');
+    return draft.copyWith(clearServiceSpeed: true);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────

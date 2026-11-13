@@ -86,6 +86,33 @@ HQ (`cleanmatexsaas`) › **Products & Items Config** › **Calendars**.
 2. Choose Express, finish booking → the order in the tenant app shows Express and the Express price.
 3. Organization offers only Standard → the speed section is hidden.
 4. Remove the Express rule while the app is open, then submit with Express → "This speed is not available for one of your items. Choose another speed."
+## 13. Review fixes (2026-11-13)
+
+Run after 0739 is applied. English first, then repeat the starred ones in Arabic.
+
+1. **Holiday 24:00** — Holidays › Add › "We open this day", 10:00 and close 23:59 saves. 24:00 cannot be typed. API check: `POST /api/v1/settings/holidays` with `closeTime: "24:00"` answers 400, not 500.
+2. **Impossible date** — API `holidayDate: "2027-02-30"` answers 400; nothing is saved on 2 March.
+3. **Unsaved changes** — Organization tab: change a time, open Holidays, come back: the change is still there. Branches tab: change a time, pick another branch: a "Discard your changes?" dialog appears; Cancel keeps both the branch and the edit.*
+4. **Warnings** — set cut-off 07:00 with opening 08:00: "cut-off is at or before opening"; cut-off 20:00 with closing 20:00: "never applies"; ready time 22:00: "outside the opening hours". Saving is still allowed.*
+5. **Overridden holiday** — add "We open this day" for a public holiday: the public row now says "Overridden by your own day" and has no button.*
+6. **No public data** — Year 2028 shows "No public holiday dates are loaded for OM in 2028".
+7. **Branches without `branches:read`** — a role with `settings:read` only sees no Branches tab.
+8. **Branch with a demo id** (`22222222-…`) — opens its calendar (it answered 400 before).
+9. **Speed menu** — New Order: the top-bar Speed menu shows total and "Ready Tue, Nov 17, 3:00 PM" per speed, like the summary menu; a speed that only some items have shows "Some items only".*
+10. **Speed Pricing** — bulk fixed price 8 over a category with a product priced 10: the message names how many products were left out. Open a rule that priced an order, change its speed: "Orders were priced with this rule…". A rule with 61 working days or 501 hours is refused.
+11. **Setup Health** — Demo Laundry LLC passes `SPEED_NO_EXPRESS`; the three organizations with Express only for some products fail it ("Express is not offered for every item"), fix link opens Speed Pricing. HQ: an organization whose country has no holidays 90 days ahead fails `CAL_HOLIDAYS_MISSING`.
+12. **HQ** — template editor has no weekend field, the list shows `weekend_days` after save; a duplicate public-holiday date shows the error on the Date field; the tenant Calendar year buttons stop at 2000 and 2100; a stored `24:00` closing shows as text.
+13. **Customer app** — book with a scheduled pickup: the confirmation shows "Expected ready: <date and time in your language>", not the pickup slot. Customers of an organization with Express only for some items are not offered Express. If a speed is refused at submit, the app returns to the speed step.*
+
+## 14. Preview, template, concurrent saves, HQ confirm (2026-11-14)
+
+1. **Preview card** — Business Calendar › Organization: the card "If an order is placed now" lists Standard (example 24 h item) and each speed that has an organization-wide rule, with a date and time in the organization's zone, and "Open now" / "Closed now". Change the cut-off and Save: the card refreshes. Branches tab: pick a branch, the card shows that branch's times.*
+2. **No hours** — an organization with no hours shows "Set the opening hours…" instead of times.
+3. **Template** — Organization tab: "Fill from the Oman template" fills hours, cut-off and ready time; nothing is saved until Save; leaving the tab keeps the filled values.*
+4. **Two people** — open the Organization tab in two browsers; save a change in the first, then save a different change in the second: the second shows "Someone else changed this calendar…" and the form now holds the first person's values.*
+5. **Speed Pricing hint** — add or edit a rule: under "Cut-off time for this speed" the help text ends with "Organization cut-off: 11:00." A user without `settings:read` sees no hint and no error.
+6. **HQ confirm** — Products & Items Config › Public holidays, filter a country: choose a year and "Mark OM dates confirmed", confirm: the message gives the count; the estimated badges for that country and year disappear; the audit log has one entry. A second run says "Nothing to confirm".
+
 ## Financial_Expert_Tester Results
 
 Round 1 observe: 2026-11-13 00:09–00:19 Asia/Muscat, Demo Laundry admin on [cmx.cleanmatex.com](https://cmx.cleanmatex.com) and HQ SAAS Admin on [hqsaas.cleanmatex.com](https://hqsaas.cleanmatex.com). Remote only. No writes (no calendar/holiday/rule Save, no order created; a New Order cart item was added then removed). Retest r1 02:10–02:17 after a deploy (nothing fixed). Retest r2 04:55–05:05 after a later deploy (HQ Calendar and sidebar fixed; Speed menu partly fixed). Tax became Active as part of that owner deploy (FET did not Confirm). Customer-app URL still unknown (§12 BLOCKED). Mutate and high-impact steps were not approved and were not run while the owner was away.

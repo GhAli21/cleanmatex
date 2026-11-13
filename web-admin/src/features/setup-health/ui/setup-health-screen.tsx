@@ -88,7 +88,10 @@ function SetupHealthRow({ item, isAr }: { item: SetupHealthItem; isAr: boolean }
     <div className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{isAr ? item.name2 : item.name}</span>
+          {/* Passing checks use the passing title; name describes the problem (QA: "Business hours are not set" + OK). */}
+          <span className="font-medium">
+            {item.status === 'OK' ? (isAr ? item.okName2 : item.okName) : isAr ? item.name2 : item.name}
+          </span>
           <SetupHealthStatusBadge status={item.status} />
           {failing && <SetupHealthSeverityBadge severity={item.severity} />}
           {failing && item.issueCount > 0 && (

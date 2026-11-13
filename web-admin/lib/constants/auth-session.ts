@@ -43,9 +43,9 @@ export const SESSION_REGISTER_STATUS = {
   /** Concurrent-session limit with policy BLOCK_NEW: nothing registered, sign-in must be refused. */
   BLOCKED_SESSION_LIMIT: 'BLOCKED_SESSION_LIMIT',
   NO_MEMBERSHIP: 'NO_MEMBERSHIP',
-  /** More than one eligible laundry. A PENDING row is opened; nothing is bound yet. */
-  CHOOSE_LAUNDRY: 'CHOOSE_LAUNDRY',
-  /** Global lock or password-attack lock. Every laundry is denied. */
+  /** More than one eligible tenant. A PENDING row is opened; nothing is bound yet. */
+  CHOOSE_TENANT: 'CHOOSE_TENANT',
+  /** Global lock or password-attack lock. Every tenant is denied. */
   LOCKED: 'LOCKED',
 } as const;
 

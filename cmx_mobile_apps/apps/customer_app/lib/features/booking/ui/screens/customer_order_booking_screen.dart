@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
@@ -220,7 +221,10 @@ class _CustomerOrderBookingScreenState
           if ((booking.submittedPromisedWindow ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
-              booking.submittedPromisedWindow!,
+              localizations.textWithArgs('booking.successReadyBy', {
+                'value':
+                    _formatReadyBy(context, booking.submittedPromisedWindow!),
+              }),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -337,4 +341,13 @@ class _CustomerOrderBookingScreenState
       ],
     );
   }
+}
+
+/// The promised time in the customer's language. The server sends an ISO
+/// instant; anything that does not parse is shown as sent.
+String _formatReadyBy(BuildContext context, String promised) {
+  final instant = DateTime.tryParse(promised);
+  if (instant == null) return promised;
+  final localeTag = Localizations.localeOf(context).toLanguageTag();
+  return DateFormat.yMMMEd(localeTag).add_jm().format(instant.toLocal());
 }

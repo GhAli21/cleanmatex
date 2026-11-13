@@ -278,6 +278,20 @@ describe('Service Speeds S3: calendar, offered speeds, ECONOMY discount', () => 
     expect(pub?.args.where).toMatchObject({ country_code: 'OM' });
   });
 
+  it('reads only the active speed rules in force on the business date (review B18)', async () => {
+    const { db, calls } = mockDb(calendarFixtures());
+    const order = oneLine('NEXT_DAY');
+    order.receivedAt = new Date('2026-10-22T21:30:00Z'); // 01:30 on 2026-10-23 in Muscat
+    await loadCommercialFacts(db, TENANT, order, deps);
+    const rules = calls.filter((c) => c.model === 'org_speed_price_rules_cf');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].args.where).toMatchObject({
+      tenant_org_id: TENANT, is_active: true, rec_status: 1,
+      effective_from: { lte: d('2026-10-23') },
+      OR: [{ effective_to: null }, { effective_to: { gte: d('2026-10-23') } }],
+    });
+  });
+
   it('NEXT_DAY = 1 working day at the ready time, skipping the weekend and a public holiday', async () => {
     const { db } = mockDb(calendarFixtures());
     const order = oneLine('NEXT_DAY');

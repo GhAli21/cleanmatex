@@ -10,7 +10,7 @@ import { branchCalendarSchema } from '@/lib/validations/business-calendar-schema
 
 export const dynamic = 'force-dynamic';
 
-const idOf = async (params: Promise<{ id: string }>) => z.string().uuid().safeParse((await params).id);
+const idOf = async (params: Promise<{ id: string }>) => z.string().guid().safeParse((await params).id);
 
 /**
  * GET /api/v1/settings/branches/[id]/calendar — the branch's own values and the organization's (`branches:read`).

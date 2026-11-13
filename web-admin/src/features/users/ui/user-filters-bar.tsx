@@ -4,24 +4,16 @@
  * User Filters Bar Component
  *
  * Search, filters, and bulk actions for the user list.
- * Bulk actions (activate/deactivate/delete) call platform-api directly.
+ * Bulk actions (activate/deactivate) call platform-api directly.
  * No Supabase imports.
  */
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { activateUser, deactivateUser, deleteUser } from '@/lib/api/users'
+import { activateUser, deactivateUser } from '@/lib/api/users'
 import { cmxMessage } from '@ui/feedback'
 import type { UserFilters } from '@/lib/api/users'
-import {
-  CmxDialog,
-  CmxDialogContent,
-  CmxDialogHeader,
-  CmxDialogTitle,
-  CmxDialogFooter,
-} from '@ui/overlays/cmx-dialog'
-import { CmxButton } from '@ui/primitives/cmx-button'
 
 interface UserFiltersBarProps {
   filters: UserFilters
@@ -62,7 +54,6 @@ export default function UserFiltersBar({
   const tenantId = currentTenant?.tenant_id ?? ''
 
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFilterChange({ search: e.target.value })
@@ -128,29 +119,6 @@ export default function UserFiltersBar({
       onBulkActionComplete?.()
     } catch (error) {
       console.error('Bulk deactivate error:', error)
-      cmxMessage.error(tCommon('error'))
-    } finally {
-      setBulkActionLoading(false)
-    }
-  }
-
-  const handleBulkDelete = async () => {
-    if (!selectedUserIds.length || !tenantId) return
-    setDeleteConfirmOpen(false)
-    setBulkActionLoading(true)
-    try {
-      const results = await Promise.allSettled(
-        selectedUserIds.map((id) => deleteUser(tenantId, id, accessToken))
-      )
-      const failed = results.filter((r) => r.status === 'rejected').length
-      if (failed > 0) {
-        cmxMessage.error(`${failed} user(s) failed to delete`)
-      } else {
-        cmxMessage.success(`${selectedUserIds.length} user(s) deleted`)
-      }
-      onBulkActionComplete?.()
-    } catch (error) {
-      console.error('Bulk delete error:', error)
       cmxMessage.error(tCommon('error'))
     } finally {
       setBulkActionLoading(false)
@@ -315,13 +283,6 @@ export default function UserFiltersBar({
                   >
                     {tTable('deactivate')}
                   </button>
-                  <button
-                    onClick={() => setDeleteConfirmOpen(true)}
-                    disabled={selectedUserIds.length === 0}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                  >
-                    {tCommon('delete')}
-                  </button>
                 </>
               )}
             </div>
@@ -388,32 +349,6 @@ export default function UserFiltersBar({
           </div>
         </div>
       )}
-
-      {/* Bulk Delete Confirmation Dialog */}
-      <CmxDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <CmxDialogContent className="w-full max-w-sm">
-          <CmxDialogHeader>
-            <CmxDialogTitle>{tCommon('confirm')}</CmxDialogTitle>
-          </CmxDialogHeader>
-          <div className="px-6 py-4">
-            <p className="text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-              {t('deleteConfirm', { count: selectedUserIds.length })}
-            </p>
-          </div>
-          <CmxDialogFooter>
-            <CmxButton variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
-              {tCommon('cancel')}
-            </CmxButton>
-            <CmxButton
-              variant="destructive"
-              onClick={handleBulkDelete}
-              loading={bulkActionLoading}
-            >
-              {tCommon('delete')}
-            </CmxButton>
-          </CmxDialogFooter>
-        </CmxDialogContent>
-      </CmxDialog>
     </div>
   )
 }

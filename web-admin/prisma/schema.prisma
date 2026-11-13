@@ -17483,7 +17483,6 @@ model sys_setup_health_check_cd {
   fix_route                  String?
   hq_fix_route               String?
   fix_permission             String?
-  feature_flag_key           String?
   shows_banner               Boolean                    @default(false)
   is_hq_only                 Boolean                    @default(false)
   fn_name                    String
@@ -17502,6 +17501,9 @@ model sys_setup_health_check_cd {
   deleted_info               String?
   rec_order                  Int?
   rec_notes                  String?
+  feature_flag_keys          String[]                   @default([])
+  ok_name                    String
+  ok_name2                   String
   sys_setup_health_domain_cd sys_setup_health_domain_cd @relation(fields: [domain_code], references: [domain_code], onUpdate: NoAction, map: "fk_shc_check_domain")
 
   @@index([domain_code, display_order], map: "idx_shc_check_domain_ord")

@@ -21,6 +21,7 @@ import { Trash2 } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
+import type { CashChangeRounding } from '@/lib/money/cash-rounding';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
 import {
   GATEWAY_METHOD_CODES,
@@ -101,6 +102,8 @@ export interface SplitTenderDialogProps {
   creditMethodCodes: string[];
   /** Pay-extra intent — unlocks zero-amount method detail fields. */
   payExtraIntent?: boolean;
+  /** Engine cash change rounding (on the total change); shown on the cash leg that gives change. */
+  cashChangeRounding?: CashChangeRounding | null;
 }
 
 /**
@@ -160,6 +163,7 @@ export function SplitTenderDialog({
   branchPaymentTerminals,
   cardBrands,
   creditMethodCodes,
+  cashChangeRounding = null,
 }: SplitTenderDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -184,6 +188,11 @@ export function SplitTenderDialog({
 
   // Editable = real payment methods for this dialog. Credits / stored value
   // stay visible below as read-only (edit them from Store credit).
+  // Rounding is on the total change: apply it to the first cash leg that gives change.
+  const roundedChangeLegIndex = cashChangeRounding
+    ? paymentLegs.findIndex((leg) => leg.method === PAYMENT_METHODS.CASH && (leg.cashTendered ?? 0) - (leg.amount ?? 0) > moneyEpsilon)
+    : -1;
+
   const { editableLegs, readOnlyLegs } = useMemo(() => {
     const editable: SplitLegEntry[] = [];
     const readOnly: SplitLegEntry[] = [];
@@ -467,6 +476,11 @@ export function SplitTenderDialog({
                       cardBrands={cardBrands}
                       creditMethodCodes={creditMethodCodes}
                       showCashTenderedChange
+                      cashChangeAmount={
+                        cashChangeRounding && index === roundedChangeLegIndex
+                          ? Math.max(0, (leg.cashTendered ?? 0) - (leg.amount ?? 0)) - cashChangeRounding.adjustment
+                          : undefined
+                      }
                       currencyCode={currencyCode}
                       formatAmount={formatAmount}
                     />

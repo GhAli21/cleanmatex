@@ -356,6 +356,7 @@ class AppLocalizations {
       'booking.setupUnavailableError':
           'Online booking is not available for this laundry right now. Please contact the laundry.',
       'booking.successTotal': 'Total: {amount}',
+      'booking.successReadyBy': 'Expected ready: {value}',
       // Review step
       'booking.reviewItemsTitle': 'Selected items',
       'booking.reviewPrefsTitle': 'Preferences',
@@ -737,6 +738,7 @@ class AppLocalizations {
       'booking.setupUnavailableError':
           'الحجز عبر التطبيق غير متاح لهذه المغسلة حالياً. يرجى التواصل مع المغسلة.',
       'booking.successTotal': 'الإجمالي: {amount}',
+      'booking.successReadyBy': 'موعد الجاهزية المتوقع: {value}',
       // خطوة المراجعة
       'booking.reviewItemsTitle': 'القطع المختارة',
       'booking.reviewPrefsTitle': 'التفضيلات',

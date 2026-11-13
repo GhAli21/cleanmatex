@@ -24,7 +24,11 @@
   "homeCard": {
     "title": "صحة الإعداد",
     "allGood": "لا توجد مشاكل في الإعداد",
-    "counts": "{blockers} موانع · {warnings} تحذيرات · {infos} معلومات",
+    "counts": "{blockers, plural, zero {لا موانع} one {مانع واحد} two {مانعان} few {# موانع} many {# مانعًا} other {# مانع}} · {warnings, plural, zero {لا تحذيرات} one {تحذير واحد} two {تحذيران} few {# تحذيرات} many {# تحذيرًا} other {# تحذير}} · {infos, plural, zero {لا معلومات} one {معلومة واحدة} two {معلومتان} few {# معلومات} many {# معلومة} other {# معلومة}}",
     "errors": "{count, plural, one {تعذّر تشغيل فحص واحد} two {تعذّر تشغيل فحصين} few {تعذّر تشغيل # فحوصات} many {تعذّر تشغيل # فحصًا} other {تعذّر تشغيل # فحص}}"
+  },
+  "accessDenied": {
+    "title": "ليس لديك صلاحية الوصول إلى صحة الإعداد",
+    "description": "اطلب من مسؤول منشأتك منحك صلاحية صحة الإعداد."
   }
 }

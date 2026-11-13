@@ -163,6 +163,7 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
       { label: 'Save organization calendar', method: 'PUT', path: '/api/v1/settings/calendar', requirement: { permissions: ['settings:organization'] } },
       { label: 'Branch calendar', method: 'GET', path: '/api/v1/settings/branches/[id]/calendar', requirement: { permissions: ['branches:read'] } },
       { label: 'Save branch calendar', method: 'PUT', path: '/api/v1/settings/branches/[id]/calendar', requirement: { permissions: ['branches:settings'] } },
+      { label: 'Ready times for an order placed now', method: 'GET', path: '/api/v1/settings/calendar/preview', requirement: { permissions: ['settings:read'] } },
       { label: 'Holidays', method: 'GET', path: '/api/v1/settings/holidays', requirement: { permissions: ['settings:read'] } },
       { label: 'Add holiday', method: 'POST', path: '/api/v1/settings/holidays', requirement: { permissions: ['settings:organization'] } },
       { label: 'Edit holiday', method: 'PATCH', path: '/api/v1/settings/holidays/[id]', requirement: { permissions: ['settings:organization'] } },

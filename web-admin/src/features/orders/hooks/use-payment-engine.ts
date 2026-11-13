@@ -96,7 +96,8 @@ import { usePaymentTotals } from '@features/orders/hooks/use-payment-totals';
 import type { OrderItemServicePref } from '@features/orders/model/new-order-types';
 import { usePaymentLegs } from '@features/orders/hooks/use-payment-legs';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
-import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
+import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
+import { isCashPayableAmount } from '@/lib/money/cash-rounding';
 import {
   resolvePaymentOverpaymentPolicy,
   resolveSupportsRetainedOverpayment,
@@ -629,6 +630,24 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
     ]
   );
 
+  // Cash prefill guard: never prefill a cash amount coins cannot pay (OMR 17.532 with a
+  // 5-baisa step). Same query key as the change-rounding policy below, so one request.
+  const cashPrefillPolicy = useCashChangeRoundingPolicy({ enabled: open, tenantOrgId, branchId, currencyCode });
+  const cashAmountNotPayable = useCallback(
+    (methodCode: string, amount: number) =>
+      methodCode === PAYMENT_METHODS.CASH
+      && amount > moneyEpsilonRef.current
+      && cashPrefillPolicy != null
+      && !isCashPayableAmount(amount, cashPrefillPolicy.decimalPlaces, cashPrefillPolicy.incrementMinor),
+    [cashPrefillPolicy]
+  );
+  const tellCashAmountNotPayable = useCallback(
+    (amount: number) => {
+      cmxMessage.info(t('cashAmountNotPayable', { amount: `${currencyCode} ${formatDecimalDraft(amount, decimalPlaces)}` }));
+    },
+    [currencyCode, decimalPlaces, t]
+  );
+
   const handleMethodSelect = useCallback(
     (option: CheckoutSettlementOption) => {
       if (items.length > 0 && !serverTotals) {
@@ -664,9 +683,17 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         giftCardSettlementAmount,
         decimalPlaces
       );
+      if (cashAmountNotPayable(option.payment_method_code, suggestedAmount)) {
+        // Leave the cash amount empty: the cashier enters what the customer actually hands over.
+        upsertSettlementLeg(option, 0);
+        tellCashAmountNotPayable(suggestedAmount);
+        return;
+      }
       upsertSettlementLeg(option, suggestedAmount);
     },
     [
+      cashAmountNotPayable,
+      tellCashAmountNotPayable,
       decimalPlaces,
       focusAmountEditor,
       giftCardSettlementAmount,
@@ -1316,6 +1343,11 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
         cmxMessage.info(t('splitPayment.noRemainingToFill'));
         return;
       }
+      if (cashAmountNotPayable(targetLeg.method, cappedAmount)) {
+        tellCashAmountNotPayable(cappedAmount);
+        focusAmountEditor();
+        return;
+      }
 
       setIsDirtySinceOpen(true);
       setActiveLegIndex(legIndex);
@@ -1324,6 +1356,8 @@ export function usePaymentEngine(params: UsePaymentEngineParams) {
       focusAmountEditor();
     },
     [
+      cashAmountNotPayable,
+      tellCashAmountNotPayable,
       decimalPlaces,
       focusAmountEditor,
       getLegStoredValueCap,

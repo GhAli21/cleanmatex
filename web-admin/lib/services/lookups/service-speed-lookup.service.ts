@@ -5,9 +5,9 @@
  * READ-ONLY in cleanmatex. Speeds are an HQ catalog (cleanmatexsaas). Every
  * active speed is listed (so labels resolve for speeds on older orders); with a
  * tenant, each row says whether this organization offers it: STANDARD always,
- * and any other speed only with an
- * active, effective Speed Pricing rule. The order loader enforces the same
- * (`SPEED_NOT_OFFERED`). Do not add write methods to this service.
+ * and any other speed only with an active, effective Speed Pricing rule, and
+ * whether that covers every item (`offered_scope`). The order loader enforces
+ * the real per-item rule (`SPEED_NOT_OFFERED`). Do not add write methods to this service.
  */
 
 import { createClient } from '@/lib/supabase/server';
@@ -29,7 +29,16 @@ export interface ServiceSpeedLookupRow {
   default_turnaround_unit: string | null;
   /** This organization can sell it now (always true without a tenant). */
   is_offered: boolean;
+  /**
+   * How far the offer reaches: ALL = an organization-wide rule (every branch, every item), so any
+   * cart can use it; SOME = rules only for a branch, a category or products, so a cart may be refused
+   * (`SPEED_NOT_OFFERED`); null = not offered.
+   */
+  offered_scope: OfferedScope | null;
 }
+
+/** See `ServiceSpeedLookupRow.offered_scope`. */
+export type OfferedScope = 'ALL' | 'SOME';
 
 /** Speeds offered with no rule: STANDARD by definition retires its legacy hours. */
 const ALWAYS_OFFERED = new Set<string>([SERVICE_SPEEDS.STANDARD]);
@@ -57,7 +66,7 @@ export async function listActiveServiceSpeeds(
       tenantOrgId
         ? client
           .from('org_speed_price_rules_cf')
-          .select('service_speed, effective_from, effective_to')
+          .select('service_speed, effective_from, effective_to, branch_id, service_category_code, product_id')
           .eq('tenant_org_id', tenantOrgId)
           .eq('is_active', true)
           .eq('rec_status', 1)
@@ -73,13 +82,21 @@ export async function listActiveServiceSpeeds(
     const tz = tenant?.data?.timezone;
     // The rule dates are business dates in the organization's zone (as the order loader reads them).
     const today = businessDateForTimezone(isValidTimeZone(tz) ? tz : 'UTC');
-    const ruled = new Set((rules?.data ?? [])
-      .filter((r) => r.effective_from <= today && (r.effective_to == null || r.effective_to >= today))
-      .map((r) => r.service_speed as string));
-    const rows = (speeds.data ?? []) as Omit<ServiceSpeedLookupRow, 'is_offered'>[];
+    // Speed → scope of its rules in force today: one organization-wide rule makes it ALL, anything narrower SOME.
+    const scopeOf = new Map<string, OfferedScope>();
+    for (const r of rules?.data ?? []) {
+      if (!(r.effective_from <= today && (r.effective_to == null || r.effective_to >= today))) continue;
+      const wide = r.branch_id == null && r.service_category_code == null && r.product_id == null;
+      const code = r.service_speed as string;
+      if (wide || !scopeOf.has(code)) scopeOf.set(code, wide ? 'ALL' : 'SOME');
+    }
+    const rows = (speeds.data ?? []) as Omit<ServiceSpeedLookupRow, 'is_offered' | 'offered_scope'>[];
     return {
       success: true,
-      data: rows.map((s) => ({ ...s, is_offered: !tenantOrgId || ALWAYS_OFFERED.has(s.code) || ruled.has(s.code) })),
+      data: rows.map((s) => {
+        const scope: OfferedScope | null = !tenantOrgId || ALWAYS_OFFERED.has(s.code) ? 'ALL' : scopeOf.get(s.code) ?? null;
+        return { ...s, is_offered: scope != null, offered_scope: scope };
+      }),
     };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };

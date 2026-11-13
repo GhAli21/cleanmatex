@@ -4,6 +4,7 @@ import type {
   HolidayView,
   OrganizationCalendarView,
   PublicHolidayView,
+  ReadyPreview,
 } from '@/lib/services/settings/business-calendar.service';
 import type { BranchCalendarInput, HolidayInput, OrganizationCalendarInput } from '@/lib/validations/business-calendar-schemas';
 
@@ -24,7 +25,9 @@ export interface HolidayListData {
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { credentials: 'include', ...init });
   const body = (await response.json().catch(() => null)) as { success?: boolean; data?: T; error?: { code?: string } } | null;
-  if (!response.ok || !body?.success) throw new BusinessCalendarApiError(body?.error?.code ?? 'INTERNAL_ERROR');
+  // Permission guards answer in their own envelope: map the status so the user sees the real reason.
+  const byStatus = response.status === 401 ? 'UNAUTHORIZED' : response.status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR';
+  if (!response.ok || !body?.success) throw new BusinessCalendarApiError(typeof body?.error?.code === 'string' ? body.error.code : byStatus);
   return body.data as T;
 }
 
@@ -62,6 +65,14 @@ export const fetchBranchCalendar = (branchId: string, signal?: AbortSignal) =>
  */
 export const saveBranchCalendar = (branchId: string, input: BranchCalendarInput, csrfToken: string | null) =>
   send<BranchCalendarView>(`/api/v1/settings/branches/${branchId}/calendar`, 'PUT', csrfToken, input);
+
+/**
+ * "An order placed now": ready time per speed from the saved calendar.
+ * @param branchId - a branch, or undefined for the organization
+ * @param signal - cancels a superseded request
+ */
+export const fetchReadyPreview = (branchId: string | undefined, signal?: AbortSignal) =>
+  request<ReadyPreview>(`/api/v1/settings/calendar/preview${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ''}`, { signal });
 
 /**
  * One year's holidays.

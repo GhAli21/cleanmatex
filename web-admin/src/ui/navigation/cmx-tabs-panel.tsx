@@ -26,6 +26,11 @@ export interface CmxTabsPanelProps {
   value?: string;
   /** Called when tab changes (use with value for controlled mode) */
   onChange?: (tabId: string) => void;
+  /**
+   * Keep every panel mounted (inactive ones hidden), so unsaved form state survives a tab switch.
+   * Default false: inactive panels unmount.
+   */
+  keepMounted?: boolean;
   className?: string;
 }
 
@@ -34,6 +39,7 @@ export const CmxTabsPanel: React.FC<CmxTabsPanelProps> = ({
   defaultTab,
   value,
   onChange,
+  keepMounted = false,
   className = '',
 }) => {
   const defaultValue = defaultTab ?? tabs[0]?.id;
@@ -85,7 +91,12 @@ export const CmxTabsPanel: React.FC<CmxTabsPanelProps> = ({
           </CmxTabsList>
         </div>
         {tabs.map((tab) => (
-          <CmxTabsContent key={tab.id} value={tab.id} className="mt-6">
+          <CmxTabsContent
+            key={tab.id}
+            value={tab.id}
+            className={cn('mt-6', keepMounted && 'data-[state=inactive]:hidden')}
+            forceMount={keepMounted ? true : undefined}
+          >
             <div className="contents">{tab.content}</div>
           </CmxTabsContent>
         ))}

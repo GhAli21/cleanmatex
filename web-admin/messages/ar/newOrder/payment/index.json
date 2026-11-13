@@ -13,5 +13,6 @@
   "promoOrGiftCard": "كود خصم أو بطاقة هدية",
   "paymentNotes": "ملاحظات الدفع",
   "paymentNotesPlaceholder": "ملاحظات متعلقة بالدفع (اختياري)...",
-  "voucherCreated": "تم إنشاء سند القبض {voucherNo}"
+  "voucherCreated": "تم إنشاء سند القبض {voucherNo}",
+  "cashAmountNotPayable": "لا يمكن دفع {amount} نقدًا بالضبط (لا توجد عملة معدنية لها). أدخل المبلغ النقدي الذي يسلّمه العميل."
 }

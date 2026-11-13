@@ -24,7 +24,11 @@
   "homeCard": {
     "title": "Setup health",
     "allGood": "No setup problems",
-    "counts": "{blockers} blockers · {warnings} warnings · {infos} info",
+    "counts": "{blockers, plural, one {# blocker} other {# blockers}} · {warnings, plural, one {# warning} other {# warnings}} · {infos} info",
     "errors": "{count, plural, one {# check could not run} other {# checks could not run}}"
+  },
+  "accessDenied": {
+    "title": "You don't have access to Setup Health",
+    "description": "Ask an administrator of your organization to give you the Setup Health permission."
   }
 }
