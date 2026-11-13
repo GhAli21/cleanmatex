@@ -16,6 +16,7 @@ import {
   type CommercialWritePlan,
 } from '@/lib/services/order-change/order-change-commercial-write';
 import { editMoneyColumns, replaceEditChildRows, type EditChildRowsTx, type EditMoneyColumns } from '@/lib/services/commercial/commercial-edit.writer';
+import { reviewedPieceTotals } from '@/lib/services/order-change/order-change-edit-pricing';
 import {
   buildStructuralWritePlan,
   loadStructuralWriteFacts,
@@ -915,7 +916,7 @@ export async function applyOrderChange(input: ApplyOrderChangeInput): Promise<Ap
       ? await loadStructuralWriteFacts(tx, input.tenantId, input.orderId, input.request.operations)
       : null;
     const structural = structuralFacts
-      ? buildStructuralWritePlan(input.request.operations, input.preview.lines ?? [], structuralFacts, input.actorUserId)
+      ? buildStructuralWritePlan(input.request.operations, input.preview.lines ?? [], structuralFacts, input.actorUserId, reviewedPieceTotals(input.preview.commercial))
       : null;
     const beforeFacts = await loadOperationBeforeFacts(tx, input.tenantId, input.orderId, input.request.operations);
     const overrideActor = await overrideActorOf(tx, input.tenantId, input.actorUserId, input.request);

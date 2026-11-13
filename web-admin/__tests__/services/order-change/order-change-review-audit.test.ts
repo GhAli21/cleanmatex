@@ -1,4 +1,6 @@
-import { buildOrderChangeOperationAudit, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
+import { buildOrderChangeOperationAudit, buildPreviewOperationAudits, digestOrderChangeOperationAudits } from '@/lib/services/order-change/order-change-review-audit';
+import { buildStructuralWritePlan } from '@/lib/services/order-change/order-change-structural-write';
+import type { OrderChangeContext } from '@/lib/types/order-change';
 
 const orderId = '22222222-2222-4222-8222-222222222222';
 const itemId = '33333333-3333-4333-8333-333333333333';
@@ -76,5 +78,78 @@ describe('the shared reviewed and stored operation contract', () => {
     });
     expect(audit.beforeValues.totalAmount).toBe('999999999999999.1234');
     expect(audit.afterValues.taxAmount).toBe('0.0001');
+  });
+
+  it('signs the piece gross Apply stores when a preference extra changes the line', () => {
+    const itemRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const pieceRef = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const productId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const pieceTotals = new Map([[pieceRef, '3.5000']]);
+    const operations = [
+      { seq: 1, code: 'ADD_ITEM' as const, target: { kind: 'ORDER' as const }, payload: { clientRef: itemRef, productId, quantity: 1 } },
+      { seq: 2, code: 'ADD_PIECE' as const, target: { kind: 'LOCAL_ITEM' as const, clientRef: itemRef }, payload: { clientRef: pieceRef } },
+    ];
+    const orderMoney = { total_amount: '21.8000', total_tax_amount: '0.0000' };
+    const context = { orderId, pieces: [], items: [], workflow: { currentStatus: 'processing' } } as unknown as OrderChangeContext;
+    const preview = buildPreviewOperationAudits({
+      context,
+      operations,
+      lines: [{ id: itemRef, unitPrice: '3.0000', merchandiseAmount: '3.0000', embeddedExtra: '0.5000' }],
+      catalog: [],
+      auditFacts: {
+        order: orderMoney,
+        items: {},
+        pieces: {},
+        preferences: {},
+        products: { [productId]: { product_name: 'Boxer Shorts', product_name2: null, service_category_code: 'DRY' } },
+      },
+      pieceTotals,
+      projectedTotal: orderMoney.total_amount,
+      projectedTax: orderMoney.total_tax_amount,
+    });
+    const plan = buildStructuralWritePlan(operations, [
+      { id: itemRef, active: true, unitPrice: '3.0000', merchandiseAmount: '3.0000', embeddedExtra: '0.5000' },
+    ], {
+      products: new Map([[productId, { id: productId, productName: 'Boxer Shorts', productName2: null, serviceCategoryCode: 'DRY' }]]),
+      pieceItemIds: new Map(),
+      branchId: null,
+      orderNo: '100',
+      itemStatus: 'processing',
+      nextItemSerial: 1,
+      nextPieceSeqByItemId: new Map(),
+    }, 'user-1', pieceTotals);
+    const stored = plan.pieceInserts[0];
+    const applied = buildOrderChangeOperationAudit({
+      operation: operations[1],
+      orderId,
+      before: {},
+      after: { id: stored.id, rec_status: 1, ...stored.data },
+      orderBefore: orderMoney,
+      orderAfter: orderMoney,
+    });
+    const reviewed = preview.find((row) => row.code === 'ADD_PIECE');
+    expect(reviewed?.afterValues.totalPrice).toBe('3.5000');
+    expect(applied.afterValues.totalPrice).toBe('3.5000');
+    expect(reviewed).toBeDefined();
+    expect(digestOrderChangeOperationAudits([applied])).toBe(digestOrderChangeOperationAudits([reviewed!]));
+  });
+
+  it('signs the catalog preference id Apply stores', () => {
+    const catalogId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const audits = buildPreviewOperationAudits({
+      context: { orderId, pieces: [], items: [], workflow: { currentStatus: 'processing' } } as unknown as OrderChangeContext,
+      operations: [{
+        seq: 1,
+        code: 'ADD_PREFERENCE',
+        target: { kind: 'LOCAL_ITEM', clientRef: itemId },
+        payload: { clientRef: preferenceId, preferenceId: catalogId.toUpperCase(), preferenceCode: 'STARCH' },
+      }],
+      lines: [],
+      catalog: [{ id: catalogId, code: 'STARCH', kind: 'service_prefs', category: '', level: 'ITEM', extraPrice: '0.5000' }],
+      auditFacts: { order: money, items: {}, pieces: {}, preferences: {}, products: {} },
+      projectedTotal: money.total_amount,
+      projectedTax: money.total_tax_amount,
+    });
+    expect(audits[0]?.afterValues.preferenceId).toBe(catalogId);
   });
 });

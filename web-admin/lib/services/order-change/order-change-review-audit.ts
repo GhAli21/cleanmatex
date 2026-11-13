@@ -264,7 +264,7 @@ function projectPreviewOperationRows(input: {
         after: compact({
           rec_status: 1,
           prefs_level: catalog?.level ?? preferenceLevel(operation.target.kind),
-          preference_id: operation.payload.preferenceId,
+          preference_id: catalog?.id ?? operation.payload.preferenceId,
           preference_code: catalog?.code ?? operation.payload.preferenceCode,
           preference_content: operation.payload.preferenceContent ?? catalog?.code ?? operation.payload.preferenceCode,
           preference_sys_kind: catalog?.kind,
@@ -532,8 +532,8 @@ export function buildPreviewOperationAudits(input: Parameters<typeof projectPrev
   return input.operations.map((operation) => {
     const values = rows.find((row) => row.seq === operation.seq)!;
     if (operation.code === 'ADD_PIECE') {
-      const parent = operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : operation.target.clientRef;
-      const seq = nextPieceSeq.get(parent) ?? Math.max(0, ...input.context.pieces.filter((piece) => piece.orderItemId === parent).map((piece) => piece.pieceSeq ?? 0)) + 1;
+      const parent = (operation.target.kind === 'PERSISTED_ITEM' ? operation.target.id : operation.target.clientRef).toLowerCase();
+      const seq = nextPieceSeq.get(parent) ?? Math.max(0, ...input.context.pieces.filter((piece) => piece.orderItemId.toLowerCase() === parent).map((piece) => piece.pieceSeq ?? 0)) + 1;
       nextPieceSeq.set(parent, seq + 1);
       values.after.piece_seq = seq;
       values.after.piece_status = input.context.workflow.currentStatus || 'processing';

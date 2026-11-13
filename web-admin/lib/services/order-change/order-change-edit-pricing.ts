@@ -66,6 +66,19 @@ export function reviewedItemTotal(line: { merchandiseAmount: string; embeddedExt
   return toMoneyString(addMoney(line.merchandiseAmount, line.embeddedExtra ?? '0'));
 }
 
+/**
+ * Calculated piece `total_price` by row id.
+ * Preview signs this gross (preference extras included). Apply must store the same amount,
+ * or the review proof is rejected as `REVIEW_CHANGED` on every apply.
+ */
+export function reviewedPieceTotals(commercial: Pick<EditQuote, 'quote'> | null | undefined): ReadonlyMap<string, string> {
+  const lines = commercial?.quote.result.lines ?? [];
+  return new Map(lines.flatMap((line) => line.pieces.map((piece) => [
+    piece.rowId.toLowerCase(),
+    piece.money.grossAmount.toFixed(4),
+  ] as const)));
+}
+
 
 /**
  * The speeds the reviewed operations set (P6-02b): the order speed (ORDER target)

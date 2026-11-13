@@ -39,6 +39,7 @@ import {
   orderChangeNeedsPricing,
   reviewedItemTotal,
   reviewedLinesOf,
+  reviewedPieceTotals,
   speedChangesOf,
   type OrderChangeEditPricer,
   type OrderChangeReviewedLine,
@@ -593,8 +594,7 @@ export async function previewOrderChange(input: {
     catalog: input.catalog,
     speedAudit,
     auditFacts: input.auditFacts,
-    pieceTotals: new Map((calculated.commercial?.quote.result.lines ?? [])
-      .flatMap((line) => line.pieces.map((piece) => [piece.rowId.toLowerCase(), piece.money.grossAmount.toFixed(4)] as const))),
+    pieceTotals: reviewedPieceTotals(calculated.commercial),
     projectedTotal: calculated.totalAmount,
     projectedTax: calculated.taxAmount,
   });

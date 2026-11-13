@@ -196,6 +196,7 @@ export function buildStructuralWritePlan(
   lines: readonly StructuralLinePrice[],
   facts: StructuralWriteFacts,
   actorUserId: string,
+  pieceTotals?: ReadonlyMap<string, string>,
 ): StructuralWritePlan {
   const plan: StructuralWritePlan = {
     itemInserts: [],
@@ -301,7 +302,8 @@ export function buildStructuralWritePlan(
           scan_state: 'expected',
           quantity: 1,
           price_per_unit: parentLine.unitPrice,
-          total_price: parentLine.unitPrice,
+          // Same gross Preview signed. The line unit price omits a preference extra and makes Apply reject the review.
+          total_price: pieceTotals?.get(keyOf(operation.payload.clientRef)) ?? parentLine.unitPrice,
           piece_status: facts.itemStatus,
           is_ready: false,
           created_by: actorUserId,
