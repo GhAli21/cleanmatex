@@ -35,6 +35,7 @@ import { trackLogout, type LogoutReason } from '@/lib/auth/logout-tracker'
 import { getSafeRedirectPath } from '@/lib/security/safe-redirect'
 import { LOGIN_REASONS, type LoginReason } from '@/lib/constants/auth-session'
 import { broadcastLogout } from '@/src/features/auth-session/model/session-channel'
+import { endAnyOrderEditTabSession } from '@features/orders/order-change/edit-page-session'
 import { getCSRFToken } from '@/lib/utils/csrf-token'
 
 // Create the context
@@ -509,6 +510,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isSigningOutRef.current = true
     setIsLoading(true)
     try {
+      // Release this tab's edit lock while the login cookie can still authorize the end.
+      try {
+        await endAnyOrderEditTabSession()
+      } catch (editLockError) {
+        console.warn('Edit lock release on sign-out failed:', editLockError)
+      }
+
       // Call server-side logout API for cache invalidation
       try {
         await fetch('/api/auth/logout', {

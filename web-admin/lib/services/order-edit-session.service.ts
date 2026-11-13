@@ -45,6 +45,8 @@ interface SessionActor {
   userId: string;
   orderId: string;
   sessionToken: string | null;
+  /** Supabase auth session that owns this browser. Sign-out of that session releases the lock. */
+  authSessionId?: string | null;
 }
 
 interface StartOrderEditSessionInput extends SessionActor {
@@ -97,6 +99,49 @@ async function readLock(orderId: string, tenantId: string): Promise<LockRow | nu
  */
 function isExpired(row: LockRow): boolean {
   return row.expires_at.getTime() <= Date.now();
+}
+
+/** True after the auth-session column is missing, so later edits do not keep failing the same write. */
+let authSessionColumnMissing = false;
+
+/**
+ * Records which login holds the lock. A missing column (migration not applied yet) is ignored.
+ * Sign-out deletes `auth.sessions`, and the lock row follows that session.
+ * @param tenantId - Authenticated organization.
+ * @param orderId - Order being edited.
+ * @param userId - Lock owner.
+ * @param authSessionId - Verified Supabase session id, when the request has one.
+ */
+async function rememberAuthSession(
+  tenantId: string,
+  orderId: string,
+  userId: string,
+  authSessionId: string | null | undefined,
+): Promise<void> {
+  if (authSessionColumnMissing || !isSessionToken(authSessionId)) return;
+  try {
+    await prisma.$executeRaw`
+      UPDATE public.org_order_edit_locks
+      SET auth_session_id = ${authSessionId}::uuid
+      WHERE order_id = ${orderId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+        AND locked_by = ${userId}::uuid
+    `;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('auth_session_id') || message.includes('42703')) {
+      authSessionColumnMissing = true;
+      return;
+    }
+    logger.warn('Order edit lock could not record the auth session', {
+      feature: 'orders',
+      action: 'edit_session_auth_stamp',
+      tenantId,
+      userId,
+      orderId,
+      error: message,
+    });
+  }
 }
 
 /**
@@ -199,6 +244,7 @@ export async function startOrderEditSession(
     if (existing && !isExpired(existing)) {
       rejectForeignLock(existing, input.userId, sessionToken);
       const expiresAt = await extendMatchingLock(input.orderId, input.tenantId, input.userId, sessionToken);
+      await rememberAuthSession(input.tenantId, input.orderId, input.userId, input.authSessionId);
       logger.info('Order edit session resumed', {
         feature: 'orders',
         action: 'edit_session_start',
@@ -238,9 +284,11 @@ export async function startOrderEditSession(
       }
       rejectForeignLock(raced, input.userId, sessionToken);
       const extended = await extendMatchingLock(input.orderId, input.tenantId, input.userId, sessionToken);
+      await rememberAuthSession(input.tenantId, input.orderId, input.userId, input.authSessionId);
       return { expiresAt: extended.toISOString() };
     }
 
+    await rememberAuthSession(input.tenantId, input.orderId, input.userId, input.authSessionId);
     logger.info('Order edit session started', {
       feature: 'orders',
       action: 'edit_session_start',
@@ -297,7 +345,69 @@ export async function touchOrderEditSession(
       throw new OrderEditSessionError('MISMATCH');
     }
     const expiresAt = await extendMatchingLock(input.orderId, input.tenantId, input.userId, sessionToken);
+    await rememberAuthSession(input.tenantId, input.orderId, input.userId, input.authSessionId);
     return { expiresAt: expiresAt.toISOString() };
+  });
+}
+
+/**
+ * Releases edit locks when a login ends.
+ * Locks tied to this auth session go immediately, including when another device is still signed in.
+ * When this was the user's last active login in the organization, every remaining lock of theirs
+ * is released too, including rows opened before the auth-session column existed.
+ * @param input.tenantId - Organization the login was bound to.
+ * @param input.userId - User who signed out.
+ * @param input.authSessionId - Session that just ended.
+ * @param input.otherActiveSessions - Other ACTIVE logins this user still has in the organization.
+ * @returns How many lock rows were deleted by the leftover sweep. The session-tied delete is separate.
+ */
+export async function releaseOrderEditLocksOnSignOut(input: {
+  tenantId: string;
+  userId: string;
+  authSessionId: string | null;
+  otherActiveSessions: number;
+}): Promise<number> {
+  return withTenantContext(input.tenantId, async () => {
+    if (isSessionToken(input.authSessionId) && !authSessionColumnMissing) {
+      try {
+        await prisma.$executeRaw`
+          DELETE FROM public.org_order_edit_locks
+          WHERE tenant_org_id = ${input.tenantId}::uuid
+            AND locked_by = ${input.userId}::uuid
+            AND auth_session_id = ${input.authSessionId}::uuid
+        `;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (message.includes('auth_session_id') || message.includes('42703')) {
+          authSessionColumnMissing = true;
+        } else {
+          logger.warn('Order edit locks for the ended login could not be released', {
+            feature: 'orders',
+            action: 'edit_session_signout',
+            tenantId: input.tenantId,
+            userId: input.userId,
+            error: message,
+          });
+        }
+      }
+    }
+    if (input.otherActiveSessions > 0) return 0;
+    const removed = await prisma.org_order_edit_locks.deleteMany({
+      where: {
+        tenant_org_id: input.tenantId,
+        locked_by: input.userId,
+      },
+    });
+    if (removed.count > 0) {
+      logger.info('Order edit locks released on sign-out', {
+        feature: 'orders',
+        action: 'edit_session_signout',
+        tenantId: input.tenantId,
+        userId: input.userId,
+        removed: removed.count,
+      });
+    }
+    return removed.count;
   });
 }
 

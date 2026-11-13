@@ -4,15 +4,14 @@
  * Manages edit locking to prevent concurrent modifications
  *
  * PRD: Edit Order Feature - Concurrent Edit Prevention
- * Implements pessimistic locking with 30-minute TTL
+ * Implements pessimistic locking with the shared edit-session lease.
  */
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { withTenantGuardBypass } from '@/lib/db/tenant-guard';
 import { logger } from '@/lib/utils/logger';
-
-const LOCK_TTL_MINUTES = 30;
+import { ORDER_EDIT_SESSION_TTL_MS } from '@/lib/constants/order-edit-session';
 
 export interface OrderLock {
   orderId: string;
@@ -76,7 +75,7 @@ export async function lockOrderForEdit(params: LockOrderParams): Promise<OrderLo
           },
           data: {
             locked_at: new Date(),
-            expires_at: new Date(Date.now() + LOCK_TTL_MINUTES * 60 * 1000),
+            expires_at: new Date(Date.now() + ORDER_EDIT_SESSION_TTL_MS),
             session_id: sessionId || existingLock.session_id,
           },
         });
@@ -110,7 +109,7 @@ export async function lockOrderForEdit(params: LockOrderParams): Promise<OrderLo
         locked_by: userId,
         locked_by_name: userName || null,
         locked_at: new Date(),
-        expires_at: new Date(Date.now() + LOCK_TTL_MINUTES * 60 * 1000),
+        expires_at: new Date(Date.now() + ORDER_EDIT_SESSION_TTL_MS),
         session_id: sessionId || null,
         ip_address: ipAddress || null,
         user_agent: userAgent || null,
@@ -119,7 +118,7 @@ export async function lockOrderForEdit(params: LockOrderParams): Promise<OrderLo
         locked_by: userId,
         locked_by_name: userName || null,
         locked_at: new Date(),
-        expires_at: new Date(Date.now() + LOCK_TTL_MINUTES * 60 * 1000),
+        expires_at: new Date(Date.now() + ORDER_EDIT_SESSION_TTL_MS),
         session_id: sessionId || null,
         ip_address: ipAddress || null,
         user_agent: userAgent || null,
@@ -288,7 +287,7 @@ export async function extendLock(
       },
       data: {
         locked_at: new Date(),
-        expires_at: new Date(Date.now() + LOCK_TTL_MINUTES * 60 * 1000),
+        expires_at: new Date(Date.now() + ORDER_EDIT_SESSION_TTL_MS),
       },
     });
 

@@ -5,6 +5,7 @@ const findLock = jest.fn();
 const createLock = jest.fn();
 const updateLock = jest.fn();
 const deleteLock = jest.fn();
+const executeRaw = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -15,6 +16,7 @@ jest.mock('@/lib/db/prisma', () => ({
       updateMany: (...args: unknown[]) => updateLock(...args),
       deleteMany: (...args: unknown[]) => deleteLock(...args),
     },
+    $executeRaw: (...args: unknown[]) => executeRaw(...args),
   },
 }));
 jest.mock('@/lib/db/tenant-context', () => ({
@@ -27,6 +29,7 @@ jest.mock('@/lib/utils/logger', () => ({
 import {
   endOrderEditSession,
   OrderEditSessionError,
+  releaseOrderEditLocksOnSignOut,
   startOrderEditSession,
   touchOrderEditSession,
 } from '@/lib/services/order-edit-session.service';
@@ -45,6 +48,7 @@ describe('order edit session', () => {
     deleteLock.mockResolvedValue({ count: 1 });
     updateLock.mockResolvedValue({ count: 1 });
     createLock.mockResolvedValue({ order_id: ORDER_ID });
+    executeRaw.mockResolvedValue(1);
   });
 
   it('starts a session only for an order in the authenticated organization', async () => {
@@ -178,5 +182,42 @@ describe('order edit session', () => {
         session_id: TOKEN,
       }),
     }));
+  });
+
+  it('records the login on the lock when an auth session is known', async () => {
+    findLock.mockResolvedValue(null);
+    await startOrderEditSession({
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+      orderId: ORDER_ID,
+      sessionToken: TOKEN,
+      authSessionId: OTHER_TOKEN,
+    });
+    expect(executeRaw).toHaveBeenCalled();
+  });
+
+  it('releases every remaining lock when sign-out was the last login', async () => {
+    const removed = await releaseOrderEditLocksOnSignOut({
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+      authSessionId: OTHER_TOKEN,
+      otherActiveSessions: 0,
+    });
+    expect(removed).toBe(1);
+    expect(deleteLock).toHaveBeenCalledWith({
+      where: { tenant_org_id: TENANT_ID, locked_by: USER_ID },
+    });
+  });
+
+  it('does not clear another device when that login is still active', async () => {
+    const removed = await releaseOrderEditLocksOnSignOut({
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+      authSessionId: OTHER_TOKEN,
+      otherActiveSessions: 1,
+    });
+    expect(removed).toBe(0);
+    expect(executeRaw).toHaveBeenCalled();
+    expect(deleteLock).not.toHaveBeenCalled();
   });
 });

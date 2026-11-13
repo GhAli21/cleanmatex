@@ -67,6 +67,22 @@ export function readOrderEditTabSession(orderId: string): OrderEditTabSession | 
 }
 
 /**
+ * Ends the edit lock this tab holds, before sign-out clears the login cookie.
+ * Another tab of this browser is released on the server when the login ends.
+ * @returns Nothing. A failed end leaves the server sweep to release a last login.
+ */
+export async function endAnyOrderEditTabSession(): Promise<void> {
+  const session = readAnyOrderEditTabSession();
+  if (!session) return;
+  await postOrderEditSession(session.orderId, {
+    action: 'end',
+    token: session.token,
+    reason: 'user_exit',
+  });
+  clearOrderEditTabSession(session.orderId);
+}
+
+/**
  * @returns Any edit session this tab still holds, including a different order.
  */
 export function readAnyOrderEditTabSession(): OrderEditTabSession | null {

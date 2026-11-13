@@ -12,7 +12,8 @@ import { createAdminSupabaseClient, createClient, SB_REMEMBER_ME_COOKIE } from '
 import { getSessionIdFromToken } from '@/lib/auth/jwt-claims'
 import { forgetSessionValidation } from '@/lib/auth/session-guard'
 import { endOwnSession } from '@/lib/services/auth/session/use-cases/session-lifecycle'
-import { validateOwnSession } from '@/lib/services/auth/session/auth-session.repository'
+import { listSessions, validateOwnSession } from '@/lib/services/auth/session/auth-session.repository'
+import { releaseOrderEditLocksOnSignOut } from '@/lib/services/order-edit-session.service'
 import { SESSION_STATES } from '@/lib/constants/auth-session'
 import { onLogoutInvalidate } from '@/lib/auth/on-logout-invalidate'
 import { logger } from '@/lib/utils/logger'
@@ -77,9 +78,26 @@ export async function POST(request: NextRequest) {
         data: { session },
       } = await supabase.auth.getSession()
       const authSessionId = getSessionIdFromToken(session?.access_token)
+      const admin = createAdminSupabaseClient()
       if (authSessionId) {
-        await endOwnSession(createAdminSupabaseClient(), { authSessionId, userId, reason })
+        await endOwnSession(admin, { authSessionId, userId, reason })
         forgetSessionValidation(authSessionId)
+      }
+      // The edit lock is not the login. Release it once this login is gone so the next person can edit.
+      if (tenantId) {
+        const stillActive = await listSessions(admin, {
+          tenantOrgId: tenantId,
+          authUserId: userId,
+          status: 'ACTIVE',
+          limit: 1,
+        }).catch(() => ({ rows: [], total: 1 }))
+        await releaseOrderEditLocksOnSignOut({
+          tenantId,
+          userId,
+          authSessionId,
+          // A failed count must not wipe a lock another signed-in device still holds.
+          otherActiveSessions: stillActive.total,
+        })
       }
     } catch (endError) {
       logger.error('Failed to end session on logout', endError as Error, {

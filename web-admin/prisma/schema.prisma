@@ -322,25 +322,26 @@ model saml_relay_states {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model sessions {
-  id                     String           @id @db.Uuid
-  user_id                String           @db.Uuid
-  created_at             DateTime?        @db.Timestamptz(6)
-  updated_at             DateTime?        @db.Timestamptz(6)
-  factor_id              String?          @db.Uuid
+  id                     String                 @id @db.Uuid
+  user_id                String                 @db.Uuid
+  created_at             DateTime?              @db.Timestamptz(6)
+  updated_at             DateTime?              @db.Timestamptz(6)
+  factor_id              String?                @db.Uuid
   aal                    aal_level?
-  not_after              DateTime?        @db.Timestamptz(6)
-  refreshed_at           DateTime?        @db.Timestamp(6)
+  not_after              DateTime?              @db.Timestamptz(6)
+  refreshed_at           DateTime?              @db.Timestamp(6)
   user_agent             String?
-  ip                     String?          @db.Inet
+  ip                     String?                @db.Inet
   tag                    String?
-  oauth_client_id        String?          @db.Uuid
+  oauth_client_id        String?                @db.Uuid
   refresh_token_hmac_key String?
   refresh_token_counter  BigInt?
   scopes                 String?
   mfa_amr_claims         mfa_amr_claims[]
   refresh_tokens         refresh_tokens[]
-  oauth_clients          oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users                  users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  oauth_clients          oauth_clients?         @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_order_edit_locks   org_order_edit_locks[]
 
   @@index([not_after(sort: Desc)])
   @@index([user_id])
@@ -1343,6 +1344,8 @@ model org_order_edit_locks {
   rec_status      Int?            @default(1) @db.SmallInt
   rec_order       Int?
   rec_notes       String?
+  auth_session_id String?         @db.Uuid
+  sessions        sessions?       @relation(fields: [auth_session_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ord_edit_lk_auth_sess")
   org_orders_mst  org_orders_mst  @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_edit_lock_order")
   org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_edit_lock_tenant")
   users           users           @relation(fields: [locked_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_edit_lock_user")
@@ -1350,6 +1353,7 @@ model org_order_edit_locks {
   @@index([tenant_org_id], map: "idx_order_edit_locks_tenant")
   @@index([expires_at], map: "idx_order_edit_locks_expires_at")
   @@index([locked_by], map: "idx_order_edit_locks_locked_by")
+  @@index([tenant_org_id, locked_by, auth_session_id], map: "idx_ord_edit_lk_auth_sess")
   @@schema("public")
 }
 

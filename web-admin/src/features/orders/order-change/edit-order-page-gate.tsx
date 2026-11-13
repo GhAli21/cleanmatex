@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { EditSharedWorkspace } from './edit-shared-workspace';
+import { ORDER_EDIT_SESSION_HEARTBEAT_MS } from '@/lib/constants/order-edit-session';
 import {
   allowEditLeave,
   clearOrderEditTabSession,
@@ -119,7 +120,8 @@ export function EditOrderPageGate({ orderId }: { orderId: string }) {
     if (phase !== 'ready') return;
     const beat = async () => {
       const session = sessionRef.current;
-      if (!session || releasedRef.current || document.visibilityState === 'hidden') return;
+      // A background tab is still open. Only an ended page stops the lease.
+      if (!session || releasedRef.current) return;
       const result = await postOrderEditSession(orderId, { action: 'heartbeat', token: session.token });
       if (releasedRef.current) return;
       if (!result.ok || !result.expiresAt) {
@@ -130,7 +132,8 @@ export function EditOrderPageGate({ orderId }: { orderId: string }) {
       rememberOrderEditExpiry(orderId, result.expiresAt);
       sessionRef.current = { ...session, expiresAt: result.expiresAt };
     };
-    const timer = window.setInterval(() => { void beat(); }, 60_000);
+    void beat();
+    const timer = window.setInterval(() => { void beat(); }, ORDER_EDIT_SESSION_HEARTBEAT_MS);
     const onVisible = () => {
       if (document.visibilityState === 'visible') void beat();
     };
@@ -157,7 +160,7 @@ export function EditOrderPageGate({ orderId }: { orderId: string }) {
     window.addEventListener('pagehide', onHide);
     return () => {
       window.removeEventListener('pagehide', onHide);
-      if (releasedRef.current || document.visibilityState === 'hidden') return;
+      if (releasedRef.current) return;
       const session = sessionRef.current;
       if (!session) return;
       releasedRef.current = true;

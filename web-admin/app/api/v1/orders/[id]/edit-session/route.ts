@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { getSessionIdFromToken } from '@/lib/auth/jwt-claims';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import {
   endOrderEditSession,
@@ -67,6 +69,9 @@ export async function POST(
 
   const forwarded = request.headers.get('x-forwarded-for');
   const ipAddress = forwarded ? forwarded.split(',')[0]?.trim() : null;
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const authSessionId = getSessionIdFromToken(session?.access_token);
 
   try {
     if (parsed.data.action === 'start') {
@@ -76,6 +81,7 @@ export async function POST(
         userName: auth.userName,
         orderId: orderId.data,
         sessionToken: parsed.data.token,
+        authSessionId,
         ipAddress,
         userAgent: request.headers.get('user-agent'),
       });
@@ -97,6 +103,7 @@ export async function POST(
       userId: auth.userId,
       orderId: orderId.data,
       sessionToken: parsed.data.token,
+      authSessionId,
     });
     return NextResponse.json({ ok: true, data: touched, requestId });
   } catch (error) {
