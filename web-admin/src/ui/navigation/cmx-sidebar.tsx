@@ -312,23 +312,23 @@ export default function CmxSidebar() {
 
   return (
     <>
-      <div className={`lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+      <div className={`lg:hidden fixed top-0 start-0 end-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
         <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             type="button"
-            className="text-gray-500 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-2"
+            className="text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded-md p-2"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
             aria-label="Toggle menu"
           >
             {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-          <span className={`${isRTL ? 'mr-3' : 'ml-3'} text-lg font-semibold text-gray-900`}>CleanMateX</span>
+          <span className={`ms-3 text-lg font-semibold text-foreground`}>CleanMateX</span>
         </div>
       </div>
 
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -338,28 +338,28 @@ export default function CmxSidebar() {
         role="navigation"
         aria-label={t('navLabel')}
         className={`
-          fixed top-0 bottom-0 z-40 bg-gray-50 border-gray-200 flex flex-col shadow-sm
+          fixed top-0 bottom-0 z-40 bg-muted border-border flex flex-col shadow-sm
           ${prefersReducedMotion ? '' : 'transition-[transform,width] duration-300 ease-in-out'}
-          ${isRTL ? 'right-0 border-l' : 'left-0 border-r'}
+          start-0 border-e
           w-64 lg:translate-x-0
           ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
           ${isMobileOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}
         `}
         style={isRTL ? { left: 'auto', right: 0 } : { right: 'auto', left: 0 }}
       >
-        <div className={`pt-4 pb-3 border-b border-gray-200 bg-white flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`pt-4 pb-3 border-b border-border bg-card flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
             href="/dashboard"
             prefetch={false}
             className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
           >
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-lg">C</span>
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground font-bold text-lg">C</span>
             </div>
             <div className={`min-w-0 overflow-hidden ${isCollapsed ? 'lg:hidden' : ''}`}>
-              <span className="block text-xl font-bold text-gray-900 truncate whitespace-nowrap">CleanMateX</span>
+              <span className="block text-xl font-bold text-foreground truncate whitespace-nowrap">CleanMateX</span>
               {currentTenant && (
-                <span className="block text-xs text-gray-500 font-medium mt-0.5 truncate whitespace-nowrap">
+                <span className="block text-xs text-muted-foreground font-medium mt-0.5 truncate whitespace-nowrap">
                   {t('currentPlan')}: {formatPlanDisplay(currentTenant.s_current_plan)}
                 </span>
               )}
@@ -368,21 +368,21 @@ export default function CmxSidebar() {
         </div>
 
         {currentTenant && !isCollapsed && (
-          <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
-            <div className="text-xs font-medium text-blue-600 uppercase tracking-wide">{t('currentTenant')}</div>
-            <div className="mt-1 text-sm font-semibold text-gray-900 line-clamp-1 break-words">{currentTenant.tenant_name}</div>
-            <div className="mt-0.5 text-xs text-gray-600">{t('role')}: {currentTenant.user_role}</div>
+          <div className="px-4 py-3 bg-card border-b border-border flex-shrink-0">
+            <div className="text-xs font-medium text-primary-text uppercase tracking-wide">{t('currentTenant')}</div>
+            <div className="mt-1 text-sm font-semibold text-foreground line-clamp-1 break-words">{currentTenant.tenant_name}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{t('role')}: {currentTenant.user_role}</div>
           </div>
         )}
 
-        <div className={`flex-shrink-0 border-b border-gray-200 px-2 py-2 ${isCollapsed ? 'lg:px-1' : 'lg:px-2'}`}>
+        <div className={`flex-shrink-0 border-b border-border px-2 py-2 ${isCollapsed ? 'lg:px-1' : 'lg:px-2'}`}>
           <button
             type="button"
             onClick={toggleCollapse}
             aria-expanded={!isCollapsed}
             aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            className={`hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+            className={`hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             {isCollapsed ? (
               <PanelLeft className="h-5 w-5" />
@@ -400,7 +400,7 @@ export default function CmxSidebar() {
             <div className="px-3 py-4">
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-10 bg-gray-200 rounded animate-pulse" />
+                  <div key={i} className="h-10 bg-muted rounded animate-pulse" />
                 ))}
               </div>
             </div>
@@ -426,23 +426,23 @@ export default function CmxSidebar() {
                         aria-haspopup="true"
                         aria-expanded={showFlyout}
                         aria-label={label}
-                        className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+                        className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
                           isActive
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : 'text-gray-700 hover:bg-white hover:shadow-sm border border-transparent'
+                            ? 'bg-info-bg text-info-text border border-info-border'
+                            : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
                         }`}
                       >
                         <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
                       </button>
                       {showFlyout && (
                         <div
-                          className={`absolute top-0 z-50 min-w-48 py-1 bg-white rounded-lg shadow-lg border border-gray-200 ${
-                            isRTL ? 'right-full' : 'left-full'
+                          className={`absolute top-0 z-50 min-w-48 py-1 bg-card rounded-lg shadow-lg border border-border ${
+                            'start-full'
                           }`}
                           role="menu"
                           aria-label={label}
                         >
-                          <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          <div className="px-3 py-2 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                             {label}
                           </div>
                           <ul className="space-y-0.5 py-1" role="group">
@@ -457,8 +457,8 @@ export default function CmxSidebar() {
                                     role="menuitem"
                                     className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg mx-1 transition-colors ${
                                       childActive
-                                        ? 'bg-blue-100 text-blue-800 font-medium'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                        ? 'bg-info-bg text-info-text font-medium'
+                                        : 'text-muted-foreground hover:bg-muted'
                                     } ${isRTL ? 'flex-row-reverse' : ''}`}
                                   >
                                     <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
@@ -482,10 +482,10 @@ export default function CmxSidebar() {
                           href={section.path}
                           prefetch={false}
                           aria-label={label}
-                          className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+                          className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
                             isActive
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                              : 'text-gray-700 hover:bg-white hover:shadow-sm border border-transparent'
+                              ? 'bg-info-bg text-info-text border border-info-border'
+                              : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
                           }`}
                         >
                           <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
@@ -504,8 +504,8 @@ export default function CmxSidebar() {
                           onClick={() => toggleSection(section.key)}
                           className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 gap-2 ${
                             isActive
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                              : 'text-gray-700 hover:bg-white hover:shadow-sm border border-transparent'
+                              ? 'bg-info-bg text-info-text border border-info-border'
+                              : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
                           } ${isRTL ? 'flex-row-reverse' : ''}`}
                         >
                           <div className={`flex items-center min-w-0 gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -519,7 +519,7 @@ export default function CmxSidebar() {
                           )}
                         </button>
                         {expandedSections.has(section.key) && (
-                          <ul className="mt-0.5 ms-2 space-y-0.5 border-s border-gray-200 ps-2">
+                          <ul className="mt-0.5 ms-2 space-y-0.5 border-s border-border ps-2">
                             {section.children!.map((child) => {
                               const ChildIcon = getChildIcon(child.key)
                               const childActive = isPathActive(pathname, child.path)
@@ -530,8 +530,8 @@ export default function CmxSidebar() {
                                     prefetch={false}
                                     className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors duration-150 ${
                                       childActive
-                                        ? 'bg-blue-100 text-blue-800 font-medium border border-blue-200'
-                                        : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent'
+                                        ? 'bg-info-bg text-info-text font-medium border border-info-border'
+                                        : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
                                     } ${isRTL ? 'flex-row-reverse' : ''}`}
                                   >
                                     <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
@@ -549,14 +549,14 @@ export default function CmxSidebar() {
                         prefetch={false}
                         className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
                           isActive
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : 'text-gray-700 hover:bg-white hover:shadow-sm border border-transparent'
+                            ? 'bg-info-bg text-info-text border border-info-border'
+                            : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
                         } ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
                         <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
                         <span className="truncate flex-1">{label}</span>
                         {section.badge && (
-                          <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-800">
+                          <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-danger-bg text-danger-text">
                             {section.badge}
                           </span>
                         )}
@@ -569,8 +569,8 @@ export default function CmxSidebar() {
           )}
         </nav>
 
-        <div className={`border-t border-gray-200 flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-4'}`}>
-          <div className="text-xs text-gray-500 text-center">CleanMateX v1.0</div>
+        <div className={`border-t border-border flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          <div className="text-xs text-muted-foreground text-center">CleanMateX v1.0</div>
         </div>
       </aside>
     </>

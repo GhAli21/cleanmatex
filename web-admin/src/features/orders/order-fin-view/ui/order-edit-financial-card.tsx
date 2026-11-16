@@ -20,7 +20,7 @@ import type { OrderEditQuoteState } from '../hooks/use-order-edit-financial-quot
 import { useFinMoney } from './order-fin-money';
 import { OrderFinancialView } from './order-financial-view';
 
-const OUTCOME_TONE = { SETTLED: 'success', OUTSTANDING: 'warning', OVERPAYMENT: 'info', DENIED: 'error' } as const;
+const OUTCOME_TONE = { SETTLED: 'success', OUTSTANDING: 'warning', OVERPAYMENT: 'info', DENIED: 'danger' } as const;
 
 export interface OrderEditFinancialCardProps {
   orderId: string;
@@ -50,7 +50,7 @@ function CardFigures({ view, pending }: { view: OrderFinancialViewModel; pending
         <span className="text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('metrics.projectedBalance')}</span>
         {money(m.projectedBalance)}
       </div>
-      {outcome && <CmxStatusBadge className="self-start" size="sm" variant={OUTCOME_TONE[outcome]} label={t(`edit.outcomes.${outcome}`)} />}
+      {outcome && <CmxStatusBadge className="self-start" size="sm" tone={OUTCOME_TONE[outcome]} label={t(`edit.outcomes.${outcome}`)} />}
     </div>
   );
 }
@@ -76,7 +76,7 @@ export function OrderEditFinancialCard({ orderId, quote, className }: OrderEditF
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        {quote.status === 'pending' && <CmxStatusBadge size="sm" variant="processing" label={t('edit.updating')} />}
+        {quote.status === 'pending' && <CmxStatusBadge size="sm" tone="info" label={t('edit.updating')} />}
         {quote.status === 'error' && quote.error && (
           <>
             <span className="text-xs" role="alert">{quote.error.code === 'QUOTE_REJECTED' ? t('edit.quoteFailed') : t(`errors.${quote.error.code}`)}</span>

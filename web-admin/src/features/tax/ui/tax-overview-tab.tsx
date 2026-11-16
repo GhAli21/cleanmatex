@@ -13,7 +13,7 @@ import { useTaxMutation, useTaxPackages } from '../hooks/use-tax'
 import type { TaxConfigView } from '../model/tax-types'
 import { TaxRegistrationsCard } from './tax-registrations-card'
 
-const STATUS_VARIANT = { PENDING_CONFIRMATION: 'warning', ACTIVE: 'success', DISABLED: 'default' } as const
+const STATUS_VARIANT = { PENDING_CONFIRMATION: 'warning', ACTIVE: 'success', DISABLED: 'neutral' } as const
 
 interface TaxOverviewTabProps {
   view: TaxConfigView
@@ -49,8 +49,8 @@ export function TaxOverviewTab({ view, canManage }: TaxOverviewTabProps) {
         </CmxCardHeader>
         <CmxCardContent className="space-y-4 text-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <CmxStatusBadge label={t(`status.${config.status}`)} variant={STATUS_VARIANT[config.status]} />
-            {view.kit && !view.kit.version.is_verified && <CmxStatusBadge label={t('unverified')} variant="warning" />}
+            <CmxStatusBadge label={t(`status.${config.status}`)} tone={STATUS_VARIANT[config.status]} />
+            {view.kit && !view.kit.version.is_verified && <CmxStatusBadge label={t('unverified')} tone="warning" />}
           </div>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             <div><dt className="text-muted-foreground">{t('kit')}</dt><dd className="font-medium">{view.kit ? `${bilingual(view.kit.name, view.kit.name2 ?? view.kit.name)} · v${view.kit.version.version_no}` : config.kit_code}</dd></div>

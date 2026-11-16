@@ -2,7 +2,7 @@
 name: code-documenter
 description: Use only when explicitly requested for scoped code-documenter work. Avoid broad scans and nested agents.
 version: 1.1.0
-model: sonnet
+model: haiku
 ---
 
 # Code Documenter Agent

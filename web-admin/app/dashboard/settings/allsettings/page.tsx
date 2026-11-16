@@ -14,7 +14,7 @@
 
 import React, { useState, useEffect } from "react";
 import { CmxCard } from "@ui/primitives/cmx-card";
-import { Badge } from "@ui/primitives/badge";
+
 import { CmxButton, Alert } from "@ui/primitives";
 import { CmxTabsPanel } from "@ui/navigation";
 import { Info, HelpCircle } from "lucide-react";
@@ -26,6 +26,7 @@ import { FeatureFlagsSettings } from "@features/settings/ui/FeatureFlagsSettings
 import { PlanLimitsSettings } from "@features/settings/ui/PlanLimitsSettings";
 import { ProfileInfoCard } from "@features/settings/ui/profile-info-card";
 
+import { CmxStatusBadge } from '@ui/feedback';
 /**
  *
  */
@@ -126,9 +127,9 @@ export default function AllSettingsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Tenant status badge (optional, no duplicate header) */}
       <div className="mb-4 flex justify-end">
-        <Badge variant={tenant.status === "trial" ? "warning" : "success"}>
+        <CmxStatusBadge size="sm" tone={tenant.status === "trial" ? "warning" : "success"}>
           {tenant.status === "trial" ? "Trial Account" : "Active"}
-        </Badge>
+        </CmxStatusBadge>
       </div>
 
       {/* Profile Info Card */}

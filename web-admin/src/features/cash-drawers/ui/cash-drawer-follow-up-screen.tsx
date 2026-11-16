@@ -18,10 +18,10 @@ import {
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 
 const PAGE_SIZE = 20
@@ -166,11 +166,11 @@ export function CashDrawerFollowUpScreen() {
               key: 'status',
               header: t('columns.status'),
               render: (r: FollowUpSessionEntry) => (
-                <Badge variant="outline">
+                <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
                   {r.postCloseStatusCode
                     ? localized(statuses.find((s) => s.code === r.postCloseStatusCode), r.postCloseStatusCode)
                     : t('noStatus')}
-                </Badge>
+                </CmxStatusBadge>
               ),
             },
             { key: 'notes', header: t('columns.notes'), render: (r: FollowUpSessionEntry) => r.postCloseNotes ?? '—' },

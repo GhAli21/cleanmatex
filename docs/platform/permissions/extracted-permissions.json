@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-13T19:11:04.866Z",
+  "extractedAt": "2026-11-16T20:26:29.409Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -7,7 +7,7 @@
       "route": "/dashboard/catalog/categories",
       "permission": "products:categories",
       "component": "useHasPermissionCode",
-      "line": 38,
+      "line": 39,
       "surface": "screen"
     },
     {
@@ -15,7 +15,7 @@
       "route": "/dashboard/catalog/services",
       "permission": "products:create",
       "component": "useHasPermissionCode",
-      "line": 53,
+      "line": 54,
       "surface": "service"
     },
     {
@@ -23,7 +23,7 @@
       "route": "/dashboard/catalog/services",
       "permission": "products:export",
       "component": "useHasPermissionCode",
-      "line": 54,
+      "line": 55,
       "surface": "service"
     },
     {
@@ -2961,7 +2961,7 @@
       "method": "POST",
       "route": "/api/v1/orders/[id]/edit-session",
       "permission": "orders:edit",
-      "line": 54,
+      "line": 56,
       "surface": "api"
     },
     {

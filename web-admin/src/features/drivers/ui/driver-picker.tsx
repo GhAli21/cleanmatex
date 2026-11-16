@@ -105,7 +105,7 @@ export function DriverPicker({ drivers, value, onChange, disabled, isLoading, al
                   )}
                 </span>
                 {driver.hasActiveRoute && (
-                  <CmxStatusBadge label={t('picker.onRoute')} variant="warning" size="sm" />
+                  <CmxStatusBadge label={t('picker.onRoute')} tone="warning" size="sm" />
                 )}
               </span>
             </CmxSelectDropdownItem>

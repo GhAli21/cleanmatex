@@ -2,9 +2,9 @@
 
 import { Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxButton, Tooltip } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { ORDER_CHANGE_OPERATION_CODES } from '@/lib/constants/order-change';
@@ -318,9 +318,9 @@ function PolicyIdentifierRow({
         <dd className="mt-1.5 space-y-1.5">
           {codes.map((value) => (
             <div key={`${row.key}-code-${value.text}`} className="flex min-w-0 items-center justify-between gap-2">
-              <Badge variant="outline" className="max-w-full whitespace-normal break-all font-mono font-medium">
+              <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="max-w-full whitespace-normal break-all font-mono font-medium">
                 {value.text}
-              </Badge>
+              </CmxStatusBadge>
               <CopyFactButton value={value.text} label={copyLabel} copiedLabel={copiedLabel} copyFailedLabel={copyFailedLabel} />
             </div>
           ))}
@@ -393,16 +393,16 @@ function PolicyFactTile({
 function PolicyFactValueText({ value, prominent }: { value: PolicyFactValue; prominent: boolean }) {
   if (value.tone === 'code') {
     return (
-      <Badge variant="outline" className="max-w-full whitespace-normal break-all bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] font-mono font-medium">
+      <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="max-w-full whitespace-normal break-all bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] font-mono font-medium">
         {value.text}
-      </Badge>
+      </CmxStatusBadge>
     );
   }
   if (value.tone === 'status') {
     return (
-      <Badge variant="info" className="max-w-full whitespace-normal font-medium">
+      <CmxStatusBadge size="sm" tone="info" className="max-w-full whitespace-normal font-medium">
         {value.text}
-      </Badge>
+      </CmxStatusBadge>
     );
   }
   if (value.tone === 'id') {

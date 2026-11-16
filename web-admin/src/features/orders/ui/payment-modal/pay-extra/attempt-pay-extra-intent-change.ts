@@ -1,4 +1,4 @@
-import { showErrorToast, showInfoToast } from '@ui/components/cmx-toast';
+import { cmxMessage } from '@ui/feedback';
 
 export type AttemptPayExtraIntentChangeParams = {
   next: boolean;
@@ -40,18 +40,18 @@ export function attemptPayExtraIntentChange(
 
   if (!canEnablePayExtra) {
     if (messages.disabledNoMethods) {
-      showInfoToast(messages.disabledNoMethods);
+      cmxMessage.info(messages.disabledNoMethods);
     }
     return false;
   }
 
   if (next === true && !canAllocateOverpayment) {
-    showErrorToast(messages.permissionRequired);
+    cmxMessage.error(messages.permissionRequired);
     return false;
   }
 
   if (next === false && excessAmount > moneyEpsilon) {
-    showInfoToast(messages.cannotDisableWhileExtra);
+    cmxMessage.info(messages.cannotDisableWhileExtra);
     return false;
   }
 

@@ -191,7 +191,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
             {piece.piece_code && (
               <CmxStatusBadge
                 label={piece.piece_code}
-                variant="info"
+                tone="info"
                 size="sm"
                 className="font-mono"
               />
@@ -224,7 +224,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
               {piece.barcode && (
                 <CmxStatusBadge
                   label={`${t('modal.barcode') || 'Barcode'}: ${piece.barcode}`}
-                  variant="outline"
+                  tone="neutral" appearance="outline"
                   size="sm"
                   className="font-mono"
                 />
@@ -242,12 +242,12 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                     ? t('modal.missing') || 'Missing'
                     : t('modal.wrong') || 'Wrong'
               }
-              variant={
+              tone={
                 piece.scan_state === 'scanned'
                   ? 'success'
                   : piece.scan_state === 'missing'
                     ? 'warning'
-                    : 'error'
+                    : 'danger'
               }
               size="sm"
             />
@@ -257,7 +257,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
             <div className="flex items-center gap-2">
               <CmxStatusBadge
                 label={t('modal.rejected')}
-                variant="error"
+                tone="danger"
                 size="sm"
                 className="font-medium"
                 style={{
@@ -332,12 +332,12 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
           <div className="h-10 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded flex items-center">
             <CmxStatusBadge
               label={piece.piece_status || 'processing'}
-              variant={
+              tone={
                 piece.piece_status === 'ready'
                   ? 'success'
                   : piece.piece_status === 'qa'
                     ? 'info'
-                    : 'default'
+                    : 'neutral'
               }
               size="sm"
               className="capitalize"

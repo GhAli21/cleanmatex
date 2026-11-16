@@ -11,11 +11,12 @@
 
 import { useTranslations } from 'next-intl'
 import { CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { AUTH_CONFIG_SOURCES, AUTH_CONFIG_VALUE_TYPES } from '@/lib/constants/auth-admin-config'
 import type { AuthConfigItem } from '@/lib/types/auth-admin-config'
 import { draftError, type AuthConfigDraft } from '../model/auth-config-draft'
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface AuthConfigFieldProps {
   item: AuthConfigItem
   /** Current form state for this item. */
@@ -27,7 +28,7 @@ interface AuthConfigFieldProps {
 }
 
 const SOURCE_BADGE = {
-  [AUTH_CONFIG_SOURCES.PLATFORM]: 'secondary',
+  [AUTH_CONFIG_SOURCES.PLATFORM]: 'neutral',
   [AUTH_CONFIG_SOURCES.TENANT]: 'info',
   [AUTH_CONFIG_SOURCES.PLATFORM_ENFORCED]: 'warning',
 } as const
@@ -73,11 +74,11 @@ export function AuthConfigField({ item, draft, editable, locale, onChange }: Aut
             <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{description}</p>
           ) : null}
         </div>
-        <Badge variant={SOURCE_BADGE[item.source]}>
+        <CmxStatusBadge size="sm" tone={SOURCE_BADGE[item.source]}>
           {item.isAllowTenantChange || item.source !== AUTH_CONFIG_SOURCES.PLATFORM
             ? t(`source.${item.source}`)
             : t('source.MANAGED')}
-        </Badge>
+        </CmxStatusBadge>
       </div>
 
       <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] sm:grid-cols-2">

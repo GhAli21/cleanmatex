@@ -7,8 +7,8 @@ import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
 import { CmxTabsPanel } from '@ui/navigation';
-import { Badge } from '@ui/primitives/badge';
-import { cmxMessage } from '@ui/feedback';
+
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
 
@@ -163,7 +163,7 @@ export function FinancialReportsClient() {
       key: 'payment_status',
       header: t('paymentStatus'),
       render: (o: OrderRow) => o.payment_status
-        ? <Badge variant="outline" className="text-xs">{o.payment_status}</Badge>
+        ? <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="text-xs">{o.payment_status}</CmxStatusBadge>
         : <span className="text-muted-foreground">—</span>,
     },
     {
@@ -210,7 +210,7 @@ export function FinancialReportsClient() {
     {
       key: 'type',
       header: t('taxType'),
-      render: (r: TaxRow) => <Badge variant="outline">{r.taxType}</Badge>,
+      render: (r: TaxRow) => <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{r.taxType}</CmxStatusBadge>,
     },
     {
       key: 'label',

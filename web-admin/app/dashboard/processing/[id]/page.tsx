@@ -14,17 +14,17 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxInput } from '@ui/primitives';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives';
-import { LoadingButton } from '@ui/primitives/loading-button';
+
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
-import { useMessage } from '@ui/feedback';
+import { useMessage, CmxStatusBadge } from '@ui/feedback';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
@@ -247,13 +247,13 @@ export default function ProcessingDetailPage() {
               <p className="text-red-700 mb-4">
                 {t('error.orderNotFoundDesc') || 'The order you are looking for could not be found.'}
               </p>
-              <LoadingButton
+              <CmxButton
                 variant="secondary"
                 onClick={() => router.push(returnUrl)}
-                leftIcon={<ChevronLeft className="w-4 h-4" />}
               >
+                <ChevronLeft className="me-1 h-4 w-4 rtl:rotate-180" aria-hidden="true" />
                 {t('backToProcessing') || 'Back to Processing'}
-              </LoadingButton>
+              </CmxButton>
             </div>
           </div>
         </CmxCard>
@@ -278,14 +278,14 @@ export default function ProcessingDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <LoadingButton
+              <CmxButton
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push(returnUrl)}
-                leftIcon={<ChevronLeft className="w-4 h-4" />}
               >
+                <ChevronLeft className="me-1 h-4 w-4 rtl:rotate-180" aria-hidden="true" />
                 {t('backToProcessing') || 'Back to Processing'}
-              </LoadingButton>
+              </CmxButton>
               <OrderDetailsLink
                 tenantOrgId={currentTenant?.tenant_id}
                 orderId={order.id}
@@ -304,9 +304,9 @@ export default function ProcessingDetailPage() {
                 <CmxCodeChip code={order.order_no} kind="order" size="md" />
               </h1>
               {order.status && (
-                <Badge variant="info">
+                <CmxStatusBadge size="sm" tone="info">
                   {order.status.replace('_', ' ').toUpperCase()}
-                </Badge>
+                </CmxStatusBadge>
               )}
             </div>
             
@@ -377,11 +377,11 @@ export default function ProcessingDetailPage() {
                             <span className="font-medium">{t('quantity') || 'Quantity'}:</span>{' '}
                             {item.quantity}
                           </span>
-                          <Badge 
-                            variant={item.item_status === 'ready' ? 'success' : 'info'}
+                          <CmxStatusBadge size="sm" 
+                            tone={item.item_status === 'ready' ? 'success' : 'info'}
                           >
                             {item.item_status || t('status.processing') || 'Processing'}
-                          </Badge>
+                          </CmxStatusBadge>
                         </div>
                       </div>
                     </div>
@@ -555,18 +555,16 @@ export default function ProcessingDetailPage() {
             </div>
 
             {/* Mark Ready Button */}
-            <LoadingButton
+            <CmxButton
               variant="primary"
               size="lg"
               onClick={handleMarkReady}
               disabled={submitting || !rackLocation.trim()}
               loading={submitting}
-              fullWidth
-              loadingText={t('processing') || 'Processing...'}
-              className="bg-green-600 hover:bg-green-700"
+              className="w-full bg-green-600 hover:bg-green-700"
             >
-              {t('markOrderReady') || 'Mark Order Ready'}
-            </LoadingButton>
+              {submitting ? t('processing') || 'Processing...' : t('markOrderReady') || 'Mark Order Ready'}
+            </CmxButton>
 
             {/* Info Text */}
             <p className="mt-4 text-xs text-gray-500 text-center">

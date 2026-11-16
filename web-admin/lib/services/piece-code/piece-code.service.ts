@@ -14,6 +14,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { externalTagSchema, looksLikeCode, STATIC_CODE_PREFIXES } from '@/lib/validations/code-format-schemas';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 export const PIECE_TAG_ERROR_CODES = {
   IN_USE: 'PIECE_TAG_IN_USE',
@@ -148,7 +149,7 @@ export class PieceCodeService {
    */
   static async loadCodePrefixes(supabase: SupabaseClient): Promise<string[]> {
     if (prefixCache && Date.now() - prefixCache.at < PREFIX_CACHE_MS) return prefixCache.prefixes;
-    const { data, error } = await supabase.from('sys_doc_seq_type_cd').select('prefix, type_prefix');
+    const { data, error } = await catalogReadClient(supabase).from('sys_doc_seq_type_cd').select('prefix, type_prefix');
     if (error || !data) return [...STATIC_CODE_PREFIXES];
     const set = new Set<string>(STATIC_CODE_PREFIXES);
     for (const row of data as Array<{ prefix: string | null; type_prefix: string | null }>) {

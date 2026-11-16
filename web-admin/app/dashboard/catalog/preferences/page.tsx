@@ -14,12 +14,12 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAlertDialog, useMessage } from '@ui/feedback';
+import { useAlertDialog, useMessage, CmxStatusBadge } from '@ui/feedback';
 import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton, CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives';
 import { CmxHexColorField } from '@ui/forms';
-import { Badge } from '@ui/primitives/badge';
+
 import {
   CmxDialog,
   CmxDialogContent,
@@ -405,9 +405,9 @@ function ServicePrefsKindDataGrid({
             return <span className="text-xs text-gray-400">—</span>;
           }
           return (
-            <Badge variant={rowEnabled ? 'success' : 'default'}>
+            <CmxStatusBadge size="sm" tone={rowEnabled ? 'success' : 'brand'}>
               {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-            </Badge>
+            </CmxStatusBadge>
           );
         },
       },
@@ -425,11 +425,11 @@ function ServicePrefsKindDataGrid({
             const inCatalog = Boolean(adminRow.cf_id);
             return (
               <div className="flex flex-col gap-1">
-                <Badge variant={inCatalog ? 'success' : 'default'}>
+                <CmxStatusBadge size="sm" tone={inCatalog ? 'success' : 'brand'}>
                   {inCatalog
                     ? t('catalogOffered', { defaultValue: 'In catalog' })
                     : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
-                </Badge>
+                </CmxStatusBadge>
                 {!sysActive ? (
                   <span className="text-xs text-amber-700">
                     {t('systemInactive', { defaultValue: 'Unavailable at platform' })}
@@ -665,9 +665,9 @@ function ServicePrefsTable({
                 <p className="font-mono text-xs text-gray-500">{group.kindCode}</p>
               </div>
             </div>
-            <Badge variant="default">
+            <CmxStatusBadge size="sm" tone="brand" appearance="solid">
               {group.rows.length} {t('preferences', { defaultValue: 'Preferences' })}
-            </Badge>
+            </CmxStatusBadge>
           </div>
           <div className="overflow-hidden rounded-b-xl">
             <ServicePrefsKindDataGrid
@@ -784,9 +784,9 @@ function PackingPrefsDataGrid({
             return <span className="text-xs text-muted-foreground">—</span>;
           }
           return (
-            <Badge variant={rowEnabled ? 'success' : 'default'}>
+            <CmxStatusBadge size="sm" tone={rowEnabled ? 'success' : 'brand'}>
               {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-            </Badge>
+            </CmxStatusBadge>
           );
         },
       },
@@ -804,11 +804,11 @@ function PackingPrefsDataGrid({
             const inCatalog = Boolean(adminRow.cf_id);
             return (
               <div className="flex flex-col gap-1">
-                <Badge variant={inCatalog ? 'success' : 'default'}>
+                <CmxStatusBadge size="sm" tone={inCatalog ? 'success' : 'brand'}>
                   {inCatalog
                     ? t('catalogOffered', { defaultValue: 'In catalog' })
                     : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
-                </Badge>
+                </CmxStatusBadge>
                 {!sysActive ? (
                   <span className="text-xs text-amber-700">
                     {t('systemInactive', { defaultValue: 'Unavailable at platform' })}
@@ -1048,9 +1048,9 @@ function BundlesTable({
         accessorFn: (b) => (b.is_active ? 1 : 0),
         header: t('status', { defaultValue: 'Status' }),
         cell: ({ row }) => (
-          <Badge variant={row.original.is_active ? 'success' : 'default'}>
+          <CmxStatusBadge size="sm" tone={row.original.is_active ? 'success' : 'brand'}>
             {row.original.is_active ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-          </Badge>
+          </CmxStatusBadge>
         ),
       },
     ];
@@ -1241,9 +1241,9 @@ function PreferenceKindsTable({
         cell: ({ row }) => {
           const showQuickBar = row.original.cf_is_show_in_quick_bar ?? false;
           return (
-            <Badge variant={showQuickBar ? 'success' : 'default'}>
+            <CmxStatusBadge size="sm" tone={showQuickBar ? 'success' : 'brand'}>
               {showQuickBar ? t('yes', { defaultValue: 'Yes' }) : t('no', { defaultValue: 'No' })}
-            </Badge>
+            </CmxStatusBadge>
           );
         },
       },
@@ -1254,9 +1254,9 @@ function PreferenceKindsTable({
         cell: ({ row }) => {
           const showForCustomer = row.original.cf_is_show_for_customer ?? false;
           return (
-            <Badge variant={showForCustomer ? 'success' : 'default'}>
+            <CmxStatusBadge size="sm" tone={showForCustomer ? 'success' : 'brand'}>
               {showForCustomer ? t('yes', { defaultValue: 'Yes' }) : t('no', { defaultValue: 'No' })}
-            </Badge>
+            </CmxStatusBadge>
           );
         },
       },
@@ -1267,9 +1267,9 @@ function PreferenceKindsTable({
         cell: ({ row }) => {
           const isActive = row.original.cf_is_active !== false;
           return (
-            <Badge variant={isActive ? 'success' : 'default'}>
+            <CmxStatusBadge size="sm" tone={isActive ? 'success' : 'brand'}>
               {isActive ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-            </Badge>
+            </CmxStatusBadge>
           );
         },
       },

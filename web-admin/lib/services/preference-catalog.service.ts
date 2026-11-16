@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
   ServicePreference,
   PackingPreference,
   PreferenceBundle,
@@ -60,7 +61,7 @@ export class PreferenceCatalogService {
         return [];
       }
 
-      const { data: sysPrefs, error: sysError } = await supabase
+      const { data: sysPrefs, error: sysError } = await catalogReadClient(supabase)
         .from('sys_service_preference_cd')
         .select(
           'code, name, name2, description, description2, preference_category, preference_sys_kind, color_hex, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active, is_show_in_quick_bar, is_used_by_system, is_allow_to_show_for_user'
@@ -167,7 +168,7 @@ export class PreferenceCatalogService {
         return [];
       }
 
-      const { data: sysPrefs, error: sysError } = await supabase
+      const { data: sysPrefs, error: sysError } = await catalogReadClient(supabase)
         .from('sys_packing_preference_cd')
         .select('code, name, name2, description, description2, maps_to_packaging_type, sustainability_score, display_order, is_active')
         .in('code', codes)
@@ -404,7 +405,7 @@ export class PreferenceCatalogService {
     }>
   > {
     try {
-      const { data: sysPrefs, error: sysError } = await supabase
+      const { data: sysPrefs, error: sysError } = await catalogReadClient(supabase)
         .from('sys_service_preference_cd')
         .select('code, name, name2, preference_category, preference_sys_kind, default_extra_price, extra_turnaround_minutes, display_order, is_active, color_hex')
         .order('display_order', { ascending: true });
@@ -509,7 +510,7 @@ export class PreferenceCatalogService {
     }>
   > {
     try {
-      const { data: sysPrefs, error: sysError } = await supabase
+      const { data: sysPrefs, error: sysError } = await catalogReadClient(supabase)
         .from('sys_packing_preference_cd')
         .select('code, name, name2, maps_to_packaging_type, display_order, is_active')
         .order('display_order', { ascending: true });
@@ -596,7 +597,7 @@ export class PreferenceCatalogService {
         .eq('tenant_org_id', tenantId)
         .in('preference_code', codes);
 
-      const { data: sysRows } = await supabase
+      const { data: sysRows } = await catalogReadClient(supabase)
         .from('sys_service_preference_cd')
         .select('code, extra_turnaround_minutes')
         .in('code', codes);
@@ -642,7 +643,7 @@ export class PreferenceCatalogService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const [{ data: sysRow, error: sysLookupError }, { data: existingCf }] = await Promise.all([
-        supabase
+        catalogReadClient(supabase)
           .from('sys_service_preference_cd')
           .select('preference_sys_kind, preference_category')
           .eq('code', preferenceCode)
@@ -884,7 +885,7 @@ export class PreferenceCatalogService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const [{ count: sysCount }, { count: cfCount }] = await Promise.all([
-        supabase
+        catalogReadClient(supabase)
           .from('sys_service_preference_cd')
           .select('*', { count: 'exact', head: true })
           .eq('code', input.code),
@@ -957,7 +958,7 @@ export class PreferenceCatalogService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const [{ count: sysCount }, { count: cfCount }] = await Promise.all([
-        supabase
+        catalogReadClient(supabase)
           .from('sys_packing_preference_cd')
           .select('*', { count: 'exact', head: true })
           .eq('code', input.code),
@@ -1047,7 +1048,7 @@ export class PreferenceCatalogService {
       }
 
       const kindCodes = [...new Set(cfRows.map((c) => c.kind_code))];
-      const { data: sysKinds, error: sysError } = await supabase
+      const { data: sysKinds, error: sysError } = await catalogReadClient(supabase)
         .from('sys_preference_kind_cd')
         .select('kind_code, name, name2, kind_bg_color, main_type_code, icon, is_show_in_quick_bar, is_show_for_customer, rec_order, is_active')
         .in('kind_code', kindCodes)
@@ -1125,7 +1126,7 @@ export class PreferenceCatalogService {
     }>
   > {
     try {
-      const { data: sysKinds, error: sysError } = await supabase
+      const { data: sysKinds, error: sysError } = await catalogReadClient(supabase)
         .from('sys_preference_kind_cd')
         .select('kind_code, name, name2, kind_bg_color, icon, main_type_code, rec_order, is_active')
         .order('rec_order', { ascending: true });

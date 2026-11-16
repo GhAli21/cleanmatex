@@ -1,0 +1,33 @@
+CLEANMATEX LEGAL PACK
+Document: Cookie and tracking notice
+Version: cookie-2026-11-17
+Language: English
+Arabic pair: 10_COOKIE_NOTICE_ar.txt. That file is the legal translation of this text. Clause numbers match.
+Status: Operative draft. Publish in the marketing-site footer and in the application footer.
+
+1. What this notice covers
+This notice covers cookies and similar storage on [WEBSITE_URL] and [APP_URL].
+It is issued by [LEGAL_ENTITY_NAME]. Questions go to [PRIVACY_EMAIL].
+
+2. Strictly necessary
+We use storage that the site needs in order to:
+- keep you signed in
+- protect the form against cross-site requests
+- remember the language you chose (English or Arabic)
+- carry a load-balancing or security token of the host
+
+These are not used for advertising. They start when you open the site or sign in. The pilot does not ask for consent for these, because the site does not work without them.
+
+3. Analytics and advertising
+This version does not set advertising cookies.
+This version does not set analytics cookies and does not load an analytics script.
+If a later version wants analytics, we will ask before the script runs, through an unchecked choice, and we will raise this notice to a new version code.
+A lead form stores what you type. That is described in the Privacy Policy. It is not a cookie.
+
+4. What you can do
+You can block cookies in your browser. If you block the strictly necessary ones, sign-in and language memory may stop working.
+There is no analytics opt-out switch in this version because analytics is not running.
+
+5. Version
+cookie-2026-11-17
+This notice is published in English and Arabic. Terms clause 21 applies to a conflict.

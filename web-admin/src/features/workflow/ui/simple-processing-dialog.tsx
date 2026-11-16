@@ -393,7 +393,7 @@ export function SimpleProcessingDialog({
                 {isRejected ? (
                   <CmxStatusBadge
                     label={tModal('rejected')}
-                    variant="error"
+                    tone="danger"
                     size="sm"
                   />
                 ) : null}
@@ -781,7 +781,7 @@ export function SimpleProcessingDialog({
                       ? t('statusProcessing')
                       : currentStatus
                   }
-                  variant="info"
+                  tone="info"
                   size="sm"
                 />
               </div>

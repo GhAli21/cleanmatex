@@ -21,7 +21,7 @@ import { HELP_PERMISSIONS } from '@features/help/access/help-access'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { CmxButton } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { Alert, AlertDescription } from '@ui/primitives'
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card'
 import { CmxTabsPanel } from '@ui/navigation'
@@ -99,9 +99,9 @@ function ChipList({ items }: { items: string[] }) {
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((item) => (
-        <Badge key={item} variant="secondary" className="font-mono text-[10px]">
+        <CmxStatusBadge size="sm" key={item} tone="neutral" className="font-mono text-[10px]">
           {item}
-        </Badge>
+        </CmxStatusBadge>
       ))}
     </div>
   )
@@ -110,16 +110,16 @@ function ChipList({ items }: { items: string[] }) {
 function SurfaceBadge({ surface }: { surface: string }) {
   const variant =
     surface === 'api'
-      ? 'default'
+      ? 'brand'
       : surface === 'screen'
-        ? 'secondary'
+        ? 'neutral'
         : surface === 'hook'
-          ? 'outline'
-          : 'secondary'
+          ? 'info'
+          : 'neutral'
   return (
-    <Badge variant={variant} className="text-[10px] uppercase tracking-wide">
+    <CmxStatusBadge size="sm" tone={variant} className="text-[10px] uppercase tracking-wide">
       {surface}
-    </Badge>
+    </CmxStatusBadge>
   )
 }
 
@@ -410,7 +410,7 @@ export function PlatformInventoriesScreen() {
             header: t('columns.severity'),
             render: (row) => (
               <CmxStatusBadge
-                variant={row.severity === 'error' ? 'error' : 'warning'}
+                tone={row.severity === 'error' ? 'danger' : 'warning'}
                 label={String(row.severity ?? '—')}
               />
             ),
@@ -423,9 +423,9 @@ export function PlatformInventoriesScreen() {
             header: t('columns.knownException'),
             render: (row) =>
               row.isKnownException ? (
-                <Badge variant="outline">{t('badges.known')}</Badge>
+                <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('badges.known')}</CmxStatusBadge>
               ) : (
-                <Badge variant="destructive">{t('badges.new')}</Badge>
+                <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('badges.new')}</CmxStatusBadge>
               ),
           },
         ]

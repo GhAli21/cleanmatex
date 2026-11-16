@@ -35,11 +35,11 @@ import { LINE_ROLE, LINE_ROLE_REQUIREMENTS } from '@lib/constants/voucher'
 
 type DrawerCashMovementRole =
   (typeof DRAWER_CASH_IN_OUT_ROLES.OUT)[number] | (typeof DRAWER_CASH_IN_OUT_ROLES.IN)[number]
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxTabsPanel } from '@ui/navigation'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import {
   CmxCard,
   CmxCardContent,
@@ -261,9 +261,9 @@ export function CashDrawerOverviewScreen({
             </h1>
             <CashDrawerTypeBadge drawerType={overview.drawer.drawerType} />
             <CashDrawerStatusBadge status={drawerLiveStatus} />
-            <Badge variant="outline" className="font-mono">
+            <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="font-mono">
               {overview.drawer.drawerCode}
-            </Badge>
+            </CmxStatusBadge>
           </div>
           {overview.drawer.drawerName2 ? (
             <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">

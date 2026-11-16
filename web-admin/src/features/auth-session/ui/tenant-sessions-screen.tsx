@@ -11,9 +11,9 @@
 import { useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Alert, AlertDescription, CmxButton, CmxSelect } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display'
-import { CmxConfirmDialog, cmxMessage } from '@ui/feedback'
+import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { SESSION_STATES } from '@/lib/constants/auth-session'
 import type { SessionItem } from '../api/sessions-api'
@@ -93,7 +93,7 @@ export function TenantSessionsScreen() {
       render: (row) => (
         <div className="flex flex-wrap items-center gap-1">
           <span>{row.deviceLabel ?? tSessions('unknownDevice')}</span>
-          {row.isCurrent ? <Badge variant="success">{tSessions('thisDevice')}</Badge> : null}
+          {row.isCurrent ? <CmxStatusBadge size="sm" tone="success">{tSessions('thisDevice')}</CmxStatusBadge> : null}
         </div>
       ),
     },
@@ -123,11 +123,11 @@ export function TenantSessionsScreen() {
       sortable: false,
       render: (row) =>
         row.status === SESSION_STATES.ACTIVE ? (
-          <Badge variant="success">{t('status.ACTIVE')}</Badge>
+          <CmxStatusBadge size="sm" tone="success">{t('status.ACTIVE')}</CmxStatusBadge>
         ) : (
-          <Badge variant="secondary">
+          <CmxStatusBadge size="sm" tone="neutral">
             {row.endReasonCode ? t(`endReasons.${row.endReasonCode}`) : t('status.ENDED')}
-          </Badge>
+          </CmxStatusBadge>
         ),
     },
     ...(canRevoke

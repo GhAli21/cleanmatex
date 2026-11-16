@@ -7,6 +7,7 @@ import { createClient, createAdminSupabaseClient } from '@/lib/supabase/server';
 import type { UsageTracking, UsageMetrics, UsageWarning, LimitCheckResult } from '@/lib/types/tenant';
 import { getSubscription } from './subscriptions.service';
 import { getPlan } from './subscriptions.service';
+import { prisma } from '@/lib/db/prisma';
 
 // ========================
 // Usage Calculation
@@ -54,8 +55,8 @@ export async function calculateUsage(
     .eq('tenant_org_id', tenantId)
     .eq('is_active', true);
 
-  // Calculate storage usage (TODO: Implement when file storage is added)
-  const storageMb = 0;
+  // Storage: READY File Util objects + thumbnails, in MB (index-only sum, idx_ofm_quota).
+  const storageMb = Math.ceil((await getTenantStorageBytes(tenantId)) / 1048576);
 
   // API calls count (TODO: Implement API usage tracking)
   const apiCalls = 0;
@@ -342,6 +343,51 @@ export async function canAddBranch(tenantId: string): Promise<LimitCheckResult> 
     current: metrics.usage.branchesCount,
     limit: plan.branches_limit,
   };
+}
+
+/**
+ * Bytes stored by an organization in File Util: main objects plus thumbnails of READY files.
+ * Served by the index-only `idx_ofm_quota`.
+ * @param tenantId - Tenant ID
+ * @returns stored bytes
+ */
+export async function getTenantStorageBytes(tenantId: string): Promise<number> {
+  const sum = await prisma.org_file_mst.aggregate({
+    where: { tenant_org_id: tenantId, status_code: 'READY' },
+    _sum: { size_bytes: true, thumb_size_bytes: true },
+  });
+  return Number(sum._sum.size_bytes ?? BigInt(0)) + Number(sum._sum.thumb_size_bytes ?? BigInt(0));
+}
+
+/**
+ * Check if tenant can store `addBytes` more within the plan storage limit.
+ * Counts READY files live (not the monthly snapshot), so the check is current.
+ * @param tenantId - Tenant ID
+ * @param addBytes - Size of the upload about to be stored
+ * @returns Limit check result (current/limit in MB)
+ */
+export async function canStoreBytes(tenantId: string, addBytes: number): Promise<LimitCheckResult> {
+  const subscription = await getSubscription(tenantId);
+  const plan = await getPlan(subscription.plan);
+
+  // Unlimited storage
+  if (plan.storage_mb_limit === -1) {
+    return { canProceed: true, current: 0, limit: -1 };
+  }
+
+  const usedBytes = await getTenantStorageBytes(tenantId);
+  const currentMb = Math.ceil(usedBytes / 1048576);
+  if (usedBytes + addBytes > plan.storage_mb_limit * 1048576) {
+    return {
+      canProceed: false,
+      limitType: 'storage',
+      current: currentMb,
+      limit: plan.storage_mb_limit,
+      message: `Storage limit reached (${currentMb}/${plan.storage_mb_limit} MB). Please upgrade your plan.`,
+    };
+  }
+
+  return { canProceed: true, current: currentMb, limit: plan.storage_mb_limit };
 }
 
 /**

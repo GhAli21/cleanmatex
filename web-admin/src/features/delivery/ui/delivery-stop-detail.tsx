@@ -52,7 +52,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
               </div>
               <CmxStatusBadge
                 label={t(`stopStatus.${stop.statusCode}`, { default: stop.statusCode })}
-                variant={isDelivered ? 'success' : 'processing'}
+                tone={isDelivered ? 'success' : 'info'}
               />
             </div>
           </CmxCardHeader>

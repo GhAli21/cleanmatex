@@ -93,8 +93,8 @@ const TableHead = React.forwardRef<
       ref={ref}
       className={cn(
         heightClass,
-        "px-4 text-left align-middle font-semibold text-foreground bg-muted/50 border-b",
-        "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-4 text-start align-middle font-semibold text-foreground bg-muted/50 border-b",
+        "[&:has([role=checkbox])]:pe-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -117,8 +117,8 @@ const TableCell = React.forwardRef<
   }[rowHeight]
 
   const alignmentClass = {
-    left: "text-left",
-    right: "text-right",
+    left: "text-start",
+    right: "text-end",
     center: "text-center",
   }[alignment]
 
@@ -128,7 +128,7 @@ const TableCell = React.forwardRef<
       className={cn(
         paddingClass,
         alignmentClass,
-        "align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "align-middle [&:has([role=checkbox])]:pe-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

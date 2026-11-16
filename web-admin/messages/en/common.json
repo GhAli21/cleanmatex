@@ -110,5 +110,26 @@
       "MISSING_TENANT_CURRENCY": "This tenant has no base currency configured. Set it in Currency Settings before performing money operations.",
       "CURRENCY_MISMATCH": "The supplied currency does not match the currency of the customer's balance record."
     }
+  },
+  "files": {
+    "dropTitle": "Drop files here or click to choose",
+    "dropHint": "You can also paste a file or image",
+    "cameraTitle": "Take a photo",
+    "cameraPreview": "Camera preview",
+    "capturedPreview": "Captured photo",
+    "cameraStarting": "Starting camera…",
+    "cameraUnavailable": "The camera is not available. Allow camera access in the browser, or choose a file instead.",
+    "capture": "Capture",
+    "retake": "Retake",
+    "usePhoto": "Use photo",
+    "loadingFiles": "Loading files",
+    "noFiles": "No files yet",
+    "openFile": "Open {name}",
+    "editFile": "Edit {name}",
+    "deleteFile": "Delete {name}",
+    "position": "{current} of {total}",
+    "noPreview": "This file cannot be shown here. Download it to open it.",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
   }
 }

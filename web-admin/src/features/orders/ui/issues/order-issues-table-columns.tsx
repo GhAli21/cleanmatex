@@ -6,12 +6,13 @@
 
 import Link from 'next/link';
 import { CmxButton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import type { CmxDataTableSimpleColumn } from '@ui/data-display';
 import { ORDER_ISSUE_STATUS } from '@/lib/constants/order-issues';
 import { OrderIssueActorTimeCell } from './order-issue-actor-time-cell';
 import type { OrderIssueTableRow } from './order-issue-table-types';
 
+import { CmxStatusBadge } from '@ui/feedback';
 export interface BuildOrderIssueColumnsOptions {
   locale: string;
   t: (key: string, values?: Record<string, string | number>) => string;
@@ -78,9 +79,9 @@ export function buildOrderIssueTableColumns(
       render: (row) => {
         const open = isIssueOpen(row);
         return (
-          <Badge variant={open ? 'destructive' : 'success'}>
+          <CmxStatusBadge size="sm" tone={open ? 'danger' : 'success'}>
             {open ? t('statusOpen') : t('statusSolved')}
-          </Badge>
+          </CmxStatusBadge>
         );
       },
     },
@@ -90,7 +91,7 @@ export function buildOrderIssueTableColumns(
       sortable: false,
       render: (row) => (
         <div className="min-w-[12rem] max-w-sm space-y-1">
-          <Badge variant="outline">{typeLabel(row, locale)}</Badge>
+          <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{typeLabel(row, locale)}</CmxStatusBadge>
           <p className="text-sm font-medium whitespace-pre-wrap">
             {row.issue_text}
           </p>
@@ -104,7 +105,7 @@ export function buildOrderIssueTableColumns(
       render: (row) => {
         const label = priorityLabel(row, locale);
         if (!row.priority_color) {
-          return <Badge variant="outline">{label}</Badge>;
+          return <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{label}</CmxStatusBadge>;
         }
         return (
           <span

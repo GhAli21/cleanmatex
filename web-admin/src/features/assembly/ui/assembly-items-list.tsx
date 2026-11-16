@@ -8,12 +8,13 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton, CmxSkeleton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useScanItem, type AssemblyTaskItem } from '../hooks/use-assembly';
 import { useMessage } from '@ui/feedback/useMessage';
 import { CheckCircle2, Circle, ListChecks, AlertTriangle } from 'lucide-react';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface AssemblyItemsListProps {
   taskId: string;
   items: AssemblyTaskItem[];
@@ -23,16 +24,16 @@ interface AssemblyItemsListProps {
 
 function statusVariant(
   status: string
-): 'success' | 'warning' | 'destructive' | 'secondary' {
+): 'success' | 'warning' | 'danger' | 'neutral' {
   switch (status) {
     case 'SCANNED':
       return 'success';
     case 'EXCEPTION':
-      return 'destructive';
+      return 'danger';
     case 'RESOLVED':
       return 'warning';
     default:
-      return 'secondary';
+      return 'neutral';
   }
 }
 
@@ -149,11 +150,11 @@ export function AssemblyItemsList({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate font-medium">{name}</p>
-                        <Badge variant={statusVariant(item.itemStatus)}>
+                        <CmxStatusBadge size="sm" tone={statusVariant(item.itemStatus)}>
                           {t(
                             `itemStatus.${normalizeStatusKey(item.itemStatus)}`
                           )}
-                        </Badge>
+                        </CmxStatusBadge>
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {t('quantity', { count: item.quantity })}

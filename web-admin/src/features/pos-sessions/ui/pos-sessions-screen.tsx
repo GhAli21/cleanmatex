@@ -10,10 +10,10 @@ import { CmxSelect } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
 import { CmxListOfValuesDialog, type CmxListOfValuesDialogLabels } from '@ui/forms';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display';
 import { CmxEmptyState } from '@ui/data-display';
-import { CmxStatusBadge } from '@ui/feedback';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 import { cmxMessage } from '@ui/feedback';
 import {
   CmxDialog,
@@ -82,11 +82,11 @@ async function fetchJson<T>(url: string): Promise<T> {
   return payload.data as T;
 }
 
-function statusVariant(status: string): 'success' | 'warning' | 'error' | 'outline' {
+function statusVariant(status: string): CmxBadgeTone {
   if (status === POS_SESSION_STATUS.OPEN) return 'success';
   if (status === POS_SESSION_STATUS.PAUSED) return 'warning';
-  if (status === POS_SESSION_STATUS.FORCE_CLOSED) return 'error';
-  return 'outline';
+  if (status === POS_SESSION_STATUS.FORCE_CLOSED) return 'danger';
+  return 'neutral';
 }
 
 function formatDateTime(value: string | null): string {
@@ -407,7 +407,7 @@ export function PosSessionsScreen() {
       header: t('status'),
       render: (row) => (
         <>
-          <CmxStatusBadge label={lifecycle.posStatus(row.status)} variant={statusVariant(row.status)} size="sm" />
+          <CmxStatusBadge label={lifecycle.posStatus(row.status)} tone={statusVariant(row.status)} size="sm" />
           <PosSessionFlagBadges session={row} />
         </>
       ),
@@ -469,9 +469,9 @@ export function PosSessionsScreen() {
         <div className="space-y-1">
           <div>{row.cash_drawer_name ?? t('none')}</div>
           {row.cash_drawer_session_no ? (
-            <Badge variant={row.cash_drawer_session_status === 'OPEN' ? 'success' : 'secondary'}>
+            <CmxStatusBadge size="sm" tone={row.cash_drawer_session_status === 'OPEN' ? 'success' : 'neutral'}>
               {row.cash_drawer_session_no} / {lifecycle.drawerStatus(row.cash_drawer_session_status)}
-            </Badge>
+            </CmxStatusBadge>
           ) : null}
         </div>
       ),
@@ -657,7 +657,7 @@ export function PosSessionsScreen() {
                   <InfoRow label={t('status')}>
                     <CmxStatusBadge
                       label={lifecycle.posStatus(activeSession.status)}
-                      variant={statusVariant(activeSession.status)}
+                      tone={statusVariant(activeSession.status)}
                       size="sm"
                     />
                     <PosSessionFlagBadges session={activeSession} />
@@ -684,7 +684,7 @@ export function PosSessionsScreen() {
                         copyValue={activeSessionContext?.cash_drawer_session_no ?? activeSession.cash_drawer_session_id}
                       >
                         {activeSessionContext?.cash_drawer_session_status ? (
-                          <Badge variant="success">{lifecycle.drawerStatus(activeSessionContext.cash_drawer_session_status)}</Badge>
+                          <CmxStatusBadge size="sm" tone="success">{lifecycle.drawerStatus(activeSessionContext.cash_drawer_session_status)}</CmxStatusBadge>
                         ) : null}
                       </InfoRow>
                     </>

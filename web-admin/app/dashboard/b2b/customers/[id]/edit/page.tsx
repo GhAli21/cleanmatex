@@ -1,4 +1,5 @@
 'use client';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 /**
  * B2B Customer Edit Page
@@ -14,8 +15,8 @@ import { fetchCustomerCategories } from '@/lib/api/customer-categories';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
-import { Button } from '@ui/primitives/button';
+
+
 import { useMessage } from '@ui/feedback';
 import type { CustomerWithTenantData } from '@/lib/types/customer';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
@@ -194,9 +195,9 @@ export default function B2BCustomerEditPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
           <h2 className="text-xl font-semibold text-red-900 mb-2">{t('customerNotFound') || 'Customer Not Found'}</h2>
           <p className="text-red-700 mb-6">{error}</p>
-          <Button variant="default" asChild>
+          <CmxButton variant="primary" asChild>
             <Link href="/dashboard/b2b/customers">{tCommon('back')} - {tB2b('customers')}</Link>
-          </Button>
+          </CmxButton>
         </div>
       </div>
     );
@@ -206,13 +207,13 @@ export default function B2BCustomerEditPage() {
     <div className="space-y-6">
       <div className={`${flexRow} items-center justify-between gap-4`}>
         <div className={`${flexRow} items-center gap-3`}>
-          <Button variant="ghost" size="icon" asChild>
+          <CmxButton variant="ghost" size="icon" asChild>
             <Link href={`/dashboard/b2b/customers/${customerId}`} aria-label={tCommon('back')}>
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
-          </Button>
+          </CmxButton>
           <div>
             <h1 className="text-2xl font-semibold">
               {tB2b('editB2BCustomer') || 'Edit B2B Customer'}
@@ -224,11 +225,11 @@ export default function B2BCustomerEditPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{tB2b('companyDetails')}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle>{tB2b('companyDetails')}</CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className={`rounded-md p-4 ${isRTL ? 'border-r-4 border-l-0' : 'border-l-4 border-r-0'} border-red-400 bg-red-50`}>
@@ -325,16 +326,16 @@ export default function B2BCustomerEditPage() {
             </div>
 
             <div className={`pt-6 flex items-center ${isRTL ? 'flex-row-reverse justify-start gap-3' : 'justify-end gap-3'}`}>
-              <Button type="button" variant="outline" disabled={saving} asChild>
+              <CmxButton type="button" variant="outline" disabled={saving} asChild>
                 <Link href={`/dashboard/b2b/customers/${customerId}`}>{tCommon('cancel')}</Link>
-              </Button>
-              <Button type="submit" disabled={saving}>
+              </CmxButton>
+              <CmxButton type="submit" disabled={saving}>
                 {saving ? (t('saving') || 'Saving...') : (tCommon('save') || 'Save')}
-              </Button>
+              </CmxButton>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
     </div>
   );
 }

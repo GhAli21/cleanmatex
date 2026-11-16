@@ -1,4 +1,5 @@
 'use client';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 /**
  * B2B Customer View Page
@@ -21,8 +22,8 @@ import {
   CustomerB2BStatementsTab,
 } from '@features/customers/ui/customer-b2b-tabs';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
-import { Button } from '@ui/primitives/button';
+
+
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { B2B_B2B_CUSTOMERS_ACCESS } from '@features/b2b/access/b2b-access'
 
@@ -131,9 +132,9 @@ export default function B2BCustomerViewPage() {
             {t('customerNotFound') || 'Customer Not Found'}
           </h2>
           <p className="text-red-700 mb-6">{error || 'Customer does not exist'}</p>
-          <Button variant="default" asChild>
+          <CmxButton variant="primary" asChild>
             <Link href="/dashboard/b2b/customers">{tCommon('back')} - {tB2b('customers')}</Link>
-          </Button>
+          </CmxButton>
         </div>
       </div>
     );
@@ -157,8 +158,8 @@ export default function B2BCustomerViewPage() {
       </nav>
 
       {/* Header - Company-first for B2B */}
-      <Card>
-        <CardHeader>
+      <CmxCard>
+        <CmxCardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4">
               <div className="h-16 w-16 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 text-2xl font-bold">
@@ -193,58 +194,58 @@ export default function B2BCustomerViewPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" asChild>
+              <CmxButton variant="outline" asChild>
                 <Link href={`/dashboard/b2b/customers/${customerId}/edit`}>
                   {tCommon('edit')}
                 </Link>
-              </Button>
+              </CmxButton>
             </div>
           </div>
-        </CardHeader>
-      </Card>
+        </CmxCardHeader>
+      </CmxCard>
 
       {/* Company & Credit Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {customer.companyName2 && (
-          <Card>
-            <CardContent className="pt-4">
+          <CmxCard>
+            <CmxCardContent className="pt-4">
               <p className="text-gray-500 text-sm">{tB2b('companyName2')}</p>
               <p className="font-medium">{customer.companyName2}</p>
-            </CardContent>
-          </Card>
+            </CmxCardContent>
+          </CmxCard>
         )}
         {customer.taxId != null && (
-          <Card>
-            <CardContent className="pt-4">
+          <CmxCard>
+            <CmxCardContent className="pt-4">
               <p className="text-gray-500 text-sm">{tB2b('taxId')}</p>
               <p className="font-medium">{customer.taxId}</p>
-            </CardContent>
-          </Card>
+            </CmxCardContent>
+          </CmxCard>
         )}
-        <Card>
-          <CardContent className="pt-4">
+        <CmxCard>
+          <CmxCardContent className="pt-4">
             <p className="text-gray-500 text-sm">{tB2b('creditLimit')}</p>
             <p className="font-medium">
               {customer.creditLimit != null
                 ? Number(customer.creditLimit).toLocaleString()
                 : '—'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
+          </CmxCardContent>
+        </CmxCard>
+        <CmxCard>
+          <CmxCardContent className="pt-4">
             <p className="text-gray-500 text-sm">{tB2b('paymentTermsDays')}</p>
             <p className="font-medium">{customer.paymentTermsDays ?? '—'}</p>
-          </CardContent>
-        </Card>
+          </CmxCardContent>
+        </CmxCard>
       </div>
 
       {/* Advance balance (canonical stored-value ledger) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('advanceBalance')}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle>{t('advanceBalance')}</CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-2xl font-bold text-gray-900">
@@ -264,11 +265,11 @@ export default function B2BCustomerViewPage() {
               <p className="mt-1 max-w-xs text-xs text-gray-500">{t('receiveAccountPaymentHint')}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
 
       {/* Tabs */}
-      <Card>
+      <CmxCard>
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px overflow-x-auto">
             {tabs.map((tab) => (
@@ -329,7 +330,7 @@ export default function B2BCustomerViewPage() {
             <CustomerB2BStatementsTab customerId={customer.id} />
           )}
         </div>
-      </Card>
+      </CmxCard>
     </div>
   );
 }

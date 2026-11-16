@@ -3,7 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { X, FileText, ArrowUpRight, ArrowDownLeft, Hash, Calendar, Globe } from 'lucide-react'
-import { Badge } from '@ui/primitives/badge'
+
 import type { ErpLiteGlJournalDetail } from '@/lib/services/erp-lite-reporting.service'
 import {
   formatErpLiteExchangeRate,
@@ -11,6 +11,7 @@ import {
   type ErpLiteDisplayConfig,
 } from '@features/erp-lite/lib/display-format'
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface GlJournalDetailPanelProps {
   journal: ErpLiteGlJournalDetail
   displayConfig: ErpLiteDisplayConfig

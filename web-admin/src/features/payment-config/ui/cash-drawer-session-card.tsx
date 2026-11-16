@@ -3,9 +3,10 @@
 import { useTranslations } from 'next-intl';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import type { OrgCashDrawer, OrgCashDrawerSession } from '@/lib/types/payment';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface CashDrawerSessionCardProps {
   session: OrgCashDrawerSession;
   drawer: OrgCashDrawer;
@@ -47,7 +48,7 @@ export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDr
 
         <div className="py-2 space-y-1">
           <div className="flex items-center gap-2 mb-3">
-            <Badge className="bg-green-600 text-white">{t('cashDrawers.sessionOpen')}</Badge>
+            <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-600 text-white">{t('cashDrawers.sessionOpen')}</CmxStatusBadge>
             <span className="text-xs text-muted-foreground">{session.session_no}</span>
           </div>
 

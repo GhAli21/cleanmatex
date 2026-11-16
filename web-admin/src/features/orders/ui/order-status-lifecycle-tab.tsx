@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { CmxStatusBadge, type StatusBadgeVariant } from '@ui/feedback';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
 type StatusFieldKey =
@@ -207,11 +207,11 @@ function formatStatusLabel(value: unknown): string {
   return String(value).replace(/_/g, ' ').toUpperCase();
 }
 
-function resolveStatusVariant(key: StatusFieldKey, value: unknown): StatusBadgeVariant {
+function resolveStatusVariant(key: StatusFieldKey, value: unknown): CmxBadgeTone {
   const normalizedValue = String(value).toLowerCase();
 
   if (key === 'is_rejected' || normalizedValue === 'cancelled' || normalizedValue === 'failed') {
-    return 'error';
+    return 'danger';
   }
   if (key === 'has_issue' || normalizedValue === 'pending' || normalizedValue === 'partial') {
     return 'warning';
@@ -220,7 +220,7 @@ function resolveStatusVariant(key: StatusFieldKey, value: unknown): StatusBadgeV
     return 'success';
   }
   if (normalizedValue === 'processing' || normalizedValue === 'in_progress') {
-    return 'processing';
+    return 'info';
   }
 
   return 'info';
@@ -247,7 +247,7 @@ export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleT
       return (
         <CmxStatusBadge
           label={value === true ? t('yes') : t('no')}
-          variant={value === true ? 'warning' : 'success'}
+          tone={value === true ? 'warning' : 'success'}
           size="sm"
         />
       );
@@ -264,7 +264,7 @@ export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleT
       return (
         <CmxStatusBadge
           label={formatStatusLabel(value)}
-          variant={resolveStatusVariant(field.key, value)}
+          tone={resolveStatusVariant(field.key, value)}
           size="sm"
         />
       );

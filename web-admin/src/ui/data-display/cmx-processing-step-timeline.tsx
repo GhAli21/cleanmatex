@@ -143,11 +143,11 @@ export function CmxProcessingStepTimeline({
                     'flex items-center justify-center rounded-full border-2 transition-all',
                     currentSize.circle,
                     status === 'completed' &&
-                    'border-green-500 bg-green-500 text-white hover:bg-green-600',
+                    'border-success bg-success-bg text-success-text',
                     status === 'current' &&
-                    'border-blue-500 bg-blue-500 text-white ring-2 ring-blue-200',
+                    'border-primary bg-primary text-primary-foreground ring-2 ring-ring',
                     status === 'upcoming' &&
-                    'border-gray-300 bg-white text-gray-400',
+                    'border-border bg-card text-muted-foreground',
                     isClickable && 'cursor-pointer hover:scale-110 hover:shadow-md transition-all',
                     !isClickable && 'cursor-default'
                   )}
@@ -164,7 +164,7 @@ export function CmxProcessingStepTimeline({
                   <div
                     className={cn(
                       'w-0.5 flex-1 my-2 transition-colors',
-                      status === 'completed' ? 'bg-green-500' : 'bg-gray-200'
+                      status === 'completed' ? 'bg-success' : 'bg-muted'
                     )}
                     aria-hidden="true"
                   />
@@ -176,9 +176,9 @@ export function CmxProcessingStepTimeline({
                     className={cn(
                       'font-medium',
                       currentSize.text,
-                      status === 'current' && 'text-blue-600',
-                      status === 'completed' && 'text-green-600',
-                      status === 'upcoming' && 'text-gray-400'
+                      status === 'current' && 'text-primary-text',
+                      status === 'completed' && 'text-success-text',
+                      status === 'upcoming' && 'text-muted-foreground'
                     )}
                   >
                     {step.name}
@@ -227,11 +227,11 @@ export function CmxProcessingStepTimeline({
                     'flex items-center justify-center rounded-full border-2 transition-all',
                     currentSize.circle,
                     status === 'completed' &&
-                    'border-green-500 bg-green-500 text-white',
+                    'border-success bg-success-bg text-success-text',
                     status === 'current' &&
-                    'border-blue-500 bg-blue-500 text-white ring-2 ring-blue-200 ring-offset-2',
+                    'border-primary bg-primary text-primary-foreground ring-2 ring-ring ring-offset-2',
                     status === 'upcoming' &&
-                    'border-gray-300 bg-white text-gray-400',
+                    'border-border bg-card text-muted-foreground',
                     isClickable && 'hover:scale-110 hover:shadow-md transition-all',
                     !isClickable && 'cursor-default'
                   )}
@@ -247,9 +247,9 @@ export function CmxProcessingStepTimeline({
                     className={cn(
                       'font-medium text-center',
                       currentSize.text,
-                      status === 'current' && 'text-blue-600',
-                      status === 'completed' && 'text-green-600',
-                      status === 'upcoming' && 'text-gray-400'
+                      status === 'current' && 'text-primary-text',
+                      status === 'completed' && 'text-success-text',
+                      status === 'upcoming' && 'text-muted-foreground'
                     )}
                   >
                     {step.name}
@@ -262,7 +262,7 @@ export function CmxProcessingStepTimeline({
                 <div
                   className={cn(
                     'mx-2 h-0.5 flex-1 transition-colors',
-                    status === 'completed' ? 'bg-green-500' : 'bg-gray-200'
+                    status === 'completed' ? 'bg-success' : 'bg-muted'
                   )}
                   aria-hidden="true"
                 />

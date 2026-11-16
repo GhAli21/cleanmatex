@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 
 import type { OrderFinHeaderMetric, OrderFinancialView, ResolvedOrderFinDisplayConfig } from '@/lib/types/order-fin-view';
 import { cn } from '@/lib/utils';
-import { CmxStatusBadge, type StatusBadgeVariant } from '@ui/feedback';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 import { useFinMoney } from './order-fin-money';
 import { paymentStatusLabel, settlementTypeLabel, type Translator } from './order-fin-labels';
 
@@ -26,8 +26,8 @@ export function reconciliationState(view: OrderFinancialView): 'reconciled' | 'd
 }
 
 const STATE_TONE = { due: 'warning', dueAtCollection: 'warning', dueOnInvoice: 'warning', settled: 'success', overpaid: 'info' } as const;
-const OUTCOME_TONE: Record<string, StatusBadgeVariant> = { SETTLED: 'success', OUTSTANDING: 'warning', OVERPAYMENT: 'info', DENIED: 'error' };
-const RECON_TONE = { reconciled: 'success', differs: 'warning', recalculating: 'processing' } as const;
+const OUTCOME_TONE: Record<string, CmxBadgeTone> = { SETTLED: 'success', OUTSTANDING: 'warning', OVERPAYMENT: 'info', DENIED: 'danger' };
+const RECON_TONE = { reconciled: 'success', differs: 'warning', recalculating: 'info' } as const;
 
 export interface OrderFinHeaderProps {
   view: OrderFinancialView;
@@ -71,10 +71,10 @@ export function OrderFinHeader({ view, header, density = 'comfortable' }: OrderF
       {(paymentStatus || settlement || recon || outcome) && (
         <div className="flex flex-wrap items-center gap-2">
           {view.orderNo && <span className="text-sm font-medium">#{view.orderNo}</span>}
-          {paymentStatus && <CmxStatusBadge size="sm" variant="outline" label={paymentStatus} />}
-          {settlement && <CmxStatusBadge size="sm" variant="outline" label={settlement} />}
-          {recon && <CmxStatusBadge size="sm" variant={RECON_TONE[recon]} label={t(`orders.finView.reconciliation.${recon}`)} />}
-          {outcome && <CmxStatusBadge size="sm" variant={OUTCOME_TONE[outcome] ?? 'default'} label={t(`orders.finView.edit.outcomes.${outcome}`)} />}
+          {paymentStatus && <CmxStatusBadge size="sm" tone="neutral" appearance="outline" label={paymentStatus} />}
+          {settlement && <CmxStatusBadge size="sm" tone="neutral" appearance="outline" label={settlement} />}
+          {recon && <CmxStatusBadge size="sm" tone={RECON_TONE[recon]} label={t(`orders.finView.reconciliation.${recon}`)} />}
+          {outcome && <CmxStatusBadge size="sm" tone={OUTCOME_TONE[outcome] ?? 'neutral'} label={t(`orders.finView.edit.outcomes.${outcome}`)} />}
         </div>
       )}
       <div className={cn('flex flex-wrap items-end gap-x-6 gap-y-2', header.layout === 'inline' && 'items-center')}>

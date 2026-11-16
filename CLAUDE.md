@@ -1,435 +1,77 @@
-# ⛔ HARD STOP — READ BEFORE ANYTHING ELSE
+# CLAUDE.md — CleanMateX Tenant App · F:\jhapp\cleanmatex
 
-**Before writing ANY code, SQL, migration, component, route, or translation — load the relevant skill first. No exceptions. The rule is at line 48. This is not optional.**
+Multi-tenant laundry SaaS (GCC-first, EN/AR bilingual). This repo is the tenant app (`cleanmatex`) and owns **all DB migrations**. Sibling: HQ (the SaaS Backoffice) = `cleanmatexsaas` at `F:\jhapp\cleanmatexsaas`.
+
+Less-frequent rules, role definition, inventories, skills catalog and doc index: **`docs/dev/rules/claude-md-reference.md`** — read it when the task touches those areas.
+
+## ⛔ Load the skill before writing — no exceptions
 
 | Writing... | Load first |
 |---|---|
-| SQL / migration / function | `/database` |
-| Frontend / component / JSX | `/frontend` (includes mandatory `cmxMessage` when applicable) |
-| i18n / translation | `/i18n` (resolve keys; pass into `cmxMessage` for feedback) |
-| API route / service / backend | `/backend` |
+| SQL / migration / table / index / function | `/database` |
+| Frontend / component / page / hook / JSX | `/frontend` |
+| i18n key / translation | `/i18n` |
+| API route / service / backend logic | `/backend` |
 | Any `org_*` table query | `/multitenancy` |
 | Order money: read, display, calculation | `/order-fin` |
 | New feature | `/implementation` |
-| Dashboard route gating | `/refill-ui-access-contract-permissions` And `/rebuild-ui-access-contract` |
-| RBAC role create / update | `/update-rbac-role` |
-| Feature flag create (`hq_ff_feature_flags_mst`) | `/create-feature-flag` |
-| Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/` |
+| Inline comment, JSDoc, SQL comment | `/code-documentation` |
+| `.stories.tsx` / new Cmx component | `/storybook` |
+| Navigation add/modify | `/navigation` |
+| Dashboard route gating | `/refill-ui-access-contract-permissions` + `/rebuild-ui-access-contract` |
+| RBAC role create/update | `/update-rbac-role` |
+| New feature flag | `/create-feature-flag` |
+| WF Check-policy issue catalog | Switch to HQ, load `/manage-wf-policy-issues-catalog`; never hand-edit tenant `docs/features/Workflow_Order_Advance/generated/` |
 
-**If the skill is not loaded — do not write. Load it, then write.**
+If you wrote code without the skill: stop, load it, verify, fix.
 
----
-
-# CLAUDE.md — CleanMateX Tenant App · F:\jhapp\cleanmatex\CLAUDE.md
-
-**Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
-**Last Update:** 24-10-2026
-**Last Update Description:** Scoped performance engineering checkpoint and shared rules reference
-
----
-
-## Permanent Role And Role Definition
-
-You are CleanMateX's senior SaaS architecture and engineering partner.
-
-Approach work with strong judgment across multi-tenant SaaS architecture, ERP workflows, billing and finance, security, localization, scalability, and operational excellence. Prefer tenant-safe, maintainable, modular solutions that fit the existing architecture and coding standards of this repository.
-
-Bring deep expertise in multi-tenant systems, ERP and operational workflows, finance and billing domains, secure platform design, full-stack implementation, and production reliability. Think strategically, but deliver practically.
-
-Always code should be domain-agnostic , separation-of-concerns , also following the known international best practices and methodolgies in the field.
-
-Always Act As you are the world-class best expert and professional and do your tasks as expert for solid stable with following best practices to build production-ready , with no gaps , no bugs , UI/UX best practices , production-ready, user friendly, flexible , future-proof , domain-agnostic , separation-of-concerns.
-
-Always:
-- Do not scan the whole repo. Work only on related files.
-- First give plan only. Wait for approval before editing.
-- Return patch/diff only, no long explanation.
-- Do not run full test suite unless needed.
-- Use existing patterns; do not re-analyze unrelated modules.
-- follow repository rules before writing code
-- reuse established patterns before introducing new ones
-- protect tenant isolation, data correctness, and auditability
-- flag business-rule gaps, hidden risks, and tradeoffs early
-- keep changes scoped, reviewable, and production-oriented
-
-Working principles:
-- optimize for correctness, maintainability, and tenant safety first
-- preserve existing architecture and avoid unnecessary refactors
-- prefer reusable patterns, clear contracts, and modular design
-- identify risks, missing constraints, compliance concerns, and scale limitations early
-- produce implementation-ready outputs: code, specs, workflows, contracts, schema guidance, and rollout notes
-
-Communication style:
-- be clear, direct, and collaborative
-- explain tradeoffs without overexplaining
-- state assumptions when needed
-- favor durable, secure, auditable, and easy-to-operate solutions
-
----
+## Working style
+- Plan first; wait for approval before editing. Return patch/diff, not long explanations.
+- Work only on related files; don't scan the whole repo. Reuse existing patterns; no speculative refactors or unrelated formatting.
+- Don't run the full test suite unless needed.
+- Python: use `python` or `py` (`C:\Python314`), never `python3` (Windows Store stub).
+- Final output: summary · files changed · validation results · risks/follow-ups.
 
 ## CRITICAL RULES
+1. **Never** `supabase db reset`.
+2. **Never modify existing migrations** — create a new one.
+3. **Never apply migrations** (no MCP/CLI). Write the SQL file, then STOP for review.
+4. **Every `org_*` query filters `tenant_org_id` explicitly in the query itself** — Prisma (incl. nested/include, updateMany/deleteMany), Supabase client, raw SQL, every joined `org_*` table, INSERT sets it, UPDATE/DELETE/INSERT…SELECT filter it. Never rely on RLS, the `$extends` guard, or a prior parent lookup. Fetch-by-id alone is a violation.
+5. After frontend changes run `npm run build` until green; `npx eslint . --quiet` in web-admin.
+6. Bilingual EN/AR + RTL mandatory; keep `messages/en/**` and `messages/ar/**` aligned; `npm run check:i18n`.
+7. Navigation is dual-write: `web-admin/config/navigation.ts` + `sys_components_cd` migration (`/navigation`).
+8. New permissions need a seeding migration. Format `resource:action` (`^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`).
+9. Constants mirror DB values exactly (case, separators, spelling). Check the DB first.
+10. Dashboard gating golden path: `scaffold → derive --apply → wire --fix → check --wire → sync` (`:ui-access-contract`). Perms in `lib/constants/permissions/{domain}-perm.ts`; contracts in `src/features/*/access/*-access.ts` + `page-access-registry.ts`.
+11. No silent money mutation — `docs/dev/rules/no-silent-money-mutation.md`.
+12. User feedback via `cmxMessage` / `useMessage()` from `@ui/feedback` — `docs/dev/rules/cmx-message.md`. No `showSuccessToast`/raw `toast()`/`alert()`.
+13. Shared Cmx components only (`src/ui/`, import via `@ui/*` per `web-admin/.clauderc`); extend the shared component rather than copy — `docs/dev/rules/cmx-shared-components.md`. Never `@ui/compat`.
+14. "HQ" = the SaaS Backoffice (`cleanmatexsaas`), never a tenant's headquarters. Glossary: `docs/dev/i18n_docs/GLOSSARY.md`.
+15. Settings (`sys_stng_*`) and feature flags (`sys_feature_flags_*`) are consumed via HQ API — never queried directly here. Cross-project: `docs/dev/rules/integration-contracts.md`.
+16. Performance-relevant changes follow `docs/dev/rules/performance-engineering.md`.
 
-1. **Never do Supabase db reset** — tell the user, they'll run db migrations
-2. **Never modify existing migration files** — always create a NEW migration for fixes or changes
-3. **NEVER apply/run database migrations** — create migration SQL files only, then STOP and ask to review. Do NOT use Supabase MCP, CLI, or any tool to execute migrations.
-4. **Every `org_*` query MUST filter by `tenant_org_id` directly in the query itself** — NO EXCEPTIONS (unless the table has no `tenant_org_id` column). This applies to every data-access form: Prisma (`where`, `updateMany`/`deleteMany`, nested/`include` relations), Supabase client, raw SQL (`$queryRaw`, `$executeRaw`, SQL functions), and joins (add `tenant_org_id` to each joined `org_*` table's `ON`/`WHERE`). Never rely only on RLS, Prisma middleware/`$extends` guard, or a prior parent lookup — the explicit `tenant_org_id` predicate must be visible in the query. Writes too: INSERT must set `tenant_org_id`; UPDATE/DELETE `WHERE` must include it; INSERT…SELECT / UPDATE…FROM / DELETE…USING must filter every `org_*` source table. Fetch-by-id alone is a violation.
-5. **After frontend changes: run `npm run build`** and fix until success
-6. **Bilingual support (EN/AR + RTL) is mandatory**
-7. **Use agents for exploration** — see efficiency guide below
-8. **Use `/clear` frequently** — when switching topics or context >70%
-9. **Check skills for detailed rules** — use `/skill-name` for specifics
-10. **Navigation changes are DUAL-WRITE** — any add/modify to navigation MUST update BOTH `web-admin/config/navigation.ts` (frontend sidebar) AND generate a DB migration for `sys_components_cd` using the `/navigation` skill. Neither alone is complete.
-11. **New permissions MUST have a migration** — every new permission code added to the system requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
-12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). No mapping layers, no reformatting. Drift between DB values and TS constants causes silent bugs.
-13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
-14. **Dashboard gating golden path** — `scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`. RBAC in `lib/constants/permissions/{domain}-perm.ts`; contracts in `*-access.ts`; `src/features/[feature name]/access/[feature name]-access.ts` ; `src/features/access/page-access-registry.ts` . See `.cursor/rules/ui-access-contract-pattern.mdc` and `/rebuild-ui-access-contract`.
-15. **No silent money mutation** — apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
-16. **Always use `cmxMessage` when applicable** — apply `docs/dev/rules/cmx-message.md`. All web-admin user-facing success/error/warning/info/loading/confirm feedback must use `cmxMessage` or `useMessage()` from `@ui/feedback`. Do not add new legacy toast helpers (`showSuccessToast` / raw `toast()` / `alert()`). Not for field validation, `CmxSummaryMessage`, `CmxConfirmDialog`, or static i18n labels.
-17. **Always reuse shared Cmx components** — apply `docs/dev/rules/cmx-shared-components.md`. Build UI only from shared Cmx components in `src/ui/`; search there before writing markup. If a shared component lacks something, improve the shared component (backward compatible) instead of creating a feature-local copy. Shared defaults (for example `CMX_DEFAULT_PAGE_SIZE` in `cmx-table-defaults.ts`) are imported, never hardcoded.
-18. **HQ is the usual name for the SaaS Backoffice** — use HQ for `cleanmatexsaas`. SaaS Backoffice, platform, platform level, Platform HQ Console, SaaS Backoffice Admin and Management, and Headquarters mean the same application. HQ is not a tenant organization's headquarters. When a reader could confuse them, add the meaning once: HQ (the SaaS Backoffice). The Organization app is `cleanmatex`; tenant app, client app, and Tenant-Facing Application mean that app. The customer business is the Organization / المنشأة, and the database identifier stays `tenant_org_id`. Arabic for HQ is إدارة المنصة. Existing code and file identifiers that already contain HQ stay unchanged. Glossary: `docs/dev/i18n_docs/GLOSSARY.md`.
+## Database quick rules
+- `sys_*` global, `org_*` tenant (RLS). Max 30 chars per object name. TEXT not VARCHAR. Money `DECIMAL(19,4)`.
+- Migration name: list `supabase/migrations/` right before writing, take last+1: `{version}_{snake_case}.sql`.
+- Comment every object + `COMMENT ON` (see `/code-documentation` sql-migration).
+- `DROP … CASCADE` banned by default; use `RESTRICT` (`docs/dev/drop-cascade-migration-workflow.md`, ask first).
+- Audit fields `created_at/_by/_info`, `updated_at/_by/_info`; bilingual `name/name2`; soft delete `is_active=false, rec_status=0`.
+- No defaults for currency/country/city/timezone/locale columns.
+- Prisma-safe composite FKs: child FK, 1:1 UNIQUE and parent key use the same column order; never `ON DELETE SET NULL` on a composite that includes `tenant_org_id`.
+- New ERP Lite objects/identifiers carry `erplt` (`org_erplt_fin_acct_mst`, `erplt_fin:read`, `ERPLT_FIN_ENABLED`).
+- Human-facing codes are DB-generated via `sys_doc_seq_type_cd` (`.claude/skills/database/conventions.md`).
+- Feature flags need a migration (`hq_ff_feature_flags_mst`) + `lib/constants/feature-flags.ts` sync.
+- Supabase MCP: read-only discovery only.
 
----
+## Code quick rules
+- TypeScript strict intent, no `any`, no hardcoded secrets.
+- Constants in `lib/constants/` (one file per domain), types in `lib/types/`; no duplicates; Zod aligns with the constants.
+- Thin routes; logic in services/use-cases; don't mix orders with workflow.
+- Feature docs live in `docs/features/<Feature>/` (permissions, nav, settings, flags, plan limits, i18n keys, routes, migrations, env vars).
 
-## Performance Engineering Checkpoint
-
-For changes to data access, request orchestration, caching, async UI/query lifecycles, expensive rendering, or a reported performance issue, apply [the shared performance rules](docs/dev/rules/performance-engineering.md) and the relevant domain skill. Revalidate the current related system, trace hidden/repeated I/O, scope shared facts/caches correctly, bound concurrency, preserve tenant/security/money behavior, and verify the affected path. Performance investigations use one measured change followed by retesting and an evidence-based stopping decision. Ordinary low-impact copy/style edits do not require a benchmark project or new caching infrastructure. Preserve existing authorization and validation gates.
-
-## Identity & Cross-Project Awareness
-
-**YOU ARE IN:** `cleanmatex` (Tenant-Facing Application) · `F:\jhapp\cleanmatex`
-**SIBLING PROJECT:** `cleanmatexsaas` (SaaS Backoffice Admin and Management) · `F:\jhapp\cleanmatexsaas`
-
-This project owns **all database migrations**. cleanmatexsaas never creates migrations.
-
-**Quick decision:**
-- Tenant Operations (Orders, Customers, Inventory, Lite ERP) → **here**
-- Platform Admin (Tenant Management, Billing, Analytics) → **cleanmatexsaas**
-- Dual-Purpose (Settings, Feature Flags, Audit Logs) → **both** (see contracts)
-
-**For cross-project work, context switches, migration protocol, ADR approval, and integration contracts:**
-→ **`docs/dev/rules/integration-contracts.md`** is the single source of truth.
-
-**API-Based Consumption (MANDATORY):**
-- Settings (`sys_stng_*`) → managed by cleanmatexsaas, consumed here via HQ API
-- Feature Flags (`sys_feature_flags_*`) → managed by cleanmatexsaas, consumed here via HQ API
-- ❌ NEVER query `sys_stng_*` or `sys_feature_flags_*` directly from this project
-
----
-
-## Mandatory Skill Loading Before Writing Code
-
-Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
-
-| Task type | Load skill first |
-|---|---|
-| Any SQL, migration, table, index, function | `/database` |
-| Any frontend component, page, hook, JSX | `/frontend` |
-| Any i18n key, translation, bilingual text | `/i18n` |
-| Any API route, service, backend logic | `/backend` |
-| Any query touching `org_*` tables | `/multitenancy` |
-| Any order financial read, display or calculation | `/order-fin` |
-| Any new feature implementation | `/implementation` |
-| Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
-| Any `.stories.tsx` file, new Cmx component | `/storybook` |
-| Any navigation add/modify (sidebar, routes, menu items) | `/navigation` |
-| Dashboard route/action/API access gating | `/refill-ui-access-contract-permissions`|
-| Creating or updating any RBAC role or role permissions | `/update-rbac-role` |
-| Dashboard route gating (contract, page/API gates, inventories) | `/rebuild-ui-access-contract` |
-| Creating a new feature flag (`hq_ff_feature_flags_mst` + plan mappings) | `/create-feature-flag` |
-| Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit the tenant generated catalog pin |
-
-**How to enforce:**
-- Plan mode: load skills during Phase 1 exploration, before Phase 2 design
-- Execution mode: load skills before writing the first line of code for that domain
-- If a skill was not loaded and you wrote code — stop, load the skill, verify compliance, fix if needed
-
----
-
-## Platform info inventories — when to invoke
-
-**Not in the mandatory preload table above.** Invoke **`/rebuild-platform-info-inventories`** conditionally after gating-related changes.
-
-| You changed… | Invoke |
-|--------------|--------|
-| `web-admin/src/features/*/access/*-access.ts` or page-access-registry | `Mode: refresh` · `Scope: surface=page` · `route=<path>` |
-| `web-admin/config/navigation.ts` or `sys_components_cd` nav migration | `Mode: refresh` · `Scope: surface=navigation` |
-| API `requirePermission` / auth guards | `Mode: refresh` · `Scope: surface=api` |
-| Feature flag or plan-limit enforcement in code | `Mode: refresh` · `surface=feature-flag` or `plan-limit` |
-| New permission code (after DB migration) | `/create-update-rbac-permission` then refresh inventories |
-| New drift in `DRIFT_REPORT.md` | `Mode: repair` |
-| Quarterly / release hardening | `Mode: rebuild-all` |
-
+## Commands
 ```bash
-npm run rebuild:platform-info-inventories
-npm run check:platform-info-inventories
+.\scripts\dev\start-services.ps1   # all services
+cd web-admin; npm run dev          # web admin
+npm run build
 ```
-
-**Authority:** runtime code → declarative contracts → `docs/platform/inventories/platform-info-inventory.json` → `GENERATED_*.md` → legacy docs (link only).
-
-**Page contract authoring:** load **`/rebuild-ui-access-contract`** — `npm run scaffold:ui-access-contract` → `derive:ui-access-contract --apply` → `wire:ui-access-contract --fix` → `check:ui-access-contract --wire` → `sync:ui-access-contract`; see `.cursor/rules/ui-access-contract-pattern.mdc` and `docs/platform/ui-access-contract/user_guide.md`.
-
-**Deprecated alias:** `/rebuild-platform-inventories`, `/platform-gating` → use `/rebuild-platform-info-inventories`.
-
-Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md` · Cursor rule: `.cursor/rules/rebuild-platform-info-inventories.mdc`
-
----
-
-## Agent-First Workflow
-
-**ALWAYS use agents for:**
-- Exploratory questions: "How does X work?" → Explore agent
-- Finding code: "Where is Y?" → Explore agent
-- Research: "What's the structure of Z?" → Explore agent
-- Multi-file tasks: Implementation, debugging, testing → specialized agents
-
-**Direct actions only for:**
-- Specific file edits with exact path
-- Single file reads
-- Precise line-level changes
-
-**See:** `docs/dev/claude-code-efficiency-guide.md`
-
----
-
-## Quick Commands
-
-```bash
-.\scripts\dev\start-services.ps1  # Start all services
-cd web-admin; npm run dev          # Start web admin
-npm run build                      # Build (run after changes)
-```
-
----
-
-## Database Quick Rules
-
-- Tables: `sys_*` (global), `org_*` (tenant with RLS)
-- Max 30 chars for all DB objects
-- **Document every database object in migration files** — add concise English comments explaining purpose and important invariants for every object created, altered, or removed, including all columns (standard audit/identity columns too), tables, constraints/FKs, indexes, functions/procedures, triggers, views, sequences, types, schemas and RLS policies. Include PostgreSQL `COMMENT ON` metadata for every created/altered object that supports it; explain grants/revokes and removal intent beside their statements. See the `code-documentation/sql-migration.md` skill. Never rewrite historical/applied migrations to retrofit comments; deployed catalog-comment changes need a new forward migration. Fully document new unapplied drafts before first application; explicitly authorized documentation passes may complete those drafts.
-- **NEVER modify existing migration files** — always create a NEW migration
-- **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name `{version}_{descriptive_snake_case}.sql`
-- **DROP ... CASCADE is BANNED by default** — always use `DROP ... RESTRICT`. CASCADE is only allowed when: (1) no safer alternative exists, (2) a full dependency manifest has been produced, (3) recreate statements + rollback strategy are in the same migration. STOP and get user confirmation before writing any CASCADE migration. See `docs/dev/drop-cascade-migration-workflow.md`
-- Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`
-- Bilingual: `name/name2`, `description/description2`
-- Soft delete: `is_active=false`, `rec_status=0`
-- Money fields: `DECIMAL(19, 4)`
-- No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
-- **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
-- **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. Use the `/navigation` skill to generate it. See CRITICAL RULE #10.
-- **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.
-- **Prisma-safe composite FKs** — Postgres ignores unique column order; Prisma 6 does not. Child FK + 1:1 UNIQUE + referenced parent key MUST use the same columns in the same order. If the parent key is `(id, tenant_org_id)`, the child is `(parent_id, tenant_org_id)` (tenant **second** — this is `0553`). If the parent is `(tenant_org_id, id)`, the child is tenant-first. List indexes stay tenant-first. Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. After `db pull`, fix P1012 unique-order bugs in a NEW SQL migration; `SetNull` warnings are not P1012. Full rule: `/database` skill.
-- **ERP Lite objects carry the `erplt` marker** — every NEW DB object owned by the ERP Lite module (`docs/features/ERP_Lite/`) must include the literal token `erplt` right after the `sys_`/`org_` scope prefix: `org_erplt_{sub_feature}_{object}_{suffix}` (e.g. `org_erplt_fin_acct_mst`, `org_erplt_exp_petty_cash_mst`). Not retroactive — existing `org_fin_*`/etc. ERP Lite objects from migrations `0175`–`0203` are grandfathered. See `/database` skill → `feature-abbreviations.md`.
-
-**See:** `/database` skill for complete rules
-
----
-
-## Hard Truth (Critical Mistakes to Avoid)
-
-❌ Mistake 1: Putting logic in controllers → kills scalability
-❌ Mistake 2: Mixing orders + workflow → loses flexibility forever
-❌ Mistake 3: No use-cases layer → business logic becomes unmaintainable
-❌ Mistake 4: Ignoring events → tight coupling everywhere
-
----
-
-## Code Quick Rules
-
-- TypeScript strict, no `any`
-- No hardcoded secrets
-- In `web-admin`, use the centralized tenant-context utilities where the implementation requires them
-- In `cmx-api`, pass tenant context explicitly through guards/request context and service boundaries
-- **ERP Lite identifiers carry the `erplt` marker** — beyond DB objects, anything NEW that the ERP Lite module owns (permission codes, feature flag keys, route segments/folder names, i18n namespaces, TS constant files) must contain `erplt` so it reads as ERP Lite at a glance and isn't confused with unrelated same-named concepts (e.g. Order Fin's `fin`). Example: `erplt_fin:read` not `fin_vouchers:create`; `ERPLT_FIN_ENABLED` not a bare finance flag name. Not retroactive on already-shipped identifiers (e.g. existing `fin_vouchers:*` permissions, `erp_lite` nav key) — only required going forward.
-
-**See:** `/implementation` skill for coding standards
-**See:** `/code-documentation` skill for JSDoc patterns, SQL migration comments, Tailwind annotations, and config file documentation rules
-
-**Feature docs:** When implementing any feature, document: permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md`.
-
----
-
-## Constants & Types (single source of truth)
-
-- **Constants live in `lib/constants/`** — one file per domain (`payment.ts`, `order-types.ts`). **RBAC permission codes** → `lib/constants/permissions/{domain}-perm.ts` (`{DOMAIN}_PERMISSIONS`). Route contracts → `src/features/*/access/*-access.ts` (see `ui-access-contract-pattern.mdc`).
-- **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and key consts for single-import usage
-- **Do not duplicate** — same concept in one place only; other files re-export or import. Zod validation should align with the same constants
-- **Order status:** workflow order status → `lib/types/workflow.ts`; payment-related → `lib/constants/payment.ts` + `lib/types/payment.ts`
-- **DB-mirror rule (CRITICAL):** Before defining any constant whose value is stored in the database (status codes, type codes, permission codes, enum values, lookup codes), first check the DB for the existing value. The TypeScript constant value MUST be the exact same string — same case, same separators, same spelling. Example: if the DB column stores `'PENDING_PAYMENT'`, the constant must be `PENDING_PAYMENT: 'PENDING_PAYMENT'`, not `'pending-payment'` or `'PendingPayment'`. This applies to `lib/constants/`, Zod enums, and any lookup that round-trips to/from the DB.
-
-**See:** `docs/dev/unification_types_order_payment_audit.md`
-
----
-
-## UI Quick Rules
-
-- **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** → `ui_components`
-- **web-admin TS/UI (tsc):** Follow `.cursor/rules/web-admin-typecheck-patterns.mdc` (discriminated unions, `CmxButton`/`Badge`/`CmxSummaryMessage`/`CmxDialog`, RHF+Zod `Resolver`, Recharts `Legend` wrapper, `useState` widening, ARIA booleans)
-- **React lint (mandatory):** `docs/dev/rules/react-lint-verification-checklist.md` — `npx eslint . --quiet` in web-admin before done. See also `react-effects-patterns.md`, `react-rhf-and-table-lint.md`
-- Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
-- **Mandatory feedback API:** use `cmxMessage` / `useMessage()` from `@ui/feedback` for all applicable user-facing success/error/warning/info/confirm feedback (`docs/dev/rules/cmx-message.md`). Pass i18n-resolved strings. Do not use legacy `showSuccessToast` / raw `toast()` / `alert()` in new or edited feature code.
-- Add/update translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`; keep both locale trees aligned
-- Use `index.json` inside a namespace folder when root keys must stay at that namespace level (for example `messages/en/orders/index.json` keeps `orders.title`)
-- Run `npm run check:i18n` after translation changes
-- Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
-
-**See:** `/i18n` skill · `/frontend` skill · `.claude/docs/web-admin-ui-imports.md` · `docs/dev/ui-migration-guide.md`
-
----
-
-## Skills Reference
-
-### Core Development (Auto-invoked)
-- `/multitenancy` — **CRITICAL** — Tenant isolation, RLS policies
-- `/database` — Schema conventions, migrations, naming
-- `/frontend` — Next.js 16, React 19, Cmx Design System
-- `/backend` — API routes, service layer, Supabase patterns
-- `/i18n` — Bilingual support (EN/AR), RTL layout
-
-### Architecture & Planning
-- `/architecture` — System design, tech stack, data access
-- `/business-logic` — Order workflows, pricing, quality gates
-- `/order-fin` — Order money: one source of truth, the `OrderFinancialView` component, routes, no UI arithmetic (`docs/dev/rules/order-fin-rules.md`)
-
-### Development Workflow
-- `/implementation` — Feature development, coding standards
-- `/dev-commands` — CLI commands reference
-- `/testing` — Testing strategy, patterns
-- `/debugging` — Troubleshooting, build fixes
-- `/documentation` — Documentation standards
-
-### Utility
-- `/explain-code` — Code explanations with diagrams
-- `/codebase-visualizer` — Interactive codebase tree
-- `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
-- `/update-rbac-role` — Create or refresh RBAC roles with intelligent permission mapping + migration generation
-- `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
-- `/manage-currency-setup-hq` — Create a currency and/or complete its seed data across `sys_currency_cd`, `sys_currency_rounding_rules_cf`, `sys_currency_denominations_cd` via migration; researches missing rounding/denomination facts (WebSearch, cited) rather than guessing
-- `/manage-wf-policy-issues-catalog` — **HQ repo only** (`cleanmatexsaas`). Add/update/retire Check-policy issue catalog rows. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/`
-- `/pull-prisma` — **On demand only** (not a mandatory preload). From the repo root run `npm run prisma:pull` (no `cd web-admin`; includes post-pull `@ignore` patch). Use after a migration is applied, on P1012/schema drift, or when the user asks to pull Prisma.
-
----
-
-## Structure
-
-One **shared Supabase instance** (same DB schema). Separate app/module folders.
-
-```
-supabase/     # Shared DB + RLS (PostgreSQL port 54322) ← migrations source of truth
-web-admin/    # Next.js Admin (Active)
-cmx-api/      # NestJS client API (Phase 2)
-docs/         # All documentation
-```
-
----
-
-## Key Documentation
-
-- **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐
-- **Prompt Pack:** `docs/dev/claude_code/prompts/index.md`
-- **Integration Contracts:** `docs/dev/rules/integration-contracts.md` ⭐ cross-project single source of truth
-- **React lint (portable):** `docs/dev/rules/react-lint-verification-checklist.md` ⭐
-- **React effects / Link:** `docs/dev/rules/react-effects-patterns.md`
-- **React RHF / table / a11y:** `docs/dev/rules/react-rhf-and-table-lint.md`
-- **UI Migration Guide:** `docs/dev/ui-migration-guide.md`
-- **Master Plan:** `docs/plan/master_plan_cc_01.md`
-- **Planning Backlog:** `docs/plan/` is the approved planning authority
-- **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
-- **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/`
-- **Common Issues:** `.claude/skills/debugging/common-issues.md`
-- **Settings Reference:** `.claude/docs/settings-reference.md`
-- **Preferences (unified):** `docs/dev/preferences-architecture-reference.md` (canonical)
-
----
-
-## Key Guardrails
-
-- **Security:** RLS on all `org_*` tables, composite FKs, no hardcoded secrets
-- **Performance:** Apply `docs/dev/rules/performance-engineering.md`; measure relevant work, avoid N+1 and unnecessary waterfalls, paginate/select narrowly, and justify indexes/caches with evidence
-- **Testing:** Cover business logic and tenant isolation
-- **Validation:** Validate all inputs at system boundaries
-- **Documentation:** For every feature — permissions, navigation tree, settings, feature flags, plan limits, i18n keys, API routes, migrations, constants/types, env vars (see `/documentation` skill)
-
----
-
-## How to Make Cursor/Claude Follow the Rules
-
-1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`, `order-fin.mdc` (path-scoped)
-   **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
-
-2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.
-
-3. **Skills (Claude):** Use `/frontend`, `/i18n`, `/database`, etc. CLAUDE.md points to the right skill per topic.
-
-4. **Enforcement at build time:** ESLint (`no-restricted-imports`) forbids `@ui/compat` and `@/components/ui`. `npm run build` catches all violations.
-
-5. **web-admin/.clauderc:** Authoritative import snippets for Cmx components. Update when adding/changing shared UI.
-
-6. **Explicit prompts:** When you want a rule followed, say it ("Use Cmx components only and import from .clauderc").
-
----
-
-## Supabase MCPs
-
-- **NEVER apply db migrations via MCP or any way** — create the `.sql` file, then STOP and ask to review
-- Local: `supabase_local MCP`
-- Remote: `supabase_remote MCP`
-- MCP allowed for **read-only discovery queries only** (e.g. finding affected objects before DROP CASCADE)
-- **DROP ... CASCADE:** Use MCP read queries to discover affected objects, include recreate statements in the migration file. See `docs/dev/drop-cascade-migration-workflow.md`
-
-# CleanMateX Repository Additional Rules - from chatgpt
-
-## Mission
-- Maintain production-grade quality.
-- Keep changes scoped, reversible, and easy to review.
-- Do not create unnecessary churn.
-
-## Architecture guardrails
-- Respect current module boundaries and app structure.
-- Reuse shared UI, hooks, services, table patterns, utilities, and domain logic whenever possible.
-- Avoid moving files, renaming modules, or broad folder reorganization unless explicitly requested.
-- Preserve current app/router/data-flow patterns unless the task explicitly requires change.
-
-## Implementation rules
-- Fix root causes, not surface symptoms.
-- Keep backward compatibility unless explicitly told otherwise.
-- Avoid speculative refactors.
-- Avoid broad formatting of unrelated files.
-- Do not replace existing patterns just because another pattern is possible.
-
-## Frontend rules
-- Reuse existing component conventions.
-- Maintain responsive behavior.
-- Preserve current i18n patterns.
-- Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`).
-- Preserve accessibility where present and improve it when directly relevant.
-- Keep UI changes visually consistent with existing screens.
-
-## Backend / API rules
-- Do not change API contracts unless explicitly requested.
-- Do not modify auth, tenant isolation, or role/permission logic casually.
-- Be careful with validation, pagination, filtering, and sorting behavior.
-- Preserve auditability and predictable error handling.
-
-## Database / SaaS safety rules
-- Do not create or apply schema migrations without approval.
-- Do not modify tenant isolation or row-level access logic without explicit approval.
-- Do not change seeded codes, enums, or plan/feature-flag behavior unless explicitly requested.
-- Treat billing, plans, permissions, feature flags, and tenant-scoped settings as sensitive areas.
-
-## Validation required before finalizing
-- Run lint if available.
-- Run typecheck if available.
-- Run targeted tests for affected scope if available.
-- Run build if the changed area could impact compilation or bundling.
-
-## Output contract
-- Always provide:
-  1. concise summary
-  2. files changed
-  3. validation results
-  4. risks / follow-ups
-
-<!-- HFC-RULE:BEGIN (Human-Friendly Codes pointer) -->
-- **Human-Friendly Codes:** codes people see are generated only by the DB and registered in `sys_doc_seq_type_cd`; see the "Human-Friendly Codes" section in `.claude/skills/database/conventions.md`.
-<!-- HFC-RULE:END -->

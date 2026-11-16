@@ -17,9 +17,9 @@ import { useTranslations } from 'next-intl';
 import { CreditCard, Hash, TrendingDown, TrendingUp, AlertCircle } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable } from '@ui/data-display';
-import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import {
   getGiftCardLiabilitySummaryAction,
   listGiftCardLiabilityAction,
@@ -253,9 +253,9 @@ export function GiftCardsLiabilityRprt() {
       header: t('fields.issueType'),
       render: (row: GiftCard) =>
         row.issue_type ? (
-          <Badge variant="outline">
+          <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
             {t(`issueTypes.${row.issue_type}`)}
-          </Badge>
+          </CmxStatusBadge>
         ) : (
           <span className="text-muted-foreground">—</span>
         ),
@@ -264,17 +264,17 @@ export function GiftCardsLiabilityRprt() {
       key: 'status',
       header: tCommon('status'),
       render: (row: GiftCard) => (
-        <Badge
-          variant={
+        <CmxStatusBadge size="sm"
+          tone={
             row.status === 'ACTIVE'
-              ? 'default'
+              ? 'brand'
               : row.status === 'PARTIALLY_REDEEMED'
-              ? 'secondary'
-              : 'outline'
+              ? 'neutral'
+              : 'neutral'
           }
         >
           {t(`statuses.${row.status}`)}
-        </Badge>
+        </CmxStatusBadge>
       ),
     },
     {

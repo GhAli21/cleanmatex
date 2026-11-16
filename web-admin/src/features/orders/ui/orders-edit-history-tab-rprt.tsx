@@ -25,7 +25,7 @@ import { useLocale } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import type { ChangeSet, FieldChange, ItemChange } from '@/lib/services/order-audit.service';
 import { preferenceChangeCodes, type PreferenceChange } from '@/lib/utils/order-preference-snapshot';
@@ -33,6 +33,7 @@ import { preferenceChangeCount } from '@/lib/utils/order-preference-snapshot';
 import type { PieceChange } from '@/lib/utils/order-piece-snapshot';
 import { pieceChangeCount } from '@/lib/utils/order-piece-snapshot';
 
+import { CmxStatusBadge } from '@ui/feedback';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Represents one immutable audit entry captured for a legacy order edit. */
@@ -727,8 +728,8 @@ function EditEntryRow({
                     {entry.editedByName ?? entry.editedBy.slice(0, 12)}
                   </span>
                   {entry.paymentAdjusted && (
-                    <Badge
-                      variant="outline"
+                    <CmxStatusBadge size="sm"
+                      tone="neutral" appearance="outline"
                       className={`text-xs ${entry.paymentAdjustmentType === 'REFUND' ? 'border-green-400 text-green-700 bg-green-50' : 'border-orange-400 text-orange-700 bg-orange-50'}`}
                     >
                       <CreditCard className="w-3 h-3 mr-1" />
@@ -736,7 +737,7 @@ function EditEntryRow({
                       {entry.paymentAdjustmentAmount != null && (
                         <span className="ml-1 font-mono">{fmtMoney(Math.abs(entry.paymentAdjustmentAmount))}</span>
                       )}
-                    </Badge>
+                    </CmxStatusBadge>
                   )}
                 </div>
 
@@ -848,7 +849,7 @@ export function OrdersEditHistoryTabRprt({
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-blue-500" />
           <span className="text-sm font-semibold text-gray-700">{t.editHistoryTitle}</span>
-          <Badge variant="secondary" className="text-xs font-bold">{entries.length}</Badge>
+          <CmxStatusBadge size="sm" tone="neutral" className="text-xs font-bold">{entries.length}</CmxStatusBadge>
         </div>
         <div className={`flex items-center gap-2 border-l border-gray-200 pl-3 flex-wrap ${isRTL ? 'border-l-0 border-r pl-0 pr-3' : ''}`}>
           {totalFields  > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 font-medium"><Pencil className="w-3 h-3" />{totalFields} field{totalFields > 1 ? 's' : ''}</span>}

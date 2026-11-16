@@ -8,9 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import {
   createCashDrawerSchema,
   updateCashDrawerSchema,
@@ -164,10 +164,10 @@ export function CashDrawerFormDialog({
           {selectedTypeRow ? (
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="text-muted-foreground">{t('cashDrawers.typeCapabilities')}</span>
-              <Badge variant="outline">{selectedTypeRow.isMobile ? t('cashDrawers.capMobile') : t('cashDrawers.capFixed')}</Badge>
-              <Badge variant="outline">
+              <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{selectedTypeRow.isMobile ? t('cashDrawers.capMobile') : t('cashDrawers.capFixed')}</CmxStatusBadge>
+              <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
                 {selectedTypeRow.canReceiveDisposition ? t('cashDrawers.capReceivesDisposition') : t('cashDrawers.capNoDisposition')}
-              </Badge>
+              </CmxStatusBadge>
             </div>
           ) : null}
           <div>

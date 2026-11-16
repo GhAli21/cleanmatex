@@ -3,10 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import type { CashDrawerReconReport, CashDrawerReconRow } from '@/lib/types/reconciliation-report';
 import { fmtAmount } from './reconciliation-format';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface Props {
   data: CashDrawerReconReport | null;
   loading: boolean;
@@ -31,7 +32,7 @@ export function ReconciliationCashDrawerRprt({ data, loading, csvHref }: Props) 
     {
       key: 'status',
       header: t('status'),
-      render: (r: CashDrawerReconRow) => <Badge variant="outline" className="text-xs">{r.status}</Badge>,
+      render: (r: CashDrawerReconRow) => <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="text-xs">{r.status}</CmxStatusBadge>,
     },
     {
       key: 'opening',
@@ -66,7 +67,7 @@ export function ReconciliationCashDrawerRprt({ data, loading, csvHref }: Props) 
       header: t('unlinked'),
       render: (r: CashDrawerReconRow) =>
         r.unlinkedMovementCount > 0
-          ? <Badge variant="destructive" className="text-xs">{r.unlinkedMovementCount}</Badge>
+          ? <CmxStatusBadge size="sm" tone="danger" appearance="solid" className="text-xs">{r.unlinkedMovementCount}</CmxStatusBadge>
           : <span className="tabular-nums text-muted-foreground">0</span>,
     },
     {
@@ -74,8 +75,8 @@ export function ReconciliationCashDrawerRprt({ data, loading, csvHref }: Props) 
       header: t('reconciled'),
       render: (r: CashDrawerReconRow) =>
         r.isReconciled
-          ? <Badge variant="success" className="text-xs">{t('reconciledYes')}</Badge>
-          : <Badge variant="destructive" className="text-xs">{t('reconciledNo')}</Badge>,
+          ? <CmxStatusBadge size="sm" tone="success" className="text-xs">{t('reconciledYes')}</CmxStatusBadge>
+          : <CmxStatusBadge size="sm" tone="danger" appearance="solid" className="text-xs">{t('reconciledNo')}</CmxStatusBadge>,
     },
   ];
 

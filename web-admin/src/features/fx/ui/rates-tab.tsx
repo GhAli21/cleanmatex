@@ -6,8 +6,8 @@ import { Plus, TrendingUp } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { Badge, type BadgeProps } from '@ui/primitives/badge';
-import { cmxMessage } from '@ui/feedback';
+
+import { cmxMessage, CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CURRENCY_FX_PERMISSIONS } from '@/lib/constants/permissions/currency-fx-perm';
@@ -24,11 +24,11 @@ interface RatesTabProps {
   onRefresh: () => void;
 }
 
-const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
+const STATUS_VARIANT: Record<string, CmxBadgeTone> = {
   [FX_RATE_STATUS.DRAFT]: 'warning',
   [FX_RATE_STATUS.APPROVED]: 'success',
-  [FX_RATE_STATUS.REJECTED]: 'destructive',
-  [FX_RATE_STATUS.VOIDED]: 'outline',
+  [FX_RATE_STATUS.REJECTED]: 'danger',
+  [FX_RATE_STATUS.VOIDED]: 'neutral',
 };
 
 export function RatesTab({ rates, isLoading, onRefresh }: RatesTabProps) {
@@ -131,7 +131,7 @@ export function RatesTab({ rates, isLoading, onRefresh }: RatesTabProps) {
       key: 'status',
       header: t('rates.status'),
       render: (r: FxRateRow) => (
-        <Badge variant={STATUS_VARIANT[r.status] ?? 'secondary'}>{t(`rates.statusValue.${r.status}` as Parameters<typeof t>[0])}</Badge>
+        <CmxStatusBadge size="sm" tone={STATUS_VARIANT[r.status] ?? 'neutral'}>{t(`rates.statusValue.${r.status}` as Parameters<typeof t>[0])}</CmxStatusBadge>
       ),
     },
     {

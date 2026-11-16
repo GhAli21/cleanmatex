@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { Badge, CmxInput } from '@ui/primitives'
+import { CmxInput } from '@ui/primitives';
 import { CmxFormSection } from '@ui/forms'
 
+import { CmxStatusBadge } from '@ui/feedback';
 const meta = {
   title: 'Forms/CmxFormSection',
   component: CmxFormSection,
@@ -19,7 +20,7 @@ export const Default: Story = {
     <CmxFormSection
       title="Branch setup"
       description="Keep branch-specific details grouped for faster onboarding."
-      badge={<Badge variant="info">Optional</Badge>}
+      badge={<CmxStatusBadge size="sm" tone="info">Optional</CmxStatusBadge>}
       layout="twoColumn"
     >
       <CmxInput value="Muscat Central" onChange={() => undefined} />

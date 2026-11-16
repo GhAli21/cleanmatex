@@ -1,8 +1,7 @@
 import { attemptPayExtraIntentChange } from '@features/orders/ui/payment-modal/pay-extra/attempt-pay-extra-intent-change';
 
-jest.mock('@ui/components/cmx-toast', () => ({
-  showErrorToast: jest.fn(),
-  showInfoToast: jest.fn(),
+jest.mock('@ui/feedback', () => ({
+  cmxMessage: { error: jest.fn(), info: jest.fn() },
 }));
 
 describe('attemptPayExtraIntentChange', () => {

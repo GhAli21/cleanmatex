@@ -5,6 +5,7 @@
  */
 
 'use client';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -15,8 +16,8 @@ import { createCustomer } from '@/lib/api/customers';
 import { fetchCustomerCategories } from '@/lib/api/customer-categories';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
-import { Button } from '@ui/primitives/button';
+
+
 import { useMessage } from '@ui/feedback';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { B2B_B2B_CUSTOMERS_NEW_ACCESS } from '@features/b2b/access/b2b-access'
@@ -139,13 +140,13 @@ export default function B2BCustomerCreatePage() {
       <div className="space-y-6">
       <div className={flexRow + ' items-center justify-between gap-4'}>
         <div className={flexRow + ' items-center gap-3'}>
-          <Button variant="ghost" size="icon" asChild>
+          <CmxButton variant="ghost" size="icon" asChild>
             <Link href="/dashboard/b2b/customers" aria-label={tCommon('back')}>
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
-          </Button>
+          </CmxButton>
           <div>
             <h1 className="text-2xl font-semibold">{tB2b('createB2BCustomer') || 'Create B2B Customer'}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -155,11 +156,11 @@ export default function B2BCustomerCreatePage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{tB2b('companyDetails') || 'Company & Contact Details'}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle>{tB2b('companyDetails') || 'Company & Contact Details'}</CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className={`rounded-md p-4 ${isRTL ? 'border-r-4 border-l-0' : 'border-l-4 border-r-0'} border-red-400 bg-red-50`}>
@@ -259,16 +260,16 @@ export default function B2BCustomerCreatePage() {
             </div>
 
             <div className={`pt-6 flex items-center ${isRTL ? 'flex-row-reverse justify-start gap-3' : 'justify-end gap-3'}`}>
-              <Button type="button" variant="outline" disabled={loading} asChild>
+              <CmxButton type="button" variant="outline" disabled={loading} asChild>
                 <Link href="/dashboard/b2b/customers">{tCommon('cancel')}</Link>
-              </Button>
-              <Button type="submit" disabled={loading}>
+              </CmxButton>
+              <CmxButton type="submit" disabled={loading}>
                 {loading ? (t('creating') || 'Creating...') : (tB2b('createB2BCustomer') || 'Create B2B Customer')}
-              </Button>
+              </CmxButton>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
     </div>
     </RequireAnyPermission>
   );

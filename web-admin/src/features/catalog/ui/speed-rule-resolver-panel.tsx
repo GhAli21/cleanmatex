@@ -5,8 +5,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
-import { CmxSummaryMessage } from '@ui/feedback';
+
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import { SpeedRulesApiError, resolveSpeedRuleApi } from '../api/speed-rules-api';
 import { SpeedRuleProductField, SpeedRuleScopeText, useSpeedRuleValueText, type PickedProduct } from './speed-rule-parts';
 
@@ -87,9 +87,9 @@ export function SpeedRuleResolverPanel({ speedOptions, branchOptions, categoryOp
                 <SpeedRuleScopeText rule={rule} categoryLabel={categoryLabel} branchLabel={branchLabel} />
                 <div className="flex items-center gap-2">
                   <span>{valueText(rule)}</span>
-                  <Badge variant={rule.id === result.winner?.id ? 'success' : 'outline'}>
+                  <CmxStatusBadge size="sm" tone={rule.id === result.winner?.id ? 'success' : 'neutral'}>
                     {rule.id === result.winner?.id ? t('resolver.applies') : t('resolver.overridden')}
-                  </Badge>
+                  </CmxStatusBadge>
                 </div>
               </div>
             ))}

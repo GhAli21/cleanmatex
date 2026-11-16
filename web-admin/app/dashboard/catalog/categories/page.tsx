@@ -5,12 +5,13 @@ import { useTranslations } from "next-intl";
 import { useRTL } from "@/lib/hooks/useRTL";
 import { CmxSwitch } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxButton } from '@ui/primitives';
 import { useAuth } from "@/lib/auth/auth-context";
 import { useHasPermissionCode } from "@/lib/hooks/usePermissions";
 import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface ServiceCategory {
   service_category_code: string;
   ctg_name: string;
@@ -149,9 +150,9 @@ export default function CategoriesPage() {
                         {isRtl ? ctg.ctg_name2 || ctg.ctg_name : ctg.ctg_name}
                       </span>
                       {enabled ? (
-                        <Badge variant="success">{t("standard")}</Badge>
+                        <CmxStatusBadge size="sm" tone="success">{t("standard")}</CmxStatusBadge>
                       ) : (
-                        <Badge variant="default">{t("disableCategories")}</Badge>
+                        <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t("disableCategories")}</CmxStatusBadge>
                       )}
                     </div>
                     {ctg.ctg_desc && (

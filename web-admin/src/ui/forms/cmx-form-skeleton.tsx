@@ -57,7 +57,7 @@ export function CmxFormSkeleton({
           stickyActions ? 'sticky bottom-0' : '',
         ].join(' ')}
       >
-        <CmxSkeleton className="h-11 w-full rounded-[var(--cmx-radius-md,0.875rem)] md:ml-auto md:w-40" />
+        <CmxSkeleton className="h-11 w-full rounded-[var(--cmx-radius-md,0.875rem)] md:ms-auto md:w-40" />
       </div>
     </div>
   )

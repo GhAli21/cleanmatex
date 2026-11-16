@@ -1,0 +1,171 @@
+CLEANMATEX LEGAL PACK
+Document: Anonymize-customer specification
+Version: u4-spec-2026-11-17
+Language: English
+Arabic pair: 16_ANONYMIZE_CUSTOMER_U4_ar.txt. That file is the legal translation of this text. Section numbers match. Database names and enum codes stay in Latin.
+Implements: roadmap U4 and Phase 3 step 3.7
+Status: Decided. This is the rule engineering builds and tests.
+
+1. WHAT THE ACTION IS
+The action is the Organization's instruction to erase the personal data of one natural person who is a customer of that Organization, while keeping the accounting, tax, and order records the law requires the Organization to keep.
+
+The button name in the product:
+English: Anonymize this customer
+Arabic: تجهيل بيانات هذا العميل
+
+The action is irreversible in the application.
+It is not a soft-delete that a cashier can undo.
+It is not a delete of orders, invoices, payments, credit notes, wallets entries, or ledger lines.
+
+2. WHO MAY RUN IT
+A signed-in user of the same tenant_org_id, holding a permission the Owner assigns for this action.
+The screen asks for a reason code and a request reference.
+Reason codes:
+CUSTOMER_REQUEST     the person asked for erasure
+STAFF_ERROR          the file was created in error and no issued tax document depends on the identity
+RETENTION_REVIEW     a later retention job, not the pilot button's default
+
+Store the user id, the reason code, the request reference, and the server time.
+The new audit row must not contain the old name, phone, or email.
+
+The Provider's staff do not get a cross-tenant button in this phase.
+A binding official order is handled by the Owner and written in the support log, then performed inside the tenant by an authorized user or by a one-off script that follows this same field list.
+
+3. REFUSE THE ACTION WHEN
+Return a clear message and do nothing to the data when any of these are true:
+
+1. The customer is the tenant default guest customer (is_default_customer or the reserved guest row).
+2. The customer category is a B2B company (company_name is the contracting party, or the category is marked is_b2b). Company closure is a different process. A natural-person contact under a company is anonymized on the contact row, not by wiping the company.
+3. Any order for this tenant and this customer is not in a terminal state. Terminal means delivered, collected, cancelled, or an equivalent closed status the product already treats as finished. Open production, ready-for-collection, and out-for-delivery are not terminal.
+4. A customer wallet, customer advance, loyalty balance held as value, or accounts-receivable balance for this customer is not zero.
+5. An unissued or draft tax document still points at this customer.
+
+The refusal messages tell the staff member what to settle first.
+Settling means a real finance action: refund, write-off with a reason, or close the order.
+The anonymize action must not zero a balance by itself.
+
+6. A second click after a successful anonymization returns success and changes nothing.
+
+4. OFFER THE EXPORT FIRST
+Before the confirm step, the same permission can download an export of that customer for this tenant.
+The confirm step records export_offered = true.
+If the staff member confirms that the person did not want the export, store export_declined = true and the user id.
+Do not anonymize if neither flag can be stored.
+
+Export contents, for this tenant_org_id only:
+- customer identity fields listed in section 5, as they are now
+- addresses
+- preferences, including the communication choices
+- the consent history from the N4 records
+- orders: id, human-readable number, dates, status, currency, totals, tax, amounts paid, amounts outstanding
+- payments and credit notes: date, amount, method category, reference number
+- wallet and loyalty balances
+- invoices: number, date, totals, tax
+
+Do not export another tenant's data.
+Do not export card numbers, passwords, or session tokens. The product must not have card numbers. If a column ever holds one, leave it out of the export and raise an incident.
+The export file is handed to the End Customer by the Organization. The Provider does not email the End Customer directly in this phase.
+
+5. FIELDS TO CLEAR ON org_customers_mst
+Replace or null these for that id and that tenant_org_id:
+name, name2, display_name, first_name, last_name
+phone, email
+address, area, building, floor
+preferences                    set to a JSON object that turns communications off:
+                               notifications.whatsapp = false
+                               notifications.sms = false
+                               notifications.email = false
+                               and marketing consent false for every channel
+rec_notes
+password_hash, password_updated_at
+company_name, company_name2    only if they hold a natural person's trade name on an individual file
+tax_id, cr_id                  on an individual file
+created_info, updated_info     if those strings can contain free text typed by staff
+
+Set:
+display_name = "Anonymized customer"
+name = "Anonymized customer"
+name2 = "عميل مجهّل"
+is_active = false
+a dedicated flag is_anonymized = true and anonymized_at = server time
+Keep the primary key.
+Keep tenant_org_id.
+Keep the row so order foreign keys still resolve.
+
+Do not change loyalty_points, credit_limit, or money columns in this step.
+Those were already required to be zero, or they are accounting values that stay.
+
+6. CHILD ROWS TO CLEAR
+For the same tenant_org_id and customer id:
+- org_customer_addresses: delete or blank the address lines, phone, and notes
+- org_customer_service_prefs: remove free-text notes that identify the person; garment preferences that are not identifying may stay
+- org_b2b_contacts_dtl: if the action was aimed at a personal contact, clear that contact's name, phone, and email
+- notification preferences and N4 consent: append a withdrawal row, state DENIED or OPTED_OUT, basis unchanged in the history, method ANONYMIZE
+- future notification destinations for this customer: do not send again
+
+7. ORDERS AND MONEY — KEEP, WITH CONTACT STRIPPED
+Keep, unchanged in amount and tax, for the retention period in file 18:
+- the order row and its lines
+- totals, tax amounts, currency, rates, discounts, payment state
+- invoice rows, credit notes, payments, allocations, ledger lines, vouchers
+- dates, branch, and document numbers
+
+On org_orders_mst for that customer and tenant, clear operational contact copies:
+- customer_mobile_number
+- customer_email
+- contact fields inside customer_details (phone, email, address, national id)
+- replace customer_name with "Anonymized customer"
+
+Do not change:
+- total_charges_amount, total_discount_amount, total_tax_amount, total_paid_amount, outstanding_amount, subtotal_amount, total_amount, and the other money columns
+- invoice numbers and tax snapshot columns that record the tax calculation
+
+Issued tax documents:
+If a stored PDF, XML, or fiscal snapshot already exists, leave that file as it was issued.
+If the printable invoice reads the live customer name, freeze the issued rendering first, then replace the live name.
+Do not regenerate history so that an issued invoice loses the buyer identity it was required to show on the day it was issued.
+The frozen fiscal copy is kept for the retention period and is restricted to users who already have finance or tax permission.
+
+Order rec_notes and item notes:
+Do not delete garment notes in bulk.
+Redact a note only where it contains the customer's phone, email, or full name string.
+Keep a staff-only list of notes that still contain those strings if automatic redaction cannot be sure, and clear them before the action is marked complete.
+An action is not complete while a known contact field still holds the phone or email.
+
+8. WHAT "KEEP THE FINANCE RECORD" MEANS TO THE PERSON
+The Organization can still produce a tax invoice, a daily total, and a payment report.
+Those records show "Anonymized customer" as the live label, amounts unchanged.
+They do not show the phone number or the home address in the operational screens.
+A frozen fiscal copy may still contain the name as it was printed on the day of issue, because tax law requires the issued document to remain reliable.
+The Privacy Policy and the counter notice say this in plain language so the person is not promised a destruction the law does not allow.
+
+9. BACKUPS
+Tell the Organization, in the confirm dialog, that copies in backups expire on the normal backup cycle ([BACKUP_RETENTION]) and are not edited one person at a time.
+Do not build a feature that rewrites backup files.
+
+10. CONFIRM DIALOG TEXT
+English:
+Anonymize this customer. Orders, payments, and issued tax documents are kept. Name, phone, email, and address are removed from the working file. This cannot be undone in the application. Backups expire on the normal cycle.
+
+Arabic:
+تجهيل بيانات هذا العميل. تُحفظ الطلبات والمدفوعات والمستندات الضريبية الصادرة. يُزال الاسم ورقم الجوّال والبريد والعنوان من ملف العمل. لا يمكن التراجع عن ذلك داخل التطبيق. تنتهي النسخ الاحتياطية حسب دورتها المعتادة.
+
+Require the staff member to type the customer display name, or to tick a second confirm, before the action runs.
+Use the shared confirm dialog pattern. Do not use a browser alert.
+
+11. TEST THIS BEFORE PILOT USE
+- Individual customer with closed orders and zero balances: contact fields gone, order totals unchanged, invoice total unchanged, WhatsApp no longer sends.
+- Open order: refused, data unchanged.
+- Non-zero wallet or receivable: refused, balance unchanged.
+- Default guest: refused.
+- B2B company: refused.
+- Second run: no further change, success.
+- Another tenant's row with the same customer id shape: unchanged. The update statement filters tenant_org_id.
+- Export file contains the profile and the order totals, and contains no other tenant.
+- Audit row of the action has no phone and no old name.
+
+12. ACCESS RIGHT WITHOUT ERASURE
+The same export in section 4 is the access tool when the person wants a copy and wants the file kept.
+Correction is the existing customer edit screen.
+This pack does not add a separate portal for the End Customer in the pilot.
+The Organization runs access, correction, and anonymize for its own customers.

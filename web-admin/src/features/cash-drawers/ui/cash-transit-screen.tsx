@@ -30,8 +30,8 @@ import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialo
 const PAGE_SIZE = 20
 const FILTERS: TransitStatusFilter[] = ['IN_TRANSIT', 'RECEIVED', 'CANCELLED', 'ALL']
 
-const statusVariant = (status: TransitStatus): 'warning' | 'success' | 'outline' =>
-  status === 'IN_TRANSIT' ? 'warning' : status === 'RECEIVED' ? 'success' : 'outline'
+const statusVariant = (status: TransitStatus): 'warning' | 'success' | 'neutral' =>
+  status === 'IN_TRANSIT' ? 'warning' : status === 'RECEIVED' ? 'success' : 'neutral'
 
 type Pending = { row: TransitEntry; action: 'receive' | 'cancel' }
 
@@ -168,7 +168,7 @@ export function CashTransitScreen() {
               key: 'status',
               header: t('columns.status'),
               render: (r: TransitEntry) => (
-                <CmxStatusBadge label={t(`statuses.${r.status}`)} variant={statusVariant(r.status)} size="sm" />
+                <CmxStatusBadge label={t(`statuses.${r.status}`)} tone={statusVariant(r.status)} size="sm" />
               ),
             },
             {

@@ -71,7 +71,7 @@ export function TaxPeriodsTab({ canManage }: { canManage: boolean }) {
       id: 'status',
       header: t('status'),
       cell: ({ row }) => (
-        <CmxStatusBadge size="sm" variant={row.original.status === 'CLOSED' ? 'warning' : 'success'} label={t(`statuses.${row.original.status}`)} />
+        <CmxStatusBadge size="sm" tone={row.original.status === 'CLOSED' ? 'warning' : 'success'} label={t(`statuses.${row.original.status}`)} />
       ),
     },
     { id: 'reason', header: t('reopenReason'), cell: ({ row }) => row.original.reopenReason ?? '—' },

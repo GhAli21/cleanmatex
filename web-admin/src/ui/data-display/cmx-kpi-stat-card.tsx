@@ -44,7 +44,7 @@ export function CmxKpiStatCard({
         {(subtitle || trend) && (
           <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
             {trend && (
-              <span className={trend.direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+              <span className={trend.direction === 'up' ? 'text-success-text' : 'text-danger-text'}>
                 {trend.direction === 'up' ? '↑' : '↓'} {Math.abs(trend.value)}%
               </span>
             )}

@@ -6,10 +6,10 @@ import { Plus, Monitor } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxSwitch } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
 import type { OrgPaymentTerminal } from '@/lib/types/payment';
 import { toggleTerminalEnabled, softDeleteTerminal } from '@/app/actions/payment-config/terminals-actions';
@@ -123,12 +123,12 @@ export function TerminalsTab({ terminals, branches, isLoading, onRefresh }: Term
     {
       key: 'type',
       header: t('terminals.type'),
-      render: (term: OrgPaymentTerminal) => <Badge variant="outline">{t(`terminals.terminalType.${term.terminal_type}` as never)}</Badge>,
+      render: (term: OrgPaymentTerminal) => <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t(`terminals.terminalType.${term.terminal_type}` as never)}</CmxStatusBadge>,
     },
     {
       key: 'gateway',
       header: t('terminals.gateway'),
-      render: (term: OrgPaymentTerminal) => term.gateway_code ? <Badge>{term.gateway_code}</Badge> : <span className="text-muted-foreground">—</span>,
+      render: (term: OrgPaymentTerminal) => term.gateway_code ? <CmxStatusBadge size="sm" tone="brand" appearance="solid">{term.gateway_code}</CmxStatusBadge> : <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'branch',

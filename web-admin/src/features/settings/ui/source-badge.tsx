@@ -8,8 +8,9 @@
 'use client';
 
 import React from 'react';
-import { Badge } from '@ui/primitives';
 
+
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 /**
  *
  */
@@ -87,14 +88,14 @@ export function SourceBadge({ source, sourceName, className }: SourceBadgeProps)
     ? `${config.label}: ${sourceName}`
     : config.label;
 
-  const variantMap: Record<typeof config.color, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
-    default: 'default', primary: 'default', secondary: 'secondary', success: 'success', warning: 'warning', destructive: 'destructive',
+  const variantMap: Record<typeof config.color, CmxBadgeTone> = {
+    default: 'neutral', primary: 'brand', secondary: 'neutral', success: 'success', warning: 'warning', destructive: 'danger',
   };
   return (
-    <Badge variant={variantMap[config.color]} className={className}>
-      <span className="mr-1">{config.icon}</span>
+    <CmxStatusBadge size="sm" tone={variantMap[config.color]} className={className}>
+      <span className="me-1">{config.icon}</span>
       {displayText}
-    </Badge>
+    </CmxStatusBadge>
   );
 }
 

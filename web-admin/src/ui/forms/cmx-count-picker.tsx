@@ -86,8 +86,8 @@ export function CmxCountPicker({
                 className={cn(
                   'min-h-[44px] min-w-[44px] rounded-lg px-3 text-sm font-semibold',
                   selected
-                    ? 'bg-white text-teal-800 shadow-sm hover:bg-white border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 border border-transparent'
+                    ? 'bg-card text-primary-text shadow-sm hover:bg-card border border-border'
+                    : 'text-muted-foreground hover:text-foreground border border-transparent'
                 )}
               >
                 {n}
@@ -112,8 +112,8 @@ export function CmxCountPicker({
         className={cn(
           'min-h-[44px] rounded-lg px-3 text-sm font-semibold',
           isCustom
-            ? 'bg-white text-teal-800 shadow-sm hover:bg-white border border-slate-200'
-            : 'text-slate-600 hover:text-slate-900 border border-transparent'
+            ? 'bg-card text-primary-text shadow-sm hover:bg-card border border-border'
+            : 'text-muted-foreground hover:text-foreground border border-transparent'
         )}
       >
         {customLabel}

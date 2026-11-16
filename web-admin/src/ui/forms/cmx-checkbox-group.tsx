@@ -82,7 +82,7 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
               <legend className="cmx-type-field-label text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
                 {label}
                 {required ? (
-                  <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+                  <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
                 ) : null}
               </legend>
             ) : null}

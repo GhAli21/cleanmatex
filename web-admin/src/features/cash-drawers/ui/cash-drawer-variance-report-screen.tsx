@@ -15,8 +15,8 @@ import { shortageSharePercent } from '@features/cash-drawers/ui/cash-drawer-vari
 import { useCashDrawerMoneyFormatter } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
-import { CmxSummaryMessage } from '@ui/feedback'
+
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback'
 
 interface BranchOption {
   id: string
@@ -168,8 +168,8 @@ export function CashDrawerVarianceReportScreen() {
               align: 'right' as const,
               render: (r: VarianceByCashierEntry) => {
                 const percent = shortageSharePercent(r.shortageShare)
-                if (percent === null) return <Badge variant="success">{t('balanced')}</Badge>
-                return <Badge variant={percent >= 75 ? 'destructive' : percent >= 50 ? 'warning' : 'outline'}>{percent}%</Badge>
+                if (percent === null) return <CmxStatusBadge size="sm" tone="success">{t('balanced')}</CmxStatusBadge>
+                return <CmxStatusBadge size="sm" tone={percent >= 75 ? 'danger' : percent >= 50 ? 'warning' : 'neutral'}>{percent}%</CmxStatusBadge>
               },
             },
             {
@@ -178,10 +178,10 @@ export function CashDrawerVarianceReportScreen() {
               render: (r: VarianceByCashierEntry) => (
                 <span className="flex flex-wrap gap-1">
                   {r.pendingDecisionCount > 0 ? (
-                    <Badge variant="warning">{t('pending', { count: r.pendingDecisionCount })}</Badge>
+                    <CmxStatusBadge size="sm" tone="warning">{t('pending', { count: r.pendingDecisionCount })}</CmxStatusBadge>
                   ) : null}
                   {r.rejectedCount > 0 ? (
-                    <Badge variant="destructive">{t('rejected', { count: r.rejectedCount })}</Badge>
+                    <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('rejected', { count: r.rejectedCount })}</CmxStatusBadge>
                   ) : null}
                   {r.pendingDecisionCount === 0 && r.rejectedCount === 0 ? '—' : null}
                 </span>

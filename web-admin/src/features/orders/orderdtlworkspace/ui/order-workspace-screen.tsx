@@ -39,6 +39,7 @@ import {
   OrderWorkspacePaymentBadge,
   OrderWorkspaceStatusBadge,
 } from './order-workspace-status-badge';
+import { orderStatusTone } from '@features/orders/ui/order-status-badge';
 import type {
   OrderWorkspaceSectionId,
   OrderWorkspaceStage,
@@ -271,7 +272,7 @@ export function OrderWorkspaceScreen({
                   label={t(`statuses.${status.toLowerCase()}`, {
                     default: status,
                   })}
-                  tone="info"
+                  tone={orderStatusTone(status.toLowerCase())}
                 />
                 {paymentPlan ? (
                   <OrderWorkspacePaymentBadge

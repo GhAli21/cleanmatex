@@ -4,13 +4,14 @@
  */
 
 'use client';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
 
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { Button } from '@ui/primitives/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
+
+
 import { B2BStatementsPrintRprt } from '@features/b2b/ui/b2b-statements-print-rprt';
 import type { StatementForPrint } from '@/lib/services/b2b-statements.service';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
@@ -49,9 +50,9 @@ export default function B2BStatementDetailPage() {
     <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
         <p className="text-gray-500">{tCommon('notFound') ?? 'Not found'}</p>
-        <Button variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
+        <CmxButton variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
           {t('statements') ?? 'Back to Statements'}
-        </Button>
+        </CmxButton>
       </div>
     </RequireAnyPermission>
   );
@@ -70,9 +71,9 @@ export default function B2BStatementDetailPage() {
     return (
       <div className="space-y-6">
         <p className="text-red-600">{error instanceof Error ? error.message : 'Failed to load statement'}</p>
-        <Button variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
+        <CmxButton variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
           {t('statements') ?? 'Back to Statements'}
-        </Button>
+        </CmxButton>
       </div>
     );
   }
@@ -102,30 +103,30 @@ export default function B2BStatementDetailPage() {
       <div className="space-y-6 px-4">
       <div className="print-hidden flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Button
+          <CmxButton
             variant="ghost"
             size="icon"
             onClick={() => router.push('/dashboard/b2b/statements')}
             aria-label={tCommon('back') ?? 'Back'}
           >
             <ArrowLeft className="h-4 w-4" />
-          </Button>
+          </CmxButton>
           <h1 className="text-2xl font-semibold">
             {t('statementTitle') ?? 'Statement'}: {data.statement.statementNo}
           </h1>
         </div>
-        <Button onClick={handlePrint} className="flex items-center gap-2">
+        <CmxButton onClick={handlePrint} className="flex items-center gap-2">
           <Printer className="h-4 w-4" />
           {tCommon('print') ?? 'Print'}
-        </Button>
+        </CmxButton>
       </div>
 
       <div className="print-hidden">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('statementDetails') ?? 'Statement Details'}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('statementDetails') ?? 'Statement Details'}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent className="space-y-2">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <span className="text-gray-500">{t('statementNo') ?? 'Statement No'}</span>
               <span>{data.statement.statementNo}</span>
@@ -141,13 +142,13 @@ export default function B2BStatementDetailPage() {
               <span className="font-medium">{Number(data.statement.balanceAmount).toLocaleString()}</span>
             </div>
             <div className="pt-4">
-              <Button onClick={handlePrint} variant="outline">
+              <CmxButton onClick={handlePrint} variant="outline">
                 <Printer className="h-4 w-4 mr-2" />
                 {tCommon('print') ?? 'Print'}
-              </Button>
+              </CmxButton>
             </div>
-          </CardContent>
-        </Card>
+          </CmxCardContent>
+        </CmxCard>
       </div>
 
       <div className="mt-6 mx-auto max-w-a4">

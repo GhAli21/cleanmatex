@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 import type { LookupServiceResult, LookupSupabaseClient } from './types';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 /** One active speed, in display order (rank: higher = faster). */
 export interface ServiceSpeedLookupRow {
@@ -57,7 +58,7 @@ export async function listActiveServiceSpeeds(
   try {
     const client = supabase ?? (await createClient());
     const [speeds, rules, tenant] = await Promise.all([
-      client
+      catalogReadClient(client)
         .from('sys_service_speed_cd')
         .select('code, name, name2, description, description2, display_order, is_default, default_turnaround_unit')
         .eq('is_active', true)

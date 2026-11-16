@@ -1,0 +1,59 @@
+CLEANMATEX LEGAL PACK
+Document: Pilot order form
+Version: pilot-order-2026-11-17
+Language: English
+Arabic pair: 19_PILOT_ORDER_FORM_ar.txt. That file is the legal translation of this form. The person signs the language in which they read the form. The commercial figures are the same on both.
+Status: Operative draft. Use with manual invoices and bank transfer. This form is the "invoice or order form" in Terms clause 6.
+Do not use this form for a Saudi organization.
+
+PARTIES
+Provider: [LEGAL_ENTITY_NAME], [COMMERCIAL_REGISTRATION_NUMBER], [REGISTERED_ADDRESS]
+Organization legal name:
+Organization trade name:
+Country of establishment (Oman, UAE, or Bahrain):
+Commercial registration:
+Address:
+Account email:
+Authorized person and title:
+
+SERVICE
+Plan name:
+Branches covered:
+Trial end date (if still on trial):
+Paid start date:
+Paid end date:
+Currency (OMR, AED, or BHD):
+Fee for the period, exclusive of VAT:
+VAT, if the Provider is registered (see [VAT_REGISTRATION]):
+Total due:
+Payment: bank transfer to the account on the invoice.
+Due date:
+
+DOCUMENTS ACCEPTED
+The Organization confirms it has accepted, in the application, or it accepts by signing this form:
+Terms tos-2026-11-17
+Data Processing Agreement dpa-2026-11-17
+Acceptable Use Policy aup-2026-11-17
+Privacy Policy acknowledged: privacy-2026-11-17
+Order-intake rule the staff will use: n4-notice-2026-11-17
+
+PILOT LIMITS
+No payment card is collected under this form.
+No uptime credit is included.
+Support: [SUPPORT_EMAIL], first reply target [SUPPORT_RESPONSE_TARGET].
+Database region disclosed to the Organization: [SUPABASE_REGION].
+
+SIGNATURES
+The person who signs states that they can bind the Organization.
+
+Organization
+Name:
+Title:
+Date:
+Signature:
+
+Provider
+Name:
+Title:
+Date:
+Signature:

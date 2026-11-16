@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 /**
  *
@@ -94,7 +95,7 @@ export class ProcessingStepsService {
       }
 
       // Fall back to system defaults
-      const { data: systemSteps, error: systemError } = await supabase
+      const { data: systemSteps, error: systemError } = await catalogReadClient(supabase)
         .from('sys_svc_cat_proc_steps')
         .select('step_code, step_seq, step_name, step_name2, step_color, step_icon, is_active, display_order')
         .eq('service_category_code', serviceCategoryCode)

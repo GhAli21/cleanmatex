@@ -102,9 +102,9 @@ export function CmxFieldShell({
               >
                 {label}
                 {required ? (
-                  <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+                  <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
                 ) : optionalLabel ? (
-                  <span className="ml-2 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <span className="ms-2 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
                     {optionalLabel}
                   </span>
                 ) : null}

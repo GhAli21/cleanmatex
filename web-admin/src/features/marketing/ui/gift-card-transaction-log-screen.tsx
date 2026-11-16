@@ -15,9 +15,9 @@ import { useTranslations } from 'next-intl';
 import { Search, Receipt } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable } from '@ui/data-display';
-import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import { useGiftCardTransactionLog } from '../hooks/use-gift-cards';
 import type { GiftCardTransactionLogRow } from '@/lib/types/payment';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
@@ -39,18 +39,18 @@ const TX_TYPES: GiftCardTxnType[] = [
 
 const TX_TYPE_BADGE: Record<
   GiftCardTxnType,
-  'default' | 'secondary' | 'destructive' | 'outline'
+  'brand' | 'neutral' | 'danger' | 'neutral'
 > = {
-  REDEEM:       'default',
-  REFUND:       'secondary',
-  VOID:         'destructive',
-  ADJUSTMENT:   'outline',
-  SALE:         'default',
-  ISSUE:        'outline',
-  ACTIVATE:     'outline',
-  EXPIRE:       'destructive',
-  BONUS_ADD:    'secondary',
-  BONUS_REDEEM: 'secondary',
+  REDEEM:       'brand',
+  REFUND:       'neutral',
+  VOID:         'danger',
+  ADJUSTMENT:   'neutral',
+  SALE:         'brand',
+  ISSUE:        'neutral',
+  ACTIVATE:     'neutral',
+  EXPIRE:       'danger',
+  BONUS_ADD:    'neutral',
+  BONUS_REDEEM: 'neutral',
 };
 
 /**
@@ -163,9 +163,9 @@ export function GiftCardTransactionLogScreen() {
       key: 'transaction_type',
       header: tLog('fields.type'),
       render: (row: GiftCardTransactionLogRow) => (
-        <Badge variant={TX_TYPE_BADGE[row.transaction_type]}>
+        <CmxStatusBadge size="sm" tone={TX_TYPE_BADGE[row.transaction_type]}>
           {tLog(`transactionType.${row.transaction_type}`)}
-        </Badge>
+        </CmxStatusBadge>
       ),
     },
     {

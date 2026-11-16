@@ -61,7 +61,7 @@ export function PosSessionOrderBanner({ branchId }: { branchId: string | null })
         </span>
         <CmxStatusBadge
           label={lifecycle.posStatus(session.status)}
-          variant="warning"
+          tone="warning"
           size="sm"
         />
         <ManageButton label={t('banner.manage')} />

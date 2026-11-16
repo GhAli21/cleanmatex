@@ -47,7 +47,7 @@ export function CmxStatement({ draft, print, density = 'comfortable', className,
         'flex flex-col',
         density === 'compact' ? 'gap-2 text-sm' : 'gap-4',
         draft && 'rounded-lg border border-dashed border-[rgb(var(--cmx-border-rgb))] p-3',
-        print && 'text-black print:text-black',
+        print && 'text-foreground print:text-foreground',
         className,
       )}
     >

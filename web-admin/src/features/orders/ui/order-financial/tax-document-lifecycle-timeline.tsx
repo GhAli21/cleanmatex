@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Badge } from '@ui/primitives/badge';
+
 import type { OrderTaxDocumentView } from '@features/orders/model/order-financial-summary-view';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface TaxDocumentLifecycleTimelineProps {
   taxDocument: OrderTaxDocumentView;
   currencyCode?: string;
@@ -13,7 +14,7 @@ interface TaxDocumentLifecycleTimelineProps {
   orderId?: string;
 }
 
-type StatusVariant = 'success' | 'warning' | 'destructive' | 'secondary' | 'info' | 'outline';
+type StatusVariant = 'success' | 'warning' | 'danger' | 'neutral' | 'info' | 'neutral';
 
 function taxDocStatusVariant(status: string | undefined): StatusVariant {
   switch (status) {
@@ -22,11 +23,11 @@ function taxDocStatusVariant(status: string | undefined): StatusVariant {
     case 'DRAFT':
       return 'warning';
     case 'CANCELLED':
-      return 'destructive';
+      return 'danger';
     case 'SUPERSEDED':
-      return 'secondary';
+      return 'neutral';
     default:
-      return 'outline';
+      return 'neutral';
   }
 }
 
@@ -77,7 +78,7 @@ export function TaxDocumentLifecycleTimeline({
   return (
     <div className="space-y-2">
       <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <Badge variant={taxDocStatusVariant(doc.status)}>{statusLabel}</Badge>
+        <CmxStatusBadge size="sm" tone={taxDocStatusVariant(doc.status)}>{statusLabel}</CmxStatusBadge>
         <span className="text-sm font-medium">{typeLabel}</span>
         {doc.status === 'ISSUED' && doc.id && orderId && (
           <Link

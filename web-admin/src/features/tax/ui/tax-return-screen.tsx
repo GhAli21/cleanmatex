@@ -34,7 +34,7 @@ function BoxLinesDialog({ range, box, view, onClose }: { range: Range; box: TaxR
     { id: 'taxable', header: t('amount'), cell: ({ row }) => money(row.original.taxable) },
     { id: 'tax', header: t('tax'), cell: ({ row }) => money(row.original.tax) },
     { id: 'recoverable', header: t('lines.recoverable'), cell: ({ row }) => money(row.original.recoverable) },
-    { id: 'kind', header: '', cell: ({ row }) => (row.original.is_reversal ? <CmxStatusBadge size="sm" variant="warning" label={t('lines.reversal')} /> : null) },
+    { id: 'kind', header: '', cell: ({ row }) => (row.original.is_reversal ? <CmxStatusBadge size="sm" tone="warning" label={t('lines.reversal')} /> : null) },
   ]
   return (
     <CmxDialog open onOpenChange={(open) => { if (!open) onClose() }}>

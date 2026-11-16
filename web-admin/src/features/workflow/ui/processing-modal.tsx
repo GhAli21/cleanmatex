@@ -906,7 +906,7 @@ export function ProcessingModal({
                 {order?.status && (
                   <CmxStatusBadge
                     label={order.status.replace('_', ' ').toUpperCase()}
-                    variant="info"
+                    tone="info"
                     size="md"
                     className="capitalize"
                   />

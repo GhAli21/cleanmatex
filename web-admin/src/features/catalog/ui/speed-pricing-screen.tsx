@@ -132,7 +132,7 @@ export function SpeedPricingScreen() {
       key: 'status',
       header: tCommon('status'),
       render: (rule) => (
-        <CmxStatusBadge label={rule.isActive ? tCommon('active') : tCommon('inactive')} variant={rule.isActive ? 'success' : 'outline'} size="sm" />
+        <CmxStatusBadge label={rule.isActive ? tCommon('active') : tCommon('inactive')} tone={rule.isActive ? 'success' : 'neutral'} size="sm" />
       ),
       sortable: false,
     },

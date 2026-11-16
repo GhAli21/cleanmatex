@@ -18,20 +18,14 @@ export * from './cmx-switch'
 export * from './cmx-skeleton'
 export * from './tabs'
 
-// ===== Legacy shadcn/ui primitives (for backward compatibility) =====
-// These are being phased out - prefer Cmx* components above
+// ===== Radix-based primitives with no Cmx twin =====
+// Alert callers move to CmxSummaryMessage per folder in PR-05; new imports are flagged by lint.
 export * from './alert'
 export * from './avatar'
-export * from './badge'
-export * from './button'
-export * from './card'
 export * from './data-table'
 export * from './dropdown-menu'
 export * from './form'
-export * from './form-input'
-export * from './input'
 export * from './label'
-export * from './loading-button'
 export * from './separator'
 export * from './table'
 export * from './tooltip'

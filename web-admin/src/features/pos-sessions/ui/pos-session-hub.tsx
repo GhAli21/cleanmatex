@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
+import { CmxStatusBadge, CmxSummaryMessage, cmxMessage, type CmxBadgeTone } from '@ui/feedback';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -457,8 +457,8 @@ function HubBody({
         </CmxCardHeader>
         <CmxCardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <CmxStatusBadge label={lifecycle.posStatus(session.status)} variant={statusVariant(session.status)} size="sm" />
-            <Badge variant="outline">{session.session_no}</Badge>
+            <CmxStatusBadge label={lifecycle.posStatus(session.status)} tone={statusVariant(session.status)} size="sm" />
+            <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{session.session_no}</CmxStatusBadge>
           </div>
           <InfoGrid>
             <InfoTile label={t('branch')} value={displayBranch(session)} />
@@ -604,19 +604,19 @@ function HubTriggerStatus({
 }) {
   const t = useTranslations('posSessions');
   const lifecycle = useSessionLifecycleLabels();
-  if (isLoading) return <Badge variant="info">{t('hub.checking')}</Badge>;
-  if (isError) return <Badge variant="destructive">{t('hub.error')}</Badge>;
-  if (queryData?.type === 'BRANCH_CONFLICT') return <Badge variant="destructive">{t('hub.branchConflictBadge')}</Badge>;
+  if (isLoading) return <CmxStatusBadge size="sm" tone="info">{t('hub.checking')}</CmxStatusBadge>;
+  if (isError) return <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('hub.error')}</CmxStatusBadge>;
+  if (queryData?.type === 'BRANCH_CONFLICT') return <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('hub.branchConflictBadge')}</CmxStatusBadge>;
   if (queryData?.type === 'ACTIVE') {
     const tone = queryData.session.status === POS_SESSION_STATUS.PAUSED ? 'warning' : 'success';
     return (
       <>
-        <Badge variant={tone}>{lifecycle.posStatus(queryData.session.status)}</Badge>
+        <CmxStatusBadge size="sm" tone={tone}>{lifecycle.posStatus(queryData.session.status)}</CmxStatusBadge>
         <PosSessionFlagBadges session={queryData.session} />
       </>
     );
   }
-  return <Badge variant="info">{t('hub.autoOpen')}</Badge>;
+  return <CmxStatusBadge size="sm" tone="info">{t('hub.autoOpen')}</CmxStatusBadge>;
 }
 
 function HubPanelStatus({
@@ -636,7 +636,7 @@ function HubPanelStatus({
     <>
       <CmxStatusBadge
         label={lifecycle.posStatus(queryData.session.status)}
-        variant={statusVariant(queryData.session.status)}
+        tone={statusVariant(queryData.session.status)}
         size="sm"
       />
       <PosSessionFlagBadges session={queryData.session} />
@@ -714,11 +714,11 @@ function triggerToneClass(result?: GetMyActivePosSessionResult, isError?: boolea
   return 'border-sky-200 text-sky-900';
 }
 
-function statusVariant(status: string): 'success' | 'warning' | 'error' | 'outline' {
+function statusVariant(status: string): CmxBadgeTone {
   if (status === POS_SESSION_STATUS.OPEN) return 'success';
   if (status === POS_SESSION_STATUS.PAUSED) return 'warning';
-  if (status === POS_SESSION_STATUS.FORCE_CLOSED) return 'error';
-  return 'outline';
+  if (status === POS_SESSION_STATUS.FORCE_CLOSED) return 'danger';
+  return 'neutral';
 }
 
 function displayBranch(session: PosSessionWithContext): string {

@@ -5,13 +5,11 @@
 
 'use client';
 
-import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { Badge } from '@ui/primitives';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
+import { cn } from '@/lib/utils';
 
-/**
- *
- */
+/** Piece processing stage. */
 export type PieceStatus = 'intake' | 'processing' | 'qa' | 'ready';
 
 interface PieceStatusBadgeProps {
@@ -20,46 +18,31 @@ interface PieceStatusBadgeProps {
   className?: string;
 }
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  intake: { bg: 'bg-gray-100', text: 'text-gray-700' },
-  processing: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  qa: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  ready: { bg: 'bg-green-100', text: 'text-green-700' },
+const STATUS_TONE: Record<string, CmxBadgeTone> = {
+  intake: 'neutral',
+  processing: 'info',
+  qa: 'warning',
+  ready: 'success',
 };
 
 /**
- *
- * @param root0
- * @param root0.status
- * @param root0.isRejected
- * @param root0.className
+ * Piece stage badge; a rejected piece is struck through and says so.
+ * @param props - status, isRejected, className
+ * @returns The badge, or null without a status
  */
-export function PieceStatusBadge({
-  status,
-  isRejected = false,
-  className = '',
-}: PieceStatusBadgeProps) {
+export function PieceStatusBadge({ status, isRejected = false, className }: PieceStatusBadgeProps) {
   const t = useTranslations('orders.pieces');
-
-  if (!status) {
-    return null;
-  }
+  if (!status) return null;
 
   const statusKey = status.toLowerCase();
-  const colors = STATUS_COLORS[statusKey] || STATUS_COLORS.processing;
+  const label = t(`status.${statusKey}`) || status;
 
   return (
-    <Badge
-      className={`${colors.bg} ${colors.text} ${isRejected ? 'line-through opacity-75' : ''} ${className}`}
-    >
-      {isRejected ? (
-        <>
-          {t(`status.${statusKey}`) || status} ({t('rejected')})
-        </>
-      ) : (
-        t(`status.${statusKey}`) || status
-      )}
-    </Badge>
+    <CmxStatusBadge
+      size="sm"
+      tone={STATUS_TONE[statusKey] ?? 'info'}
+      className={cn(isRejected && 'line-through opacity-75', className)}
+      label={isRejected ? `${label} (${t('rejected')})` : label}
+    />
   );
 }
-

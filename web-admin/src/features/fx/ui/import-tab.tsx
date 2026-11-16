@@ -5,11 +5,11 @@ import { useTranslations } from 'next-intl';
 import { Download, FileSpreadsheet, FileText, Link as LinkIcon } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CURRENCY_FX_PERMISSIONS } from '@/lib/constants/permissions/currency-fx-perm';
 import { commitHqCopyImportAction, previewHqCopyImportAction, commitCsvImportAction, previewCsvImportAction, commitUrlImportAction, previewUrlImportAction } from '@/app/actions/fx/import-actions';
@@ -45,9 +45,9 @@ export function ImportTab({ onImported }: ImportTabProps) {
     codes.length === 0 ? null : (
       <div className="flex flex-wrap gap-1">
         {codes.map((code) => (
-          <Badge key={code} variant="destructive">
+          <CmxStatusBadge size="sm" key={code} tone="danger" appearance="solid">
             {tRowErrors(code as Parameters<typeof tRowErrors>[0])}
-          </Badge>
+          </CmxStatusBadge>
         ))}
       </div>
     );
@@ -116,7 +116,7 @@ export function ImportTab({ onImported }: ImportTabProps) {
                   {
                     key: 'status',
                     header: '',
-                    render: (r: HqCopyPreviewRow) => (r.isDuplicate ? <Badge variant="outline">{t('import.hqCopy.duplicateBadge')}</Badge> : null),
+                    render: (r: HqCopyPreviewRow) => (r.isDuplicate ? <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('import.hqCopy.duplicateBadge')}</CmxStatusBadge> : null),
                   },
                 ]}
                 data={preview.rows}

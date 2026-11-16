@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { CmxInput, CmxSelect } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxButton } from '@ui/primitives';
 import { STOCK_STATUS } from '@/lib/constants/inventory';
 import type {
@@ -28,6 +28,7 @@ import EditItemModal from '@features/inventory/ui/edit-item-modal';
 import AdjustStockModal from '@features/inventory/ui/adjust-stock-modal';
 import StockHistoryModal from '@features/inventory/ui/stock-history-modal';
 
+import { CmxStatusBadge } from '@ui/feedback';
 const BRANCH_STORAGE_KEY = 'inventory_stock_branch_id';
 
 interface Pagination {
@@ -172,15 +173,15 @@ export default function StockPage() {
   }
 
   function getStatusBadge(status: StockStatus) {
-    const map: Record<StockStatus, { variant: 'success' | 'warning' | 'destructive' | 'info'; label: string }> = {
+    const map: Record<StockStatus, { variant: 'success' | 'warning' | 'danger' | 'info'; label: string }> = {
       [STOCK_STATUS.IN_STOCK]: { variant: 'success', label: t('statuses.inStock') },
       [STOCK_STATUS.LOW_STOCK]: { variant: 'warning', label: t('statuses.lowStock') },
-      [STOCK_STATUS.OUT_OF_STOCK]: { variant: 'destructive', label: t('statuses.outOfStock') },
+      [STOCK_STATUS.OUT_OF_STOCK]: { variant: 'danger', label: t('statuses.outOfStock') },
       [STOCK_STATUS.OVERSTOCK]: { variant: 'info', label: t('statuses.overstock') },
-      [STOCK_STATUS.NEGATIVE_STOCK]: { variant: 'destructive', label: t('statuses.negativeStock') },
+      [STOCK_STATUS.NEGATIVE_STOCK]: { variant: 'danger', label: t('statuses.negativeStock') },
     };
-    const { variant, label } = map[status] || { variant: 'default' as const, label: status };
-    return <Badge variant={variant}>{label}</Badge>;
+    const { variant, label } = map[status] || { variant: 'brand' as const, label: status };
+    return <CmxStatusBadge size="sm" tone={variant}>{label}</CmxStatusBadge>;
   }
 
   function handleAfterMutation() {

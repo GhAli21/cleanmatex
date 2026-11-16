@@ -19,7 +19,7 @@ import {
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms'
-import { CmxSummaryMessage } from '@ui/feedback'
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback'
 import { cmxMessage } from '@ui/feedback'
 
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token'
@@ -35,7 +35,7 @@ import {
   PendingDepositDrawerEnsureButton,
   PENDING_DEPOSIT_STATUS_QUERY_KEY,
 } from '@features/cash-drawers/ui/pending-deposit-drawer-ensure-button'
-import { Badge } from '@ui/primitives/badge'
+
 import {
   cashControlSettingsPatchSchema,
   type CashControlSettingsPatchInput,
@@ -350,9 +350,9 @@ export function CashControlSettingsScreen() {
                 <div key={branch.id} className="flex items-center justify-between gap-4 border-b py-2 last:border-b-0">
                   <span className="text-sm font-medium">{branch.name2 ?? branch.name}</span>
                   <div className="flex items-center gap-3">
-                    <Badge variant={present ? 'default' : 'secondary'}>
+                    <CmxStatusBadge size="sm" tone={present ? 'brand' : 'neutral'}>
                       {present ? tPendingDeposit('present') : tPendingDeposit('missing')}
-                    </Badge>
+                    </CmxStatusBadge>
                     {!present && canManage ? (
                       <PendingDepositDrawerEnsureButton branchId={branch.id} />
                     ) : null}

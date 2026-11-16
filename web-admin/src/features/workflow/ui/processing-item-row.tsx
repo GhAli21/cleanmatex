@@ -6,6 +6,7 @@
  */
 
 'use client';
+import { CmxCard, CmxCardHeader, CmxCardContent } from '@ui/primitives';
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
@@ -13,7 +14,7 @@ import { CmxButton } from '@ui/primitives';
 import { ChevronDown, ChevronUp, Package, AlertTriangle } from 'lucide-react';
 import type { OrderItem, ItemPiece, ProcessingStepConfig } from '@/types/order';
 import { ProcessingPieceRow } from './processing-piece-row';
-import { Card, CardHeader, CardContent } from '@/src/ui/primitives/card';
+
 import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
 import { cn } from '@/lib/utils';
@@ -83,7 +84,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   const progressPercentage = totalCount > 0 ? (readyCount / totalCount) * 100 : 0;
 
   return (
-    <Card
+    <CmxCard
       className={cn(
         'overflow-hidden transition-all hover:shadow-md',
         isRejected && rejectEnabled && 'border-l-4 bg-red-50/30'
@@ -94,7 +95,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
       role="article"
       aria-label={`Item: ${item.org_product_data_mst?.product_name || item.product_name || 'Unknown Item'}`}
     >
-      <CardHeader className="pb-3 p-4 sm:p-6">
+      <CmxCardHeader className="pb-3 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-3 mb-2">
@@ -140,7 +141,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               {item.item_last_step && (
                 <CmxStatusBadge
                   label={`Step: ${item.item_last_step.replace('_', ' ')}`}
-                  variant="info"
+                  tone="info"
                   size="sm"
                   className="capitalize"
                 />
@@ -148,10 +149,9 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               {isRejected && rejectEnabled && (
                 <CmxStatusBadge
                   label={t('rejected')}
-                  variant="error"
+                  tone="danger"
                   size="sm"
                   icon={AlertTriangle}
-                  showIcon
                   style={{
                     backgroundColor: `${rejectColor}40`,
                     color: rejectColor,
@@ -162,7 +162,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               {!trackByPiece && (
                 <CmxStatusBadge
                   label={`Status: ${item.status}`}
-                  variant="default"
+                  tone="neutral"
                   size="sm"
                   className="capitalize"
                 />
@@ -189,10 +189,10 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
             </CmxButton>
           )}
         </div>
-      </CardHeader>
+      </CmxCardHeader>
 
       {trackByPiece && isExpanded && (
-        <CardContent className="pt-0" id={`pieces-${item.id}`} role="region" aria-label={`Pieces for ${item.org_product_data_mst?.product_name || item.product_name || 'item'}`}>
+        <CmxCardContent className="pt-0" id={`pieces-${item.id}`} role="region" aria-label={`Pieces for ${item.org_product_data_mst?.product_name || item.product_name || 'item'}`}>
           <div className="space-y-3">
             {pieces.map(piece => (
               <ProcessingPieceRow
@@ -218,18 +218,18 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               />
             ))}
           </div>
-        </CardContent>
+        </CmxCardContent>
       )}
 
       {!trackByPiece && (
-        <CardContent>
+        <CmxCardContent>
           <div className="text-sm text-gray-600 space-y-2">
             <p className="font-medium">Item-level tracking active</p>
             <div className="flex items-center gap-2">
               <span>Status:</span>
               <CmxStatusBadge
                 label={item.status}
-                variant="default"
+                tone="neutral"
                 size="sm"
                 className="capitalize"
               />
@@ -241,8 +241,8 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               </div>
             )}
           </div>
-        </CardContent>
+        </CmxCardContent>
       )}
-    </Card>
+    </CmxCard>
   );
 });

@@ -18,10 +18,10 @@ import {
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable, CmxMoneyVariance } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxSkeleton, CmxTextarea, Label } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
 
 const CLOSED_STATUSES = ['CLOSED', 'FORCE_CLOSED']
@@ -180,7 +180,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                 <div className="space-y-2 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
                   <div className="text-sm font-semibold">{t('disposition')}</div>
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <Badge variant="outline">{dispositionLabel(b.dispositionCode)}</Badge>
+                    <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{dispositionLabel(b.dispositionCode)}</CmxStatusBadge>
                     {b.dispositionDestDrawerName ? (
                       <span>{t('dispositionDestination', { drawer: b.dispositionDestDrawerName })}</span>
                     ) : null}
@@ -200,7 +200,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                   {countsByCurrency(b.currencyCode).map((c) => (
                     <div key={c.countId} className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
                       <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <Badge variant="outline">{tDrawers(`tabs.counts.types.${c.countType}` as Parameters<typeof tDrawers>[0])}</Badge>
+                        <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{tDrawers(`tabs.counts.types.${c.countType}` as Parameters<typeof tDrawers>[0])}</CmxStatusBadge>
                         <span>{fmtDateTime(c.countedAt)}</span>
                         <span>
                           {t('countedOfExpected', {
@@ -253,7 +253,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                   key: 'posSession',
                   header: t('attribution.posSession'),
                   render: (row: (typeof view.attribution)[number]) =>
-                    row.posSessionNo ?? <Badge variant="warning">{t('attribution.unattributed')}</Badge>,
+                    row.posSessionNo ?? <CmxStatusBadge size="sm" tone="warning">{t('attribution.unattributed')}</CmxStatusBadge>,
                 },
                 {
                   key: 'cashier',
@@ -300,11 +300,11 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
           <CmxCardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('postClose.current')}</span>
-              <Badge variant="outline">
+              <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
                 {view.postClose.statusCode
                   ? localized(statusRow(view.postClose.statusCode), view.postClose.statusCode)
                   : t('postClose.none')}
-              </Badge>
+              </CmxStatusBadge>
               {view.postClose.at ? <span>{fmtDateTime(view.postClose.at)}</span> : null}
             </div>
 
@@ -337,7 +337,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                 <ul className="space-y-1 text-sm">
                   {view.postClose.history.map((h, i) => (
                     <li key={`${h.changedAt}-${i}`} className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{localized(statusRow(h.statusCode), h.statusCode)}</Badge>
+                      <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{localized(statusRow(h.statusCode), h.statusCode)}</CmxStatusBadge>
                       <span>{fmtDateTime(h.changedAt)}</span>
                       {h.notes ? <span className="italic">— {h.notes}</span> : null}
                     </li>

@@ -26,8 +26,8 @@ import { CmxButton, CmxSelect } from '@ui/primitives'
 const PAGE_SIZE = 20
 const DECISIONS: VarianceQueueDecision[] = ['PENDING', 'REJECTED', 'APPROVED', 'ALL']
 
-const decisionVariant = (decision: VarianceQueueEntry['decision']): 'warning' | 'error' | 'success' =>
-  decision === 'PENDING' ? 'warning' : decision === 'REJECTED' ? 'error' : 'success'
+const decisionVariant = (decision: VarianceQueueEntry['decision']): 'warning' | 'danger' | 'success' =>
+  decision === 'PENDING' ? 'warning' : decision === 'REJECTED' ? 'danger' : 'success'
 
 /**
  * Variance decision queue (C3): closed drawer sessions whose closing variance tripped their
@@ -128,7 +128,7 @@ export function CashDrawerVarianceQueueScreen() {
               key: 'decision',
               header: t('columns.decision'),
               render: (r: VarianceQueueEntry) => (
-                <CmxStatusBadge label={t(`decisions.${r.decision}`)} variant={decisionVariant(r.decision)} size="sm" />
+                <CmxStatusBadge label={t(`decisions.${r.decision}`)} tone={decisionVariant(r.decision)} size="sm" />
               ),
             },
             {

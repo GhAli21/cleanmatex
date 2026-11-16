@@ -3,11 +3,12 @@
 import { useTranslations } from 'next-intl';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { EXCESS_LIABILITY_SOURCES } from '@/lib/constants/reconciliation-reports';
 import type { ExcessLiabilityReport, ExcessLiabilityRow } from '@/lib/types/reconciliation-report';
 import { fmtAmount, fmtDate } from './reconciliation-format';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface Props {
   data: ExcessLiabilityReport | null;
   loading: boolean;
@@ -29,7 +30,7 @@ export function ReconciliationExcessLiabilityRprt({ data, loading, csvHref }: Pr
         : source === EXCESS_LIABILITY_SOURCES.ADVANCE
         ? t('sourceAdvance')
         : t('sourceCreditNote');
-    return <Badge variant="outline" className="text-xs">{label}</Badge>;
+    return <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="text-xs">{label}</CmxStatusBadge>;
   };
 
   const columns = [

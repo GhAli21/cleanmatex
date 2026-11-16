@@ -5,10 +5,10 @@ import { useTranslations } from 'next-intl';
 import { Plus, Inbox } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
 import type { OrgCashDrawer, OrgCashDrawerSession } from '@/lib/types/payment';
 import { DRAWER_TYPES } from '@/lib/constants/payment';
@@ -145,7 +145,7 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
       key: 'type',
       header: t('cashDrawers.drawerType'),
       render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
-        <Badge variant="outline">{t(`cashDrawers.drawerTypeLabel.${d.drawer_type}` as never)}</Badge>
+        <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t(`cashDrawers.drawerTypeLabel.${d.drawer_type}` as never)}</CmxStatusBadge>
       ),
     },
     {
@@ -204,11 +204,11 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
       key: 'session',
       header: t('cashDrawers.sessionStatus'),
       render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => {
-        if (!d.currentSession) return <Badge variant="secondary">{t('cashDrawers.noOpenSession')}</Badge>;
+        if (!d.currentSession) return <CmxStatusBadge size="sm" tone="neutral">{t('cashDrawers.noOpenSession')}</CmxStatusBadge>;
         return (
-          <Badge variant="default" className="bg-green-600">
+          <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-600">
             {t('cashDrawers.openSince', { time: new Date(d.currentSession.opened_at).toLocaleTimeString() })}
-          </Badge>
+          </CmxStatusBadge>
         );
       },
     },
@@ -224,7 +224,7 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
           )}
           {/* The branch pending-deposit drawer is system-provisioned; the server rejects edit/deactivate too. */}
           {d.drawer_type === DRAWER_TYPES.PENDING_DEPOSIT || d.drawer_type === DRAWER_TYPES.IN_TRANSIT ? (
-            <Badge variant="secondary">{t('cashDrawers.systemDrawer')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('cashDrawers.systemDrawer')}</CmxStatusBadge>
           ) : (
             <>
               <CmxButton variant="outline" size="sm" onClick={() => setEditTarget(d)}>{t('common.edit')}</CmxButton>

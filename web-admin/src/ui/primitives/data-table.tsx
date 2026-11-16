@@ -33,7 +33,7 @@ import {
   Table2,
 } from "lucide-react"
 
-import { Button } from "./button"
+import { CmxButton } from "./cmx-button"
 import { CMX_PAGE_SIZE_OPTIONS, cmxPageSizeChoices } from "../data-display/cmx-table-defaults"
 import {
   DropdownMenu,
@@ -44,7 +44,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./dropdown-menu"
-import { Input } from "./input"
+import { CmxInput } from "./cmx-input"
 import {
   Table,
   TableBody,
@@ -55,10 +55,11 @@ import {
 } from "./table"
 import { CmxSpinner } from "./cmx-spinner"
 import { CmxEmptyState } from "../data-display/cmx-empty-state"
-import { Badge } from "./badge"
+
 import { Tooltip } from "./tooltip"
 import { cn } from "@/lib/utils"
 
+import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge';
 // Custom debounce hook
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value)
@@ -381,14 +382,14 @@ export function DataTable<TData, TValue>({
           {searchKey && (
             <div className="relative w-full max-w-sm">
               <Search
-                className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"
+                className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground"
                 aria-hidden="true"
               />
-              <Input
+              <CmxInput
                 placeholder={searchPlaceholder}
                 value={searchValue}
                 onChange={(event) => handleSearchChange(event.target.value)}
-                className="pl-8 pr-8"
+                className="ps-8 pe-8"
                 aria-label={t("searchLabel", "Search table")}
                 aria-describedby="search-description"
               />
@@ -399,15 +400,15 @@ export function DataTable<TData, TValue>({
                 )}
               </span>
               {currentSearchValue && (
-                <Button
+                <CmxButton
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1 top-1 h-7 w-7"
+                  className="absolute end-1 top-1 h-7 w-7"
                   onClick={handleClearSearch}
                   aria-label={t("clearSearch", "Clear search")}
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </CmxButton>
               )}
             </div>
           )}
@@ -420,44 +421,44 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center gap-2">
           {viewMode === "both" && (
             <div className="flex items-center border rounded-md">
-              <Button
-                variant={currentViewMode === "table" ? "default" : "ghost"}
+              <CmxButton
+                variant={currentViewMode === "table" ? "primary" : "ghost"}
                 size="sm"
-                className="rounded-r-none"
+                className="rounded-e-none"
                 onClick={() => setCurrentViewMode("table")}
                 aria-label={t("tableView", "Table view")}
               >
                 <Table2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={currentViewMode === "card" ? "default" : "ghost"}
+              </CmxButton>
+              <CmxButton
+                variant={currentViewMode === "card" ? "primary" : "ghost"}
                 size="sm"
-                className="rounded-l-none"
+                className="rounded-s-none"
                 onClick={() => setCurrentViewMode("card")}
                 aria-label={t("cardView", "Card view")}
               >
                 <LayoutGrid className="h-4 w-4" />
-              </Button>
+              </CmxButton>
             </div>
           )}
           {enableColumnFilters && (
-            <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
+            <CmxButton variant="outline" size="sm">
+              <Filter className="me-2 h-4 w-4" />
               {t("filters", "Filters")}
               {columnFilters.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <CmxStatusBadge size="sm" tone="neutral" className="ms-2">
                   {columnFilters.length}
-                </Badge>
+                </CmxStatusBadge>
               )}
-            </Button>
+            </CmxButton>
           )}
           {onExport && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
+                <CmxButton variant="outline" size="sm">
+                  <Download className="me-2 h-4 w-4" />
                   {t("export", "Export")}
-                </Button>
+                </CmxButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleExport("csv")}>
@@ -471,9 +472,9 @@ export function DataTable<TData, TValue>({
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="ml-auto">
-                {t("columns", "Columns")} <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
+              <CmxButton variant="outline" className="ms-auto">
+                {t("columns", "Columns")} <ChevronDown className="ms-2 h-4 w-4" />
+              </CmxButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[200px]">
               <DropdownMenuLabel>{t("toggleColumns", "Toggle columns")}</DropdownMenuLabel>
@@ -540,9 +541,9 @@ export function DataTable<TData, TValue>({
           aria-live="polite"
         >
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">
+            <CmxStatusBadge size="sm" tone="neutral">
               {t("selectedCount", `${selectedRowCount} selected`)}
-            </Badge>
+            </CmxStatusBadge>
             <span className="text-sm text-muted-foreground">
               {t(
                 "selectedInfo",
@@ -577,10 +578,10 @@ export function DataTable<TData, TValue>({
               {typeof error === "string" ? error : error?.message || t("errorMessage", "An error occurred while loading data.")}
             </p>
             {onRetry && (
-              <Button onClick={onRetry} variant="outline">
-                <RefreshCw className="mr-2 h-4 w-4" />
+              <CmxButton onClick={onRetry} variant="outline">
+                <RefreshCw className="me-2 h-4 w-4" />
                 {t("retry", "Retry")}
-              </Button>
+              </CmxButton>
             )}
           </div>
         )}
@@ -714,11 +715,11 @@ export function DataTable<TData, TValue>({
                               onMouseDown={header.getResizeHandler()}
                               onTouchStart={header.getResizeHandler()}
                               className={cn(
-                                "absolute right-0 top-0 h-full w-1 cursor-col-resize touch-none select-none bg-border opacity-0 hover:opacity-100 transition-opacity",
+                                "absolute end-0 top-0 h-full w-1 cursor-col-resize touch-none select-none bg-border opacity-0 hover:opacity-100 transition-opacity",
                                 header.column.getIsResizing() && "opacity-100 bg-primary"
                               )}
                             >
-                              <GripVertical className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <GripVertical className="absolute end-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             </div>
                           )}
                         </TableHead>
@@ -798,7 +799,7 @@ export function DataTable<TData, TValue>({
                                   : undefined,
                               }}
                               className={cn(
-                                hasError && "border-l-2 border-l-destructive"
+                                hasError && "border-s-2 border-l-destructive"
                               )}
                             >
                               {cellTooltip ? (
@@ -915,7 +916,7 @@ export function DataTable<TData, TValue>({
               {t("pageInfo", `Page ${pageIndex + 1} of ${table.getPageCount()}`)}
             </div>
             <div className="flex items-center space-x-2">
-              <Button
+              <CmxButton
                 variant="outline"
                 className="h-8 w-8 p-0"
                 onClick={() => table.setPageIndex(0)}
@@ -924,8 +925,8 @@ export function DataTable<TData, TValue>({
               >
                 <span className="sr-only">{t("firstPage", "Go to first page")}</span>
                 <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
+              </CmxButton>
+              <CmxButton
                 variant="outline"
                 className="h-8 w-8 p-0"
                 onClick={() => table.previousPage()}
@@ -934,8 +935,8 @@ export function DataTable<TData, TValue>({
               >
                 <span className="sr-only">{t("previousPage", "Go to previous page")}</span>
                 <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
+              </CmxButton>
+              <CmxButton
                 variant="outline"
                 className="h-8 w-8 p-0"
                 onClick={() => table.nextPage()}
@@ -944,8 +945,8 @@ export function DataTable<TData, TValue>({
               >
                 <span className="sr-only">{t("nextPage", "Go to next page")}</span>
                 <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
+              </CmxButton>
+              <CmxButton
                 variant="outline"
                 className="h-8 w-8 p-0"
                 onClick={() => table.setPageIndex(table.getPageCount() - 1)}
@@ -954,7 +955,7 @@ export function DataTable<TData, TValue>({
               >
                 <span className="sr-only">{t("lastPage", "Go to last page")}</span>
                 <ChevronsRight className="h-4 w-4" />
-              </Button>
+              </CmxButton>
             </div>
           </div>
         </div>

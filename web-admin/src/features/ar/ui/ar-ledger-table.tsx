@@ -2,9 +2,10 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxDataTable } from '@ui/data-display';
-import { Badge } from '@ui/primitives/badge';
+
 import type { ArCustomerLedgerEntry } from '@/lib/types/ar-invoice';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface ArLedgerTableProps {
   rows: ArCustomerLedgerEntry[];
   page?: number;
@@ -70,9 +71,9 @@ export function ArLedgerTable({
           key: 'side',
           header: t('columns.side'),
           render: (row) => (
-            <Badge variant={row.entry_side === 'DEBIT' ? 'warning' : 'success'}>
+            <CmxStatusBadge size="sm" tone={row.entry_side === 'DEBIT' ? 'warning' : 'success'}>
               {t(`sides.${row.entry_side}`)}
-            </Badge>
+            </CmxStatusBadge>
           ),
           sortable: false,
         },

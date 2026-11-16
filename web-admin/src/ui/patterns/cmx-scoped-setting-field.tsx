@@ -13,9 +13,10 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxButton } from '@ui/primitives'
 
+import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge';
 export interface CmxScopedSettingFieldProps {
   label: string
   description?: string
@@ -59,7 +60,7 @@ export function CmxScopedSettingField({
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{label}</span>
-          <Badge variant={isOverridden ? 'default' : 'outline'}>{sourceLabel}</Badge>
+          <CmxStatusBadge size="sm" tone={isOverridden ? 'brand' : 'neutral'}>{sourceLabel}</CmxStatusBadge>
         </div>
         {description ? (
           <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{description}</p>

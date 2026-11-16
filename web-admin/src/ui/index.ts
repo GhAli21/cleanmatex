@@ -34,9 +34,6 @@ export * from './patterns'
 // ===== Layer 10: Utilities =====
 export * from './utilities'
 
-// NOTE: CmxChart and legacy wrappers live in ./components; not re-exported here to avoid
-// overlap with primitives/forms/feedback. Use @ui/primitives, @ui/forms, @ui/feedback, etc.
-// If needed: import { CmxChart } from '@ui/components'
 
 // ===== Utils =====
 export { cn } from '@/lib/utils'

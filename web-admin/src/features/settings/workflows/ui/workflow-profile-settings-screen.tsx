@@ -9,9 +9,9 @@ import type {
   WorkflowProfileTemplateView,
 } from '@/lib/services/workflow-profile.service'
 import { CmxEmptyState } from '@ui/data-display'
-import { CmxSummaryMessage } from '@ui/feedback'
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxTabsPanel } from '@ui/navigation'
-import { Badge } from '@ui/primitives/badge'
+
 import {
   CmxCard,
   CmxCardContent,
@@ -42,9 +42,9 @@ function renderBooleanBadge(
   disabledLabel: string,
 ) {
   return (
-    <Badge variant={value ? 'success' : 'secondary'}>
+    <CmxStatusBadge size="sm" tone={value ? 'success' : 'neutral'}>
       {value ? enabledLabel : disabledLabel}
-    </Badge>
+    </CmxStatusBadge>
   )
 }
 
@@ -79,10 +79,10 @@ function TemplateCard({
             </CmxCardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            {template.isDefault && <Badge variant="success">{defaultLabel}</Badge>}
-            {template.isActive && <Badge variant="outline">{activeLabel}</Badge>}
+            {template.isDefault && <CmxStatusBadge size="sm" tone="success">{defaultLabel}</CmxStatusBadge>}
+            {template.isActive && <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{activeLabel}</CmxStatusBadge>}
             {template.allowBackSteps && (
-              <Badge variant="secondary">{backStepsLabel}</Badge>
+              <CmxStatusBadge size="sm" tone="neutral">{backStepsLabel}</CmxStatusBadge>
             )}
           </div>
         </div>
@@ -93,9 +93,9 @@ function TemplateCard({
       <CmxCardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
           {template.stages.map((stage) => (
-            <Badge key={`${template.templateId}:${stage.code}`} variant="outline">
+            <CmxStatusBadge size="sm" key={`${template.templateId}:${stage.code}`} tone="neutral" appearance="outline">
               {localizeLabel(locale, stage.name, stage.name2, stage.code)}
-            </Badge>
+            </CmxStatusBadge>
           ))}
         </div>
       </CmxCardContent>
@@ -111,9 +111,9 @@ function StatusBadge({
   status: WorkflowProfileScreenStatusView
 }) {
   return (
-    <Badge variant="outline">
+    <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
       {localizeLabel(locale, status.name, status.name2, status.code)}
-    </Badge>
+    </CmxStatusBadge>
   )
 }
 
@@ -257,7 +257,7 @@ export function WorkflowProfileSettingsScreen({
               <CmxCardContent className="space-y-4 text-sm">
                 <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                   <span>{t('effectiveProfile.modeLabel')}</span>
-                  <Badge variant="success">{t('effectiveProfile.modeV2')}</Badge>
+                  <CmxStatusBadge size="sm" tone="success">{t('effectiveProfile.modeV2')}</CmxStatusBadge>
                 </div>
                 <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                   <span>{t('effectiveProfile.defaultTemplateLabel')}</span>
@@ -342,15 +342,15 @@ export function WorkflowProfileSettingsScreen({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {assignment.isDefault ? (
-                      <Badge variant="success">
+                      <CmxStatusBadge size="sm" tone="success">
                         {t('effectiveProfile.defaultBadge')}
-                      </Badge>
+                      </CmxStatusBadge>
                     ) : null}
-                    <Badge variant={assignment.isActive ? 'outline' : 'secondary'}>
+                    <CmxStatusBadge size="sm" tone={assignment.isActive ? 'neutral' : 'neutral'}>
                       {assignment.isActive
                         ? tCommon('active')
                         : tCommon('inactive')}
-                    </Badge>
+                    </CmxStatusBadge>
                   </div>
                 </div>
               </CmxCardHeader>
@@ -427,9 +427,9 @@ export function WorkflowProfileSettingsScreen({
                 <CmxCardContent>
                   <div className="flex flex-wrap gap-2">
                     {screen.statuses.length === 0 ? (
-                      <Badge variant="secondary">
+                      <CmxStatusBadge size="sm" tone="neutral">
                         {t('effectiveProfile.noStatuses')}
-                      </Badge>
+                      </CmxStatusBadge>
                     ) : (
                       screen.statuses.map((status) => (
                         <StatusBadge

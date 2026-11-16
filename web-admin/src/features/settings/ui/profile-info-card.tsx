@@ -9,9 +9,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Shield, Lock, Unlock, Info, RefreshCw } from 'lucide-react';
-import { CmxCard, CmxButton, Badge } from '@ui/primitives';
+import { CmxCard, CmxButton } from '@ui/primitives';
 import { settingsClient, type TenantProfileInfo } from '@/lib/api/settings-client';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface ProfileInfoCardProps {
   tenantId?: string;
   onRecompute?: () => void;
@@ -93,13 +94,13 @@ export function ProfileInfoCard({ tenantId, onRecompute }: ProfileInfoCardProps)
                   {profileInfo.stng_profile_name || profileInfo.stng_profile_code}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="default" className="text-xs">
+                  <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="text-xs">
                     v{profileInfo.stng_profile_version_applied || 1}
-                  </Badge>
+                  </CmxStatusBadge>
                   {profileInfo.stng_profile_locked && (
-                    <Badge variant="secondary" className="text-xs">
+                    <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
                       Locked
-                    </Badge>
+                    </CmxStatusBadge>
                   )}
                 </div>
               </>

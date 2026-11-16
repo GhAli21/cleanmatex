@@ -16,7 +16,7 @@ Update this table and `STATUS.md` at the end of every task (the last step of eac
 
 | Task | State | Date | Notes (values adjusted, surprises, anything left open) |
 |---|---|---|---|
-| 1 `cn()` merge | **Blocked** | 2026-11-16 | `npm install tailwind-merge` crashes inside npm itself (`Cannot read properties of null (reading 'location')`; `npm ls` crashes the same way). The package could not be added, so `cn()` was left unchanged and the test was removed. Owner must repair the install tree (see Rulings), then this task is one small change. |
+| 1 `cn()` merge | Done | 2026-11-16 | Owner repaired the install and added `tailwind-merge` ^3.7.0. `cn()` keeps its flattening loop and ends in `twMerge`. Test `__tests__/lib/cn.test.ts`: 3 failed first (the input-shape test passed, as expected), then 4/4. Typecheck shows only the 2 known errors (after `npx prisma generate`, because the reinstall had removed the generated client). ESLint clean, build passes. |
 | 2 Brand palette function | Done | 2026-11-16 | 61 tests pass. Light `muted-foreground` lightness 0.55 → 0.52 to reach 4.5:1. Added: grey seeds do not tint neutrals. Fixed while testing: a black seed in dark mode never lightened. |
 | 3 Token stylesheet and mapping | Done (build pending in Task 7) | 2026-11-16 | 4 guard tests pass. Every `--cmx-*` name used in code is defined; none had to be added beyond the plan's tables. `tokens.css` was generated from the palette function, not typed by hand. |
 | 4 Fonts | Done (build pending in Task 7) | 2026-11-16 | `Noto_Sans_Arabic` via `next/font/google`. Two rules used the old font name, both updated. Fallback name kept for Storybook, which has no font variable. |
@@ -27,7 +27,7 @@ Update this table and `STATUS.md` at the end of every task (the last step of eac
 ### Rulings made during execution
 
 - **Tests live under `web-admin/__tests__/`**, not beside the source: jest only looks there. Paths used: `__tests__/lib/theme/`, `__tests__/ui/foundations/`, `__tests__/ui/feedback/`, `__tests__/ui/primitives/`.
-- **Task 1 blocked by the npm install tree.** Not worked around: the dependency folders are closed to the assistant by a deny rule, and repairing an install is the owner's call. Cost while blocked: a `className` override on a Cmx component still depends on stylesheet order, as it does today.
+- **Task 1 was blocked by the npm install tree** and was not worked around (the dependency folders are closed to the assistant by a deny rule). The owner repaired it on 2026-11-16 and the task is done. The test lives in `__tests__/lib/` because jest only collects from `__tests__/`. It adds one case beyond the plan: `ps-*` and `pe-*` must not cancel each other.
 - **No blanket touch rule.** The plan's `@media (pointer: coarse)` rule on every `button` and `input` was not added: it would also stretch switches, chips, tabs and icon buttons. Only the `--cmx-touch-min` token is defined; components adopt it in PR-04.
 - **Brand colour as text uses `primary-text`.** Not in the plan, but required by its own contrast goal: aqua text on white is about 2.4:1. Cost if wrong: 51 text sites and 24 focus rings are a deeper aqua than the solid brand colour.
 - **Pagination labels come from `common.*` inside the component**, so all three callers get translated labels without changes. New keys: `common.firstPage`, `common.lastPage`.

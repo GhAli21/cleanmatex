@@ -659,7 +659,7 @@ export function CmxEditableDataTable<
         <div className="flex items-center gap-2">
           {enableInlineAdd && (
             <CmxButton size="sm" variant="primary" onClick={handleAddRow}>
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 me-1" />
               Add Row
             </CmxButton>
           )}
@@ -687,7 +687,7 @@ export function CmxEditableDataTable<
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-3 py-2 text-left font-medium">
+                  <th key={header.id} className="px-3 py-2 text-start font-medium">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -724,10 +724,10 @@ export function CmxEditableDataTable<
                     key={row.id}
                     className={cn(
                       'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
-                      isNew && 'bg-blue-50/50',
-                      isDirty && 'bg-yellow-50/50',
-                      hasErrors && 'bg-red-50/50',
-                      rowError && 'bg-red-50/50'
+                      isNew && 'bg-info-bg/50',
+                      isDirty && 'bg-warning-bg/50',
+                      hasErrors && 'bg-danger-bg/50',
+                      rowError && 'bg-danger-bg/50'
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -758,7 +758,7 @@ export function CmxEditableDataTable<
           return (
             <div
               key={rowId}
-              className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700"
+              className="rounded-lg border border-danger-border bg-danger-bg p-2 text-xs text-danger-text"
             >
               Row {rowId}: {state.rowError}
             </div>

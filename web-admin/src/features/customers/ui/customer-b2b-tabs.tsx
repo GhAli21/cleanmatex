@@ -4,10 +4,11 @@
  */
 
 'use client';
+import { CmxButton } from '@ui/primitives';
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Button } from '@ui/primitives/button';
+
 import type { B2BContact, B2BContract, B2BStatement } from '@/lib/types/b2b';
 
 interface CustomerB2BContactsTabProps {
@@ -100,13 +101,13 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
         <div className="py-8 text-center bg-gray-50 rounded-lg">
           <p className="text-gray-500">{t('customerContractsEmptyTitle')}</p>
           <p className="text-sm text-gray-400 mt-1">{t('customerContractsEmptyHint')}</p>
-          <Button
+          <CmxButton
             variant="outline"
             className="mt-4"
             onClick={() => window.location.assign('/dashboard/b2b/contracts')}
           >
             {t('contracts')}
-          </Button>
+          </CmxButton>
         </div>
       ) : (
         <div className="space-y-2">
@@ -121,13 +122,13 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
                   {c.effectiveFrom ?? '—'} — {c.effectiveTo ?? '—'}
                 </p>
               </div>
-              <Button
+              <CmxButton
                 variant="outline"
                 size="sm"
                 onClick={() => window.location.assign(`/dashboard/b2b/contracts`)}
               >
                 {t('view')}
-              </Button>
+              </CmxButton>
             </div>
           ))}
         </div>
@@ -164,13 +165,13 @@ export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabP
         <div className="py-8 text-center bg-gray-50 rounded-lg">
           <p className="text-gray-500">{t('customerStatementsEmptyTitle')}</p>
           <p className="text-sm text-gray-400 mt-1">{t('customerStatementsEmptyHint')}</p>
-          <Button
+          <CmxButton
             variant="outline"
             className="mt-4"
             onClick={() => window.location.assign('/dashboard/b2b/statements')}
           >
             {t('statements')}
-          </Button>
+          </CmxButton>
         </div>
       ) : (
         <div className="space-y-2">
@@ -188,13 +189,13 @@ export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabP
                   {t('balanceAmount')}: {Number(s.balanceAmount).toLocaleString()}
                 </p>
               </div>
-              <Button
+              <CmxButton
                 variant="outline"
                 size="sm"
                 onClick={() => window.location.assign(`/dashboard/b2b/statements`)}
               >
                 {t('view')}
-              </Button>
+              </CmxButton>
             </div>
           ))}
         </div>

@@ -70,7 +70,7 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
     const label = lineLabel(l, key, t, locale);
     const meta = [formatDate(l.meta?.dateIso, locale), l.meta?.ref].filter(Boolean).join(' · ') || undefined;
     const notCounted = (NOT_COUNTED_STATES as readonly string[]).includes(l.state);
-    const chip = notCounted ? <CmxStatusBadge size="sm" variant={l.state === 'pending' ? 'warning' : 'default'} label={t(`orders.finView.lineStates.${l.state}`)} /> : undefined;
+    const chip = notCounted ? <CmxStatusBadge size="sm" tone={l.state === 'pending' ? 'warning' : 'neutral'} label={t(`orders.finView.lineStates.${l.state}`)} /> : undefined;
     let note: React.ReactNode;
     if (l.unit === 'points') note = t('orders.finView.lines.points', { points: l.amount ?? 0 });
     else if (l.role !== 'additive' && l.amount != null) note = money(l.amount, { size: 'sm', tone: 'muted' });
@@ -113,7 +113,7 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
   const chips = (section: OrderFinSectionPayload) => {
     const counts = section.counts ?? {};
     const parts = NOT_COUNTED_STATES.filter((s) => (counts[s] ?? 0) > 0);
-    return parts.length ? <>{parts.map((s) => <CmxStatusBadge key={s} size="sm" variant="outline" label={t(`orders.finView.chips.${s}`, { count: counts[s] })} />)}</> : undefined;
+    return parts.length ? <>{parts.map((s) => <CmxStatusBadge key={s} size="sm" tone="neutral" appearance="outline" label={t(`orders.finView.chips.${s}`, { count: counts[s] })} />)}</> : undefined;
   };
 
   const row = (key: OrderFinSectionKey) => {
@@ -144,7 +144,7 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
       </>
     ) : null;
     const marker = section.warningCodes?.length
-      ? <CmxStatusBadge size="sm" variant="warning" label={t('orders.finView.warnings.count', { count: section.warningCodes.length })} />
+      ? <CmxStatusBadge size="sm" tone="warning" label={t('orders.finView.warnings.count', { count: section.warningCodes.length })} />
       : undefined;
     return (
       <CmxStatementRow

@@ -4,6 +4,10 @@
 **Scope:** both repos: the tenant app (`cleanmatex`: web-admin, cmx-api, mobile apps, all migrations) and HQ, the SaaS Backoffice (`cleanmatexsaas`: platform-api, platform-web, platform-workers, marketing-web).
 **Method:** each feature's own STATUS, RESUME, follow-ups and remaining-work files were read and spot-checked against the code on 16 Nov 2026. Then the remote database was checked read-only through the remote DB MCP: data, `pg_cron` and the Supabase security advisor.
 
+## Production evidence authority
+
+**Always use read-only remote Supabase checks for production readiness, scheduler state, backlogs, migrations, security findings, job history, and deployment decisions.** Local database output is development-only and may be used to diagnose code or test fixtures, but never to declare a production fact, close a go/no-go item, or choose a production action. Record the remote query date, environment, result, and evidence link in the relevant plan/status entry.
+
 ## Verdict
 
 The product itself (orders, workflow, payments, cash drawer, tax, notifications, ERP-Lite) is far along. Most features say "code complete, owner QA pending". **Two problems found in the live database come first:**
@@ -23,6 +27,8 @@ The product itself (orders, workflow, payments, cash drawer, tax, notifications,
 **Recommendation:** run a **closed pilot** first, with 1–3 friendly laundries in Oman, UAE or Bahrain, invoiced manually and paying in cash or by bank transfer at their counter. Do the Blocker rows in each file before that, and the "Before public launch" rows before marketing opens publicly.
 
 ## Files
+
+**Start with [ROADMAP.md](ROADMAP.md):** the phased plan (Phase 0 security → 1 jobs and monitoring → 2 production environment → 3 legal, in parallel → 4 browser QA → 5 closed pilot → 6 public launch → 7 growth). Before executing Phase 0–4, use the single [Phase 0–4 Go / No-Go Register](Phase_0_to_4_Go_No_Go_Register.md). Phase 0 steps 0.1–0.4 are planned in [S0_privilege_lockdown_PLAN.md](S0_privilege_lockdown_PLAN.md).
 
 | # | File | Area |
 |---|---|---|

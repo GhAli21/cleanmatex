@@ -55,11 +55,11 @@ interface DeliveryQueueOrder {
 }
 
 /** Badge tone for an order's live status in the ready-for-delivery list. */
-function orderStatusVariant(status: string | null | undefined): 'success' | 'processing' | 'warning' | 'default' {
+function orderStatusVariant(status: string | null | undefined): 'success' | 'info' | 'warning' | 'neutral' {
   if (status === 'delivered') return 'success'
-  if (status === 'in_transit') return 'processing'
+  if (status === 'in_transit') return 'info'
   if (status === 'out_for_delivery') return 'warning'
-  return 'default'
+  return 'neutral'
 }
 
 /** Parses a timestamp for the audit dialog; CmxAuditInfoCard formats Date values itself. */
@@ -70,11 +70,11 @@ function toAuditDate(value: string | null | undefined): Date | null {
 }
 
 /** Badge tone for a route's lifecycle status. */
-function routeStatusVariant(status: string): 'success' | 'processing' | 'warning' | 'default' {
+function routeStatusVariant(status: string): 'success' | 'info' | 'warning' | 'neutral' {
   if (status === 'completed') return 'success'
-  if (status === 'in_progress') return 'processing'
+  if (status === 'in_progress') return 'info'
   if (status === 'planned') return 'warning'
-  return 'default'
+  return 'neutral'
 }
 
 /**
@@ -311,7 +311,7 @@ export function DeliveryRoutePlanningScreen() {
       cell: ({ row }) => (
         <CmxStatusBadge
           label={t(`routeStatus.${row.original.statusCode}`, { default: row.original.statusCode })}
-          variant={routeStatusVariant(row.original.statusCode)}
+          tone={routeStatusVariant(row.original.statusCode)}
           size="sm"
         />
       ),
@@ -412,7 +412,7 @@ export function DeliveryRoutePlanningScreen() {
       render: (order: DeliveryQueueOrder) => (
         <CmxStatusBadge
           label={t(`routes.orderStatus.${order.current_status}`, { default: order.current_status ?? '' })}
-          variant={orderStatusVariant(order.current_status)}
+          tone={orderStatusVariant(order.current_status)}
           size="sm"
         />
       ),

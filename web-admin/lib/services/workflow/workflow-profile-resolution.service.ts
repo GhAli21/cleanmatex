@@ -1,4 +1,5 @@
 import 'server-only';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { Prisma } from '@prisma/client';
@@ -296,7 +297,7 @@ export async function resolveWorkflowProfileBindingWithSupabase(
     .maybeSingle();
   if (tenantError) throw tenantError;
 
-  const { data: profileData, error: profileError } = await supabase
+  const { data: profileData, error: profileError } = await catalogReadClient(supabase)
     .from('sys_wf_profiles_cd')
     .select('profile_id')
     .eq('profile_id', assignment.wf_profile_id)
@@ -311,7 +312,7 @@ export async function resolveWorkflowProfileBindingWithSupabase(
     );
   }
 
-  const { data: versionData, error: versionError } = await supabase
+  const { data: versionData, error: versionError } = await catalogReadClient(supabase)
     .from('sys_wf_profile_ver_mst')
     .select('version_id, profile_id, version_no, based_on_template_id, version_status, policy_revision')
     .eq('profile_id', assignment.wf_profile_id)
@@ -322,7 +323,7 @@ export async function resolveWorkflowProfileBindingWithSupabase(
   if (versionError) throw versionError;
   const version = chooseExecutableVersion(assignment, (versionData ?? []) as VersionRow[], Boolean(tenantData?.is_hq_test_demo));
 
-  const { data: initialRuleData, error: initialRuleError } = await supabase
+  const { data: initialRuleData, error: initialRuleError } = await catalogReadClient(supabase)
     .from('sys_wf_prof_ver_init_cf')
     .select('rule_code, order_source_code, order_type_id, is_retail, is_quick_drop, initial_status, priority, create_preset_code')
     .eq('version_id', version.version_id)

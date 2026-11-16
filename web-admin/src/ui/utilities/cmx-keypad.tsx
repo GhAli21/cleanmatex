@@ -418,9 +418,9 @@ export function CmxKeypad<T extends CmxKeypadKey = CmxKeypadKey>({
                 KEY_HEIGHT_CLASS[keyHeight],
                 // Always-visible focus ring so arrow navigation is obvious (CLEAR
                 // especially — red fill can hide a subtle default ring).
-                'rounded-2xl border-slate-200 text-2xl font-semibold text-slate-800 shadow-sm',
-                'focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-white',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2',
+                'rounded-2xl border-border text-2xl font-semibold text-foreground shadow-sm',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 buttonClassName,
                 getKeyClassName?.(key, index)
               )}

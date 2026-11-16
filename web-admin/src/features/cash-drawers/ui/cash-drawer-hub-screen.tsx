@@ -22,9 +22,10 @@ import {
 import type { CashDrawerOverviewRow, CashDrawerSessionListRow } from '@lib/types/cash-drawer'
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
 import { CmxButton } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
 
+import { CmxStatusBadge } from '@ui/feedback';
 const HUB_DRAWER_PAGE_SIZE = 5
 const HUB_SESSION_PAGE_SIZE = 5
 
@@ -204,9 +205,9 @@ export function CashDrawerHubScreen() {
       header: t('columns.requirements'),
       render: (row: CashDrawerOverviewRow) => (
         <div className="flex flex-wrap gap-1">
-          {row.requiresSession ? <Badge variant="secondary">{t('requiresSession')}</Badge> : null}
+          {row.requiresSession ? <CmxStatusBadge size="sm" tone="neutral">{t('requiresSession')}</CmxStatusBadge> : null}
           {row.openingCountRequired ? (
-            <Badge variant="secondary">{t('openingCountRequired')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('openingCountRequired')}</CmxStatusBadge>
           ) : null}
           {!row.requiresSession && !row.openingCountRequired ? (
             <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">—</span>
@@ -236,9 +237,9 @@ export function CashDrawerHubScreen() {
         }
 
         return (
-          <Badge variant={indicator.tone === 'open' ? 'default' : 'outline'}>
+          <CmxStatusBadge size="sm" tone={indicator.tone === 'open' ? 'brand' : 'neutral'}>
             {indicator.label}
-          </Badge>
+          </CmxStatusBadge>
         )
       },
     },

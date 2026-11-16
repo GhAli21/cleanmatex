@@ -1,16 +1,17 @@
 # UI Design System and Theming — Status
 
-**Last update:** 2026-11-16
+**Last update:** 2026-11-17
 **Current document:** `THEMING_ARCHITECTURE_DESIGN.md` (approved by owner 2026-11-16). It wins over any PR file on conflict.
 **Plans:** one per package, written just before that package starts. `PLAN_PR-01.md` is executed (see its Progress table and Rulings).
-**Code written so far:** PR-01 (uncommitted; the owner commits). No migration written.
+**Code written so far:** PR-01 and PR-02 Tasks 1–6 (uncommitted; the owner commits). No migration written.
+**Resume here:** `RESUME_CONTINUATION.md` (handoff for the next session or assistant).
 
 ## Packages
 
 | Package | What | Depends on | State |
 |---|---|---|---|
-| PR-01 | Tokens, fonts, `cn()` merge, RTL and accessibility fixes in shared components | — | **Implemented 2026-11-16, owner QA pending.** `cn()` merge blocked (npm install tree broken) |
-| PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | Not started |
+| PR-01 | Tokens, fonts, `cn()` merge, RTL and accessibility fixes in shared components | — | **Implemented 2026-11-16 (all 7 tasks), owner QA pending** |
+| PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **In progress** (`PLAN_PR-02.md`, approved 2026-11-16; order statuses map to the 5 tones). Tasks 1–6 Done; Task 7 code and tests done, typecheck and build not run; Tasks 8–10 not started |
 | PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | Not started |
 | PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | Not started |
 | PR-04 | POS touch targets and keyboard shortcuts | PR-01 | Not started |
@@ -44,13 +45,14 @@
 - Brand colour used as text now reads `--cmx-primary-text-rgb` (readable on white); focus rings read `--cmx-focus-ring-rgb`. Primary buttons have dark text on aqua.
 - Final review by a fresh reviewer: 4 Important findings fixed (unreadable info banners, `text-primary` low contrast, Escape cancelling a running confirm, closed confirm unlocking page scroll); 5 Minor deferred, listed in `PLAN_PR-01.md` → Final review.
 - Checks: brand-palette 61 tests, token guard 5, confirm dialog 8, input id 2 — all pass. ESLint clean on changed files, `check:i18n` passes, `npm run build` passes. Full jest: 9 suites fail, all judged unrelated (detail in `PLAN_PR-01.md` → Rulings).
-- **Blocked:** `cn()` with `tailwind-merge`. `npm install` crashes inside npm in this checkout (`Cannot read properties of null (reading 'location')`). Owner: repair the install (for example delete `node_modules` and the lock file's broken entry, then `npm install`), then run `npm install tailwind-merge -w web-admin`; the code change is in `PLAN_PR-01.md` Task 1.
+- `cn()` now merges with `tailwind-merge`, so a `className` passed to a Cmx component overrides that component's conflicting default (for example `px-4` beats `px-2`). The owner repaired the npm install on 2026-11-16. Test `cn` 4/4; build passes.
 
 - Owner QA steps: `QA_TEST_GUIDE.md` → PR-01.
 
 ## Open
 
-- PR-01 owner QA (`QA_TEST_GUIDE.md`), commit, and the `tailwind-merge` install.
+- PR-01 owner QA (`QA_TEST_GUIDE.md`) and commit.
+- PR-02: finish Task 7 (typecheck, build, Storybook check), then Tasks 8–10 (`RESUME_CONTINUATION.md`).
 - Pre-existing, not from this program: 2 type errors (`app/(auth)/login/page.tsx:162`, `src/features/users/ui/membership-lock-action.tsx:84`) and 9 failing jest suites (list in `PLAN_PR-01.md`).
 - Font pairs to seed (licence and Arabic coverage check).
 - Tailwind v4's exact minimum browser versions.

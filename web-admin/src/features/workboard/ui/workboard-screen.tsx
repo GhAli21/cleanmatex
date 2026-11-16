@@ -10,7 +10,7 @@ import { ClipboardList, Copy, ExternalLink, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
 import type { CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
-import { CmxSummaryMessage, CmxStatusBadge, useMessage } from '@ui/feedback'
+import { CmxSummaryMessage, CmxStatusBadge, useMessage, type CmxBadgeTone } from '@ui/feedback'
 
 import { useWorkboard } from '@features/workboard/hooks/use-workboard'
 import { OrderDetailsLink } from '@features/orders/ui/order-details-link'
@@ -63,22 +63,22 @@ function isDueToday(row: WorkboardOrderRow): boolean {
   return dueAt.getTime() >= now.getTime() && dueAt.getTime() <= endOfToday.getTime()
 }
 
-function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): Parameters<typeof CmxStatusBadge>[0]['variant'] {
+function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): CmxBadgeTone {
   switch (ownerScreenKey) {
     case 'new_order':
-      return 'outline'
+      return 'neutral'
     case 'home_collection':
       return 'info'
     case 'preparation':
       return 'info'
     case 'processing':
-      return 'processing'
+      return 'info'
     case 'assembly':
-      return 'default'
+      return 'neutral'
     case 'qa':
       return 'success'
     case 'packing':
-      return 'outline'
+      return 'neutral'
     case 'ready_release':
       return 'success'
     case 'pickup_handover':
@@ -86,7 +86,7 @@ function ownerBadgeVariant(ownerScreenKey: WorkboardOwnerScreenKey): Parameters<
     case 'driver_delivery':
       return 'warning'
     case 'order_detail':
-      return 'outline'
+      return 'neutral'
   }
 }
 
@@ -358,7 +358,7 @@ export function WorkboardScreen() {
           <CmxStatusBadge
             label={locale === 'ar' && row.statusName2 ? row.statusName2 : row.statusName}
             size="sm"
-            variant={ownerBadgeVariant(row.ownerScreenKey)}
+            tone={ownerBadgeVariant(row.ownerScreenKey)}
           />
           <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
             {t(`owners.${row.ownerScreenKey}`)}
@@ -400,7 +400,7 @@ export function WorkboardScreen() {
             <CmxStatusBadge
               label={formatPriorityLabel(row.priority, t)}
               size="sm"
-              variant="outline"
+              tone="neutral" appearance="outline"
             />
           )
           : <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('noPriority')}</span>
@@ -425,18 +425,18 @@ export function WorkboardScreen() {
       sortable: false,
       render: (row) => {
         if (row.isBlocked) {
-          return <CmxStatusBadge label={t('attention.blocked')} size="sm" variant="warning" />
+          return <CmxStatusBadge label={t('attention.blocked')} size="sm" tone="warning" />
         }
 
         if (isOverdue(row)) {
-          return <CmxStatusBadge label={t('attention.overdue')} size="sm" variant="error" />
+          return <CmxStatusBadge label={t('attention.overdue')} size="sm" tone="danger" />
         }
 
         if (isDueToday(row)) {
-          return <CmxStatusBadge label={t('attention.dueToday')} size="sm" variant="info" />
+          return <CmxStatusBadge label={t('attention.dueToday')} size="sm" tone="info" />
         }
 
-        return <CmxStatusBadge label={t('attention.clear')} size="sm" variant="success" />
+        return <CmxStatusBadge label={t('attention.clear')} size="sm" tone="success" />
       },
     },
     {

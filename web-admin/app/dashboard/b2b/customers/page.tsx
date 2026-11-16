@@ -4,14 +4,15 @@
  */
 
 'use client';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
-import { Button } from '@ui/primitives/button';
+
+
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { B2B_B2B_CUSTOMERS_ACCESS } from '@features/b2b/access/b2b-access'
 
@@ -58,27 +59,27 @@ export default function B2BCustomersPage() {
         <h1 className="text-2xl font-semibold">
           {t('customers') || 'B2B Customers'}
         </h1>
-        <Button variant="default" onClick={() => router.push('/dashboard/b2b/customers/new')}>
+        <CmxButton variant="primary" onClick={() => router.push('/dashboard/b2b/customers/new')}>
           {t('createB2BCustomer') || 'Create B2B Customer'}
-        </Button>
+        </CmxButton>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('customers') || 'B2B Customers'}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle>{t('customers') || 'B2B Customers'}</CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent>
           {!customers?.length ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-gray-500 mb-4">
                 {t('noCustomers') || 'No B2B customers yet. Create one to get started.'}
               </p>
-              <Button
+              <CmxButton
                 onClick={() => router.push('/dashboard/b2b/customers/new')}
-                variant="default"
+                variant="primary"
               >
                 {t('createB2BCustomer') || 'Create B2B Customer'}
-              </Button>
+              </CmxButton>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -102,13 +103,13 @@ export default function B2BCustomersPage() {
                         {c.credit_limit != null ? Number(c.credit_limit).toLocaleString() : '-'}
                       </td>
                       <td className="py-2 px-3">
-                        <Button
+                        <CmxButton
                           variant="outline"
                           size="sm"
                           onClick={() => router.push(`/dashboard/b2b/customers/${c.id}`)}
                         >
                           {t('view') || 'View'}
-                        </Button>
+                        </CmxButton>
                       </td>
                     </tr>
                   ))}
@@ -116,8 +117,8 @@ export default function B2BCustomersPage() {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
     </div>
   );
 }

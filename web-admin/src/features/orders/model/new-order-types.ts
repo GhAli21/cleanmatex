@@ -278,6 +278,8 @@ export interface NewOrderState {
   loading: boolean;
   createdOrderId: string | null;
   createdOrderStatus: string | null;
+  /** Photos taken before the order is saved; uploaded to it (File Util) right after save. */
+  pendingPhotos: File[];
 
   // Modal States
   modals: ModalStates;
@@ -371,6 +373,8 @@ export type NewOrderAction =
   | { type: 'SET_READY_BY_AT'; payload: string }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_CREATED_ORDER'; payload: { orderId: string; status: string | null } }
+  | { type: 'ADD_PENDING_PHOTO'; payload: File }
+  | { type: 'REMOVE_PENDING_PHOTO'; payload: number } // index
   | { type: 'OPEN_MODAL'; payload: keyof ModalStates }
   | { type: 'CLOSE_MODAL'; payload: keyof ModalStates }
   | { type: 'OPEN_PRICE_OVERRIDE_MODAL'; payload: string } // productId

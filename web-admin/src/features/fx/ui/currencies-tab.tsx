@@ -6,8 +6,8 @@ import { Plus, Coins } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
-import { cmxMessage } from '@ui/feedback';
+
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CURRENCY_FX_PERMISSIONS } from '@/lib/constants/permissions/currency-fx-perm';
@@ -116,7 +116,7 @@ export function CurrenciesTab({ currencies, isLoading, onRefresh }: CurrenciesTa
       render: (c: CurrencyPortfolioRow) => (
         <div className="flex items-center gap-2">
           <span className="font-mono font-medium">{c.currencyCode}</span>
-          {!c.isActive && <Badge variant="outline">{tCommon('inactive')}</Badge>}
+          {!c.isActive && <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{tCommon('inactive')}</CmxStatusBadge>}
         </div>
       ),
     },
@@ -125,8 +125,8 @@ export function CurrenciesTab({ currencies, isLoading, onRefresh }: CurrenciesTa
       header: t('currencies.role'),
       render: (c: CurrencyPortfolioRow) => (
         <div className="flex gap-1">
-          {c.isBaseCurrency && <Badge variant="success">{t('currencies.baseChip')}</Badge>}
-          {c.isReportingCurrency && <Badge variant="info">{t('currencies.reportingChip')}</Badge>}
+          {c.isBaseCurrency && <CmxStatusBadge size="sm" tone="success">{t('currencies.baseChip')}</CmxStatusBadge>}
+          {c.isReportingCurrency && <CmxStatusBadge size="sm" tone="info">{t('currencies.reportingChip')}</CmxStatusBadge>}
         </div>
       ),
     },
@@ -141,9 +141,9 @@ export function CurrenciesTab({ currencies, isLoading, onRefresh }: CurrenciesTa
             ['allowCash', c.allowCash] as const,
             ['allowAr', c.allowAr] as const,
           ].map(([key, enabled]) => (
-            <Badge key={key} variant={enabled ? 'secondary' : 'outline'} className={enabled ? '' : 'opacity-50'}>
+            <CmxStatusBadge size="sm" key={key} tone={enabled ? 'neutral' : 'neutral'} className={enabled ? '' : 'opacity-50'}>
               {t(`currencies.context.${key}`)}
-            </Badge>
+            </CmxStatusBadge>
           ))}
         </div>
       ),

@@ -11,6 +11,7 @@ import { PRODUCT_PRICE_TYPES, SERVICE_SPEEDS, SPEED_PRICE_TYPES, isTaxCategory }
 import { createSpeedRule, listProductExpressRules } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleCreateSchema, type SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 import type {
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
   ServiceCategory,
   EnabledCategory,
   EnableCategoriesRequest,
@@ -41,7 +42,7 @@ import type {
 export async function getServiceCategories(): Promise<ServiceCategory[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await catalogReadClient(supabase)
     .from('sys_service_category_cd')
     .select('*')
     .eq('is_active', true)
@@ -97,7 +98,7 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
     if (enabledCodes.length > 0) {
       try {
         // Use type assertion to avoid TypeScript deep type instantiation issue
-        const categoriesQuery = (supabase
+        const categoriesQuery = (catalogReadClient(supabase)
           .from('sys_service_category_cd') as any)
           .select('*')
           .in('service_category_code', enabledCodes)

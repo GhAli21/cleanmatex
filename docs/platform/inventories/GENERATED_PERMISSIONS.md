@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-13T21:01:54.283Z
+Generated: 2026-11-16T20:26:34.269Z
 
 ## By surface (counts)
 
@@ -287,7 +287,7 @@ Generated: 2026-11-13T21:01:54.283Z
 | orders:edit | api | app/api/v1/orders/[id]/changes/follow-up/route.ts | 23 | /api/v1/orders/[id]/changes/follow-up |
 | orders:edit | api | app/api/v1/orders/[id]/changes/preview/route.ts | 40 | /api/v1/orders/[id]/changes/preview |
 | orders:edit | api | app/api/v1/orders/[id]/changes/route.ts | 68 | /api/v1/orders/[id]/changes |
-| orders:edit | api | app/api/v1/orders/[id]/edit-session/route.ts | 54 | /api/v1/orders/[id]/edit-session |
+| orders:edit | api | app/api/v1/orders/[id]/edit-session/route.ts | 56 | /api/v1/orders/[id]/edit-session |
 | orders:fail_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 74 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:fail_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 78 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:history | api | app/api/v1/orders/[id]/history/route.ts | 13 | /api/v1/orders/[id]/history |
@@ -442,13 +442,13 @@ Generated: 2026-11-13T21:01:54.283Z
 | pricing:update | api | app/api/v1/price-lists/[id]/items/[itemId]/route.ts | 22 | /api/v1/price-lists/[id]/items/[itemId] |
 | pricing:update | api | app/api/v1/price-lists/[id]/items/[itemId]/route.ts | 145 | /api/v1/price-lists/[id]/items/[itemId] |
 | pricing:update | api | app/api/v1/price-lists/[id]/route.ts | 87 | /api/v1/price-lists/[id] |
-| products:categories | screen | app/dashboard/catalog/categories/page.tsx | 38 | /dashboard/catalog/categories |
+| products:categories | screen | app/dashboard/catalog/categories/page.tsx | 39 | /dashboard/catalog/categories |
 | products:categories | api | app/api/v1/categories/route.ts | 188 | /api/v1/categories |
-| products:create | service | app/dashboard/catalog/services/page.tsx | 53 | /dashboard/catalog/services |
+| products:create | service | app/dashboard/catalog/services/page.tsx | 54 | /dashboard/catalog/services |
 | products:create | api | app/api/v1/products/import/route.ts | 33 | /api/v1/products/import |
 | products:create | api | app/api/v1/products/route.ts | 169 | /api/v1/products |
 | products:delete | api | app/api/v1/products/[id]/route.ts | 161 | /api/v1/products/[id] |
-| products:export | service | app/dashboard/catalog/services/page.tsx | 54 | /dashboard/catalog/services |
+| products:export | service | app/dashboard/catalog/services/page.tsx | 55 | /dashboard/catalog/services |
 | products:export | api | app/api/v1/products/export/route.ts | 28 | /api/v1/products/export |
 | products:read | api | app/api/v1/products/route.ts | 52 | /api/v1/products |
 | products:read | api | app/api/v1/products/tax-classes/route.ts | 8 | /api/v1/products/tax-classes |

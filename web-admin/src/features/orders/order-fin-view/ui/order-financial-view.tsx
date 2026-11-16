@@ -129,7 +129,7 @@ export function OrderFinancialView({ source, config = {}, className }: OrderFina
     <div className={cn('flex flex-col gap-4', resolved.layout === 'card' && 'rounded-xl border border-[rgb(var(--cmx-border-rgb))] bg-[rgb(var(--cmx-card-rgb))] p-4', resolved.layout === 'sheet' && 'gap-3', className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className={cn('min-w-0 flex-1 motion-safe:transition-opacity', edit?.status === 'pending' && 'opacity-60')}>
-          {view.sourceKind === 'draft' && <CmxStatusBadge className="mb-2" size="sm" variant="info" label={t('orders.finView.draftBadge')} />}
+          {view.sourceKind === 'draft' && <CmxStatusBadge className="mb-2" size="sm" tone="info" label={t('orders.finView.draftBadge')} />}
           {resolved.header.visible && <OrderFinHeader view={view} header={resolved.header} density={resolved.density} />}
         </div>
         {switcher.length > 1 && resolved.layout !== 'print' && (
@@ -143,7 +143,7 @@ export function OrderFinancialView({ source, config = {}, className }: OrderFina
 
       {edit && (edit.status === 'pending' || edit.status === 'error') && (
         <div className="flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
-          {edit.status === 'pending' && <CmxStatusBadge size="sm" variant="processing" label={t('orders.finView.edit.updating')} />}
+          {edit.status === 'pending' && <CmxStatusBadge size="sm" tone="info" label={t('orders.finView.edit.updating')} />}
           {edit.status === 'error' && edit.error && (
             <>
               <span role="alert">{t(edit.error.code === 'QUOTE_REJECTED' ? 'orders.finView.edit.quoteFailed' : `orders.finView.errors.${edit.error.code}`)}</span>
@@ -159,7 +159,7 @@ export function OrderFinancialView({ source, config = {}, className }: OrderFina
       {view.sourceKind === 'saved' && view.snapshotStatus && !HEALTHY.has(view.snapshotStatus) && (
         <CmxSummaryMessage type="warning" title={t('orders.finView.banners.recalculating')} items={[]} />
       )}
-      {!view.currencyKnown && <CmxStatusBadge size="sm" variant="warning" label={t('orders.finView.banners.currencyUnknown')} />}
+      {!view.currencyKnown && <CmxStatusBadge size="sm" tone="warning" label={t('orders.finView.banners.currencyUnknown')} />}
 
       {warnings.length > 0 && (
         <CmxCollapsibleSection

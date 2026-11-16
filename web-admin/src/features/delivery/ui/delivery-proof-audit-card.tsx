@@ -60,7 +60,7 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
             <div className="flex items-center gap-2">
               <CmxStatusBadge
                 label={t(`payment.${audit.order.paymentState}`)}
-                variant={audit.order.paymentState === 'settled' ? 'success' : 'warning'}
+                tone={audit.order.paymentState === 'settled' ? 'success' : 'warning'}
               />
               <CmxButton size="sm" variant="outline" loading={isFetching} onClick={() => { void refetch(); }}>
                 {t('refreshEvidence')}
@@ -109,7 +109,7 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
                   </div>
                   <CmxStatusBadge
                     label={t(`stopStatus.${entry.stopStatus}`, { default: entry.stopStatus })}
-                    variant={entry.stopStatus === 'delivered' ? 'success' : 'processing'}
+                    tone={entry.stopStatus === 'delivered' ? 'success' : 'info'}
                   />
                 </div>
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">

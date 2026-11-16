@@ -11,12 +11,13 @@ import {
   CmxDialogTitle,
   CmxDialogFooter,
 } from '@ui/overlays';
-import { CmxButton, Badge } from '@ui/primitives';
+import { CmxButton } from '@ui/primitives';
 import { TRANSACTION_TYPES, REFERENCE_TYPES } from '@/lib/constants/inventory';
 import { searchStockTransactionsAction } from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem, StockTransaction } from '@/lib/types/inventory';
 import type { BranchOption } from '@/lib/services/inventory-service';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface StockHistoryModalProps {
   item: InventoryItemListItem;
   onClose: () => void;
@@ -84,13 +85,13 @@ export default function StockHistoryModal({ item, onClose, branchId, branches = 
   function getTypeBadge(type: string) {
     switch (type) {
       case TRANSACTION_TYPES.STOCK_IN:
-        return <Badge variant="success">{t('transactionTypes.stockIn')}</Badge>;
+        return <CmxStatusBadge size="sm" tone="success">{t('transactionTypes.stockIn')}</CmxStatusBadge>;
       case TRANSACTION_TYPES.STOCK_OUT:
-        return <Badge variant="destructive">{t('transactionTypes.stockOut')}</Badge>;
+        return <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('transactionTypes.stockOut')}</CmxStatusBadge>;
       case TRANSACTION_TYPES.ADJUSTMENT:
-        return <Badge variant="info">{t('transactionTypes.adjustment')}</Badge>;
+        return <CmxStatusBadge size="sm" tone="info">{t('transactionTypes.adjustment')}</CmxStatusBadge>;
       default:
-        return <Badge variant="default">{type}</Badge>;
+        return <CmxStatusBadge size="sm" tone="brand" appearance="solid">{type}</CmxStatusBadge>;
     }
   }
 

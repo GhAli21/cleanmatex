@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentTenant } from '@/lib/services/tenants.service';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 /**
  *
@@ -61,7 +62,7 @@ export async function GET(
     // Get profile name if profile code exists
     let profileName: string | undefined;
     if (tenant.stng_profile_code) {
-      const { data: profile } = await supabase
+      const { data: profile } = await catalogReadClient(supabase)
         .from('sys_stng_profiles_mst')
         .select('stng_profile_name')
         .eq('stng_profile_code', tenant.stng_profile_code)

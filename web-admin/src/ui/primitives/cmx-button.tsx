@@ -14,7 +14,8 @@ import { CMX_BUTTON_OUTLINE_CHROME } from '@ui/foundations'
 export interface CmxButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'destructive'
-  size?: 'xs' | 'sm' | 'md' | 'lg'
+  /** `icon` is a square button for a single icon; give it an aria-label. */
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon'
   loading?: boolean
   asChild?: boolean
 }
@@ -49,7 +50,7 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
         'border-2 border-transparent bg-transparent hover:bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))]',
       outline: CMX_BUTTON_OUTLINE_CHROME.outline,
       destructive:
-        'border-2 border-transparent bg-[rgb(var(--cmx-destructive-rgb,220_38_38))] text-white hover:bg-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',
+        'border-2 border-transparent bg-[rgb(var(--cmx-destructive-rgb,220_38_38))] text-destructive-foreground hover:bg-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',
     }[variant]
 
     const sizeClass = {
@@ -57,6 +58,7 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
       sm: 'h-8 px-3 text-xs',
       md: 'h-10 px-4 text-sm',
       lg: 'h-11 px-5 text-base',
+      icon: 'h-9 w-9 p-0',
     }[size]
 
     if (asChild) {

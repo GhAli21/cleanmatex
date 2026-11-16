@@ -14,10 +14,10 @@ import type {
   OrderChangeHistoryRemovalView,
   OrderChangeHistoryValueField,
 } from '@/lib/services/order-change/order-change-history-view';
-import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxButton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card';
 
 const OPERATION_CODES = new Set<string>(ORDER_CHANGE_OPERATION_CODES);
@@ -46,11 +46,11 @@ interface OrdersChangeHistoryTabRprtProps {
   initialError: OrderChangeHistoryErrorCode | null;
 }
 
-function outcomeVariant(outcome: string): 'success' | 'warning' | 'info' | 'outline' {
+function outcomeVariant(outcome: string): 'success' | 'warning' | 'info' | 'neutral' {
   if (outcome === 'NONE') return 'success';
   if (outcome === 'OUTSTANDING_OPTIONAL') return 'info';
   if (outcome === 'OUTSTANDING_REQUIRED' || outcome === 'OVERPAYMENT') return 'warning';
-  return 'outline';
+  return 'neutral';
 }
 
 /**
@@ -142,7 +142,7 @@ export function OrdersChangeHistoryTabRprt({
           <h2 className="text-lg font-semibold">{t('title')}</h2>
           <p className="max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{t('description')}</p>
         </div>
-        <Badge variant="outline">{t('totalCount', { count: totalCount })}</Badge>
+        <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('totalCount', { count: totalCount })}</CmxStatusBadge>
       </div>
 
       {errorText ? <CmxSummaryMessage type="error" title={errorText} items={[]} /> : null}
@@ -283,8 +283,8 @@ function ChangeCard({
             </span>
           </CmxButton>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={outcomeVariant(item.financialOutcome)}>{outcomeName(item.financialOutcome)}</Badge>
-            <Badge variant="outline">{item.legacy ? labels.legacySource : labels.editSource}</Badge>
+            <CmxStatusBadge size="sm" tone={outcomeVariant(item.financialOutcome)}>{outcomeName(item.financialOutcome)}</CmxStatusBadge>
+            <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{item.legacy ? labels.legacySource : labels.editSource}</CmxStatusBadge>
             <span className="text-sm font-semibold tabular-nums">
               {delta.text}
               <span className="ms-1 font-normal text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{delta.tone}</span>
@@ -324,7 +324,7 @@ function ChangeCard({
                 {item.operations.map((operation) => (
                   <li key={`${item.id}-${operation.seq}`} className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">{labels.sequence} {operation.seq}</Badge>
+                      <CmxStatusBadge size="sm" tone="neutral">{labels.sequence} {operation.seq}</CmxStatusBadge>
                       <span className="font-medium">{operationName(operation.code)}</span>
                       <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
                         {labels.target}: {targetName(operation.targetType)}

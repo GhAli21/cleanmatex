@@ -18,24 +18,13 @@ import {
   CmxFormSection,
   CmxFormStatusBanner,
 } from '@ui/forms'
-import {
-  Badge,
-  CmxButton,
-  CmxCard,
-  CmxCardContent,
-  CmxCardDescription,
-  CmxCardHeader,
-  CmxCardTitle,
-  CmxInput,
-  CmxMoneyField,
-  CmxSelect,
-  CmxSwitch,
-} from '@ui/primitives'
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxMoneyField, CmxSelect, CmxSwitch } from '@ui/primitives';
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { useTaxItemClassOptions } from '../hooks/use-tax-item-class-options'
 import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface CategoryOption {
   code: string
   name: string
@@ -341,7 +330,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             title={mode === 'create' ? t('newProduct') : t('editProduct')}
             description={t('category')}
             layout="twoColumn"
-            badge={loadingCategories ? <Badge variant="secondary">{tCommon('loading')}</Badge> : null}
+            badge={loadingCategories ? <CmxStatusBadge size="sm" tone="neutral">{tCommon('loading')}</CmxStatusBadge> : null}
           >
             <CmxFormField name="service_category_code" label={t('category')} required>
               {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
@@ -431,9 +420,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             >
               {({ id, value, onChange }) => (
                 <div className="flex items-center justify-between gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] px-4 py-3">
-                  <Badge variant={value ? 'success' : 'secondary'}>
+                  <CmxStatusBadge size="sm" tone={value ? 'success' : 'neutral'}>
                     {value ? tCommon('active') : tCommon('inactive')}
-                  </Badge>
+                  </CmxStatusBadge>
                   <CmxSwitch
                     id={id}
                     checked={Boolean(value)}

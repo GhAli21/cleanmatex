@@ -1678,6 +1678,7 @@ model org_tenants_mst {
   org_domain_events_outbox         org_domain_events_outbox[]
   org_drivers_mst                  org_drivers_mst[]
   org_ff_overrides_cf              org_ff_overrides_cf[]
+  org_file_mst                     org_file_mst[]
   org_fin_acct_mst                 org_fin_acct_mst[]
   org_fin_alloc_rule_mst           org_fin_alloc_rule_mst[]
   org_fin_alloc_run_dtl            org_fin_alloc_run_dtl[]
@@ -18439,6 +18440,396 @@ model sys_users_mst {
   updated_by            String?
   updated_info          String?
   org_tenants_mst       org_tenants_mst? @relation(fields: [last_chosen_tenant_id], references: [id], onUpdate: NoAction, map: "fk_sys_users_hint_tenant")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_file_mst {
+  id                     String                 @id(map: "pk_org_file_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String                 @db.Uuid
+  category_code          String
+  purpose_code           String
+  entity_id              String                 @db.Uuid
+  ref_type_code          String?
+  ref_id                 String?                @db.Uuid
+  source_code            String
+  notes                  String?
+  bucket_code            String
+  object_key             String
+  thumb_object_key       String?
+  original_name          String
+  mime_type              String
+  size_bytes             BigInt
+  thumb_size_bytes       BigInt?
+  sha256_hex             String?
+  width                  Int?
+  height                 Int?
+  duration_ms            Int?
+  status_code            String                 @default("PENDING")
+  ready_at               DateTime?              @db.Timestamptz(6)
+  purged_at              DateTime?              @db.Timestamptz(6)
+  sort_order             Int                    @default(0)
+  created_at             DateTime               @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?              @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  updated_count          Int                    @default(0)
+  deleted_at             DateTime?              @db.Timestamptz(6)
+  deleted_by             String?
+  deleted_info           String?
+  rec_status             Int                    @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean                @default(true)
+  sys_file_bucket_cd     sys_file_bucket_cd     @relation(fields: [bucket_code], references: [bucket_code], onUpdate: NoAction, map: "fk_ofm_bucket")
+  sys_file_mime_types_cd sys_file_mime_types_cd @relation(fields: [mime_type], references: [mime_type], onUpdate: NoAction, map: "fk_ofm_mime")
+  sys_file_purpose_cd    sys_file_purpose_cd    @relation(fields: [category_code, purpose_code], references: [category_code, purpose_code], onUpdate: NoAction, map: "fk_ofm_purpose")
+  sys_file_ref_type_cd   sys_file_ref_type_cd?  @relation(fields: [ref_type_code], references: [ref_type_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ofm_ref_type")
+  sys_file_source_cd     sys_file_source_cd     @relation(fields: [source_code], references: [source_code], onUpdate: NoAction, map: "fk_ofm_source")
+  sys_file_status_cd     sys_file_status_cd     @relation(fields: [status_code], references: [status_code], onUpdate: NoAction, map: "fk_ofm_status")
+  org_tenants_mst        org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ofm_tenant")
+
+  @@unique([bucket_code, object_key], map: "uq_ofm_object")
+  @@unique([tenant_org_id, id], map: "uq_ofm_tenant_id")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_bucket_cd {
+  bucket_code             String                  @id(map: "pk_sys_file_bucket")
+  storage_bucket_id       String                  @unique(map: "uq_sfb_storage_id")
+  scope_code              String
+  is_public               Boolean                 @default(false)
+  name                    String
+  name2                   String?
+  description             String?
+  description2            String?
+  created_at              DateTime                @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?               @db.Timestamptz(6)
+  updated_by              String?
+  updated_info            String?
+  updated_count           Int                     @default(0)
+  deleted_at              DateTime?               @db.Timestamptz(6)
+  deleted_by              String?
+  deleted_info            String?
+  rec_status              Int                     @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean                 @default(true)
+  org_file_mst            org_file_mst[]
+  sys_file_owner_scope_cd sys_file_owner_scope_cd @relation(fields: [scope_code], references: [scope_code], onUpdate: NoAction, map: "fk_sfb_scope")
+  sys_file_category_cd    sys_file_category_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_category_cd {
+  category_code        String                @id(map: "pk_sys_file_category")
+  bucket_code          String
+  max_size_bytes       BigInt
+  max_files_per_entity Int?
+  image_max_dimension  Int?
+  name                 String
+  name2                String?
+  description          String?
+  description2         String?
+  created_at           DateTime              @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  created_info         String?
+  updated_at           DateTime?             @db.Timestamptz(6)
+  updated_by           String?
+  updated_info         String?
+  updated_count        Int                   @default(0)
+  deleted_at           DateTime?             @db.Timestamptz(6)
+  deleted_by           String?
+  deleted_info         String?
+  rec_status           Int                   @default(1) @db.SmallInt
+  rec_order            Int?
+  rec_notes            String?
+  is_active            Boolean               @default(true)
+  sys_file_bucket_cd   sys_file_bucket_cd    @relation(fields: [bucket_code], references: [bucket_code], onUpdate: NoAction, map: "fk_sfc_bucket")
+  sys_file_purpose_cd  sys_file_purpose_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_media_kind_cd {
+  kind_code              String                   @id(map: "pk_sys_file_media_kind_cd")
+  name                   String
+  name2                  String?
+  description            String?
+  description2           String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?                @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  updated_count          Int                      @default(0)
+  deleted_at             DateTime?                @db.Timestamptz(6)
+  deleted_by             String?
+  deleted_info           String?
+  rec_status             Int                      @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean                  @default(true)
+  sys_file_mime_types_cd sys_file_mime_types_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_mime_types_cd {
+  mime_type                 String                      @id(map: "pk_sys_file_mime_types")
+  kind_code                 String
+  preview_code              String
+  extensions                String[]
+  is_allowed                Boolean                     @default(false)
+  name                      String
+  name2                     String?
+  description               String?
+  description2              String?
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  updated_count             Int                         @default(0)
+  deleted_at                DateTime?                   @db.Timestamptz(6)
+  deleted_by                String?
+  deleted_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  org_file_mst              org_file_mst[]
+  sys_file_media_kind_cd    sys_file_media_kind_cd      @relation(fields: [kind_code], references: [kind_code], onUpdate: NoAction, map: "fk_sfmt_kind")
+  sys_file_preview_mode_cd  sys_file_preview_mode_cd    @relation(fields: [preview_code], references: [preview_code], onUpdate: NoAction, map: "fk_sfmt_preview")
+  sys_file_purpose_mime_dtl sys_file_purpose_mime_dtl[]
+
+  @@unique([mime_type, is_allowed], map: "uq_sfmt_allowed")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_owner_scope_cd {
+  scope_code         String               @id(map: "pk_sys_file_owner_scope_cd")
+  name               String
+  name2              String?
+  description        String?
+  description2       String?
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?            @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  updated_count      Int                  @default(0)
+  deleted_at         DateTime?            @db.Timestamptz(6)
+  deleted_by         String?
+  deleted_info       String?
+  rec_status         Int                  @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean              @default(true)
+  sys_file_bucket_cd sys_file_bucket_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_preview_mode_cd {
+  preview_code           String                   @id(map: "pk_sys_file_preview_mode_cd")
+  name                   String
+  name2                  String?
+  description            String?
+  description2           String?
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?                @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  updated_count          Int                      @default(0)
+  deleted_at             DateTime?                @db.Timestamptz(6)
+  deleted_by             String?
+  deleted_info           String?
+  rec_status             Int                      @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean                  @default(true)
+  sys_file_mime_types_cd sys_file_mime_types_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_purpose_cd {
+  category_code             String
+  purpose_code              String
+  max_files                 Int?
+  max_size_bytes            BigInt?
+  is_default                Boolean                     @default(false)
+  name                      String
+  name2                     String?
+  description               String?
+  description2              String?
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  updated_count             Int                         @default(0)
+  deleted_at                DateTime?                   @db.Timestamptz(6)
+  deleted_by                String?
+  deleted_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  org_file_mst              org_file_mst[]
+  sys_file_category_cd      sys_file_category_cd        @relation(fields: [category_code], references: [category_code], onUpdate: NoAction, map: "fk_sfp_category")
+  sys_file_purpose_mime_dtl sys_file_purpose_mime_dtl[]
+
+  @@id([category_code, purpose_code], map: "pk_sys_file_purpose")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_purpose_mime_dtl {
+  category_code          String
+  purpose_code           String
+  mime_type              String
+  is_allowed             Boolean                @default(true)
+  created_at             DateTime               @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?              @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  updated_count          Int                    @default(0)
+  deleted_at             DateTime?              @db.Timestamptz(6)
+  deleted_by             String?
+  deleted_info           String?
+  rec_status             Int                    @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean                @default(true)
+  sys_file_mime_types_cd sys_file_mime_types_cd @relation(fields: [mime_type, is_allowed], references: [mime_type, is_allowed], onUpdate: Restrict, map: "fk_sfpm_mime")
+  sys_file_purpose_cd    sys_file_purpose_cd    @relation(fields: [category_code, purpose_code], references: [category_code, purpose_code], onUpdate: NoAction, map: "fk_sfpm_purpose")
+
+  @@id([category_code, purpose_code, mime_type], map: "pk_sys_file_purpose_mime")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_ref_type_cd {
+  ref_type_code String         @id(map: "pk_sys_file_ref_type_cd")
+  table_name    String
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?      @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  updated_count Int            @default(0)
+  deleted_at    DateTime?      @db.Timestamptz(6)
+  deleted_by    String?
+  deleted_info  String?
+  rec_status    Int            @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  is_active     Boolean        @default(true)
+  org_file_mst  org_file_mst[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_source_cd {
+  source_code   String         @id(map: "pk_sys_file_source_cd")
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?      @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  updated_count Int            @default(0)
+  deleted_at    DateTime?      @db.Timestamptz(6)
+  deleted_by    String?
+  deleted_info  String?
+  rec_status    Int            @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  is_active     Boolean        @default(true)
+  org_file_mst  org_file_mst[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_file_status_cd {
+  status_code   String         @id(map: "pk_sys_file_status_cd")
+  name          String
+  name2         String?
+  description   String?
+  description2  String?
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?      @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  updated_count Int            @default(0)
+  deleted_at    DateTime?      @db.Timestamptz(6)
+  deleted_by    String?
+  deleted_info  String?
+  rec_status    Int            @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  is_active     Boolean        @default(true)
+  org_file_mst  org_file_mst[]
 
   @@schema("public")
 }

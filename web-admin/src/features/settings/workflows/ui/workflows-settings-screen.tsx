@@ -11,7 +11,7 @@ import { CmxButton } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
 import { CmxTextarea } from '@ui/primitives'
 import { CmxSwitch } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxDataTable } from '@ui/data-display'
 import { CmxEmptyState } from '@ui/data-display'
 import { CmxTabsPanel } from '@ui/navigation'
@@ -29,7 +29,7 @@ import {
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms'
-import { CmxConfirmDialog, cmxMessage } from '@ui/feedback'
+import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { WORKFLOW_SCREEN_KEYS } from '@/lib/constants/workflow-screens'
 import type { SerializedScreenContract } from '@features/settings/workflows/model/screen-contract-types'
 import {
@@ -223,9 +223,9 @@ export function WorkflowsSettingsScreen({
       key: 'is_active',
       header: tCommon('active'),
       render: (row: WorkflowConfigRow) => (
-        <Badge variant={row.is_active ? 'success' : 'secondary'}>
+        <CmxStatusBadge size="sm" tone={row.is_active ? 'success' : 'neutral'}>
           {row.is_active ? tCommon('active') : tCommon('inactive')}
-        </Badge>
+        </CmxStatusBadge>
       ),
     },
     {
@@ -252,9 +252,9 @@ export function WorkflowsSettingsScreen({
       key: 'scope',
       header: t('screenContracts.scope'),
       render: (row: SerializedScreenContract) => (
-        <Badge variant={row.is_system ? 'secondary' : 'default'}>
+        <CmxStatusBadge size="sm" tone={row.is_system ? 'neutral' : 'brand'}>
           {row.is_system ? t('screenContracts.system') : t('screenContracts.tenant')}
-        </Badge>
+        </CmxStatusBadge>
       ),
     },
     {
@@ -263,9 +263,9 @@ export function WorkflowsSettingsScreen({
       render: (row: SerializedScreenContract) => (
         <div className="flex flex-wrap gap-1">
           {row.statuses.map((status) => (
-            <Badge key={status} variant="outline" className="text-xs font-mono">
+            <CmxStatusBadge size="sm" key={status} tone="neutral" appearance="outline" className="text-xs font-mono">
               {status}
-            </Badge>
+            </CmxStatusBadge>
           ))}
         </div>
       ),
@@ -279,9 +279,9 @@ export function WorkflowsSettingsScreen({
             <span className="text-xs text-muted-foreground">—</span>
           ) : (
             row.required_permissions.map((perm) => (
-              <Badge key={perm} variant="secondary" className="text-xs font-mono">
+              <CmxStatusBadge size="sm" key={perm} tone="neutral" className="text-xs font-mono">
                 {perm}
-              </Badge>
+              </CmxStatusBadge>
             ))
           )}
         </div>
@@ -291,9 +291,9 @@ export function WorkflowsSettingsScreen({
       key: 'is_active',
       header: tCommon('active'),
       render: (row: SerializedScreenContract) => (
-        <Badge variant={row.is_active ? 'success' : 'secondary'}>
+        <CmxStatusBadge size="sm" tone={row.is_active ? 'success' : 'neutral'}>
           {row.is_active ? tCommon('active') : tCommon('inactive')}
-        </Badge>
+        </CmxStatusBadge>
       ),
     },
     {

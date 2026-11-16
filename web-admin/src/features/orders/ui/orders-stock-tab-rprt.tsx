@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { Package } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Badge } from '@ui/primitives';
+
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import { TRANSACTION_TYPES } from '@/lib/constants/inventory';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface OrdersStockTabRprtProps {
   transactions: StockTransactionWithProduct[];
   translations: {
@@ -32,13 +33,13 @@ export function OrdersStockTabRprt({
   const getTypeBadge = (type: string) => {
     switch (type) {
       case TRANSACTION_TYPES.STOCK_IN:
-        return <Badge variant="default" className="bg-green-100 text-green-800">{tInv('transactionTypes.stockIn')}</Badge>;
+        return <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-100 text-green-800">{tInv('transactionTypes.stockIn')}</CmxStatusBadge>;
       case TRANSACTION_TYPES.STOCK_OUT:
-        return <Badge variant="destructive">{tInv('transactionTypes.stockOut')}</Badge>;
+        return <CmxStatusBadge size="sm" tone="danger" appearance="solid">{tInv('transactionTypes.stockOut')}</CmxStatusBadge>;
       case TRANSACTION_TYPES.ADJUSTMENT:
-        return <Badge variant="secondary">{tInv('transactionTypes.adjustment')}</Badge>;
+        return <CmxStatusBadge size="sm" tone="neutral">{tInv('transactionTypes.adjustment')}</CmxStatusBadge>;
       default:
-        return <Badge variant="outline">{type}</Badge>;
+        return <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{type}</CmxStatusBadge>;
     }
   };
 

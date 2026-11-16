@@ -43,7 +43,7 @@ export function CalendarReadyPreviewCard({ branchId }: CalendarReadyPreviewCardP
         {data?.configured ? (
           <>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <CmxStatusBadge label={data.openNow ? t('preview.openNow') : t('preview.closedNow')} variant={data.openNow ? 'success' : 'outline'} size="sm" />
+              <CmxStatusBadge label={data.openNow ? t('preview.openNow') : t('preview.closedNow')} tone={data.openNow ? 'success' : 'neutral'} size="sm" />
               {data.countingStartsAt ? <span>{t('preview.countingStarts', { when: when(data.countingStartsAt) })}</span> : null}
             </div>
             <ul className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">

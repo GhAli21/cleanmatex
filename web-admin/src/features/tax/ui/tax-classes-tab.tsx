@@ -86,7 +86,7 @@ export function TaxClassesTab({ canManage }: { canManage: boolean }) {
     { id: 'code', header: t('code'), cell: ({ row }) => <span className="font-mono text-xs" dir="ltr">{row.original.class_code}</span> },
     { id: 'name', header: t('name'), cell: ({ row }) => bilingual(row.original.name, row.original.name2 ?? row.original.name) },
     { id: 'flow', header: t('flow'), cell: ({ row }) => tEngine(`flows.${row.original.tax_flow_code}`) },
-    { id: 'default', header: t('isDefault'), cell: ({ row }) => (row.original.is_default ? <CmxStatusBadge size="sm" variant="info" label={t('default')} /> : null) },
+    { id: 'default', header: t('isDefault'), cell: ({ row }) => (row.original.is_default ? <CmxStatusBadge size="sm" tone="info" label={t('default')} /> : null) },
     { id: 'source', header: t('source'), cell: ({ row }) => tEngine(`source.${row.original.source}`) },
     ...(canManage
       ? ([

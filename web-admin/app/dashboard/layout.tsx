@@ -21,6 +21,12 @@ import { SidebarProvider, useSidebar } from '@/lib/context/sidebar-context'
 import { DashboardBrowserTitle } from '@features/dashboard/ui/dashboard-browser-title'
 import { SessionLifecycleProvider } from '@features/auth-session/ui/session-lifecycle-provider'
 import { SetupBlockerBanner } from '@features/setup-health/ui/setup-blocker-banner'
+import { useTranslations } from 'next-intl'
+import { getPageAccessContractByPath } from '@features/access/page-access-registry'
+import { CmxPermissionsInspectorTrigger } from '@features/access/ui/permissions-inspector'
+import { NotificationBell } from '@features/notifications/ui/notification-bell'
+import { SessionActivityTrigger } from '@features/session-activity'
+import { GlobalScanTrigger } from '@features/scan'
 
 /** True when current route is the ready-order print preview (receipt or order-details). */
 function useIsPrintRoute(): boolean {
@@ -29,6 +35,26 @@ function useIsPrintRoute(): boolean {
     typeof pathname === 'string' &&
       pathname.includes('/ready/') &&
       pathname.includes('/print/')
+  )
+}
+
+/** Top bar with the page title from the access registry and the feature actions. */
+function DashboardTopBar() {
+  const pathname = usePathname()
+  const tNav = useTranslations('navigation')
+  const t = useTranslations('layout.topBar')
+  return (
+    <CmxTopBar
+      title={getPageAccessContractByPath(pathname)?.label ?? tNav('dashboard')}
+      actions={
+        <>
+          <GlobalScanTrigger />
+          <CmxPermissionsInspectorTrigger title={t('permissionsDialog.title')} />
+          <SessionActivityTrigger />
+          <NotificationBell />
+        </>
+      }
+    />
   )
 }
 
@@ -60,7 +86,7 @@ function DashboardContent({
     <>
       <CmxSidebar />
       <div className={`${paddingClass} ${transitionClass}`}>
-        <CmxTopBar />
+        <DashboardTopBar />
         <main className="py-6 px-4 sm:px-6 lg:px-8">
           <SetupBlockerBanner />
           {children}

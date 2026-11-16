@@ -30,11 +30,11 @@ const sizeStyles = {
 };
 
 const variantStyles = {
-  default: 'bg-blue-500',
-  success: 'bg-green-500',
-  warning: 'bg-yellow-500',
-  error: 'bg-red-500',
-  info: 'bg-indigo-500',
+  default: 'bg-primary',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  error: 'bg-destructive',
+  info: 'bg-info',
 };
 
 /**
@@ -68,17 +68,17 @@ export function CmxProgressIndicator({
     <div className={cn('w-full', className)} {...props}>
       {(showLabel || label) && (
         <div className="flex items-center justify-between mb-1">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-muted-foreground">
             {label || 'Progress'}
           </span>
           {showPercentage && (
-            <span className="text-sm text-gray-600">{Math.round(percentage)}%</span>
+            <span className="text-sm text-muted-foreground">{Math.round(percentage)}%</span>
           )}
         </div>
       )}
       <div
         className={cn(
-          'w-full bg-gray-200 rounded-full overflow-hidden',
+          'w-full bg-muted rounded-full overflow-hidden',
           sizeStyles[size]
         )}
         role="progressbar"

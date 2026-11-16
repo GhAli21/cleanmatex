@@ -4,8 +4,9 @@ import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ErpLiteCoaAccountListItem } from '@/lib/types/erp-lite-coa'
 import { CmxDataTable } from '@ui/data-display'
-import { Badge } from '@ui/primitives'
 
+
+import { CmxStatusBadge } from '@ui/feedback';
 interface ErpLiteCoaListTableProps {
   items: ErpLiteCoaAccountListItem[]
   total: number
@@ -68,29 +69,29 @@ export function ErpLiteCoaListTable({ items, total, page, pageSize }: ErpLiteCoa
       header: t('lists.accounts.columns.flags'),
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
-          <Badge variant="secondary">
+          <CmxStatusBadge size="sm" tone="neutral">
             {row.original.is_postable ? t('flags.postable') : t('flags.headerOnly')}
-          </Badge>
+          </CmxStatusBadge>
           {row.original.is_control_account ? (
-            <Badge variant="secondary">{t('flags.control')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.control')}</CmxStatusBadge>
           ) : null}
           {row.original.is_system_linked ? (
-            <Badge variant="secondary">{t('flags.system')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.system')}</CmxStatusBadge>
           ) : null}
           {row.original.is_system_seeded ? (
-            <Badge variant="secondary">{t('flags.seeded')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.seeded')}</CmxStatusBadge>
           ) : null}
           {row.original.is_locked ? (
-            <Badge variant="secondary">{t('flags.locked')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.locked')}</CmxStatusBadge>
           ) : null}
           {row.original.allow_tenant_children ? (
-            <Badge variant="secondary">{t('flags.tenantChildren')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.tenantChildren')}</CmxStatusBadge>
           ) : null}
           {!row.original.manual_post_allowed ? (
-            <Badge variant="secondary">{t('flags.manualLocked')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.manualLocked')}</CmxStatusBadge>
           ) : null}
           {!row.original.is_active ? (
-            <Badge variant="secondary">{t('flags.inactive')}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{t('flags.inactive')}</CmxStatusBadge>
           ) : null}
         </div>
       ),

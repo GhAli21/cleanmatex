@@ -5,12 +5,13 @@
  */
 
 'use client';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
-import { Button } from '@ui/primitives/button';
+
+
 import { createClient } from '@/lib/supabase/client';
 import { AlertCircle } from 'lucide-react';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
@@ -79,14 +80,14 @@ export default function B2BStatementsPage() {
 
         {/* Overdue (Dunning) section */}
         {overdueStatements && overdueStatements.length > 0 && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-amber-900">
+          <CmxCard className="border-amber-200 bg-amber-50/50">
+            <CmxCardHeader>
+              <CmxCardTitle className="flex items-center gap-2 text-amber-900">
                 <AlertCircle className="h-5 w-5" />
                 {t('overdueStatements') || 'Overdue Statements'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -120,39 +121,39 @@ export default function B2BStatementsPage() {
                           )}
                         </td>
                         <td className="py-2 px-3">
-                          <Button
+                          <CmxButton
                             variant="outline"
                             size="sm"
                             onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
                           >
                             {t('view') || 'View'}
-                          </Button>
+                          </CmxButton>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
+            </CmxCardContent>
+          </CmxCard>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('statements') || 'Statements'}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('statements') || 'Statements'}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent>
             {!statements?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <p className="text-gray-500 mb-4">
                   No statements yet. Generate a statement from a B2B customer detail page.
                 </p>
-                <Button
-                  variant="default"
+                <CmxButton
+                  variant="primary"
                   onClick={() => window.location.assign('/dashboard/b2b/customers')}
                 >
                   {t('goToCustomers') || 'Go to B2B Customers'}
-                </Button>
+                </CmxButton>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -188,13 +189,13 @@ export default function B2BStatementsPage() {
                           {s.balance_amount != null ? Number(s.balance_amount).toLocaleString() : '-'}
                         </td>
                         <td className="py-2 px-3">
-                          <Button
+                          <CmxButton
                             variant="outline"
                             size="sm"
                             onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
                           >
                             {t('view') || 'View'}
-                          </Button>
+                          </CmxButton>
                         </td>
                       </tr>
                     ))}
@@ -202,8 +203,8 @@ export default function B2BStatementsPage() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </CmxCardContent>
+        </CmxCard>
       </div>
     </RequireAnyPermission>
   );

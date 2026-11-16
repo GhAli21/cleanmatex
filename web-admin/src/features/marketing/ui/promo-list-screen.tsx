@@ -20,9 +20,9 @@ import {
 } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable } from '@ui/data-display';
-import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
+import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { usePromoCodes } from '../hooks/use-promos';
 import type { PromoCode } from '@/lib/types/payment';
 import { PromoFormDialog } from './promo-form-dialog';
@@ -130,9 +130,9 @@ export function PromoListScreen() {
                   <span className="text-muted-foreground text-xs">—</span>
                 )}
                 {row.is_auto_apply && (
-                  <Badge variant="outline" className="w-fit text-xs">
+                  <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="w-fit text-xs">
                     {t('fields.autoApply')}
-                  </Badge>
+                  </CmxStatusBadge>
                 )}
               </div>
             ),
@@ -181,9 +181,9 @@ export function PromoListScreen() {
             key: 'is_enabled',
             header: t('fields.isEnabled'),
             render: (row: PromoCode) => (
-              <Badge variant={row.is_enabled ? 'default' : 'secondary'}>
+              <CmxStatusBadge size="sm" tone={row.is_enabled ? 'brand' : 'neutral'}>
                 {row.is_enabled ? tCommon('enabled') : tCommon('disabled')}
-              </Badge>
+              </CmxStatusBadge>
             ),
           },
           {

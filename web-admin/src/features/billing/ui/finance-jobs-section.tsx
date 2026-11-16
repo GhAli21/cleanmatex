@@ -273,7 +273,7 @@ export function FinanceJobsSection() {
           return (
             <CmxStatusBadge
               label={label}
-              variant={active === true ? 'success' : active === false ? 'error' : 'default'}
+              tone={active === true ? 'success' : active === false ? 'danger' : 'neutral'}
               size="sm"
             />
           );
@@ -304,7 +304,7 @@ export function FinanceJobsSection() {
           return (
             <CmxStatusBadge
               label={t(`statusLabels.${status}`)}
-              variant={status === 'SUCCESS' ? 'success' : status === 'FAILED' ? 'error' : 'processing'}
+              tone={status === 'SUCCESS' ? 'success' : status === 'FAILED' ? 'danger' : 'info'}
               size="sm"
               pulse={status === 'RUNNING'}
             />
@@ -394,7 +394,7 @@ export function FinanceJobsSection() {
         cell: ({ row }) => (
           <CmxStatusBadge
             label={t(`statusLabels.${row.original.status}`)}
-            variant={row.original.status === 'SUCCESS' ? 'success' : row.original.status === 'FAILED' ? 'error' : 'processing'}
+            tone={row.original.status === 'SUCCESS' ? 'success' : row.original.status === 'FAILED' ? 'danger' : 'info'}
             size="sm"
             pulse={row.original.status === 'RUNNING'}
           />

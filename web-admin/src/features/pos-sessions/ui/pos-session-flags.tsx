@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Badge } from '@ui/primitives/badge';
-import { CmxSummaryMessage } from '@ui/feedback';
+
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import {
   getPosSessionFlags,
   type PosSessionFlagFacts,
@@ -18,9 +18,9 @@ export function PosSessionFlagBadges({ session }: { session: PosSessionFlagFacts
   if (!flags.stale && !flags.rolledOver && !flags.autoClosed) return null;
   return (
     <span className="ms-1 inline-flex flex-wrap gap-1 align-middle">
-      {flags.stale ? <Badge variant="warning">{t('flags.stale')}</Badge> : null}
-      {flags.rolledOver && flags.isLive ? <Badge variant="warning">{t('flags.rolledOver')}</Badge> : null}
-      {flags.autoClosed ? <Badge variant="outline">{t('flags.autoClosed')}</Badge> : null}
+      {flags.stale ? <CmxStatusBadge size="sm" tone="warning">{t('flags.stale')}</CmxStatusBadge> : null}
+      {flags.rolledOver && flags.isLive ? <CmxStatusBadge size="sm" tone="warning">{t('flags.rolledOver')}</CmxStatusBadge> : null}
+      {flags.autoClosed ? <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('flags.autoClosed')}</CmxStatusBadge> : null}
     </span>
   );
 }

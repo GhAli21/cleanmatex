@@ -92,7 +92,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
         {/* Checkmark */}
         <svg
           className={cn(
-            'pointer-events-none absolute inset-0 m-auto stroke-white opacity-0',
+            'pointer-events-none absolute inset-0 m-auto stroke-primary-foreground opacity-0',
             'transition-opacity duration-150',
             'peer-checked:opacity-100 peer-indeterminate:opacity-0',
             sizeStyle.icon
@@ -112,7 +112,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
         {/* Indeterminate dash (select-all partial state) */}
         <svg
           className={cn(
-            'pointer-events-none absolute inset-0 m-auto stroke-white opacity-0',
+            'pointer-events-none absolute inset-0 m-auto stroke-primary-foreground opacity-0',
             'transition-opacity duration-150 peer-indeterminate:opacity-100',
             sizeStyle.icon
           )}

@@ -70,17 +70,17 @@ export function CmxChangeDueRow({
       role="status"
       aria-live="polite"
       className={cn(
-        'flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2',
+        'flex items-center justify-between rounded-lg bg-success-bg px-3 py-2',
         size === 'lg' ? 'text-base' : 'text-sm',
         isRTL && 'flex-row-reverse',
         className
       )}
     >
-      <span className="text-emerald-700">{label}</span>
+      <span className="text-success-text">{label}</span>
       <span
         data-testid={amountTestId}
         className={cn(
-          'font-semibold tabular-nums text-emerald-800',
+          'font-semibold tabular-nums text-success-text',
           size === 'lg' && 'text-2xl font-bold'
         )}
       >

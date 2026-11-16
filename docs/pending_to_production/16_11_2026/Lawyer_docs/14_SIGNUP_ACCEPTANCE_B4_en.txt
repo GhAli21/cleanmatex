@@ -1,0 +1,88 @@
+CLEANMATEX LEGAL PACK
+Document: Sign-up acceptance wording and the record to store
+Version: signup-2026-11-17
+Language: English
+Arabic pair: 14_SIGNUP_ACCEPTANCE_B4_ar.txt. That file is the legal translation of this text. The checkbox label in section 2 of that file is the Arabic label to show when the locale is ar.
+Implements: roadmap B4 and Phase 3 step 3.2
+Status: Decided. Use this wording. Do not shorten it in a way that drops the DPA or the authority sentence.
+
+1. WHEN THE CHECKBOX APPEARS
+On the screen that creates a new Organization (the laundry sign-up).
+Also on any later screen where a new authorized person re-accepts a new version of the Terms or the DPA.
+The checkbox is unchecked when the screen loads.
+The submit control does not create an Organization while the box is unchecked.
+The links open the matching language of the pages in a form the person can read before ticking.
+
+2. CHECKBOX WORDING
+Label, next to the checkbox:
+
+I have authority to bind this organization. I agree to the Terms of Service (tos-2026-11-17), the Data Processing Agreement (dpa-2026-11-17), and the Acceptable Use Policy (aup-2026-11-17), and I acknowledge the Privacy Policy (privacy-2026-11-17).
+
+Link targets:
+Terms of Service -> the Terms page
+Data Processing Agreement -> the in-app or marketing page that shows 06_DATA_PROCESSING_AGREEMENT_en.txt, or the public data-processing page plus the full DPA
+Acceptable Use Policy -> the acceptable-use page
+Privacy Policy -> the Privacy Policy page
+
+Helper line under the checkbox, not a second checkbox:
+
+The trial is 14 days. No payment card is collected on this form. Service messages to your customers are governed by the order-intake notice.
+
+3. WHAT THE TICK MEANS
+The tick records:
+- the person states they can bind the Organization
+- the Organization accepts the Terms, the DPA, and the Acceptable Use Policy of the stated versions
+- the Organization acknowledges it has been shown the Privacy Policy of the stated version
+
+The tick does not record:
+- consent of any End Customer
+- consent to marketing from CleanMateX
+- consent to non-essential cookies
+- a warranty that the person compared the Arabic and English texts
+
+If the interface language is Arabic, store locale ar and show section 2 of 14_SIGNUP_ACCEPTANCE_B4_ar.txt.
+If the interface language is English, store locale en and show section 2 of this file.
+Both language texts are part of the accepted version.
+
+4. RECORD THE SERVER MUST STORE
+Create the row in the same transaction that creates the Organization, or immediately after, before the user can enter end-customer data.
+If the row cannot be stored, roll back the sign-up and show an error. Do not leave an Organization with no acceptance.
+
+Fields:
+tenant_org_id          the new Organization
+user_id                the person who ticked
+acceptance_method      SIGNUP_CHECKBOX
+pack_version           legal-pack-2026-11-17
+tos_version            tos-2026-11-17
+dpa_version            dpa-2026-11-17
+aup_version            aup-2026-11-17
+privacy_version        privacy-2026-11-17
+signup_copy_version    signup-2026-11-17
+accepted_at            UTC timestamp from the server clock
+locale                 en or ar
+checkbox_was_preselected   false
+source_ip              the request IP if the application already logs it for security; otherwise null
+user_agent             the request user agent if already available; otherwise null
+authority_confirmed    true
+
+Do not store the password in this row.
+Do not store a copy of the whole Terms in the row. The version code points to the text in this folder, and the published page for that code must remain retrievable.
+
+Keep the row for the life of the Organization and for 5 years after it ends.
+
+5. LATER VERSIONS
+When a version code changes, the next admin login shows the new text and a new unchecked box.
+Continuing to use the Service after that screen requires a new row.
+Existing rows stay.
+Access to historical orders does not require re-acceptance if the Owner decides a maintenance window must stay open, but creating new orders can be held until the new tick is stored. The pilot default is: hold new orders until the new tick is stored; keep read access to existing records.
+
+6. MARKETING LEADS
+The early-access and contact forms are not this checkbox.
+Their English submit line is:
+
+By sending this form you ask CleanMateX to contact you about the Service. The Privacy Policy (privacy-2026-11-17) explains how that request is handled.
+
+The Arabic submit line is section 6 of 14_SIGNUP_ACCEPTANCE_B4_ar.txt.
+
+Store the lead with the privacy version and the time.
+That store is not an Organization acceptance and does not create a tenant.

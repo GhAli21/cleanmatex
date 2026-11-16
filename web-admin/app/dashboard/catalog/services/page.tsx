@@ -7,12 +7,13 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { CmxInput, CmxSelect } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxButton } from '@ui/primitives'
 import ImportModal from '@features/catalog/ui/import-modal'
 import ExportModal from '@features/catalog/ui/export-modal'
 import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface ProductListItem {
   id: string
   product_code: string
@@ -184,7 +185,7 @@ export default function ServicesPage() {
                     <td className="px-4 py-2">{isRtl ? p.category_name2 || p.category_name : p.category_name}</td>
                     <td className="px-4 py-2">{p.default_sell_price ?? '-'}</td>
                     <td className="px-4 py-2">{p.product_unit ?? '-'}</td>
-                    <td className="px-4 py-2">{p.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}</td>
+                    <td className="px-4 py-2">{p.is_active ? <CmxStatusBadge size="sm" tone="success">{t('standard')}</CmxStatusBadge> : <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('disableCategories')}</CmxStatusBadge>}</td>
                     <td className="px-4 py-2">
                       <div className="flex gap-2">
                         <CmxButton size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/services/${p.id}`)}>

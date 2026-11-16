@@ -758,12 +758,12 @@ export function CmxDataTable<TData>({
                         key={header.id}
                         scope="col"
                         className={cn(
-                          'px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right',
+                          'px-4 py-4 text-start text-xs font-semibold uppercase tracking-[0.02em] rtl:text-end',
                           headerSize === 'emphasized' && 'py-5 text-sm font-bold normal-case tracking-normal text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
                           showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           headerClassName,
-                          header.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
-                          header.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
+                          header.column.id === ROW_NUM_COL_ID && 'w-14 text-end tabular-nums rtl:text-start',
+                          header.column.id === AUDIT_COL_ID && 'w-14 text-end rtl:text-start',
                           stickyEndColumnIds.includes(header.column.id) && 'sticky end-0 z-[3] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.35)] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.35)]',
                         )}
                         aria-sort={
@@ -828,8 +828,8 @@ export function CmxDataTable<TData>({
                               'px-4 py-4 align-middle',
                               showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                               alignClass,
-                              cell.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
-                              cell.column.id === AUDIT_COL_ID && 'w-14 text-right rtl:text-left',
+                              cell.column.id === ROW_NUM_COL_ID && 'w-14 text-end tabular-nums rtl:text-start',
+                              cell.column.id === AUDIT_COL_ID && 'w-14 text-end rtl:text-start',
                               stickyEndColumnIds.includes(cell.column.id) && 'sticky end-0 z-[2] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)] transition-colors group-hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)]',
                             )}
                           >

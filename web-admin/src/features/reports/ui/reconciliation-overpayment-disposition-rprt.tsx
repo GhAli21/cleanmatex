@@ -3,13 +3,14 @@
 import { useTranslations } from 'next-intl';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import type {
   OverpaymentDispositionReconReport,
   OverpaymentDispositionReconRow,
 } from '@/lib/types/reconciliation-report';
 import { fmtAmount } from './reconciliation-format';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface Props {
   data: OverpaymentDispositionReconReport | null;
   loading: boolean;
@@ -29,7 +30,7 @@ export function ReconciliationOverpaymentDispositionRprt({ data, loading, csvHre
     {
       key: 'resolution',
       header: t('resolutionCode'),
-      render: (r: OverpaymentDispositionReconRow) => <Badge variant="outline" className="text-xs">{r.resolutionCode}</Badge>,
+      render: (r: OverpaymentDispositionReconRow) => <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="text-xs">{r.resolutionCode}</CmxStatusBadge>,
     },
     {
       key: 'count',

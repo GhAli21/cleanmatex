@@ -10,7 +10,7 @@ import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { Badge } from '@ui/primitives/badge';
+
 import {
   CmxDialog,
   CmxDialogContent,
@@ -19,7 +19,7 @@ import {
   CmxDialogDescription,
   CmxDialogFooter,
 } from '@ui/overlays/cmx-dialog';
-import { useMessage } from '@ui/feedback';
+import { useMessage, CmxStatusBadge } from '@ui/feedback';
 import { useFeature } from '@features/auth/ui/RequireFeature';
 import { RefundInitiateDialog } from './refund-initiate-dialog';
 import { PaymentTransitionDialog, type PaymentTransitionActionKind } from '@features/billing/ui/payment-transition-dialog';
@@ -36,7 +36,7 @@ interface OrderPaymentsCreditsTablesProps {
 
 function paymentStatusVariant(
   status: string | null,
-): 'success' | 'warning' | 'destructive' | 'secondary' | 'info' {
+): 'success' | 'warning' | 'danger' | 'neutral' | 'info' {
   switch (status) {
     case 'COMPLETED':
     case 'CAPTURED':
@@ -51,11 +51,11 @@ function paymentStatusVariant(
     case 'CANCELLED':
     case 'VOIDED':
     case 'REVERSED':
-      return 'destructive';
+      return 'danger';
     case 'REFUNDED':
       return 'info';
     default:
-      return 'secondary';
+      return 'neutral';
   }
 }
 
@@ -174,16 +174,16 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
               ) : (
                 creditApplications.map((c) => {
                   const appStatus = c.application_status ?? CREDIT_APPLICATION_STATUSES.APPLIED;
-                  const statusVariant: 'success' | 'warning' | 'destructive' | 'secondary' | 'info' =
+                  const statusVariant: 'success' | 'warning' | 'danger' | 'neutral' | 'info' =
                     appStatus === CREDIT_APPLICATION_STATUSES.APPLIED ? 'success'
                     : appStatus === CREDIT_APPLICATION_STATUSES.PENDING
                       || appStatus === CREDIT_APPLICATION_STATUSES.RESERVED
                       || appStatus === CREDIT_APPLICATION_STATUSES.PROCESSING ? 'warning'
                     : appStatus === CREDIT_APPLICATION_STATUSES.FAILED
                       || appStatus === CREDIT_APPLICATION_STATUSES.CANCELLED
-                      || appStatus === CREDIT_APPLICATION_STATUSES.EXPIRED ? 'destructive'
+                      || appStatus === CREDIT_APPLICATION_STATUSES.EXPIRED ? 'danger'
                     : appStatus === CREDIT_APPLICATION_STATUSES.REVERSED ? 'info'
-                    : 'secondary';
+                    : 'neutral';
                   return (
                     <tr key={c.id} className="border-b border-border/60">
                       <td className={td}>{c.credit_type.replace(/_/g, ' ')}</td>
@@ -195,9 +195,9 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                         />
                       </td>
                       <td className={td}>
-                        <Badge variant={statusVariant}>
+                        <CmxStatusBadge size="sm" tone={statusVariant}>
                           {t(`creditApp.status.${appStatus.toLowerCase()}`)}
-                        </Badge>
+                        </CmxStatusBadge>
                       </td>
                       <td className={td}>{c.reference_no ?? '—'}</td>
                       <td className={td}>
@@ -409,9 +409,9 @@ function PaymentRow({
         <OrderFinancialMoneyValue amount={payment.amount} currencyCode={currencyCode} />
       </td>
       <td className={td}>
-        <Badge variant={paymentStatusVariant(payment.payment_status)}>
+        <CmxStatusBadge size="sm" tone={paymentStatusVariant(payment.payment_status)}>
           {payment.payment_status ?? '—'}
-        </Badge>
+        </CmxStatusBadge>
       </td>
       <td className={td}>
         {payment.fin_voucher_id ? (
@@ -429,7 +429,7 @@ function PaymentRow({
       <td className={td}>{new Date(payment.created_at).toLocaleString()}</td>
       <td className={td}>
         <div className="flex flex-wrap items-center gap-1.5">
-            {payment.payment_status === 'COMPLETED' ? <Badge variant="success">{t('verify.verified')}</Badge> : null}
+            {payment.payment_status === 'COMPLETED' ? <CmxStatusBadge size="sm" tone="success">{t('verify.verified')}</CmxStatusBadge> : null}
             {canShowVerifyAction ? (
               <>
                 <CmxButton
@@ -475,9 +475,9 @@ function PaymentRow({
                 </CmxDialog>
               </>
             ) : payment.payment_status === 'PENDING' ? (
-              <Badge variant="warning">{t('verify.unverified')}</Badge>
+              <CmxStatusBadge size="sm" tone="warning">{t('verify.unverified')}</CmxStatusBadge>
             ) : payment.payment_status === 'PROCESSING' ? (
-              <Badge variant="info">{payment.payment_status}</Badge>
+              <CmxStatusBadge size="sm" tone="info">{payment.payment_status}</CmxStatusBadge>
             ) : null}
             {isTransitionable && canFailPayment ? (
               <CmxButton variant="outline" size="sm" onClick={() => setTransitionAction('FAIL_BOUNCE')}>

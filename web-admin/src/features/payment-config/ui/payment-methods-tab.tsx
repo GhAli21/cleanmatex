@@ -6,10 +6,10 @@ import { Settings, CreditCard, Plus } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxSwitch } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import type { OrgPaymentMethodConfig } from '@/lib/types/payment';
 import {
   togglePaymentMethodEnabled,
@@ -145,7 +145,7 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
       key: 'payment_nature',
       header: t('methods.paymentNature'),
       render: (m: OrgPaymentMethodConfig) => (
-        <Badge variant="outline">{t(`methods.nature.${m.payment_nature}` as never)}</Badge>
+        <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t(`methods.nature.${m.payment_nature}` as never)}</CmxStatusBadge>
       ),
     },
     {
@@ -155,11 +155,11 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
         <div className="space-y-1 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground">{t('methods.gatewayCode')}</span>
-            {m.gateway_code ? <Badge variant="outline">{m.gateway_code}</Badge> : <span className="text-muted-foreground">—</span>}
+            {m.gateway_code ? <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{m.gateway_code}</CmxStatusBadge> : <span className="text-muted-foreground">—</span>}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground">{t('methods.currencyCode')}</span>
-            <Badge variant="secondary">{m.currency_code ?? tenantCurrencyCode}</Badge>
+            <CmxStatusBadge size="sm" tone="neutral">{m.currency_code ?? tenantCurrencyCode}</CmxStatusBadge>
           </div>
         </div>
       ),
@@ -169,10 +169,10 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
       header: t('methods.channels.label'),
       render: (m: OrgPaymentMethodConfig) => (
         <div className="flex gap-1 flex-wrap">
-          {m.allowed_in_pos && <Badge variant="secondary">{t('methods.channels.pos')}</Badge>}
-          {m.allowed_in_customer_app && <Badge variant="secondary">{t('methods.channels.app')}</Badge>}
-          {m.allowed_in_staff_app && <Badge variant="secondary">{t('methods.channels.staff')}</Badge>}
-          {m.allowed_in_admin_app && <Badge variant="secondary">{t('methods.channels.admin')}</Badge>}
+          {m.allowed_in_pos && <CmxStatusBadge size="sm" tone="neutral">{t('methods.channels.pos')}</CmxStatusBadge>}
+          {m.allowed_in_customer_app && <CmxStatusBadge size="sm" tone="neutral">{t('methods.channels.app')}</CmxStatusBadge>}
+          {m.allowed_in_staff_app && <CmxStatusBadge size="sm" tone="neutral">{t('methods.channels.staff')}</CmxStatusBadge>}
+          {m.allowed_in_admin_app && <CmxStatusBadge size="sm" tone="neutral">{t('methods.channels.admin')}</CmxStatusBadge>}
         </div>
       ),
     },
@@ -181,13 +181,13 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
       header: t('methods.purposesAndRequirements'),
       render: (m: OrgPaymentMethodConfig) => (
         <div className="flex max-w-md flex-wrap gap-1">
-          {m.allowed_for_pay_now && <Badge variant="outline">{t('methods.purposes.payNow')}</Badge>}
-          {m.allowed_for_pay_on_collection && <Badge variant="outline">{t('methods.purposes.payOnCollection')}</Badge>}
-          {m.allowed_for_invoice_payment && <Badge variant="outline">{t('methods.purposes.invoicePayment')}</Badge>}
-          {m.allowed_for_refund && <Badge variant="outline">{t('methods.purposes.refund')}</Badge>}
-          {m.requires_reference && <Badge variant="secondary">{t('methods.requiresReference')}</Badge>}
-          {m.requires_cash_drawer && <Badge variant="secondary">{t('methods.requiresCashDrawer')}</Badge>}
-          {m.requires_terminal && <Badge variant="secondary">{t('methods.requiresTerminal')}</Badge>}
+          {m.allowed_for_pay_now && <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('methods.purposes.payNow')}</CmxStatusBadge>}
+          {m.allowed_for_pay_on_collection && <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('methods.purposes.payOnCollection')}</CmxStatusBadge>}
+          {m.allowed_for_invoice_payment && <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('methods.purposes.invoicePayment')}</CmxStatusBadge>}
+          {m.allowed_for_refund && <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('methods.purposes.refund')}</CmxStatusBadge>}
+          {m.requires_reference && <CmxStatusBadge size="sm" tone="neutral">{t('methods.requiresReference')}</CmxStatusBadge>}
+          {m.requires_cash_drawer && <CmxStatusBadge size="sm" tone="neutral">{t('methods.requiresCashDrawer')}</CmxStatusBadge>}
+          {m.requires_terminal && <CmxStatusBadge size="sm" tone="neutral">{t('methods.requiresTerminal')}</CmxStatusBadge>}
         </div>
       ),
     },

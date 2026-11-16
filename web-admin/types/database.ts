@@ -2773,6 +2773,73 @@ isOneToOne: false
       referencedColumns: ["tenant_org_id"]
     }
                   ]
+                },"org_file_mst": {
+                  Row: {
+                    "bucket_code": string,"category_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"duration_ms": number | null,"entity_id": string,"height": number | null,"id": string,"is_active": boolean,"mime_type": string,"notes": string | null,"object_key": string,"original_name": string,"purged_at": string | null,"purpose_code": string,"ready_at": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"ref_id": string | null,"ref_type_code": string | null,"sha256_hex": string | null,"size_bytes": number,"sort_order": number,"source_code": string,"status_code": string,"tenant_org_id": string,"thumb_object_key": string | null,"thumb_size_bytes": number | null,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"width": number | null
+                  }
+                  Insert: {
+                    "bucket_code": string,"category_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"duration_ms"?: number | null,"entity_id": string,"height"?: number | null,"id"?: string,"is_active"?: boolean,"mime_type": string,"notes"?: string | null,"object_key": string,"original_name": string,"purged_at"?: string | null,"purpose_code": string,"ready_at"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"ref_id"?: string | null,"ref_type_code"?: string | null,"sha256_hex"?: string | null,"size_bytes": number,"sort_order"?: number,"source_code": string,"status_code"?: string,"tenant_org_id": string,"thumb_object_key"?: string | null,"thumb_size_bytes"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"width"?: number | null
+                  }
+                  Update: {
+                    "bucket_code"?: string,"category_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"duration_ms"?: number | null,"entity_id"?: string,"height"?: number | null,"id"?: string,"is_active"?: boolean,"mime_type"?: string,"notes"?: string | null,"object_key"?: string,"original_name"?: string,"purged_at"?: string | null,"purpose_code"?: string,"ready_at"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"ref_id"?: string | null,"ref_type_code"?: string | null,"sha256_hex"?: string | null,"size_bytes"?: number,"sort_order"?: number,"source_code"?: string,"status_code"?: string,"tenant_org_id"?: string,"thumb_object_key"?: string | null,"thumb_size_bytes"?: number | null,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"width"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_ofm_bucket"
+      columns: ["bucket_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_bucket_cd"
+      referencedColumns: ["bucket_code"]
+    },{
+      foreignKeyName: "fk_ofm_mime"
+      columns: ["mime_type"]
+isOneToOne: false
+      referencedRelation: "sys_file_mime_types_cd"
+      referencedColumns: ["mime_type"]
+    },{
+      foreignKeyName: "fk_ofm_purpose"
+      columns: ["category_code","purpose_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_purpose_cd"
+      referencedColumns: ["category_code","purpose_code"]
+    },{
+      foreignKeyName: "fk_ofm_ref_type"
+      columns: ["ref_type_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_ref_type_cd"
+      referencedColumns: ["ref_type_code"]
+    },{
+      foreignKeyName: "fk_ofm_source"
+      columns: ["source_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_source_cd"
+      referencedColumns: ["source_code"]
+    },{
+      foreignKeyName: "fk_ofm_status"
+      columns: ["status_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_status_cd"
+      referencedColumns: ["status_code"]
+    },{
+      foreignKeyName: "fk_ofm_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_ofm_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_ofm_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
                 },"org_fin_acct_mst": {
                   Row: {
                     "acc_group_id": string | null,"acc_type_id": string,"account_code": string,"account_level": number,"allow_tenant_children": boolean,"branch_id": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"description": string | null,"description2": string | null,"effective_from": string | null,"effective_to": string | null,"id": string,"is_active": boolean,"is_control_account": boolean,"is_locked": boolean,"is_postable": boolean,"is_system_linked": boolean,"is_system_seeded": boolean,"manual_post_allowed": boolean,"name": string,"name2": string | null,"parent_account_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"source_tpl_line_id": string | null,"source_tpl_pkg_id": string | null,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
@@ -11551,6 +11618,191 @@ isOneToOne: false
       referencedColumns: ["plan_code"]
     }
                   ]
+                },"sys_file_bucket_cd": {
+                  Row: {
+                    "bucket_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"is_public": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"scope_code": string,"storage_bucket_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "bucket_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"is_public"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"scope_code": string,"storage_bucket_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "bucket_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"is_public"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"scope_code"?: string,"storage_bucket_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sfb_scope"
+      columns: ["scope_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_owner_scope_cd"
+      referencedColumns: ["scope_code"]
+    }
+                  ]
+                },"sys_file_category_cd": {
+                  Row: {
+                    "bucket_code": string,"category_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"image_max_dimension": number | null,"is_active": boolean,"max_files_per_entity": number | null,"max_size_bytes": number,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "bucket_code": string,"category_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"image_max_dimension"?: number | null,"is_active"?: boolean,"max_files_per_entity"?: number | null,"max_size_bytes": number,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "bucket_code"?: string,"category_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"image_max_dimension"?: number | null,"is_active"?: boolean,"max_files_per_entity"?: number | null,"max_size_bytes"?: number,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sfc_bucket"
+      columns: ["bucket_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_bucket_cd"
+      referencedColumns: ["bucket_code"]
+    }
+                  ]
+                },"sys_file_media_kind_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"kind_code": string,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"kind_code": string,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"kind_code"?: string,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_file_mime_types_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"extensions": (string)[],"is_active": boolean,"is_allowed": boolean,"kind_code": string,"mime_type": string,"name": string,"name2": string | null,"preview_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"extensions": (string)[],"is_active"?: boolean,"is_allowed"?: boolean,"kind_code": string,"mime_type": string,"name": string,"name2"?: string | null,"preview_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"extensions"?: (string)[],"is_active"?: boolean,"is_allowed"?: boolean,"kind_code"?: string,"mime_type"?: string,"name"?: string,"name2"?: string | null,"preview_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sfmt_kind"
+      columns: ["kind_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_media_kind_cd"
+      referencedColumns: ["kind_code"]
+    },{
+      foreignKeyName: "fk_sfmt_preview"
+      columns: ["preview_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_preview_mode_cd"
+      referencedColumns: ["preview_code"]
+    }
+                  ]
+                },"sys_file_owner_scope_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"scope_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"scope_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"scope_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_file_preview_mode_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"name": string,"name2": string | null,"preview_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"preview_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"preview_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_file_purpose_cd": {
+                  Row: {
+                    "category_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"is_default": boolean,"max_files": number | null,"max_size_bytes": number | null,"name": string,"name2": string | null,"purpose_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "category_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"is_default"?: boolean,"max_files"?: number | null,"max_size_bytes"?: number | null,"name": string,"name2"?: string | null,"purpose_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "category_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"is_default"?: boolean,"max_files"?: number | null,"max_size_bytes"?: number | null,"name"?: string,"name2"?: string | null,"purpose_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sfp_category"
+      columns: ["category_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_category_cd"
+      referencedColumns: ["category_code"]
+    }
+                  ]
+                },"sys_file_purpose_mime_dtl": {
+                  Row: {
+                    "category_code": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"is_active": boolean,"is_allowed": boolean,"mime_type": string,"purpose_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "category_code": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"is_active"?: boolean,"is_allowed"?: boolean,"mime_type": string,"purpose_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "category_code"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"is_active"?: boolean,"is_allowed"?: boolean,"mime_type"?: string,"purpose_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_sfpm_mime"
+      columns: ["mime_type","is_allowed"]
+isOneToOne: false
+      referencedRelation: "sys_file_mime_types_cd"
+      referencedColumns: ["mime_type","is_allowed"]
+    },{
+      foreignKeyName: "fk_sfpm_purpose"
+      columns: ["category_code","purpose_code"]
+isOneToOne: false
+      referencedRelation: "sys_file_purpose_cd"
+      referencedColumns: ["category_code","purpose_code"]
+    }
+                  ]
+                },"sys_file_ref_type_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"ref_type_code": string,"table_name": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"ref_type_code": string,"table_name": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"ref_type_code"?: string,"table_name"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_file_source_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"source_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"source_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_file_status_cd": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"status_code": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"status_code"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"sys_fin_acc_group_cd": {
                   Row: {
                     "acc_group_code": string,"acc_group_id": string,"acc_type_id": string,"created_at": string,"created_by": string | null,"created_info": string | null,"description": string | null,"description2": string | null,"group_level": number,"is_active": boolean,"name": string,"name2": string | null,"parent_group_id": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"report_role_code": string | null,"stmt_section": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
@@ -15587,6 +15839,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "fn_expire_gift_cards":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"fn_file_util_expire_pending":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "fn_fin_code_lvl":

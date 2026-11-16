@@ -3,9 +3,10 @@
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
+
 import type { OrderFinancialSummaryViewModel } from '@features/orders/model/order-financial-summary-view';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface OrderFinancialDebugPanelProps {
   viewModel: OrderFinancialSummaryViewModel;
 }
@@ -47,13 +48,13 @@ export function OrderFinancialDebugPanel({ viewModel }: OrderFinancialDebugPanel
       ? 'success'
       : viewModel.reconciliationStatus === 'warning'
         ? 'warning'
-        : 'destructive';
+        : 'danger';
 
   return (
     <CmxCard>
       <CmxCardHeader className={`flex flex-wrap items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <CmxCardTitle>{t('debug.rawSnapshot')}</CmxCardTitle>
-        <Badge variant={reconVariant}>{t(`debug.reconciliation.${viewModel.reconciliationStatus}`)}</Badge>
+        <CmxStatusBadge size="sm" tone={reconVariant}>{t(`debug.reconciliation.${viewModel.reconciliationStatus}`)}</CmxStatusBadge>
       </CmxCardHeader>
       <CmxCardContent>
         <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">

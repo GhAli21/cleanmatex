@@ -24,12 +24,13 @@ import type { CheckoutSettlementOption } from '@features/orders/hooks/use-paymen
 import type { StoredValueSummaryResponse } from '@features/orders/hooks/use-payment-engine';
 import type { PaymentKeypadKey } from '@features/orders/ui/payment-modal-v4.utils';
 import { CmxButton, CmxSkeleton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
 import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dialog';
 import { PaymentAmountMoneyField } from '../../primitives/payment-amount-money-field';
 
+import { CmxStatusBadge } from '@ui/feedback';
 /**
  * Typed engine actions the customer-credit dialog may call — nothing more.
  */
@@ -229,9 +230,9 @@ export function CustomerCreditDialog({
                       isRTL ? 'flex-row-reverse' : ''
                     }`}
                   >
-                    <Badge variant="secondary" className="rounded-full bg-cyan-50 text-cyan-700">
+                    <CmxStatusBadge size="sm" tone="neutral" className="rounded-full bg-cyan-50 text-cyan-700">
                       {t('customerCredits.liveBadge')}
-                    </Badge>
+                    </CmxStatusBadge>
                     <CmxButton
                       type="button"
                       variant="ghost"

@@ -19,5 +19,6 @@ Manual checks for the owner, one section per package. Package state lives in `ST
 | 9 | An order or report page | Print preview (Ctrl+P) | White background, black text. |
 | 10 | Browser DevTools → Network, filter `fonts.googleapis` | Reload a page in Arabic | No requests. |
 | 11 | Storybook (`npm run storybook`) | Use the new Mode and Density toolbars | Dark turns surfaces dark and text light. Compact makes controls shorter. |
+| 12 | Any page with Cmx buttons, inputs and cards | Look for controls with odd padding, size or colour | Nothing looks different from #1. Screens that pass their own spacing or colour to a Cmx component now get it applied exactly (class merge). Report anything that shrank or lost its colour, with the page. |
 
 **Known, not a failure in this package:** in Storybook dark mode the red delete button's white text is low contrast, and pagination still shows English "of", "Rows per page:" and "No items". Both are scheduled for later packages (`PLAN_PR-01.md` → Final review).

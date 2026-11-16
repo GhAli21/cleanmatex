@@ -86,8 +86,8 @@ export function CalendarHolidaysTab({ canManage, branchOptions }: CalendarHolida
       key: 'source',
       header: t('holidays.source'),
       render: (row) => (row.own
-        ? <CmxStatusBadge label={t('holidays.sourceOwn')} variant="info" size="sm" />
-        : <CmxStatusBadge label={row.pub.isEstimated ? t('holidays.sourcePublicEstimated') : t('holidays.sourcePublic')} variant={row.pub.isEstimated ? 'warning' : 'outline'} size="sm" />),
+        ? <CmxStatusBadge label={t('holidays.sourceOwn')} tone="info" size="sm" />
+        : <CmxStatusBadge label={row.pub.isEstimated ? t('holidays.sourcePublicEstimated') : t('holidays.sourcePublic')} tone={row.pub.isEstimated ? 'warning' : 'neutral'} size="sm" />),
       sortable: false,
     },
     {

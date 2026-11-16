@@ -74,9 +74,9 @@ export function CmxCopyableCell({
     <Tag
       onClick={isClickable ? handleCopy : undefined}
       title={isClickable ? 'Click to copy' : strValue ?? undefined}
-      className={`${as === 'td' ? 'px-4 py-3' : ''} text-sm text-gray-900 group ${className} ${
-        isClickable ? 'cursor-pointer hover:bg-blue-50' : ''
-      } ${align === 'right' ? 'text-right' : 'text-left'}`}
+      className={`${as === 'td' ? 'px-4 py-3' : ''} text-sm text-foreground group ${className} ${
+        isClickable ? 'cursor-pointer hover:bg-info-bg' : ''
+      } ${align === 'right' ? 'text-end' : 'text-start'}`}
     >
       <span className="inline-flex items-center gap-2 min-w-0 max-w-full">
         <span className="truncate" title={strValue ?? undefined}>
@@ -85,9 +85,9 @@ export function CmxCopyableCell({
         {isClickable && (
           <span className="shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
             {copied ? (
-              <Check className="w-3.5 h-3.5 text-green-600" />
+              <Check className="w-3.5 h-3.5 text-success-text" />
             ) : (
-              <Copy className="w-3.5 h-3.5 text-gray-500" />
+              <Copy className="w-3.5 h-3.5 text-muted-foreground" />
             )}
           </span>
         )}

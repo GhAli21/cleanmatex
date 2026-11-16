@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
-import { LoadingButton } from '@ui/primitives';
+
 import type { ReceiptAllocationPreviewResult } from '@/lib/types/customer-receipt-allocation';
 
 /**
@@ -139,7 +139,7 @@ export function AutoAllocationPreviewDrawer({
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('cancel')}
           </CmxButton>
-          <LoadingButton
+          <CmxButton
             type="button"
             loading={confirming}
             disabled={
@@ -150,7 +150,7 @@ export function AutoAllocationPreviewDrawer({
             onClick={onConfirm}
           >
             {t('confirmAllocation')}
-          </LoadingButton>
+          </CmxButton>
         </CmxDialogFooter>
       </CmxDialogContent>
     </CmxDialog>

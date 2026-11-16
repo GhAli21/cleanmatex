@@ -11,9 +11,9 @@ import { useTranslations } from 'next-intl';
 import { PlusCircle, Search, Archive, Edit } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable } from '@ui/data-display';
-import { CmxConfirmDialog } from '@ui/feedback';
+import { CmxConfirmDialog, CmxStatusBadge } from '@ui/feedback';
 import { useDiscountRules } from '../hooks/use-discount-rules';
 import type { DiscountRule } from '@/lib/types/payment';
 import { DiscountRuleFormDialog } from './discount-rule-form-dialog';
@@ -86,14 +86,14 @@ export function DiscountRuleListScreen() {
           { key: 'discount_value', header: t('fields.discountValue'), render: (row: DiscountRule) => row.discount_value.toFixed(3) },
           { key: 'conditions', header: t('fields.conditions'), render: (row: DiscountRule) => JSON.stringify(row.conditions, null, 2) },
           { key: 'can_stack_with_promo', header: t('fields.canStackWithPromo'), render: (row: DiscountRule) => (
-            <Badge variant={row.can_stack_with_promo ? 'default' : 'secondary'}>
+            <CmxStatusBadge size="sm" tone={row.can_stack_with_promo ? 'brand' : 'neutral'}>
               {row.can_stack_with_promo ? tCommon('yes') : tCommon('no')}
-            </Badge>
+            </CmxStatusBadge>
           )},
           { key: 'can_stack_with_other_rules', header: t('fields.canStackWithOtherRules'), render: (row: DiscountRule) => (
-            <Badge variant={row.can_stack_with_other_rules ? 'default' : 'secondary'}>
+            <CmxStatusBadge size="sm" tone={row.can_stack_with_other_rules ? 'brand' : 'neutral'}>
               {row.can_stack_with_other_rules ? tCommon('yes') : tCommon('no')}
-            </Badge>
+            </CmxStatusBadge>
           )},
           { key: 'valid_from', header: t('fields.validFrom'), render: (row: DiscountRule) => new Date(row.valid_from).toLocaleDateString() },
           { key: 'valid_to', header: t('fields.validTo'), render: (row: DiscountRule) => (
@@ -102,14 +102,14 @@ export function DiscountRuleListScreen() {
               : '—'
           )},
           { key: 'is_active', header: t('fields.isActive'), render: (row: DiscountRule) => (
-            <Badge variant={row.is_active ? 'default' : 'secondary'}>
+            <CmxStatusBadge size="sm" tone={row.is_active ? 'brand' : 'neutral'}>
               {row.is_active ? tCommon('active') : tCommon('inactive')}
-            </Badge>
+            </CmxStatusBadge>
           )},
           { key: 'is_enabled', header: t('fields.isEnabled'), render: (row: DiscountRule) => (
-            <Badge variant={row.is_enabled ? 'default' : 'secondary'}>
+            <CmxStatusBadge size="sm" tone={row.is_enabled ? 'brand' : 'neutral'}>
               {row.is_enabled ? tCommon('enabled') : tCommon('disabled')}
-            </Badge>
+            </CmxStatusBadge>
           )},
           { key: 'metadata', header: t('fields.metadata'), render: (row: DiscountRule) => row.metadata ? JSON.stringify(row.metadata, null, 2) : '—' },
           {

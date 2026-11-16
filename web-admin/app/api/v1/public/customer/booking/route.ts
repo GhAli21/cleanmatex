@@ -2,6 +2,7 @@ import { getDefaultSalesVatRate } from '@/lib/services/tax/tax-explain.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { z } from 'zod';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
@@ -448,7 +449,7 @@ export async function GET(request: NextRequest) {
         .eq('is_active', true)
         .eq('is_enabled', true)
         .order('rec_order', { ascending: true }),
-      supabase
+      catalogReadClient(supabase)
         .from('sys_service_category_cd')
         .select('service_category_code, name, name2')
         .eq('is_active', true),

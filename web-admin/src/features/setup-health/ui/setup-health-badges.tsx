@@ -4,18 +4,18 @@
  * Status and severity badges shared by the Setup Health screen, banner and home card.
  */
 import { useTranslations } from 'next-intl'
-import { CmxStatusBadge, type StatusBadgeVariant } from '@ui/feedback'
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback'
 import type { SetupHealthSeverity, SetupHealthStatus } from '@/lib/types/setup-health'
 
-const STATUS_VARIANT: Record<SetupHealthStatus, StatusBadgeVariant> = {
+const STATUS_VARIANT: Record<SetupHealthStatus, CmxBadgeTone> = {
   OK: 'success',
   FAIL: 'warning',
-  NA: 'default',
-  ERROR: 'error',
+  NA: 'neutral',
+  ERROR: 'danger',
 }
 
-const SEVERITY_VARIANT: Record<SetupHealthSeverity, StatusBadgeVariant> = {
-  BLOCKER: 'error',
+const SEVERITY_VARIANT: Record<SetupHealthSeverity, CmxBadgeTone> = {
+  BLOCKER: 'danger',
   WARNING: 'warning',
   INFO: 'info',
 }
@@ -23,11 +23,11 @@ const SEVERITY_VARIANT: Record<SetupHealthSeverity, StatusBadgeVariant> = {
 /** Check result badge (OK / Needs attention / Not applicable / Could not check). */
 export function SetupHealthStatusBadge({ status }: { status: SetupHealthStatus }) {
   const t = useTranslations('setupHealth.status')
-  return <CmxStatusBadge size="sm" variant={STATUS_VARIANT[status] ?? 'default'} label={t(status)} />
+  return <CmxStatusBadge size="sm" tone={STATUS_VARIANT[status] ?? 'neutral'} label={t(status)} />
 }
 
 /** How serious a failing check is. */
 export function SetupHealthSeverityBadge({ severity }: { severity: SetupHealthSeverity }) {
   const t = useTranslations('setupHealth.severity')
-  return <CmxStatusBadge size="sm" variant={SEVERITY_VARIANT[severity] ?? 'default'} label={t(severity)} />
+  return <CmxStatusBadge size="sm" tone={SEVERITY_VARIANT[severity] ?? 'neutral'} label={t(severity)} />
 }

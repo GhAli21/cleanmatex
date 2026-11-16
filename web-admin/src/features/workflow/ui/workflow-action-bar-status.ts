@@ -1,4 +1,4 @@
-import type { StatusBadgeVariant } from '@ui/feedback';
+import type { CmxBadgeTone } from '@ui/feedback';
 
 /**
  * Normalize a live workflow status code for i18n lookup (lowercase, `_`).
@@ -26,7 +26,7 @@ export function formatWorkflowStatusLabel(
 /**
  * Map a status code to a badge tone. Color is paired with the visible label.
  */
-export function workflowStatusBadgeVariant(status: string | null | undefined): StatusBadgeVariant {
+export function workflowStatusBadgeVariant(status: string | null | undefined): CmxBadgeTone {
   switch (workflowStatusLookupKey(status)) {
     case 'delivered':
     case 'closed':
@@ -39,7 +39,7 @@ export function workflowStatusBadgeVariant(status: string | null | undefined): S
     case 'cancelled':
     case 'stopped':
     case 'returned':
-      return 'error';
+      return 'danger';
     case 'processing':
     case 'washing':
     case 'drying':
@@ -47,7 +47,7 @@ export function workflowStatusBadgeVariant(status: string | null | undefined): S
     case 'preparation':
     case 'assembly':
     case 'packing':
-      return 'processing';
+      return 'info';
     default:
       return 'info';
   }

@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Settings2, Package, Layers, CheckCircle2, Clock, DollarSign } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Badge } from '@ui/primitives';
+
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxDataGrid } from '@ui/data-display/cmx-data-grid';
 import {
@@ -14,6 +14,7 @@ import {
   type OrderPreferenceRow,
 } from '@/lib/orders/order-preferences-dtl';
 
+import { CmxStatusBadge } from '@ui/feedback';
 /** Columns hidden below `md` to reduce horizontal scroll on smaller viewports. */
 const PREF_GRID_HIDE_MD_COLS = new Set<OrderPreferenceDtlColumn>([
   'tenant_org_id',
@@ -119,14 +120,14 @@ function kindBadge(kind: string | null, t: OrdersPreferencesTabRprtProps['transl
     note: { label: t.kindNote, cls: 'bg-gray-100 text-gray-700' },
   };
   const entry = map[kind ?? ''];
-  if (!entry) return <Badge variant="outline">{kind ?? '—'}</Badge>;
+  if (!entry) return <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{kind ?? '—'}</CmxStatusBadge>;
   return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${entry.cls}`}>{entry.label}</span>;
 }
 
 function ownerBadge(owner: string, t: OrdersPreferencesTabRprtProps['translations']) {
   if (owner === 'OVERRIDE')
-    return <Badge variant="destructive" className="text-xs">{t.ownerOverride}</Badge>;
-  return <Badge variant="secondary" className="text-xs">{t.ownerSystem}</Badge>;
+    return <CmxStatusBadge size="sm" tone="danger" appearance="solid" className="text-xs">{t.ownerOverride}</CmxStatusBadge>;
+  return <CmxStatusBadge size="sm" tone="neutral" className="text-xs">{t.ownerSystem}</CmxStatusBadge>;
 }
 
 function sourceLabel(source: string, t: OrdersPreferencesTabRprtProps['translations']) {

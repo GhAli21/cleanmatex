@@ -7,6 +7,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type {
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
   LookupCatalogBase,
   LookupServiceResult,
   LookupSupabaseClient,
@@ -37,7 +38,7 @@ export async function listActiveIssueTypes(
 ): Promise<LookupServiceResult<IssueTypeLookupRow[]>> {
   try {
     const client = await resolveClient(supabase);
-    const { data, error } = await client
+    const { data, error } = await catalogReadClient(client)
       .from('sys_issue_type_cd')
       .select('code, name, name2, display_order, color, icon')
       .eq('is_active', true)
@@ -76,7 +77,7 @@ export async function getIssueTypesByCodes(
 
   try {
     const client = await resolveClient(supabase);
-    const { data, error } = await client
+    const { data, error } = await catalogReadClient(client)
       .from('sys_issue_type_cd')
       .select('code, name, name2, color')
       .in('code', unique);
@@ -114,7 +115,7 @@ export async function isActiveIssueType(
 
   try {
     const client = await resolveClient(supabase);
-    const { data } = await client
+    const { data } = await catalogReadClient(client)
       .from('sys_issue_type_cd')
       .select('code')
       .eq('code', normalized)

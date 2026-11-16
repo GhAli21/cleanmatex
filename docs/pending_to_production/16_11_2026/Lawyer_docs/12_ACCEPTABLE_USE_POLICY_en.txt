@@ -1,0 +1,49 @@
+CLEANMATEX LEGAL PACK
+Document: Acceptable Use Policy
+Version: aup-2026-11-17
+Language: English
+Arabic pair: 12_ACCEPTABLE_USE_POLICY_ar.txt. That file is the legal translation of this text. Clause numbers match.
+Status: Operative draft. Accepted with the Terms.
+
+1. Purpose
+This policy states the uses of CleanMateX that are not allowed.
+It binds the Organization and every user the Organization permits into the Service.
+It is issued by [LEGAL_ENTITY_NAME].
+
+2. Use the Service for the business
+2.1 Use the Service to run a laundry or dry-cleaning business and its related records.
+2.2 Do not resell access, rent the Service, or offer it as your own software product.
+2.3 Do not create an account for a business you do not represent.
+
+3. People and data
+3.1 Do not enter an End Customer's data unless you have a lawful basis.
+3.2 Do not mark WhatsApp or marketing as accepted unless the person accepted it under notice n4-notice-2026-11-17.
+3.3 Do not import a purchased or scraped list of phone numbers.
+3.4 Do not open a contracting customer file in the name of a child.
+3.5 Do not store card numbers, national identity copies, or health records in names, notes, or address fields.
+3.6 Do not attempt to view or extract another Organization's data.
+3.7 Do not use one Organization's customer list to promote a different business.
+
+4. Security
+4.1 Do not share user logins.
+4.2 Do not probe, scan, or break the Service, except under a written test we have authorized.
+4.3 Do not upload malware or content designed to disrupt the Service.
+4.4 Do not overload the Service with automated traffic that is not a normal shop operation.
+
+5. Messages
+5.1 Do not send marketing on a service template.
+5.2 Do not send unlawful, deceptive, or harassing content.
+5.3 Honor an opt-out the same day you receive it.
+5.4 Follow the sender rules of Meta, Twilio, and the email provider you enable, and the telecoms rules of the destination country.
+
+6. Lawful content
+6.1 Do not use the Service for money laundering, sanctions evasion, or any offence.
+6.2 Do not enter prices or tax treatments you intend to use as a false record.
+
+7. Consequences
+7.1 We may remove content, stop a message channel, suspend access, or end the contract, as the Terms allow, if you breach this policy.
+7.2 We will report to an authority when the law requires it.
+
+8. Version
+aup-2026-11-17
+This policy is published in English and Arabic. Terms clause 21 applies to a conflict.

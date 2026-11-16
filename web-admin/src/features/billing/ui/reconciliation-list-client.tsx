@@ -7,7 +7,7 @@
  *
  * Migration notes (vs pre-Phase-4 implementation):
  *   - Raw `<button>` → `CmxButton` (variants: `primary`, `outline`).
- *   - Custom badge spans → `Badge` from `@ui/primitives/badge`.
+ *   - Custom badge spans → `CmxStatusBadge` from `@ui/feedback`.
  *   - Modal `<div>` overlay → `CmxDialog` from `@ui/overlays`.
  *   - Raw `<input type="date|text">` → `CmxInput` from `@ui/primitives`.
  *   - Custom empty state → `CmxSummaryMessage` from `@ui/feedback`.
@@ -23,7 +23,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { runReconciliationAction } from '@/app/actions/billing/reconciliation-actions';
-import { CmxButton, CmxInput, Badge } from '@ui/primitives';
+import { CmxButton, CmxInput } from '@ui/primitives';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -31,7 +31,7 @@ import {
   CmxDialogTitle,
   CmxDialogFooter,
 } from '@ui/overlays';
-import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 
 const EM_DASH = '—';
 
@@ -97,18 +97,18 @@ function fmtPeriod(
  */
 function statusBadgeVariant(
   status: string,
-): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+): 'brand' | 'neutral' | 'danger' | 'success' | 'warning' | 'info' {
   switch (status) {
     case 'PASSED':
       return 'success';
     case 'FAILED':
-      return 'destructive';
+      return 'danger';
     case 'PARTIAL':
       return 'warning';
     case 'RUNNING':
       return 'info';
     default:
-      return 'secondary';
+      return 'neutral';
   }
 }
 
@@ -222,13 +222,13 @@ export default function ReconciliationListClient({
                       {run.run_no}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <Badge variant={statusBadgeVariant(run.status)}>
+                      <CmxStatusBadge size="sm" tone={statusBadgeVariant(run.status)}>
                         {t(
                           `statusLabels.${run.status}` as Parameters<
                             typeof t
                           >[0],
                         )}
-                      </Badge>
+                      </CmxStatusBadge>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                       {fmtPeriod(locale, run.period_from, run.period_to)}

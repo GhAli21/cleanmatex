@@ -257,7 +257,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
   };
 
   const chromeBtnClass =
-    'grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus-visible:ring-2 focus-visible:ring-cyan-500';
+    'grid h-7 w-7 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:border-border hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus-visible:ring-2 focus-visible:ring-ring';
 
   React.useEffect(() => {
     onKeyPressRef.current = onKeyPress;
@@ -488,7 +488,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
       dir={isRTL ? 'rtl' : 'ltr'}
       style={style}
       className={cn(
-        'fixed z-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl',
+        'fixed z-60 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl',
         PANEL_WIDTH_CLASS,
         animate &&
           'transition-[left,top] duration-200 ease-out motion-reduce:transition-none'
@@ -501,12 +501,12 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="flex h-12 cursor-grab touch-none select-none items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 active:cursor-grabbing"
+        className="flex h-12 cursor-grab touch-none select-none items-center gap-2 border-b border-border bg-muted px-3 active:cursor-grabbing"
       >
-        <GripVertical className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-        <span className="text-sm font-bold text-slate-600">{title}</span>
+        <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span className="text-sm font-bold text-muted-foreground">{title}</span>
         {echo != null ? (
-          <span className="ms-auto tabular-nums text-sm font-bold text-slate-900">{echo}</span>
+          <span className="ms-auto tabular-nums text-sm font-bold text-foreground">{echo}</span>
         ) : null}
         <button
           ref={dockBtnRef}
@@ -560,7 +560,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
       </div>
 
       {hint != null ? (
-        <p className="px-3 pb-3 text-[11px] text-slate-400">{hint}</p>
+        <p className="px-3 pb-3 text-[11px] text-muted-foreground">{hint}</p>
       ) : null}
 
       {restored && restoredAnnouncement ? (

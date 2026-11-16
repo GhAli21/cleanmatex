@@ -235,14 +235,14 @@ function ReadonlyPrefChip({
 }) {
   if (chip.kind === 'override') {
     return (
-      <CmxStatusBadge label={chip.label} variant="warning" size={size} />
+      <CmxStatusBadge label={chip.label} tone="warning" size={size} />
     );
   }
   if (chip.kind === 'flag') {
     return (
       <CmxStatusBadge
         label={chip.label}
-        variant={chip.key === 'flag-damage' ? 'error' : 'warning'}
+        tone={chip.key === 'flag-damage' ? 'danger' : 'warning'}
         size={size}
       />
     );
@@ -266,7 +266,7 @@ function ReadonlyPrefChip({
 
   // Color without hex, packing, service — outline badge
   return (
-    <CmxStatusBadge label={chip.label} variant="outline" size={size} />
+    <CmxStatusBadge label={chip.label} tone="neutral" appearance="outline" size={size} />
   );
 }
 

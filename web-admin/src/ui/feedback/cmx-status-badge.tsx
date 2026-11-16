@@ -1,120 +1,107 @@
 /**
- * CmxStatusBadge - Enhanced status badge with icon support and variants
+ * CmxStatusBadge - the one badge of the design system (statuses, tags, counts).
+ * Colours come from locked semantic tones, so text is readable in light and
+ * dark and an Organization theme can never change what "danger" looks like.
  * @module ui/feedback
  */
 
 'use client';
 
 import * as React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
-import { Badge } from '@/src/ui/primitives/badge';
 
-/**
- *
- */
-export type StatusBadgeVariant =
-  | 'default'
-  | 'success'
-  | 'warning'
-  | 'error'
-  | 'info'
-  | 'processing'
-  | 'outline';
+/** Semantic colour of a badge. Domain badges map their codes to one of these. */
+export type CmxBadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand';
 
-/**
- *
- */
+/** `soft` tinted background (default), `outline` border only, `solid` filled (brand and danger only; others render soft). */
+export type CmxBadgeAppearance = 'soft' | 'outline' | 'solid';
+
+/** Badge size. */
 export type StatusBadgeSize = 'sm' | 'md' | 'lg';
 
-/**
- *
- */
-export interface CmxStatusBadgeProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  label: string;
-  variant?: StatusBadgeVariant;
+/** Props of {@link CmxStatusBadge}. */
+export interface CmxStatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  /** Text of the badge; `children` is used when absent. */
+  label?: React.ReactNode;
+  tone?: CmxBadgeTone;
+  appearance?: CmxBadgeAppearance;
   size?: StatusBadgeSize;
+  /** Shown before the text; hidden from screen readers. */
   icon?: LucideIcon;
-  showIcon?: boolean;
   pulse?: boolean;
   tooltip?: string;
 }
 
-const variantStyles: Record<StatusBadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-800 border-gray-200',
-  success: 'bg-green-100 text-green-800 border-green-200',
-  warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  error: 'bg-red-100 text-red-800 border-red-200',
-  info: 'bg-blue-100 text-blue-800 border-blue-200',
-  processing: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  outline: 'bg-transparent border-gray-300 text-gray-700',
+const SOFT: Record<CmxBadgeTone, string> = {
+  neutral: 'bg-muted text-muted-foreground border-border',
+  info: 'bg-info-bg text-info-text border-info-border',
+  success: 'bg-success-bg text-success-text border-success-border',
+  warning: 'bg-warning-bg text-warning-text border-warning-border',
+  danger: 'bg-danger-bg text-danger-text border-danger-border',
+  brand: 'bg-primary-bg text-primary-text border-primary/30',
 };
 
-const sizeStyles: Record<StatusBadgeSize, { text: string; icon: string; padding: string }> = {
-  sm: {
-    text: 'text-xs',
-    icon: 'h-3 w-3',
-    padding: 'px-1.5 py-0.5',
-  },
-  md: {
-    text: 'text-sm',
-    icon: 'h-3.5 w-3.5',
-    padding: 'px-2 py-1',
-  },
-  lg: {
-    text: 'text-base',
-    icon: 'h-4 w-4',
-    padding: 'px-2.5 py-1.5',
-  },
+const OUTLINE: Record<CmxBadgeTone, string> = {
+  neutral: 'text-muted-foreground border-border',
+  info: 'text-info-text border-info-border',
+  success: 'text-success-text border-success-border',
+  warning: 'text-warning-text border-warning-border',
+  danger: 'text-danger-text border-danger-border',
+  brand: 'text-primary-text border-primary',
 };
+
+const SOLID: Partial<Record<CmxBadgeTone, string>> = {
+  brand: 'bg-primary text-primary-foreground border-transparent',
+  danger: 'bg-destructive text-destructive-foreground border-transparent',
+};
+
+const SIZE: Record<StatusBadgeSize, { box: string; icon: string }> = {
+  sm: { box: 'text-xs px-1.5 py-0.5', icon: 'h-3 w-3' },
+  md: { box: 'text-sm px-2 py-1', icon: 'h-3.5 w-3.5' },
+  lg: { box: 'text-base px-2.5 py-1.5', icon: 'h-4 w-4' },
+};
+
+function toneClasses(tone: CmxBadgeTone, appearance: CmxBadgeAppearance): string {
+  if (appearance === 'outline') return cn('bg-transparent', OUTLINE[tone]);
+  if (appearance === 'solid' && SOLID[tone]) return SOLID[tone] as string;
+  return SOFT[tone];
+}
 
 /**
- *
- * @param root0
- * @param root0.label
- * @param root0.variant
- * @param root0.size
- * @param root0.icon
- * @param root0.showIcon
- * @param root0.pulse
- * @param root0.tooltip
- * @param root0.className
+ * Inline badge with a semantic tone.
+ * @param props - {@link CmxStatusBadgeProps}
+ * @returns The badge element
  */
 export function CmxStatusBadge({
   label,
-  variant = 'default',
+  tone = 'neutral',
+  appearance = 'soft',
   size = 'md',
   icon: Icon,
-  showIcon = false,
   pulse = false,
   tooltip,
   className,
+  children,
   ...props
 }: CmxStatusBadgeProps) {
-  const sizeStyle = sizeStyles[size];
-
   return (
-    <div
+    <span
+      data-tone={tone}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border font-medium transition-colors',
-        variantStyles[variant],
-        sizeStyle.text,
-        sizeStyle.padding,
+        'inline-flex items-center gap-1.5 rounded-md border font-medium whitespace-nowrap transition-colors',
+        toneClasses(tone, appearance),
+        SIZE[size].box,
         pulse && 'animate-pulse',
         className
       )}
       title={tooltip}
-      aria-label={label}
       {...props}
     >
-      {showIcon && Icon && (
-        <Icon className={cn('shrink-0', sizeStyle.icon)} aria-hidden="true" />
-      )}
-      <span>{label}</span>
-    </div>
+      {Icon && <Icon className={cn('shrink-0', SIZE[size].icon)} aria-hidden="true" />}
+      <span>{label ?? children}</span>
+    </span>
   );
 }
 
 CmxStatusBadge.displayName = 'CmxStatusBadge';
-

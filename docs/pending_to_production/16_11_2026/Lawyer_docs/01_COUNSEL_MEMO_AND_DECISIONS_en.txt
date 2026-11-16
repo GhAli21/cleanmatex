@@ -1,0 +1,150 @@
+CLEANMATEX LEGAL PACK
+Document: Counsel memo and decided rules for Phase 3
+Version: legal-pack-2026-11-17
+Language: English
+Arabic pair: 01_COUNSEL_MEMO_AND_DECISIONS_ar.txt. That file is the legal translation of this text. Section numbers match.
+Audience: Owner and engineering
+Status: Operative draft. The N4 rule and the U4 rule in this memo are the rules engineering implements.
+
+1. THE TWO RELATIONSHIPS
+CleanMateX sells software to a laundry. The laundry serves a person who brings clothes.
+
+Party              Who                              Legal role
+Provider           [LEGAL_ENTITY_NAME], trading as CleanMateX    Controller of its own business data. Processor of the laundry's customer data.
+Organization       The laundry or dry-cleaner that signs up       Controller of its end customers, its staff content, and its commercial records. Customer of the Provider under the Terms.
+End Customer       The person or company that hands clothes to the laundry    Data subject of the Organization. Not a party to the Terms.
+Staff user         A person the Organization allows into the application      Acts for the Organization. Their account data is also the Provider's controller data for security and login.
+
+The public Terms bind the Organization.
+The Privacy Policy explains both roles in ordinary language.
+The Data Processing Agreement is the processor contract. The Organization accepts it with the Terms, before any end-customer data is entered.
+The public data-processing page is the short page a visitor can read without creating an account. It points to the DPA.
+The counter notice in file 17 is what the Organization shows the End Customer. The Provider does not become the controller of that person merely because the notice uses CleanMateX wording.
+
+HQ, in the internal sense of the SaaS backoffice, is the Provider's own administration system. It is not a party. Customer-facing text says the Provider's legal name.
+
+2. LAWS THIS PACK IS BUILT ON
+Pilot organizations may be established in:
+- the Sultanate of Oman, under the Personal Data Protection Law, Royal Decree 6/2022, and its executive regulations in force on the publication date
+- the United Arab Emirates, under Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data, and the rules of the UAE Data Office in force on the publication date
+- the Kingdom of Bahrain, under Law No. 30 of 2018 on the Protection of Personal Data, and the rules of the Personal Data Protection Authority in force on the publication date
+
+Electronic acceptance of the Terms is intended to work under the electronic-transactions rules of those countries, because the text is available before acceptance and the acceptance record stores who accepted, which version, and when.
+
+Saudi Arabia is outside the pilot. The Saudi Personal Data Protection Law is not answered by this pack. Do not register an organization whose establishment country is Saudi Arabia, and do not market the Service there, until a Saudi addendum exists. ZATCA Phase 2 is a separate product gap and is an independent reason to stay out of Saudi Arabia.
+
+Tax invoices and books follow the tax law of the Organization's country. This memo does not decide VAT rates or e-invoicing dates. Those stay with the tax adviser and Tax_Config/KIT_FACTS.md. This memo only fixes how long the Service must be able to keep a finance record after a person asks to be erased: 10 years from the end of the financial year, unless file 18 is later updated from written tax advice.
+
+3. DECISION — SIGN-UP ACCEPTANCE (B4)
+Decided.
+
+The person who creates the Organization must tick one unchecked box.
+The box is not pre-ticked. Submitting the form without the tick does not create the Organization.
+The tick is authority, contract acceptance, and acknowledgement of the Privacy Policy.
+It is not a consent checkbox for every later processing operation. Processing of platform data rests on the contract, on legal duty, and on the legitimate interests described in the Privacy Policy.
+The DPA is part of the same acceptance, so processor terms exist before the first end customer is typed in.
+
+Store the record in file 14. Store it on the server at the time the Organization is created. A browser-only flag is not acceptance.
+
+4. DECISION — ORDER INTAKE (N4)
+Decided. Rule code n4-notice-2026-11-17.
+Engineering implements file 15. The Owner adopts it by signing file 00.
+
+The rule is:
+A. WhatsApp service messages require a separate, unticked opt-in at intake. No tick means do not send WhatsApp. This matches the product gate that sends WhatsApp only when preferences.notifications.whatsapp is exactly true, and it matches Meta's opt-in requirement for the channel.
+B. SMS and email that are strictly about performing the order (received, ready, delivered, receipt, payment, collection or delivery slot) rest on performance of the contract between the Organization and the End Customer. They may be sent when the Organization holds a mobile number or email and the End Customer has not opted out. The screen shows a notice. It does not use a pre-ticked consent box.
+C. An opt-out for SMS and an opt-out for email are on the same screen, unticked, worded as refusal ("Do not send SMS", "Do not send email").
+D. Marketing and promotions on every channel require their own unticked opt-in. A service opt-in is never a marketing opt-in. Campaign dispatch stays blocked unless marketing consent for that channel is true.
+E. The order can be completed if the person refuses every message.
+F. Consent and opt-out are recorded with time, staff user, language, notice version, channel, purpose, and method.
+G. Withdrawal is done on the customer record and takes effect at the next dispatch. Dispatch must keep reading the current preference, not the preference at the time the message was queued.
+H. Verbal consent at the counter is valid only when the staff member records method VERBAL_RECORDED_BY_STAFF and their user id. A tick the customer did not give is a breach of the Terms by the Organization.
+I. Do not open a customer file for a child as the contracting customer. The adult who brings the clothes is the customer.
+
+Residual risk, accepted for the pilot only if the Owner signs: there is no carrier-level STOP suppression list in the product today. The lawful control for the pilot is the preference on the customer record, rechecked at dispatch, plus a staff duty to record an opt-out the same day the person asks. File 15 states that duty. A STOP keyword list is a public-launch improvement, not a reason to delay the pilot rule.
+
+5. DECISION — ANONYMIZE THIS CUSTOMER (U4)
+Decided. Rule code u4-spec-2026-11-17.
+Engineering implements file 16.
+
+Erasure under the three pilot laws is not an order to destroy the accounting record.
+The action removes the means of contacting and recognising the person, and it keeps the order, the money, and the issued tax document.
+
+The action is taken by an authorized user of the Organization, inside that Organization's tenant, on that Organization's instruction.
+The Provider does not run this action from a support whim.
+A platform-level legal order is handled outside this button and is recorded by the Owner.
+
+The button is refused when:
+- the row is the tenant default guest customer
+- the row is a B2B company account (company closure is a different process)
+- any order for that customer is still open
+- a wallet, advance, loyalty balance, or accounts-receivable balance is not zero
+
+Those refusals protect money. They are not a refusal of the person's right. Staff settle or refund first, then anonymize.
+
+Issued tax documents stay as issued.
+Live contact fields are cleared, including the contact copies on orders (customer_mobile_number, customer_email, and contact details inside customer_details).
+The displayed customer name on an operational screen becomes "Anonymized customer".
+A tax document that was already issued is not rewritten.
+
+The Organization must be able to export the person's data before anonymizing. File 16 lists the export. The access right and the erasure right travel together. Phase 3 is not complete if the button destroys the copy the person asked to receive and no export was offered.
+
+6. DECISION — LIABILITY CAP AND PILOT COMMERCIAL TERMS
+Proposed for the Owner to adopt. Already written into the Terms so engineering has one text.
+
+- Trial, or a period with no fees paid: aggregate liability capped at 100 Omani rials.
+- Paid period: aggregate liability capped at the fees paid for the Service in the 12 months before the claim.
+- The cap does not apply to fees the Organization owes, to fraud, or to willful misconduct.
+- Death and personal injury stay uncapped where the governing law forbids a cap.
+- Data-protection liability uses the same cap for the pilot. The Provider still must notify, contain, and assist.
+- No uptime credit and no service-credit scheme in the pilot.
+- Fees are exclusive of VAT unless the invoice says otherwise.
+- Pilot payment is bank transfer against an invoice. The application must not ask for a card as a condition of the pilot.
+- Either party may end the contract on 30 days' written notice. The Provider may suspend sooner for non-payment after the reminder in the Terms, for an acceptable-use breach, or for a security or legal need.
+
+If the Owner wants a different cap, change the Terms in both languages, change file 18, and raise the version code before the first acceptance.
+
+7. DECISION — DATA RESIDENCY (B5)
+The Privacy Policy and the data-processing page name the region only by the token [SUPABASE_REGION].
+The Owner reads the production Supabase project region and replaces the token.
+Until that replacement, the pages stay off the public internet.
+Do not write "EU", "Bahrain", or any other region from memory.
+
+Transfers to Twilio, Meta, Resend, the application host, and Sentry are described as transfers to those vendors in their processing countries.
+The DPA requires the Provider to use a transfer mechanism the applicable law requires.
+Where a pilot law requires a permit or a recorded assessment before a transfer, the Owner obtains it before the first real customer, and files the reference in file 18.
+This draft does not pretend a permit has already been granted.
+
+8. PUBLICATION CHECKLIST FOR ENGINEERING
+Build now, against this pack:
+- Marketing site and in-app pages for Terms, Privacy, data-processing page, cookie notice, and acceptable use, in English and Arabic, clause numbers intact.
+- Footer and sign-up links to those pages.
+- One unchecked checkbox with the exact wording in file 14.
+- A server-side acceptance row with the version codes, user id, tenant id, UTC time, locale, and the source IP if the stack already has it for security.
+- Order-intake controls and the consent record in file 15.
+- Anonymize action and export in file 16, including the refusals.
+- Cookie banner that allows strictly necessary cookies and blocks analytics until a separate analytics opt-in exists. Analytics stays off in the pilot.
+
+Do not build now:
+- A card-payment term that says a card is stored.
+- A Saudi schedule.
+- A claim of ISO certification, SOC report, or a named data-center city that is not in file 18.
+- A pre-ticked box of any kind.
+- Cross-tenant use of one laundry's customer list to market another laundry.
+
+9. HOW A PERSON EXERCISES RIGHTS
+End Customer rights of access, correction, and erasure are exercised against the Organization, which is the controller.
+The application supports the Organization with export and anonymize.
+If a person writes to [PRIVACY_EMAIL] about a laundry ticket, the Provider identifies the Organization and forwards the request, and does not quietly edit the tenant's data without the Organization's instruction, unless a binding order requires it.
+Organization staff exercise their own access and correction rights against the Provider for login and employment-of-the-account data, by writing to [PRIVACY_EMAIL].
+
+Complaint path, after the Provider has had a reasonable chance to answer:
+- Oman: the Ministry of Transport, Communications and Information Technology
+- United Arab Emirates: the UAE Data Office
+- Bahrain: the Personal Data Protection Authority
+
+Counsel confirms these authority names against the text in force on the publication date before the pages go live.
+
+10. OWNER SIGN-OFF LINE
+I adopt sections 3, 4, 5, and 6 of this memo as the Phase 3 rules.
+Name, date, signature: see file 00.

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton, CmxInput, LoadingButton } from '@ui/primitives';
+import { CmxButton, CmxInput } from '@ui/primitives';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { Label } from '@ui/primitives';
 import type { OpenBalanceTarget } from '@/lib/types/customer-receipt-allocation';
@@ -169,14 +169,14 @@ export function ManualAllocationDrawer({
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('cancel')}
           </CmxButton>
-          <LoadingButton
+          <CmxButton
             type="button"
             loading={submitting}
             disabled={remaining > 0.001 || isOverAllocated || allocatedSum <= 0}
             onClick={handleSubmit}
           >
             {t('confirmAllocation')}
-          </LoadingButton>
+          </CmxButton>
         </CmxDialogFooter>
       </CmxDialogContent>
     </CmxDialog>

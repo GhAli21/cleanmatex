@@ -15,9 +15,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxSkeleton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { Alert, AlertDescription } from '@ui/primitives';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useRTL } from '@/lib/hooks/useRTL';
 import {
   getCustomerLoyaltyDetail,
@@ -28,12 +28,12 @@ interface Props {
   customerId: string;
 }
 
-const TXN_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'destructive' | 'secondary' | 'info'> = {
+const TXN_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
   EARN: 'success',
   BONUS: 'success',
   REDEEM: 'info',
-  ADJUST: 'secondary',
-  EXPIRE: 'destructive',
+  ADJUST: 'neutral',
+  EXPIRE: 'danger',
 };
 
 /**
@@ -193,9 +193,9 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
                             {formatDateTime(row.createdAt)}
                           </td>
                           <td className={`px-4 py-3 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
-                            <Badge variant={TXN_BADGE_VARIANT[row.txnType] ?? 'secondary'}>
+                            <CmxStatusBadge size="sm" tone={TXN_BADGE_VARIANT[row.txnType] ?? 'neutral'}>
                               {txnTypeLabel(row.txnType)}
-                            </Badge>
+                            </CmxStatusBadge>
                           </td>
                           <td className={`px-4 py-3 text-sm font-medium tabular-nums ${row.points >= 0 ? 'text-green-700' : 'text-red-600'} ${isRTL ? 'text-left' : 'text-right'}`}>
                             {row.points >= 0 ? '+' : ''}{row.points.toLocaleString()}

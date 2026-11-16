@@ -46,10 +46,10 @@ export function CmxMoneyVariance({
   const isOver = !isBalanced && amount > 0
 
   const tone = isBalanced
-    ? 'bg-slate-100 text-slate-700'
+    ? 'bg-muted text-muted-foreground'
     : isOver
-      ? 'bg-emerald-100 text-emerald-800'
-      : 'bg-rose-100 text-rose-800'
+      ? 'bg-success-bg text-success-text'
+      : 'bg-danger-bg text-danger-text'
 
   const label = isBalanced ? labels.balanced : isOver ? labels.over : labels.short
   const sign = isBalanced ? '' : isOver ? '+' : '-'

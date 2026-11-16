@@ -51,7 +51,7 @@ import {
   type PaymentLeg,
 } from '@/lib/validations/new-order-payment-schemas';
 import { PaymentCurrencyConfigGate } from '@features/orders/payment/primitives/payment-currency-config-gate';
-import { CmxConfirmDialog, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
+import { CmxConfirmDialog, CmxSummaryMessage, cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { PaymentMethodCode } from '@/lib/constants/order-types';
@@ -200,7 +200,7 @@ import { CmxInput } from '@ui/primitives';
 import { CmxMoneyField } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
 import { CmxSkeleton, CmxSpinner } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import {
   CmxKeypad,
   KEYPAD_PAYMENT_4COL,
@@ -216,7 +216,6 @@ import {
 } from '@ui/forms';
 import { CmxTabsPanel, type CmxTabItem } from '@ui/navigation';
 import { CmxEmptyState } from '@ui/data-display';
-import { showErrorToast } from '@ui/components/cmx-toast';
 
 // SummaryRow extracted to './payment-modal/summary-row' in Phase 4 — shared by
 // the Full right rail, the submit-confirm summary, and the Simple receipt card.
@@ -2626,13 +2625,13 @@ export function PaymentFullView({
               >
                 <CmxDialogTitle>{t('title')}</CmxDialogTitle>
                 {serviceSpeed !== SERVICE_SPEEDS.STANDARD && (
-                  <Badge variant="secondary" className="text-xs">
+                  <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
                     {speedLabel(serviceSpeed)}
-                  </Badge>
+                  </CmxStatusBadge>
                 )}
-                <Badge variant="secondary" className="text-xs">
+                <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
                   {currencyCode}
-                </Badge>
+                </CmxStatusBadge>
               </div>
               <div
                 className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -3251,14 +3250,14 @@ export function PaymentFullView({
                                                   </span>
                                                   {option.payment_method_code ===
                                                     defaultPaymentMethod && (
-                                                    <Badge
-                                                      variant="secondary"
+                                                    <CmxStatusBadge size="sm"
+                                                      tone="neutral"
                                                       className="rounded-full bg-teal-600 px-2.5 py-1 text-[11px] font-semibold text-white"
                                                     >
                                                       {t(
                                                         'methods.defaultBadge',
                                                       )}
-                                                    </Badge>
+                                                    </CmxStatusBadge>
                                                   )}
                                                 </span>
                                                 <span className="mt-1 text-sm text-slate-600">
@@ -3395,12 +3394,12 @@ export function PaymentFullView({
                                             <div
                                               className={`flex items-center justify-between gap-2 px-1 ${isRTL ? 'flex-row-reverse' : ''}`}
                                             >
-                                              <Badge
-                                                variant="secondary"
+                                              <CmxStatusBadge size="sm"
+                                                tone="neutral"
                                                 className="rounded-full bg-cyan-50 text-cyan-700"
                                               >
                                                 {t('customerCredits.liveBadge')}
-                                              </Badge>
+                                              </CmxStatusBadge>
                                               <CmxButton
                                                 type="button"
                                                 variant="ghost"
@@ -3514,12 +3513,12 @@ export function PaymentFullView({
                                     >
                                       {t('splitPayment.title')}
                                       {editableLegEntries.length > 0 && (
-                                        <Badge
-                                          variant="secondary"
+                                        <CmxStatusBadge size="sm"
+                                          tone="neutral"
                                           className="ms-2 rounded-full bg-slate-100 text-slate-600"
                                         >
                                           {editableLegEntries.length}
-                                        </Badge>
+                                        </CmxStatusBadge>
                                       )}
                                     </CmxCardTitle>
                                     {editableLegEntries.length > 0 && (
@@ -3710,12 +3709,12 @@ export function PaymentFullView({
                                   {t('sections.paymentWorkbenchHelp')}
                                 </p>
                               </div>
-                              <Badge
-                                variant="secondary"
+                              <CmxStatusBadge size="sm"
+                                tone="neutral"
                                 className="rounded-full bg-cyan-50 px-3 py-1 text-cyan-700"
                               >
                                 {visiblePaymentSectionIds.size}
-                              </Badge>
+                              </CmxStatusBadge>
                             </div>
                           </CmxCardHeader>
                           <CmxCardContent className="space-y-3 pt-3">
@@ -3745,8 +3744,8 @@ export function PaymentFullView({
                                 title={`${t('sections.sectionA')} · ${t('sections.balanceSnapshot')}`}
                                 description={t('sections.balanceSnapshotHelp')}
                                 headerAside={
-                                  <Badge
-                                    variant="secondary"
+                                  <CmxStatusBadge size="sm"
+                                    tone="neutral"
                                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                       unresolvedOverpaymentAmount > moneyEpsilon
                                         ? 'bg-rose-50 text-rose-700'
@@ -3756,7 +3755,7 @@ export function PaymentFullView({
                                     }`}
                                   >
                                     {allocationStatusLabel}
-                                  </Badge>
+                                  </CmxStatusBadge>
                                 }
                                 contentClassName="pt-4"
                               >
@@ -4189,15 +4188,15 @@ export function PaymentFullView({
                                     )}
                                     headerAside={
                                       activeLeg ? (
-                                        <Badge
-                                          variant="secondary"
+                                        <CmxStatusBadge size="sm"
+                                          tone="neutral"
                                           className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700"
                                         >
                                           {getCheckoutOptionDisplayName(
                                             activeLegOption,
                                             activeLeg.method,
                                           )}
-                                        </Badge>
+                                        </CmxStatusBadge>
                                       ) : undefined
                                     }
                                     contentClassName="space-y-4 pt-4"
@@ -4387,12 +4386,12 @@ export function PaymentFullView({
                                   )}
                                   headerAside={
                                     appliedBadgeCount > 0 ? (
-                                      <Badge
-                                        variant="secondary"
+                                      <CmxStatusBadge size="sm"
+                                        tone="neutral"
                                         className="rounded-full bg-purple-100 px-3 py-1 text-purple-700"
                                       >
                                         {appliedBadgeCount}
-                                      </Badge>
+                                      </CmxStatusBadge>
                                     ) : undefined
                                   }
                                   contentClassName="space-y-5 pt-5"
@@ -5001,8 +5000,8 @@ export function PaymentFullView({
                                   }
                                   description={t('cashDrawer.subtitle')}
                                   headerAside={
-                                    <Badge
-                                      variant="secondary"
+                                    <CmxStatusBadge size="sm"
+                                      tone="neutral"
                                       className={`rounded-full px-3 py-1 ${
                                         selectedCashDrawerChoice
                                           ? 'bg-cyan-100 text-cyan-700'
@@ -5012,7 +5011,7 @@ export function PaymentFullView({
                                       {selectedCashDrawerChoice
                                         ? t('cashDrawer.boundBadge')
                                         : t('cashDrawer.pendingBadge')}
-                                    </Badge>
+                                    </CmxStatusBadge>
                                   }
                                   contentClassName="space-y-4 pt-5"
                                 >
@@ -5252,12 +5251,12 @@ export function PaymentFullView({
                                   'sections.financialInspectorHelp',
                                 )}
                                 headerAside={
-                                  <Badge
-                                    variant="secondary"
+                                  <CmxStatusBadge size="sm"
+                                    tone="neutral"
                                     className="rounded-full bg-slate-100 px-3 py-1 text-slate-600"
                                   >
                                     {inspectorTabIds.length}
-                                  </Badge>
+                                  </CmxStatusBadge>
                                 }
                                 contentClassName="pt-0"
                               >
@@ -5734,12 +5733,12 @@ export function PaymentFullView({
                                           {customerHeaderName}
                                         </p>
                                         {customerType === 'b2b' ? (
-                                          <Badge
-                                            variant="secondary"
+                                          <CmxStatusBadge size="sm"
+                                            tone="neutral"
                                             className="rounded-full bg-slate-100 text-slate-700"
                                           >
                                             B2B
-                                          </Badge>
+                                          </CmxStatusBadge>
                                         ) : null}
                                       </div>
                                       <p className="mt-1 truncate text-sm text-slate-500">
@@ -5759,8 +5758,8 @@ export function PaymentFullView({
                                       <CmxCardTitle className="text-sm text-slate-900">
                                         {t('rightRail.balanceResult')}
                                       </CmxCardTitle>
-                                      <Badge
-                                        variant="secondary"
+                                      <CmxStatusBadge size="sm"
+                                        tone="neutral"
                                         className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${
                                           rightRailState.balanceStatus ===
                                           RIGHT_RAIL_BALANCE_STATUS.BLOCKED
@@ -5775,7 +5774,7 @@ export function PaymentFullView({
                                         }`}
                                       >
                                         {balanceStatusLabel}
-                                      </Badge>
+                                      </CmxStatusBadge>
                                     </div>
                                   </CmxCardHeader>
                                   <CmxCardContent className="space-y-2 pt-4">
@@ -5948,9 +5947,9 @@ export function PaymentFullView({
                                   >
                                     <span>{t('rightRail.adjustments')}</span>
                                     {appliedBadgeCount > 0 ? (
-                                      <Badge variant="secondary">
+                                      <CmxStatusBadge size="sm" tone="neutral">
                                         {appliedBadgeCount}
-                                      </Badge>
+                                      </CmxStatusBadge>
                                     ) : null}
                                   </CmxButton>
                                   {cashDrawerRequired ? (
@@ -5966,11 +5965,11 @@ export function PaymentFullView({
                                       className="w-full justify-between rounded-xl"
                                     >
                                       <span>{t('sections.cashDrawer')}</span>
-                                      <Badge variant="secondary">
+                                      <CmxStatusBadge size="sm" tone="neutral">
                                         {selectedCashDrawerChoice
                                           ? t('cashDrawer.boundBadge')
                                           : t('cashDrawer.pendingBadge')}
-                                      </Badge>
+                                      </CmxStatusBadge>
                                     </CmxButton>
                                   ) : null}
                                   <CmxButton
@@ -5987,9 +5986,9 @@ export function PaymentFullView({
                                     <span>
                                       {t('sections.financialInspector')}
                                     </span>
-                                    <Badge variant="secondary">
+                                    <CmxStatusBadge size="sm" tone="neutral">
                                       {inspectorTabIds.length}
-                                    </Badge>
+                                    </CmxStatusBadge>
                                   </CmxButton>
                                   {showBalancePolicySection ? (
                                     <CmxButton
@@ -6006,9 +6005,9 @@ export function PaymentFullView({
                                       <span>
                                         {t('rightRail.balancePolicy')}
                                       </span>
-                                      <Badge variant="secondary">
+                                      <CmxStatusBadge size="sm" tone="neutral">
                                         {balanceStatusLabel}
-                                      </Badge>
+                                      </CmxStatusBadge>
                                     </CmxButton>
                                   ) : null}
                                 </CmxCardContent>

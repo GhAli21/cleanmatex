@@ -15,6 +15,7 @@ import { getPublicTrackingPathForOrderId } from '@/lib/services/public-order-tra
 import { buildAbsolutePublicTrackingUrl } from '@/lib/utils/public-order-tracking';
 import { logger } from '@/lib/utils/logger';
 import { AppError } from '@/lib/errors/base-errors';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 export class ReceiptGenerationError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
@@ -488,14 +489,14 @@ export class ReceiptService {
     }
     let total = 0;
     if (servicePrefCodes.size > 0) {
-      const { data: servicePrefs } = await supabase
+      const { data: servicePrefs } = await catalogReadClient(supabase)
         .from('sys_service_preference_cd')
         .select('sustainability_score')
         .in('code', Array.from(servicePrefCodes));
       total += (servicePrefs ?? []).reduce((s, p) => s + (Number(p.sustainability_score) || 0), 0);
     }
     if (packingPrefCodes.size > 0) {
-      const { data: packingPrefs } = await supabase
+      const { data: packingPrefs } = await catalogReadClient(supabase)
         .from('sys_packing_preference_cd')
         .select('sustainability_score')
         .in('code', Array.from(packingPrefCodes));

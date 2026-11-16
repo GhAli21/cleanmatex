@@ -29,7 +29,7 @@ import type { Customer } from '@/lib/types/customer';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { CustomItemModal } from './components/custom-item-modal';
-import { PhotoCaptureModal } from './components/photo-capture-modal';
+import { CmxCameraCaptureDialog } from '@ui/overlays';
 import { ReadyDatePickerModal } from './ready-date-picker-modal';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
@@ -311,15 +311,17 @@ export function NewOrderModals() {
     [state, t, autoApplyCustomerPrefs, servicePrefs]
   );
 
-  // Handle photo capture
+  // Captured photos wait in state until the order is saved (no order id before), then
+  // use-order-submission uploads them to the order through File Util.
   const handlePhotoCapture = useCallback(
     (photo: File) => {
-      // Store photo and attach to order/item
-      // Photos can be stored in order metadata or attached to specific items
-      // For now, just close the modal - photo storage will be implemented in future phase
-      state.closeModal('photoCapture');
+      if (state.state.pendingPhotos.length >= ORDER_DEFAULTS.LIMITS.MAX_PHOTOS) {
+        cmxMessage.warning(t('photoCapture.maxPhotosReached', { max: ORDER_DEFAULTS.LIMITS.MAX_PHOTOS }));
+        return;
+      }
+      state.dispatch({ type: 'ADD_PENDING_PHOTO', payload: photo });
     },
-    [state]
+    [state, t]
   );
 
   // Handle ready-by date change
@@ -490,11 +492,10 @@ export function NewOrderModals() {
       )}
 
       {/* Photo Capture Modal */}
-      <PhotoCaptureModal
+      <CmxCameraCaptureDialog
         open={state.state.modals.photoCapture}
-        onClose={() => state.closeModal('photoCapture')}
+        onOpenChange={(open) => !open && state.closeModal('photoCapture')}
         onCapture={handlePhotoCapture}
-        maxPhotos={ORDER_DEFAULTS.LIMITS.MAX_PHOTOS}
       />
 
       {/* Ready By Date Picker Modal */}

@@ -3,10 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import type { B2bStatementReconReport, B2bStatementReconRow } from '@/lib/types/reconciliation-report';
 import { fmtAmount } from './reconciliation-format';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface Props {
   data: B2bStatementReconReport | null;
   loading: boolean;
@@ -31,7 +32,7 @@ export function ReconciliationB2bStatementsRprt({ data, loading, csvHref }: Prop
       key: 'status',
       header: t('status'),
       render: (r: B2bStatementReconRow) =>
-        r.statusCode ? <Badge variant="outline" className="text-xs">{r.statusCode}</Badge> : <span className="text-muted-foreground">—</span>,
+        r.statusCode ? <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className="text-xs">{r.statusCode}</CmxStatusBadge> : <span className="text-muted-foreground">—</span>,
     },
     {
       key: 'headerPaid',
@@ -55,8 +56,8 @@ export function ReconciliationB2bStatementsRprt({ data, loading, csvHref }: Prop
       header: t('reconciled'),
       render: (r: B2bStatementReconRow) =>
         r.isReconciled
-          ? <Badge variant="success" className="text-xs">{t('reconciledYes')}</Badge>
-          : <Badge variant="destructive" className="text-xs">{t('reconciledNo')}</Badge>,
+          ? <CmxStatusBadge size="sm" tone="success" className="text-xs">{t('reconciledYes')}</CmxStatusBadge>
+          : <CmxStatusBadge size="sm" tone="danger" appearance="solid" className="text-xs">{t('reconciledNo')}</CmxStatusBadge>,
     },
   ];
 

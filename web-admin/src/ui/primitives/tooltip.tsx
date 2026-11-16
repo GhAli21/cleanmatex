@@ -126,10 +126,10 @@ export function Tooltip({
           <div
             className={cn(
               "absolute w-2 h-2 bg-popover border rotate-45",
-              side === "top" && "bottom-[-4px] left-1/2 -translate-x-1/2 border-t-0 border-r-0",
-              side === "bottom" && "top-[-4px] left-1/2 -translate-x-1/2 border-b-0 border-l-0",
-              side === "left" && "right-[-4px] top-1/2 -translate-y-1/2 border-l-0 border-b-0",
-              side === "right" && "left-[-4px] top-1/2 -translate-y-1/2 border-r-0 border-t-0"
+              side === "top" && "bottom-[-4px] start-1/2 -translate-x-1/2 border-t-0 border-e-0",
+              side === "bottom" && "top-[-4px] start-1/2 -translate-x-1/2 border-b-0 border-s-0",
+              side === "left" && "end-[-4px] top-1/2 -translate-y-1/2 border-s-0 border-b-0",
+              side === "right" && "start-[-4px] top-1/2 -translate-y-1/2 border-e-0 border-t-0"
             )}
           />
         </div>

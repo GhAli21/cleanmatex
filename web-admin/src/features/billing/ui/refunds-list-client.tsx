@@ -134,11 +134,11 @@ function fmtDate(iso: string | null | undefined, locale: string): string {
  * @param status governed refund status from the financial lifecycle
  * @returns Cmx status badge variant
  */
-function refundStatusVariant(status: string): 'warning' | 'info' | 'success' | 'default' {
+function refundStatusVariant(status: string): 'warning' | 'info' | 'success' | 'neutral' {
   if (status === REFUND_STATUSES.PENDING_APPROVAL) return 'warning';
   if (status === REFUND_STATUSES.APPROVED) return 'info';
   if (status === REFUND_STATUSES.PROCESSED) return 'success';
-  return 'default';
+  return 'neutral';
 }
 
 /**
@@ -271,7 +271,7 @@ export default function RefundsListClient({
       header: t('status'),
       cell: ({ getValue }) => {
         const status = getValue() as string;
-        return <CmxStatusBadge label={t(`statusLabels.${status}` as never)} variant={refundStatusVariant(status)} size="sm" />;
+        return <CmxStatusBadge label={t(`statusLabels.${status}` as never)} tone={refundStatusVariant(status)} size="sm" />;
       },
     },
     {

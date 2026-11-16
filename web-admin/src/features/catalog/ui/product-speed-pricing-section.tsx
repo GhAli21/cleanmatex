@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import { Badge, CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
 import { useAuth } from '@/lib/auth/auth-context';
 import { PRICING_PERMISSIONS } from '@/lib/constants/permissions/pricing-perm';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -16,6 +16,7 @@ import { useSpeedRuleLookups } from '../hooks/use-speed-rule-lookups';
 import { useSpeedRuleValueText } from './speed-rule-parts';
 import { SpeedRuleEditorDialog } from './speed-rule-editor-dialog';
 
+import { CmxStatusBadge } from '@ui/feedback';
 /** A product rarely has more rules than this; the Speed Pricing screen lists them all. */
 const PRODUCT_RULES_PAGE_SIZE = 50;
 
@@ -119,7 +120,7 @@ export function ProductSpeedPricingSection({ productId, productLabel }: { produc
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={rule.isActive ? 'success' : 'secondary'}>{rule.isActive ? tCommon('active') : tCommon('inactive')}</Badge>
+                <CmxStatusBadge size="sm" tone={rule.isActive ? 'success' : 'neutral'}>{rule.isActive ? tCommon('active') : tCommon('inactive')}</CmxStatusBadge>
                 {canUpdate ? (
                   <CmxButton type="button" variant="ghost" size="sm" onClick={() => setEditor({ rule })}>{tCommon('edit')}</CmxButton>
                 ) : null}

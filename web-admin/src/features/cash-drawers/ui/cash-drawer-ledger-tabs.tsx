@@ -23,10 +23,10 @@ import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
 import { useCashDrawerCatalogLabels } from '@features/cash-drawers/hooks/use-cash-drawer-catalog-labels'
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable, CmxMoneyVariance } from '@ui/data-display'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxDenominationCounter } from '@ui/patterns'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 
@@ -83,7 +83,7 @@ export function CashDrawerLedgerTab({ drawerId }: { drawerId: string }) {
         {
           key: 'domain',
           header: t('tabs.ledger.source'),
-          render: (r: DrawerLedgerEntry) => <Badge variant="outline">{t(`tabs.ledger.domain.${r.domain}`)}</Badge>,
+          render: (r: DrawerLedgerEntry) => <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t(`tabs.ledger.domain.${r.domain}`)}</CmxStatusBadge>,
         },
         { key: 'description', header: t('reason'), render: (r: DrawerLedgerEntry) => r.description ?? '—' },
         {
@@ -144,7 +144,7 @@ export function CashDrawerTransactionsTab({ drawerId }: { drawerId: string }) {
           render: (r: DrawerTrxEntry) => (
             <div className="flex items-center gap-2">
               <span>{catalogLabels.trxType(r.trxTypeCode)}</span>
-              {r.reversesTrxId ? <Badge variant="outline">{t('tabs.trx.reversal')}</Badge> : null}
+              {r.reversesTrxId ? <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('tabs.trx.reversal')}</CmxStatusBadge> : null}
             </div>
           ),
         },
@@ -292,7 +292,7 @@ export function CashDrawerCountsTab({
             key: 'countType',
             header: t('tabs.counts.type'),
             render: (r: DrawerCountEntry) => (
-              <Badge variant="outline">{t(`tabs.counts.types.${r.countType}` as Parameters<typeof t>[0])}</Badge>
+              <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t(`tabs.counts.types.${r.countType}` as Parameters<typeof t>[0])}</CmxStatusBadge>
             ),
           },
           { key: 'expected', header: t('expectedCash'), align: 'right' as const, render: (r: DrawerCountEntry) => money(r.expectedAmount, r.currencyCode) },

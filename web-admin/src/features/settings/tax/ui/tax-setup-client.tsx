@@ -10,8 +10,8 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxEmptyState } from '@ui/data-display';
-import { Badge } from '@ui/primitives/badge';
-import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
+
+import { cmxMessage, CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxTabsPanel } from '@ui/navigation';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
@@ -205,7 +205,7 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
       key: 'exemption_type',
       header: t('exemptionType'),
       sortable: true,
-      render: (e: SerializedTaxExemption) => <Badge variant="outline">{e.exemption_type}</Badge>,
+      render: (e: SerializedTaxExemption) => <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{e.exemption_type}</CmxStatusBadge>,
     },
     {
       key: 'customer_id',

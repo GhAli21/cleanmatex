@@ -15,8 +15,8 @@ import { useCSRFToken } from '@/lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { CmxButton, CmxSelect, CmxSwitch } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
-import { Badge } from '@ui/primitives/badge'
-import { CmxSummaryMessage, cmxMessage } from '@ui/feedback'
+
+import { CmxSummaryMessage, cmxMessage, CmxStatusBadge } from '@ui/feedback'
 
 interface DraftRow {
   code: string
@@ -151,7 +151,7 @@ export function CashDenominationControlCard() {
                   <div className="min-w-0">
                     <p className={`text-sm font-medium ${row.isEnabled ? '' : 'text-muted-foreground line-through'}`}>{label}</p>
                     <p className="text-xs text-muted-foreground">
-                      <Badge variant="outline">{info.denomKind === 'COIN' ? t('coin') : t('note')}</Badge>
+                      <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{info.denomKind === 'COIN' ? t('coin') : t('note')}</CmxStatusBadge>
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

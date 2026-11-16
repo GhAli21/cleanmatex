@@ -7,8 +7,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton, Alert, Badge, CmxInput, CmxSelect } from '@ui/primitives';
-import { CmxProgressBar } from '@ui/feedback';
+import { CmxButton, Alert, CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxProgressBar, CmxStatusBadge } from '@ui/feedback';
 import type {
   PlanComparison,
   UsageMetrics,
@@ -233,15 +233,15 @@ export function TenantAdminSubscriptionScreen() {
             </p>
           </div>
           {tenant && (
-            <Badge
-              variant={
+            <CmxStatusBadge size="sm"
+              tone={
                 tenant.status === 'active' ? 'success' :
                 tenant.status === 'trial' ? 'info' :
-                tenant.status === 'suspended' ? 'warning' : 'default'
+                tenant.status === 'suspended' ? 'warning' : 'brand'
               }
             >
               {tenant.status.toUpperCase()}
-            </Badge>
+            </CmxStatusBadge>
           )}
         </div>
       </div>
@@ -504,14 +504,14 @@ export function TenantAdminSubscriptionScreen() {
                             {plan.plan_name}
                           </span>
                           {plan.isCurrentPlan && (
-                            <Badge variant="success">
+                            <CmxStatusBadge size="sm" tone="success">
                               Current
-                            </Badge>
+                            </CmxStatusBadge>
                           )}
                           {plan.plan_code === 'growth' && !plan.isCurrentPlan && (
-                            <Badge variant="info">
+                            <CmxStatusBadge size="sm" tone="info">
                               Recommended
-                            </Badge>
+                            </CmxStatusBadge>
                           )}
                         </div>
                       </td>
@@ -533,19 +533,19 @@ export function TenantAdminSubscriptionScreen() {
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
                           {plan.feature_flags.pdf_invoices && (
-                            <Badge variant="default">PDF</Badge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">PDF</CmxStatusBadge>
                           )}
                           {plan.feature_flags.whatsapp_receipts && (
-                            <Badge variant="default">WhatsApp</Badge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">WhatsApp</CmxStatusBadge>
                           )}
                           {plan.feature_flags.driver_app && (
-                            <Badge variant="default">Driver App</Badge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">Driver App</CmxStatusBadge>
                           )}
                           {plan.feature_flags.multi_branch && (
-                            <Badge variant="default">Multi-Branch</Badge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">Multi-Branch</CmxStatusBadge>
                           )}
                           {plan.feature_flags.api_access && (
-                            <Badge variant="default">API</Badge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">API</CmxStatusBadge>
                           )}
                         </div>
                       </td>

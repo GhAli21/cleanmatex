@@ -12,8 +12,8 @@ import { Coins } from 'lucide-react';
 import { CmxTabsPanel } from '@ui/navigation';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { Badge } from '@ui/primitives/badge';
-import { cmxMessage } from '@ui/feedback';
+
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useFeature } from '@/lib/hooks/use-feature-flags';
 import { getCurrencyPortfolio } from '@/app/actions/fx/currency-actions';
 import { getRates } from '@/app/actions/fx/rate-actions';
@@ -92,13 +92,13 @@ export function CurrencyFxScreen() {
               <span className="text-sm font-medium">{t('compact.baseCurrencyLabel')}</span>
               <span className="font-mono text-lg font-semibold">{base?.currencyCode ?? '—'}</span>
             </div>
-            <Badge variant={base?.baseLockedAt ? 'secondary' : 'outline'}>
+            <CmxStatusBadge size="sm" tone={base?.baseLockedAt ? 'neutral' : 'neutral'}>
               {base?.baseLockedAt ? t('compact.locked') : t('compact.notLocked')}
-            </Badge>
+            </CmxStatusBadge>
             <div className="border-t pt-4">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium">{t('compact.multiCurrencyLabel')}</span>
-                <Badge variant="outline">{t('compact.off')}</Badge>
+                <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('compact.off')}</CmxStatusBadge>
               </div>
               <p className="text-sm text-muted-foreground">{t('compact.description')}</p>
               {multiCurrencyAllowed ? (

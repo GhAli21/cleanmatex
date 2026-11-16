@@ -6,8 +6,8 @@ import { useTranslations } from 'next-intl';
 import { Link2, RefreshCw, WalletCards } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxSelect } from '@ui/primitives/cmx-select';
-import { Badge } from '@ui/primitives/badge';
-import { cmxMessage } from '@ui/feedback';
+
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { DRAWER_TYPES } from '@/lib/constants/payment';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
@@ -193,18 +193,18 @@ export function PosSessionDrawerLinker({
 
       {selectedDrawer ? (
         <div className="flex flex-wrap gap-2 text-xs">
-          <Badge variant={selectedDrawer.currentSession ? 'success' : selectedDrawer.blockingSession ? 'warning' : 'secondary'}>
+          <CmxStatusBadge size="sm" tone={selectedDrawer.currentSession ? 'success' : selectedDrawer.blockingSession ? 'warning' : 'neutral'}>
             {selectedDrawer.currentSession
               ? t('hub.drawerHasOpenSession')
               : selectedDrawer.blockingSession
                 ? t('hub.drawerSessionClosing')
                 : t('hub.drawerNoOpenSession')}
-          </Badge>
-          <Badge variant="outline">{selectedDrawer.currency_code}</Badge>
+          </CmxStatusBadge>
+          <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{selectedDrawer.currency_code}</CmxStatusBadge>
           {selectedDrawer.currentSession || selectedDrawer.blockingSession ? (
-            <Badge variant="outline">
+            <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
               {(selectedDrawer.currentSession ?? selectedDrawer.blockingSession)?.session_no}
-            </Badge>
+            </CmxStatusBadge>
           ) : null}
         </div>
       ) : null}

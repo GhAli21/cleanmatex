@@ -1,4 +1,5 @@
 'use client';
+import { CmxButton, CmxInput } from '@ui/primitives';
 
 /**
  * CmxDataGrid — professional client-side data grid (TanStack Table v8 + Cmx primitives).
@@ -50,8 +51,8 @@ import {
   X,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+
+
 import { CmxCheckbox } from '@ui/primitives';
 import {
   DropdownMenu,
@@ -320,7 +321,7 @@ function GridCopyableShell({
     <div className="group/copycell flex min-w-0 items-start gap-0.5">
       <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
       {canCopy ? (
-        <Button
+        <CmxButton
           type="button"
           variant="ghost"
           size="icon"
@@ -333,8 +334,8 @@ function GridCopyableShell({
           onClick={handleCopy}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {copied ? <Check className="h-3.5 w-3.5 text-green-600" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-        </Button>
+          {copied ? <Check className="h-3.5 w-3.5 text-success-text" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+        </CmxButton>
       ) : null}
     </div>
   );
@@ -398,8 +399,8 @@ function DebouncedColumnFilter<TData>({
   const hasValue = value.length > 0;
   return (
     <div className="relative">
-      <Input
-        className={cn(inputClassName, hasValue ? (dir === 'rtl' ? 'pl-8' : 'pr-8') : undefined)}
+      <CmxInput
+        className={cn(inputClassName, hasValue ? 'pe-8' : undefined)}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
@@ -410,7 +411,7 @@ function DebouncedColumnFilter<TData>({
           type="button"
           className={cn(
             'absolute top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground',
-            dir === 'rtl' ? 'left-1' : 'right-1'
+            'end-1'
           )}
           onClick={() => {
             setValue('');
@@ -776,12 +777,12 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
               <Search
                 className={cn(
                   'pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground',
-                  dir === 'rtl' ? 'right-2.5' : 'left-2.5'
+                  'start-2.5'
                 )}
                 aria-hidden
               />
-              <Input
-                className={cn('h-9', dir === 'rtl' ? 'pr-9' : 'pl-9')}
+              <CmxInput
+                className={'h-9 ps-9'}
                 value={globalFilterInput}
                 onChange={(e) => setGlobalFilterInput(e.target.value)}
                 placeholder={labels.globalSearchPlaceholder}
@@ -800,11 +801,11 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
           {enableDensityToggle && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" size="sm" className="text-xs gap-1">
+                <CmxButton type="button" variant="outline" size="sm" className="text-xs gap-1">
                   <Rows className="h-3.5 w-3.5" aria-hidden />
                   {labels.density}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
+                </CmxButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>{labels.density}</DropdownMenuLabel>
@@ -821,18 +822,18 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
             </DropdownMenu>
           )}
           {(enableExportCsv || onExportCsv) && (
-            <Button type="button" variant="outline" size="sm" className="text-xs gap-1" onClick={handleExport}>
+            <CmxButton type="button" variant="outline" size="sm" className="text-xs gap-1" onClick={handleExport}>
               <Download className="h-3.5 w-3.5" />
               {labels.exportCsv}
-            </Button>
+            </CmxButton>
           )}
           {enableColumnVisibility && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" size="sm" className="text-xs gap-1">
+                <CmxButton type="button" variant="outline" size="sm" className="text-xs gap-1">
                   {labels.columnsMenu}
                   <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
+                </CmxButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuLabel>{labels.toggleColumns}</DropdownMenuLabel>
@@ -855,9 +856,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Button type="button" variant="outline" size="sm" onClick={resetFilters} className="text-xs">
+          <CmxButton type="button" variant="outline" size="sm" onClick={resetFilters} className="text-xs">
             {labels.resetFilters}
-          </Button>
+          </CmxButton>
         </div>
       </div>
 
@@ -867,7 +868,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
           'relative min-h-0 w-full min-w-0 max-w-full',
           'overflow-x-auto overflow-y-auto overscroll-x-contain overscroll-y-contain [-webkit-overflow-scrolling:touch]',
           !wrapperHasMaxHeight && 'max-h-[min(52vh,28rem)] min-w-0',
-          'rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white [scrollbar-gutter:stable]',
+          'rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-card [scrollbar-gutter:stable]',
           tableWrapperClassName
         )}
         role="region"
@@ -878,16 +879,16 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
             <div
               aria-hidden
               className={cn(
-                'pointer-events-none absolute inset-y-0 z-[19] w-6 bg-gradient-to-r from-white via-white/80 to-transparent transition-opacity duration-200',
-                dir === 'rtl' ? 'right-0' : 'left-0'
+                'pointer-events-none absolute inset-y-0 z-[19] w-6 bg-gradient-to-r from-card via-card/80 to-transparent transition-opacity duration-200',
+                'start-0'
               )}
               style={{ opacity: fadeInlineStart ? 1 : 0 }}
             />
             <div
               aria-hidden
               className={cn(
-                'pointer-events-none absolute inset-y-0 z-[19] w-6 bg-gradient-to-l from-white via-white/80 to-transparent transition-opacity duration-200',
-                dir === 'rtl' ? 'left-0' : 'right-0'
+                'pointer-events-none absolute inset-y-0 z-[19] w-6 bg-gradient-to-l from-card via-card/80 to-transparent transition-opacity duration-200',
+                'end-0'
               )}
               style={{ opacity: fadeInlineEnd ? 1 : 0 }}
             />
@@ -911,8 +912,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                         key={header.id}
                         className={cn(
                           densityHeaderClass(density),
-                          'text-left align-bottom text-xs font-semibold text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-                          dir === 'rtl' && 'text-right',
+                          'text-start align-bottom text-xs font-semibold text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
                           canSort && 'cursor-pointer select-none hover:bg-black/[0.03]',
                           rb,
                           'bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]',
@@ -1023,9 +1023,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                       </p>
                     ) : null}
                     {showEmptyClear && hasActiveFilters ? (
-                      <Button type="button" variant="default" size="default" className="min-w-[10rem]" onClick={resetFilters}>
+                      <CmxButton type="button" variant="primary" size="md" className="min-w-[10rem]" onClick={resetFilters}>
                         {labels.clearFilters}
-                      </Button>
+                      </CmxButton>
                     ) : null}
                   </div>
                 </td>
@@ -1045,7 +1045,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                     const rb = hideBelowClass(meta?.hideBelow);
                     const stickyFirst = enableStickyFirstColumn && cellIndex === 0;
                     const stickyBg =
-                      enableZebra && rowIndex % 2 === 1 ? 'bg-muted/40' : 'bg-white';
+                      enableZebra && rowIndex % 2 === 1 ? 'bg-muted/40' : 'bg-card';
                     const cellInner = flexRender(cell.column.columnDef.cell, cell.getContext());
                     const copyRaw = row.getValue(cell.column.id);
                     const copyText = copyRaw == null ? '' : String(copyRaw);
@@ -1063,7 +1063,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                         className={cn(
                           densityCellClass(density),
                           'align-top text-foreground',
-                          dir === 'rtl' ? 'text-right' : 'text-left',
+                          'text-start',
                           rb,
                           enableColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           stickyFirst &&
@@ -1117,7 +1117,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
               {fillPlaceholders(labels.page, { current: currentPage, totalPages: pageCount })}
             </span>
             <div className="flex items-center gap-1">
-              <Button
+              <CmxButton
                 type="button"
                 variant="outline"
                 size="icon"
@@ -1128,8 +1128,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 title={labels.firstPage}
               >
                 <PageFirstIcon className="h-4 w-4" />
-              </Button>
-              <Button
+              </CmxButton>
+              <CmxButton
                 type="button"
                 variant="outline"
                 size="icon"
@@ -1140,8 +1140,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 title={labels.previousPage}
               >
                 <PagePrevIcon className="h-4 w-4" />
-              </Button>
-              <Button
+              </CmxButton>
+              <CmxButton
                 type="button"
                 variant="outline"
                 size="icon"
@@ -1152,8 +1152,8 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 title={labels.nextPage}
               >
                 <PageNextIcon className="h-4 w-4" />
-              </Button>
-              <Button
+              </CmxButton>
+              <CmxButton
                 type="button"
                 variant="outline"
                 size="icon"
@@ -1164,11 +1164,11 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 title={labels.lastPage}
               >
                 <PageLastIcon className="h-4 w-4" />
-              </Button>
+              </CmxButton>
             </div>
             <div className={cn('flex items-center gap-2', dir === 'rtl' && 'flex-row-reverse')}>
               <span className="whitespace-nowrap font-medium text-foreground">{labels.goToPage}</span>
-              <Input
+              <CmxInput
                 className="h-8 w-14 px-2 text-center text-xs tabular-nums"
                 inputMode="numeric"
                 value={goToInput}
@@ -1178,9 +1178,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 }}
                 aria-label={labels.goToPage}
               />
-              <Button type="button" variant="secondary" size="sm" className="h-8" onClick={applyGoToPage}>
+              <CmxButton type="button" variant="secondary" size="sm" className="h-8" onClick={applyGoToPage}>
                 {labels.go}
-              </Button>
+              </CmxButton>
             </div>
           </div>
         </div>

@@ -19,3 +19,4 @@ export * from './cmx-form-status-banner';
 export * from './cmx-form-skeleton';
 export * from './cmx-scan-input';
 export * from './cmx-code-search-input';
+export * from './cmx-file-drop-zone';

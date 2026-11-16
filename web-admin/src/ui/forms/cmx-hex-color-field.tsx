@@ -142,7 +142,7 @@ export function CmxHexColorField({
                   'h-9 w-9 rounded-full border-2 shadow-sm transition',
                   isSelected
                     ? 'border-[rgb(var(--cmx-primary-rgb,37_99_235))] ring-2 ring-[rgb(var(--cmx-focus-ring-rgb,59_130_246))]/20'
-                    : 'border-white hover:scale-[1.03]',
+                    : 'border-card hover:scale-[1.03]',
                 ].join(' ')}
                 style={{ backgroundColor: normalizedPreset }}
                 onClick={() => onChange(normalizedPreset)}

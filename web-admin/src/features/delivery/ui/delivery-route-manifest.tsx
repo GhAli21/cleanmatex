@@ -38,11 +38,11 @@ interface AuditActorsResponse {
   data?: AuditActor[];
 }
 
-function statusVariant(statusCode: string): 'success' | 'processing' | 'warning' | 'default' {
+function statusVariant(statusCode: string): 'success' | 'info' | 'warning' | 'neutral' {
   if (statusCode === 'delivered' || statusCode === 'completed') return 'success';
-  if (statusCode === 'in_transit' || statusCode === 'in_progress') return 'processing';
+  if (statusCode === 'in_transit' || statusCode === 'in_progress') return 'info';
   if (statusCode === 'pending' || statusCode === 'planned') return 'warning';
-  return 'default';
+  return 'neutral';
 }
 
 function mapHref(address: string, latitude: number | null, longitude: number | null): string {
@@ -143,7 +143,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
             </div>
             <CmxStatusBadge
               label={t(`routeStatus.${route.statusCode}`, { default: route.statusCode })}
-              variant={statusVariant(route.statusCode)}
+              tone={statusVariant(route.statusCode)}
             />
           </div>
         </CmxCardHeader>
@@ -226,7 +226,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
                     </span>
                     <CmxStatusBadge
                       label={t(`stopStatus.${stop.statusCode}`, { default: stop.statusCode })}
-                      variant={statusVariant(stop.statusCode)}
+                      tone={statusVariant(stop.statusCode)}
                       size="sm"
                     />
                     <CmxCodeChip code={stop.order.orderNo} kind="order" />

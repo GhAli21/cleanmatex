@@ -16,7 +16,7 @@ import { TenantCurrencyProvider } from '@/lib/context/tenant-currency-context'
 import { RoleProvider } from '@/lib/auth/role-context'
 import { Toaster } from 'sonner'
 import { AlertDialogProvider } from '@ui/feedback'
-import { PermissionsInspectorProvider } from '@ui/navigation/permissions-inspector'
+import { PermissionsInspectorProvider } from '@features/access/ui/permissions-inspector'
 import { type Locale } from '@/lib/utils/locale.client'
 
 /**

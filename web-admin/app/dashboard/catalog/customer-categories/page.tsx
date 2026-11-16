@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import {
   CmxDialog,
   CmxDialogContent,
@@ -21,7 +21,7 @@ import {
 } from '@ui/overlays';
 import { Label } from '@ui/primitives';
 import { Plus, Pencil, Trash2, RotateCcw } from 'lucide-react';
-import { useMessage } from '@ui/feedback';
+import { useMessage, CmxStatusBadge } from '@ui/feedback';
 import {
   fetchCustomerCategories,
   createCustomerCategory,
@@ -267,17 +267,17 @@ export default function CustomerCategoriesPage() {
                       </td>
                       <td className="py-2 px-3">{cat.system_type || '—'}</td>
                       <td className="py-2 px-3">
-                        <Badge variant={cat.is_b2b ? 'default' : 'secondary'}>
+                        <CmxStatusBadge size="sm" tone={cat.is_b2b ? 'brand' : 'neutral'}>
                           {cat.is_b2b ? 'Yes' : 'No'}
-                        </Badge>
+                        </CmxStatusBadge>
                       </td>
                       <td className="py-2 px-3">
                         <div className="flex gap-1">
-                          <Badge variant={cat.is_active ? 'success' : 'secondary'}>
+                          <CmxStatusBadge size="sm" tone={cat.is_active ? 'success' : 'neutral'}>
                             {cat.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
+                          </CmxStatusBadge>
                           {cat.system_category_code && (
-                            <Badge variant="outline">System</Badge>
+                            <CmxStatusBadge size="sm" tone="neutral" appearance="outline">System</CmxStatusBadge>
                           )}
                         </div>
                       </td>

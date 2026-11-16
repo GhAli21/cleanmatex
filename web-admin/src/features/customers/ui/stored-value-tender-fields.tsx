@@ -28,7 +28,7 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { CmxButton, CmxInput, Label, CmxSkeleton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxMoneyField } from '@ui/primitives';
@@ -36,6 +36,7 @@ import { CmxChangeDueRow } from '@ui/data-display';
 import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
 import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface FundingMethodOption {
   id: string;
   payment_method_code: string;
@@ -393,9 +394,9 @@ export function StoredValueTenderFields({
                 <Banknote className="h-4 w-4 text-cyan-700" />
                 {tPayment('cashDrawer.title')}
               </Label>
-              <Badge variant="secondary" className="text-xs">
+              <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
                 {selectedCashDrawerChoice ? tPayment('cashDrawer.boundBadge') : tPayment('cashDrawer.pendingBadge')}
-              </Badge>
+              </CmxStatusBadge>
             </div>
 
             {cashDrawersLoading ? (

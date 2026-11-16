@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'AR Invoice Details' };
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxButton } from '@ui/primitives';
 import {
   CmxCard,
@@ -23,6 +23,7 @@ import { ArInvoiceDetailTabs } from '@features/ar/ui/ar-invoice-detail-tabs';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { BILLING_INTERNAL_FIN_INVOICES_ACCESS } from '@features/billing/access/billing-access'
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -65,9 +66,9 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
               {t('detail.title', { invoiceNo: invoice.invoice_no })}
             </h1>
-            <Badge className={AR_STATUS_BADGE_TONES[invoice.status]}>
+            <CmxStatusBadge size="sm" tone="brand" appearance="solid" className={AR_STATUS_BADGE_TONES[invoice.status]}>
               {t(`statuses.${statusKey}`)}
-            </Badge>
+            </CmxStatusBadge>
           </div>
           <p className="text-sm text-slate-600">
             {invoice.customer_name ?? invoice.customer_name2 ?? tAr('detail.noCustomer')}

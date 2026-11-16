@@ -4,6 +4,8 @@
  * Common utility functions used across the application
  */
 
+import { twMerge } from 'tailwind-merge';
+
 /**
  * Combines class names into a single string
  * Handles conditional classes, arrays, and undefined/null values
@@ -16,6 +18,7 @@
  * cn('foo', condition && 'bar') // 'foo bar' or 'foo'
  * cn(['foo', 'bar']) // 'foo bar'
  * cn({ foo: true, bar: false }) // 'foo'
+ * cn('px-2 text-sm', 'px-4') // 'text-sm px-4' (later conflicting class wins)
  */
 export function cn(...inputs: (string | undefined | null | boolean | Record<string, boolean>)[]): string {
   const classes: string[] = [];
@@ -37,11 +40,7 @@ export function cn(...inputs: (string | undefined | null | boolean | Record<stri
     }
   }
 
-  // Remove duplicates and empty strings, then join
-  return classes
-    .join(' ')
-    .split(' ')
-    .filter((cls, index, arr) => cls && arr.indexOf(cls) === index)
-    .join(' ');
+  // twMerge drops duplicates and lets the later of two conflicting utilities win.
+  return twMerge(classes.join(' '));
 }
 

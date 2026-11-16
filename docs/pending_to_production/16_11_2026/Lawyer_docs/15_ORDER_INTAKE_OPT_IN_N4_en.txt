@@ -1,0 +1,132 @@
+CLEANMATEX LEGAL PACK
+Document: Order-intake communication rule
+Version: n4-notice-2026-11-17
+Language: English
+Arabic pair: 15_ORDER_INTAKE_OPT_IN_N4_ar.txt. That file is the legal translation of this text. Section 3 of that file is the Arabic notice and the Arabic control labels.
+Implements: roadmap N4 and Phase 3 step 3.6
+Status: Decided. This is the rule.
+
+1. PURPOSE OF EACH MESSAGE CLASS
+SERVICE messages are messages required to perform the order the End Customer has asked for:
+order received, ready for collection, out for delivery, delivered, receipt, payment confirmation, and a change to the collection or delivery time.
+
+MARKETING messages are any other message about offers, loyalty promotions, win-back, reviews, or new services.
+A message that mixes a status and an offer is MARKETING.
+
+2. LAWFUL BASIS
+Channel and class          Basis                         Control on the intake screen
+WhatsApp SERVICE           Consent of the End Customer   Unticked checkbox. No tick means do not send.
+SMS SERVICE                Contract performance          Notice, plus an unticked "Do not send SMS" box.
+Email SERVICE              Contract performance          Notice, plus an unticked "Do not send email" box.
+Any channel MARKETING      Consent of the End Customer   Separate unticked checkbox per channel that is offered.
+Staff PUSH                 Not an End Customer message   No change. Do not use this screen for staff push.
+
+Contract performance is the contract between the Organization and the End Customer, formed when the laundry accepts the clothes.
+The Provider relies on the Organization to have that relationship.
+The Provider does not send a service SMS or email for an order that has no customer mobile number or email.
+
+Consent must be:
+- freely given (the order completes if the person says no)
+- specific (service and marketing are separate; WhatsApp is separate)
+- informed (the notice below was shown in the language of the screen)
+- recorded (the fields in section 5)
+- as easy to withdraw as to give (customer preferences screen, same day the person asks)
+
+A pre-ticked box is not used.
+Silence is not WhatsApp consent.
+Silence is not marketing consent.
+A WhatsApp service opt-in is not marketing consent.
+
+3. NOTICE AND CONTROLS
+Show this block on order intake when a customer is attached or created.
+Show this English block when the screen language is English.
+Show section 3 of 15_ORDER_INTAKE_OPT_IN_N4_ar.txt when the screen language is Arabic.
+
+Notice:
+We use your mobile number and email to send updates needed to perform this order, such as ready, receipt, and delivery. You can refuse. Promotions are asked separately and are never added unless you say yes.
+
+Controls, in this order:
+[ ] Send this order's updates on WhatsApp to this number.
+[ ] Do not send SMS about this order.
+[ ] Do not send email about this order.
+[ ] Send offers and promotions by WhatsApp.
+[ ] Send offers and promotions by SMS.
+[ ] Send offers and promotions by email.
+
+The marketing boxes are hidden for a channel the Organization has not enabled.
+The WhatsApp service box is hidden when there is no mobile number.
+The SMS refusal is hidden when there is no mobile number.
+The email refusal is hidden when there is no email.
+Hidden means the stored state is NOT_APPLICABLE, and the sender must not send.
+
+Helper line:
+You can change this later with the laundry. Refusing messages does not cancel the order.
+
+4. HOW THIS MAPS TO THE PRODUCT TODAY
+WhatsApp service opt-in sets preferences.notifications.whatsapp to true.
+No tick, or a later withdrawal, sets it to false.
+The sender already blocks WhatsApp unless that value is exactly true. Keep that gate.
+
+SMS opt-out sets preferences.notifications.sms to false.
+Email opt-out sets preferences.notifications.email to false.
+The sender already blocks SMS and email when the value is exactly false. Keep that gate.
+If the refusal box is unchecked and a number or email exists, store the basis as CONTRACT and allow service sends.
+Do not treat a missing preference as marketing consent.
+
+Marketing ticks set marketing consent true for that channel only, with the timestamp.
+Unticked marketing stores DENIED, not a null that later code might treat as allowed.
+Campaign dispatch must keep skipping targets with no marketing consent.
+
+5. RECORD TO STORE
+Store one row per save of the intake block, including a save where every box is off.
+Update the customer preference in the same action.
+If the preference save fails, do not confirm the consent on screen.
+
+Fields:
+tenant_org_id
+customer_id
+order_id                    nullable when the customer is created before the order id exists; fill it when the order is saved
+notice_version              n4-notice-2026-11-17
+locale                      en or ar
+shown_at                    server UTC time
+method                      COUNTER_TABLET or VERBAL_RECORDED_BY_STAFF or CUSTOMER_SELF
+recorded_by_user_id         the staff user; null only for CUSTOMER_SELF
+whatsapp_service            GRANTED or DENIED or NOT_APPLICABLE
+whatsapp_service_basis      CONSENT when not NOT_APPLICABLE
+sms_service                 ALLOWED or OPTED_OUT or NOT_APPLICABLE
+sms_service_basis           CONTRACT when not NOT_APPLICABLE
+email_service               ALLOWED or OPTED_OUT or NOT_APPLICABLE
+email_service_basis         CONTRACT when not NOT_APPLICABLE
+whatsapp_marketing          GRANTED or DENIED or NOT_APPLICABLE
+sms_marketing               GRANTED or DENIED or NOT_APPLICABLE
+email_marketing             GRANTED or DENIED or NOT_APPLICABLE
+marketing_basis             CONSENT when a marketing value is GRANTED or DENIED
+
+VERBAL_RECORDED_BY_STAFF is allowed when the customer speaks and the staff member ticks in front of them.
+The staff member must not tick WhatsApp or marketing because it is "what customers usually want".
+
+6. WITHDRAWAL
+On the customer profile, the same choices can be changed.
+Store a new row. Do not overwrite the old row.
+The latest row wins.
+The next dispatch reads the latest preference.
+A message already handed to Twilio or Resend cannot be pulled back. The preference stops the next one.
+Staff record a spoken withdrawal the same day. The pilot has no automatic STOP keyword list. Until that list exists, same-day recording is a duty of the Organization under the Terms and the DPA.
+
+7. B2B ACCOUNTS
+Operational service messages may be addressed to the named account contact who placed the order.
+Marketing to a company still needs a named person's opt-in.
+Do not copy one contact's marketing opt-in onto every contact of the company.
+
+8. WHAT STAFF MUST NOT DO
+- Must not make WhatsApp or marketing a condition of accepting ordinary clothes.
+- Must not opt the customer in on a previous visit's silence.
+- Must not use the service channel for a promotion.
+- Must not import a bought list of phone numbers and mark them opted in.
+
+9. ACCEPTANCE TEXT FOR THE ORGANIZATION
+This sentence is already covered by the DPA. It is repeated here so engineering and training use one rule:
+
+The Organization is the controller of End Customer contact details and of these consent records.
+The Organization instructs the Provider to send a message only when this rule says send.
+A message sent because a staff user recorded a false opt-in is the Organization's responsibility toward the End Customer, and the Provider may suspend sending for that Organization if the pattern continues.

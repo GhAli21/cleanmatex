@@ -45,13 +45,14 @@ import type { VoucherData } from '@/lib/types/voucher';
 import { CmxTabsPanel } from '@ui/navigation';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { readPieceParam } from '@features/orders/lib/piece-highlight';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 import type { OrderStatus } from '@/lib/types/workflow';
 import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
 
+import { CmxStatusBadge } from '@ui/feedback';
 const TAB_IDS = [
   'financial_summary',
   'master',
@@ -652,9 +653,9 @@ export function OrderDetailClient({
                   {String(order.status).replace(/_/g, ' ').toUpperCase()}
                 </span>
                 {normalizedOrderPaid ? (
-                  <Badge variant="success">{t.paid}</Badge>
+                  <CmxStatusBadge size="sm" tone="success">{t.paid}</CmxStatusBadge>
                 ) : (
-                  <Badge variant="warning">{t.pendingPayment}</Badge>
+                  <CmxStatusBadge size="sm" tone="warning">{t.pendingPayment}</CmxStatusBadge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">

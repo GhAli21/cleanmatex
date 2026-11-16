@@ -6,6 +6,7 @@
 import { createClient, createAdminSupabaseClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/database';
 import type {
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
   Subscription,
   PlanLimits,
   PlanComparison,
@@ -89,7 +90,7 @@ export async function getAvailablePlans(
 ): Promise<PlanComparison[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await catalogReadClient(supabase)
     .from('sys_plan_limits')
     .select('*')
     .eq('is_public', true)
@@ -127,7 +128,7 @@ export async function getPlan(planCode: string): Promise<PlanLimits> {
   // sys_plan_limits is a system table (no RLS), but using admin client for consistency
   const supabase = createAdminSupabaseClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await catalogReadClient(supabase)
     .from('sys_plan_limits')
     .select('*')
     .eq('plan_code', limitsPlanCode)

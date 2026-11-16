@@ -16,7 +16,7 @@ import {
   CmxSelectDropdownItem,
 } from '@ui/forms/cmx-select-dropdown';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
-import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback/cmx-status-badge';
 import { CmxConfirmDialog } from '@ui/feedback/cmx-confirm-dialog';
 import { useMessage } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
@@ -39,12 +39,12 @@ const STATUS_OPTIONS: OutboxStatus[] = ['PENDING', 'PROCESSING', 'FAILED', 'DEAD
 const PAGE_SIZE_OPTIONS = [20, 50];
 const AUTO_REFRESH_MS = 15_000;
 
-const STATUS_VARIANT: Record<string, 'info' | 'processing' | 'success' | 'warning' | 'error' | 'default'> = {
+const STATUS_VARIANT: Record<string, CmxBadgeTone> = {
   PENDING: 'info',
-  PROCESSING: 'processing',
+  PROCESSING: 'info',
   PROCESSED: 'success',
   FAILED: 'warning',
-  DEAD_LETTERED: 'error',
+  DEAD_LETTERED: 'danger',
 };
 
 const RELATED_PAGES = [
@@ -332,12 +332,12 @@ export function OutboxMonitorPage() {
           <div className="flex flex-wrap items-center gap-1">
             <CmxStatusBadge
               label={t(`statusLabels.${row.original.status as OutboxStatus}`)}
-              variant={STATUS_VARIANT[row.original.status] ?? 'default'}
+              tone={STATUS_VARIANT[row.original.status] ?? 'neutral'}
               size="sm"
               pulse={row.original.status === 'PROCESSING'}
             />
             {row.original.isStuck ? (
-              <CmxStatusBadge label={t('stuckBadge')} variant="warning" size="sm" />
+              <CmxStatusBadge label={t('stuckBadge')} tone="warning" size="sm" />
             ) : null}
           </div>
         ),

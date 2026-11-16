@@ -152,7 +152,7 @@ templates:
 ui_components:
   # ── Primitives ──────────────────────────────────────────────────
   button: "import { CmxButton } from '@ui/primitives'"
-  loading_button: "import { LoadingButton } from '@ui/primitives'"
+  loading_button: "import { CmxButton } from '@ui/primitives'  // <CmxButton loading>"
   input: "import { CmxInput } from '@ui/primitives'"
   money_field: "import { CmxMoneyField } from '@ui/primitives'"
   money_field_controller: "import { CmxMoneyFieldController } from '@ui/primitives'"
@@ -164,7 +164,7 @@ ui_components:
   skeleton: "import { CmxSkeleton, CmxSkeletonTable } from '@ui/primitives'"
   spinner: "import { CmxSpinner } from '@ui/primitives'"
   label: "import { Label } from '@ui/primitives'"
-  badge: "import { Badge } from '@ui/primitives/badge'"
+  badge: "import { CmxStatusBadge } from '@ui/feedback'  // tone: neutral|info|success|warning|danger|brand"
   alert: "import { Alert, AlertDescription } from '@ui/primitives'"
   separator: "import { Separator } from '@ui/primitives'"
   tooltip: "import { Tooltip } from '@ui/primitives'"
@@ -173,12 +173,15 @@ ui_components:
   form: "import { CmxForm, CmxFormField, CmxFormSection, CmxFormActions, CmxFormSkeleton, CmxFormStatusBanner } from '@ui/forms'"
   field_shell: "import { CmxFieldShell } from '@ui/forms'"
   select_dropdown: "import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'"
+  file_drop_zone: "import { CmxFileDropZone } from '@ui/forms'  // presentational; for a record's files use FileAttachments"
   checkbox_group: "import { CmxCheckboxGroup } from '@ui/forms'"
   radio_group: "import { CmxRadioGroup } from '@ui/forms'"
   count_picker: "import { CmxCountPicker } from '@ui/forms'"
   hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
   # ── Overlays ─────────────────────────────────────────────────────
   dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"
+  camera_capture_dialog: "import { CmxCameraCaptureDialog } from '@ui/overlays'"
+  file_viewer_dialog: "import { CmxFileViewerDialog } from '@ui/overlays'"
   # ── Feedback ─────────────────────────────────────────────────────
   progress: "import { CmxProgressBar } from '@ui/feedback'"
   progress_indicator: "import { CmxProgressIndicator } from '@ui/feedback'"
@@ -189,6 +192,8 @@ ui_components:
   data_table: "import { CmxDataTable } from '@ui/data-display'"
   inline_edit_table: "import { CmxInlineEditTable } from '@ui/data-display'"
   empty_state: "import { CmxEmptyState } from '@ui/data-display'"
+  file_gallery: "import { CmxFileGallery, type CmxFileItem } from '@ui/data-display'"
+  file_attachments: "import { FileAttachments } from '@features/file-util'  // <FileAttachments category=\"ORDER_FILE\" entityId={orderId} source=\"ORDER_DETAIL\" purposes={['DAMAGE']} readOnly={!canEdit} />"
   kpi_stat_card: "import { CmxKpiStatCard } from '@ui/data-display'"
   collapsible_section: "import { CmxCollapsibleSection } from '@ui/data-display'"
   money_text: "import { CmxMoneyText } from '@ui/data-display'"

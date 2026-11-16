@@ -7,9 +7,9 @@ import { Info } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { getBranchPaymentMethods, softDeleteBranchPaymentMethod } from '@/app/actions/payment-config/branch-payment-methods-actions';
 import { BranchOverrideDialog } from './branch-override-dialog';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
@@ -140,9 +140,9 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
       header: t('branches.status'),
       render: (row: MergedRow) =>
         hasOverride(row) ? (
-          <Badge variant="default">{t('branches.overridden')}</Badge>
+          <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('branches.overridden')}</CmxStatusBadge>
         ) : (
-          <Badge variant="secondary">{t('branches.inherited')}</Badge>
+          <CmxStatusBadge size="sm" tone="neutral">{t('branches.inherited')}</CmxStatusBadge>
         ),
     },
     {
@@ -163,9 +163,9 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
         return (
           <div className="flex flex-wrap gap-1">
             {chips.map((chip) => (
-              <Badge key={chip as string} variant="outline" className="text-xs">
+              <CmxStatusBadge size="sm" key={chip as string} tone="neutral" appearance="outline" className="text-xs">
                 {chip}
-              </Badge>
+              </CmxStatusBadge>
             ))}
           </div>
         );
@@ -183,7 +183,7 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
         ].filter(Boolean);
         return chips.length ? (
           <div className="flex flex-wrap gap-1">
-            {chips.map((c) => <Badge key={c as string} variant="outline" className="text-xs">{c}</Badge>)}
+            {chips.map((c) => <CmxStatusBadge size="sm" key={c as string} tone="neutral" appearance="outline" className="text-xs">{c}</CmxStatusBadge>)}
           </div>
         ) : <span className="text-xs text-muted-foreground">—</span>;
       },
@@ -193,8 +193,8 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
       header: t('branches.requirements'),
       render: (row: MergedRow) => (
         <div className="flex flex-wrap gap-1">
-          {row.cash_drawer_required && <Badge variant="secondary">{t('branches.cashDrawerRequired')}</Badge>}
-          {row.terminal_required && <Badge variant="secondary">{t('branches.terminalRequired')}</Badge>}
+          {row.cash_drawer_required && <CmxStatusBadge size="sm" tone="neutral">{t('branches.cashDrawerRequired')}</CmxStatusBadge>}
+          {row.terminal_required && <CmxStatusBadge size="sm" tone="neutral">{t('branches.terminalRequired')}</CmxStatusBadge>}
           {!row.cash_drawer_required && !row.terminal_required && (
             <span className="text-xs text-muted-foreground">—</span>
           )}
@@ -207,9 +207,9 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
       render: (row: MergedRow) => {
         if (!hasOverride(row)) return <span className="text-xs text-muted-foreground">{t('branches.fromTenant')}</span>;
         return row.is_enabled === true ? (
-          <Badge className="bg-green-600 text-white">{t('branches.enabled')}</Badge>
+          <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-600 text-white">{t('branches.enabled')}</CmxStatusBadge>
         ) : row.is_enabled === false ? (
-          <Badge variant="destructive">{t('branches.disabled')}</Badge>
+          <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('branches.disabled')}</CmxStatusBadge>
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
         );

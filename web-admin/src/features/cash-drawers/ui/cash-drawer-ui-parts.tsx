@@ -12,7 +12,7 @@ import type {
   CashDrawerSessionSummarySnapshot,
 } from '@lib/types/cash-drawer'
 import { CmxStatusBadge } from '@ui/feedback'
-import { Badge } from '@ui/primitives/badge'
+
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card'
 
 /**
@@ -57,18 +57,18 @@ export function CashDrawerStatusBadge({ status }: { status: string }) {
   const label = known !== status ? known : lifecycle.posStatus(status)
 
   if (status === 'OPEN') {
-    return <CmxStatusBadge label={label} variant="success" size="sm" />
+    return <CmxStatusBadge label={label} tone="success" size="sm" />
   }
 
   if (status === 'FORCE_CLOSED') {
-    return <CmxStatusBadge label={label} variant="error" size="sm" />
+    return <CmxStatusBadge label={label} tone="danger" size="sm" />
   }
 
   if (status === 'PAUSED' || status === 'CLOSING') {
-    return <CmxStatusBadge label={label} variant="warning" size="sm" />
+    return <CmxStatusBadge label={label} tone="warning" size="sm" />
   }
 
-  return <CmxStatusBadge label={label} variant="outline" size="sm" />
+  return <CmxStatusBadge label={label} tone="neutral" appearance="outline" size="sm" />
 }
 
 /**
@@ -77,7 +77,7 @@ export function CashDrawerStatusBadge({ status }: { status: string }) {
  */
 export function CashDrawerTypeBadge({ drawerType }: { drawerType: string }) {
   const catalogLabels = useCashDrawerCatalogLabels()
-  return <Badge variant="outline">{catalogLabels.drawerType(drawerType)}</Badge>
+  return <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{catalogLabels.drawerType(drawerType)}</CmxStatusBadge>
 }
 
 /**
@@ -188,8 +188,8 @@ export function CashDrawerMovementBadge({ movement }: { movement: CashDrawerMove
       : 'bg-rose-100 text-rose-900'
 
   return (
-    <Badge variant="outline" className={className}>
+    <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className={className}>
       {movement.movementType}
-    </Badge>
+    </CmxStatusBadge>
   )
 }

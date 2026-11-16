@@ -18,6 +18,7 @@ import { LOYALTY_RECONCILE_TRIGGERS } from '@/lib/constants/order-financial';
 import { logger } from '@/lib/utils/logger';
 import type { Order } from '@/types/order';
 import type { OrderStatus } from '@/lib/types/workflow';
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 
 // ==================================================================
 // Type Definitions
@@ -486,7 +487,7 @@ export class WorkflowServiceEnhanced {
     const roleCodes = [...new Set((assignments ?? []).map((a) => a.role_code))];
     if (roleCodes.length === 0) return [];
 
-    const { data: permRows } = await supabase
+    const { data: permRows } = await catalogReadClient(supabase)
       .from('sys_auth_role_default_permissions')
       .select('permission_code')
       .in('role_code', roleCodes);

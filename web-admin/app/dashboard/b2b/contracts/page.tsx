@@ -4,14 +4,15 @@
  */
 
 'use client';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
-import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
-import { Button } from '@ui/primitives/button';
+
+
 import { createClient } from '@/lib/supabase/client';
 import { B2bCreateContractDialog } from '@/src/features/b2b/ui/b2b-create-contract-dialog';
 import { B2B_CONTRACTS_ACCESS } from '@features/b2b/access/b2b-access';
@@ -111,17 +112,17 @@ export default function B2BContractsPage() {
             {t('contracts') || 'Contracts'}
           </h1>
           {canCreate ? (
-            <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
+            <CmxButton type="button" variant="primary" onClick={() => setCreateOpen(true)}>
               {t('createContract')}
-            </Button>
+            </CmxButton>
           ) : null}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('contracts') || 'Contracts'}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('contracts') || 'Contracts'}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent>
             {!contracts?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <p className="text-gray-500 mb-4 max-w-md">
@@ -129,17 +130,17 @@ export default function B2BContractsPage() {
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {canCreate ? (
-                    <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
+                    <CmxButton type="button" variant="primary" onClick={() => setCreateOpen(true)}>
                       {t('createContract')}
-                    </Button>
+                    </CmxButton>
                   ) : null}
-                  <Button
+                  <CmxButton
                     type="button"
-                    variant={canCreate ? 'outline' : 'default'}
+                    variant={canCreate ? 'outline' : 'primary'}
                     onClick={() => window.location.assign('/dashboard/b2b/customers')}
                   >
                     {t('goToCustomers') || 'Go to B2B Customers'}
-                  </Button>
+                  </CmxButton>
                 </div>
               </div>
             ) : (
@@ -168,7 +169,7 @@ export default function B2BContractsPage() {
                           {c.effective_to ? new Date(c.effective_to).toLocaleDateString() : '-'}
                         </td>
                         <td className="py-2 px-3">
-                          <Button
+                          <CmxButton
                             variant="outline"
                             size="sm"
                             onClick={() =>
@@ -176,7 +177,7 @@ export default function B2BContractsPage() {
                             }
                           >
                             {t('view') || 'View Customer'}
-                          </Button>
+                          </CmxButton>
                         </td>
                       </tr>
                     ))}
@@ -184,8 +185,8 @@ export default function B2BContractsPage() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </CmxCardContent>
+        </CmxCard>
 
         {canCreate ? (
           <B2bCreateContractDialog open={createOpen} onOpenChange={setCreateOpen} />

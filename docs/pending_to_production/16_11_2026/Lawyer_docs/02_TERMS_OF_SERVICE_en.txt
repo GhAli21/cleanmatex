@@ -1,0 +1,144 @@
+CLEANMATEX LEGAL PACK
+Document: Terms of Service
+Version: tos-2026-11-17
+Language: English
+Arabic pair: 02_TERMS_OF_SERVICE_ar.txt. That file is the legal translation of this text. Clause numbers match.
+Party: the Organization (the laundry) and the Provider
+Status: Operative draft. Publication waits for file 00.
+
+1. Who we are
+1.1 These Terms are between [LEGAL_ENTITY_NAME] ("Provider", "we"), registration [COMMERCIAL_REGISTRATION_NUMBER], of [REGISTERED_ADDRESS], and the business that creates an account ("Organization", "you").
+1.2 The product name is CleanMateX. The Service is the laundry and dry-cleaning software we make available at [APP_URL], including the screens that take orders, run the shop floor, record payments at the counter, and send the messages these Terms allow.
+1.3 The person who brings clothes to you is your customer ("End Customer"). The End Customer is not a party to these Terms. Your duties toward the End Customer stay with you.
+
+2. The contract
+2.1 The contract is these Terms, the Data Processing Agreement version dpa-2026-11-17, the Acceptable Use Policy version aup-2026-11-17, and an order form or invoice we issue to you.
+2.2 You accept them when an authorized person ticks the sign-up box and we store the version and the time. You can read the text before you tick.
+2.3 If a later document on the same version code disagrees with these Terms, these Terms prevail on the commercial points, and the Data Processing Agreement prevails on the processing of End Customer personal data.
+2.4 We may refuse a sign-up that we reasonably believe is unlawful, incomplete, or outside the pilot markets.
+
+3. Pilot markets
+3.1 This version is offered to organizations established in the Sultanate of Oman, the United Arab Emirates, or the Kingdom of Bahrain.
+3.2 We do not offer this version to an organization established in Saudi Arabia. A Saudi organization that needs the Service waits for a Saudi version of these Terms and of the tax features.
+
+4. Accounts and authority
+4.1 The person who signs up states that they can bind the Organization.
+4.2 You give each staff user their own login. You remove access when the person leaves or no longer needs it.
+4.3 You keep passwords confidential and tell us without delay at [SUPPORT_EMAIL] if you believe an account is being misused.
+4.4 Actions of your users in the Service are actions of the Organization.
+4.5 You will not share one user login among a group of people.
+
+5. The trial
+5.1 A new Organization starts on a trial of 14 days, counted from the server time we store at sign-up, unless the order form states another length.
+5.2 The trial does not ask for a payment card.
+5.3 When the trial ends, we may limit the account so that existing records remain readable and new operational records cannot be created, or we may suspend the account, until a paid period is in force.
+5.4 Ending a trial does not, by itself, delete your data. Export and deletion follow clause 16.
+
+6. Plans, fees, and invoices
+6.1 Paid use is described on the order form or the invoice: plan, branches, period, currency, and amount.
+6.2 For the pilot, we invoice you and you pay by bank transfer to the account named on the invoice. We do not require a card to start or continue the pilot.
+6.3 Fees are stated exclusive of VAT unless the invoice says they include VAT. If we are registered for VAT, the invoice shows the registration and the tax. Our registration status for this pack is: [VAT_REGISTRATION].
+6.4 You pay by the due date on the invoice. If an invoice remains unpaid 14 days after we send one reminder to the account email, we may suspend new operational use until the invoice is paid.
+6.5 Suspension for non-payment does not erase data and does not forgive the fee.
+6.6 We may change fees for a future period by giving you 30 days' notice. The change does not alter an invoice already issued.
+
+7. Your data and your customers
+7.1 You own your business data. You own the relationship with the End Customer.
+7.2 You are the controller of End Customer personal data that you enter or that is entered for you. We are the processor. The Data Processing Agreement sets that out.
+7.3 You will enter End Customer data only when you have a lawful basis, and you will use the order-intake notice version n4-notice-2026-11-17 for service messages and for marketing.
+7.4 You will not record a consent the End Customer did not give.
+7.5 You will not put a national identity number, a health record, or a card number into a note or a name field. Counter payments stay on your payment terminal. The Service is not a place to store card numbers.
+7.6 When an End Customer asks for a copy or for erasure, you will use the export and the anonymize action. Anonymizing removes contact details and keeps orders, payments, and issued tax documents, as the anonymize specification u4-spec-2026-11-17 describes.
+7.7 You are responsible for the tax treatment of your own sales, for confirming your tax setup before you rely on tax calculations, and for the content of the prices you configure.
+
+8. Messages
+8.1 Service messages and marketing messages are sent only under the order-intake rule.
+8.2 You obtain and keep any sender registration that your country requires for SMS or WhatsApp, unless we have agreed in writing to provide a sender and the invoice says so.
+8.3 We may stop a message stream that breaches the rule, the Acceptable Use Policy, or the sender's rules.
+
+9. Acceptable use
+9.1 You will follow the Acceptable Use Policy version aup-2026-11-17.
+9.2 You will use the Service for a real laundry or dry-cleaning business and for the related accounting the product supports.
+
+10. Our intellectual property
+10.1 We own the Service, the software, the design, and the CleanMateX name and marks.
+10.2 We grant you a non-exclusive right to use the Service during the contract, for your own laundry operations, in the countries of clause 3.
+10.3 You do not acquire a right to copy the software, to resell access, or to present the Service as your own product.
+10.4 If you send us a suggestion, we may use it without a duty to pay for it. You keep the rights in your own data.
+
+11. Confidentiality
+11.1 Each party keeps the other party's non-public business information confidential and uses it only to perform the contract.
+11.2 Personal data is governed by the Data Processing Agreement and the Privacy Policy, and this clause does not reduce those duties.
+11.3 A party may disclose information when the law requires it, after telling the other party if the law allows that notice.
+
+12. Availability and support
+12.1 We provide the Service with reasonable care. We do not promise uninterrupted operation in this pilot, and we do not offer service credits in this version.
+12.2 Planned maintenance and failures of a hosting provider, a telecoms network, or a messaging provider can interrupt the Service.
+12.3 Support during the pilot is by email to [SUPPORT_EMAIL] and, when we publish a number, by WhatsApp to [SUPPORT_WHATSAPP_E164]. We aim to send a first reply within [SUPPORT_RESPONSE_TARGET].
+12.4 You are responsible for your devices, your printer, your network, and your browser.
+
+13. Warranties
+13.1 You state that the information you give at sign-up is true and that you have the authority in clause 4.
+13.2 We state that we will perform the Service with reasonable care and skill.
+13.3 The Service is provided as a configurable tool. You check that the tax setup, the prices, and the receipts match your legal duties before you rely on them.
+13.4 Except for the statements in this clause, and except for rights that the governing law does not allow us to exclude, we exclude implied warranties of fitness for a particular unstated purpose and of uninterrupted or error-free operation.
+
+14. Liability
+14.1 Nothing in these Terms limits liability for fraud, for willful misconduct, or for death or personal injury caused by negligence where the governing law forbids that limit.
+14.2 Nothing in these Terms limits your duty to pay fees that are due.
+14.3 Subject to clauses 14.1 and 14.2, each party's aggregate liability arising out of this contract in a claim or a series of related claims is capped as follows:
+     (a) during a trial, or where no fee has been paid in the 12 months before the claim, the cap is [LIABILITY_CAP_TRIAL];
+     (b) otherwise, the cap is [LIABILITY_CAP_PAID].
+14.4 Subject to clause 14.1, neither party is liable for loss of profit, loss of goodwill, or indirect loss, even if advised of the possibility.
+14.5 The cap in clause 14.3 also applies to liability arising out of personal data under this contract during the pilot. The duty to notify, contain, and assist under the Data Processing Agreement remains.
+14.6 You will indemnify us against a claim by an End Customer or a regulator that arises from your instructions, from a consent you recorded falsely, from the prices and tax choices you configured, or from content you entered, except to the extent the claim is caused by our breach of the Data Processing Agreement.
+
+15. Suspension
+15.1 We may suspend access, in whole or for a feature, if:
+     (a) an invoice is unpaid after the reminder in clause 6.4;
+     (b) we reasonably believe you have breached the Acceptable Use Policy or clause 7;
+     (c) suspension is needed to contain a security incident; or
+     (d) the law or a competent authority requires it.
+15.2 Where the law and the security incident allow, we will tell you the reason and restore access when the cause is gone.
+15.3 You may stop using the Service at any time. Fees for a period already invoiced remain payable.
+
+16. Ending the contract and your data
+16.1 Either party may end the contract by 30 days' written notice to the addresses in clause 20.
+16.2 We may end the contract with shorter notice if you commit a material breach and do not cure it within 14 days after we write to you, or immediately for a breach of clause 7.4 or of the Acceptable Use Policy that we reasonably consider serious.
+16.3 For 30 days after the contract ends, we will, on your request, make your data available for export in a common file format we already support. After that window we will delete or anonymize personal data in our active systems within a further 60 days, except records we must keep under clause 16.4 and except backups that expire on their normal cycle.
+16.4 We and you keep issued invoices, payment records, and tax records for the period in the version register, which for this pack is 10 years from the end of the financial year of the record, unless a later published version states a period your tax adviser has set.
+16.5 Ending the contract does not remove a clause that by its nature survives, including clauses 10, 11, 14, 16.3, 16.4, 18, and 21.
+
+17. Changes to these Terms
+17.1 We may change these Terms for a future period. We will give you at least 15 days' notice by email and in the application when the change is material.
+17.2 A material change takes effect when you tick acceptance of the new version, or at the end of the notice if you continue to create new orders after we have told you that continued use is acceptance. The sign-up record stores the new version and the time.
+17.3 If you do not agree, you may end the contract under clause 16 before the new version applies. We will not charge a fee for that ending.
+
+18. Governing law and disputes
+18.1 This contract is governed by the laws of [GOVERNING_LAW_COUNTRY].
+18.2 The courts of [COURTS_CITY] have jurisdiction. A party may still ask a competent court for interim relief.
+18.3 Mandatory duties under the personal-data law of Oman, the UAE, or Bahrain, where that law applies to the processing, are not reduced by the choice of law in clause 18.1.
+18.4 Before starting proceedings, the parties will try in good faith to resolve the dispute by writing to each other and allowing 20 days for a reply.
+
+19. Force majeure
+19.1 A party is not in breach for a delay caused by an event outside its reasonable control, including failure of a public utility, a cloud region, or a telecoms network, provided it gives notice and resumes as soon as it reasonably can.
+19.2 This clause does not excuse a duty to pay a sum already due, and it does not excuse a duty to notify a personal-data breach within the time the applicable law requires, to the extent the event does not itself prevent the notice.
+
+20. Notices
+20.1 We send notices to the email address on the Organization account. You send notices to [SUPPORT_EMAIL] and, for a formal notice, also to [NOTICE_ADDRESS].
+20.2 A notice sent by email is received on the day it is sent if sent on a business day before 17:00 in [COUNTRY_OF_INCORPORATION], and otherwise on the next business day. A notice of a personal-data breach may be given by email and by telephone.
+
+21. Language
+21.1 These Terms are issued in English and in Arabic under the same version code.
+21.2 The two texts are intended to carry the same meaning.
+21.3 If the Organization is established in Oman and the two texts conflict, the Arabic text prevails.
+21.4 If a court in the UAE or in Bahrain requires Arabic, the Arabic text is the text used in that court.
+21.5 In every other conflict, the English text prevails.
+
+22. General
+22.1 You may not assign the contract without our written consent. We may assign it to a successor of the Service, and we will tell you.
+22.2 If a clause is held invalid, the rest of the contract stays in force.
+22.3 A delay in enforcing a right is not a waiver.
+22.4 This contract is the whole agreement on its subject. It replaces earlier oral statements about the pilot Service.
+22.5 A person who is not a party has no right to enforce this contract, except that the confidentiality and data-protection duties may be enforced by a party for the benefit of the affected person where the law so requires.
+22.6 The version code of these Terms is tos-2026-11-17.

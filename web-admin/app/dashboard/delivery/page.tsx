@@ -87,7 +87,7 @@ function DeliveryOrderStatusBadge({ status }: { status: string }) {
   const label = tStatuses.has(key)
     ? tStatuses(key)
     : normalized.replace(/_/g, ' ');
-  return <CmxStatusBadge label={label} size="sm" variant="outline" />;
+  return <CmxStatusBadge label={label} size="sm" tone="neutral" appearance="outline" />;
 }
 
 interface DeliveryRoute {

@@ -7,6 +7,7 @@ import {
   CmxSelectDropdownTrigger,
   CmxSelectDropdownValue,
 } from '@ui/forms'
+import { CmxDialog, CmxDialogContent } from '@ui/overlays'
 
 function SelectDropdownStory({
   rtl = false,
@@ -68,6 +69,34 @@ export const Default: Story = {}
 
 export const Loading: Story = {
   render: () => <SelectDropdownStory isLoading />,
+}
+
+export const Empty: Story = {
+  render: () => (
+    <div className="w-[320px]">
+      <CmxSelectDropdown value="" onValueChange={() => {}}>
+        <CmxSelectDropdownTrigger>
+          <CmxSelectDropdownValue placeholder="Select a driver" />
+        </CmxSelectDropdownTrigger>
+        <CmxSelectDropdownContent>{null}</CmxSelectDropdownContent>
+      </CmxSelectDropdown>
+    </div>
+  ),
+}
+
+/** Open it near the bottom of the window: the list flips upward and stays above the dialog. */
+export const InDialogNearBottom: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <CmxDialog open onOpenChange={() => {}}>
+      <CmxDialogContent>
+        <div className="flex h-[70vh] flex-col justify-end gap-2 p-4">
+          <p className="text-sm text-muted-foreground">Service</p>
+          <SelectDropdownStory />
+        </div>
+      </CmxDialogContent>
+    </CmxDialog>
+  ),
 }
 
 export const RTL: Story = {

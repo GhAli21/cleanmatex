@@ -107,7 +107,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
           >
             {label}
             {props.required && (
-              <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+              <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
             )}
           </label>
         )}

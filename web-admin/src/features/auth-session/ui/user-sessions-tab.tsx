@@ -13,8 +13,8 @@ import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Laptop } from 'lucide-react'
 import { Alert, AlertDescription, CmxButton, CmxSkeleton } from '@ui/primitives'
-import { Badge } from '@ui/primitives/badge'
-import { CmxConfirmDialog, cmxMessage } from '@ui/feedback'
+
+import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { SESSION_STATES } from '@/lib/constants/auth-session'
 import type { SessionItem } from '../api/sessions-api'
@@ -106,8 +106,8 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
                   <span className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
                     {session.deviceLabel ?? tSessions('unknownDevice')}
                   </span>
-                  {session.isCurrent ? <Badge variant="success">{tSessions('thisDevice')}</Badge> : null}
-                  {session.isRememberMe ? <Badge variant="secondary">{tSessions('rememberMe')}</Badge> : null}
+                  {session.isCurrent ? <CmxStatusBadge size="sm" tone="success">{tSessions('thisDevice')}</CmxStatusBadge> : null}
+                  {session.isRememberMe ? <CmxStatusBadge size="sm" tone="neutral">{tSessions('rememberMe')}</CmxStatusBadge> : null}
                 </div>
                 <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
                   <span>{tSessions('ip', { ip: session.lastIp ?? session.loginIp ?? '—' })}</span>

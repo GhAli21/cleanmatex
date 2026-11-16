@@ -6,10 +6,10 @@ import { Plus, Truck } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxSwitch } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
 import { CmxSummaryMessage } from '@ui/feedback';
 import type { OrgDriver } from '@/lib/types/drivers';
@@ -196,7 +196,7 @@ export function DriversListScreen() {
       key: 'status',
       header: t('list.status'),
       render: (driver: OrgDriver) =>
-        driver.hasActiveRoute ? <Badge>{t('list.onRoute')}</Badge> : <span className="text-muted-foreground">{t('list.available')}</span>,
+        driver.hasActiveRoute ? <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('list.onRoute')}</CmxStatusBadge> : <span className="text-muted-foreground">{t('list.available')}</span>,
     },
     {
       key: 'is_active',

@@ -1,9 +1,10 @@
 'use client';
+import { CmxButton } from '@ui/primitives';
 
 import { useTranslations } from 'next-intl';
 import { ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LoadingButton } from '@ui/primitives';
+
 
 /**
  * Props for {@link PaymentValidateButton}.
@@ -44,7 +45,7 @@ export function PaymentValidateButton({
   const t = useTranslations('newOrder.payment.validatePayment');
 
   return (
-    <LoadingButton
+    <CmxButton
       type="button"
       variant="primary"
       loading={loading}
@@ -59,6 +60,6 @@ export function PaymentValidateButton({
     >
       <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
       {t('button')}
-    </LoadingButton>
+    </CmxButton>
   );
 }

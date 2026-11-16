@@ -2,7 +2,7 @@
 name: storybook-generator
 description: Use only when explicitly requested for scoped storybook-generator work. Avoid broad scans and nested agents.
 version: 1.1.0
-model: sonnet
+model: haiku
 ---
 
 # Storybook Generator Agent

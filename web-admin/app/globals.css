@@ -48,6 +48,19 @@
   --color-success: rgb(var(--cmx-success-rgb));
   --color-warning: rgb(var(--cmx-warning-rgb));
   --color-info: rgb(var(--cmx-info-rgb));
+  /* Status tones: bg + border + readable text, fixed for every theme */
+  --color-success-bg: rgb(var(--cmx-success-bg-rgb));
+  --color-success-border: rgb(var(--cmx-success-border-rgb));
+  --color-success-text: rgb(var(--cmx-success-text-rgb));
+  --color-warning-bg: rgb(var(--cmx-warning-bg-rgb));
+  --color-warning-border: rgb(var(--cmx-warning-border-rgb));
+  --color-warning-text: rgb(var(--cmx-warning-text-rgb));
+  --color-info-bg: rgb(var(--cmx-info-bg-rgb));
+  --color-info-border: rgb(var(--cmx-info-border-rgb));
+  --color-info-text: rgb(var(--cmx-info-text-rgb));
+  --color-danger-bg: rgb(var(--cmx-danger-bg-rgb));
+  --color-danger-border: rgb(var(--cmx-danger-border-rgb));
+  --color-danger-text: rgb(var(--cmx-danger-text-rgb));
   --color-brand-secondary: rgb(var(--cmx-brand-secondary-rgb));
   --color-brand-secondary-foreground: rgb(var(--cmx-brand-secondary-fg-rgb));
 

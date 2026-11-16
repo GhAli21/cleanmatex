@@ -156,7 +156,7 @@ export function CardBrandsTab({ brands, isLoading, onRefresh }: CardBrandsTabPro
       render: (brand: OrgCardBrandConfig) => (
         <CmxStatusBadge
           label={getActive(brand) ? t('cardBrands.active') : t('cardBrands.inactive')}
-          variant={getActive(brand) ? 'success' : 'outline'}
+          tone={getActive(brand) ? 'success' : 'neutral'}
           size="sm"
         />
       ),

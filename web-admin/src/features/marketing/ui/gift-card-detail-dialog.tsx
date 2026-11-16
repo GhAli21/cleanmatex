@@ -28,7 +28,7 @@ import {
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import { Alert, AlertDescription } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import {
@@ -41,22 +41,23 @@ import { useGiftCardTransactions } from '../hooks/use-gift-cards';
 import type { GiftCard, GiftCardTransaction } from '@/lib/types/payment';
 import { GIFT_CARD_STATUS, type GiftCardStatus } from '@/lib/constants/gift-card';
 
+import { CmxStatusBadge } from '@ui/feedback';
 // ---------------------------------------------------------------------------
 // Status badge styling
 // ---------------------------------------------------------------------------
 
 const STATUS_STYLE: Record<
   GiftCardStatus,
-  { variant: 'default' | 'secondary' | 'destructive' | 'outline'; className: string }
+  { variant: 'brand' | 'neutral' | 'danger' | 'neutral'; className: string }
 > = {
-  [GIFT_CARD_STATUS.ACTIVE]:             { variant: 'default',     className: 'bg-green-100 text-green-800 border-green-200' },
-  [GIFT_CARD_STATUS.PARTIALLY_REDEEMED]: { variant: 'outline',     className: 'bg-amber-100 text-amber-800 border-amber-200' },
-  [GIFT_CARD_STATUS.GENERATED]:          { variant: 'outline',     className: 'bg-blue-100 text-blue-800 border-blue-200' },
-  [GIFT_CARD_STATUS.DRAFT]:              { variant: 'secondary',   className: 'bg-slate-100 text-slate-700 border-slate-200' },
-  [GIFT_CARD_STATUS.FULLY_REDEEMED]:     { variant: 'secondary',   className: 'bg-gray-100 text-gray-600 border-gray-200' },
-  [GIFT_CARD_STATUS.EXPIRED]:            { variant: 'destructive', className: 'bg-red-100 text-red-800 border-red-200' },
-  [GIFT_CARD_STATUS.VOIDED]:             { variant: 'destructive', className: 'bg-red-100 text-red-800 border-red-200' },
-  [GIFT_CARD_STATUS.SUSPENDED]:          { variant: 'outline',     className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  [GIFT_CARD_STATUS.ACTIVE]:             { variant: 'brand',     className: 'bg-green-100 text-green-800 border-green-200' },
+  [GIFT_CARD_STATUS.PARTIALLY_REDEEMED]: { variant: 'neutral',     className: 'bg-amber-100 text-amber-800 border-amber-200' },
+  [GIFT_CARD_STATUS.GENERATED]:          { variant: 'neutral',     className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  [GIFT_CARD_STATUS.DRAFT]:              { variant: 'neutral',   className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  [GIFT_CARD_STATUS.FULLY_REDEEMED]:     { variant: 'neutral',   className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  [GIFT_CARD_STATUS.EXPIRED]:            { variant: 'danger', className: 'bg-red-100 text-red-800 border-red-200' },
+  [GIFT_CARD_STATUS.VOIDED]:             { variant: 'danger', className: 'bg-red-100 text-red-800 border-red-200' },
+  [GIFT_CARD_STATUS.SUSPENDED]:          { variant: 'neutral',     className: 'bg-orange-100 text-orange-800 border-orange-200' },
 };
 
 // ---------------------------------------------------------------------------
@@ -189,7 +190,7 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
     });
   };
 
-  const statusStyle = STATUS_STYLE[card.status] ?? { variant: 'outline' as const, className: '' };
+  const statusStyle = STATUS_STYLE[card.status] ?? { variant: 'neutral' as const, className: '' };
 
   return (
     <>
@@ -216,9 +217,9 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
             </div>
             <div>
               <span className="text-muted-foreground">{tCommon('status')}: </span>
-              <Badge variant={statusStyle.variant} className={statusStyle.className}>
+              <CmxStatusBadge size="sm" tone={statusStyle.variant} className={statusStyle.className}>
                 {t(`statuses.${card.status}`)}
-              </Badge>
+              </CmxStatusBadge>
             </div>
             <div>
               <span className="text-muted-foreground">{t('fields.issueType')}: </span>

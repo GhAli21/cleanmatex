@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
-import { showErrorToast, showSuccessToast } from '@ui/components/cmx-toast';
+import { cmxMessage } from '@ui/feedback';
 import { OVERPAYMENT_RESOLUTIONS } from '@/lib/constants/settlement-catalog';
 import type {
   OpenBalanceTarget,
@@ -123,7 +123,7 @@ export function useOverpaymentAllocation({
       setAllocationPreview(json.data as ReceiptAllocationPreviewResult);
     } catch (error) {
       setAllocationPreview(null);
-      showErrorToast(error instanceof Error ? error.message : 'Failed to preview allocation');
+      cmxMessage.error(error instanceof Error ? error.message : 'Failed to preview allocation');
       setAutoDrawerOpen(false);
     } finally {
       setPreviewLoading(false);
@@ -157,7 +157,7 @@ export function useOverpaymentAllocation({
           throw new Error(json.error ?? 'Failed to confirm allocation');
         }
         setAllocationPreviewId(previewId);
-        showSuccessToast(confirmedToastMessage);
+        cmxMessage.success(confirmedToastMessage);
       } finally {
         setConfirmLoading(false);
       }
@@ -192,7 +192,7 @@ export function useOverpaymentAllocation({
       setOpenBalanceTargets((json.data?.targets ?? []) as OpenBalanceTarget[]);
     } catch (error) {
       setOpenBalanceTargets([]);
-      showErrorToast(error instanceof Error ? error.message : 'Failed to load open balances');
+      cmxMessage.error(error instanceof Error ? error.message : 'Failed to load open balances');
       setManualDrawerOpen(false);
     } finally {
       setOpenBalancesLoading(false);
@@ -234,7 +234,7 @@ export function useOverpaymentAllocation({
         setExtraReceiptMode(OVERPAYMENT_RESOLUTIONS.ALLOCATE_TO_CUSTOMER_BALANCES);
         setManualDrawerOpen(false);
       } catch (error) {
-        showErrorToast(error instanceof Error ? error.message : 'Failed to save manual allocation');
+        cmxMessage.error(error instanceof Error ? error.message : 'Failed to save manual allocation');
       } finally {
         setConfirmLoading(false);
       }

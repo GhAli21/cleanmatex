@@ -70,7 +70,7 @@ export function HomeCollectionListScreen() {
                   {status === 'awaiting_collection' || status === 'out_for_collection' ? (
                     <CmxStatusBadge
                       label={t(`statuses.${status}` as 'statuses.awaiting_collection')}
-                      variant={status === 'out_for_collection' ? 'info' : 'warning'}
+                      tone={status === 'out_for_collection' ? 'info' : 'warning'}
                     />
                   ) : null}
                   <Link

@@ -17,6 +17,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { readCurrencyMinorUnits } from '@/app/actions/tenant/read-currency-minor-units';
 import {
   CURRENCY_RESOLUTION_ERRORS,
   CurrencyResolutionError,
@@ -127,21 +128,20 @@ export class TenantCurrencyProfileService {
   ): Promise<Map<string, number>> {
     const map = new Map<string, number>();
     if (codes.length === 0) return map;
-    const { data, error } = await this.supabase
-      .from('sys_currency_cd')
-      .select('code, minor_unit')
-      .in('code', codes);
-    if (error) {
+    // sys_currency_cd is closed to the public key. The server action uses the
+    // service role so a browser hook never receives that key.
+    const catalog = await readCurrencyMinorUnits(codes);
+    if (!catalog.ok) {
       console.error(
         '[TenantCurrencyProfileService] sys_currency_cd read failed:',
-        error,
+        catalog.message,
       );
       throw new CurrencyResolutionError(
         CURRENCY_RESOLUTION_ERRORS.TENANT_CURRENCY_UNAVAILABLE,
         `tenant ${tenantId}: currency catalog`,
       );
     }
-    for (const row of (data ?? []) as { code: string; minor_unit: number }[]) {
+    for (const row of catalog.rows) {
       map.set(row.code, row.minor_unit);
     }
     if (codes.some((code) => !map.has(code))) {

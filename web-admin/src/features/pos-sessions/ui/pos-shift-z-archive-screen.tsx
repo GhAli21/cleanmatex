@@ -106,7 +106,7 @@ export function PosShiftZArchiveScreen() {
       render: (row) => (
         <div className="space-y-1">
           <div>{row.businessDate}</div>
-          {row.autoClosed ? <CmxStatusBadge label={tArchive('autoClosed')} variant="warning" size="sm" /> : null}
+          {row.autoClosed ? <CmxStatusBadge label={tArchive('autoClosed')} tone="warning" size="sm" /> : null}
         </div>
       ),
     },
@@ -146,7 +146,7 @@ export function PosShiftZArchiveScreen() {
               </div>
             ))}
             {row.variancePending ? (
-              <CmxStatusBadge label={tArchive('variancePending')} variant="warning" size="sm" />
+              <CmxStatusBadge label={tArchive('variancePending')} tone="warning" size="sm" />
             ) : null}
           </div>
         );
@@ -168,7 +168,7 @@ export function PosShiftZArchiveScreen() {
       render: (row) => (
         <CmxStatusBadge
           label={row.hashVerified ? tArchive('verified') : tArchive('altered')}
-          variant={row.hashVerified ? 'success' : 'error'}
+          tone={row.hashVerified ? 'success' : 'danger'}
           size="sm"
         />
       ),

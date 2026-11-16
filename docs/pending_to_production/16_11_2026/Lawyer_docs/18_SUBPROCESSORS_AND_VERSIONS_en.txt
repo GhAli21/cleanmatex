@@ -1,0 +1,87 @@
+CLEANMATEX LEGAL PACK
+Document: Version register, subprocessors, and facts to fill
+Version: legal-pack-2026-11-17
+Language: English
+Arabic pair: 18_SUBPROCESSORS_AND_VERSIONS_ar.txt. That file is the legal translation of this text. The bracket tokens and the version codes are the same in both files.
+Status: Operative draft. Replace every bracket before publication. Do not invent a value. Put the same finished value in both language files.
+
+1. DOCUMENT VERSION CODES
+These strings are the values sign-up and the in-app legal pages must store.
+They are the versions of this pack. When counsel changes a sentence, raise the date and the code in both language files. Do not reuse a code.
+
+legal-pack        legal-pack-2026-11-17
+Terms             tos-2026-11-17            02_TERMS_OF_SERVICE_en.txt and 02_TERMS_OF_SERVICE_ar.txt
+Privacy Policy    privacy-2026-11-17        04_PRIVACY_POLICY_en.txt and 04_PRIVACY_POLICY_ar.txt
+DPA               dpa-2026-11-17            06_DATA_PROCESSING_AGREEMENT_en.txt and 06_DATA_PROCESSING_AGREEMENT_ar.txt
+Data-processing   dpp-2026-11-17            08_DATA_PROCESSING_PAGE_en.txt and 08_DATA_PROCESSING_PAGE_ar.txt
+Cookie notice     cookie-2026-11-17         10_COOKIE_NOTICE_en.txt and 10_COOKIE_NOTICE_ar.txt
+Acceptable use    aup-2026-11-17            12_ACCEPTABLE_USE_POLICY_en.txt and 12_ACCEPTABLE_USE_POLICY_ar.txt
+Sign-up wording   signup-2026-11-17         14_SIGNUP_ACCEPTANCE_B4_en.txt and 14_SIGNUP_ACCEPTANCE_B4_ar.txt
+Order-intake rule n4-notice-2026-11-17      15_ORDER_INTAKE_OPT_IN_N4_en.txt and 15_ORDER_INTAKE_OPT_IN_N4_ar.txt, and file 17
+Anonymize rule    u4-spec-2026-11-17        16_ANONYMIZE_CUSTOMER_U4_en.txt and 16_ANONYMIZE_CUSTOMER_U4_ar.txt
+Pilot order form  pilot-order-2026-11-17    19_PILOT_ORDER_FORM_en.txt and 19_PILOT_ORDER_FORM_ar.txt
+
+2. FACTS THE OWNER FILLS BEFORE ANY PAGE GOES LIVE
+Copy the finished values into the published pages, in both languages, in place of the brackets.
+Keep a one-line note of the source of each fact.
+
+[LEGAL_ENTITY_NAME]               The company that contracts with the laundry. Not the product name alone, unless a registered company actually has that name.
+[COMMERCIAL_REGISTRATION_NUMBER]  As printed on the commercial register.
+[COUNTRY_OF_INCORPORATION]        The country of that registration.
+[REGISTERED_ADDRESS]              Full registered office.
+[GOVERNING_LAW_COUNTRY]           Recommended: the country of incorporation. Do not choose English law, DIFC, or ADGM unless the entity is established there or counsel records a reason.
+[COURTS_CITY]                     Recommended: the courts of the capital or emirate of incorporation. Muscat if the entity is Omani. The emirate courts if the entity is UAE mainland.
+[PRIVACY_EMAIL]                   A mailbox the company actually reads. Suggested local-part: privacy@
+[SUPPORT_EMAIL]                   A mailbox the company actually reads.
+[SUPPORT_WHATSAPP_E164]           Pilot support number in E.164, or the words "not offered" if there is no number yet.
+[WEBSITE_URL]                     The marketing site origin, https, no path.
+[APP_URL]                         The tenant application origin, https, no path.
+[SUPABASE_REGION]                 The real production region of the database that stores laundry and end-customer data. File 01, item B5. Do not guess. Read it from the Supabase project settings and paste the provider's region name.
+[BACKUP_RETENTION]                The real backup and point-in-time recovery window on that project, in days.
+[VAT_REGISTRATION]                Either "not registered" or the country and registration number. Do not print a VAT number the company does not hold.
+[LIABILITY_CAP_TRIAL]             Proposed and used in the Terms until the Owner replaces it: 100 Omani rials.
+[LIABILITY_CAP_PAID]              Proposed and used in the Terms until the Owner replaces it: the fees paid for the Service in the 12 months before the claim.
+[SUPPORT_RESPONSE_TARGET]         Proposed pilot text: two business days for a first reply by email.
+[NOTICE_ADDRESS]                  Where formal notices to the Provider are delivered. May match the registered address.
+
+Recommended governing law, to be confirmed against the register:
+- Omani company: laws of the Sultanate of Oman; courts of Muscat.
+- UAE mainland company: federal law of the United Arab Emirates and the laws of the emirate of incorporation; courts of that emirate.
+- Bahraini company: laws of the Kingdom of Bahrain; courts of Manama.
+Use one. The data-protection duties in the Privacy Policy and the DPA still follow the law of the Organization's country and, where that law says so, the law of the person whose data is processed.
+
+3. PILOT SUBPROCESSOR LIST
+Publish this list on the data-processing page and as DPA Annex A, in both languages.
+Before publication, confirm each vendor is actually in the production path.
+Remove any row that production does not use.
+Add a row before a new vendor receives personal data.
+Give existing organizations 15 days' notice before a new subprocessor starts, using the email on the account and a notice in the application.
+
+Vendor              Role                                      Data                                      Pilot status
+Supabase            Database, authentication, file storage    All Service data, including end-customer data    Used. Region is [SUPABASE_REGION].
+Application host    Hosting of the web application and marketing site    Account data, usage data, content in transit    Confirm the host's legal name and region. If the host is Vercel Inc., write that name here only after the Owner confirms the project is deployed there.
+Twilio              WhatsApp and SMS transport                Phone number, message content, delivery metadata    Only when the Organization enables messaging.
+Meta Platforms      WhatsApp Business channel                 Phone number, message content, delivery metadata    Only when WhatsApp is enabled.
+Resend              Transactional email                       Email address, message content, delivery metadata    Only when email sending is enabled.
+Sentry              Error diagnostics                         Technical event data after PII scrubbing            Only after scrubbing is on in production. Until then, do not enable Sentry on a live tenant, and do not list it as active.
+Payment gateway     Subscription card charging                Not in this pack                              Do not list a gateway. Pilot fees are bank transfer.
+Analytics vendor    Marketing analytics                       Device and usage data                         Not in this pack. Do not run non-essential analytics until cookie consent exists.
+
+4. RETENTION FIGURES USED IN THE PUBLISHED TEXTS
+Accounting and tax records of an Organization, and the issued tax documents of that Organization's sales: 10 years from the end of the financial year of the record.
+This 10-year period is the pilot safe harbor across Oman, the UAE, and Bahrain.
+A shorter period replaces it only when the tax adviser writes the shorter period into Tax_Config/KIT_FACTS.md and this register is updated to a new pack version in both languages.
+Backups: overwritten or expired on the cycle in [BACKUP_RETENTION]. Selective deletion inside a live backup is not promised.
+Sign-up acceptance records: kept for the life of the account and for 5 years after the account ends.
+Order-intake consent records: kept for the life of the customer record and for 5 years after anonymization or account end.
+Server security logs that contain an IP address: 12 months, then delete or aggregate.
+Marketing-site lead forms: kept until the person asks for deletion, or for 24 months after the last contact, whichever comes first.
+
+5. CHANGE CONTROL
+A change to a versioned document requires:
+- a new version code
+- the new text in both languages
+- a note in this register, in both language files, of what changed and why
+- a fresh acceptance where the change is material to the Organization's duties or to the processing
+A change that only corrects a bracket with the matching real fact, before any customer has accepted the version, may keep the same code if no customer has seen it. The same fact is written into both language files.
+After the first real acceptance, any change uses a new code.

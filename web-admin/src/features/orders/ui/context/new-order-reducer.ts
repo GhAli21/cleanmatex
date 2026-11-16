@@ -88,6 +88,7 @@ export const initialState: NewOrderState = {
   loading: false,
   createdOrderId: null,
   createdOrderStatus: null,
+  pendingPhotos: [],
 
   // Modal States
   modals: {
@@ -542,6 +543,12 @@ export function newOrderReducer(
         loading: action.payload,
       };
 
+    case 'ADD_PENDING_PHOTO':
+      return { ...state, pendingPhotos: [...state.pendingPhotos, action.payload] };
+
+    case 'REMOVE_PENDING_PHOTO':
+      return { ...state, pendingPhotos: state.pendingPhotos.filter((_, i) => i !== action.payload) };
+
     case 'SET_CREATED_ORDER':
       return {
         ...state,
@@ -720,6 +727,7 @@ export function newOrderReducer(
     case 'EXIT_EDIT_MODE':
       return {
         ...state,
+        pendingPhotos: [],
         isEditMode: false,
         editingOrderId: null,
         editingOrderNo: null,

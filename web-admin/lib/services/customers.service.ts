@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import {
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
   getCreditLimitPlanCap,
   capCreditLimitToPlan,
 } from '@/lib/services/credit-limit-plan-cap.service';
@@ -219,7 +220,7 @@ export async function createCustomer(
     }
     normalizedPhone = phoneResult.normalized;
     const duplicateCheck = shouldUseSysCustomers()
-      ? await supabase.from('sys_customers_mst').select('id').eq('phone', normalizedPhone).maybeSingle()
+      ? await catalogReadClient(supabase).from('sys_customers_mst').select('id').eq('phone', normalizedPhone).maybeSingle()
       : await supabase.from('org_customers_mst').select('id').eq('tenant_org_id', tenantId).eq('phone', normalizedPhone).maybeSingle();
     if (duplicateCheck.data) {
       if (shouldUseSysCustomers()) {
@@ -347,7 +348,7 @@ export async function createCustomer(
     request.type === 'b2b' && 'companyName2' in request
       ? (request.name2 ?? request.companyName2 ?? null)
       : request.name2 ?? null;
-  const { data: customer, error: customerError } = await supabase
+  const { data: customer, error: customerError } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .insert({
       first_name: sysFirstName,
@@ -394,7 +395,7 @@ export async function createCustomer(
     });
   if (linkError) {
     logger.error('Error linking customer to tenant', linkError as Error, { feature: 'customers', action: 'create' });
-    await supabase.from('sys_customers_mst').delete().eq('id', customer.id);
+    await catalogReadClient(supabase).from('sys_customers_mst').delete().eq('id', customer.id);
     throw new Error('Failed to link customer to tenant: ' + linkError.message);
   }
   if (request.type === 'full' && 'addresses' in request && request.addresses) {
@@ -464,7 +465,7 @@ export async function findCustomerById(
   let sysCustomerId = customerId;
   if (orgCustomer?.customer_id) sysCustomerId = orgCustomer.customer_id;
 
-  const { data: customer, error } = await supabase
+  const { data: customer, error } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .select(
       `*,
@@ -529,7 +530,7 @@ export async function findCustomerByPhone(
     }
     return orgRow ? mapFromOrgRow(orgRow as Record<string, unknown>, tenantId) : null;
   }
-  const { data: customer, error } = await supabase
+  const { data: customer, error } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .select('*, org_customers_mst!inner(tenant_org_id)')
     .eq('phone', phoneResult.normalized)
@@ -587,7 +588,7 @@ export async function getAllTenantCustomers(
     }
     return (data || []).map((row) => mapFromOrgRow(row as Record<string, unknown>, tenantId));
   }
-  const { data, error } = await supabase
+  const { data, error } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .select('*, org_customers_mst!inner(tenant_org_id)')
     .eq('org_customers_mst.tenant_org_id', tenantId);
@@ -816,7 +817,7 @@ export async function searchCustomersProgressive(
 
   // Step 2: If searchAllOptions is true, search sys_customers_mst (global)
   if (searchAllOptions && searchTerm.length > 0) {
-    let sysQuery = supabase
+    let sysQuery = catalogReadClient(supabase)
       .from('sys_customers_mst')
       .select('id, first_name, last_name, display_name, name, name2, phone, email, type, created_at')
       .limit(limit);
@@ -971,7 +972,7 @@ export async function linkCustomerToTenant(
 
   if (sourceType === 'sys') {
     // Verify customer exists in sys_customers_mst
-    const { data: sysCustomer, error: sysError } = await supabase
+    const { data: sysCustomer, error: sysError } = await catalogReadClient(supabase)
       .from('sys_customers_mst')
       .select('*')
       .eq('id', sourceCustomerId)
@@ -1068,7 +1069,7 @@ export async function linkCustomerToTenant(
     
     if (!sysCustomerId) {
       // Create sys_customers_mst entry from org data
-      const { data: newSysCustomer, error: sysCreateError } = await supabase
+      const { data: newSysCustomer, error: sysCreateError } = await catalogReadClient(supabase)
         .from('sys_customers_mst')
         .insert({
           first_name: sourceOrg.first_name,
@@ -1208,7 +1209,7 @@ export async function searchCustomersAll(
     return { customers, total: count ?? 0 };
   }
 
-  let query = supabase
+  let query = catalogReadClient(supabase)
     .from('sys_customers_mst')
     .select(
       `*,
@@ -1465,7 +1466,7 @@ export async function updateCustomer(
     throw new Error('Failed to update customer: ' + orgError.message);
   }
 
-  const { data: customer, error } = await supabase
+  const { data: customer, error } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .update({
       first_name: updates.firstName,
@@ -1523,7 +1524,7 @@ export async function upgradeCustomerProfile(
     return mapFromOrgRow(orgRow as Record<string, unknown>, tenantId);
   }
 
-  const { data: customer } = await supabase
+  const { data: customer } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .select('*, org_customers_mst!inner(tenant_org_id)')
     .eq('id', customerId)
@@ -1536,7 +1537,7 @@ export async function upgradeCustomerProfile(
     throw new Error('Customer is already a full profile');
   }
 
-  const { data: upgraded, error } = await supabase
+  const { data: upgraded, error } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .update({
       profile_status: 'full',
@@ -1761,7 +1762,7 @@ export async function getCustomerStatistics(): Promise<CustomerStatistics> {
     return { total, byType, newThisMonth, active, inactive };
   }
 
-  const { data: customers } = await supabase
+  const { data: customers } = await catalogReadClient(supabase)
     .from('sys_customers_mst')
     .select('id, type, created_at, org_customers_mst!inner(tenant_org_id, is_active)')
     .eq('org_customers_mst.tenant_org_id', tenantId);

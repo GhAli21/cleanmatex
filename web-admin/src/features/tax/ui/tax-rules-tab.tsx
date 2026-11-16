@@ -44,7 +44,7 @@ export function TaxRulesTab({ canManage }: { canManage: boolean }) {
     { id: 'when', header: t('when'), cell: ({ row }) => <span className="font-mono text-xs" dir="ltr">{when(row.original)}</span> },
     { id: 'codes', header: t('codes'), cell: ({ row }) => <span className="font-mono text-xs" dir="ltr">{row.original.tax_codes.join(', ')}</span> },
     { id: 'priority', header: t('priority'), cell: ({ row }) => row.original.priority },
-    { id: 'source', header: t('source'), cell: ({ row }) => <CmxStatusBadge size="sm" variant={row.original.source === 'HQ_KIT' ? 'info' : 'default'} label={tEngine(`source.${row.original.source}`)} /> },
+    { id: 'source', header: t('source'), cell: ({ row }) => <CmxStatusBadge size="sm" tone={row.original.source === 'HQ_KIT' ? 'info' : 'neutral'} label={tEngine(`source.${row.original.source}`)} /> },
     ...(canManage
       ? ([
           {

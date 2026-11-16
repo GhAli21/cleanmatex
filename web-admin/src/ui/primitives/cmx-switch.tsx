@@ -125,7 +125,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
       >
         <span
           className={cn(
-            'pointer-events-none block rounded-full bg-white shadow-md ring-0 transition-transform',
+            'pointer-events-none block rounded-full bg-card shadow-md ring-0 transition-transform',
             sizeStyle.thumb,
             checked ? sizeStyle.thumbOn : 'translate-x-0'
           )}

@@ -29,7 +29,7 @@ import {
   type PaymentTerminalOption,
 } from '@features/orders/hooks/use-payment-catalog';
 import { CmxButton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -48,6 +48,7 @@ import { PaymentCapabilityDialog } from '../../primitives/payment-capability-dia
 import { PaymentAmountMoneyField } from '../../primitives/payment-amount-money-field';
 import { PaymentLegDetailFields } from '../../primitives/payment-leg-detail-fields';
 
+import { CmxStatusBadge } from '@ui/feedback';
 /**
  * Typed engine actions the split dialog may call — nothing more.
  */
@@ -537,12 +538,12 @@ export function SplitTenderDialog({
                           <span className="text-sm font-semibold text-violet-950">
                             {label}
                           </span>
-                          <Badge
-                            variant="secondary"
+                          <CmxStatusBadge size="sm"
+                            tone="neutral"
                             className="rounded-full bg-violet-100 text-[10px] font-semibold uppercase tracking-wide text-violet-800"
                           >
                             {t('splitPayment.readOnlyBadge')}
-                          </Badge>
+                          </CmxStatusBadge>
                         </div>
                         <span className="font-mono text-sm font-semibold tabular-nums text-violet-900">
                           {currencyCode} {formatAmount(leg.amount ?? 0)}

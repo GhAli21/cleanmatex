@@ -21,9 +21,9 @@ import {
 } from '@ui/primitives';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxDataTable } from '@ui/data-display';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import {
   CmxDialog,
@@ -272,11 +272,11 @@ export function CustomerStoredValueTab({ customerId }: Props) {
 
   const statusVariant = (
     status: string,
-  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    if (status === 'ACTIVE') return 'default';
-    if (status === 'EXHAUSTED') return 'secondary';
-    if (status === 'EXPIRED') return 'destructive';
-    return 'outline';
+  ): 'brand' | 'neutral' | 'danger' | 'neutral' => {
+    if (status === 'ACTIVE') return 'brand';
+    if (status === 'EXHAUSTED') return 'neutral';
+    if (status === 'EXPIRED') return 'danger';
+    return 'neutral';
   };
 
   if (isLoading) {
@@ -398,13 +398,13 @@ export function CustomerStoredValueTab({ customerId }: Props) {
                 key: 'status',
                 header: tCommon('status'),
                 render: (row: CreditNoteRow) => (
-                  <Badge variant={statusVariant(row.status)}>
+                  <CmxStatusBadge size="sm" tone={statusVariant(row.status)}>
                     {
                       t(
                         `creditNoteStatus.${row.status as 'ACTIVE' | 'EXHAUSTED' | 'EXPIRED' | 'CANCELLED'}`,
                       ) as string
                     }
-                  </Badge>
+                  </CmxStatusBadge>
                 ),
               },
               {

@@ -9,8 +9,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { CmxCard, CmxButton, Badge } from '@ui/primitives';
-import { CmxProgressBar } from '@ui/feedback';
+import { CmxCard, CmxButton } from '@ui/primitives';
+import { CmxProgressBar, CmxStatusBadge } from '@ui/feedback';
 import type { UsageMetrics } from '@/lib/types/tenant';
 
 interface UsageWidgetProps {
@@ -126,9 +126,9 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
           </p>
         </div>
         {hasWarnings && (
-          <Badge variant="warning" className="text-xs">
+          <CmxStatusBadge size="sm" tone="warning" className="text-xs">
             {tCommon('warningCount', { count: usage.warnings.length })}
-          </Badge>
+          </CmxStatusBadge>
         )}
       </div>
 
@@ -144,10 +144,10 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
               <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
                 {usage.usage.ordersCount} / {usage.limits.ordersLimit}
               </span>
-              <Badge
-                variant={
+              <CmxStatusBadge size="sm"
+                tone={
                   usage.usage.ordersPercentage >= 90
-                    ? 'destructive'
+                    ? 'danger'
                     : usage.usage.ordersPercentage >= 70
                     ? 'warning'
                     : 'success'
@@ -155,7 +155,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
                 className="text-xs"
               >
                 {usage.usage.ordersPercentage.toFixed(0)}%
-              </Badge>
+              </CmxStatusBadge>
             </div>
           </div>
           <CmxProgressBar
@@ -176,10 +176,10 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
               <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
                 {usage.usage.usersCount} / {usage.limits.usersLimit}
               </span>
-              <Badge
-                variant={
+              <CmxStatusBadge size="sm"
+                tone={
                   usage.usage.usersPercentage >= 90
-                    ? 'destructive'
+                    ? 'danger'
                     : usage.usage.usersPercentage >= 70
                     ? 'warning'
                     : 'success'
@@ -187,7 +187,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
                 className="text-xs"
               >
                 {usage.usage.usersPercentage.toFixed(0)}%
-              </Badge>
+              </CmxStatusBadge>
             </div>
           </div>
           <CmxProgressBar
@@ -208,10 +208,10 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
               <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
                 {usage.usage.branchesCount} / {usage.limits.branchesLimit}
               </span>
-              <Badge
-                variant={
+              <CmxStatusBadge size="sm"
+                tone={
                   usage.usage.branchesPercentage >= 90
-                    ? 'destructive'
+                    ? 'danger'
                     : usage.usage.branchesPercentage >= 70
                     ? 'warning'
                     : 'success'
@@ -219,7 +219,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
                 className="text-xs"
               >
                 {usage.usage.branchesPercentage.toFixed(0)}%
-              </Badge>
+              </CmxStatusBadge>
             </div>
           </div>
           <CmxProgressBar

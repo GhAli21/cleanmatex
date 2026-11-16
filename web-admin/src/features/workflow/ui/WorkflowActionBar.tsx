@@ -402,7 +402,7 @@ export function WorkflowActionBar({
           {statusLabel ? (
             <CmxStatusBadge
               label={statusLabel}
-              variant={workflowStatusBadgeVariant(currentStatus)}
+              tone={workflowStatusBadgeVariant(currentStatus)}
               size="sm"
             />
           ) : null}

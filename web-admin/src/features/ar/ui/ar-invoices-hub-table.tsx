@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { SortingState } from '@tanstack/react-table';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Badge } from '@ui/primitives/badge';
+
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import {
@@ -13,6 +13,7 @@ import {
   type ArInvoiceSummary,
 } from '@/lib/types/ar-invoice';
 
+import { CmxStatusBadge } from '@ui/feedback';
 interface ArInvoicesHubTableProps {
   invoices: ArInvoiceSummary[];
   page: number;
@@ -115,9 +116,9 @@ export function ArInvoicesHubTable({
           key: 'status',
           header: tHub('columns.status'),
           render: (row) => (
-            <Badge className={AR_STATUS_BADGE_TONES[row.status]}>
+            <CmxStatusBadge size="sm" tone="brand" appearance="solid" className={AR_STATUS_BADGE_TONES[row.status]}>
               {t(`statuses.${AR_STATUS_TRANSLATION_KEYS[row.status]}`)}
-            </Badge>
+            </CmxStatusBadge>
           ),
         },
         {

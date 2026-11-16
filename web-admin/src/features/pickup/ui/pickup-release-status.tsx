@@ -44,10 +44,9 @@ export function PickupReleaseStatus({
     <div className="space-y-1">
       <CmxStatusBadge
         label={label}
-        variant={isAvailable ? 'success' : 'outline'}
+        tone={isAvailable ? 'success' : 'neutral'}
         size="sm"
         icon={isAvailable ? PackageCheck : PackageOpen}
-        showIcon
       />
       {formattedReleasedAt ? (
         <p className="text-xs text-muted-foreground">

@@ -1,0 +1,107 @@
+CLEANMATEX LEGAL PACK
+Document: Data Processing Agreement
+Version: dpa-2026-11-17
+Language: English
+Arabic pair: 06_DATA_PROCESSING_AGREEMENT_ar.txt. That file is the legal translation of this text. Clause numbers match.
+Status: Operative draft. Accepted by the sign-up checkbox together with the Terms.
+This agreement prevails over the Terms on the processing of personal data, as Terms clause 2.3 says.
+
+1. Parties and roles
+1.1 This agreement is between [LEGAL_ENTITY_NAME] ("Processor", "we") and the Organization that accepts the Terms ("Controller", "you").
+1.2 You are the controller of personal data about your End Customers, your customer contacts, and the content your staff enter about them ("Customer Data").
+1.3 We are the processor of Customer Data. We process it only to provide the Service, on your documented instructions, unless the law requires us to process it. If the law requires a further processing, we tell you before doing it, unless the law forbids that notice.
+1.4 We are a separate controller for the account, billing, security, and marketing-site data described in the Privacy Policy. That data is not Customer Data, and this agreement does not make you the controller of our staff or of our security logs.
+
+2. Instructions
+2.1 Your instructions are: the configuration you set in the Service, the actions your users take, the order-intake rule n4-notice-2026-11-17, the anonymize rule u4-spec-2026-11-17, and the written instructions you send to [PRIVACY_EMAIL] that we accept.
+2.2 We will tell you if we reasonably believe an instruction infringes Oman, UAE, or Bahrain personal-data law. We may suspend that instruction while the question is open. We will not suspend an instruction merely because it is inconvenient.
+2.3 A staff user who records a consent the End Customer did not give gives an instruction you are responsible for. We may suspend messaging if we see a pattern of that abuse.
+
+3. Nature and purpose
+3.1 Subject matter: hosting and operating the Service.
+3.2 Duration: the term of the Terms, plus the retention periods in clause 12.
+3.3 Nature of processing: storing, displaying, editing, transmitting messages you have configured, exporting, anonymizing, and backing up.
+3.4 Purpose: so that you can take orders, run production, record counter payments, issue your documents, and contact your own customers under your lawful basis.
+3.5 Categories of people: your End Customers, their household contacts if you type them, and your staff as far as their names appear inside Customer Data.
+3.6 Categories of data: name, phone, email, address, language, order and garment details, amounts, payment method category, communication choices, and notes your staff type.
+3.7 Special categories: the Service is not designed for health data, biometric data, or religious data. If a staff member types such data into a note, you are the controller of that choice and you instruct us to hold it only as part of the note. We do not use it for any other purpose.
+
+4. Our duties
+4.1 We process Customer Data only on the instructions in clause 2.
+4.2 We ensure that our people who can reach Customer Data are bound by confidentiality.
+4.3 We apply the security measures in Annex B.
+4.4 We use subprocessors only under clause 6.
+4.5 We assist you, taking into account the nature of the Service, with access, correction, export, and anonymization, through the tools in the product and through reasonable additional help.
+4.6 We assist you with breach notice, impact assessment, and prior consultation with an authority, to the extent the event concerns the Service and the information is in our hands.
+4.7 At the end of the Service we return or delete Customer Data under clause 12.
+4.8 We make available the information reasonably needed to show compliance with this agreement. For the pilot, that information is this agreement, Annex A, Annex B, and a written answer to a reasonable question sent to [PRIVACY_EMAIL]. An on-site audit is not part of the pilot. If the applicable law requires an audit we cannot meet by documents, the parties will agree a scoped review under confidentiality, at your cost unless the review shows a material breach by us.
+
+5. Your duties
+5.1 You will have a lawful basis for each processing you instruct, including the basis in the order-intake rule for messages.
+5.2 You will give your End Customers the notice in file 17, or a notice of your own that says the same things.
+5.3 You will not instruct us to process data of a child as the contracting customer.
+5.4 You will keep your user list current and your permissions tight.
+5.5 You will configure tax and prices on your own responsibility. Those settings are your instructions.
+
+6. Subprocessors
+6.1 You authorize the subprocessors listed in Annex A for the roles described there.
+6.2 We will impose written terms on each subprocessor that require protection of Customer Data at a standard consistent with this agreement.
+6.3 We remain responsible to you for a subprocessor's performance of those duties.
+6.4 We will give you at least 15 days' notice by email and in the application before a new subprocessor starts to process Customer Data. You may object on reasonable data-protection grounds within those 15 days. If we cannot reasonably offer an alternative, you may end the contract under the Terms before that subprocessor starts, and we will not charge an early-termination fee for that ending.
+6.5 An emergency replacement of a failed subprocessor may start sooner. We will tell you as soon as we reasonably can and you keep the right to object and to leave.
+
+7. International transfers
+7.1 Customer Data is stored in [SUPABASE_REGION].
+7.2 When a message is sent, the messaging or email provider processes the destination and the content in its own countries.
+7.3 We will not start a transfer that the applicable law restricts, until the tool, assessment, or permit that law requires is in place. Where that step is outstanding, the affected channel stays off.
+7.4 You instruct us to make the transfers that are inherent in the subprocessors you enable in Annex A, once clause 7.3 is satisfied.
+
+8. Breach
+8.1 We will notify you without undue delay after we become aware of a personal-data breach affecting Customer Data, and in any case in time for you to meet the notice period that applies to you.
+8.2 The notice will describe, so far as we know them, the nature of the breach, the categories and approximate numbers of people and records, the likely consequences, and the measures taken or proposed.
+8.3 We will cooperate in the investigation and the containment.
+8.4 You notify your End Customers and your authority when the law puts that duty on the controller. We notify an authority directly when the law puts that duty on the processor.
+
+9. Confidentiality of Customer Data
+9.1 We will not disclose Customer Data to a third party except to subprocessors, to you, or where the law requires it.
+9.2 If an authority demands Customer Data, we will, if the law allows, tell you before disclosing it and limit the disclosure to what is required.
+
+10. Return of requests
+10.1 If an End Customer contacts us directly, we will direct them to you and we will forward the request to the account email.
+10.2 We will not perform an anonymization or an export for that person except on your instruction or on a binding legal duty.
+
+11. Security incidents caused by you
+11.1 A breach caused by your user's password sharing, by a false consent, or by content you chose to collect is yours to explain to the End Customer. We will still assist with the tools we have.
+
+12. Return and deletion
+12.1 Within 30 days after the contract ends, we will make Customer Data available for export on your request, in a format the Service already supports.
+12.2 Within 60 days after that window, we will delete Customer Data from active systems or anonymize it, at your choice if you tell us in the window. If you do not choose, we anonymize contact details and keep the finance records.
+12.3 We keep orders, payments, and issued tax documents for 10 years from the end of the financial year of the record, in the reduced form the anonymize rule describes, unless file 18 publishes a shorter period set by written tax advice.
+12.4 Backups expire on the cycle [BACKUP_RETENTION]. We do not promise to edit a named person out of an existing backup.
+12.5 We may keep one copy of this agreement and of the acceptance record for the period in the version register.
+
+13. Liability
+13.1 Liability under this agreement is capped as Terms clause 14 caps it, including for personal-data claims in the pilot.
+13.2 The cap does not apply to fraud or willful misconduct, or where the governing law forbids a cap.
+13.3 Each party bears the regulatory fine that the authority imposes on that party for that party's own breach, to the extent the law requires the fine to stay with the party who incurred it.
+
+14. Precedence and term
+14.1 This agreement starts when you accept it at sign-up and ends when the retention duties in clause 12 are finished.
+14.2 If this agreement conflicts with the Terms on a point of personal-data processing, this agreement prevails.
+14.3 The version code is dpa-2026-11-17.
+14.4 Terms clause 21 applies to the English and Arabic texts.
+
+ANNEX A — Subprocessors
+The list in file 18, section 3, is Annex A of this agreement.
+A subprocessor marked "only when enabled" receives Customer Data only after you enable that channel.
+The database region is [SUPABASE_REGION].
+
+ANNEX B — Security measures for the pilot
+1. Access to production data is limited to people who need it for operations, and is removed when that need ends.
+2. The application separates one Organization's data from another's by a tenant identifier on the query path.
+3. Connections to the Service use encryption in transit.
+4. Data at rest uses the encryption of the database and hosting providers.
+5. Passwords are stored in a hashed form. We do not ask your End Customers to store a card number in the Service.
+6. Acceptance, consent changes, and anonymization write an audit record that does not re-copy a deleted phone number into the new audit line.
+7. Error-tracking is off in production until personal data is scrubbed from the events. Until then Sentry is not an active subprocessor.
+8. These measures are appropriate to a pilot of small and medium laundries. They are not a statement that a particular ISO certificate is held.

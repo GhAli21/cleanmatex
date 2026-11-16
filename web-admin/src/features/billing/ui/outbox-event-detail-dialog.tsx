@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback/cmx-status-badge';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -15,12 +15,12 @@ import {
 } from '@ui/overlays';
 import type { OutboxMonitorEventDetail, OutboxRelatedKind, OutboxStatus } from '../model/outbox-types';
 
-const STATUS_VARIANT: Record<string, 'info' | 'processing' | 'success' | 'warning' | 'error' | 'default'> = {
+const STATUS_VARIANT: Record<string, CmxBadgeTone> = {
   PENDING: 'info',
-  PROCESSING: 'processing',
+  PROCESSING: 'info',
   PROCESSED: 'success',
   FAILED: 'warning',
-  DEAD_LETTERED: 'error',
+  DEAD_LETTERED: 'danger',
 };
 
 function formatDate(iso: string | null, locale: string) {
@@ -99,15 +99,15 @@ export function OutboxEventDetailDialog({
             <div className="flex flex-wrap items-center gap-2">
               <CmxStatusBadge
                 label={t(`statusLabels.${event.status as OutboxStatus}`)}
-                variant={STATUS_VARIANT[event.status] ?? 'default'}
+                tone={STATUS_VARIANT[event.status] ?? 'neutral'}
                 size="sm"
                 pulse={event.status === 'PROCESSING'}
               />
               {event.isStuck ? (
-                <CmxStatusBadge label={t('stuckBadge')} variant="warning" size="sm" />
+                <CmxStatusBadge label={t('stuckBadge')} tone="warning" size="sm" />
               ) : null}
               {!event.hasConsumer ? (
-                <CmxStatusBadge label={t('handlers.none')} variant="outline" size="sm" />
+                <CmxStatusBadge label={t('handlers.none')} tone="neutral" appearance="outline" size="sm" />
               ) : null}
             </div>
 
@@ -211,7 +211,7 @@ export function OutboxEventDetailDialog({
                         <span className="font-mono text-xs">{sibling.event_type}</span>
                         <CmxStatusBadge
                           label={t(`statusLabels.${sibling.status as OutboxStatus}`)}
-                          variant={STATUS_VARIANT[sibling.status] ?? 'default'}
+                          tone={STATUS_VARIANT[sibling.status] ?? 'neutral'}
                           size="sm"
                         />
                         <span className="text-xs text-muted-foreground">{formatDate(sibling.created_at, locale)}</span>

@@ -15,8 +15,8 @@
 
 import { useLocale, useMessages, useTranslations } from 'next-intl';
 
-import { Badge, CmxButton } from '@ui/primitives';
-import { CmxSummaryMessage } from '@ui/feedback';
+import { CmxButton } from '@ui/primitives';
+import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 
 const EM_DASH = '—';
 
@@ -74,31 +74,31 @@ function fmtPeriod(locale: string, from: string | null, to: string | null): stri
   return `${fmtShort(from)} ${EM_DASH} ${fmtShort(to)}`;
 }
 
-function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+function statusBadgeVariant(status: string): 'brand' | 'neutral' | 'danger' | 'success' | 'warning' | 'info' {
   switch (status) {
     case 'PASSED':  return 'success';
-    case 'FAILED':  return 'destructive';
+    case 'FAILED':  return 'danger';
     case 'PARTIAL': return 'warning';
     case 'RUNNING': return 'info';
-    default:        return 'secondary';
+    default:        return 'neutral';
   }
 }
 
-function severityBadgeVariant(severity: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+function severityBadgeVariant(severity: string): 'brand' | 'neutral' | 'danger' | 'success' | 'warning' | 'info' {
   switch (severity) {
-    case 'BLOCKER': return 'destructive';
+    case 'BLOCKER': return 'danger';
     case 'WARNING': return 'warning';
     case 'INFO':    return 'info';
-    default:        return 'secondary';
+    default:        return 'neutral';
   }
 }
 
-function issueBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'success' | 'warning' | 'info' {
+function issueBadgeVariant(status: string): 'brand' | 'neutral' | 'danger' | 'success' | 'warning' | 'info' {
   switch (status) {
-    case 'OPEN':         return 'destructive';
+    case 'OPEN':         return 'danger';
     case 'ACKNOWLEDGED': return 'warning';
     case 'RESOLVED':     return 'success';
-    default:             return 'secondary';
+    default:             return 'neutral';
   }
 }
 
@@ -126,9 +126,9 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold">{run.run_no}</h1>
-        <Badge variant={statusBadgeVariant(run.status)}>
+        <CmxStatusBadge size="sm" tone={statusBadgeVariant(run.status)}>
           {t(`statusLabels.${run.status}` as Parameters<typeof t>[0])}
-        </Badge>
+        </CmxStatusBadge>
       </div>
 
       <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-white p-6 text-sm md:grid-cols-4">
@@ -221,9 +221,9 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
                 {run.issues.map((issue) => (
                   <tr key={issue.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-4 py-3">
-                      <Badge variant={severityBadgeVariant(issue.severity)}>
+                      <CmxStatusBadge size="sm" tone={severityBadgeVariant(issue.severity)}>
                         {t(`issues.severityLabels.${issue.severity}` as Parameters<typeof t>[0])}
-                      </Badge>
+                      </CmxStatusBadge>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-700">
                       {/* The check_name string round-trips to the DB and to translation keys
@@ -253,9 +253,9 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <Badge variant={issueBadgeVariant(issue.status)}>
+                      <CmxStatusBadge size="sm" tone={issueBadgeVariant(issue.status)}>
                         {t(`issues.statusLabels.${issue.status}` as Parameters<typeof t>[0])}
-                      </Badge>
+                      </CmxStatusBadge>
                     </td>
                   </tr>
                 ))}

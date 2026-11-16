@@ -11,7 +11,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput, Label } from '@ui/primitives';
-import { LoadingButton } from '@ui/primitives';
+
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { cmxMessage } from '@ui/feedback';
 import { useOverpaymentAllocation } from '@features/orders/hooks/use-overpayment-allocation';
@@ -276,9 +276,9 @@ export function CustomerAccountReceiptClient() {
                 />
               ) : null}
 
-              <LoadingButton loading={submitting} disabled={!canSubmit} onClick={handlePost}>
+              <CmxButton loading={submitting} disabled={!canSubmit} onClick={handlePost}>
                 {t('postReceipt')}
-              </LoadingButton>
+              </CmxButton>
             </>
           ) : null}
         </CmxCardContent>

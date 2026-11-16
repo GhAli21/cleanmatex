@@ -39,7 +39,7 @@ export function TaxCodesTab({ canManage }: { canManage: boolean }) {
     {
       id: 'source',
       header: t('source'),
-      cell: ({ row }) => <CmxStatusBadge size="sm" variant={row.original.source === 'HQ_KIT' ? 'info' : 'default'} label={tEngine(`source.${row.original.source}`)} />,
+      cell: ({ row }) => <CmxStatusBadge size="sm" tone={row.original.source === 'HQ_KIT' ? 'info' : 'neutral'} label={tEngine(`source.${row.original.source}`)} />,
     },
     ...(canManage
       ? ([

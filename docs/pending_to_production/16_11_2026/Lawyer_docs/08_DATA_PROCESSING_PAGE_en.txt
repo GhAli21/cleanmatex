@@ -1,0 +1,78 @@
+CLEANMATEX LEGAL PACK
+Document: Data-processing page (public)
+Version: dpp-2026-11-17
+Language: English
+Arabic pair: 08_DATA_PROCESSING_PAGE_ar.txt. That file is the legal translation of this text. Section numbers match.
+Status: Operative draft. This is the page Phase 3 publishes on the marketing site and in the application.
+The full contract is the Data Processing Agreement, version dpa-2026-11-17.
+
+Title: How CleanMateX processes data
+
+1. The short version
+CleanMateX provides software to laundries and dry-cleaners.
+If you are a laundry, you decide why your customers' data is used. We host and process it for you.
+If you handed clothes to a laundry, that laundry holds your file. We keep it on their instructions.
+
+2. Who we are
+[LEGAL_ENTITY_NAME]
+[REGISTERED_ADDRESS]
+Registration [COMMERCIAL_REGISTRATION_NUMBER]
+Privacy contact: [PRIVACY_EMAIL]
+
+3. Who decides
+Laundry (the Organization)     Decides the purposes. Is the controller of its customers.
+CleanMateX                     Processes those customers' data to run the software. Is the processor.
+CleanMateX                     Decides the purposes of account, billing, website, and security data. Is the controller for that data only.
+
+4. What we process for a laundry
+Name, mobile number, email, address, language, orders, garment notes, prices and payments recorded in the software, loyalty or wallet entries, and the choices about WhatsApp, SMS, and email.
+We process this to take the order, run the work, record the counter payment, print the receipt, and send the messages the laundry is allowed to send.
+
+5. Messages
+WhatsApp updates are sent only if the customer opted in at the counter or on the screen.
+SMS and email updates about the order itself are sent when the laundry has the number or email and the customer has not refused them. They exist to perform the order.
+Offers and promotions are sent only if the customer opted in to promotions on that channel.
+The customer can change these choices with the laundry. The order does not depend on saying yes.
+
+6. Where the data sits
+The production database region is [SUPABASE_REGION].
+When a laundry turns on WhatsApp, SMS, or email, the provider of that channel processes the destination and the message. The providers we use are listed below.
+Backups are kept for [BACKUP_RETENTION] and then expire. We do not edit a single person out of an old backup.
+
+7. Providers we use
+This is the public copy of Annex A to the Data Processing Agreement.
+
+Supabase. Database, authentication, and file storage. Region: [SUPABASE_REGION].
+Application host. Hosting of the application and the marketing site. Legal name confirmed in the version register before publication.
+Twilio and Meta. WhatsApp and SMS, only if the laundry enables them.
+Resend. Email, only if the laundry enables it.
+We do not use a payment-card gateway for our own pilot invoices. Laundries are invoiced by bank transfer.
+We do not turn on error-tracking in production until events are scrubbed of personal data.
+We do not turn on non-essential analytics unless a cookie choice is asked first.
+
+We give existing laundries 15 days' notice before a new provider starts to process their customers' data.
+
+8. How long
+A working customer file lasts until the laundry exports and anonymizes it, or until the laundry account ends and the deletion window in the agreement passes.
+Orders, payments, and issued tax documents are kept for 10 years from the end of the financial year of the record, so the laundry can keep its books.
+After anonymization, the working screens no longer show the phone number, email, or address. The money record remains. An issued tax document stays as it was issued.
+
+9. Rights
+Laundry staff and website visitors exercise their rights with us at [PRIVACY_EMAIL].
+A laundry's customer exercises access, correction, and erasure with the laundry. The software includes an export and an "Anonymize this customer" action. Anonymize keeps the finance record, as section 8 says.
+We forward a request that reaches us to the right laundry.
+
+You may also complain to the authority:
+Oman: the Ministry of Transport, Communications and Information Technology.
+United Arab Emirates: the UAE Data Office.
+Bahrain: the Personal Data Protection Authority.
+
+10. The contract
+Laundries accept the Data Processing Agreement when they accept the Terms.
+Version: dpa-2026-11-17.
+This page is version dpp-2026-11-17.
+The Privacy Policy is version privacy-2026-11-17.
+The cookie notice is version cookie-2026-11-17.
+
+11. Language
+This page is published in English and Arabic. If the two texts conflict, Terms clause 21 decides which text prevails.

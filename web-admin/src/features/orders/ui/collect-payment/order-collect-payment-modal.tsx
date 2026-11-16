@@ -25,8 +25,8 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput, CmxTextarea, Label } from '@ui/primitives';
 import { CmxMoneyField } from '@ui/primitives';
 import { CmxSkeleton } from '@ui/primitives';
-import { LoadingButton } from '@ui/primitives';
-import { Badge } from '@ui/primitives/badge';
+
+
 import {
   CmxDialog,
   CmxDialogContent,
@@ -45,7 +45,7 @@ import {
   type PaymentKeypadKey,
 } from '@ui/utilities';
 import { applyKeypadInput, formatMoneyDraft, parseMoneyDraft } from '@/lib/money/money-draft';
-import { cmxMessage, CmxSummaryMessage } from '@ui/feedback';
+import { cmxMessage, CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 import { usePayExtraCheckout } from '@features/orders/hooks/use-pay-extra-checkout';
 import { useCashDrawer } from '@features/orders/hooks/use-cash-drawer';
 import { ExtraReceiptHandlingCard } from '@features/orders/ui/payment-modal/allocation/extra-receipt-handling-card';
@@ -69,7 +69,7 @@ import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-
 import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import type { GetMyActivePosSessionResult } from '@/lib/types/pos-session';
 import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
-import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
+import { CashChangeRoundingNote } from '@features/orders/ui/cash-change-rounding-note';
 import { isCashPayableAmount } from '@/lib/money/cash-rounding';
 
 /**
@@ -1372,11 +1372,11 @@ export function OrderCollectPaymentModal({
                         <Banknote className="h-4 w-4 text-cyan-700" />
                         {tPayment('cashDrawer.title')}
                       </Label>
-                      <Badge variant="secondary" className="text-xs">
+                      <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
                         {selectedCashDrawerChoice
                           ? tPayment('cashDrawer.boundBadge')
                           : tPayment('cashDrawer.pendingBadge')}
-                      </Badge>
+                      </CmxStatusBadge>
                     </div>
                     <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
                       {tPayment('cashDrawer.subtitle')}
@@ -1508,13 +1508,13 @@ export function OrderCollectPaymentModal({
             <CmxButton variant="outline" onClick={() => onOpenChange(false)}>
               {t('cancel')}
             </CmxButton>
-            <LoadingButton
+            <CmxButton
               loading={submitting}
               disabled={submitDisabled}
               onClick={handleSubmit}
             >
               {handoverIntent ? t('submitAndRelease') : t('submit')}
-            </LoadingButton>
+            </CmxButton>
           </CmxDialogFooter>
 
           {/* One movable pad for both money fields — anchored to whichever
@@ -1620,13 +1620,13 @@ export function OrderCollectPaymentModal({
             <CmxButton type="button" variant="outline" onClick={() => setCashDrawerDialogOpen(false)}>
               {t('cancel')}
             </CmxButton>
-            <LoadingButton
+            <CmxButton
               loading={openingDrawerSession}
               disabled={openingDrawerSession || !cashDrawerToOpenId}
               onClick={() => void handleCreateCashDrawerSession()}
             >
               {tPayment('cashDrawer.openSession')}
-            </LoadingButton>
+            </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
