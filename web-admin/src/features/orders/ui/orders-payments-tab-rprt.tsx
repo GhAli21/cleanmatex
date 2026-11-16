@@ -144,7 +144,7 @@ export function OrdersPaymentsTabRprt({
                       {payment.fin_voucher_id && (
                         <Link
                           href={`/dashboard/internal_fin/vouchers/${payment.fin_voucher_id}`}
-                          className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-muted"
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary-text transition-colors hover:bg-muted"
                         >
                           {tDetail('openVoucher')}
                           <ArrowUpRight className="h-3 w-3" />
@@ -191,7 +191,7 @@ export function OrdersPaymentsTabRprt({
                         {payment.fin_voucher_id ? (
                           <Link
                             href={`/dashboard/internal_fin/vouchers/${payment.fin_voucher_id}`}
-                            className="font-medium text-primary hover:underline"
+                            className="font-medium text-primary-text hover:underline"
                           >
                             {payment.fin_voucher_id.slice(0, 8)}...
                           </Link>

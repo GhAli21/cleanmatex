@@ -73,7 +73,8 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
     ref
   ) => {
     const generatedId = React.useId()
-    const inputId = idProp ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : generatedId)
+    // Never derive the id from the label: two fields with the same label would share one id.
+    const inputId = idProp ?? generatedId
     const hasError = !!error || ariaInvalid === true || ariaInvalid === 'true'
     const showPasswordToggle = type === 'password' && passwordToggle
     const [uncontrolledVisible, setUncontrolledVisible] = React.useState(false)
@@ -90,8 +91,8 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
     const inputClassName = cn(
       inputBaseClasses,
       cmxFieldChrome({ error: hasError }),
-      leftIcon && 'pl-10',
-      rightIcon && !trailing && !showPasswordToggle && 'pr-10',
+      leftIcon && 'ps-10',
+      rightIcon && !trailing && !showPasswordToggle && 'pe-10',
       trailing && !showPasswordToggle && 'pe-10',
       showPasswordToggle && 'pe-12',
       className
@@ -113,7 +114,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
 
         <div className="relative">
           {leftIcon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {leftIcon}
             </div>
           )}
@@ -153,7 +154,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
           ) : trailing ? (
             <div className="absolute inset-y-0 end-0 flex items-center pe-1">{trailing}</div>
           ) : rightIcon ? (
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
               {rightIcon}
             </div>
           ) : null}

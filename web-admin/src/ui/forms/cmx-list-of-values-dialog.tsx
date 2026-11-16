@@ -216,7 +216,7 @@ function CmxListOfValuesDialogContent<TOption>({
                     </span>
                     {selected ? (
                       <Check
-                        className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
                         aria-hidden="true"
                       />
                     ) : null}

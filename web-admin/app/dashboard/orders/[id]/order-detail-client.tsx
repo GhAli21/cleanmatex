@@ -639,7 +639,7 @@ export function OrderDetailClient({
                 {parentOrderId && parentOrderNo && parentOrderNo !== orderNo && (
                   <Link
                     href={`/dashboard/orders/${parentOrderId}`}
-                    className="text-sm text-[rgb(var(--cmx-primary-rgb,37_99_235))] underline-offset-2 hover:underline"
+                    className="text-sm text-[rgb(var(--cmx-primary-text-rgb,37_99_235))] underline-offset-2 hover:underline"
                   >
                     {tCodes('partOf', { orderNo: parentOrderNo })}
                   </Link>
@@ -684,7 +684,7 @@ export function OrderDetailClient({
                   {t.preparationStatus}: {String(order.preparation_status)}
                 </span>
                 {isPreparationEnabled() && order.preparation_status === 'pending' && (
-                  <Link href={`/dashboard/preparation/${order.id}`} className="text-sm font-medium text-primary">
+                  <Link href={`/dashboard/preparation/${order.id}`} className="text-sm font-medium text-primary-text">
                     {t.startPreparation}
                   </Link>
                 )}

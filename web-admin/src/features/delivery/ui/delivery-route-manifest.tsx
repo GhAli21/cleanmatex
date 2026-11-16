@@ -212,7 +212,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
 
       <section aria-labelledby="delivery-stops-heading" className="space-y-3">
         <div className="flex items-center gap-2">
-          <PackageCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+          <PackageCheck className="h-5 w-5 text-primary-text" aria-hidden="true" />
           <h2 id="delivery-stops-heading" className="text-lg font-semibold">{t('manifest.stops')}</h2>
         </div>
         <div className="grid gap-3">

@@ -62,8 +62,8 @@ export const CmxProgressSteps: React.FC<CmxProgressStepsProps> = ({
                 <div
                   className={cn(
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-medium transition-colors',
-                    isCompleted && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-white',
-                    isCurrent && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-white text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+                    isCompleted && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-fg-rgb))]',
+                    isCurrent && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-white text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
                     isUpcoming && 'border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
                   )}
                 >

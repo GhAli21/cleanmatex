@@ -206,7 +206,7 @@ export function CmxStatementLineList({ children, cap, showAllLabel, showLessLabe
         <button
           type="button"
           onClick={() => setAll((v) => !v)}
-          className="mt-1 min-h-9 self-start rounded px-1 text-xs font-medium text-[rgb(var(--cmx-primary-rgb))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="mt-1 min-h-9 self-start rounded px-1 text-xs font-medium text-[rgb(var(--cmx-primary-text-rgb))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb))]"
         >
           {all ? showLessLabel : showAllLabel(items.length)}
         </button>

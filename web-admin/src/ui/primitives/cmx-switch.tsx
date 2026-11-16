@@ -103,7 +103,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
           'peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors',
           sizeStyle.track,
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-          'focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.35)]',
+          'focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)]',
           'focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
           'disabled:cursor-not-allowed disabled:opacity-50',
           softLocked && 'cursor-not-allowed opacity-60',

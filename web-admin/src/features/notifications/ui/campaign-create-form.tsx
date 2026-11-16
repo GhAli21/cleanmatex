@@ -108,7 +108,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         </label>
         <input
           {...register('name')}
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb))]"
+          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
           placeholder={t('campaigns.form.namePlaceholder')}
         />
         {errors.name && (
@@ -125,7 +125,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         <input
           {...register('name2')}
           dir="rtl"
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb))]"
+          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
           placeholder={t('campaigns.form.nameArPlaceholder')}
         />
       </div>
@@ -162,7 +162,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         <textarea
           {...register('description')}
           rows={2}
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb))]"
+          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
           placeholder={t('campaigns.form.descriptionPlaceholder')}
         />
       </div>
@@ -175,7 +175,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         <textarea
           {...register('target_user_ids')}
           rows={4}
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb))]"
+          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
           placeholder={t('campaigns.form.targetUserIdsPlaceholder')}
         />
         <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
@@ -195,7 +195,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         <input
           {...register('scheduled_at')}
           type="datetime-local"
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb))]"
+          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
         />
         <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
           {t('campaigns.form.scheduledAtHint')}

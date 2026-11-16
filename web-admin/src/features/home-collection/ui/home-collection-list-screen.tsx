@@ -75,7 +75,7 @@ export function HomeCollectionListScreen() {
                   ) : null}
                   <Link
                     href={`/dashboard/home-collection/${order.id}`}
-                    className="text-primary hover:underline"
+                    className="text-primary-text hover:underline"
                   >
                     {t('actions.open')}
                   </Link>

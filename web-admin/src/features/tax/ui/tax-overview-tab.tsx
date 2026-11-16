@@ -57,7 +57,7 @@ export function TaxOverviewTab({ view, canManage }: TaxOverviewTabProps) {
             <div><dt className="text-muted-foreground">{t('package')}</dt><dd className="font-medium">{view.pkg ? bilingual(view.pkg.name, view.pkg.name2 ?? view.pkg.name) : config.starter_pkg_code}</dd></div>
             <div>
               <dt className="text-muted-foreground">{t('pricing')}</dt>
-              <dd className="font-medium">{pricing} · <Link className="text-primary underline" href="/dashboard/settings/tenant">{t('changeInSettings')}</Link></dd>
+              <dd className="font-medium">{pricing} · <Link className="text-primary-text underline" href="/dashboard/settings/tenant">{t('changeInSettings')}</Link></dd>
             </div>
             {view.counts && <div><dt className="text-muted-foreground">{t('contents')}</dt><dd className="font-medium">{t('contentsValue', view.counts)}</dd></div>}
           </dl>

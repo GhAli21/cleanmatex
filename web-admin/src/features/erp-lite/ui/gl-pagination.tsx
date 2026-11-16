@@ -60,7 +60,7 @@ export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
             disabled={isPending}
             className={`h-6 rounded px-2 text-xs transition ${
               size === pageSize
-                ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-white'
+                ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-fg-rgb))]'
                 : 'hover:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]'
             }`}
           >

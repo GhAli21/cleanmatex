@@ -79,7 +79,7 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
                 onClick={() => openDetail(line.journal_id)}
                 className={`cursor-pointer border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors ${
                   isSelected
-                    ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/5 ring-1 ring-inset ring-[rgb(var(--cmx-primary-rgb,14_165_233))]/30'
+                    ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/5 ring-1 ring-inset ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]/30'
                     : 'hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]'
                 }`}
                 aria-selected={isSelected}

@@ -96,7 +96,7 @@ export function ErpLiteReportsScreen({
           <div className="font-medium">
             <Link
               href={`/dashboard/erp-lite/gl?accountCode=${encodeURIComponent(row.original.account_code)}`}
-              className="text-primary underline-offset-4 hover:underline"
+              className="text-primary-text underline-offset-4 hover:underline"
             >
               {row.original.account_code} · {row.original.account_name}
             </Link>
@@ -129,7 +129,7 @@ export function ErpLiteReportsScreen({
         <div className="font-medium">
           <Link
             href={`/dashboard/erp-lite/gl?accountCode=${encodeURIComponent(row.original.account_code)}`}
-            className="text-primary underline-offset-4 hover:underline"
+            className="text-primary-text underline-offset-4 hover:underline"
           >
             {row.original.account_code} · {row.original.account_name}
           </Link>

@@ -92,7 +92,7 @@ const variantIcons = {
  */
 const variantStyles = {
   default: {
-    icon: 'text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+    icon: 'text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
     confirmButton: 'primary' as const,
   },
   destructive: {

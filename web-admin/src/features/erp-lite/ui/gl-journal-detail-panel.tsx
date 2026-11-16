@@ -186,14 +186,14 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
 
             {/* Totals footer */}
             <div className="mt-3 flex justify-end gap-6 rounded-lg bg-[rgb(var(--cmx-muted-rgb,241_245_249))] px-4 py-3 text-sm">
-              <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-debit-rgb,239_68_68,239_68_68))]">
+              <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-debit-rgb))]">
                 <ArrowUpRight className="h-3.5 w-3.5" />
                 {t('columns.debit')}: {formatErpLiteMoney(totalDebit, {
                   ...displayConfig,
                   currencyCode: journal.currency_code || displayConfig.currencyCode,
                 })}
               </span>
-              <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-credit-rgb,34_197_94,34_197_94))]">
+              <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-credit-rgb))]">
                 <ArrowDownLeft className="h-3.5 w-3.5" />
                 {t('columns.credit')}: {formatErpLiteMoney(totalCredit, {
                   ...displayConfig,

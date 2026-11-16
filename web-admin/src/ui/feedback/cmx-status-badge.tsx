@@ -105,7 +105,6 @@ export function CmxStatusBadge({
         className
       )}
       title={tooltip}
-      role="status"
       aria-label={label}
       {...props}
     >

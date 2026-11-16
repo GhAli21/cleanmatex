@@ -261,7 +261,7 @@ export function PieceList({
               aria-current={highlighted ? 'true' : undefined}
               className={
                 highlighted
-                  ? 'rounded-lg ring-2 ring-[rgb(var(--cmx-primary-rgb,37_99_235))] ring-offset-2 scroll-mt-24'
+                  ? 'rounded-lg ring-2 ring-[rgb(var(--cmx-focus-ring-rgb,37_99_235))] ring-offset-2 scroll-mt-24'
                   : undefined
               }
             >

@@ -26,7 +26,7 @@ export function ErpLiteJournalsScreen({ rows }: ErpLiteJournalsScreenProps) {
       cell: ({ row }) => (
         <Link
           href={`/dashboard/erp-lite/gl?journalId=${encodeURIComponent(row.original.id)}`}
-          className="font-medium text-primary hover:underline"
+          className="font-medium text-primary-text hover:underline"
         >
           {row.original.journal_no}
         </Link>

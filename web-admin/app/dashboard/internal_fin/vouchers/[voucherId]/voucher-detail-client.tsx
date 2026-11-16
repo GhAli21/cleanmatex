@@ -108,7 +108,7 @@ function VoucherDetailField({
         {href ? (
           <Link
             href={href}
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary-text transition-colors hover:bg-muted"
           >
             {linkLabel ?? viewLabel}
             <ArrowUpRight className="h-3 w-3" />
@@ -310,7 +310,7 @@ export function VoucherDetailClient({
                     <Link
                       key={item.key}
                       href={item.ref.href}
-                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-muted"
+                      className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-primary-text transition-colors hover:bg-muted"
                     >
                       <span className="text-muted-foreground">{item.label}:</span>
                       {item.ref.label}

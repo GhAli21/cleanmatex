@@ -82,7 +82,7 @@ export function TaxDocumentLifecycleTimeline({
         {doc.status === 'ISSUED' && doc.id && orderId && (
           <Link
             href={`/dashboard/orders/${orderId}/tax-documents/${doc.id}/print`}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-primary-text hover:underline"
           >
             {t('actions.viewPrint')}
           </Link>

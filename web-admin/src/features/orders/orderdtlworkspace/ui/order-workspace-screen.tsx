@@ -437,7 +437,7 @@ export function OrderWorkspaceScreen({
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Package
                       aria-hidden="true"
-                      className="h-4 w-4 text-primary"
+                      className="h-4 w-4 text-primary-text"
                     />
                     {t('itemCount', { count: itemRows.length })}
                   </div>

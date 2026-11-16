@@ -241,7 +241,7 @@ export function FinanceJobsSection() {
             {row.original.relatedHref ? (
               <Link
                 href={row.original.relatedHref}
-                className="text-xs text-primary underline-offset-2 hover:underline"
+                className="text-xs text-primary-text underline-offset-2 hover:underline"
                 onClick={(event) => event.stopPropagation()}
               >
                 {t(`relatedLinks.${row.original.jobCode}`)}

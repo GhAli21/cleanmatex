@@ -46,7 +46,7 @@ export const CmxTabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233))] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-[rgb(var(--cmx-background-rgb,255_255_255))] data-[state=active]:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] data-[state=active]:shadow-sm',
+      'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-[rgb(var(--cmx-background-rgb,255_255_255))] data-[state=active]:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] data-[state=active]:shadow-sm',
       className,
     )}
     {...props}
@@ -63,7 +63,7 @@ export const CmxTabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-2 ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233))] focus-visible:ring-offset-2',
+      'mt-2 ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))] focus-visible:ring-offset-2',
       className,
     )}
     {...props}

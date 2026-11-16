@@ -34,7 +34,7 @@ export function CmxLineChart({ data, xKey, yKey }: CmxLineChartProps) {
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 12, right: 16, bottom: 0, left: 0 }}>
           <CartesianGrid
-            stroke="rgb(var(--cmx-border-subtle-rgb,226 232 240))"
+            stroke="rgb(var(--cmx-border-subtle-rgb))"
             strokeDasharray="3 3"
             vertical={false}
           />
@@ -44,7 +44,7 @@ export function CmxLineChart({ data, xKey, yKey }: CmxLineChartProps) {
           <Line
             type="monotone"
             dataKey={yKey}
-            stroke="rgb(var(--cmx-primary-rgb,14 165 233))"
+            stroke="rgb(var(--cmx-primary-rgb))"
             strokeWidth={2}
             dot={false}
           />

@@ -50,7 +50,7 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
         <span className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
           {t('title')}
           {unreadCount > 0 && (
-            <span className="ms-2 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] px-1.5 py-0.5 text-[11px] font-bold text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+            <span className="ms-2 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] px-1.5 py-0.5 text-[11px] font-bold text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -61,7 +61,7 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
               variant="ghost"
               size="xs"
               onClick={markAllRead}
-              className="text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+              className="text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
             >
               {t('markAllRead')}
             </CmxButton>

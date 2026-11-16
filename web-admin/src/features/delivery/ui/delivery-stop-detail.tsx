@@ -71,7 +71,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
             </div>
             <div className="rounded-lg bg-slate-50 p-4">
               <p className="flex items-start gap-2 text-sm font-medium">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary-text" aria-hidden="true" />
                 {stop.address}
               </p>
               {stop.notes ? <p className="mt-2 text-sm text-muted-foreground">{stop.notes}</p> : null}
@@ -92,7 +92,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
         <CmxCard>
           <CmxCardHeader>
             <CmxCardTitle className="flex items-center gap-2 text-base">
-              <WalletCards className="h-5 w-5 text-primary" aria-hidden="true" />
+              <WalletCards className="h-5 w-5 text-primary-text" aria-hidden="true" />
               {t('completion.paymentGate')}
             </CmxCardTitle>
           </CmxCardHeader>

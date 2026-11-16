@@ -82,7 +82,7 @@ export function NotificationItem({ notification, onMarkRead, compact = false, cl
       <div className={cn(
         'flex-shrink-0 rounded-full flex items-center justify-center mt-0.5',
         compact ? 'h-7 w-7' : 'h-9 w-9',
-        'bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] text-[rgb(var(--cmx-primary-rgb,14_165_233))]'
+        'bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]'
       )}>
         <CategoryIcon className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
       </div>
@@ -109,7 +109,7 @@ export function NotificationItem({ notification, onMarkRead, compact = false, cl
             <button
               type="button"
               onClick={() => onMarkRead(notification.id)}
-              className="text-[11px] font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline"
+              className="text-[11px] font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
             >
               {t('item.markRead')}
             </button>
@@ -119,7 +119,7 @@ export function NotificationItem({ notification, onMarkRead, compact = false, cl
           <a
             href={notification.action_url}
             onClick={(e) => e.stopPropagation()}
-            className="mt-1.5 inline-block text-xs font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline"
+            className="mt-1.5 inline-block text-xs font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
           >
             {isAr && notification.action_label2 ? notification.action_label2 : notification.action_label}
           </a>

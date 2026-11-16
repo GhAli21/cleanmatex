@@ -63,7 +63,7 @@ export function OrderTaxDocumentPanel({ viewModel }: OrderTaxDocumentPanelProps)
             vouchers: (chunks) => (
               <Link
                 href={`/dashboard/orders/${orderId}?tab=vouchers`}
-                className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                className="font-medium text-primary-text underline underline-offset-2 hover:text-primary-text/80"
               >
                 {chunks}
               </Link>

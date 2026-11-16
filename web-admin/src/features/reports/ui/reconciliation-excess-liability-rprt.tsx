@@ -88,7 +88,7 @@ export function ReconciliationExcessLiabilityRprt({ data, loading, csvHref }: Pr
       <CmxDataTable columns={columns} data={data.rows} />
 
       <div className="flex justify-end">
-        <a href={csvHref} className="text-sm text-primary underline">{t('exportCSV')}</a>
+        <a href={csvHref} className="text-sm text-primary-text underline">{t('exportCSV')}</a>
       </div>
     </div>
   );

@@ -7,8 +7,8 @@
 /** Rows-per-page choices offered by every table. */
 export const CMX_PAGE_SIZE_OPTIONS: readonly number[] = [5, 10, 20, 30, 50, 100]
 
-/** Default rows per page for every table. */
-export const CMX_DEFAULT_PAGE_SIZE = 5
+/** Default rows per page when a table is not given its own size (`pageSize` / `initialPageSize`). */
+export const CMX_DEFAULT_PAGE_SIZE = 10
 
 /**
  * Page-size choices that always contain the current size, so a screen using e.g. 15 or 25 never shows a blank select.

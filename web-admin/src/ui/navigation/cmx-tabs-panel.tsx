@@ -77,7 +77,7 @@ export const CmxTabsPanel: React.FC<CmxTabsPanelProps> = ({
                   'rounded-none border-b-2 border-transparent data-[state=active]:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
                   'data-[state=active]:bg-transparent data-[state=active]:shadow-none',
                   'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-                  'data-[state=active]:text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+                  'data-[state=active]:text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
                   'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] hover:border-[rgb(var(--cmx-border-rgb,226_232_240))]',
                   'px-1 py-4 mx-1 whitespace-nowrap'
                 )}

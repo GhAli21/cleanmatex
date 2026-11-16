@@ -311,7 +311,7 @@ export function PlatformInventoriesScreen() {
             render: (row) => (
               <button
                 type="button"
-                className="text-left font-mono text-xs text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline"
+                className="text-left font-mono text-xs text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
                 onClick={() => setContractRoute(String(row.routePattern ?? ''))}
               >
                 {String(row.routePattern ?? '—')}
@@ -466,7 +466,7 @@ export function PlatformInventoriesScreen() {
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-          <Loader2 className="h-5 w-5 animate-spin text-[rgb(var(--cmx-primary-rgb,14_165_233))]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
           {t('loading')}
         </div>
       ) : activeTab === 'summary' && summaryKpis.length > 0 ? (
@@ -507,7 +507,7 @@ export function PlatformInventoriesScreen() {
       <div className={`mb-6 flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <Link
           href="/dashboard/help"
-          className="inline-flex items-center gap-1 text-sm text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:opacity-80"
+          className="inline-flex items-center gap-1 text-sm text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:opacity-80"
         >
           <ArrowLeft className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} />
           {t('backToHelp')}
@@ -518,7 +518,7 @@ export function PlatformInventoriesScreen() {
         <div className={`flex flex-wrap items-start justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
             <div className="rounded-xl bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/15 p-3">
-              <Database className="h-8 w-8 text-[rgb(var(--cmx-primary-rgb,14_165_233))]" />
+              <Database className="h-8 w-8 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
@@ -560,9 +560,9 @@ export function PlatformInventoriesScreen() {
 
         {routeFilter ? (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-[rgb(var(--cmx-primary-rgb,14_165_233))]/30 bg-white/80 px-3 py-2">
-            <FilterX className="h-4 w-4 text-[rgb(var(--cmx-primary-rgb,14_165_233))]" />
+            <FilterX className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
             <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('routeFilter')}:</span>
-            <span className="font-mono text-xs font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+            <span className="font-mono text-xs font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
               {routeFilter}
             </span>
             <CmxButton

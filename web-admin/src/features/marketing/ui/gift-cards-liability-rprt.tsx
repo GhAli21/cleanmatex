@@ -116,7 +116,7 @@ function KpiCard({ label, value, icon, highlight = false }: KpiCardProps) {
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
         <span className="text-muted-foreground">{icon}</span>
       </div>
-      <span className={`text-2xl font-bold ${highlight ? 'text-primary' : 'text-foreground'}`}>
+      <span className={`text-2xl font-bold ${highlight ? 'text-primary-text' : 'text-foreground'}`}>
         {value}
       </span>
     </div>
@@ -288,7 +288,7 @@ export function GiftCardsLiabilityRprt() {
       key: 'available_amount',
       header: t('fields.availableBalance'),
       render: (row: GiftCard) => (
-        <span className="tabular-nums font-semibold text-primary">
+        <span className="tabular-nums font-semibold text-primary-text">
           {row.available_amount.toFixed(3)}
         </span>
       ),

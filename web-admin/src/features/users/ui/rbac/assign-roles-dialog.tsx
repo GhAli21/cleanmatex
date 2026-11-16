@@ -122,7 +122,7 @@ export function AssignRolesDialog({
       <CmxDialogContent className="w-full max-w-lg">
         <CmxDialogHeader>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-[rgb(var(--cmx-primary-rgb,14_165_233))]" />
+            <Shield className="h-5 w-5 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
             <CmxDialogTitle>{t('assignRoles')}</CmxDialogTitle>
           </div>
           <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
@@ -140,7 +140,7 @@ export function AssignRolesDialog({
                 value="tenant"
                 checked={scope === 'tenant'}
                 onChange={() => setScope('tenant')}
-                className="h-4 w-4 text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+                className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
               />
               {t('scopeTenant')}
             </label>
@@ -151,7 +151,7 @@ export function AssignRolesDialog({
                 value="resource"
                 checked={scope === 'resource'}
                 onChange={() => setScope('resource')}
-                className="h-4 w-4 text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+                className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
               />
               {t('scopeResource')}
             </label>
@@ -167,7 +167,7 @@ export function AssignRolesDialog({
                 <select
                   value={resourceType}
                   onChange={(e) => setResourceType(e.target.value)}
-                  className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+                  className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
                 >
                   <option value="">{tCommon('select')}</option>
                   {RESOURCE_TYPES.map((rt) => (
@@ -186,7 +186,7 @@ export function AssignRolesDialog({
                   value={resourceId}
                   onChange={(e) => setResourceId(e.target.value)}
                   placeholder="UUID"
-                  className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+                  className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
                 />
               </div>
             </div>

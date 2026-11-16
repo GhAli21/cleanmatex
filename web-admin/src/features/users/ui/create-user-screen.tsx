@@ -252,7 +252,7 @@ export default function CreateUserScreen() {
       {lookup?.outcome === 'open' && lookup.membershipId ? (
         <Link
           href={`/dashboard/users/${lookup.membershipId}`}
-          className="inline-flex text-sm font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+          className="inline-flex text-sm font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
         >
           {t('lookupOpenAction')}
         </Link>

@@ -8,7 +8,9 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 import { CmxButton } from '../primitives/cmx-button'
+import { CmxConfirmDialog } from '../feedback/cmx-confirm-dialog'
 
 export interface WizardStep {
   id: string
@@ -41,6 +43,8 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
   children,
   className,
 }) => {
+  const tCommon = useTranslations('common')
+  const [confirmingCancel, setConfirmingCancel] = React.useState(false)
   const isFirstStep = currentStep === 0
   const isLastStep = currentStep === steps.length - 1
   const currentStepData = steps[currentStep]
@@ -109,15 +113,20 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
           <CmxButton
             type="button"
             variant="ghost"
-            onClick={() => {
-              if (window.confirm('Are you sure you want to cancel? All progress will be lost.')) {
-                window.history.back()
-              }
-            }}
+            onClick={() => setConfirmingCancel(true)}
             disabled={isLoading}
           >
-            Cancel
+            {tCommon('cancel')}
           </CmxButton>
+          <CmxConfirmDialog
+            open={confirmingCancel}
+            title={tCommon('leaveWithoutSavingTitle')}
+            description={tCommon('leaveWithoutSavingDescription')}
+            confirmLabel={tCommon('leave')}
+            cancelLabel={tCommon('stay')}
+            onConfirm={() => window.history.back()}
+            onCancel={() => setConfirmingCancel(false)}
+          />
 
           {/* Next/Complete button */}
           <CmxButton

@@ -249,7 +249,7 @@ export default function RefundsListClient({
       cell: ({ row }) => (
         <Link
           href={`${VOUCHER_RELATED_HREFS.order(row.original.order_id)}?tab=financial`}
-          className="font-medium text-primary hover:underline"
+          className="font-medium text-primary-text hover:underline"
         >
           {row.original.order_no ?? row.original.order_id}
         </Link>
@@ -315,7 +315,7 @@ export default function RefundsListClient({
       accessorKey: 'fin_voucher_id',
       header: t('financeVoucher'),
       cell: ({ row }) => row.original.fin_voucher_id ? (
-        <Link href={VOUCHER_RELATED_HREFS.voucher(row.original.fin_voucher_id)} className="font-mono text-xs text-primary hover:underline">
+        <Link href={VOUCHER_RELATED_HREFS.voucher(row.original.fin_voucher_id)} className="font-mono text-xs text-primary-text hover:underline">
           {row.original.fin_voucher_id}
         </Link>
       ) : '—',
@@ -328,7 +328,7 @@ export default function RefundsListClient({
       cell: ({ row }) => row.original.cash_drawer_session_id && row.original.cash_drawer_id ? (
         <Link
           href={VOUCHER_RELATED_HREFS.cashDrawerSession(row.original.cash_drawer_id, row.original.cash_drawer_session_id)}
-          className="font-mono text-xs text-primary hover:underline"
+          className="font-mono text-xs text-primary-text hover:underline"
         >
           {row.original.cash_drawer_session_no ?? row.original.cash_drawer_session_id}
         </Link>

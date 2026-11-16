@@ -54,7 +54,7 @@ export function SessionIdleWarningDialog({ open, secondsLeft, onStaySignedIn, on
           {/* role=timer: assistive tech is not interrupted every second; the dialog itself is announced on open. */}
           <p
             role="timer"
-            className="text-center text-3xl font-semibold tabular-nums text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+            className="text-center text-3xl font-semibold tabular-nums text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
           >
             {t('countdown', { seconds: secondsLeft })}
           </p>

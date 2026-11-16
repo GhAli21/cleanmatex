@@ -269,7 +269,7 @@ export default function LoginPage() {
               </div>
 
               <div className="max-w-md space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
                   {t('login.eyebrow')}
                 </p>
                 <h2 className="text-4xl font-semibold tracking-tight text-slate-900">
@@ -313,7 +313,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
                     {t('login.eyebrow')}
                   </p>
                   <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
@@ -436,7 +436,7 @@ export default function LoginPage() {
 
                     <Link
                       href="/forgot-password"
-                      className="font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] transition-colors hover:text-slate-900"
+                      className="font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] transition-colors hover:text-slate-900"
                     >
                       {t('login.forgotPassword')}
                     </Link>
@@ -456,7 +456,7 @@ export default function LoginPage() {
                       {t('login.noAccount')}{' '}
                       <Link
                         href="/register"
-                        className="font-semibold text-[rgb(var(--cmx-primary-rgb,14_165_233))] transition-colors hover:text-slate-900"
+                        className="font-semibold text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] transition-colors hover:text-slate-900"
                       >
                         {t('login.signUp')}
                       </Link>

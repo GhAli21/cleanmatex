@@ -21,7 +21,7 @@ export function OrderWorkspaceStatusBadge({
 }: OrderWorkspaceStatusBadgeProps) {
   const styles = {
     neutral: 'border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,71_85_105))]',
-    info: 'border-[rgb(var(--cmx-primary-rgb,14_165_233))]/30 bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+    info: 'border-[rgb(var(--cmx-primary-rgb,14_165_233))]/30 bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))] text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
     success: 'border-[rgb(var(--cmx-success-rgb,34_197_94))]/30 bg-[rgb(var(--cmx-success-bg-rgb,240_253_244))] text-[rgb(var(--cmx-success-dark-rgb,22_163_74))]',
     warning: 'border-[rgb(var(--cmx-warning-rgb,234_179_8))]/40 bg-[rgb(var(--cmx-warning-bg-rgb,254_252_232))] text-[rgb(var(--cmx-warning-dark-rgb,161_98_7))]',
     danger: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38))]/30 bg-[rgb(var(--cmx-error-bg-rgb,254_242_242))] text-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',

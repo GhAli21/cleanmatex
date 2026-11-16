@@ -100,15 +100,15 @@ export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) 
             {j ? (
               <Link
                 href={`/dashboard/erp-lite/gl?journalId=${encodeURIComponent(j)}`}
-                className="text-primary hover:underline"
+                className="text-primary-text hover:underline"
               >
                 {t('links.gl')}
               </Link>
             ) : null}
-            <Link href="/dashboard/erp-lite/usage-maps" className="text-primary hover:underline">
+            <Link href="/dashboard/erp-lite/usage-maps" className="text-primary-text hover:underline">
               {t('links.usageMaps')}
             </Link>
-            <Link href="/dashboard/erp-lite/periods" className="text-primary hover:underline">
+            <Link href="/dashboard/erp-lite/periods" className="text-primary-text hover:underline">
               {t('links.periods')}
             </Link>
           </div>

@@ -13,11 +13,24 @@ const preview: Preview = {
         title: 'Direction',
       },
     },
+    // Theme switches — same data-* attributes and UPPERCASE values the app sets on <html>.
+    mode: {
+      name: 'Mode',
+      defaultValue: 'LIGHT',
+      toolbar: { icon: 'circlehollow', items: ['LIGHT', 'DARK'], title: 'Mode' },
+    },
+    density: {
+      name: 'Density',
+      defaultValue: 'COMFORTABLE',
+      toolbar: { icon: 'component', items: ['COMFORTABLE', 'COMPACT'], title: 'Density' },
+    },
   },
   decorators: [
     (Story, context) => {
       // Apply dir attribute to root so all rtl: Tailwind variants activate correctly
       document.documentElement.dir = context.globals.direction ?? 'ltr';
+      document.documentElement.dataset.mode = context.globals.mode ?? 'LIGHT';
+      document.documentElement.dataset.density = context.globals.density ?? 'COMFORTABLE';
       return Story();
     },
   ],

@@ -1,66 +1,104 @@
-/* External font imports must come before @import "tailwindcss" */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-
-:root { color-scheme: light only; }
+/* Every --cmx-* design token (light, dark, density, font scale). */
+@import "../src/ui/foundations/tokens.css";
 
 :root {
-  /* Brand/base tokens (LIGHT) */
-  --background: #ffffff;
-  --foreground: #111827; /* gray-900 */
-  --muted: #f3f4f6; /* gray-100 */
-  --muted-foreground: #6b7280; /* gray-500 */
-  --border: #d1d5db; /* gray-300 */
-  --ring: #3b82f6; /* blue-500 */ 
+  /* Older names kept for existing rules below; they now follow the design tokens. */
+  --background: rgb(var(--cmx-background-rgb));
+  --foreground: rgb(var(--cmx-foreground-rgb));
+  --muted: rgb(var(--cmx-muted-rgb));
+  --muted-foreground: rgb(var(--cmx-muted-foreground-rgb));
+  --border: rgb(var(--cmx-border-rgb));
+  --ring: rgb(var(--cmx-focus-ring-rgb));
 
   /* Form tokens */
-  --input-bg: #ffffff;
-  --input-text: #111827;
-  --input-placeholder: #9ca3af; /* gray-400 */
-  --focus-ring: #3b82f6; /* blue-500 */
+  --input-bg: rgb(var(--cmx-input-bg-rgb));
+  --input-text: rgb(var(--cmx-foreground-rgb));
+  --input-placeholder: rgb(var(--cmx-muted-foreground-rgb));
+  --focus-ring: rgb(var(--cmx-focus-ring-rgb));
 }
 
 @theme inline {
-  /* Expose tokens to Tailwind */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-  --font-geist-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-geist-mono: 'Menlo', 'Monaco', 'Lucida Console', 'Courier New', monospace;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Semantic colour names for Tailwind (bg-primary, text-muted-foreground, border-border …). */
+  --color-background: rgb(var(--cmx-background-rgb));
+  --color-foreground: rgb(var(--cmx-foreground-rgb));
+  --color-surface: rgb(var(--cmx-surface-rgb));
+  --color-surface-muted: rgb(var(--cmx-surface-muted-rgb));
+  --color-card: rgb(var(--cmx-card-rgb));
+  --color-card-foreground: rgb(var(--cmx-foreground-rgb));
+  --color-popover: rgb(var(--cmx-surface-elevated-rgb));
+  --color-popover-foreground: rgb(var(--cmx-foreground-rgb));
+  --color-muted: rgb(var(--cmx-muted-rgb));
+  --color-muted-foreground: rgb(var(--cmx-muted-foreground-rgb));
+  --color-border: rgb(var(--cmx-border-rgb));
+  --color-input: rgb(var(--cmx-border-rgb));
+  --color-ring: rgb(var(--cmx-focus-ring-rgb));
+  --color-primary: rgb(var(--cmx-primary-rgb));
+  --color-primary-foreground: rgb(var(--cmx-primary-fg-rgb));
+  --color-primary-hover: rgb(var(--cmx-primary-hover-rgb));
+  /* Brand colour as text on surfaces: readable, unlike the solid seed. */
+  --color-primary-text: rgb(var(--cmx-primary-text-rgb));
+  /* "secondary" is the neutral button style; the brand's second colour is brand-secondary. */
+  --color-secondary: rgb(var(--cmx-secondary-bg-rgb));
+  --color-secondary-foreground: rgb(var(--cmx-secondary-fg-rgb));
+  --color-accent: rgb(var(--cmx-ghost-hover-bg-rgb));
+  --color-accent-foreground: rgb(var(--cmx-foreground-rgb));
+  --color-destructive: rgb(var(--cmx-destructive-rgb));
+  --color-destructive-foreground: rgb(255 255 255);
+  --color-success: rgb(var(--cmx-success-rgb));
+  --color-warning: rgb(var(--cmx-warning-rgb));
+  --color-info: rgb(var(--cmx-info-rgb));
+  --color-brand-secondary: rgb(var(--cmx-brand-secondary-rgb));
+  --color-brand-secondary-foreground: rgb(var(--cmx-brand-secondary-fg-rgb));
 
-/* Disable dark mode for now
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Brand/base tokens (DARK) * /
-    --background: #0a0a0a;
-    --foreground: #e5e7eb; /* gray-200 * /
-    --muted: #111214;
-    --muted-foreground: #9ca3af; /* gray-400 * /
-    --border: #374151; /* gray-700 * /
-    --ring: #60a5fa; /* blue-400 * /
+  --radius-sm: var(--cmx-radius-sm);
+  --radius-md: var(--cmx-radius-md);
+  --radius-lg: var(--cmx-radius-lg);
 
-    /* Form tokens * /
-    --input-bg: #111214;
-    --input-text: #e5e7eb;
-    --input-placeholder: #9ca3af;
-    --focus-ring: #60a5fa;
-  }
+  /* System font stack for Latin text: nothing to download. Arabic uses --font-arabic (next/font). */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Menlo', 'Monaco', 'Lucida Console', 'Courier New', monospace;
 }
-*/
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* Shared text styles used by Cmx form and page components. */
+@layer components {
+  .cmx-type-page-title { font-size: 1.5rem; line-height: 2rem; font-weight: 700; color: rgb(var(--cmx-foreground-rgb)); }
+  .cmx-type-section-title { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: rgb(var(--cmx-foreground-rgb)); }
+  .cmx-type-kpi { font-size: 1.875rem; line-height: 2.25rem; font-weight: 700; font-variant-numeric: tabular-nums; color: rgb(var(--cmx-foreground-rgb)); }
+  .cmx-type-field-label { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: rgb(var(--cmx-foreground-rgb)); }
+  .cmx-type-field-helper { font-size: 0.75rem; line-height: 1rem; color: rgb(var(--cmx-muted-foreground-rgb)); }
+  .cmx-type-field-error { font-size: 0.75rem; line-height: 1rem; color: rgb(var(--cmx-destructive-rgb)); }
+}
+
+/* Paper is always light, whatever the screen mode. */
+@media print {
+  :root, [data-mode] {
+    color-scheme: light;
+    --cmx-background-rgb: 255 255 255;
+    --cmx-surface-rgb: 255 255 255;
+    --cmx-surface-muted-rgb: 255 255 255;
+    --cmx-surface-elevated-rgb: 255 255 255;
+    --cmx-card-rgb: 255 255 255;
+    --cmx-card-bg-rgb: 255 255 255;
+    --cmx-input-bg-rgb: 255 255 255;
+    --cmx-muted-rgb: 245 245 245;
+    --cmx-table-header-bg-rgb: 245 245 245;
+    --cmx-border-rgb: 160 160 160;
+    --cmx-border-subtle-rgb: 200 200 200;
+    --cmx-foreground-rgb: 0 0 0;
+    --cmx-text-primary-rgb: 0 0 0;
+    --cmx-text-secondary-rgb: 40 40 40;
+    --cmx-muted-foreground-rgb: 70 70 70;
+  }
 }
 
 /* Base typography */
@@ -104,7 +142,7 @@ body {
 
 /* Arabic font for RTL */
 [dir="rtl"] body {
-  font-family: 'Noto Sans Arabic', Arial, sans-serif;
+  font-family: var(--font-arabic, 'Noto Sans Arabic'), var(--font-sans);
   font-feature-settings: "kern" 1, "liga" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -130,16 +168,6 @@ body {
 [dir="rtl"] h6 {
   line-height: 1.8;
   letter-spacing: 0;
-}
-
-/* Fix text truncation for Arabic - allow wrapping instead of cutting */
-[dir="rtl"] .truncate {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  max-width: 100%;
 }
 
 /* Better truncate behavior for RTL - multi-line support */
@@ -175,7 +203,7 @@ body {
 [dir="rtl"] textarea,
 [dir="rtl"] select,
 [dir="rtl"] button {
-  font-family: 'Noto Sans Arabic', Arial, sans-serif;
+  font-family: var(--font-arabic, 'Noto Sans Arabic'), var(--font-sans);
   text-align: right;
   direction: rtl;
 }

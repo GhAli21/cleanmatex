@@ -51,7 +51,7 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CmxCardTitle className="flex items-center gap-2 text-base">
-              <FileCheck2 className="h-5 w-5 text-primary" aria-hidden="true" />
+              <FileCheck2 className="h-5 w-5 text-primary-text" aria-hidden="true" />
               {t('title')}
             </CmxCardTitle>
             <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>

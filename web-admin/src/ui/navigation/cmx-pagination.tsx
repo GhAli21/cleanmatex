@@ -7,6 +7,7 @@
 'use client'
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxSelect } from '../primitives/cmx-select'
 import { CMX_PAGE_SIZE_OPTIONS, cmxPageSizeChoices } from '../data-display/cmx-table-defaults'
@@ -49,6 +50,7 @@ export function CmxPagination({
   labels,
   disabled = false,
 }: CmxPaginationProps) {
+  const tCommon = useTranslations('common')
   const rowsPerPageLabel = labels?.rowsPerPage ?? 'Rows per page:'
   const noItemsLabel = labels?.noItems ?? 'No items'
   const startItem = (currentPage - 1) * pageSize + 1
@@ -163,8 +165,9 @@ export function CmxPagination({
           onClick={() => onPageChange(1)}
           disabled={disabled || currentPage === 1}
           className="h-8 w-8 p-0"
+          aria-label={tCommon('firstPage')}
         >
-          <ChevronsLeft className="h-4 w-4" />
+          <ChevronsLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
         </CmxButton>
 
         <CmxButton
@@ -173,8 +176,9 @@ export function CmxPagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={disabled || currentPage === 1}
           className="h-8 w-8 p-0"
+          aria-label={tCommon('previous')}
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
         </CmxButton>
 
         <div className="flex items-center gap-1">
@@ -187,6 +191,7 @@ export function CmxPagination({
               ) : (
                 <CmxButton
                   variant={page === currentPage ? 'primary' : 'ghost'}
+                  aria-current={page === currentPage ? 'page' : undefined}
                   size="sm"
                   onClick={() => onPageChange(page as number)}
                   disabled={disabled}
@@ -205,8 +210,9 @@ export function CmxPagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={disabled || currentPage === totalPages}
           className="h-8 w-8 p-0"
+          aria-label={tCommon('next')}
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
         </CmxButton>
 
         <CmxButton
@@ -215,8 +221,9 @@ export function CmxPagination({
           onClick={() => onPageChange(totalPages)}
           disabled={disabled || currentPage === totalPages}
           className="h-8 w-8 p-0"
+          aria-label={tCommon('lastPage')}
         >
-          <ChevronsRight className="h-4 w-4" />
+          <ChevronsRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
         </CmxButton>
       </div>
     </div>

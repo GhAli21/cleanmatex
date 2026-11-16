@@ -126,7 +126,7 @@ export function ProductSpeedPricingSection({ productId, productLabel }: { produc
               </div>
             </div>
           ))}
-          <Link href="/dashboard/catalog/speed-pricing" className="inline-block text-sm text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline">
+          <Link href="/dashboard/catalog/speed-pricing" className="inline-block text-sm text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline">
             {tProduct('openAll')}
           </Link>
         </div>

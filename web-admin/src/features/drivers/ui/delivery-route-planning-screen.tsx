@@ -422,7 +422,7 @@ export function DeliveryRoutePlanningScreen() {
       header: '',
       sortable: false,
       render: (order: DeliveryQueueOrder) => (
-        <Link href={`/dashboard/orders/${order.id}`} className="text-primary hover:underline">
+        <Link href={`/dashboard/orders/${order.id}`} className="text-primary-text hover:underline">
           {tCommon('view')}
         </Link>
       ),

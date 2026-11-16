@@ -170,7 +170,7 @@ export function PosSessionDrawerLinker({
   return (
     <div className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-4">
       <div className="flex items-start gap-3">
-        <div className="rounded-full bg-white p-2 text-[rgb(var(--cmx-primary-rgb,14_165_233))] shadow-sm">
+        <div className="rounded-full bg-white p-2 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] shadow-sm">
           <WalletCards className="h-4 w-4" aria-hidden />
         </div>
         <div>

@@ -662,7 +662,7 @@ export function DataTable<TData, TValue>({
                                 className={cn(
                                   "h-3 w-3 transition-colors",
                                   isSorted === "asc"
-                                    ? "text-primary"
+                                    ? "text-primary-text"
                                     : "text-muted-foreground/30"
                                 )}
                               />
@@ -670,7 +670,7 @@ export function DataTable<TData, TValue>({
                                 className={cn(
                                   "h-3 w-3 -mt-1 transition-colors",
                                   isSorted === "desc"
-                                    ? "text-primary"
+                                    ? "text-primary-text"
                                     : "text-muted-foreground/30"
                                 )}
                               />

@@ -140,10 +140,10 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
         <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <span>{t('banner')}</span>
           <span className="flex flex-wrap gap-3 text-sm">
-            <Link href="/dashboard/erp-lite" className="font-medium text-primary hover:underline">
+            <Link href="/dashboard/erp-lite" className="font-medium text-primary-text hover:underline">
               {t('linkHome')}
             </Link>
-            <Link href="/dashboard/erp-lite/readiness" className="font-medium text-primary hover:underline">
+            <Link href="/dashboard/erp-lite/readiness" className="font-medium text-primary-text hover:underline">
               {t('linkReadiness')}
             </Link>
           </span>

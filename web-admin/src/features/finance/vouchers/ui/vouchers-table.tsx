@@ -69,7 +69,7 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
         return (
           <Link
             href={VOUCHER_RELATED_HREFS.voucher(refId)}
-            className="font-mono text-sm font-medium text-primary hover:underline"
+            className="font-mono text-sm font-medium text-primary-text hover:underline"
           >
             {row.original.ref_voucher_no ?? refId}
           </Link>

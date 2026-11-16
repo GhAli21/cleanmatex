@@ -70,7 +70,7 @@ export function ErpLiteSetupWizardScreen() {
                   <div>
                     <div className="font-medium">{t(`steps.${step.key}.title`)}</div>
                     <p className="text-sm text-muted-foreground">{t(`steps.${step.key}.description`)}</p>
-                    <Link href={step.href} className="mt-1 inline-block text-sm font-medium text-primary hover:underline">
+                    <Link href={step.href} className="mt-1 inline-block text-sm font-medium text-primary-text hover:underline">
                       {t('openStep')}
                     </Link>
                   </div>

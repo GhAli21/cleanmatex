@@ -54,9 +54,9 @@ const colorMap = {
   info: {
     bg: 'bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))]',
     border: 'border-[rgb(var(--cmx-info-border-rgb,191_219_254))]',
-    icon: 'text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-    title: 'text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
-    text: 'text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+    icon: 'text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
+    title: 'text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
+    text: 'text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
   },
   error: {
     bg: 'bg-[rgb(var(--cmx-error-bg-rgb,254_242_242))]',

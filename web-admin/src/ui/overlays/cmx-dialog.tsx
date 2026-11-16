@@ -123,6 +123,12 @@ export interface CmxDialogProps {
    * Default false — dismiss via Esc, header close, Cancel, or a successful Done.
    */
   closeOnOverlayClick?: boolean;
+  /**
+   * Render on the top modal layer (`--cmx-z-modal`) instead of the default one.
+   * For dialogs that must open over another overlay, such as a confirmation
+   * raised from inside a full-screen view. Default false.
+   */
+  stackAboveModals?: boolean;
   /** Accessible name when the dialog has no `CmxDialogTitle`. */
   'aria-label'?: string;
   /** Overrides the id of the element that names the dialog (default: its `CmxDialogTitle`). */
@@ -137,6 +143,7 @@ export function CmxDialog({
   children,
   autoFocus = true,
   closeOnOverlayClick = false,
+  stackAboveModals = false,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-describedby': ariaDescribedBy,
@@ -153,14 +160,14 @@ export function CmxDialog({
     setMounted(true);
   }, []);
 
+  // Lock page scroll only while open and give back whatever was there before,
+  // so a closed or nested dialog never unlocks a parent modal's page.
   React.useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previous;
     };
   }, [open]);
 
@@ -194,7 +201,10 @@ export function CmxDialog({
     <DialogContext.Provider value={{ open, onOpenChange, setTitleId, setDescriptionId }}>
       <div
         ref={trapRef}
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        className={cn(
+          'fixed inset-0 flex items-center justify-center',
+          stackAboveModals ? 'z-[var(--cmx-z-modal)]' : 'z-50',
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
@@ -383,7 +393,7 @@ export function CmxDialogContent({
               'absolute top-4 right-4 rtl:right-auto rtl:left-4',
               'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
               'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
-              'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))] rounded',
+              'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))] rounded',
             )}
             aria-label={tCommon('close')}
           >

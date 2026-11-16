@@ -500,7 +500,7 @@ export function CmxSelectDropdownItem({
       }}
       onMouseDown={(e) => e.stopPropagation()}
       className={cn(
-        'relative flex min-h-[44px] w-full cursor-pointer select-none items-center rounded-[var(--cmx-radius-md,0.875rem)] py-2.5 pl-9 pr-3 text-sm outline-none transition md:min-h-10',
+        'relative flex min-h-[44px] w-full cursor-pointer select-none items-center rounded-[var(--cmx-radius-md,0.875rem)] py-2.5 ps-9 pe-3 text-sm outline-none transition md:min-h-10',
         isHighlighted
           ? 'bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))] text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]'
           : 'hover:bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))]',
@@ -509,7 +509,7 @@ export function CmxSelectDropdownItem({
       )}
     >
       {isSelected && (
-        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+        <span className="absolute start-2 flex h-3.5 w-3.5 items-center justify-center text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
           <Check className="h-4 w-4" />
         </span>
       )}

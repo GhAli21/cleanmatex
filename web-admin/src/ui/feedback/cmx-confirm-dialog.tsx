@@ -7,6 +7,14 @@
 
 import { useState, type ReactNode } from 'react'
 import { CmxButton } from '../primitives/cmx-button'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '../overlays/cmx-dialog'
 
 /**
  *
@@ -76,35 +84,32 @@ export function CmxConfirmDialog({
       {!isControlled && trigger && (
         <span onClick={() => setInternalOpen(true)}>{trigger}</span>
       )}
-      {open && (
-        <div
-          className="fixed inset-0 z-[var(--cmx-z-modal,1050)] flex items-center justify-center bg-black/40"
-          role="presentation"
-        >
-          <div
-            className="w-full max-w-md rounded-xl bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] p-4 shadow-xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cmx-confirm-title"
-          >
-            <h2 id="cmx-confirm-title" className="text-sm font-semibold">{title}</h2>
-            {description && (
-              <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-                {description}
-              </p>
-            )}
-            {children ? <div className="mt-3 space-y-2">{children}</div> : null}
-            <div className="mt-4 flex justify-end gap-2">
-              <CmxButton variant="ghost" onClick={handleClose}>
-                {cancelLabel}
-              </CmxButton>
-              <CmxButton loading={loading} disabled={confirmDisabled} onClick={handleConfirm}>
-                {confirmLabel}
-              </CmxButton>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* CmxDialog supplies the portal, focus trap, Escape handling and accessible name.
+          Escape and the header close button cancel, exactly like the Cancel button,
+          and like it are ignored while the confirm is running. */}
+      <CmxDialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next && !loading) handleClose()
+        }}
+        stackAboveModals
+      >
+        <CmxDialogContent className="w-full max-w-md">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{title}</CmxDialogTitle>
+            {description && <CmxDialogDescription>{description}</CmxDialogDescription>}
+          </CmxDialogHeader>
+          {children ? <div className="space-y-2">{children}</div> : null}
+          <CmxDialogFooter>
+            <CmxButton variant="ghost" onClick={handleClose} disabled={loading}>
+              {cancelLabel}
+            </CmxButton>
+            <CmxButton loading={loading} disabled={confirmDisabled} onClick={handleConfirm}>
+              {confirmLabel}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </>
   )
 }

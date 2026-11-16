@@ -221,7 +221,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
     <CmxCard>
       <CmxCardHeader>
         <CmxCardTitle className="flex items-center gap-2 text-base">
-          <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
+          <ShieldCheck className="h-5 w-5 text-primary-text" aria-hidden="true" />
           {t('title')}
         </CmxCardTitle>
       </CmxCardHeader>

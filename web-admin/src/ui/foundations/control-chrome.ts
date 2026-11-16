@@ -15,10 +15,10 @@ export const CMX_FIELD_CHROME = {
   hover:
     'hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.8)] hover:shadow-[inset_0_0_0_1px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.06)]',
   focus:
-    'focus-visible:outline-none focus-visible:border-[rgb(var(--cmx-primary-rgb,14_165_233))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.35)] focus-visible:ring-offset-0 focus-visible:shadow-none',
+    'focus-visible:outline-none focus-visible:border-[rgb(var(--cmx-primary-rgb,14_165_233))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)] focus-visible:ring-offset-0 focus-visible:shadow-none',
   /** Use when the control focuses via `:focus` (e.g. custom dropdown trigger). */
   focusLegacy:
-    'focus:outline-none focus:border-[rgb(var(--cmx-primary-rgb,14_165_233))] focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.35)] focus:ring-offset-0 focus:shadow-none',
+    'focus:outline-none focus:border-[rgb(var(--cmx-primary-rgb,14_165_233))] focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)] focus:ring-offset-0 focus:shadow-none',
   error:
     'border-[rgb(var(--cmx-destructive-rgb,220_38_38))] focus-visible:border-[rgb(var(--cmx-destructive-rgb,220_38_38))] focus-visible:ring-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.35)]',
   errorLegacy:
@@ -65,7 +65,7 @@ export const CMX_CHOICE_CHROME = {
     'indeterminate:bg-[rgb(var(--cmx-primary-rgb,14_165_233))]',
     'indeterminate:shadow-none',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-    'focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.35)]',
+    'focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)]',
     'focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
     'disabled:cursor-not-allowed disabled:opacity-50'
   ),
@@ -89,5 +89,5 @@ export const CMX_BUTTON_OUTLINE_CHROME = {
     'hover:bg-[rgb(var(--cmx-secondary-hover-bg-rgb,226_232_240))]'
   ),
   focusRing:
-    'focus-visible:ring-[rgb(var(--cmx-primary-rgb,14_165_233)/0.35)] focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
+    'focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)] focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
 } as const

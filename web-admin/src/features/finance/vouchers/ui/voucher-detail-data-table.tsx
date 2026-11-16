@@ -59,7 +59,7 @@ export function VoucherDetailCopyValue({
         <Link
           href={href}
           onClick={(event) => event.stopPropagation()}
-          className="inline-flex items-center gap-0.5 text-xs font-medium text-primary underline-offset-2 hover:underline"
+          className="inline-flex items-center gap-0.5 text-xs font-medium text-primary-text underline-offset-2 hover:underline"
         >
           {linkLabel}
           <ArrowUpRight className="h-3 w-3" />

@@ -931,7 +931,7 @@ export function ProcessingModal({
           {/* Loading State */}
           {isLoading && (
             <div className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary-text" />
             </div>
           )}
 

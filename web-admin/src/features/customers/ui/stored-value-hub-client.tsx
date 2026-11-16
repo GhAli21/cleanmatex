@@ -66,7 +66,7 @@ export function StoredValueHubClient() {
             render: (row: StoredValueSummaryRow) => (
               <Link
                 href={`/dashboard/customers/${row.customerId}`}
-                className="font-medium text-primary hover:underline"
+                className="font-medium text-primary-text hover:underline"
               >
                 {row.customerName}
               </Link>

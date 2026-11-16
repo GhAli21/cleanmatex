@@ -339,7 +339,7 @@ export function FinancialReportsClient() {
                 <div className="flex justify-end">
                   <a
                     href={`/api/v1/finance/reports/tax-report?from=${from}&to=${to}&format=csv`}
-                    className="text-sm text-primary underline"
+                    className="text-sm text-primary-text underline"
                   >
                     {t('exportCSV')}
                   </a>

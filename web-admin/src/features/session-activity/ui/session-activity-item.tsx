@@ -17,7 +17,7 @@ const TYPE_ICON: Record<SessionActivityEntry['type'], ElementType> = {
 const TYPE_ICON_CLASS: Record<SessionActivityEntry['type'], string> = {
   error: 'bg-[rgb(var(--cmx-destructive-rgb,239_68_68)_/_.1)] text-[rgb(var(--cmx-destructive-rgb,239_68_68))]',
   warning: 'bg-[rgb(var(--cmx-warning-rgb,245_158_11)_/_.1)] text-[rgb(var(--cmx-warning-rgb,245_158_11))]',
-  info: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+  info: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
 }
 
 function getRelativeTime(isoString: string, locale: string, justNow: string): string {
@@ -137,7 +137,7 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
             type="button"
             variant="ghost"
             size="xs"
-            className="min-h-9 min-w-9 px-1.5 text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+            className="min-h-9 min-w-9 px-1.5 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
             aria-label={t('copyMessage')}
             onClick={() => void handleCopy()}
           >
@@ -148,7 +148,7 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
               type="button"
               variant="ghost"
               size="xs"
-              className="text-[11px] text-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+              className="text-[11px] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
               onClick={() => onMarkRead(entry.id)}
             >
               {t('item.markRead')}

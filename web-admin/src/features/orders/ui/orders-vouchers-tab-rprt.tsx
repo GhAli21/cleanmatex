@@ -148,7 +148,7 @@ export function OrdersVouchersTabRprt({
                       <CopyValue value={voucher.voucher_no} className="font-medium" />
                       <Link
                         href={`/dashboard/internal_fin/vouchers/${voucher.id}`}
-                        className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-muted"
+                        className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary-text transition-colors hover:bg-muted"
                       >
                         {tDetail('openVoucher')}
                         <ArrowUpRight className="h-3 w-3" />
@@ -183,7 +183,7 @@ export function OrdersVouchersTabRprt({
                         {sourceLink && (
                           <Link
                             href={sourceLink}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary-text hover:underline"
                           >
                             {tDetail('openSource')}
                             <ArrowUpRight className="h-3 w-3" />
@@ -260,7 +260,7 @@ export function OrdersVouchersTabRprt({
                     </CmxButton>
                     <Link
                       href={`/dashboard/internal_fin/vouchers/${voucher.id}`}
-                      className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                      className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-primary-text transition-colors hover:bg-muted"
                     >
                       {tDetail('openVoucher')}
                     </Link>

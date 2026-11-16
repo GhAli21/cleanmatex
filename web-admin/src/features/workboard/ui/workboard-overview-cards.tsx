@@ -20,8 +20,8 @@ type WorkboardOverviewTone = 'primary' | 'info' | 'success' | 'warning' | 'dange
 const OVERVIEW_TONE_CLASSES: Record<WorkboardOverviewTone, { idle: string; active: string; icon: string }> = {
   primary: {
     idle: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.28)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.05)]',
-    active: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.7)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
-    icon: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+    active: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.7)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
+    icon: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
   },
   info: {
     idle: 'border-[rgb(var(--cmx-info-rgb,59_130_246)/0.28)] bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.05)]',

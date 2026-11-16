@@ -92,7 +92,7 @@ export function PosShiftZArchiveScreen() {
         <div className="space-y-1">
           <Link
             href={`${POS_SESSIONS_PATH}/${row.posSessionId}/report`}
-            className="font-mono text-sm font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline"
+            className="font-mono text-sm font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
           >
             {row.reportNo}
           </Link>

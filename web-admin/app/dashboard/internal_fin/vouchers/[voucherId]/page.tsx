@@ -96,7 +96,7 @@ export default async function VoucherDetailPage({ params }: PageProps) {
         <div>
           <Link
             href="/dashboard/internal_fin/vouchers"
-            className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+            className="text-sm font-medium text-primary-text underline-offset-2 hover:underline"
           >
             {t('backToVouchers')}
           </Link>

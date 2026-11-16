@@ -62,7 +62,7 @@ export function buildOrderIssueTableColumns(
       render: (row) => (
         <Link
           href={`/dashboard/processing?orderId=${row.order_id}`}
-          className="font-medium text-primary hover:underline"
+          className="font-medium text-primary-text hover:underline"
         >
           <bdi dir="ltr" className="font-mono">{row.order_no ?? '—'}</bdi>
         </Link>

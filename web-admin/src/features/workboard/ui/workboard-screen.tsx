@@ -188,7 +188,7 @@ function WorkboardOrderReference({ order, returnUrl }: WorkboardOrderReferencePr
         orderNo={orderNo}
         returnUrl={returnUrl}
         returnLabel={t('returnToWorkboard')}
-        className="min-w-0 truncate font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-primary-rgb,37_99_235))]"
+        className="min-w-0 truncate font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,37_99_235))]"
         title={t('orderDetailsLinkTitle', { orderNo })}
         ariaLabel={t('orderDetailsLinkTitle', { orderNo })}
       >
@@ -464,7 +464,7 @@ export function WorkboardScreen() {
       <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <ClipboardList className="h-8 w-8 text-[rgb(var(--cmx-primary-rgb,37_99_235))]" aria-hidden />
+            <ClipboardList className="h-8 w-8 text-[rgb(var(--cmx-primary-text-rgb,37_99_235))]" aria-hidden />
             <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
           </div>
           <p className="mt-1 max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>

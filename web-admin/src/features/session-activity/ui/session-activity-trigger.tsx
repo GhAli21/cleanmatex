@@ -87,7 +87,7 @@ export function SessionActivityTrigger() {
         title={t('title')}
         aria-label={badgeLabel}
         aria-expanded={open}
-        className="relative rounded-md p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+        className="relative rounded-md p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
       >
         <ScrollText className="h-6 w-6" />
         {unreadCount > 0 && (

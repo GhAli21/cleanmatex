@@ -204,7 +204,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                         {c.fin_voucher_id ? (
                           <Link
                             href={`/dashboard/internal_fin/vouchers/${c.fin_voucher_id}`}
-                            className="text-primary hover:underline"
+                            className="text-primary-text hover:underline"
                           >
                             {t('openVoucher')}
                           </Link>
@@ -417,7 +417,7 @@ function PaymentRow({
         {payment.fin_voucher_id ? (
           <Link
             href={`/dashboard/internal_fin/vouchers/${payment.fin_voucher_id}`}
-            className="text-primary hover:underline"
+            className="text-primary-text hover:underline"
           >
             {t('openVoucher')}
           </Link>

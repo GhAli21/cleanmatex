@@ -43,7 +43,7 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
 
     const variantClass = {
       primary:
-        'border-2 border-transparent bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-white hover:bg-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+        'border-2 border-transparent bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-fg-rgb))] hover:bg-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
       secondary: CMX_BUTTON_OUTLINE_CHROME.secondary,
       ghost:
         'border-2 border-transparent bg-transparent hover:bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))]',
@@ -79,7 +79,7 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
         {...props}
       >
         {loading && (
-          <span className="mr-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          <span className="me-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
         )}
         {children}
       </button>

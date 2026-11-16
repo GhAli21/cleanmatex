@@ -75,7 +75,7 @@ function ShortcutCard({
         </CmxCardHeader>
         <CmxCardContent>
           <p className="text-sm text-muted-foreground">{description}</p>
-          <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
+          <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary-text">
             <span>{openLabel}</span>
             <ArrowRight className="h-4 w-4" aria-hidden />
           </span>
@@ -235,7 +235,7 @@ export function ErpLiteHomeScreen({
             <CmxCardContent className="space-y-2 text-sm text-muted-foreground">
               <p>{t('governance.body')}</p>
               {visibility.readiness ? (
-                <Link href="/dashboard/erp-lite/readiness" className="font-medium text-primary hover:underline">
+                <Link href="/dashboard/erp-lite/readiness" className="font-medium text-primary-text hover:underline">
                   {t('governance.linkReadiness')}
                 </Link>
               ) : null}

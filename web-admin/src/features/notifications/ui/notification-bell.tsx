@@ -88,7 +88,7 @@ export function NotificationBell() {
         onClick={handleToggle}
         aria-label={t('title')}
         aria-expanded={open}
-        className="relative p-2 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-primary-rgb,14_165_233))]"
+        className="relative p-2 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
       >
         <Bell className="h-6 w-6" />
         {unreadCount > 0 && (
@@ -110,7 +110,7 @@ export function NotificationBell() {
             <span className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
               {t('title')}
               {unreadCount > 0 && (
-                <span className="ms-2 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] px-1.5 py-0.5 text-[11px] font-bold text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+                <span className="ms-2 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] px-1.5 py-0.5 text-[11px] font-bold text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
                   {unreadCount}
                 </span>
               )}
@@ -120,7 +120,7 @@ export function NotificationBell() {
                 variant="ghost"
                 size="xs"
                 onClick={handleMarkAllRead}
-                className="text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:text-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]"
+                className="text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
               >
                 {t('markAllRead')}
               </CmxButton>
@@ -165,7 +165,7 @@ export function NotificationBell() {
             <Link
               href="/dashboard/notifications"
               onClick={() => setOpen(false)}
-              className="block text-center text-xs font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] hover:underline"
+              className="block text-center text-xs font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
             >
               {t('bell.viewAll')}
             </Link>

@@ -67,7 +67,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
           >
             {label}
             {props.required && (
-              <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+              <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
             )}
           </label>
         )}
@@ -77,7 +77,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              'w-full appearance-none rounded-[var(--cmx-radius-md,0.375rem)] px-3 pr-9',
+              'w-full appearance-none rounded-[var(--cmx-radius-md,0.375rem)] ps-3 pe-9',
               cmxFieldChrome({ error: hasError }),
               'disabled:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
               sizeClass,
@@ -105,7 +105,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
             ))}
           </select>
 
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2">
             <svg
               className="h-4 w-4 text-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)]"
               fill="none"

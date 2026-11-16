@@ -944,9 +944,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                               {!sorted ? (
                                 <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
                               ) : sorted === 'asc' ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-[rgb(var(--cmx-primary-rgb,59_130_246))]" />
+                                <ArrowUp className="h-3.5 w-3.5 text-[rgb(var(--cmx-primary-text-rgb,59_130_246))]" />
                               ) : (
-                                <ArrowDown className="h-3.5 w-3.5 text-[rgb(var(--cmx-primary-rgb,59_130_246))]" />
+                                <ArrowDown className="h-3.5 w-3.5 text-[rgb(var(--cmx-primary-text-rgb,59_130_246))]" />
                               )}
                             </span>
                           ) : null}

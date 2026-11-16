@@ -40,7 +40,7 @@ export function GlSummaryBar({ summary, displayConfig }: GlSummaryBarProps) {
         valueClass="text-emerald-600"
       />
       <StatCard
-        icon={<Rows3 className="h-4 w-4 text-[rgb(var(--cmx-primary-rgb,14_165_233))]" />}
+        icon={<Rows3 className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />}
         label={t('gl.summary.rowCount')}
         value={formatErpLiteNumber(summary.rowCount, displayConfig.locale)}
         sub={

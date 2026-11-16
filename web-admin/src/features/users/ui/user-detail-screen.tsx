@@ -183,7 +183,7 @@ export function UserDetailScreen() {
               onClick={() => setActiveTab(key)}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === key
-                  ? 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-rgb,14_165_233))]'
+                  ? 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]'
                   : 'border-transparent text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] hover:border-[rgb(var(--cmx-border-rgb,226_232_240))]'
               }`}
             >

@@ -115,7 +115,7 @@ export function ErpLitePeriodsScreen({ rows }: ErpLitePeriodsScreenProps) {
               {b.href ? (
                 <>
                   {' '}
-                  <Link href={b.href} className="text-primary underline-offset-2 hover:underline">
+                  <Link href={b.href} className="text-primary-text underline-offset-2 hover:underline">
                     {t('close.openLink')}
                   </Link>
                 </>
