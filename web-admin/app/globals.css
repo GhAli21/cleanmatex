@@ -38,6 +38,7 @@
   --color-primary-hover: rgb(var(--cmx-primary-hover-rgb));
   /* Brand colour as text on surfaces: readable, unlike the solid seed. */
   --color-primary-text: rgb(var(--cmx-primary-text-rgb));
+  --color-primary-bg: rgb(var(--cmx-primary-bg-rgb));
   /* "secondary" is the neutral button style; the brand's second colour is brand-secondary. */
   --color-secondary: rgb(var(--cmx-secondary-bg-rgb));
   --color-secondary-foreground: rgb(var(--cmx-secondary-fg-rgb));

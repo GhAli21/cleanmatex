@@ -7,12 +7,12 @@ Audience: Owner and engineering
 Status: Operative draft. The N4 rule and the U4 rule in this memo are the rules engineering implements.
 
 1. THE TWO RELATIONSHIPS
-CleanMateX sells software to a laundry. The laundry serves a person who brings clothes.
+CleanMateX sells software to a Tenant. The Tenant serves a person who brings clothes.
 
 Party              Who                              Legal role
-Provider           [LEGAL_ENTITY_NAME], trading as CleanMateX    Controller of its own business data. Processor of the laundry's customer data.
-Organization       The laundry or dry-cleaner that signs up       Controller of its end customers, its staff content, and its commercial records. Customer of the Provider under the Terms.
-End Customer       The person or company that hands clothes to the laundry    Data subject of the Organization. Not a party to the Terms.
+Provider           [LEGAL_ENTITY_NAME], trading as CleanMateX    Controller of its own business data. Processor of the Tenant's customer data.
+Organization       The Tenant that signs up       Controller of its end customers, its staff content, and its commercial records. Customer of the Provider under the Terms.
+End Customer       The person or company that hands clothes to the Tenant    Data subject of the Organization. Not a party to the Terms.
 Staff user         A person the Organization allows into the application      Acts for the Organization. Their account data is also the Provider's controller data for security and login.
 
 The public Terms bind the Organization.
@@ -130,12 +130,12 @@ Do not build now:
 - A Saudi schedule.
 - A claim of ISO certification, SOC report, or a named data-center city that is not in file 18.
 - A pre-ticked box of any kind.
-- Cross-tenant use of one laundry's customer list to market another laundry.
+- Cross-tenant use of one Tenant's customer list to market another Tenant.
 
 9. HOW A PERSON EXERCISES RIGHTS
 End Customer rights of access, correction, and erasure are exercised against the Organization, which is the controller.
 The application supports the Organization with export and anonymize.
-If a person writes to [PRIVACY_EMAIL] about a laundry ticket, the Provider identifies the Organization and forwards the request, and does not quietly edit the tenant's data without the Organization's instruction, unless a binding order requires it.
+If a person writes to [PRIVACY_EMAIL] about a Tenant ticket, the Provider identifies the Organization and forwards the request, and does not quietly edit the tenant's data without the Organization's instruction, unless a binding order requires it.
 Organization staff exercise their own access and correction rights against the Provider for login and employment-of-the-account data, by writing to [PRIVACY_EMAIL].
 
 Complaint path, after the Provider has had a reasonable chance to answer:

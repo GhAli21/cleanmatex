@@ -257,25 +257,6 @@ describe('TenantsService', () => {
     });
   });
 
-  describe('uploadLogo', () => {
-    test('validates file size (max 2MB)', () => {
-      const maxSize = 2 * 1024 * 1024; // 2MB in bytes
-      const validSize = 1 * 1024 * 1024; // 1MB
-      const invalidSize = 3 * 1024 * 1024; // 3MB
-
-      expect(validSize).toBeLessThanOrEqual(maxSize);
-      expect(invalidSize).toBeGreaterThan(maxSize);
-    });
-
-    test('validates file type (PNG, JPG, SVG)', () => {
-      const validTypes = ['image/png', 'image/jpeg', 'image/svg+xml'];
-      const invalidType = 'application/pdf';
-
-      expect(validTypes).toContain('image/png');
-      expect(validTypes).not.toContain(invalidType);
-    });
-  });
-
   describe('deactivateTenant', () => {
     test('soft deletes tenant by setting is_active to false', () => {
       const deactivatedState = { is_active: false, status: 'suspended' };

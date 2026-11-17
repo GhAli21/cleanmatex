@@ -1,7 +1,7 @@
 # Roadmap to Production — CleanMateX
 
 **Written:** 17 Nov 2026 · **Based on:** this folder's files 01–13 (item codes such as `S0a` and `I11a` point to them).
-**Goal:** go from demo to paying laundries safely: first a closed pilot, then public marketing.
+**Goal:** go from demo to paying Tenants safely: first a closed pilot, then public marketing.
 **Rule for every phase:** a phase is done only when its **exit check** passes. Do not start marketing (Phase 6) because the calendar says so.
 
 Who does what: **Dev** = engineering work (you or an assistant). **Owner** = only you can do it: apply migrations, accounts, legal, decisions, browser QA, deploy.
@@ -26,10 +26,12 @@ The live database is open to anyone holding the public key. This comes before ev
 | 0.2 | Migration B: revoke EXECUTE on every SECURITY DEFINER function from `anon` and `PUBLIC`; grant back only what the browser really calls; change default privileges so new functions start closed; set `search_path` on definer functions | Dev writes → Owner applies | S0b, S0d |
 | 0.3 | Migration C: recreate the 7 SECURITY DEFINER views with `security_invoker` (or revoke them) | Dev writes → Owner applies | S0c |
 | 0.4 | DB test that fails if any anon-writable table or anon-executable definer function exists; add it to CI | Dev | S0b |
-| 0.5 | Supabase Auth: leaked-password protection on. Secure password change (S5) is not needed now. | Owner | S0d |
+| 0.5 | Leaked-password protection. Moved out of Phase 0 until the Supabase subscription is Pro. | Owner | [future_check.md](future_check.md) |
 | 0.6 | Re-run the Supabase security advisor, then smoke-test login, new order, HQ screens and the public tracking page | Owner + Dev | — |
 
-**Exit check:** advisor shows 0 `rls_disabled_in_public` with write grants, 0 anon-executable definer functions, and the app still works end to end.
+**Exit check, 17 Nov 2026: GO.** Remote catalog tables are closed, existing security-definer functions are limited to the reviewed list, the seven views run as the caller, and the owner smoke test passed after deploy (login, new order, one HQ screen, public tracking). The advisor no longer reports public tables with row security off or unlocked `search_path`.
+
+The owner moved leaked-password protection and S12 to [future_check.md](future_check.md). Leaked-password protection waits for the Supabase Pro upgrade. The 24 `supabase_admin` default grants are recorded there too. They do not block this GO. The advisor warnings for `current_tenant_id`, `is_admin`, and the 17 signed-in security-definer functions are the intentional grants.
 
 ---
 
@@ -89,7 +91,7 @@ The code is largely finished; what is missing is proof that it works for a real 
 
 | Step | What | Who | Item |
 |---|---|---|---|
-| 4.1 | **"New laundry from zero"** script: sign-up → Setup Health all green → first order → payment → receipt → ready → delivered. Write it as the customer onboarding checklist | Owner + Dev | B9, Q1 |
+| 4.1 | **"New Tenant from zero"** script: sign-up → Setup Health all green → first order → payment → receipt → ready → delivered. Write it as the customer onboarding checklist | Owner + Dev | B9, Q1 |
 | 4.2 | Fix the onboarding gaps it finds: tax setup confirmation (T3), Express rule (SP5), emirate per UAE branch (T10), tax periods (T11), ERP-Lite account mapping (P12), good business-type templates (C2) | Dev | — |
 | 4.3 | HQ configuration: Edit Policy rules for speed, discount and price; `INIT_MOBILE_RETAIL`; HQ role matrix and grants | Owner | E3, W6, S4 |
 | 4.4 | Browser QA **Blocker** rows Q2–Q11 and Q12, EN and AR (the tester bot can run most of them) | Owner (+ bot) | file 12 |
@@ -103,7 +105,7 @@ The code is largely finished; what is missing is proof that it works for a real 
 
 ## Phase 5 — Closed pilot (weeks 5–8)
 
-1–3 friendly laundries in **Oman, UAE or Bahrain** (not Saudi Arabia: ZATCA Phase 2 is not built). Counter payments only. You invoice them by hand.
+1–3 friendly Tenants in **Oman, UAE or Bahrain** (not Saudi Arabia: ZATCA Phase 2 is not built). Counter payments only. You invoice them by hand.
 
 | Step | What | Who | Item |
 |---|---|---|---|
@@ -115,7 +117,7 @@ The code is largely finished; what is missing is proof that it works for a real 
 | 5.6 | Pentest-style review of public routes plus rate limits on sign-up, booking and tracking | Dev | S11 |
 | 5.7 | Data integrity: composite tenant FKs on order and money tables first | Dev writes → Owner applies | S2 |
 
-**Exit check:** 4 weeks without data loss or a cross-tenant incident; the tenant-guard report is clean, so switch to `enforce` (S1); pilot laundries would recommend it.
+**Exit check:** 4 weeks without data loss or a cross-tenant incident; the tenant-guard report is clean, so switch to `enforce` (S1); pilot Tenants would recommend it.
 
 ---
 
@@ -126,7 +128,7 @@ The code is largely finished; what is missing is proof that it works for a real 
 | 6.1 | **Subscription billing**: choose a GCC gateway with recurring cards, then build checkout, auto-renew, dunning retry and dunning email | Owner chooses → Dev | B2, B3 |
 | 6.2 | Pricing page = HQ plans = feature-flag mappings; currency and VAT shown correctly | Owner + Dev | B7, B8 |
 | 6.3 | HQ offboarding: export data, suspend, delete after the retention period | Dev | H4 |
-| 6.4 | Simple CSV import of customers and prices for new laundries | Dev | H13 |
+| 6.4 | Simple CSV import of customers and prices for new Tenants | Dev | H13 |
 | 6.5 | Remove dead HQ system-code features. MFA (S7) is not needed now. The branch pricing PATCH (S10) is already closed. | Dev | H10 |
 | 6.6 | Runbook owners named; an "app down / DB down / payments stuck" page | Owner | I13 |
 | 6.7 | Marketing site: EN/AR copy check, lead form → HQ, analytics with consent | Owner + Dev | B10 |
@@ -139,11 +141,11 @@ The code is largely finished; what is missing is proof that it works for a real 
 
 Order by demand from real customers:
 
-1. **Online payments for laundries' customers**: a real gateway adapter (Thawani/Tap in Oman, Network/Tap in the UAE, …) (P1), then settlement automation (P2).
+1. **Online payments for Tenants' customers**: a real gateway adapter (Thawani/Tap in Oman, Network/Tap in the UAE, …) (P1), then settlement automation (P2).
 2. **Saudi Arabia**: ZATCA Phase 2 (T1) plus tax-document cancel/supersede (P3). Only then market there.
 3. **Mobile apps**: write a STATUS per app, add crash reporting, publish to the stores, test on devices (file 11).
 4. **Hardening**: remaining DB integrity (S2, S3), role change revokes sessions (S8), the role-rank reset rule (S9), cmx-api session check (S6).
-5. **Product**: customer identity across laundries (U3), public quote API (SP6), parked Check-policy codes (W4), analytics and support PRDs (H13).
+5. **Product**: customer identity across Tenants (U3), public quote API (SP6), parked Check-policy codes (W4), analytics and support PRDs (H13).
 6. **Yearly ops**: confirm Islamic holidays and National Days (SP1, SP2); review tax kit facts.
 
 ---

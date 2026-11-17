@@ -9,12 +9,12 @@ This policy is published on the marketing site and in the application.
 1. Who this policy is from
 1.1 This policy is from [LEGAL_ENTITY_NAME] ("CleanMateX", "we"), [REGISTERED_ADDRESS], registration [COMMERCIAL_REGISTRATION_NUMBER].
 1.2 Contact for privacy: [PRIVACY_EMAIL]. Support: [SUPPORT_EMAIL].
-1.3 This policy explains personal data we handle when you visit [WEBSITE_URL], when a laundry creates an Organization account at [APP_URL], and when that laundry uses the Service to serve its own customers.
+1.3 This policy explains personal data we handle when you visit [WEBSITE_URL], when a Tenant creates an Organization account at [APP_URL], and when that Tenant uses the Service to serve its own customers.
 
 2. Two different roles
-2.1 When we decide why and how data is used for our own business, we are the controller. That covers the marketing site, Organization accounts, staff logins, our invoices to laundries, our support mail, and our security logs.
-2.2 When a laundry enters data about a person who brings clothes, the laundry is the controller and we are the processor. We use that data to provide the Service on the laundry's instructions. The Data Processing Agreement and the data-processing page describe that work.
-2.3 If you are a person who only handed clothes to a laundry, start with the laundry. They decide the file, the messages, and the retention of the ticket. You may also write to [PRIVACY_EMAIL]. We will pass the request to the laundry and we will not change the laundry's records on our own, unless a binding legal duty requires us to act.
+2.1 When we decide why and how data is used for our own business, we are the controller. That covers the marketing site, Organization accounts, staff logins, our invoices to Tenants, our support mail, and our security logs.
+2.2 When a Tenant enters data about a person who brings clothes, the Tenant is the controller and we are the processor. We use that data to provide the Service on the Tenant's instructions. The Data Processing Agreement and the data-processing page describe that work.
+2.3 If you are a person who only handed clothes to a Tenant, start with the Tenant. They decide the file, the messages, and the retention of the ticket. You may also write to [PRIVACY_EMAIL]. We will pass the request to the Tenant and we will not change the Tenant's records on our own, unless a binding legal duty requires us to act.
 
 3. Data we collect as controller
 3.1 Account data: the Organization's name, country, branch details, the name, email, phone, and login of staff users, authority statements, and the version and time of the Terms they accept.
@@ -22,13 +22,13 @@ This policy is published on the marketing site and in the application.
 3.3 Support data: messages you send to us, and what we need to investigate them.
 3.4 Marketing-site data: the details you type in a contact or early-access form, and the technical data strictly necessary to serve the page.
 3.5 Security data: IP address, user agent, and log events needed to protect accounts, for up to 12 months.
-3.6 We do not ask you to send us a copy of a passport to start a pilot account. If a bank or a ministry later requires a know-your-customer document, we will tell you why, and we will not put that document in the laundry's customer notes.
+3.6 We do not ask you to send us a copy of a passport to start a pilot account. If a bank or a ministry later requires a know-your-customer document, we will tell you why, and we will not put that document in the Tenant's customer notes.
 
-4. Data we process for the laundry
-4.1 On the laundry's instructions we process the End Customer's name, phone, email, address, language, order history, garment notes, prices, payments recorded at the counter, loyalty and wallet entries, and the communication choices recorded at order intake.
-4.2 We process staff content that the laundry types into orders and settings.
-4.3 A public order-tracking link, if the laundry uses one, shows the order status to anyone who has the link. The laundry should treat the link as confidential to the End Customer.
-4.4 We do not sell End Customer lists. We do not use one laundry's customer list to advertise another laundry or to advertise CleanMateX to those people.
+4. Data we process for the Tenant
+4.1 On the Tenant's instructions we process the End Customer's name, phone, email, address, language, order history, garment notes, prices, payments recorded at the counter, loyalty and wallet entries, and the communication choices recorded at order intake.
+4.2 We process staff content that the Tenant types into orders and settings.
+4.3 A public order-tracking link, if the Tenant uses one, shows the order status to anyone who has the link. The Tenant should treat the link as confidential to the End Customer.
+4.4 We do not sell End Customer lists. We do not use one Tenant's customer list to advertise another Tenant or to advertise CleanMateX to those people.
 
 5. Why we use controller data, and the basis
 Purpose                                      Basis
@@ -38,7 +38,7 @@ Invoice and collect our fees                 Contract and legal duty
 Protect accounts and investigate abuse       Legitimate interest in securing the Service
 Reply to a contact or early-access form      Steps toward a contract, or consent where the form says so
 Send product notices about the Service       Contract, or legitimate interest in service messages to our customer
-Send our own marketing to a laundry         Consent, collected separately, never pre-ticked
+Send our own marketing to a Tenant         Consent, collected separately, never pre-ticked
 Prove compliance if a dispute arises         Legitimate interest and legal duty
 
 5.1 Our legitimate interests are the security of a multi-tenant system, the recovery of sums due, and the ordinary running of a software business. Where the law requires a balance against your rights, you may object under clause 10.
@@ -50,7 +50,7 @@ Prove compliance if a dispute arises         Legitimate interest and legal duty
 6.4 The cookie notice is a separate page linked from the site footer.
 
 7. Who we share data with
-7.1 We use the subprocessors named in the version register and on the data-processing page: hosting and database, and, when the laundry turns them on, WhatsApp, SMS, and email delivery.
+7.1 We use the subprocessors named in the version register and on the data-processing page: hosting and database, and, when the Tenant turns them on, WhatsApp, SMS, and email delivery.
 7.2 We share data with a professional adviser, an insurer, or an authority when we need that to run the business or to obey the law.
 7.3 We share data if we sell or reorganize the business, and we will require the successor to honor this policy.
 7.4 Each subprocessor is bound by written terms. The current list, including the database region [SUPABASE_REGION], is published with version dpp-2026-11-17.
@@ -66,13 +66,13 @@ Prove compliance if a dispute arises         Legitimate interest and legal duty
 9.2 Marketing leads: until you ask us to delete them, or 24 months after our last contact with you, whichever comes first.
 9.3 Security logs that contain an IP address: 12 months.
 9.4 Support correspondence: for the life of the account and 24 months after the last message, unless we need a longer copy for a live dispute.
-9.5 End Customer data: for as long as the laundry instructs us to keep the file, and after anonymization in the reduced form described below.
-9.6 Orders, payments, and issued tax documents: 10 years from the end of the financial year of the record, because the laundry must be able to keep its books. During that period the live file shows "Anonymized customer" once the laundry has used the anonymize action, and the phone, email, and address are removed from the working screens. A tax document that was already issued stays as it was issued.
+9.5 End Customer data: for as long as the Tenant instructs us to keep the file, and after anonymization in the reduced form described below.
+9.6 Orders, payments, and issued tax documents: 10 years from the end of the financial year of the record, because the Tenant must be able to keep its books. During that period the live file shows "Anonymized customer" once the Tenant has used the anonymize action, and the phone, email, and address are removed from the working screens. A tax document that was already issued stays as it was issued.
 9.7 When the period ends, we delete the record or keep it in a form that no longer identifies the person.
 
 10. Your rights
 10.1 If you are a staff user or a person who contacted us on the marketing site, you may ask us for access, correction, deletion, restriction, or a copy, and you may object to processing that rests on legitimate interest. Where a processing rests on consent, you may withdraw that consent.
-10.2 If you are an End Customer of a laundry, use the same rights with the laundry. The application gives the laundry an export and an anonymize action so they can answer you. Anonymize keeps the finance record as clause 9.6 describes. We assist the laundry. We do not silently rewrite their books.
+10.2 If you are an End Customer of a Tenant, use the same rights with the Tenant. The application gives the Tenant an export and an anonymize action so they can answer you. Anonymize keeps the finance record as clause 9.6 describes. We assist the Tenant. We do not silently rewrite their books.
 10.3 We may ask for enough information to be sure we are dealing with the right person and the right Organization. We will not ask you to give us more identity documents than the request requires.
 10.4 We aim to answer within 30 days. If the applicable law sets a shorter time, we use that shorter time.
 10.5 You may complain to the authority in your country after you have written to us:
@@ -83,12 +83,12 @@ Prove compliance if a dispute arises         Legitimate interest and legal duty
 
 11. Children
 11.1 The Service is for businesses. We do not knowingly create an Organization account for a child.
-11.2 A laundry must not open the contracting customer file in the name of a child. The adult who brings the clothes is the customer.
+11.2 A Tenant must not open the contracting customer file in the name of a child. The adult who brings the clothes is the customer.
 
 12. Security
 12.1 We use access control, tenant separation, encryption in transit, and the encryption at rest provided by the hosting and database providers.
 12.2 We do not claim a named certification in this version. If we later obtain one, we will say so in a new version of this policy.
-12.3 No online service can promise that a breach is impossible. If a breach affecting your personal data occurs and the law requires notice, we will notify the laundry or the person, and the authority, within the required time.
+12.3 No online service can promise that a breach is impossible. If a breach affecting your personal data occurs and the law requires notice, we will notify the Tenant or the person, and the authority, within the required time.
 
 13. Changes
 13.1 We will post a new version of this policy with a new version code and a date.

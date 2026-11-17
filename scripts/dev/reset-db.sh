@@ -65,25 +65,6 @@ if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
     echo -e "${GREEN}✓ Redis cache cleared${NC}"
 fi
 
-# Step 4: Optional - Clear MinIO storage
-read -p "Clear MinIO storage? (yes/no): " -r
-echo ""
-
-if [[ $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
-    echo -e "${BLUE}🗑️  Clearing MinIO storage...${NC}"
-    docker-compose stop minio
-    docker volume rm cleanmatex_minio_data 2>/dev/null || true
-    docker-compose up -d minio
-    
-    echo -n "   Waiting for MinIO: "
-    while ! curl -f http://localhost:9000/minio/health/live > /dev/null 2>&1; do
-        echo -n "."
-        sleep 1
-    done
-    echo -e " ${GREEN}✓${NC}"
-fi
-
-echo ""
 echo -e "${GREEN}✅ Database reset complete!${NC}"
 echo ""
 echo "Run 'npm run services:start' to ensure all services are running."

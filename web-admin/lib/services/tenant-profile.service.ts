@@ -307,25 +307,17 @@ export async function updateTenantGeneral(
   return general;
 }
 
-/**
- *
- */
+/** Branding after a save. */
 export interface UpdateBrandingResult {
   branding: BrandingSettingsDto;
-  /**
-   * URL of the previous logo (if any) that the route may delete from
-   * storage as a best-effort cleanup. Surfaced from the service so that
-   * the storage layer stays out of the service module — keeps build-time
-   * import graphs clean and keeps layers honest.
-   */
-  previousLogoUrl: string | null;
 }
 
 /**
- *
- * @param tenantOrgId
- * @param input
- * @param audit
+ * Saves the brand colors. `logo_url` is not written here: File Util publishes it when the
+ * TENANT_LOGO/MAIN file changes.
+ * @param tenantOrgId organization resolved from the session
+ * @param input brand colors
+ * @param audit acting user
  */
 export async function updateTenantBranding(
   tenantOrgId: string,
@@ -334,19 +326,7 @@ export async function updateTenantBranding(
 ): Promise<UpdateBrandingResult> {
   const supabase = await createServerSupabaseClient();
 
-  // Capture the previous logo so the route can clean it up after success.
-  const { data: current, error: readErr } = await supabase
-    .from('org_tenants_mst')
-    .select('logo_url')
-    .eq('id', tenantOrgId)
-    .single();
-
-  if (readErr || !current) {
-    throw new TenantProfileError('NOT_FOUND', 'Tenant not found');
-  }
-
   const update = {
-    logo_url: input.logo || null,
     brand_color_primary: input.primaryColor,
     brand_color_secondary: input.secondaryColor,
     brand_color_accent: input.accentColor,
@@ -355,11 +335,15 @@ export async function updateTenantBranding(
     updated_info: audit.userInfo ?? null,
   } as OrgTenantUpdate;
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('org_tenants_mst')
     .update(update)
-    .eq('id', tenantOrgId);
+    .eq('id', tenantOrgId)
+    .select('id');
 
+  if (!error && (!updated || updated.length === 0)) {
+    throw new TenantProfileError('NOT_FOUND', 'Tenant not found');
+  }
   if (error) {
     logger.error(
       'tenant-profile: updateTenantBranding failed',
@@ -369,8 +353,6 @@ export async function updateTenantBranding(
     throw new TenantProfileError('INTERNAL', 'Failed to update branding settings');
   }
 
-  const previousLogoUrl = (current.logo_url as string | null) ?? null;
-  const replaced = previousLogoUrl && previousLogoUrl !== input.logo;
   const { branding } = await getTenantProfile(tenantOrgId);
-  return { branding, previousLogoUrl: replaced ? previousLogoUrl : null };
+  return { branding };
 }

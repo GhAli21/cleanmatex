@@ -2,7 +2,7 @@
 
 **Purpose:** let any assistant or developer continue this feature without the chat history.
 **Authoritative docs:** [PLAN.md](PLAN.md) (design, decisions, task checklist) · [STATUS.md](STATUS.md) (dated log).
-**Last updated:** 2026-11-17 — Phase 4 code done (owner QA pending). Phase 5 in progress: see §3b.
+**Last updated:** 2026-11-17 — Phase 5 code done, build green. Owner: apply `0750`, delete `product-images` bucket, QA (A, B, C). Next: Phase 6.
 
 ## 1. Where we are
 
@@ -12,7 +12,8 @@
 | 2 Backend | Done. `0744_file_util_cleanup_cron.sql` applied. HQ `platform-workers` purge job written; **owner must deploy platform-workers**. |
 | 3 UI kit | Done. tsc/eslint clean, `npm run build` green, i18n check passes. Not yet browser-tested. |
 | 4 Order photos | Code done, build green — owner browser QA pending (`QA_TEST_GUIDE.md` A + B). |
-| 5–8 | Not started. |
+| 5 Close gaps | Code done, build green. Owner: apply `0750`, delete `product-images` bucket in dashboard, QA §C. |
+| 6–8 | Not started. |
 
 ## 2. Files that exist (do not recreate)
 
@@ -73,11 +74,13 @@ Findings (remote DB, read-only):
 Design (decision 14): `org_product_data_mst.product_image` and `org_tenants_mst.logo_url` stay, as the **published public URL of the MAIN file**. The File Util service rewrites them in the same transaction whenever the MAIN slot changes (complete, purpose change, delete). The file row is the truth; the column is a read projection for ~20 readers (mobile, receipts, public booking, HQ). Public-bucket URLs never change, so no signed URL is stored.
 
 Steps:
-- [ ] 5.a Service: `syncPublishedUrl` projection in complete/update/delete + tests.
-- [ ] 5.b Product form → `FileAttachments` (PRODUCT_IMAGE, source PRODUCT_SETUP); delete `api/v1/products/[id]/image`, `lib/storage/product-images.ts`; catalog-access deps.
-- [ ] 5.c Branding page logo → File Util (TENANT_LOGO, entity = tenant id, source TENANT_SETTINGS); delete `settings/branding/logo` route, `tenants/me/logo` route, `tenants.service.uploadLogo` (+ its test), `lib/storage/tenant-logo.ts`; branding PUT must stop accepting `logo_url` from the client.
-- [ ] 5.d Delete MinIO: `lib/storage/minio-client.ts`, `app/actions/orders/upload-photo.ts`, `minio` dep, docker-compose service, env docs.
-- [ ] 5.e Migration: lock `product-images` bucket (STOP for owner).
+- [x] 5.a Service: `syncPublishedUrl` projection in complete/update/delete + tests (File Util tests 50/50).
+- [x] 5.b (done: form edit mode shows `FileAttachments`, preview reads MAIN via `useFileAttachments({purposes:['MAIN']})`; route + helper deleted; `catalog-access.ts` lists File Util deps as `enforcement: 'external'`) Product form → `FileAttachments` (PRODUCT_IMAGE, source PRODUCT_SETUP); delete `api/v1/products/[id]/image`, `lib/storage/product-images.ts`; catalog-access deps.
+- [x] 5.c (done: page shows `FileAttachments` TENANT_LOGO; PUT saves colors only, ignores `logo`; `BrandingSettingsInput.logo` removed; old routes/helpers/`uploadLogo` + its test deleted; `settings-access.ts` lists File Util deps; i18n `uploadLogo`/`noLogo` removed, `logoGuidelines` updated. FOUND, not fixed (outside File Util): `PATCH /api/v1/tenants/me` spreads the raw body into the `org_tenants_mst` update — no field allowlist, so any column incl. `logo_url` can be written; reported to owner) Branding page logo → File Util (TENANT_LOGO, entity = tenant id, source TENANT_SETTINGS); delete `settings/branding/logo` route, `tenants/me/logo` route, `tenants.service.uploadLogo` (+ its test), `lib/storage/tenant-logo.ts`; branding PUT must stop accepting `logo_url` from the client.
+- [x] 5.d (done: files deleted; `npm uninstall minio -w web-admin` from repo root (24 packages left the root lockfile); MinIO service + volume removed from `docker-compose.yml`; dev scripts start/stop/status/check-prerequisites/smoke-test/reset-db cleaned and parse-checked; `.clauderc`, README, `docs/development-setup.md`, `web-admin/VERCEL_DEPLOYMENT.md` updated. Left as history: archive/plan docs, `.claude|.codex|.agents|.cursor` reference docs, generated `docs/features/Platform_Operations_Console/config_key_env_map.json`) Delete MinIO: `lib/storage/minio-client.ts`, `app/actions/orders/upload-photo.ts`, `minio` dep, docker-compose service, env docs.
+- [x] 5.e Migration written: `supabase/migrations/0750_file_util_retire_product_images.sql` (bucket private, 1-byte limit, impossible MIME → Storage API refuses all writes; clears `product_image` URLs pointing into `product-images`). **Owner: apply local + remote, then delete the empty `product-images` bucket and its 4 policies in the dashboard.** Not applied by the assistant.
+- [x] 5.f eslint clean (touched files), tests 81/81 (5 suites), i18n pass, tsc: 4 errors all outside this work, `npm run build` green (2026-11-17). PLAN (decision 14, 5.1–5.4 ticked), STATUS, QA guide §C written.
+- Next: owner applies `0750` + deletes bucket + QA §C; then Phase 6.
 - [ ] 5.f eslint/tsc/tests/build, QA guide section C, PLAN/STATUS.
 - Deferred: FOR_ORDER-with-MAIN-fallback display on the New Order grid (needs `CmxFileThumb` + batch list); grid keeps using `product_image` (MAIN).
 

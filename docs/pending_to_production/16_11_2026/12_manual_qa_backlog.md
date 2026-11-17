@@ -4,7 +4,7 @@ Most programs passed automated checks (type check, lint, unit and DB tests, buil
 
 | # | Program | Guide | Scope | Priority |
 |---|---|---|---|---|
-| Q1 | New laundry from zero (new) | — (write it, file 01 B9) | Sign-up → setup → first order → payment → receipt → ready → delivered | Blocker |
+| Q1 | New Tenant from zero (new) | — (write it, file 01 B9) | Sign-up → setup → first order → payment → receipt → ready → delivered | Blocker |
 | Q2 | Order Edit V2 | `Order_Edit_V2/.../Manual_UI_Test_Guide.md` + `followups_by_user.md` | MAN-UI-001–014, line controls, "Fixed 2026-11-13" list | Blocker |
 | Q3 | Reusable Order Fin View | `Order_Fin/Reusable_Order_Fin_View/QA_TEST_GUIDE.md` + `e2e/order-financial-view.spec.ts` | Order detail, prints, ready, delivery, collect payment, AR invoice, payment modal, Edit live card, public tracking | Blocker |
 | Q4 | Line-Level Money Snapshot | `Order_Fin/Line_Level_Money_Snapshot/QA_TEST_GUIDE.md` | All, plus Speed Pricing and a PIECE organization | Blocker |

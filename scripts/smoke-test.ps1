@@ -92,16 +92,6 @@ Test-Service "Redis Commander (8081)" {
     Test-Http "http://127.0.0.1:8081" @(200)
 }
 
-Test-Service "MinIO API (9000)" {
-    Test-Http "http://127.0.0.1:9000/minio/health/live" @(200)
-}
-
-Test-Service "MinIO Console (9001)" {
-    # Console returns 200 or redirect (302) on the root path
-    $r = Invoke-WebRequest -Uri "http://127.0.0.1:9001" -UseBasicParsing -ErrorAction SilentlyContinue -TimeoutSec 5 -MaximumRedirection 0
-    return ($null -ne $r -and $r.StatusCode -lt 500)
-}
-
 Test-Service "Docker Network" {
     docker network inspect cleanmatex_cmx-network | Out-Null
     return ($LASTEXITCODE -eq 0)

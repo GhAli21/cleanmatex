@@ -76,7 +76,7 @@ Start with these entrypoints:
 - Web admin: Next.js 16, React 19, TypeScript, Tailwind CSS, `next-intl`
 - API: NestJS 10, TypeScript, Supabase client, Swagger/OpenAPI
 - Shared data layer: PostgreSQL 16 via Supabase, RLS, tenant-aware patterns
-- Local supporting services: Redis, MinIO, Supabase Studio, Inbucket
+- Local supporting services: Redis, Supabase Studio (incl. Storage), Inbucket
 
 ### Workspace tooling
 

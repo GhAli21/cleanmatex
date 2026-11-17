@@ -27,3 +27,13 @@ test('src/ui uses theme tokens and logical direction classes only', () => {
   })
   expect(found).toEqual([])
 })
+
+test('src/ui has no logical class under rtl:/ltr: (it would mirror twice)', () => {
+  const doubled = /\b(rtl|ltr):-?(text-(start|end)|start-|end-|[pm][se]-|rounded-[se]|border-[se]\b)/
+  const found = files(UI).flatMap((f) =>
+    fs.readFileSync(f, 'utf8').split('\n').flatMap((line, i) =>
+      doubled.test(line) ? [`${path.relative(UI, f).split(path.sep).join('/')}:${i + 1}`] : [],
+    ),
+  )
+  expect(found).toEqual([])
+})

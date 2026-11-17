@@ -319,6 +319,49 @@ async function bucketIdOf(bucketCode: string): Promise<{ storageBucketId: string
   return { storageBucketId: bucket.storage_bucket_id, isPublic: bucket.is_public };
 }
 
+// ─── Published URLs ─────────────────────────────────────────────────────────
+
+/**
+ * Single-slot purposes whose public URL is published on the owning record, for readers that only
+ * know a URL column (receipts, mobile app, public booking, HQ): PRODUCT_IMAGE/MAIN →
+ * `org_product_data_mst.product_image`, TENANT_LOGO/MAIN → `org_tenants_mst.logo_url`.
+ * The file row stays the truth; the column is rewritten in the same transaction as every change
+ * to that slot (decision 14 in docs/features/File_Util/PLAN.md).
+ */
+const PUBLISHED_URL_PURPOSE: Partial<Record<FileCategoryCode, string>> = {
+  PRODUCT_IMAGE: 'MAIN',
+  TENANT_LOGO: 'MAIN',
+};
+
+function publishesUrl(categoryCode: FileCategoryCode, purposeCode: string): boolean {
+  return PUBLISHED_URL_PURPOSE[categoryCode] === purposeCode;
+}
+
+/** Rewrites the owning record's URL column from the slot's current READY file (or clears it). */
+async function syncPublishedUrl(tx: Prisma.TransactionClient, tenantId: string, userId: string, categoryCode: FileCategoryCode, entityId: string): Promise<void> {
+  const purposeCode = PUBLISHED_URL_PURPOSE[categoryCode];
+  if (!purposeCode) return;
+  const file = await tx.org_file_mst.findFirst({
+    where: { tenant_org_id: tenantId, category_code: categoryCode, entity_id: entityId, purpose_code: purposeCode, status_code: FILE_STATUSES.READY },
+    orderBy: { ready_at: 'desc' },
+    select: { bucket_code: true, object_key: true },
+  });
+  let url: string | null = null;
+  if (file) {
+    const bucket = await bucketIdOf(file.bucket_code);
+    // A private bucket has no lasting URL; publishing a signed one would break after 5 minutes.
+    if (bucket.isPublic) url = storageFor(bucket.storageBucketId).getPublicUrl(file.object_key).data.publicUrl;
+    else logger.warn('File Util published slot is in a private bucket; URL column cleared', { tenantId, categoryCode, feature: 'file-util' });
+  }
+  const audit = { updated_at: new Date(), updated_by: userId, updated_info: 'file-util:published-url' };
+  if (categoryCode === 'PRODUCT_IMAGE') {
+    await tx.org_product_data_mst.updateMany({ where: { id: entityId, tenant_org_id: tenantId }, data: { product_image: url, ...audit } });
+  } else if (categoryCode === 'TENANT_LOGO') {
+    // The organization row is the tenant itself: its id is the tenant id.
+    await tx.org_tenants_mst.updateMany({ where: { id: tenantId }, data: { logo_url: url, ...audit } });
+  }
+}
+
 /** Marks a file DELETED with the standard soft-delete columns (ck_ofm_rec_sync). */
 function softDeleteData(userId: string, info: string) {
   return {
@@ -537,6 +580,7 @@ export async function completeFileUpload(tenantId: string, userId: string, categ
       replaced.push(...(await tx.org_file_mst.findMany({ where: slot, select: { object_key: true, thumb_object_key: true } })));
       await tx.org_file_mst.updateMany({ where: slot, data: softDeleteData(userId, 'file-util:replaced') });
     }
+    if (publishesUrl(categoryCode, file.purpose_code)) await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id);
   });
   // Replaced objects are left for the purge sweep (DELETED, purged_at NULL), so a storage hiccup never loses the new file.
 
@@ -668,6 +712,11 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
         updated_info: 'file-util:update',
       },
     });
+    // Moving a file into or out of a published slot changes the record's URL.
+    const moved = cmd.purposeCode && cmd.purposeCode !== file.purpose_code;
+    if (moved && (publishesUrl(cmd.categoryCode, file.purpose_code) || publishesUrl(cmd.categoryCode, cmd.purposeCode!))) {
+      await syncPublishedUrl(tx, cmd.tenantId, cmd.userId, cmd.categoryCode, file.entity_id);
+    }
   });
   return (await viewFiles([await loadViewRow(cmd.tenantId, cmd.fileId)]))[0];
 }
@@ -682,11 +731,16 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
  * @param fileId file to delete
  */
 export async function deleteFile(tenantId: string, userId: string, categoryCode: FileCategoryCode, fileId: string): Promise<void> {
-  const result = await prisma.org_file_mst.updateMany({
-    where: { id: fileId, tenant_org_id: tenantId, category_code: categoryCode, status_code: { in: [FILE_STATUSES.READY, FILE_STATUSES.PENDING] } },
-    data: softDeleteData(userId, 'file-util:delete'),
+  const where = { id: fileId, tenant_org_id: tenantId, category_code: categoryCode, status_code: { in: [FILE_STATUSES.READY, FILE_STATUSES.PENDING] } };
+  await prisma.$transaction(async (tx) => {
+    const file = await tx.org_file_mst.findFirst({ where, select: { entity_id: true, purpose_code: true, status_code: true } });
+    if (!file) throw new FileUtilError('FILE_NOT_FOUND', 'The file was not found.', 404);
+    const result = await tx.org_file_mst.updateMany({ where, data: softDeleteData(userId, 'file-util:delete') });
+    if (result.count === 0) throw new FileUtilError('FILE_NOT_FOUND', 'The file was not found.', 404);
+    if (file.status_code === FILE_STATUSES.READY && publishesUrl(categoryCode, file.purpose_code)) {
+      await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id);
+    }
   });
-  if (result.count === 0) throw new FileUtilError('FILE_NOT_FOUND', 'The file was not found.', 404);
 }
 
 /** Upload rules of one category as the UI needs them (purpose picker, accept list, limits). */

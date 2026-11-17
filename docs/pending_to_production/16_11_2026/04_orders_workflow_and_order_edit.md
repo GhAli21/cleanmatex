@@ -6,7 +6,7 @@ Engineering V1.0 is closed. ADR accepted 2026-09-11, canary and rollback rehears
 
 | # | Item | Priority | What to do |
 |---|---|---|---|
-| W1 | **HQ soak**: the only remaining operator item. | Before public launch | Run the pilot laundries on `WF_V2_SIMPLE` v4 (or FULL_PATH) for 1–2 weeks and watch Workboard and order history. |
+| W1 | **HQ soak**: the only remaining operator item. | Before public launch | Run the pilot Tenants on `WF_V2_SIMPLE` v4 (or FULL_PATH) for 1–2 weeks and watch Workboard and order history. |
 | W2 | Readiness checklist items still unchecked (`13_Production_Readiness_Checklist.md`): profile capability flags as server-side gates; tenant navigation from server workflow context with EN/AR unavailable states; legacy `preparation` status rows normalized; the profile runtime acceptance suite. | Before public launch | Re-verify each against the code, then tick it or turn it into a task. |
 | W3 | OTP retry and expiry controls for delivery are deferred to VNext. | After launch | — |
 | W4 | 46 planned Check-policy codes are parked (HQ). | Later | `future_work_in_wf/05_PLANNED_CHECK_POLICY_CODES_ROLLOUT_PLAN.md` |

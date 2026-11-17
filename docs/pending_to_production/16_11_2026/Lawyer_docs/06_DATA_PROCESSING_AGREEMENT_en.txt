@@ -104,4 +104,4 @@ ANNEX B — Security measures for the pilot
 5. Passwords are stored in a hashed form. We do not ask your End Customers to store a card number in the Service.
 6. Acceptance, consent changes, and anonymization write an audit record that does not re-copy a deleted phone number into the new audit line.
 7. Error-tracking is off in production until personal data is scrubbed from the events. Until then Sentry is not an active subprocessor.
-8. These measures are appropriate to a pilot of small and medium laundries. They are not a statement that a particular ISO certificate is held.
+8. These measures are appropriate to a pilot of small and medium Tenants. They are not a statement that a particular ISO certificate is held.

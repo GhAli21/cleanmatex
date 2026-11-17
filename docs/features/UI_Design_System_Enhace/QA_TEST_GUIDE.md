@@ -22,3 +22,31 @@ Manual checks for the owner, one section per package. Package state lives in `ST
 | 12 | Any page with Cmx buttons, inputs and cards | Look for controls with odd padding, size or colour | Nothing looks different from #1. Screens that pass their own spacing or colour to a Cmx component now get it applied exactly (class merge). Report anything that shrank or lost its colour, with the page. |
 
 **Known, not a failure in this package:** in Storybook dark mode the red delete button's white text is low contrast, and pagination still shows English "of", "Rows per page:" and "No items". Both are scheduled for later packages (`PLAN_PR-01.md` → Final review).
+
+## PR-02 — Badges, select, shared components, class clean-up (implemented 2026-11-17)
+
+Run each check in English and in Arabic. Where it says "dark", switch the mode in Storybook (`npm run storybook`, Mode toolbar); the app itself gets dark mode in PR-07.
+
+| # | Where | What to do | What to expect |
+|---|---|---|---|
+| 1 | Orders list, an order's page | Look at the status badges | Every status uses one of 5 colours (grey, blue, amber, green, red) and no other. Statuses that were teal, violet, indigo and so on are now blue; orange ones are amber. Icons are unchanged, so stages stay distinguishable. Text is readable. |
+| 2 | Order workspace header | Open orders in different statuses | The header badge colour follows the order status (it used to be always blue). |
+| 3 | Vouchers list (ERP Lite) | Look at status badges | Draft grey, Posted green, Cancelled red, Reversed and Partially reversed amber. |
+| 4 | Processing → an order's pieces | Look at piece status badges | Intake grey, processing blue, QA amber, ready green. |
+| 5 | Any form with a dropdown inside a dialog (for example new customer, voucher line) | Open the dropdown, then press Escape | Only the dropdown closes; the dialog stays open. Press Escape again: now the dialog closes. |
+| 6 | Same, with the dropdown near the bottom of the screen | Open it | The list opens upward or scrolls, and is never hidden behind the dialog. Keyboard: arrows move, Enter picks, typing a letter jumps. In Arabic the list and the check mark sit on the right. |
+| 7 | A dropdown that offers "none" or "all" | Pick it, save, reopen | The choice is kept (the empty value works). |
+| 8 | Top bar (any dashboard page) | Look at it | Page title on the start side; scan, permissions, sessions, notifications, language, Organization name and the user menu on the end side. The old search box is gone (it did nothing). |
+| 9 | Top bar user menu | Open it with the mouse, then with Tab + Enter; use arrow keys; press Escape; click outside | It opens and closes in all these ways. Profile, Account security and Settings open their pages; Sign out (in red) signs out. In Arabic the menu aligns to the left edge of the button. |
+| 10 | B2B customers, contracts, statements; Processing pages | Use the buttons, inputs and cards | They look like the other Cmx screens. The "Mark order ready" button shows its loading text while saving. The back arrow points the right way in Arabic. |
+| 11 | Sidebar on a phone-width window | Open the menu | The page behind is dimmed, not solid black, and tapping it closes the menu. |
+| 12 | Sidebar, top bar, tables, dialogs, checkbox, keypad | Look at colours | Same look as before, from theme colours. Checked checkboxes show a dark tick on aqua. The keypad CLEAR key is solid red with white text. The processing timeline's completed steps are light green with a green icon (they were solid green). |
+| 13 | Same, in Arabic | Look at paddings, search icons, clear buttons, table fades | Everything mirrors: icons and clear buttons on the correct side, nothing overlapping the text. |
+| 14 | Any table with pagination, in Arabic | Look at the footer | "صفوف لكل صفحة" and "1-10 من 25"; an empty table says "لا توجد بيانات". |
+| 15 | Order issues dialog | Look at the order-number pill | Dark text on aqua, readable. |
+| 16 | Any list page (Orders, Customers), in Arabic | Look at the table header and the # column | Headers line up with their cells on the right. The row number column sits at the start (right) side. |
+| 17 | Any dialog, in Arabic | Look at the close X | It is at the top-left corner, not over the title. |
+| 18 | Top bar user menu, in Arabic | Open it | Items read right to left, icons on the right, and the menu lines up with the button. |
+| 19 | A page with brand-coloured (aqua) badges | Look at them | They have a light aqua fill, not just an outline. |
+| 20 | A dropdown inside a clickable table row or card (if one exists), on a tablet or in touch emulation | Pick an option | Only the value changes; the row or card does not open. |
+| 21 | Storybook → Feedback / CmxStatusBadge, Forms / CmxSelectDropdown | Switch Mode (light/dark), Direction, Density | Badges readable in both modes; the select story "In dialog near bottom" behaves as #5–#6. |

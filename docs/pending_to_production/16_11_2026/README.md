@@ -1,6 +1,6 @@
 # Pending to Production — 16 Nov 2026
 
-**Question answered:** what still has to be done before CleanMateX can be sold to real, paying laundries?
+**Question answered:** what still has to be done before CleanMateX can be sold to real, paying Tenants?
 **Scope:** both repos: the tenant app (`cleanmatex`: web-admin, cmx-api, mobile apps, all migrations) and HQ, the SaaS Backoffice (`cleanmatexsaas`: platform-api, platform-web, platform-workers, marketing-web).
 **Method:** each feature's own STATUS, RESUME, follow-ups and remaining-work files were read and spot-checked against the code on 16 Nov 2026. Then the remote database was checked read-only through the remote DB MCP: data, `pg_cron` and the Supabase security advisor.
 
@@ -19,12 +19,12 @@ The product itself (orders, workflow, payments, cash drawer, tax, notifications,
 
 1. **CleanMateX cannot collect money from its own customers yet.** Sign-up gives a 14-day free trial, and nothing ever ends it (the expiry job is never scheduled). HQ billing has no card or gateway charging.
 2. **There are no legal pages** (Terms of Service, Privacy Policy, Data Processing terms) on the marketing site or in the app.
-3. **Real customers cannot pay laundries online.** The payment-gateway layer has only a generic placeholder; no Stripe, HyperPay, PayTabs, Thawani or Tap integration exists.
-4. **Saudi e-invoicing (ZATCA Phase 2) is not built.** Only the document layout exists, with no clearance, signing or ZATCA QR code. Do not market to Saudi VAT-registered laundries until this is done.
+3. **Real customers cannot pay Tenants online.** The payment-gateway layer has only a generic placeholder; no Stripe, HyperPay, PayTabs, Thawani or Tap integration exists.
+4. **Saudi e-invoicing (ZATCA Phase 2) is not built.** Only the document layout exists, with no clearance, signing or ZATCA QR code. Do not market to Saudi VAT-registered Tenants until this is done.
 5. **Manual QA is the biggest backlog.** About 15 programs were checked only by automated tests and have never been opened in a browser.
 6. **Two security switches are still in "report only" mode:** the tenant-isolation guard (`TENANT_GUARD_MODE` defaults to `log`), and HQ sign-in policy grants needed before more HQ staff are added.
 
-**Recommendation:** run a **closed pilot** first, with 1–3 friendly laundries in Oman, UAE or Bahrain, invoiced manually and paying in cash or by bank transfer at their counter. Do the Blocker rows in each file before that, and the "Before public launch" rows before marketing opens publicly.
+**Recommendation:** run a **closed pilot** first, with 1–3 friendly Tenants in Oman, UAE or Bahrain, invoiced manually and paying in cash or by bank transfer at their counter. Do the Blocker rows in each file before that, and the "Before public launch" rows before marketing opens publicly.
 
 ## Files
 
@@ -45,12 +45,13 @@ The product itself (orders, workflow, payments, cash drawer, tax, notifications,
 | 11 | [11_mobile_apps.md](11_mobile_apps.md) | Customer, staff and driver apps |
 | 12 | [12_manual_qa_backlog.md](12_manual_qa_backlog.md) | All browser QA still owed, in one list |
 | 13 | [13_data_cleanup_before_go_live.md](13_data_cleanup_before_go_live.md) | Demo data and test leftovers to remove |
+| — | [future_check.md](future_check.md) | Deferred: leaked-password protection after Supabase Pro, and S12 |
 
 ## Priority labels used in every file
 
 | Label | Meaning |
 |---|---|
-| **Blocker** | Must be done before the first paying laundry (pilot included). |
+| **Blocker** | Must be done before the first paying Tenant (pilot included). |
 | **Before public launch** | Can wait during a supervised pilot; must be done before open marketing. |
 | **After launch** | Real gap, but it can follow launch. |
 | **Later** | Nice to have, or a deliberate later phase. |

@@ -160,14 +160,9 @@ REDIS_URL=redis://localhost:6379
 REDIS_DB=0
 ```
 
-#### MinIO (S3) Configuration
+#### File storage
 
-```bash
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin123
-S3_BUCKET=cleanmatex-dev
-```
+Files use Supabase Storage through File Util (`docs/features/File_Util/`). No extra service or env variable is needed beyond the Supabase keys.
 
 ### Step 2: Docker Services
 
@@ -175,8 +170,7 @@ Our `docker-compose.yml` includes:
 
 1. **Supabase PostgreSQL** - shared database authority
 2. **Redis** - caching and queues
-3. **MinIO** - S3-compatible storage
-4. **Redis Commander** - Redis GUI (optional)
+3. **Redis Commander** - Redis GUI (optional)
 
 All services include health checks and data persistence.
 
@@ -230,8 +224,6 @@ Seed-related docs live under `supabase/migrations/xseeds/` and repo scripts:
 | ---------------- | ---------------------- | -------------------------- |
 | PostgreSQL       | `localhost:5432`       | cmx_user / cmx_pass_dev    |
 | Redis            | `localhost:6379`       | (no auth)                  |
-| MinIO API        | http://localhost:9000  | minioadmin / minioadmin123 |
-| MinIO Console    | http://localhost:9001  | minioadmin / minioadmin123 |
 | Redis Commander  | http://localhost:8081  | (no auth)                  |
 | Supabase API     | http://localhost:54321 | (use anon key)             |
 | Supabase Studio  | http://localhost:54323 | (no auth)                  |

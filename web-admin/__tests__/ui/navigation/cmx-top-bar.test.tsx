@@ -37,6 +37,17 @@ test('the user menu opens by keyboard and closes on Escape', async () => {
   await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
 })
 
+test('in Arabic the user menu is laid out right to left', () => {
+  document.documentElement.dir = 'rtl'
+  try {
+    render(<CmxTopBar title="Orders" />)
+    openMenu()
+    expect(screen.getByRole('menu')).toHaveAttribute('dir', 'rtl')
+  } finally {
+    document.documentElement.dir = ''
+  }
+})
+
 test('menu items navigate, and sign out calls signOut', () => {
   render(<CmxTopBar title="Orders" />)
   openMenu()

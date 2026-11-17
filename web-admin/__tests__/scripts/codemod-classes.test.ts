@@ -59,7 +59,7 @@ describe('codemod-classes: direction', () => {
   test.each([
     ['ml-2 mr-4 pl-3 pr-1', 'ms-2 me-4 ps-3 pe-1'],
     ['-ml-px md:pl-4', '-ms-px md:ps-4'],
-    ['left-0 right-2 rtl:left-auto', 'start-0 end-2 rtl:start-auto'],
+    ['left-0 right-2', 'start-0 end-2'],
     ['rounded-l-md rounded-r-none rounded-tl-lg', 'rounded-s-md rounded-e-none rounded-ss-lg'],
     ['border-l border-r-0 border-l-2', 'border-s border-e-0 border-s-2'],
     ['border-r-transparent border-l-destructive', 'border-e-transparent border-s-destructive'],
@@ -79,6 +79,13 @@ describe('codemod-classes: direction', () => {
       expect(r.code).toBe(src)
       expect(r.unmapped).toHaveLength(2)
     }
+  })
+
+  test('a direction class under rtl: or ltr: is reported, not flipped twice', () => {
+    const src = "'text-left rtl:text-right ltr:pr-1 right-4 rtl:left-4'"
+    const r = transformSource(src)
+    expect(r.code).toBe("'text-start rtl:text-right ltr:pr-1 end-4 rtl:left-4'")
+    expect(r.unmapped.map((u) => u.token)).toEqual(['rtl:text-right', 'ltr:pr-1', 'rtl:left-4'])
   })
 })
 

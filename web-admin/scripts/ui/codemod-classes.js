@@ -107,7 +107,9 @@ function mapToken({ variants, important, base, opacity, literal, rtl }) {
   }
   const to = mapDirection(base)
   if (!to) return null
-  return rtl() ? '' : [...variants, important + to].join(':')
+  // A class under rtl:/ltr: is a hand-made direction override; flipping it to logical would mirror it twice.
+  const dirVariant = variants.includes('rtl') || variants.includes('ltr')
+  return dirVariant || rtl() ? '' : [...variants, important + to].join(':')
 }
 
 const lineOf = (src, offset) => src.slice(0, offset).split('\n').length

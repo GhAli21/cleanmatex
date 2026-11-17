@@ -154,11 +154,11 @@ Write-Host " Ready" -ForegroundColor Green
 # ─── [4/4] Docker Compose services ───────────────────────────────────────────
 
 Write-Host ""
-Write-Host "[4/4] Starting Docker services (redis, minio, redis-commander)..." -ForegroundColor Yellow
+Write-Host "[4/4] Starting Docker services (redis, redis-commander)..." -ForegroundColor Yellow
 
 Push-Location $ProjectRoot
 try {
-    Invoke-DockerCompose @("up", "-d", "redis", "redis-commander", "minio")
+    Invoke-DockerCompose @("up", "-d", "redis", "redis-commander")
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  ERROR: docker compose up failed." -ForegroundColor Red
         exit 1
@@ -171,9 +171,6 @@ try {
 Write-Host "  Waiting for Redis     (6379)..." -NoNewline -ForegroundColor Cyan
 if (-not (Wait-Port "127.0.0.1" 6379 30)) { Write-Host " TIMEOUT" -ForegroundColor Yellow } else { Write-Host " Ready" -ForegroundColor Green }
 
-Write-Host "  Waiting for MinIO API (9000)..." -NoNewline -ForegroundColor Cyan
-if (-not (Wait-Port "127.0.0.1" 9000 30)) { Write-Host " TIMEOUT" -ForegroundColor Yellow } else { Write-Host " Ready" -ForegroundColor Green }
-
 # ─── Summary ──────────────────────────────────────────────────────────────────
 
 Write-Host ""
@@ -185,15 +182,12 @@ Show-PortStatus "Supabase DB"      54322
 Show-PortStatus "Supabase Studio"  54323
 Show-PortStatus "Redis"            6379
 Show-PortStatus "Redis Commander"  8081
-Show-PortStatus "MinIO API"        9000
-Show-PortStatus "MinIO Console"    9001
 
 Write-Host ""
 Write-Host "  URLs:" -ForegroundColor Yellow
 Write-Host "    Supabase Studio  : http://127.0.0.1:54323"
 Write-Host "    Supabase API     : http://127.0.0.1:54321"
 Write-Host "    Redis Commander  : http://127.0.0.1:8081"
-Write-Host "    MinIO Console    : http://127.0.0.1:9001  (user: minioadmin / minioadmin123)"
 
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow

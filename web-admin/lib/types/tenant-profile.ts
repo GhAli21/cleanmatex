@@ -122,8 +122,8 @@ export interface BrandingSettingsDto {
 /**
  *
  */
+/** Brand colors. The logo is not part of this input: it is a File Util upload (TENANT_LOGO). */
 export interface BrandingSettingsInput {
-  logo: string;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;

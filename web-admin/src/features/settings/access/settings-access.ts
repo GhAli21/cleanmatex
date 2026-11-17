@@ -116,16 +116,81 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     apiDependencies: [
       {
-        label: 'Upload tenant logo',
-        method: 'POST',
-        path: '/api/v1/tenants/me/logo',
-        notes: ['Auth-only tenant route.'],
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['settings:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
       },
       {
-        label: 'Delete tenant logo',
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['settings:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['settings:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
         method: 'DELETE',
-        path: '/api/v1/tenants/me/logo',
-        notes: ['Auth-only tenant route.'],
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
       },
       {
         label: 'Update tenant profile',

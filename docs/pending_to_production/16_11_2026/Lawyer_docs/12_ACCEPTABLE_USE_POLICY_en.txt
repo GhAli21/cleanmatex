@@ -11,7 +11,7 @@ It binds the Organization and every user the Organization permits into the Servi
 It is issued by [LEGAL_ENTITY_NAME].
 
 2. Use the Service for the business
-2.1 Use the Service to run a laundry or dry-cleaning business and its related records.
+2.1 Use the Service to run a Tenant business and its related records.
 2.2 Do not resell access, rent the Service, or offer it as your own software product.
 2.3 Do not create an account for a business you do not represent.
 

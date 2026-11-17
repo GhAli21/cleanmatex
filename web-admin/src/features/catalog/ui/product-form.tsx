@@ -6,7 +6,7 @@
  * be reviewed in an actual business workflow.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
@@ -25,6 +25,9 @@ import { useTaxItemClassOptions } from '../hooks/use-tax-item-class-options'
 import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
 import { CmxStatusBadge } from '@ui/feedback';
+import { FileAttachments, useFileAttachments } from '@features/file-util'
+import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
+import { useHasPermission } from '@/lib/hooks/use-has-permission'
 interface CategoryOption {
   code: string
   name: string
@@ -73,7 +76,7 @@ interface ProductFormProps {
 
 /**
  * Product form connects the refreshed form primitives to the catalog product
- * workflow while preserving the existing create, edit, and image-upload APIs.
+ * workflow; product images are managed by File Util (PRODUCT_IMAGE).
  *
  * @param root0 Component props.
  * @param root0.initialValues Optional starting values for edit mode.
@@ -86,15 +89,13 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const tCommon = useTranslations('common')
   const isRtl = useRTL()
   const { decimalPlaces } = useTenantCurrency()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const taxItemClassOptions = useTaxItemClassOptions()
 
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [categories, setCategories] = useState<CategoryOption[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
-  const [imageUploading, setImageUploading] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
+  const canUpdateProduct = useHasPermission('products', 'update')
 
   /** Validation schema mirrors the persisted product payload used by the API. */
   const productFormSchema = useMemo(
@@ -139,6 +140,15 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   })
 
   const currentValues = form.watch()
+  // The MAIN image is managed by File Util; this read shares its cache, so the preview follows uploads.
+  const mainImage = useFileAttachments({
+    category: FILE_CATEGORIES.PRODUCT_IMAGE,
+    entityId: currentValues.id ?? '',
+    purposes: ['MAIN'],
+    source: FILE_SOURCES.PRODUCT_SETUP,
+    enabled: mode === 'edit',
+  })
+  const mainImageUrl = mainImage.files[0]?.thumbUrl ?? mainImage.files[0]?.url ?? currentValues.product_image ?? null
   const categoryOptions = categories.map((category) => ({
     value: category.code,
     label: isRtl ? category.name2 || category.name : category.name,
@@ -193,64 +203,6 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
       mounted = false
     }
   }, [tCommon])
-
-  async function handleImageUpload(file: File) {
-    const productId = form.getValues('id')
-    if (!productId) {
-      return
-    }
-
-    setImageUploading(true)
-    setImageError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch(`/api/v1/products/${productId}/image`, {
-        method: 'POST',
-        body: formData,
-      })
-      const payload = (await response.json()) as { error?: string; url?: string }
-
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error || tCommon('error'))
-      }
-
-      form.setValue('product_image', payload.url, { shouldDirty: true })
-    } catch (error) {
-      setImageError(error instanceof Error ? error.message : tCommon('error'))
-    } finally {
-      setImageUploading(false)
-    }
-  }
-
-  async function handleImageRemove() {
-    const productId = form.getValues('id')
-    if (!productId) {
-      return
-    }
-
-    setImageUploading(true)
-    setImageError(null)
-
-    try {
-      const response = await fetch(`/api/v1/products/${productId}/image`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const payload = (await response.json()) as { error?: string }
-        throw new Error(payload.error || tCommon('error'))
-      }
-
-      form.setValue('product_image', null, { shouldDirty: true })
-    } catch (error) {
-      setImageError(error instanceof Error ? error.message : tCommon('error'))
-    } finally {
-      setImageUploading(false)
-    }
-  }
 
   async function handleSubmit(values: ProductFormValues) {
     setSubmitError(null)
@@ -321,9 +273,6 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
           ) : null}
           {submitSuccess ? (
             <CmxFormStatusBanner type="success" title={tCommon('success')} items={[submitSuccess]} />
-          ) : null}
-          {imageError ? (
-            <CmxFormStatusBanner type="warning" title={tCommon('error')} items={[imageError]} />
           ) : null}
 
           <CmxFormSection
@@ -529,9 +478,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white text-3xl shadow-inner">
-                    {currentValues.product_image ? (
+                    {mainImageUrl ? (
                       <img
-                        src={currentValues.product_image}
+                        src={mainImageUrl}
                         alt={currentValues.product_name || t('productName')}
                         className="h-full w-full object-cover"
                       />
@@ -551,54 +500,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               </div>
             }
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(event) => {
-                const nextFile = event.target.files?.[0]
-                if (nextFile) {
-                  void handleImageUpload(nextFile)
-                }
-                event.target.value = ''
-              }}
-            />
-
             <div className="grid gap-4 md:grid-cols-2">
-              {mode === 'edit' ? (
-                <div className="rounded-[var(--cmx-radius-md,0.875rem)] border border-dashed border-[rgb(var(--cmx-border-rgb,203_213_225))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-4">
-                  <p className="cmx-type-field-label text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
-                    {t('productImage')}
-                  </p>
-                  <p className="mt-1 text-sm text-[rgb(var(--cmx-text-secondary-rgb,51_65_85))]">
-                    {t('imageHint')}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <CmxButton
-                      type="button"
-                      variant="outline"
-                      disabled={imageUploading}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {imageUploading ? tCommon('loading') : t('uploadImage')}
-                    </CmxButton>
-                    {currentValues.product_image ? (
-                      <CmxButton
-                        type="button"
-                        variant="outline"
-                        disabled={imageUploading}
-                        onClick={() => {
-                          void handleImageRemove()
-                        }}
-                      >
-                        {t('removeImage')}
-                      </CmxButton>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-
               <CmxFormField
                 name="product_icon"
                 label={t('productIcon')}
@@ -620,6 +522,16 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               </CmxFormField>
             </div>
           </CmxFormSection>
+
+          {mode === 'edit' && currentValues.id ? (
+            <FileAttachments
+              title={t('productImage')}
+              category={FILE_CATEGORIES.PRODUCT_IMAGE}
+              entityId={currentValues.id}
+              source={FILE_SOURCES.PRODUCT_SETUP}
+              readOnly={!canUpdateProduct}
+            />
+          ) : null}
 
           <CmxFormActions
             primaryLabel={mode === 'create' ? tCommon('create') : tCommon('update')}

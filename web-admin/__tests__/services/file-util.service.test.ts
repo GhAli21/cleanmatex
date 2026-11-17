@@ -18,6 +18,8 @@ const m = {
   remove: jest.fn(),
   signedUpload: jest.fn(),
   signedUrls: jest.fn(),
+  productUpdateMany: jest.fn(),
+  tenantUpdateMany: jest.fn(),
 };
 
 const mockFileModel = {
@@ -27,7 +29,12 @@ const mockFileModel = {
   findMany: (...a: unknown[]) => m.fileFindMany(...a),
   updateMany: (...a: unknown[]) => m.fileUpdateMany(...a),
 };
-const mockTx = { org_file_mst: mockFileModel, $executeRaw: (...a: unknown[]) => m.executeRaw(...a) };
+const mockTx = {
+  org_file_mst: mockFileModel,
+  org_product_data_mst: { updateMany: (...a: unknown[]) => m.productUpdateMany(...a) },
+  org_tenants_mst: { updateMany: (...a: unknown[]) => m.tenantUpdateMany(...a) },
+  $executeRaw: (...a: unknown[]) => m.executeRaw(...a),
+};
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -43,7 +50,7 @@ jest.mock('@/lib/db/prisma', () => ({
 }));
 jest.mock('@/lib/db/tenant-guard', () => ({ withTenantGuardBypass: (_r: string, fn: () => unknown) => fn() }));
 jest.mock('@/lib/services/usage-tracking.service', () => ({ canStoreBytes: (...a: unknown[]) => m.canStoreBytes(...a) }));
-jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), error: jest.fn() } }));
+jest.mock('@/lib/utils/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
 jest.mock('@/lib/supabase/server', () => ({
   createAdminSupabaseClient: () => ({
     storage: {
@@ -232,7 +239,9 @@ describe('completeFileUpload', () => {
 
 describe('deleteFile', () => {
   it('soft-deletes only within the tenant and category', async () => {
+    m.fileFindFirst.mockResolvedValueOnce({ entity_id: ORDER, purpose_code: 'BEFORE_IMAGE', status_code: 'READY' });
     await deleteFile(T1, 'user-1', 'ORDER_FILE', FILE);
+    expect(m.fileFindFirst.mock.calls[0][0].where).toMatchObject({ id: FILE, tenant_org_id: T1, category_code: 'ORDER_FILE' });
     expect(m.fileUpdateMany.mock.calls[0][0]).toMatchObject({
       where: { id: FILE, tenant_org_id: T1, category_code: 'ORDER_FILE' },
       data: { status_code: 'DELETED', rec_status: 0, is_active: false },
@@ -240,7 +249,50 @@ describe('deleteFile', () => {
   });
 
   it('reports not found for another tenant\'s file', async () => {
-    m.fileUpdateMany.mockResolvedValue({ count: 0 });
+    m.fileFindFirst.mockResolvedValueOnce(null);
     await expectCode(deleteFile(T2, 'user-1', 'ORDER_FILE', FILE), 'FILE_NOT_FOUND');
+    expect(m.fileUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('clears the organization logo URL when the main logo is deleted', async () => {
+    m.fileFindFirst
+      .mockResolvedValueOnce({ entity_id: T1, purpose_code: 'MAIN', status_code: 'READY' })
+      .mockResolvedValueOnce(null); // slot is now empty
+    await deleteFile(T1, 'user-1', 'TENANT_LOGO', FILE);
+    expect(m.tenantUpdateMany).toHaveBeenCalledWith({ where: { id: T1 }, data: expect.objectContaining({ logo_url: null }) });
+  });
+
+  it('leaves the URL alone for files outside the published slot', async () => {
+    m.fileFindFirst.mockResolvedValueOnce({ entity_id: ORDER, purpose_code: 'GALLERY', status_code: 'READY' });
+    await deleteFile(T1, 'user-1', 'PRODUCT_IMAGE', FILE);
+    expect(m.productUpdateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('published URL (PRODUCT_IMAGE / MAIN)', () => {
+  it('publishes the public URL on the product, filtered by tenant, when the main image completes', async () => {
+    const key = `${T1}/PRODUCT_IMAGE/${ORDER}/${FILE}.jpg`;
+    m.bucketFind.mockResolvedValue({ storage_bucket_id: 'tenants-cmx-public', is_public: true });
+    m.fileFindFirst
+      .mockResolvedValueOnce({
+        status_code: 'PENDING', bucket_code: 'TENANT_PUBLIC', object_key: key, thumb_object_key: null, mime_type: 'image/jpeg',
+        size_bytes: BigInt(JPEG.length), purpose_code: 'MAIN', entity_id: ORDER, sys_file_purpose_cd: { max_files: 1 },
+      })
+      .mockResolvedValueOnce({ bucket_code: 'TENANT_PUBLIC', object_key: key }) // current slot file
+      .mockResolvedValueOnce({
+        id: FILE, category_code: 'PRODUCT_IMAGE', purpose_code: 'MAIN', entity_id: ORDER, ref_type_code: null, ref_id: null,
+        source_code: 'PRODUCT_SETUP', notes: null, original_name: 'a.jpg', mime_type: 'image/jpeg', size_bytes: BigInt(JPEG.length),
+        width: null, height: null, duration_ms: null, sort_order: 0, created_at: new Date(), created_by: 'user-1',
+        bucket_code: 'TENANT_PUBLIC', object_key: key, thumb_object_key: null,
+      });
+    m.fileFindMany.mockResolvedValue([]);
+    m.download.mockResolvedValue({ data: { arrayBuffer: async () => JPEG.buffer.slice(JPEG.byteOffset, JPEG.byteOffset + JPEG.length) }, error: null });
+
+    await completeFileUpload(T1, 'user-1', 'PRODUCT_IMAGE', FILE);
+
+    expect(m.productUpdateMany).toHaveBeenCalledWith({
+      where: { id: ORDER, tenant_org_id: T1 },
+      data: expect.objectContaining({ product_image: `https://pub/${key}` }),
+    });
   });
 });

@@ -25,7 +25,7 @@ Pilot order form  pilot-order-2026-11-17    19_PILOT_ORDER_FORM_en.txt and 19_PI
 Copy the finished values into the published pages, in both languages, in place of the brackets.
 Keep a one-line note of the source of each fact.
 
-[LEGAL_ENTITY_NAME]               The company that contracts with the laundry. Not the product name alone, unless a registered company actually has that name.
+[LEGAL_ENTITY_NAME]               The company that contracts with the Tenant. Not the product name alone, unless a registered company actually has that name.
 [COMMERCIAL_REGISTRATION_NUMBER]  As printed on the commercial register.
 [COUNTRY_OF_INCORPORATION]        The country of that registration.
 [REGISTERED_ADDRESS]              Full registered office.
@@ -36,7 +36,7 @@ Keep a one-line note of the source of each fact.
 [SUPPORT_WHATSAPP_E164]           Pilot support number in E.164, or the words "not offered" if there is no number yet.
 [WEBSITE_URL]                     The marketing site origin, https, no path.
 [APP_URL]                         The tenant application origin, https, no path.
-[SUPABASE_REGION]                 The real production region of the database that stores laundry and end-customer data. File 01, item B5. Do not guess. Read it from the Supabase project settings and paste the provider's region name.
+[SUPABASE_REGION]                 The real production region of the database that stores Tenant and end-customer data. File 01, item B5. Do not guess. Read it from the Supabase project settings and paste the provider's region name.
 [BACKUP_RETENTION]                The real backup and point-in-time recovery window on that project, in days.
 [VAT_REGISTRATION]                Either "not registered" or the country and registration number. Do not print a VAT number the company does not hold.
 [LIABILITY_CAP_TRIAL]             Proposed and used in the Terms until the Owner replaces it: 100 Omani rials.
@@ -69,11 +69,11 @@ Analytics vendor    Marketing analytics                       Device and usage d
 
 4. RETENTION FIGURES USED IN THE PUBLISHED TEXTS
 Accounting and tax records of an Organization, and the issued tax documents of that Organization's sales: 10 years from the end of the financial year of the record.
-This 10-year period is the pilot safe harbor across Oman, the UAE, and Bahrain.
+This time period is the pilot safe harbor across Oman, the UAE, and Bahrain (with the ASP for e-invoide not with us).
 A shorter period replaces it only when the tax adviser writes the shorter period into Tax_Config/KIT_FACTS.md and this register is updated to a new pack version in both languages.
 Backups: overwritten or expired on the cycle in [BACKUP_RETENTION]. Selective deletion inside a live backup is not promised.
-Sign-up acceptance records: kept for the life of the account and for 5 years after the account ends.
-Order-intake consent records: kept for the life of the customer record and for 5 years after anonymization or account end.
+Sign-up acceptance records: kept for the life of the account and for limited time after the account ends.
+Order-intake consent records: kept for the life of the customer record and for limited time after anonymization or account end.
 Server security logs that contain an IP address: 12 months, then delete or aggregate.
 Marketing-site lead forms: kept until the person asks for deletion, or for 24 months after the last contact, whichever comes first.
 

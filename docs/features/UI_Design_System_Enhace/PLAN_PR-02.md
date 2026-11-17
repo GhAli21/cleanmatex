@@ -31,7 +31,17 @@ Update this table and `STATUS.md` at the end of every task. Add owner QA steps t
 
 Tests: codemod 39, guard 1, keypad, guardrails 6: 60/60. `npx eslint src/ui --quiet`: 0 errors. Full `npx eslint .`: 0 errors. **PR-05 starting count (guardrail warnings in `src/features` + `app`, counted per string literal, not per class): 5,974 palette, 1,796 physical direction, 50 legacy `Alert` imports.** |
 | 9 PR-01 leftovers | Done | 2026-11-17 | `CmxPagination` uses existing keys: `common.rowsPerPage`, `common.of` (range `1-10 من 25`) and `common.noData` for empty. Ruling: `noData` is reused instead of a new `noItems` key, to avoid a near-duplicate. Caller `labels` still win. There was no existing pagination test, so `__tests__/ui/navigation/cmx-pagination.test.tsx` is new (3 tests; 2 failed first, then pass, asserting the Arabic text). `order-issues-list-dialog.tsx`: the status pill moved from an arbitrary primary bg with `text-white` to `bg-primary text-primary-foreground` (CRLF kept). Touch-token comment was already done. `check:i18n` passes; ESLint clean. Follow-up for PR-05: `CmxDataGrid` has about 25 English default labels (`DEFAULT_LABELS`) that callers must override; it should read `common.*` itself. |
-| 10 Verification, review, docs | Not started | | |
+| 10 Verification, review, docs | Done | 2026-11-17 | Checks so far: full ESLint 0 errors (Task 8); `check:i18n` passes (Task 9); jest `__tests__/ui lib scripts features/orders`: 143 suites pass, 7 fail, all on PR-01's known list. Docs done:
+- `QA_TEST_GUIDE.md` → PR-02 (16 steps)
+- `docs/dev/ui-migration-guide.md` (badge row and the PR-02 section on badge, select, removed parts and class rules)
+- `src/ui/feedback/README.md` (status badge section)
+- `.clauderc` (already current)
+
+Fresh whole-change review done; 4 Important fixed, each with a test that failed first (see "Final review" below). After the fixes: jest 143 pass, the same 7 known failures; ESLint 0 on changed files.
+
+**Build:** two attempts failed outside PR-02. Another session (File_Util) is deleting routes and `lib/storage/*` while the build runs (`ENOENT products/[id]/image/route.ts`, then `Cannot find module tenants/me/logo/route.ts`). Third attempt (after the fixes) passed: compiled, 338/338 pages, exit 0.
+
+**Left (owner):** the Storybook visual check is the owner's (`QA_TEST_GUIDE.md` → PR-02 #21), because this session has no browser. |
 
 States: Not started → In progress → Done (checks passed) → Blocked (say why).
 
@@ -44,6 +54,26 @@ States: Not started → In progress → Done (checks passed) → Blocked (say wh
 - **Task 7: the guard is its own file** (`no-raw-classes.test.ts`), not inside `tokens-css.test.ts`: it scans source files, not the token sheet.
 - **Task 7: the guard was not seen failing as a whole test.** It was written after the hand fixes. Its detector (`findRawClasses`) has its own unit test, which failed first.
 - **Task 7: `flex-row-reverse` under `isRTL` in `cmx-sidebar`** reverses rows that `dir="rtl"` already reverses. This was here before and is out of this task's mapping; noted for PR-05 or owner QA. Cost if wrong: the sidebar items show in LTR order in Arabic.
+
+### Final review (fresh reviewer, most capable model, 2026-11-17)
+
+No Critical findings. 4 Important, all fixed, each with a test that failed first:
+
+1. **The codemod rewrote classes under `rtl:`/`ltr:`, mirroring them twice.** In Arabic this put table headers, the row-number and audit columns, the dialog close X and the money keypad label padding on the wrong side. Fixed in `cmx-datatable.tsx`, `cmx-dialog.tsx` and `cmx-money-keypad.tsx` (plain logical class, override dropped). `mapToken` now reports such classes instead of rewriting them, which matters for PR-05. Tests: codemod "a direction class under rtl: or ltr: is reported" and guard "src/ui has no logical class under rtl:/ltr:", both RED→GREEN. The old codemod case `rtl:left-auto → rtl:start-auto` asserted the bug and was removed.
+2. **The top bar user menu was LTR in Arabic.** Radix `DropdownMenu` had no `dir`, and the app has no `DirectionProvider`. It now gets `dir` from `useRTL()`, as the select does. Test: top bar "in Arabic the user menu is laid out right to left", RED→GREEN.
+3. **Brand badges had no tint.** `bg-primary-bg` was not registered in `globals.css @theme`. Added `--color-primary-bg`. Test: status-tokens "every colour class the badge uses is registered with Tailwind", RED→GREEN.
+4. **Picking a select option also clicked the row or card around it.** React events bubble out of the portal; the old list stopped them. `onPointerDown`/`onClick` `stopPropagation` was added on the list. Test: select "picking an option does not click the row or card around the select", RED→GREEN.
+
+Rulings:
+- **The other 4 `DropdownMenu` uses keep no `dir`, and no app-wide `DirectionProvider` is added.** They predate PR-02 (not a regression), and a provider in `AppProviders` changes every Radix surface at once. That belongs in PR-05's page shell work. Cost if wrong: those 4 menus stay LTR-ordered in Arabic until PR-05.
+- **Reviewer declined to judge whether F4 fires with a mouse in Chrome.** It is fixed regardless; the stop is harmless for a mouse.
+- **Reviewer only skimmed the data grid, pagination and sidebar.** Pagination and the data grid have tests. The sidebar's `flex-row-reverse` is already a Task 7 ruling and owner QA (`QA_TEST_GUIDE.md` PR-02 #13).
+- **Reviewer did not check the ~127 migrated badge callers line by line.** Typecheck covers the props; colours are owner QA #1–#4.
+
+Deferred minors:
+- Select `itemCount` counts a Fragment as one child, so `<>{[].map()}</>` shows an empty list instead of the "no data" text.
+- The language switcher's selected item uses `bg-info-bg text-info-text`, a status colour for a selection state; `bg-primary-bg` fits better.
+- The top bar menu icons have `me-2` on top of the item's `gap-2`, doubling the space.
 
 ### Rulings made while planning (checked against the code 2026-11-16)
 

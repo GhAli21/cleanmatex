@@ -34,6 +34,15 @@ describe.each([
   })
 })
 
+test('every colour class the badge uses is registered with Tailwind', () => {
+  const badge = fs.readFileSync(path.join(ROOT, 'src/ui/feedback/cmx-status-badge.tsx'), 'utf8')
+  const colours = [...badge.matchAll(/\b(?:bg|text|border)-([a-z]+(?:-[a-z]+)*)(?:\/\d+)?(?=[\s'"])/g)]
+    .map((m) => m[1])
+    .filter((c) => !['transparent', 'xs', 'sm', 'base'].includes(c))
+  const missing = [...new Set(colours)].filter((c) => !new RegExp(`--color-${c}:`).test(globals))
+  expect(missing).toEqual([])
+})
+
 test.each(TONES)('Tailwind exposes %s bg, border and text', (tone) => {
   for (const part of ['bg', 'border', 'text']) {
     expect(globals).toMatch(new RegExp(`--color-${tone}-${part}:\\s*rgb\\(var\\(--cmx-${tone}-${part}-rgb\\)\\)`))

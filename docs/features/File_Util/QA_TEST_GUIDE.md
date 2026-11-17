@@ -1,6 +1,6 @@
 # File Util — QA Test Guide (owner-runnable)
 
-**Covers:** Phase 4 (order photos and files). Updated after each phase.
+**Covers:** Phase 4 (order photos and files) and Phase 5 (product images, logo). Updated after each phase.
 **Before you start:**
 - Sign in to an organization that **has a subscription** (only 2 of the 4 demo organizations do). Without one, every upload shows "No active plan was found for this organization."
 - Use a user with `orders:read` and `orders:update` for the edit tests, plus one with only `orders:read` for the read-only test.
@@ -44,7 +44,26 @@ Sidebar **Orders** → **New Order** (`/dashboard/orders/new`).
 | B5 | Take photos, then reset/cancel the new order without saving | Badge clears; nothing is uploaded. |
 | B6 | Edit an existing order (Edit order), take a photo, save the edit | Photo is added to that order. |
 
-## C. Not testable yet
+## C. Product images and logo (Phase 5)
+
+Apply `0750` first. Use a user with `products:update` and `settings:branding`.
+
+| # | Where / do | Expect |
+|---|---|---|
+| C1 | Sidebar **Catalog** → Services → open a product (`/dashboard/catalog/services/<id>`) | Section **Product Image** with File type picker (Main image, Order image, Back side, Gallery), drop zone, camera. |
+| C2 | Upload a JPEG as **Main image** | Appears in the grid; the small preview at the top of the image section shows it. |
+| C3 | Open **Orders → New Order**, find that product | The product card shows the new image. |
+| C4 | Back on the product, upload another **Main image** | It replaces the first one (only one Main image); New Order shows the new one. |
+| C5 | Delete the Main image | Preview falls back to the icon; New Order card shows no image. |
+| C6 | Upload a **Gallery** image, then change its type to **Main image** (pencil) | It becomes the product image (C3 shows it). |
+| C7 | Sign in without `products:update` | Images visible, no upload, edit or delete. |
+| C8 | New product (create mode) | No image section until the product is saved. |
+| C9 | Sidebar **Settings → Branding** (`/dashboard/settings/branding`) → upload a PNG as **Logo** (not "Receipt logo") | Saved at once (no Save button needed). Reload: still there. Receipts and the customer app show it. |
+| C10 | Change a brand color → **Save Changes** | Colors save; the logo is unchanged. |
+| C11 | Try to upload an SVG or a PDF as logo | Refused before upload (type not allowed). |
+| C12 | Supabase dashboard → Storage → `product-images` | After `0750`: bucket private; an upload attempt there is refused. Then delete the bucket. |
+
+## D. Not testable yet
 
 - Storage purge of deleted files runs in the HQ `platform-workers` job `file-util-purge` — needs that worker deployed.
-- Product images, logo, customer photos and other screens: Phases 5–6.
+- Customer photos, delivery POD and the other photo columns: Phase 6.

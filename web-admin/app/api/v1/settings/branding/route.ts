@@ -2,13 +2,11 @@
  * Settings → Branding API
  *
  *   GET  /api/v1/settings/branding — load logo URL + brand colors
- *   PUT  /api/v1/settings/branding — replace logo URL + brand colors
+ *   PUT  /api/v1/settings/branding — replace brand colors
  *
- * Logo URLs are host-validated to prevent the Branding form from being used
- * to point a tenant's logo at an attacker-controlled image (e.g. an SVG with
- * inline script). Acceptable URLs must live under the public storage host
- * declared by `NEXT_PUBLIC_STORAGE_URL` and use the
- * `tenants/{tenantId}/logo/...` key pattern produced by `uploadTenantLogo`.
+ * The logo is uploaded through File Util (category TENANT_LOGO), which publishes
+ * `org_tenants_mst.logo_url` itself. This route never accepts a logo URL, so a
+ * client cannot point the logo at an outside image; a `logo` field in the body is ignored.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,12 +21,10 @@ import {
   updateTenantBranding,
   TenantProfileError,
 } from '@/lib/services/tenant-profile.service';
-import { deleteTenantLogo } from '@/lib/storage/tenant-logo';
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 
 const brandingInputSchema = z.object({
-  logo: z.string().max(2048).default(''),
   primaryColor: z.string().regex(HEX, 'primaryColor must be #RRGGBB'),
   secondaryColor: z.string().regex(HEX, 'secondaryColor must be #RRGGBB'),
   accentColor: z.string().regex(HEX, 'accentColor must be #RRGGBB'),
@@ -88,38 +84,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (parsed.data.logo && !isAllowedLogoUrl(parsed.data.logo, tenantId)) {
-      return NextResponse.json(
-        {
-          error: 'Logo URL is not allowed',
-          fieldErrors: { logo: 'Logo URL must be hosted on the configured storage host' },
-        },
-        { status: 400 }
-      );
-    }
-
     const userInfo = request.headers.get('user-agent') ?? undefined;
 
     try {
-      const { branding, previousLogoUrl } = await updateTenantBranding(
+      const { branding } = await updateTenantBranding(
         tenantId,
         parsed.data,
         { userId, userInfo }
       );
-
-      // Best-effort cleanup of the replaced logo. Failures are logged but
-      // do not fail the request — the new logo is already persisted.
-      if (previousLogoUrl) {
-        try {
-          await deleteTenantLogo(previousLogoUrl);
-        } catch (cleanupErr) {
-          logger.error(
-            'settings/branding: previous logo cleanup failed',
-            cleanupErr instanceof Error ? cleanupErr : new Error(String(cleanupErr)),
-            { tenantId, previousLogoUrl }
-          );
-        }
-      }
 
       revalidatePath('/dashboard/settings/branding');
       revalidatePath('/dashboard'); // header/shell renders the logo
@@ -144,28 +116,6 @@ export async function PUT(request: NextRequest) {
 }
 
 // ---------------------------------------------------------------------------
-
-/**
- * Accept only logos that came from our own storage host AND are scoped to
- * this tenant's logo key prefix. Defends against arbitrary-URL XSS via the
- * Branding form (e.g. inline-script SVG hosted on attacker domain).
- * @param url
- * @param tenantOrgId
- */
-function isAllowedLogoUrl(url: string, tenantOrgId: string): boolean {
-  try {
-    const u = new URL(url);
-    const publicBase = process.env.NEXT_PUBLIC_STORAGE_URL || 'http://localhost:9000';
-    const allowed = new URL(publicBase);
-    if (u.host !== allowed.host) return false;
-    if (u.protocol !== allowed.protocol) return false;
-    // Path must contain the tenant-scoped logo key pattern.
-    const needle = `/tenants/${tenantOrgId}/logo/`;
-    return u.pathname.includes(needle);
-  } catch {
-    return false;
-  }
-}
 
 function flattenZod(zodErr: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};

@@ -1,15 +1,17 @@
 # File Util — Status
 
-**Plan:** [PLAN.md](PLAN.md) · **Last update:** 2026-11-16
+**Plan:** [PLAN.md](PLAN.md) · **Last update:** 2026-11-17
 
 ## Current
 
-Phase 4 code done (build green). **Owner: browser QA with `QA_TEST_GUIDE.md` (A + B); deploy HQ `platform-workers`.** Next: Phase 5 (product images, logo, `product-images` policy fix, MinIO removal).
+Phase 5 code done. **Owner: apply `0750` (local + remote), then delete the empty `product-images` bucket and its 4 policies in the Supabase dashboard; browser QA with `QA_TEST_GUIDE.md` (A, B, C); deploy HQ `platform-workers`.** Next: Phase 6 (remaining photo columns, customer photo, delivery POD).
 
 ## Log
 
 | Date | Task | Result |
 |---|---|---|
+| 2026-11-17 | Phase 5 code | Service publishes the MAIN image URL to `org_product_data_mst.product_image` / `org_tenants_mst.logo_url` in the same transaction as complete / purpose change / delete (decision 14). Product form and Branding page use `FileAttachments`; old product-image and logo routes, `uploadLogo`, `product-images.ts`, `tenant-logo.ts`, `minio-client.ts`, dead `upload-photo.ts` deleted. Branding PUT saves colors only (client `logo` ignored). `minio` npm dependency, docker-compose service and dev-script checks removed. Migration `0750` written (not applied). Tests: File Util 50/50, branding 2/2, tenants service pass (81 in the 5 suites); eslint clean on touched files; i18n check passes; full `tsc` shows 4 errors, all in files outside this work (login, navigation route, fx profile, users membership lock). `npm run build` green. |
+| 2026-11-17 | Found, not fixed (outside File Util) | `PATCH /api/v1/tenants/me` spreads the raw request body into the `org_tenants_mst` update (no field allowlist), so a caller can write any column, including `logo_url`. Needs its own fix. |
 | 2026-11-17 | Phase 4 code | New order: Photo button (badge = pending count) → `CmxCameraCaptureDialog` → `pendingPhotos` in state → `uploadFilesToRecord()` after save (not awaited; result via cmxMessage). Order detail: **Files** tab (`FileAttachments`, read-only without `orders:update`). Old `PhotoCaptureModal` deleted, dead `newOrder.photoCapture.*` keys removed. i18n check passes; tsc + eslint clean on touched files; `npm run build` green; File Util tests 47/47. `QA_TEST_GUIDE.md` written. Locale files are CRLF: edits made byte-preserving (minimal diffs). |
 | 2026-11-17 | Phase 4 started | `uploadFile()` extracted (hook reuses it); new-order state gets `pendingPhotos` (uploaded right after save). Remaining steps listed in RESUME_CONTINUATION §3a. |
 | 2026-11-17 | Phase 3 UI kit | Shared: `CmxFileDropZone`, `CmxCameraCaptureDialog`, `CmxFileGallery`, `CmxFileViewerDialog` (+4 stories with RTL). Feature: `src/features/file-util` (api, hook with upload queue, image downscale + WebP thumb, `FileAttachments` widget, index). i18n `common.files.*` + `fileUtil.json` EN/AR (check:i18n passes). `.clauderc` snippets. tsc + eslint clean on touched files; `npm run build` green. Not browser-tested yet (needs Phase 4 consumer). Note: rewriting `common.json` briefly reformatted it; rebuilt from HEAD so the diff is only the 21 new lines per locale. |

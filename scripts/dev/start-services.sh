@@ -54,14 +54,6 @@ while ! docker exec cmx-redis redis-cli ping > /dev/null 2>&1; do
 done
 echo -e " ${GREEN}✓${NC}"
 
-# Wait for MinIO
-echo -n "   MinIO: "
-while ! curl -f http://localhost:9000/minio/health/live > /dev/null 2>&1; do
-    echo -n "."
-    sleep 1
-done
-echo -e " ${GREEN}✓${NC}"
-
 # Step 3: Start Supabase (if not already running)
 echo ""
 echo -e "${BLUE}🔷 Starting Supabase local instance...${NC}"
@@ -84,8 +76,6 @@ echo "  📍 Service URLs"
 echo "═══════════════════════════════════════════════════════"
 echo -e "  PostgreSQL:        ${BLUE}localhost:5432${NC}"
 echo -e "  Redis:             ${BLUE}localhost:6379${NC}"
-echo -e "  MinIO API:         ${BLUE}http://localhost:9000${NC}"
-echo -e "  MinIO Console:     ${BLUE}http://localhost:9001${NC}"
 echo -e "  Redis Commander:   ${BLUE}http://localhost:8081${NC}"
 echo -e "  Supabase API:      ${BLUE}http://localhost:54321${NC}"
 echo -e "  Supabase Studio:   ${BLUE}http://localhost:54323${NC}"

@@ -4,21 +4,25 @@
  * Branding Settings Page
  *
  * Manages brand identity:
- * - Logo upload (real MinIO upload via /api/v1/settings/branding/logo)
+ * - Logo: File Util upload (TENANT_LOGO), saved as soon as it uploads; the
+ *   server publishes org_tenants_mst.logo_url (not part of the Save button)
  * - Brand colors (primary, secondary, accent)
  * - Theme preview
  *
  * UX:
  * - Loads on mount with skeleton
- * - Optimistic logo preview while upload is in flight; rolls back on failure
  * - Save is disabled while pristine, dirty edits warn on page unload
  * - Inline server-side field errors
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Save, Palette, Loader2 } from 'lucide-react'
+import { Save, Palette } from 'lucide-react'
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token'
+import { useAuth } from '@/lib/auth/auth-context'
+import { useHasPermission } from '@/lib/hooks/use-has-permission'
+import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
+import { FileAttachments } from '@features/file-util'
 
 interface BrandingSettings {
   logo: string
@@ -44,8 +48,8 @@ export default function BrandingSettingsPage() {
   const { token: csrfToken } = useCSRFToken()
   const [settings, setSettings] = useState<BrandingSettings>(DEFAULTS)
   const [baseline, setBaseline] = useState<BrandingSettings>(DEFAULTS)
-  const [previewLogo, setPreviewLogo] = useState<string | null>(null) // optimistic DataURL
-  const [uploading, setUploading] = useState(false)
+  const tenantId = useAuth().currentTenant?.tenant_id
+  const canEditBranding = useHasPermission('settings', 'branding')
   const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -56,9 +60,6 @@ export default function BrandingSettingsPage() {
     () => JSON.stringify(settings) !== JSON.stringify(baseline),
     [settings, baseline]
   )
-
-  // Effective image source: optimistic preview wins until upload commits
-  const displayedLogo = previewLogo ?? settings.logo
 
   // Load on mount
   useEffect(() => {
@@ -101,45 +102,6 @@ export default function BrandingSettingsPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Optimistic local preview
-    const reader = new FileReader()
-    reader.onloadend = () => setPreviewLogo(reader.result as string)
-    reader.readAsDataURL(file)
-
-    setUploading(true)
-    setFieldErrors((prev) => ({ ...prev, logo: '' }))
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/v1/settings/branding/logo', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getCSRFHeader(csrfToken) },
-        body: form,
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json.url) {
-        setPreviewLogo(null) // rollback
-        setFieldErrors((prev) => ({ ...prev, logo: json.error || t('saveError') }))
-        return
-      }
-      setSettings((prev) => ({ ...prev, logo: json.url }))
-      setPreviewLogo(null)
-    } catch (err) {
-      console.error('Logo upload failed:', err)
-      setPreviewLogo(null)
-      setFieldErrors((prev) => ({ ...prev, logo: t('saveError') }))
-    } finally {
-      setUploading(false)
-      // Reset input value so re-selecting the same file fires onChange again
-      e.target.value = ''
-    }
-  }
-
   // Quick client-side gate so users see hex errors before round-tripping
   const clientSideHexErrors = (): Record<string, string> => {
     const errs: Record<string, string> = {}
@@ -167,7 +129,11 @@ export default function BrandingSettingsPage() {
           'Content-Type': 'application/json',
           ...getCSRFHeader(csrfToken),
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          primaryColor: settings.primaryColor,
+          secondaryColor: settings.secondaryColor,
+          accentColor: settings.accentColor,
+        }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -205,49 +171,16 @@ export default function BrandingSettingsPage() {
 
       {/* Logo Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('logo')}</h2>
-
-        <div className="flex items-start gap-6">
-          <div className="flex-shrink-0 relative">
-            {displayedLogo ? (
-               
-              <img
-                src={displayedLogo}
-                alt="Logo"
-                className="w-32 h-32 object-contain border-2 border-gray-200 rounded-lg bg-white"
-              />
-            ) : (
-              <div className="w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                <span className="text-gray-400 text-sm">{t('noLogo')}</span>
-              </div>
-            )}
-            {uploading && (
-              <div
-                className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/60"
-                aria-live="polite"
-              >
-                <Loader2 className="h-6 w-6 animate-spin text-gray-600" />
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <label className="block">
-              <span className="sr-only">{t('uploadLogo')}</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={handleLogoUpload}
-                disabled={uploading}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
-              />
-            </label>
-            <p className="mt-2 text-sm text-gray-500">{t('logoGuidelines')}</p>
-            {fieldErrors.logo && (
-              <p className="mt-1 text-xs text-red-600">{fieldErrors.logo}</p>
-            )}
-          </div>
-        </div>
+        {tenantId ? (
+          <FileAttachments
+            title={t('logo')}
+            category={FILE_CATEGORIES.TENANT_LOGO}
+            entityId={tenantId}
+            source={FILE_SOURCES.TENANT_SETTINGS}
+            readOnly={!canEditBranding}
+          />
+        ) : null}
+        <p className="mt-3 text-sm text-gray-500">{t('logoGuidelines')}</p>
       </div>
 
       {/* Colors Section */}
@@ -330,7 +263,7 @@ export default function BrandingSettingsPage() {
         )}
         <button
           onClick={handleSave}
-          disabled={loading || !isDirty || uploading}
+          disabled={loading || !isDirty}
           className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
         >
           <Save className="h-5 w-5" />

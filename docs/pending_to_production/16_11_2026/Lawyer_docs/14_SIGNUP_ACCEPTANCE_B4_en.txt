@@ -7,7 +7,7 @@ Implements: roadmap B4 and Phase 3 step 3.2
 Status: Decided. Use this wording. Do not shorten it in a way that drops the DPA or the authority sentence.
 
 1. WHEN THE CHECKBOX APPEARS
-On the screen that creates a new Organization (the laundry sign-up).
+On the screen that creates a new Organization (the Tenant sign-up).
 Also on any later screen where a new authorized person re-accepts a new version of the Terms or the DPA.
 The checkbox is unchecked when the screen loads.
 The submit control does not create an Organization while the box is unchecked.

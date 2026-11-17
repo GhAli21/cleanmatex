@@ -3,7 +3,7 @@
 **Last update:** 2026-11-17
 **Current document:** `THEMING_ARCHITECTURE_DESIGN.md` (approved by owner 2026-11-16). It wins over any PR file on conflict.
 **Plans:** one per package, written just before that package starts. `PLAN_PR-01.md` is executed (see its Progress table and Rulings).
-**Code written so far:** PR-01 and PR-02 Tasks 1–6 (uncommitted; the owner commits). No migration written.
+**Code written so far:** PR-01 and all of PR-02 (the owner committed through PR-02 Task 7; the rest is uncommitted). No migration written.
 **Resume here:** `RESUME_CONTINUATION.md` (handoff for the next session or assistant).
 
 ## Packages
@@ -11,7 +11,7 @@
 | Package | What | Depends on | State |
 |---|---|---|---|
 | PR-01 | Tokens, fonts, `cn()` merge, RTL and accessibility fixes in shared components | — | **Implemented 2026-11-16 (all 7 tasks), owner QA pending** |
-| PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **In progress** (`PLAN_PR-02.md`, approved 2026-11-16; order statuses map to the 5 tones). Tasks 1–9 Done; Task 10 (verification, review, docs) not started |
+| PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **Implemented 2026-11-17 (all 10 tasks), owner QA pending** (`PLAN_PR-02.md`) |
 | PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | Not started |
 | PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | Not started |
 | PR-04 | POS touch targets and keyboard shortcuts | PR-01 | Not started |
@@ -49,10 +49,24 @@
 
 - Owner QA steps: `QA_TEST_GUIDE.md` → PR-01.
 
+## PR-02 result (2026-11-17)
+
+- **One badge:** `CmxStatusBadge` with 6 locked tones (`neutral info success warning danger brand`). About 127 callers were moved. Order statuses map to 5 tones through `orderStatusTone()`. The legacy `Badge` is deleted.
+- **Select:** `CmxSelectDropdown` is built on Radix Select. Its list is portalled above dialogs, and Escape closes only the list. The empty value works. It supports keyboard and RTL.
+- **Removed duplicates:** legacy `Button`, `Card`, `Input`, `LoadingButton`, `FormInput`, `src/ui/components/` and `foundations/tokens.ts`. The top bar and permissions inspector moved out of feature imports. The top bar's dead search box is removed, and its user menu is a real menu.
+- **Classes:** `src/ui` uses theme tokens and logical (RTL-safe) classes only. A guard test and ESLint (errors in `src/ui`, warnings in `src/features` and `app`) keep it that way. `scripts/ui/codemod-classes.js` is ready for PR-05. PR-05 starts from 5,974 colour warnings, 1,796 direction warnings and 50 `Alert` imports.
+- **Pagination text** comes from `common.*` in both languages.
+- **Final review by a fresh reviewer:** 4 Important findings fixed, each with a test that failed first: Arabic double-mirroring from the codemod, the top bar menu LTR in Arabic, brand badges without a tint, and a select pick clicking the row behind it. 3 Minor deferred. Details are in `PLAN_PR-02.md` → Final review.
+- **Checks:**
+  - jest (`ui lib scripts features/orders`): 143 suites pass. 7 fail, all on PR-01's known list.
+  - Full ESLint shows 0 errors; `check:i18n` passes.
+  - Build: passed after Task 7. Passed again after the review fixes (third attempt; the first two failed because another session deleted routes during the build).
+- Owner QA steps: `QA_TEST_GUIDE.md` → PR-02.
+
 ## Open
 
 - PR-01 owner QA (`QA_TEST_GUIDE.md`) and commit.
-- PR-02: Task 10 (Storybook visual check of the Task 7 class changes is part of Task 10) (`RESUME_CONTINUATION.md`).
+- PR-02: owner QA (`QA_TEST_GUIDE.md` → PR-02, including the Storybook check) and commit.
 - Pre-existing, not from this program: 2 type errors (`app/(auth)/login/page.tsx:162`, `src/features/users/ui/membership-lock-action.tsx:84`) and 9 failing jest suites (list in `PLAN_PR-01.md`).
 - Font pairs to seed (licence and Arabic coverage check).
 - Tailwind v4's exact minimum browser versions.

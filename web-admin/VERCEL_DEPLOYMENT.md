@@ -41,14 +41,6 @@ NEXT_PUBLIC_FEATURE_PREPARATION=true
 # Redis (if using)
 REDIS_URL=your-redis-url
 
-# MinIO Storage (if using)
-MINIO_ENDPOINT=your-minio-endpoint
-MINIO_PORT=9000
-MINIO_USE_SSL=true
-MINIO_ACCESS_KEY=your-access-key
-MINIO_SECRET_KEY=your-secret-key
-NEXT_PUBLIC_STORAGE_URL=your-storage-url
-
 # Sentry (if using)
 NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn
 ```

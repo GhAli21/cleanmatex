@@ -20,7 +20,7 @@ Write-Host "  CleanMateX -- Stop Services" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ─── [1/2] Docker Compose services (redis, minio, redis-commander) ────────────
+# ─── [1/2] Docker Compose services (redis, redis-commander) ────────────
 
 Write-Host "[1/2] Stopping Docker services..." -ForegroundColor Yellow
 

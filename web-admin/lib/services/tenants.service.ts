@@ -428,57 +428,6 @@ export async function updateTenant(
   return data as unknown as Tenant;
 }
 
-/**
- * Upload tenant logo
- * @param tenantId - Tenant ID
- * @param file - Logo file
- * @returns Logo URL
- */
-export async function uploadLogo(
-  tenantId: string,
-  file: File
-): Promise<string> {
-  const supabase = await createClient();
-
-  // Validate file
-  const maxSize = 2 * 1024 * 1024; // 2MB
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
-
-  if (file.size > maxSize) {
-    throw new Error('File size exceeds 2MB limit');
-  }
-
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error('Invalid file type. Only PNG, JPG, and SVG are allowed');
-  }
-
-  // Generate unique filename
-  const ext = file.name.split('.').pop();
-  const filename = `${tenantId}/logo-${Date.now()}.${ext}`;
-
-  // Upload to Supabase Storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('tenant-assets')
-    .upload(filename, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-
-  if (uploadError) {
-    console.error('Error uploading logo:', uploadError);
-    throw new Error('Failed to upload logo');
-  }
-
-  // Get public URL
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('tenant-assets').getPublicUrl(filename);
-
-  // Update tenant with logo URL
-  await updateTenant(tenantId, { logo_url: publicUrl } as TenantUpdateRequest);
-
-  return publicUrl;
-}
 
 /**
  * Deactivate tenant (soft delete)

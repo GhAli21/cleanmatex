@@ -42,7 +42,7 @@ Feature UI lives in `src/features/<name>/ui/` and is imported via `@features/*`.
 | Import Path        | Resolves To             | Notes                      |
 | ------------------ | ----------------------- | -------------------------- |
 | `@ui`              | `src/ui/index.ts`       | Design system barrel (primitives, forms, feedback, overlays, etc.). Does **not** re-export `./components`. |
-| `@ui/primitives`   | `src/ui/primitives/`    | CmxButton, CmxInput, Alert, CmxCard, Badge, etc. |
+| `@ui/primitives`   | `src/ui/primitives/`    | CmxButton, CmxInput, Alert, CmxCard, etc. (status badges live in `@ui/feedback`) |
 | `@ui/forms`        | `src/ui/forms/`         | CmxForm, CmxSelectDropdown, etc. |
 | `@ui/feedback`     | `src/ui/feedback/`      | CmxToast, CmxSummaryMessage, CmxProgressBar, etc. |
 | `@ui/overlays`     | `src/ui/overlays/`      | CmxDialog, etc. |
@@ -100,7 +100,7 @@ import { CmxButton } from "@ui/primitives";
 | Legacy                             | Cmx Replacement  | Notes                                                         |
 | ---------------------------------- | ---------------- | ------------------------------------------------------------- |
 | `Card`, `CardHeader`, `CardFooter` | `CmxCard` family | `@ui/primitives` or `@ui/primitives/cmx-card`                 |
-| `Badge`                            | `Badge`          | `@ui/primitives` or `@ui/primitives/badge`                    |
+| `Badge`                            | `CmxStatusBadge` | `@ui/feedback`; `tone` + `appearance` (the legacy `Badge` was removed in UI PR-02) |
 | `Tabs`                             | `CmxTabsPanel`   | `@ui/navigation`; different API (tabs array, value, onChange) |
 
 
@@ -323,3 +323,21 @@ rg "@ui/compat" web-admin --glob "*.{tsx,ts}" -l
 - **Cmx usage examples:** `web-admin/src/ui/USAGE_EXAMPLES.md`
 - **CmxSummaryMessage guide:** `web-admin/src/ui/feedback/cmxMessage_developer_guide.md`
 
+## Status badges, select and class rules (UI Design System PR-02, 2026-11-17)
+
+- **Status badge:** `<CmxStatusBadge label={t('x')} tone="success" />` from `@ui/feedback`.
+  - `tone`: `neutral | info | success | warning | danger | brand`.
+  - `appearance`: `soft` (default) `| outline | solid`; `solid` exists for `brand` and `danger` only.
+  - Optional `icon` (a Lucide icon), `size`, `pulse`, `tooltip`.
+  - Map domain statuses to a tone in one helper, as `orderStatusTone()` does, never per screen.
+  - Inside `src/ui`, import `@ui/feedback/cmx-status-badge`, not the `@ui/feedback` barrel: the barrel loads next-intl, which breaks jest.
+- **Select:** `CmxSelectDropdown*` is built on Radix Select.
+  - Keyboard, type-ahead and RTL work out of the box.
+  - The list renders in a portal above dialogs (`--cmx-z-popover`), and Escape closes only the list.
+  - An item with `value=""` is supported.
+- **Removed:** `Button`, `Card*`, `Input`, `LoadingButton`, `FormInput`, `Badge` and `src/ui/components/`. Use `CmxButton` (`loading`), `CmxCard*`, `CmxInput`, `CmxStatusBadge`.
+- **Classes:** use theme tokens (`bg-card`, `bg-muted`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary text-primary-foreground`, `text-primary-text`, `bg-{success,warning,info,danger}-bg`, `text-…-text`, `border-…-border`) and logical direction (`ms-/me-/ps-/pe-/start-/end-/text-start/rounded-s/border-s`).
+  - ESLint errors on raw palette or physical classes in `src/ui` and warns in features and `app`.
+  - `node web-admin/scripts/ui/codemod-classes.js <dir>` reports and, with `--write`, rewrites most of them.
+  - Collapse `isRTL ? 'pl-2' : 'pr-2'` ternaries by hand to the non-RTL branch's logical class (here `pr-2` → `pe-2`). The script reports these instead of rewriting them.
+  - Overlays may stay `bg-black/50`.

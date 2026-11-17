@@ -135,7 +135,7 @@ export function CmxMoneyKeypad({
     <div className={cn('flex flex-col gap-3', className)}>
       <div className="flex items-center gap-2">
         {currencyCode && (
-          <span className="shrink-0 text-sm font-medium text-muted-foreground ltr:pe-1 rtl:ps-1">
+          <span className="shrink-0 text-sm font-medium text-muted-foreground pe-1">
             {currencyCode}
           </span>
         )}

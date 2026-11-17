@@ -392,7 +392,7 @@ export function CmxDialogContent({
             data-no-drag=""
             onClick={() => context.onOpenChange(false)}
             className={cn(
-              'absolute top-4 end-4 rtl:end-auto rtl:start-4',
+              'absolute top-4 end-4',
               'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
               'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
               'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))] rounded',

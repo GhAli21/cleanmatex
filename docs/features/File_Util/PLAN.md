@@ -14,7 +14,7 @@
 | 2 | Backend | Done 2026-11-17 (`0744` applied) |
 | 3 | UI kit | Done 2026-11-17 (build green; browser QA in Phase 4) |
 | 4 | First consumer: order photos | Code done 2026-11-17; owner browser QA pending |
-| 5 | Close existing gaps | Not started |
+| 5 | Close existing gaps | Code done 2026-11-17; owner: apply `0750`, delete `product-images` bucket, browser QA (guide C) |
 | 6 | Remaining photo columns | Not started |
 | 7 | HQ File Util workspace `/file-util-ws` | Not started |
 | 8 | Docs and close-out | Not started |
@@ -52,6 +52,7 @@ There is no shared file feature. Each feature has its own helper.
 10. **Bucket is data, not code** (owner, 2026-11-16). `sys_file_bucket_cd` lists the buckets; each category points to one. The service takes the bucket from the category, so no code path is tied to one bucket.
 12. **Owner scope picks the metadata table; categories do not** (2026-11-16). TENANT buckets → `org_file_mst`, HQ buckets → `hq_file_mst` (same shape, no `tenant_org_id`), behind one store interface in code. No per-category table name in data (SQL built from data, no tenant guarantee, no Prisma typing, duplicated cleanup and quota logic). A domain table that needs a direct link adds an FK to the file, e.g. `org_product_data_mst.image_file_id` → `org_file_mst (tenant_org_id, id)` via `uq_ofm_tenant_id`; it never copies file metadata.
 13. **Cleanup is split by what each side can do** (2026-11-17, owner). DB: pg_cron job `file-util-expire` runs `fn_file_util_expire_pending()` hourly (:17) — PENDING uploads older than 24 h → DELETED (`0744`, registered in `sys_ops_job_cf`). HQ `platform-workers` (cleanmatexsaas): BullMQ job `file-util-purge`, self-scheduled hourly (:47) — deletes stored bytes of DELETED rows via the Storage API, then sets `purged_at`. Cross-tenant maintenance belongs to HQ (integration-contracts §1); no inbound cleanup endpoint in the tenant app. A SQL-only purge is impossible: bytes live in the S3 object store outside Postgres and `storage.protect_delete` blocks direct deletes.
+14. **Published URL columns stay, as a projection** (2026-11-17). `org_product_data_mst.product_image` and `org_tenants_mst.logo_url` hold the public URL of the record's PRODUCT_IMAGE/MAIN and TENANT_LOGO/MAIN file. The File Util service rewrites them in the same transaction as every change to that slot (complete, purpose change, delete); nothing else writes them (branding PUT ignores `logo`). The file row is the truth. About 20 readers (receipts, mobile app, public booking, HQ) keep working unchanged, and public-bucket URLs never change. An exception to decision 2, limited to public buckets; a private bucket clears the column instead.
 11. **HQ files are a later step.** They need their own table (`hq_file_mst`, no `tenant_org_id`) and a different storage policy, because the tenant-folder rule does not apply to HQ buckets. HQ buckets (`hq-files`, `hq-crm-files`, ...) are added as rows in `sys_file_bucket_cd` then. Not built in this plan.
 
 ## 3. Database (one migration; number = last + 1 at write time)
@@ -154,10 +155,10 @@ Every phase also ends with: eslint, typecheck, targeted tests, and `npm run buil
 
 ### Phase 5 — Close existing gaps
 
-- [ ] 5.1 Product images moved to the module.
-- [ ] 5.2 Tenant logo moved to the module.
-- [ ] 5.3 Migration fixing the `product-images` policy. **Stop for the owner to apply.**
-- [ ] 5.4 Remove MinIO (client, dependency, docker-compose), `upload-photo.ts`, `tenant-logo.ts`, `tenant-assets` code; old routes removed.
+- [x] 5.1 Product images moved to the module (product form edit mode → `FileAttachments`; `api/v1/products/[id]/image` and `lib/storage/product-images.ts` deleted).
+- [x] 5.2 Tenant logo moved to the module (Branding page → `FileAttachments`; both old logo routes, `uploadLogo`, `tenant-logo.ts` deleted; PUT saves colors only).
+- [x] 5.3 Migration `0750_file_util_retire_product_images.sql` written (policies cannot be dropped by a migration: `postgres` does not own `storage.objects`; the bucket is locked instead and its URLs cleared). **Owner applies, then deletes the bucket in the dashboard.**
+- [x] 5.4 Remove MinIO (client, dependency, docker-compose), `upload-photo.ts`, `tenant-logo.ts`, `tenant-assets` code; old routes removed.
 - [ ] 5.5 Update `STATUS.md`, the QA guide and the progress table.
 
 ### Phase 6 — Remaining photo columns

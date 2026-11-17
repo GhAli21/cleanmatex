@@ -26,17 +26,17 @@
 
 ## Phase 0 — Security gate
 
-**Target by:** 23 Nov 2026 · **Decision:** no pilot, customer data, or scheduler enablement until this phase is `GO`.  
+**Target by:** 23 Nov 2026 · **Decision:** GO on 17 Nov 2026. Leaked-password protection and S12 are in [future_check.md](future_check.md) and are not part of this exit.  
 **Execution plan for 0.1–0.4:** [S0_privilege_lockdown_PLAN.md](S0_privilege_lockdown_PLAN.md). Update that plan's Progress Log after every task. A drafted migration is not a `Pass`.
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 0.1 | Review and draft revoke/RLS migration for anon/authenticated writable `sys_*`/`hq_*` tables; Owner applies only after review. | Dev → Owner | S0a | 21 Nov | In progress | `supabase/migrations/0745_revoke_sys_hq_anon_writes.sql` drafted, not applied |
-| 0.2 | Review and draft SECURITY DEFINER privilege/default-privilege/search-path migration; Owner applies only after review. | Dev → Owner | S0b, S0d | 21 Nov | In progress | `supabase/migrations/0746_revoke_definer_execute_and_lock_search_path.sql` drafted, not applied |
-| 0.3 | Review and draft `security_invoker`/revoke fix for seven definer views; Owner applies only after review. | Dev → Owner | S0c | 21 Nov | In progress | `supabase/migrations/0747_security_invoker_catalog_views.sql` drafted, not applied |
-| 0.4 | Add a DB/CI regression that fails on anon-writable tables or anon-executable SECURITY DEFINER functions. | Dev | S0b | 22 Nov | In progress | `scripts/db/check-s0-privileges.sql` and `.github/workflows/privilege-lockdown.yml`. Live check waits for apply |
-| 0.5 | Turn on leaked-password protection in hosted Supabase Auth. Secure password change (S5) is not needed now. | Owner | S0d | 21 Nov | Not started | Owner decision 17 Nov 2026 defers S5 |
-| 0.6 | Re-run security advisor; smoke-test login, new order, HQ screens, and public tracking after the access changes. | Owner + Dev | ROADMAP Phase 0 | 23 Nov | Not started | — |
+| 0.1 | Review and draft revoke/RLS migration for anon/authenticated writable `sys_*`/`hq_*` tables; Owner applies only after review. | Dev → Owner | S0a | 21 Nov | Pass | `0745` applied local and remote. Remote recount 17 Nov 2026: 0 open catalog tables. `0748` restored the two row-security helpers. |
+| 0.2 | Review and draft SECURITY DEFINER privilege/default-privilege/search-path migration; Owner applies only after review. | Dev → Owner | S0b, S0d | 21 Nov | Pass | `0746` and `0749` applied local and remote. Remote recount: 0 extra signed-in definers. `postgres` defaults are closed. Residual: 24 `supabase_admin` default grants, not closable from the SQL editor. |
+| 0.3 | Review and draft `security_invoker`/revoke fix for seven definer views; Owner applies only after review. | Dev → Owner | S0c | 21 Nov | Pass | `0747` applied local and remote. Seven views are `security_invoker` and revoked from `anon` and `authenticated`. |
+| 0.4 | Add a DB/CI regression that fails on anon-writable tables or anon-executable SECURITY DEFINER functions. | Dev | S0b | 22 Nov | Pass | Source check passes. Live object checks are 0. `supabase_admin` default grants are reported and tracked in [future_check.md](future_check.md); they do not fail the check. |
+| 0.5 | Turn on leaked-password protection in hosted Supabase Auth. Secure password change (S5) is not needed now. | Owner | S0d | 21 Nov | N/A (approved) | Owner, 17 Nov 2026: activate after the Supabase subscription is upgraded to Pro. Moved to [future_check.md](future_check.md). Removed from the Phase 0 exit. |
+| 0.6 | Re-run security advisor; smoke-test login, new order, HQ screens, and public tracking after the access changes. | Owner + Dev | ROADMAP Phase 0 | 23 Nov | Pass | Owner, 17 Nov 2026, after deploy: login, new order, one HQ screen, and public tracking passed. Advisor re-run the same day: no `rls_disabled_in_public` and no unlocked `search_path`. Remaining warnings are the intentional function list, `pg_trgm` in `public`, and leaked-password protection. |
 
 **GO evidence:** advisor reports zero writable `rls_disabled_in_public` findings and zero anon-executable definer functions; all four smoke paths pass.  
 **NO-GO if:** any privileged public write/execute grant remains, or the remediation breaks an essential path without a reviewed replacement.
@@ -47,7 +47,7 @@
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Remote baseline is captured: 14 desired-enabled registry jobs are absent; five legacy HTTP bridges are enumerated; one active DB-native `tax-kit-update` scheduler is outside the registry; session, stale-push, quota/retention, tax-kit, file-expiry, run-capture, and idempotency handlers are evidenced as database work. Finance, campaign/retry, and provider ownership/rollback remain before any enablement. |
+| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Owner approved the DB/worker matrix. Remote baseline still has 14 desired-enabled registry jobs absent and one active DB-native `tax-kit-update` scheduler outside the registry. Add that registry record without duplicating/mutating its live schedule; complete handler contracts, ADR, and rollback proof before any enablement. |
 | 1.2 | Decide trial-expiry outcome, implement it under the approved scheduler model, and prove an expired demo trial changes state. | Owner → Dev | B1 | 27 Nov | Not started | — |
 | 1.3 | Cancel/resolve old demo queued notifications before sender enablement. | Owner | D13 | 27 Nov | Not started | — |
 | 1.4 | Deploy Sentry or equivalent to web-admin and platform-web with PII scrubbing; prove a controlled error appears. | Dev | I4 | 28 Nov | Not started | — |
@@ -126,5 +126,7 @@
 | Date | Change | Owner |
 |---|---|---|
 | 2026-11-17 | Created from ROADMAP phases 0–4; all execution rows start unverified. | Dev |
+| 2026-11-17 | Phase 0 set to GO. Leaked-password protection and S12 moved to `future_check.md`. Row 0.5 is N/A (approved) until the Supabase Pro upgrade. Row 0.4 is Pass; `supabase_admin` defaults are reported, not a failure. | Dev |
+| 2026-11-17 | Rows 0.1–0.3 and 0.6 set to Pass after remote recount and the owner smoke test. 0.4 stays In progress because the live privilege check still raises on 24 `supabase_admin` default grants. 0.5 stays Not started. Phase 0 is not a GO. | Dev |
 | 2026-11-17 | Rows 0.1–0.4 moved to In progress. Migrations 0745–0747 and the privilege invariant are drafted and not applied. Not a Pass. | Dev |
 | 2026-11-17 | Linked the S0 privilege-lockdown plan for rows 0.1–0.4. Status stays Not started. | Dev |

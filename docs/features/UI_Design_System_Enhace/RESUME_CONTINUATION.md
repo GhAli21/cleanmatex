@@ -12,7 +12,19 @@
   - Task 7 is done: `scripts/ui/codemod-classes.js` was applied to `src/ui`, and the guard test `__tests__/ui/foundations/no-raw-classes.test.ts` was added. Build passes. Details and rulings are in `PLAN_PR-02.md` → Progress row 7 and "Rulings made while executing".
   - Task 8 is done. `eslint.config.mjs` now bans raw colour and physical-direction classes: errors in `src/ui`, warnings in `src/features` and `app`. Full ESLint shows 0 errors. The warnings are PR-05's starting count; see plan row 8.
   - Task 9 is done (pagination text from `common.*`; the issues-dialog pill uses `text-primary-foreground`).
-  - Task 10 is not started.
+  - Task 10 is done (2026-11-17). PR-02 is complete; next package below.
+    - Done: jest (143 suites pass, only the known 7 fail), ESLint, `check:i18n`, `QA_TEST_GUIDE.md` → PR-02, the migration guide and the feedback README.
+    - Build attempt 1 (2026-11-17) failed outside PR-02: `ENOENT app/api/v1/products/[id]/image/route.ts`. Another session (File_Util) deleted that route while the build ran, and no source references it. Rerun the build; if it fails the same way, `.next` holds a stale route list, so run `node scripts/clear-next-cache.mjs` or delete `.next` when no build is running.
+    - Build attempt 2 also failed outside PR-02 (`Cannot find module app/api/v1/tenants/me/logo/route.ts`, also deleted by the File_Util session). Results are written to `PLAN_PR-02.md` → Final review and to the `STATUS.md` PR-02 result. After the fixes: jest 143 pass / 7 known; ESLint 0 on changed files.
+    - Build attempt 3 PASSED (exit 0, 338 pages). Task 10 DONE. PR-02 is implemented; owner QA (`QA_TEST_GUIDE.md` → PR-02) and commit are left.
+    - (History) Left was: build (rerun), the fresh whole-change review (fix Critical/Important with a failing test first), and the `STATUS.md` result section.
+    - Review DONE (2026-11-17). Fix pass in progress; each fix gets a test that fails first. Findings:
+      - F1 FIXED: codemod test "rtl: or ltr:" and guard "no logical class under rtl:/ltr:" both went RED→GREEN. The codemod rewrote physical classes inside `rtl:`/`ltr:` variants (double flip). Affected: `cmx-datatable.tsx:761,765-766,831-832`, `cmx-dialog.tsx:395` (close X), `cmx-money-keypad.tsx:138`. Fix: plain logical classes plus `mapToken` reports these cases.
+      - F2 FIXED: top-bar test "in Arabic the user menu is laid out right to left" went RED→GREEN. `cmx-top-bar.tsx` Radix `DropdownMenu` has no `dir`, so the menu is LTR in Arabic. Fix: `dir={isRTL?'rtl':'ltr'}` plus an RTL test.
+      - F3 FIXED: status-tokens test "every colour class the badge uses is registered" went RED→GREEN. `bg-primary-bg` is not in `globals.css @theme`, so brand soft badges have no fill. Fix: register `--color-primary-bg` plus a test.
+      - F4 FIXED: select test "picking an option does not click the row or card" went RED→GREEN. Clicks inside the open select bubble to a clickable parent row or card. Fix: stopPropagation on `SelectPrimitive.Content` plus a test.
+      - Minors (deferred): select `itemCount` with a Fragment; language switcher uses info colours for selection; top bar menu icons have `me-2` on top of `gap-2`.
+    - (Done) A fresh reviewer (most capable model) is reviewing all of PR-02, using the plan's Review Focus. If the session expires before its findings are recorded here, run the review again: one reviewer, read-only, scope = PR-02 files (the plan's task Files lists), ignoring other sessions' work in commits `488727a3`/`b77d9be7`.
 - The owner committed the work through Task 7 in `488727a3` and `b77d9be7`. The owner commits; never commit or push.
 - Typecheck shows 4 errors:
   - the 2 known ones

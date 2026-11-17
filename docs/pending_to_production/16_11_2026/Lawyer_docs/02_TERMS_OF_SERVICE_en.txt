@@ -3,12 +3,12 @@ Document: Terms of Service
 Version: tos-2026-11-17
 Language: English
 Arabic pair: 02_TERMS_OF_SERVICE_ar.txt. That file is the legal translation of this text. Clause numbers match.
-Party: the Organization (the laundry) and the Provider
+Party: the Organization (the Tenant) and the Provider
 Status: Operative draft. Publication waits for file 00.
 
 1. Who we are
 1.1 These Terms are between [LEGAL_ENTITY_NAME] ("Provider", "we"), registration [COMMERCIAL_REGISTRATION_NUMBER], of [REGISTERED_ADDRESS], and the business that creates an account ("Organization", "you").
-1.2 The product name is CleanMateX. The Service is the laundry and dry-cleaning software we make available at [APP_URL], including the screens that take orders, run the shop floor, record payments at the counter, and send the messages these Terms allow.
+1.2 The product name is CleanMateX. The Service is the software we make available to a Tenant at [APP_URL], including the screens that take orders, run the shop floor, record payments at the counter, and send the messages these Terms allow.
 1.3 The person who brings clothes to you is your customer ("End Customer"). The End Customer is not a party to these Terms. Your duties toward the End Customer stay with you.
 
 2. The contract
@@ -58,11 +58,11 @@ Status: Operative draft. Publication waits for file 00.
 
 9. Acceptable use
 9.1 You will follow the Acceptable Use Policy version aup-2026-11-17.
-9.2 You will use the Service for a real laundry or dry-cleaning business and for the related accounting the product supports.
+9.2 You will use the Service for a real Tenant business and for the related accounting the product supports.
 
 10. Our intellectual property
 10.1 We own the Service, the software, the design, and the CleanMateX name and marks.
-10.2 We grant you a non-exclusive right to use the Service during the contract, for your own laundry operations, in the countries of clause 3.
+10.2 We grant you a non-exclusive right to use the Service during the contract, for your own Tenant operations, in the countries of clause 3.
 10.3 You do not acquire a right to copy the software, to resell access, or to present the Service as your own product.
 10.4 If you send us a suggestion, we may use it without a duty to pay for it. You keep the rights in your own data.
 

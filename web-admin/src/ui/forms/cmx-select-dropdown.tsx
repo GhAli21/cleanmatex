@@ -160,6 +160,9 @@ export function CmxSelectDropdownContent({ children, className }: CmxSelectDropd
       <SelectPrimitive.Content
         // Lets dialog focus traps and Escape handlers recognise the list as part of the open control.
         data-cmx-select-root
+        // React events bubble out of the portal; keep a pick from also clicking a row or card around the select.
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         position="popper"
         sideOffset={4}
         className={cn(

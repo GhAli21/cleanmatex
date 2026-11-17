@@ -110,6 +110,22 @@ test('onOpenChange reports open and close', () => {
   expect(onOpenChange.mock.calls.map((c) => c[0])).toEqual([true, false])
 })
 
+test('picking an option does not click the row or card around the select', () => {
+  const rowClick = jest.fn()
+  const rowPointerDown = jest.fn()
+  render(
+    <div onClick={rowClick} onPointerDown={rowPointerDown}>
+      <Harness value="A" />
+    </div>,
+  )
+  open()
+  const beta = screen.getByRole('option', { name: 'Beta' })
+  fireEvent.pointerDown(beta)
+  fireEvent.click(beta)
+  expect(rowPointerDown).not.toHaveBeenCalled()
+  expect(rowClick).not.toHaveBeenCalled()
+})
+
 test('the list is marked as a select surface for dialog focus traps', () => {
   render(<Harness value="A" />)
   open()

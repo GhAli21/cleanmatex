@@ -77,8 +77,6 @@ $services = @(
     @{ Name = "Supabase Studio"; Port = 54323 },
     @{ Name = "Redis";           Port = 6379  },
     @{ Name = "Redis Commander"; Port = 8081  },
-    @{ Name = "MinIO API";       Port = 9000  },
-    @{ Name = "MinIO Console";   Port = 9001  },
     @{ Name = "Web Admin (dev)"; Port = 3000  }
 )
 

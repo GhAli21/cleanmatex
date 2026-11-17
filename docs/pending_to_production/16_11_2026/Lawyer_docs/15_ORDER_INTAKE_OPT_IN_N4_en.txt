@@ -21,7 +21,7 @@ Email SERVICE              Contract performance          Notice, plus an unticke
 Any channel MARKETING      Consent of the End Customer   Separate unticked checkbox per channel that is offered.
 Staff PUSH                 Not an End Customer message   No change. Do not use this screen for staff push.
 
-Contract performance is the contract between the Organization and the End Customer, formed when the laundry accepts the clothes.
+Contract performance is the contract between the Organization and the End Customer, formed when the Tenant accepts the clothes.
 The Provider relies on the Organization to have that relationship.
 The Provider does not send a service SMS or email for an order that has no customer mobile number or email.
 
@@ -60,7 +60,7 @@ The email refusal is hidden when there is no email.
 Hidden means the stored state is NOT_APPLICABLE, and the sender must not send.
 
 Helper line:
-You can change this later with the laundry. Refusing messages does not cancel the order.
+You can change this later with the Tenant. Refusing messages does not cancel the order.
 
 4. HOW THIS MAPS TO THE PRODUCT TODAY
 WhatsApp service opt-in sets preferences.notifications.whatsapp to true.

@@ -1,6 +1,6 @@
 # S0 Privilege Lockdown — Implementation Plan
 
-**Status:** In progress — migrations 0745, 0746, and 0747 are drafted and not applied. Application code that would break after apply is updated. The Owner applies in Phase F.  
+**Status:** Phase 0 GO on 17 Nov 2026. 0745–0749 are applied on local and remote. The owner smoke test passed. Leaked-password protection and S12 are in [future_check.md](future_check.md).  
 **Written:** 17 Nov 2026  
 **Scope:** S0a, S0b, S0d (function `search_path` only), S0c, and register row 0.4  
 **Repos:** `cleanmatex` owns the migrations and the CI check. `cleanmatexsaas` is in scope for caller inventory and for a code change only if a browser call would break.  
@@ -10,7 +10,7 @@ This plan does not authorize applying SQL, flipping Supabase Auth switches, or d
 
 ## Objective
 
-Close the public-key door on catalog and privileged functions without changing how a signed-in laundry uses orders, payments, or HQ.
+Close the public-key door on catalog and privileged functions without changing how a signed-in Tenant uses orders, payments, or HQ.
 
 | After this plan | Still true |
 |---|---|
@@ -147,20 +147,20 @@ The assistant stops before this phase. Apply order is A, then B, then C.
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
 | F.1 Review the migrations and the allowlist. Apply them. Do not edit the files after apply. | Owner | Complete | 0745–0749 applied on local and remote |
-| F.2 Run `scripts/db/check-s0-privileges.sql` against the applied database. If the migration notice says `supabase_admin` defaults were skipped, run `scripts/db/s0-supabase-admin-default-privileges.sql` in the SQL editor as `supabase_admin`, then run the check again. Re-run the Supabase security advisor. | Owner + Dev | Planned | Zero remaining findings for these checks |
-| F.3 Smoke-test login, a new order, one HQ screen, and the public tracking page, in EN and AR. Fix a break with a new migration, never by editing A–C. | Owner + Dev | Planned | Four paths recorded |
-| F.4 Turn on leaked-password protection in Supabase Auth. Secure password change (S5) is not needed now. | Owner | Planned | Register 0.5 evidence |
-| F.5 Mark register 0.1–0.6 and this plan from the evidence. `Pass` only with F.2 and F.3. | Owner | Planned | Register decision |
-| F.6 Update plan status for F.1–F.5. | Dev | Planned | Progress Log row |
+| F.2 Run `scripts/db/check-s0-privileges.sql` against the applied database. If the migration notice says `supabase_admin` defaults were skipped, run `scripts/db/s0-supabase-admin-default-privileges.sql` in the SQL editor as `supabase_admin`, then run the check again. Re-run the Supabase security advisor. | Owner + Dev | Complete | Object checks are 0. `supabase_admin` defaults are a notice, tracked in future_check.md. Advisor re-run 17 Nov 2026. |
+| F.3 Smoke-test login, a new order, one HQ screen, and the public tracking page, in EN and AR. Fix a break with a new migration, never by editing A–C. | Owner + Dev | Complete | Owner, 17 Nov 2026, after deploy: login, new order, one HQ screen, and public tracking passed |
+| F.4 Turn on leaked-password protection in Supabase Auth. Secure password change (S5) is not needed now. | Owner | Moved | Owner, 17 Nov 2026: after the Supabase Pro upgrade. [future_check.md](future_check.md) |
+| F.5 Mark register 0.1–0.6 and this plan from the evidence. `Pass` only with F.2 and F.3. | Owner | Complete | 0.1–0.4 and 0.6 are Pass. 0.5 is N/A (approved) until Supabase Pro. Phase 0 is GO. |
+| F.6 Update plan status for F.1–F.5. | Dev | Complete | Progress Log row below |
 
-**Phase exit:** the Phase 0 exit check in the roadmap is true for these items.
+**Phase exit:** GO on 17 Nov 2026. Leaked-password protection and S12 are tracked in [future_check.md](future_check.md).
 
 ## Phase G — Docs after proof
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| G.1 After F.2 passes, note the result in [02_security_and_tenant_isolation.md](02_security_and_tenant_isolation.md) and the roadmap Phase 0 exit line. Do not mark S1–S12. | Dev | Planned | Doc lines dated |
-| G.2 Update plan status for G.1. | Dev | Planned | Final Progress Log row |
+| G.1 After F.2 passes, note the result in [02_security_and_tenant_isolation.md](02_security_and_tenant_isolation.md) and the roadmap Phase 0 exit line. Do not mark S1–S12. | Dev | Complete | S0a–S0c and the search-path half of S0d are closed on existing objects. S1–S12 were not changed. Phase 0 is not marked GO. |
+| G.2 Update plan status for G.1. | Dev | Complete | Progress Log row below |
 
 ## Verification
 
@@ -199,6 +199,8 @@ Append newest entries first. Do not remove historical entries.
 
 | Date | Task | Status | Evidence / result | Owner | Next action |
 |---|---|---|---|---|---|
+| 2026-11-17 | Phase 0 GO | Complete | Owner moved leaked-password protection and S12 to `future_check.md`. Leaked-password protection waits for the Supabase Pro upgrade. The privilege check reports `supabase_admin` defaults and does not fail on them. Register rows 0.1–0.4 and 0.6 are Pass. 0.5 is N/A (approved). | Owner | Turn on leaked-password protection after the Pro upgrade |
+| 2026-11-17 | F.3 smoke and docs | Complete | Owner deployed and tested login, a new order, one HQ screen, and public tracking. Remote advisor after `0749` has no public-table or search-path finding. Register 0.1, 0.2, 0.3, and 0.6 are Pass. 0.4 and 0.5 stay open. Phase 0 is not a GO. | Owner + Dev | Owner turns on leaked-password protection. `supabase_admin` defaults stay a residual. |
 | 2026-11-17 | F.2 re-measure | Partial | After 0748 and 0749, remote catalog tables are closed, and no extra security-definer function is executable by the signed-in role. Default privileges still have 24 open `supabase_admin` grants. The SQL editor cannot close those. Not a Pass. | Dev | Deploy the tenant app, then smoke-test login, a new order, one HQ screen, and public tracking |
 | 2026-11-17 | Apply 0749 | Complete | Owner applied `0749_settings_resolver_session_definer.sql` on local and remote. The two settings resolvers run as the owner. A signed-in session may pass only its own organization. `anon` cannot execute them. | Owner | Reload the new-order page and the customer picker |
 | 2026-11-17 | Settings resolver | Drafted | `0749_settings_resolver_session_definer.sql` makes `fn_stng_resolve_all_settings` and `fn_stng_resolve_setting_value` run as the owner. A signed-in session may pass only its own organization. This is the default-guest-customer failure. Not applied. | Dev | Owner applies `0749`, then reloads settings and the guest customer |

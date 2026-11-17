@@ -15,7 +15,7 @@ stack:
   frontend-mobile: "Flutter 3.16+"
   database: "PostgreSQL 16"
   cache: "Redis 7"
-  storage: "MinIO/S3"
+  storage: "Supabase Storage (File Util)"
   queue: "BullMQ"
 
 # Key Directories

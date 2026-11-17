@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { ChevronDown, LogOut, Settings, ShieldCheck, User } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import {
   DropdownMenu,
@@ -43,6 +44,7 @@ export default function CmxTopBar({ title, actions, search }: CmxTopBarProps) {
   const router = useRouter()
   const { user, currentTenant, signOut } = useAuth()
   const t = useTranslations('layout.topBar')
+  const isRTL = useRTL()
   const name = user?.user_metadata?.display_name || user?.email
 
   const handleSignOut = async () => {
@@ -73,7 +75,7 @@ export default function CmxTopBar({ title, actions, search }: CmxTopBarProps) {
             </span>
           ) : null}
 
-          <DropdownMenu>
+          <DropdownMenu dir={isRTL ? 'rtl' : 'ltr'}>
             <DropdownMenuTrigger asChild>
               <CmxButton variant="ghost" className="gap-2 px-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-medium text-primary-foreground">

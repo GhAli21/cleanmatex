@@ -354,3 +354,20 @@ import type {
 - `../README.md`
 - `./cmxMessage_developer_guide.md`
 - `../../README.md`
+
+## Status badge (`CmxStatusBadge`)
+
+The same folder holds the status badge. It is unrelated to messages but sits here because it is feedback UI.
+
+```tsx
+import { CmxStatusBadge } from '@ui/feedback'
+import { CheckCircle2 } from 'lucide-react'
+
+<CmxStatusBadge label={t('statuses.posted')} tone="success" icon={CheckCircle2} />
+<CmxStatusBadge label={t('statuses.cancelled')} tone="danger" appearance="solid" />
+```
+
+- `tone`: `neutral | info | success | warning | danger | brand`. Colours come from theme tokens and are readable in light and dark.
+- `appearance`: `soft` (default) `| outline | solid`; `solid` exists only for `brand` and `danger` (others fall back to soft).
+- Map domain statuses to tones in one helper (for example `orderStatusTone()`), not per screen.
+- Inside `src/ui`, import `@ui/feedback/cmx-status-badge` directly. This barrel loads next-intl through `useMessage`, which jest cannot parse.

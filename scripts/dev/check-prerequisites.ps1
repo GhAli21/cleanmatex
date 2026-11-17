@@ -137,8 +137,6 @@ $ports = @(
     @{ Port = 54323; Label = "Supabase Studio" },
     @{ Port = 6379;  Label = "Redis" },
     @{ Port = 8081;  Label = "Redis Commander" },
-    @{ Port = 9000;  Label = "MinIO API" },
-    @{ Port = 9001;  Label = "MinIO Console" },
     @{ Port = 3000;  Label = "Web Admin" }
 )
 

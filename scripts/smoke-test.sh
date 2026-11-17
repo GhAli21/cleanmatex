@@ -50,12 +50,6 @@ test_service "Redis SET/GET" "docker exec cmx-redis sh -c 'redis-cli SET smoke_t
 # Cleanup Redis test key
 docker exec cmx-redis redis-cli DEL smoke_test > /dev/null 2>&1
 
-# Test MinIO
-test_service "MinIO Health" "curl -f http://localhost:9000/minio/health/live"
-
-# Test MinIO Console
-test_service "MinIO Console" "curl -f http://localhost:9001"
-
 # Test Redis Commander
 test_service "Redis Commander" "curl -f http://localhost:8081"
 
@@ -74,7 +68,6 @@ test_service "Docker Network" "docker network inspect cmx-network"
 # Check Docker volumes
 test_service "PostgreSQL Volume" "docker volume inspect cleanmatex_postgres_data"
 test_service "Redis Volume" "docker volume inspect cleanmatex_redis_data"
-test_service "MinIO Volume" "docker volume inspect cleanmatex_minio_data"
 
 # Summary
 echo ""
