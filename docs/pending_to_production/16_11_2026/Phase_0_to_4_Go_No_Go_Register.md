@@ -47,7 +47,7 @@
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Remote baseline is captured: 14 desired-enabled jobs are absent; five legacy HTTP bridges are enumerated; session, stale-push, quota/retention, tax-kit, file-expiry, run-capture, and idempotency handlers are evidenced as database work. Finance, campaign/retry, and provider ownership/rollback remain before any enablement. |
+| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Remote baseline is captured: 14 desired-enabled registry jobs are absent; five legacy HTTP bridges are enumerated; one active DB-native `tax-kit-update` scheduler is outside the registry; session, stale-push, quota/retention, tax-kit, file-expiry, run-capture, and idempotency handlers are evidenced as database work. Finance, campaign/retry, and provider ownership/rollback remain before any enablement. |
 | 1.2 | Decide trial-expiry outcome, implement it under the approved scheduler model, and prove an expired demo trial changes state. | Owner → Dev | B1 | 27 Nov | Not started | — |
 | 1.3 | Cancel/resolve old demo queued notifications before sender enablement. | Owner | D13 | 27 Nov | Not started | — |
 | 1.4 | Deploy Sentry or equivalent to web-admin and platform-web with PII scrubbing; prove a controlled error appears. | Dev | I4 | 28 Nov | Not started | — |

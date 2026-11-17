@@ -9,21 +9,22 @@
 - **PR-02:** running inline from `PLAN_PR-02.md`, approved 2026-11-16.
   - Tasks 1–5 are done (status tokens, `CmxStatusBadge`, badge migration, Radix select, top bar and permissions inspector moved out of `src/ui`).
   - Task 6 is done (legacy `Button`/`Card`/`Input`/`LoadingButton`/`FormInput`, `src/ui/components/` and `foundations/tokens.ts` deleted). Typecheck, ESLint and build pass.
-  - Task 7 code and tests are done (`scripts/ui/codemod-classes.js` applied to `src/ui`, plus the guard test `__tests__/ui/foundations/no-raw-classes.test.ts`). **Typecheck and build were not run:** the owner interrupted the typecheck. Details and rulings are in `PLAN_PR-02.md` → Progress row 7 and "Rulings made while executing".
-  - Tasks 8–10 are not started.
-- Nothing is committed. The owner commits; never commit or push.
+  - Task 7 is done: `scripts/ui/codemod-classes.js` was applied to `src/ui`, and the guard test `__tests__/ui/foundations/no-raw-classes.test.ts` was added. Build passes. Details and rulings are in `PLAN_PR-02.md` → Progress row 7 and "Rulings made while executing".
+  - Task 8 is done. `eslint.config.mjs` now bans raw colour and physical-direction classes: errors in `src/ui`, warnings in `src/features` and `app`. Full ESLint shows 0 errors. The warnings are PR-05's starting count; see plan row 8.
+  - Task 9 is done (pagination text from `common.*`; the issues-dialog pill uses `text-primary-foreground`).
+  - Task 10 is not started.
+- The owner committed the work through Task 7 in `488727a3` and `b77d9be7`. The owner commits; never commit or push.
+- Typecheck shows 4 errors:
+  - the 2 known ones
+  - 2 from the owner's commit `b77d9be7`, in `app/api/navigation/route.ts:78` and `lib/services/fx/tenant-currency-profile.service.ts:137`
+
+  None of the 4 come from this program. A full typecheck takes over 10 minutes; run it in the background.
+- Other sessions run `next build` too. If a build says "Another next build process is already running", wait for that process (`Wait-Process -Id <pid>`). Don't kill it.
 
 ## Next steps, in order
 
-1. **Finish Task 7.**
-   - In `web-admin`, run the typecheck: `npx tsc --noEmit -p .` with `NODE_OPTIONS=--max-old-space-size=8192`. Expected: only the 2 known errors.
-   - Then `npm run build`, with the same heap.
-   - Check in Storybook, in light/dark × EN/AR: `CmxSidebar`, `CmxTopBar`, the data grid and table, dialogs, the checkbox, the processing timeline.
-   - Then mark row 7 Done.
-2. **Task 8:** ESLint guardrails, with a test. A file-scoped `no-restricted-imports` block must repeat the global patterns.
-3. **Task 9:** Pagination English literals → `common.*`. `order-issues-list-dialog.tsx` white on aqua → `text-primary-foreground` (the plan's `text-primary-fg` does not exist). Run `check:i18n`. (The touch-token comment is already fixed.)
-4. **Task 10:** Run every check, then stories, then one fresh whole-change review on the most capable model. Then the docs: `STATUS.md` result section, `QA_TEST_GUIDE.md` → PR-02, `.clauderc`, `docs/dev/ui-migration-guide.md`, `web-admin/src/ui/feedback/README.md`.
-5. After each task, update its row in the `PLAN_PR-02.md` Progress table, and the `STATUS.md` PR-02 row.
+1. **Task 10:** Run every check (ESLint, typecheck in the background, `check:i18n`, jest `__tests__/ui __tests__/lib __tests__/scripts __tests__/features/orders`, build), then stories (including the Task 7 visual check in light/dark × EN/AR: `CmxSidebar`, `CmxTopBar`, data grid and table, dialogs, checkbox, processing timeline), then one fresh whole-change review on the most capable model. Then the docs: `STATUS.md` result section, `QA_TEST_GUIDE.md` → PR-02, `.clauderc`, `docs/dev/ui-migration-guide.md`, `web-admin/src/ui/feedback/README.md`.
+2. After each task, update its row in the `PLAN_PR-02.md` Progress table, and the `STATUS.md` PR-02 row.
 
 After PR-02, the recommended order is PR-07 tasks 1–5 → PR-04 → PR-05 → PR-07 task 6. Write `PLAN_PR-0N.md` just before each package and get owner approval first.
 

@@ -799,7 +799,7 @@ export function DataTable<TData, TValue>({
                                   : undefined,
                               }}
                               className={cn(
-                                hasError && "border-s-2 border-l-destructive"
+                                hasError && "border-s-2 border-s-destructive"
                               )}
                             >
                               {cellTooltip ? (

@@ -197,8 +197,8 @@ export function OrderIssuesListDialog({
               <span
                 className={cn(
                   'inline-flex items-center rounded-full border-2 border-transparent',
-                  'bg-[rgb(var(--cmx-primary-rgb,14_165_233))] px-4 py-1.5',
-                  'text-base font-semibold tracking-tight text-white shadow-sm'
+                  'bg-primary px-4 py-1.5',
+                  'text-base font-semibold tracking-tight text-primary-foreground shadow-sm'
                 )}
               >
                 {headerScopeLabel}

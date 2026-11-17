@@ -56,5 +56,6 @@
   "additionalServices": "Additional Services",
   "item": "Item",
   "wholeItem": "Whole item",
-  "addCustomItem": "Custom item"
+  "addCustomItem": "Custom item",
+  "photosPending": "Add item photo — {count, plural, =0 {none taken yet} one {# photo waiting to be saved with the order} other {# photos waiting to be saved with the order}}"
 }

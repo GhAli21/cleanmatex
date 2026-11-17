@@ -51,8 +51,8 @@ export function CmxPagination({
   disabled = false,
 }: CmxPaginationProps) {
   const tCommon = useTranslations('common')
-  const rowsPerPageLabel = labels?.rowsPerPage ?? 'Rows per page:'
-  const noItemsLabel = labels?.noItems ?? 'No items'
+  const rowsPerPageLabel = labels?.rowsPerPage ?? tCommon('rowsPerPage')
+  const noItemsLabel = labels?.noItems ?? tCommon('noData')
   const startItem = (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalItems)
 
@@ -82,7 +82,7 @@ export function CmxPagination({
           <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
             {totalItems > 0 ? (
               <>
-                {startItem}-{endItem} of {totalItems}
+                {`${startItem}-${endItem} ${tCommon('of')} ${totalItems}`}
               </>
             ) : (
               noItemsLabel
@@ -149,10 +149,10 @@ export function CmxPagination({
         <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
           {totalItems > 0 ? (
             <>
-              {startItem}-{endItem} of {totalItems}
+              {`${startItem}-${endItem} ${tCommon('of')} ${totalItems}`}
             </>
           ) : (
-            'No items'
+            noItemsLabel
           )}
         </div>
       )}

@@ -25,7 +25,7 @@ function mapDirection(base) {
   if ((m = base.match(new RegExp(`^(-?)([mp])([lr])-(${SIZE})$`)))) return `${m[1]}${m[2]}${SIDE[m[3]]}-${m[4]}`
   if ((m = base.match(new RegExp(`^(-?)(left|right)-(${SIZE})$`)))) return `${m[1]}${SIDE[m[2]]}-${m[3]}`
   if ((m = base.match(new RegExp(`^rounded-(l|r|tl|tr|bl|br)(${RADIUS})$`)))) return `rounded-${SIDE[m[1]]}${m[2]}`
-  if ((m = base.match(/^border-(l|r)(-(?:\d+|\[[^\]]+\]))?$/))) return `border-${SIDE[m[1]]}${m[2] || ''}`
+  if ((m = base.match(/^border-(l|r)(-.+)?$/))) return `border-${SIDE[m[1]]}${m[2] || ''}`
   if ((m = base.match(/^(text|float|clear)-(left|right)$/))) return `${m[1]}-${SIDE[m[2]]}`
   return null
 }
@@ -139,7 +139,7 @@ function findRawClasses(src) {
 
 function walk(p, out = []) {
   if (fs.statSync(p).isDirectory()) for (const f of fs.readdirSync(p)) walk(path.join(p, f), out)
-  else if (/\.tsx$/.test(p) && !/\.stories\.tsx$/.test(p)) out.push(p)
+  else if (/\.tsx?$/.test(p) && !/\.(stories\.tsx|d\.ts)$/.test(p)) out.push(p)
   return out
 }
 

@@ -6,6 +6,7 @@ const BASE = '/api/v1/file-util';
 
 /** A refused File Util request; `code` selects the message (`fileUtil.errors.<code>`). */
 export class FileUtilApiError extends Error {
+  /** @param code server or transport error code */
   constructor(public readonly code: string) {
     super(code);
   }
@@ -86,6 +87,9 @@ export const completeUpload = (category: FileCategoryCode, fileId: string, csrfT
  * @param category file category
  * @param fileId file
  * @param patch fields to change
+ * @param patch.purpose new purpose code
+ * @param patch.notes new note; null clears it
+ * @param patch.sortOrder new display order
  * @param csrfToken CSRF token
  */
 export const updateFileMeta = (
@@ -169,4 +173,47 @@ export async function uploadFile(params: UploadFileParams): Promise<FileView> {
   }
   onVerifying?.();
   return completeUpload(target.category, reserved.fileId, csrfToken);
+}
+
+/**
+ * Uploads several files into one record, one after another, using the category's own rules
+ * (fetched once). For flows that collect files before the record exists (e.g. New Order photos).
+ * Never throws: each file's failure is counted so the caller can tell the user.
+ * @param params target record, purpose, source, files and CSRF token
+ * @param params.category file category of the record
+ * @param params.entityId the record (e.g. the new order id)
+ * @param params.purpose purpose for every file; category default when omitted
+ * @param params.source screen or channel the files came from
+ * @param params.files files to upload, in order
+ * @param params.csrfToken CSRF token
+ * @returns how many files were saved and how many failed
+ */
+export async function uploadFilesToRecord(params: {
+  category: FileCategoryCode;
+  entityId: string;
+  purpose?: string;
+  source: FileSourceCode;
+  files: File[];
+  csrfToken: string | null;
+}): Promise<{ saved: number; failed: number }> {
+  let saved = 0;
+  let failed = 0;
+  const config = await fetchFileConfig(params.category).catch(() => null);
+  for (const file of params.files) {
+    try {
+      await uploadFile({
+        file,
+        imageMaxDimension: config?.imageMaxDimension ?? null,
+        csrfToken: params.csrfToken,
+        category: params.category,
+        purpose: params.purpose,
+        entityId: params.entityId,
+        source: params.source,
+      });
+      saved += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { saved, failed };
 }

@@ -175,6 +175,8 @@ Migrations run as `postgres`. New tables, sequences, and functions in `public` d
 - `org_*` reads from the user JWT need an explicit `GRANT` to `authenticated` and a row-security policy. Do not grant `anon`.
 - `sys_*` and `hq_*` stay closed to `anon` and `authenticated`. The app reads them with the service role after its own authorization check. Do not add a policy that allows every row.
 - A function the user JWT calls must `GRANT EXECUTE` to `authenticated` only, and the body must reject a caller who is not the session user (`auth.uid()` or the JWT session). `anon` stays revoked. `service_role` keeps `EXECUTE`.
+- `current_tenant_id()` and `is_admin()` stay executable by `anon` and `authenticated` (`0748`). Row-security policies call them as the session role. No session returns NULL or false. Do not revoke them.
+- `fn_stng_resolve_all_settings` and `fn_stng_resolve_setting_value` run as the owner (`0749`). A signed-in session may pass only `current_tenant_id()`. Do not grant `anon`. Do not open the settings catalog tables to the public key.
 - `SECURITY DEFINER` is only for work the caller cannot do. Set `search_path` to `pg_catalog, public`, then only schemas the body names (`auth`, `extensions`, `net`, `storage`, `cron`, `vault`). `pg_temp` is last.
 - A catalog view uses `ALTER VIEW ... SET (security_invoker = true)` and is not granted to `anon` or `authenticated`.
 - Objects created later by `supabase_admin` in the dashboard Table Editor are outside this default. Do not rely on that role to close them.

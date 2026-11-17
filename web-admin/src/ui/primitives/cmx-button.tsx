@@ -81,7 +81,7 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
         {...props}
       >
         {loading && (
-          <span className="me-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          <span className="me-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-e-transparent" />
         )}
         {children}
       </button>

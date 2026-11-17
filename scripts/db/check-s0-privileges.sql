@@ -10,9 +10,17 @@ DECLARE
   open_tables integer;
   open_definers integer;
   extra_definers integer;
+  missing_rls_helpers integer;
   open_views integer;
   open_defaults integer;
+  -- Policies call these as the session role. 0748 grants them. No session returns NULL or false.
+  rls_helpers text[] := ARRAY[
+    'current_tenant_id()',
+    'is_admin()'
+  ];
   allowed text[] := ARRAY[
+    'current_tenant_id()',
+    'is_admin()',
     'fix_order_data(p_tenant_org_id uuid, p_steps text[], p_order_id uuid, p_dry_run boolean)',
     'fn_auth_own_tenants()',
     'fn_auth_session_choose_tenant(p_org_user_id uuid)',
@@ -25,7 +33,9 @@ DECLARE
     'has_all_permissions(p_permissions text[])',
     'has_any_permission(p_permissions text[])',
     'has_permission(p_permission text)',
-    'has_resource_permission(p_permission text, p_resource_type text, p_resource_id uuid)'
+    'has_resource_permission(p_permission text, p_resource_type text, p_resource_id uuid)',
+    'fn_stng_resolve_all_settings(p_tenant_id uuid, p_branch_id uuid, p_user_id uuid)',
+    'fn_stng_resolve_setting_value(p_tenant_id uuid, p_setting_code text, p_branch_id uuid, p_user_id uuid)'
   ];
 BEGIN
   SELECT count(*) INTO open_tables
@@ -61,7 +71,10 @@ BEGIN
   WHERE n.nspname = 'public'
     AND p.prosecdef
     AND (
-      has_function_privilege('anon', p.oid, 'EXECUTE')
+      (
+        has_function_privilege('anon', p.oid, 'EXECUTE')
+        AND (p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')') <> ALL (rls_helpers)
+      )
       OR EXISTS (
         SELECT 1
         FROM aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) AS acl_item
@@ -89,6 +102,21 @@ BEGIN
 
   IF extra_definers > 0 THEN
     RAISE EXCEPTION 's0 invariant failed: % SECURITY DEFINER functions are executable by authenticated and are not on the allowlist', extra_definers;
+  END IF;
+
+  SELECT count(*) INTO missing_rls_helpers
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('current_tenant_id', 'is_admin')
+    AND pg_get_function_identity_arguments(p.oid) = ''
+    AND NOT (
+      has_function_privilege('anon', p.oid, 'EXECUTE')
+      AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+    );
+
+  IF missing_rls_helpers > 0 THEN
+    RAISE EXCEPTION 's0 invariant failed: % row-security helpers are not executable by anon and authenticated', missing_rls_helpers;
   END IF;
 
   SELECT count(*) INTO open_views

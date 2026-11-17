@@ -11,7 +11,7 @@
 | Package | What | Depends on | State |
 |---|---|---|---|
 | PR-01 | Tokens, fonts, `cn()` merge, RTL and accessibility fixes in shared components | — | **Implemented 2026-11-16 (all 7 tasks), owner QA pending** |
-| PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **In progress** (`PLAN_PR-02.md`, approved 2026-11-16; order statuses map to the 5 tones). Tasks 1–6 Done; Task 7 code and tests done, typecheck and build not run; Tasks 8–10 not started |
+| PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **In progress** (`PLAN_PR-02.md`, approved 2026-11-16; order statuses map to the 5 tones). Tasks 1–9 Done; Task 10 (verification, review, docs) not started |
 | PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | Not started |
 | PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | Not started |
 | PR-04 | POS touch targets and keyboard shortcuts | PR-01 | Not started |
@@ -52,7 +52,7 @@
 ## Open
 
 - PR-01 owner QA (`QA_TEST_GUIDE.md`) and commit.
-- PR-02: finish Task 7 (typecheck, build, Storybook check), then Tasks 8–10 (`RESUME_CONTINUATION.md`).
+- PR-02: Task 10 (Storybook visual check of the Task 7 class changes is part of Task 10) (`RESUME_CONTINUATION.md`).
 - Pre-existing, not from this program: 2 type errors (`app/(auth)/login/page.tsx:162`, `src/features/users/ui/membership-lock-action.tsx:84`) and 9 failing jest suites (list in `PLAN_PR-01.md`).
 - Font pairs to seed (licence and Arabic coverage check).
 - Tailwind v4's exact minimum browser versions.

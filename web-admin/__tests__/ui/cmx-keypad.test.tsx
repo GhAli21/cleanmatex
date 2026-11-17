@@ -205,7 +205,7 @@ describe('CmxKeypad', () => {
     );
     const clear = screen.getByRole('button', { name: 'Clear amount' });
     expect(clear.className).toMatch(/focus:ring/);
-    expect(clear.className).toMatch(/amber/);
+    expect(clear.className).toMatch(/focus-visible:ring-warning/);
 
     const one = screen.getByRole('button', { name: 'Enter 1' });
     fireEvent.focus(one);

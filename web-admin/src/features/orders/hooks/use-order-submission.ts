@@ -16,6 +16,8 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cmxMessage } from '@ui/feedback';
+import { uploadFilesToRecord } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_SOURCES } from '@/lib/constants/file-util';
 import { validateProductIds } from '@/lib/utils/validation-helpers';
 import { sanitizeOrderNotes, sanitizeInput } from '@/lib/utils/security-helpers';
 import type { PaymentFormData } from '../model/payment-form-schema';
@@ -148,6 +150,7 @@ export function useOrderSubmission() {
     const tWorkflow = useTranslations('workflow');
     const profileStaffMessage = useWorkflowProfileStaffMessage();
     const tEdit = useTranslations('orders.edit');
+    const tFiles = useTranslations('fileUtil');
     const tLedger = useTranslations('cashControl.ledgerErrors');
     const router = useRouter();
     const { currentTenant, user } = useAuth();
@@ -724,6 +727,23 @@ export function useOrderSubmission() {
                 state.closeModal('payment');
                 if (orderId) {
                     state.setCreatedOrder(orderId, orderStatus || null);
+                }
+
+                // Photos taken before saving go to the order now that it has an id. Not awaited:
+                // a slow upload must never hold the order confirmation; the result is reported.
+                const pendingPhotos = state.state.pendingPhotos;
+                if (orderId && pendingPhotos.length > 0) {
+                    void uploadFilesToRecord({
+                        category: FILE_CATEGORIES.ORDER_FILE,
+                        entityId: orderId,
+                        purpose: FILE_PURPOSES.ORDER_FILE.BEFORE_IMAGE,
+                        source: isEditMode ? FILE_SOURCES.ORDER_EDIT : FILE_SOURCES.ORDER_NEW,
+                        files: pendingPhotos,
+                        csrfToken,
+                    }).then(({ saved, failed }) => {
+                        if (failed > 0) cmxMessage.warning(tFiles('orderPhotosFailed', { failed }));
+                        else cmxMessage.success(tFiles('orderPhotosSaved', { count: saved }));
+                    });
                 }
                 const orderNo = data?.order?.orderNo || data?.orderNo || data?.order_no || state.state.editingOrderNo || '';
 

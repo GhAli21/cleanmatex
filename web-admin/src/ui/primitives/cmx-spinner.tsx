@@ -28,7 +28,7 @@ export const CmxSpinner: React.FC<CmxSpinnerProps> = ({
   return (
     <div
       className={cn(
-        'inline-block animate-spin rounded-full border-current border-r-transparent',
+        'inline-block animate-spin rounded-full border-current border-e-transparent',
         sizeClass,
         className,
       )}

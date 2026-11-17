@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ProductCard } from './product-card';
 import { PreferencesPanel } from './preferences-panel';
-import { Package, Plus, Search } from 'lucide-react';
+import { Camera, Package, Plus, Search } from 'lucide-react';
 import { CmxInput, CmxSwitch, Label, CmxSelect } from '@ui/primitives';
 import { CmxButton } from '@ui/primitives';
 import { CmxPagination } from '@ui/navigation';
@@ -69,6 +69,8 @@ interface ProductGridProps {
   enforcePrefCompatibility?: boolean;
   onOpenCustomItemModal?: () => void;
   onOpenPhotoCapture?: () => void;
+  /** Photos taken for this order but not saved yet (uploaded right after the order is saved). */
+  pendingPhotoCount?: number;
 }
 
 export const ProductGrid = memo(function ProductGrid({
@@ -101,6 +103,7 @@ export const ProductGrid = memo(function ProductGrid({
   enforcePrefCompatibility = false,
   onOpenCustomItemModal,
   onOpenPhotoCapture,
+  pendingPhotoCount = 0,
 }: ProductGridProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tCommon = useTranslations('common');
@@ -118,7 +121,6 @@ export const ProductGrid = memo(function ProductGrid({
   const gridRef = useRef<HTMLDivElement>(null);
 
   void onRemoveItem;
-  void onOpenPhotoCapture;
 
   const handlePageChange = (page: number) => {
     onPageChange?.(page);
@@ -145,13 +147,26 @@ export const ProductGrid = memo(function ProductGrid({
             >
               {t('selectItems')}
             </h2>
-            {/* P5-03e: a line with no catalog product; absent without `pricing:override` */}
-            {onOpenCustomItemModal ? (
-              <CmxButton type="button" variant="outline" size="sm" onClick={onOpenCustomItemModal}>
-                <Plus className="h-4 w-4" aria-hidden="true" />
-                {t('addCustomItem')}
-              </CmxButton>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {onOpenPhotoCapture ? (
+                <CmxButton type="button" variant="outline" size="sm" onClick={onOpenPhotoCapture} aria-label={t('photosPending', { count: pendingPhotoCount })}>
+                  <Camera className="h-4 w-4" aria-hidden="true" />
+                  {t('addPhoto')}
+                  {pendingPhotoCount > 0 && (
+                    <span className="rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233))] px-1.5 text-xs text-[rgb(var(--cmx-primary-fg-rgb,255_255_255))]">
+                      {pendingPhotoCount}
+                    </span>
+                  )}
+                </CmxButton>
+              ) : null}
+              {/* P5-03e: a line with no catalog product; absent without `pricing:override` */}
+              {onOpenCustomItemModal ? (
+                <CmxButton type="button" variant="outline" size="sm" onClick={onOpenCustomItemModal}>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  {t('addCustomItem')}
+                </CmxButton>
+              ) : null}
+            </div>
           </div>
 
           {onProductSearchChange ? (

@@ -28,6 +28,9 @@ import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
 import { DeliveryProofAuditCard } from '@features/delivery/ui/delivery-proof-audit-card';
+import { FileAttachments } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util';
+import { useHasPermission } from '@/lib/hooks/use-has-permission';
 import { OrderChargesVoidPanel } from '@features/orders/ui/order-financial/order-charges-void-panel';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
@@ -65,6 +68,7 @@ const TAB_IDS = [
   'status_lifecycle',
   'history',
   'delivery_proof',
+  'files',
   'edit_history',
   'change_history',
   'debug',
@@ -140,6 +144,7 @@ export function OrderDetailClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const tFin = useTranslations('orders.detail.financial');
+  const canUpdateOrder = useHasPermission('orders', 'update');
   const tFull = useTranslations('orders.detailFull');
   const tCodes = useTranslations('codes');
   const { currentTenant } = useAuth();
@@ -463,6 +468,23 @@ export function OrderDetailClient({
       id: 'delivery_proof',
       label: tFin('tabs.deliveryProof'),
       content: <DeliveryProofAuditCard orderId={String(order.id)} />,
+    },
+    {
+      id: 'files',
+      label: tFin('tabs.files'),
+      // Photos and documents of the order (File Util); changing them needs orders:update.
+      content: (
+        <CmxCard>
+          <CmxCardContent className="pt-6">
+            <FileAttachments
+              category={FILE_CATEGORIES.ORDER_FILE}
+              entityId={String(order.id)}
+              source={FILE_SOURCES.ORDER_DETAIL}
+              readOnly={!canUpdateOrder}
+            />
+          </CmxCardContent>
+        </CmxCard>
+      ),
     },
     {
       id: 'edit_history',

@@ -96,7 +96,6 @@ export function CmxFileGallery({ items, loading, onOpen, onEdit, onDelete, readO
               aria-label={t('openFile', { name: item.name })}
             >
               {thumb ? (
-                // eslint-disable-next-line @next/next/no-img-element -- signed storage URLs change every few minutes; next/image would cache dead links
                 <img src={thumb} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
               ) : (
                 <TypeIcon mode={item.previewMode} />

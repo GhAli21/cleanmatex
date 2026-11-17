@@ -45,5 +45,7 @@
     "UNAUTHORIZED": "Your session ended. Sign in again.",
     "FORBIDDEN": "You do not have permission to do this.",
     "FILE_UTIL_FAILED": "Something went wrong with the file. Try again."
-  }
+  },
+  "orderPhotosSaved": "{count, plural, one {# photo saved to the order} other {# photos saved to the order}}",
+  "orderPhotosFailed": "{failed, plural, one {# photo could not be saved} other {# photos could not be saved}}. Open the order and add them again under Files."
 }

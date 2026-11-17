@@ -2,7 +2,7 @@
 
 **Purpose:** let any assistant or developer continue this feature without the chat history.
 **Authoritative docs:** [PLAN.md](PLAN.md) (design, decisions, task checklist) · [STATUS.md](STATUS.md) (dated log).
-**Last updated:** 2026-11-17 — Phase 4 IN PROGRESS (see §3a for exactly what is done/not done).
+**Last updated:** 2026-11-17 — Phase 4 code done (owner QA pending). Phase 5 in progress: see §3b.
 
 ## 1. Where we are
 
@@ -11,7 +11,7 @@
 | 1 Foundation (DB) | Done. Migration `0743_file_util_foundation.sql` applied local + remote. |
 | 2 Backend | Done. `0744_file_util_cleanup_cron.sql` applied. HQ `platform-workers` purge job written; **owner must deploy platform-workers**. |
 | 3 UI kit | Done. tsc/eslint clean, `npm run build` green, i18n check passes. Not yet browser-tested. |
-| 4 Order photos | **In progress** — see §3a. |
+| 4 Order photos | Code done, build green — owner browser QA pending (`QA_TEST_GUIDE.md` A + B). |
 | 5–8 | Not started. |
 
 ## 2. Files that exist (do not recreate)
@@ -48,15 +48,38 @@ Design chosen: photos taken on the New Order screen are kept as `pendingPhotos: 
 Done:
 - [x] `uploadFile()` extracted to `src/features/file-util/api/file-util-api.ts` (usable outside React); hook `use-file-attachments.ts` now calls it; exported from `src/features/file-util/index.ts`.
 - [x] `pendingPhotos: File[]` + actions `ADD_PENDING_PHOTO` / `REMOVE_PENDING_PHOTO` in `src/features/orders/model/new-order-types.ts` and `src/features/orders/ui/context/new-order-reducer.ts` (initial `[]`; `RESET_ORDER` clears via initialState; `EXIT_EDIT_MODE` clears). tsc clean.
+- [x] `new-order-modals.tsx`: `PhotoCaptureModal` replaced by `CmxCameraCaptureDialog` (`@ui/overlays`); `handlePhotoCapture` dispatches `ADD_PENDING_PHOTO`, warns via `cmxMessage` at `ORDER_DEFAULTS.LIMITS.MAX_PHOTOS`.
+- [x] Deleted `src/features/orders/ui/components/photo-capture-modal.tsx`; trimmed `messages/{en,ar}/newOrder/photoCapture.json` to the only key still used (`maxPhotosReached`).
+
+- [x] `product-grid.tsx`: "Photo" button with pending count (`pendingPhotoCount` prop from `new-order-content.tsx`); key `newOrder.itemsGrid.photosPending` (EN/AR, plural).
+- [x] `use-order-submission.ts`: after `setCreatedOrder`, `uploadFilesToRecord()` (new helper in `src/features/file-util/api/file-util-api.ts`, exported from index) uploads `pendingPhotos` to `ORDER_FILE`/`BEFORE_IMAGE`, source `ORDER_NEW` or `ORDER_EDIT`; not awaited; reports via `fileUtil.orderPhotosSaved` / `orderPhotosFailed`.
+- [x] Order detail `app/dashboard/orders/[id]/order-detail-client.tsx`: new tab `files` (after `delivery_proof`) rendering `FileAttachments` (`ORDER_FILE`, source `ORDER_DETAIL`, `readOnly` unless `useHasPermission('orders','update')`); label `orders.detail.financial.tabs.files` (EN/AR).
+- Gotcha: locale files under `messages/**` are CRLF in git; edit them byte-preserving (rebuild from `git show HEAD:...` + insert) or the diff becomes the whole file.
 
 Not done yet (in order):
-- [ ] `src/features/orders/ui/new-order-modals.tsx`: replace `PhotoCaptureModal` (~line 493) with `CmxCameraCaptureDialog` from `@ui/overlays`; `handlePhotoCapture` (~line 315) → `state.dispatch({ type: 'ADD_PENDING_PHOTO', payload: photo })`; warn via `cmxMessage` when `ORDER_DEFAULTS.LIMITS.MAX_PHOTOS` reached.
-- [ ] `src/features/orders/ui/product-grid.tsx`: today it receives `onOpenPhotoCapture` and discards it (`void onOpenPhotoCapture;` ~line 121) → render a "photos (n)" button; add a `pendingPhotoCount` prop passed from `new-order-content.tsx` (~line 1283).
-- [ ] `src/features/orders/hooks/use-order-submission.ts` (~line 724, after `state.setCreatedOrder`): read `state.state.pendingPhotos` before `resetOrder()`; if any, upload each with `uploadFile({ category:'ORDER_FILE', purpose:'BEFORE_IMAGE', entityId: orderId, source: isEditMode ? 'ORDER_EDIT' : 'ORDER_NEW', file, imageMaxDimension: 2048, csrfToken })`, fire-and-forget, then `cmxMessage` success/warning with counts (i18n keys under `fileUtil`).
-- [ ] Delete `src/features/orders/ui/components/photo-capture-modal.tsx` when unused; grep `newOrder.photoCapture` keys before removing any.
-- [ ] Order detail `app/dashboard/orders/[id]/order-detail-client.tsx`: add `<FileAttachments category="ORDER_FILE" entityId={order.id} source="ORDER_DETAIL" readOnly={!canUpdate} />` (edit needs `orders:update`).
-- [ ] i18n for any new strings (EN+AR), `npm run check:i18n`; tsc, eslint, `npm run build`.
-- [ ] `QA_TEST_GUIDE.md`; tick PLAN 4.x; STATUS row; update this file.
+- [x] `npm run check:i18n` passes; tsc + eslint clean on all touched files (JSDoc warnings fixed in file-util-api; unused img eslint-disables removed).
+- [x] `npm run build` green (2026-11-17).
+- [x] `QA_TEST_GUIDE.md` written; PLAN 4.1–4.3 ticked; STATUS row added.
+- [ ] Owner browser QA (QA_TEST_GUIDE A + B). Then Phase 5 (product images, tenant logo, product-images policy migration, remove MinIO/tenant-assets/upload-photo.ts).
+
+## 3b. Phase 5 progress (live) — started 2026-11-17
+
+Findings (remote DB, read-only):
+- `PRODUCT_IMAGE` and `TENANT_LOGO` both use `TENANT_PUBLIC` → `tenants-cmx-public` (public). MAIN is single-slot (`max_files = 1`) in both.
+- `tenant-assets` bucket does not exist, so `/api/v1/tenants/me/logo` (no callers) could never work.
+- Only 1 product has `product_image` (in `product-images`), and 0 tenants have `logo_url`. All are demo data.
+- `product-images` has 4 open policies (authenticated insert/update/delete on bucket_id only). `postgres` does **not** own `storage.objects` (owner `supabase_storage_admin`, not a member), so a migration **cannot DROP these policies**. Plan instead: a migration that locks the bucket on `storage.buckets` (private, size limit 1 byte, an impossible MIME list), so the Storage API refuses every upload. The owner then deletes the empty bucket in the dashboard; deleting it also kills the policies (FK).
+
+Design (decision 14): `org_product_data_mst.product_image` and `org_tenants_mst.logo_url` stay, as the **published public URL of the MAIN file**. The File Util service rewrites them in the same transaction whenever the MAIN slot changes (complete, purpose change, delete). The file row is the truth; the column is a read projection for ~20 readers (mobile, receipts, public booking, HQ). Public-bucket URLs never change, so no signed URL is stored.
+
+Steps:
+- [ ] 5.a Service: `syncPublishedUrl` projection in complete/update/delete + tests.
+- [ ] 5.b Product form → `FileAttachments` (PRODUCT_IMAGE, source PRODUCT_SETUP); delete `api/v1/products/[id]/image`, `lib/storage/product-images.ts`; catalog-access deps.
+- [ ] 5.c Branding page logo → File Util (TENANT_LOGO, entity = tenant id, source TENANT_SETTINGS); delete `settings/branding/logo` route, `tenants/me/logo` route, `tenants.service.uploadLogo` (+ its test), `lib/storage/tenant-logo.ts`; branding PUT must stop accepting `logo_url` from the client.
+- [ ] 5.d Delete MinIO: `lib/storage/minio-client.ts`, `app/actions/orders/upload-photo.ts`, `minio` dep, docker-compose service, env docs.
+- [ ] 5.e Migration: lock `product-images` bucket (STOP for owner).
+- [ ] 5.f eslint/tsc/tests/build, QA guide section C, PLAN/STATUS.
+- Deferred: FOR_ORDER-with-MAIN-fallback display on the New Order grid (needs `CmxFileThumb` + batch list); grid keeps using `product_image` (MAIN).
 
 ## 3. Next steps (in order) — Phase 4: order photos
 

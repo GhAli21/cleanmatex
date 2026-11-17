@@ -1284,6 +1284,7 @@ export function NewOrderContent() {
                             state.openModal('photoCapture');
                             trackModalOpen('photoCapture');
                           }}
+                          pendingPhotoCount={state.state.pendingPhotos.length}
                         />
                       )}
                     </div>

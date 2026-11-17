@@ -146,7 +146,7 @@ The assistant stops before this phase. Apply order is A, then B, then C.
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| F.1 Review the three migrations and the allowlist. Apply them. Do not edit the files after apply. | Owner | Planned | Applied migration names |
+| F.1 Review the migrations and the allowlist. Apply them. Do not edit the files after apply. | Owner | Complete | 0745–0749 applied on local and remote |
 | F.2 Run `scripts/db/check-s0-privileges.sql` against the applied database. If the migration notice says `supabase_admin` defaults were skipped, run `scripts/db/s0-supabase-admin-default-privileges.sql` in the SQL editor as `supabase_admin`, then run the check again. Re-run the Supabase security advisor. | Owner + Dev | Planned | Zero remaining findings for these checks |
 | F.3 Smoke-test login, a new order, one HQ screen, and the public tracking page, in EN and AR. Fix a break with a new migration, never by editing A–C. | Owner + Dev | Planned | Four paths recorded |
 | F.4 Turn on leaked-password protection in Supabase Auth. Secure password change (S5) is not needed now. | Owner | Planned | Register 0.5 evidence |
@@ -199,6 +199,10 @@ Append newest entries first. Do not remove historical entries.
 
 | Date | Task | Status | Evidence / result | Owner | Next action |
 |---|---|---|---|---|---|
+| 2026-11-17 | F.2 re-measure | Partial | After 0748 and 0749, remote catalog tables are closed, and no extra security-definer function is executable by the signed-in role. Default privileges still have 24 open `supabase_admin` grants. The SQL editor cannot close those. Not a Pass. | Dev | Deploy the tenant app, then smoke-test login, a new order, one HQ screen, and public tracking |
+| 2026-11-17 | Apply 0749 | Complete | Owner applied `0749_settings_resolver_session_definer.sql` on local and remote. The two settings resolvers run as the owner. A signed-in session may pass only its own organization. `anon` cannot execute them. | Owner | Reload the new-order page and the customer picker |
+| 2026-11-17 | Settings resolver | Drafted | `0749_settings_resolver_session_definer.sql` makes `fn_stng_resolve_all_settings` and `fn_stng_resolve_setting_value` run as the owner. A signed-in session may pass only its own organization. This is the default-guest-customer failure. Not applied. | Dev | Owner applies `0749`, then reloads settings and the guest customer |
+| 2026-11-17 | RLS helper grants | Drafted | `0748_grant_rls_helper_execute.sql` grants `current_tenant_id()` and `is_admin()` to `anon` and `authenticated`. Policies call them as the session role. `0746` revoked that, so organization queries raise `permission denied for function current_tenant_id`. Not applied. | Dev | Owner applies `0748`, then reloads the new-order screen |
 | 2026-11-17 | Rules for the lockdown | Complete | Public-key grant rules added to the database skill, `CLAUDE.md`, `AGENTS.md`, `supabaserules.mdc`, and the frontend and backend skills. `sys_*` / `hq_*` reads point at `catalogReadClient`. | Dev | New migrations follow the convention |
 | 2026-11-17 | Local supabase_admin defaults | Complete | Ran `scripts/db/s0-supabase-admin-default-privileges.sql` inside `supabase_db_cleanmatex` as `supabase_admin`. Direct `psql -U supabase_admin` asks for a password and fails; the container password must be passed in. Local `anon` and `authenticated` default grants for that role are gone. | Dev | Remote SQL editor still cannot become `supabase_admin` |
 | 2026-11-17 | Remote apply 0745–0747 | Complete | Remote `schema_migrations` has 0745, 0746, and 0747. `postgres` default privileges no longer grant `anon` or `authenticated`. `supabase_admin` defaults still do. The SQL editor runs as `postgres` and cannot become `supabase_admin`. Not a register Pass. | Owner | Remote dashboard-created objects keep the old default until Supabase provides that role |

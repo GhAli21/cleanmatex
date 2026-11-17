@@ -26,10 +26,60 @@ if (signatures.length === 0) {
   throw new Error('S0 allowlist block is empty')
 }
 
+const helperFence = allowlist.match(/```s0-rls-helpers\r?\n([\s\S]*?)```/)
+if (!helperFence) {
+  throw new Error('S0 allowlist is missing the s0-rls-helpers block')
+}
+const rlsHelpers = helperFence[1]
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0 && !line.startsWith('#'))
+
+if (rlsHelpers.length === 0) {
+  throw new Error('S0 row-security helper block is empty')
+}
+
 const migrationB = read('supabase/migrations/0746_revoke_definer_execute_and_lock_search_path.sql')
+const migrationD = read('supabase/migrations/0748_grant_rls_helper_execute.sql')
+const migrationE = read('supabase/migrations/0749_settings_resolver_session_definer.sql')
 const migrationA = read('supabase/migrations/0745_revoke_sys_hq_anon_writes.sql')
 const migrationC = read('supabase/migrations/0747_security_invoker_catalog_views.sql')
 const invariant = read('scripts/db/check-s0-privileges.sql')
+
+const settingsFence = allowlist.match(/```s0-settings-resolvers\r?\n([\s\S]*?)```/)
+if (!settingsFence) {
+  throw new Error('S0 allowlist is missing the s0-settings-resolvers block')
+}
+const settingsResolvers = settingsFence[1]
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0 && !line.startsWith('#'))
+
+if (settingsResolvers.length === 0) {
+  throw new Error('S0 settings resolver block is empty')
+}
+
+for (const signature of settingsResolvers) {
+  const grant = `GRANT EXECUTE ON FUNCTION ${signature} TO authenticated, service_role;`
+  if (!migrationE.includes(grant)) {
+    throw new Error(`0749 is missing ${grant}`)
+  }
+  const bare = signature.replace(/^public\./, '')
+  if (!invariant.includes(`'${bare}'`)) {
+    throw new Error(`check-s0-privileges.sql is missing ${bare}`)
+  }
+}
+
+for (const signature of rlsHelpers) {
+  const grant = `GRANT EXECUTE ON FUNCTION ${signature} TO anon, authenticated;`
+  if (!migrationD.includes(grant)) {
+    throw new Error(`0748 is missing ${grant}`)
+  }
+  const bare = signature.replace(/^public\./, '')
+  if (!invariant.includes(`'${bare}'`)) {
+    throw new Error(`check-s0-privileges.sql is missing ${bare}`)
+  }
+}
 
 for (const signature of signatures) {
   const grant = `GRANT EXECUTE ON FUNCTION ${signature} TO authenticated;`
@@ -68,6 +118,10 @@ const required = [
   [invariant, 'SECURITY DEFINER'],
   [invariant, 'security_invoker=true'],
   [invariant, 'pg_default_acl'],
+  [invariant, 'rls_helpers'],
+  [migrationD, 'current_tenant_id'],
+  [migrationD, 'is_admin'],
+  [migrationD, 'RAISE EXCEPTION'],
 ]
 
 for (const [source, needle] of required) {
@@ -80,4 +134,4 @@ if (migrationA.includes('USING (true)') || migrationB.includes('USING (true)') |
   throw new Error('S0 migrations must not add USING (true)')
 }
 
-console.log(`s0 source check passed (${signatures.length} authenticated functions)`)
+console.log(`s0 source check passed (${signatures.length} authenticated functions, ${rlsHelpers.length} row-security helpers, ${settingsResolvers.length} settings resolvers)`)

@@ -13,7 +13,7 @@
 | 1 | Foundation (migration) | Done 2026-11-17 (`0743` applied) |
 | 2 | Backend | Done 2026-11-17 (`0744` applied) |
 | 3 | UI kit | Done 2026-11-17 (build green; browser QA in Phase 4) |
-| 4 | First consumer: order photos | Not started |
+| 4 | First consumer: order photos | Code done 2026-11-17; owner browser QA pending |
 | 5 | Close existing gaps | Not started |
 | 6 | Remaining photo columns | Not started |
 | 7 | HQ File Util workspace `/file-util-ws` | Not started |
@@ -147,9 +147,9 @@ Every phase also ends with: eslint, typecheck, targeted tests, and `npm run buil
 
 ### Phase 4 — First consumer: order photos
 
-- [ ] 4.1 New order: captured photos are uploaded and linked to the order.
-- [ ] 4.2 Order detail: photos shown with `CmxAttachments`.
-- [ ] 4.3 QA guide with owner-runnable scenarios.
+- [x] 4.1 New order: **Photo** button with pending count; photos kept in state (`pendingPhotos`) and uploaded with `uploadFilesToRecord()` right after save (`ORDER_FILE`/`BEFORE_IMAGE`, source `ORDER_NEW`/`ORDER_EDIT`). Old `PhotoCaptureModal` deleted.
+- [x] 4.2 Order detail: new **Files** tab with `FileAttachments` (read-only without `orders:update`).
+- [x] 4.3 QA guide `QA_TEST_GUIDE.md` (sections A order detail, B new order).
 - [ ] 4.4 Update `STATUS.md` and the progress table.
 
 ### Phase 5 — Close existing gaps

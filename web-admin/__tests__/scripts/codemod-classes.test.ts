@@ -62,6 +62,7 @@ describe('codemod-classes: direction', () => {
     ['left-0 right-2 rtl:left-auto', 'start-0 end-2 rtl:start-auto'],
     ['rounded-l-md rounded-r-none rounded-tl-lg', 'rounded-s-md rounded-e-none rounded-ss-lg'],
     ['border-l border-r-0 border-l-2', 'border-s border-e-0 border-s-2'],
+    ['border-r-transparent border-l-destructive', 'border-e-transparent border-s-destructive'],
     ['text-left sm:text-right', 'text-start sm:text-end'],
     ['float-left', 'float-start'],
   ])('%s -> %s', (from, to) => expect(run(from)).toBe(to))

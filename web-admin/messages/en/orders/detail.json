@@ -320,6 +320,7 @@
       "statusLifecycle": "Status & Lifecycle",
       "history": "Order History",
       "deliveryProof": "Delivery Proof",
+      "files": "Files",
       "editHistory": "Edit History",
       "changeHistory": "Change History",
       "debug": "Debug",

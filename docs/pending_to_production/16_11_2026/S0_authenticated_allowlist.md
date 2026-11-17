@@ -24,6 +24,20 @@ public.has_permission(p_permission text)
 public.has_resource_permission(p_permission text, p_resource_type text, p_resource_id uuid)
 ```
 
+These two are not API functions. Organization row-security policies call them as the session role. `0746` revoked them, and every organization query then failed with `permission denied for function current_tenant_id`. `0748` grants them again. Neither accepts a caller-supplied user or tenant. No JWT session makes `current_tenant_id()` return NULL and `is_admin()` return false.
+
+```s0-rls-helpers
+public.current_tenant_id()
+public.is_admin()
+```
+
+These two entry points read the settings catalog, which stays closed to the public key. `0749` makes them run as the owner. A signed-in session may pass only its own organization. `service_role` may pass the organization it was given. `anon` is revoked.
+
+```s0-settings-resolvers
+public.fn_stng_resolve_all_settings(p_tenant_id uuid, p_branch_id uuid, p_user_id uuid)
+public.fn_stng_resolve_setting_value(p_tenant_id uuid, p_setting_code text, p_branch_id uuid, p_user_id uuid)
+```
+
 ## Why these functions stay
 
 | Signature | Caller | Caller check |

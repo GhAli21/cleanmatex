@@ -15,7 +15,7 @@ const files = (dir: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(dir, e.name)
     if (e.isDirectory()) return files(p)
-    return p.endsWith('.tsx') && !p.endsWith('.stories.tsx') ? [p] : []
+    return /\.tsx?$/.test(p) && !/\.(stories\.tsx|d\.ts)$/.test(p) ? [p] : []
   })
 
 test('src/ui uses theme tokens and logical direction classes only', () => {

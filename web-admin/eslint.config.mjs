@@ -17,6 +17,54 @@ const jsdocRulesOff = {
   'jsdoc/check-tag-names': 'off',
 };
 
+/** Global import bans; repeated in every file-scoped no-restricted-imports block. */
+const GLOBAL_RESTRICTED_PATHS = [
+  {
+    name: '@/lib/services/invoice-service',
+    message: 'Use @/lib/services/ar-invoice.service for new AR work. invoice-service.ts is a legacy compatibility adapter only.',
+  },
+];
+const GLOBAL_RESTRICTED_PATTERNS = [
+  {
+    group: ['@/components/ui', '@/components/ui/*', '@/components/auth/*', '@/components/layout/*', '@/components/dashboard/*', '@/components/orders/*', '@/components/settings/*'],
+    message: 'Use @ui Cmx components (e.g. @ui/primitives, @ui/feedback, @ui/overlays). See docs/dev/ui-migration-guide.md',
+  },
+  {
+    group: ['@ui/compat', '**/ui/compat', '**/ui/compat/*'],
+    message: '@ui/compat has been removed. Use @ui/primitives, @ui/feedback, or @ui/overlays. See docs/dev/ui-migration-guide.md',
+  },
+  {
+    group: ['@/messages', '@/messages/*'],
+    message: 'Do not import locale JSON directly. Load messages on the server with loadLocaleMessages() and consume text through next-intl.',
+  },
+  {
+    // Phase 2 (BVM Wiring): the legacy route folder
+    // (_legacy_create-with-payment) was retired. The rule stays so that
+    // any future revival attempt is caught at lint time.
+    group: ['**/api/v1/orders/create-with-payment/**', '**/api/v1/orders/_legacy_create-with-payment/**'],
+    message: 'The legacy create-with-payment route is retired. Use /api/v1/orders/submit-order and the submitOrder() orchestrator.',
+  },
+];
+
+// Raw Tailwind palette classes (black is allowed: overlays stay black in dark mode).
+// esquery regexes cannot contain "/", so opacity suffixes are covered by the lookahead.
+const RAW_PALETTE = String.raw`(^|[\s:])(bg|text|border|ring|from|via|to|divide|placeholder|outline|fill|stroke)-(white|gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(-[0-9]+)?(?![\w-])`;
+// Physical-direction classes that do not mirror in Arabic.
+const RAW_PHYSICAL = String.raw`(^|[\s:])(-?(ml|mr|pl|pr|left|right)-([0-9]|px|auto|full|\[)|rounded-(l|r|tl|tr|bl|br)(?![\w])|border-(l|r)(?![\w])|(text|float|clear)-(left|right)(?![\w-]))`;
+const PALETTE_MESSAGE = 'Raw Tailwind palette class: use a theme token (bg-card, bg-muted, text-foreground, text-muted-foreground, border-border, bg-success-bg, text-danger-text, ...). `node scripts/ui/codemod-classes.js <dir>` rewrites most. See docs/dev/ui-migration-guide.md';
+const PHYSICAL_MESSAGE = 'Physical direction class: use the logical one (ms-/me-/ps-/pe-/start-/end-/text-start/text-end/rounded-s/border-s) so Arabic mirrors. `node scripts/ui/codemod-classes.js <dir>` rewrites most.';
+const RAW_CLASS_RULES = [
+  { selector: `Literal[value=/${RAW_PALETTE}/]`, message: PALETTE_MESSAGE },
+  { selector: `TemplateElement[value.raw=/${RAW_PALETTE}/]`, message: PALETTE_MESSAGE },
+  { selector: `Literal[value=/${RAW_PHYSICAL}/]`, message: PHYSICAL_MESSAGE },
+  { selector: `TemplateElement[value.raw=/${RAW_PHYSICAL}/]`, message: PHYSICAL_MESSAGE },
+];
+// Legacy shared parts that PR-05 replaces folder by folder.
+const LEGACY_UI_IMPORT_RULES = ['@ui/primitives', '@ui/primitives/alert'].map((source) => ({
+  selector: `ImportDeclaration[source.value="${source}"] > ImportSpecifier[imported.name="Alert"]`,
+  message: 'Alert is legacy: use CmxSummaryMessage from @ui/feedback.',
+}));
+
 const eslintConfig = [...nextVitals, {
   ignores: [
     "node_modules/**",
@@ -89,33 +137,8 @@ const eslintConfig = [...nextVitals, {
   rules: {
     // Migrated: prefer @ui/* over legacy @/components (Phase 6)
     'no-restricted-imports': ['error', {
-      paths: [
-        {
-          name: '@/lib/services/invoice-service',
-          message: 'Use @/lib/services/ar-invoice.service for new AR work. invoice-service.ts is a legacy compatibility adapter only.',
-        },
-      ],
-      patterns: [
-        {
-          group: ['@/components/ui', '@/components/ui/*', '@/components/auth/*', '@/components/layout/*', '@/components/dashboard/*', '@/components/orders/*', '@/components/settings/*'],
-          message: 'Use @ui Cmx components (e.g. @ui/primitives, @ui/feedback, @ui/overlays). See docs/dev/ui-migration-guide.md',
-        },
-        {
-          group: ['@ui/compat', '**/ui/compat', '**/ui/compat/*'],
-          message: '@ui/compat has been removed. Use @ui/primitives, @ui/feedback, or @ui/overlays. See docs/dev/ui-migration-guide.md',
-        },
-        {
-          group: ['@/messages', '@/messages/*'],
-          message: 'Do not import locale JSON directly. Load messages on the server with loadLocaleMessages() and consume text through next-intl.',
-        },
-        {
-          // Phase 2 (BVM Wiring): the legacy route folder
-          // (_legacy_create-with-payment) was retired. The rule stays so that
-          // any future revival attempt is caught at lint time.
-          group: ['**/api/v1/orders/create-with-payment/**', '**/api/v1/orders/_legacy_create-with-payment/**'],
-          message: 'The legacy create-with-payment route is retired. Use /api/v1/orders/submit-order and the submitOrder() orchestrator.',
-        },
-      ],
+      paths: GLOBAL_RESTRICTED_PATHS,
+      patterns: GLOBAL_RESTRICTED_PATTERNS,
     }],
     // Minimum rules - all turned off to allow build to succeed
     '@typescript-eslint/interface-name-prefix': 'off',
@@ -179,6 +202,32 @@ const eslintConfig = [...nextVitals, {
         },
       ],
     }],
+  },
+}, {
+  // UI Design System PR-02: shared components use theme tokens and logical
+  // direction classes only, and never import feature code. A file-scoped
+  // no-restricted-imports replaces the global list, so its patterns are repeated.
+  files: ['src/ui/**'],
+  ignores: ['**/*.stories.tsx'],
+  rules: {
+    'no-restricted-syntax': ['error', ...RAW_CLASS_RULES],
+    'no-restricted-imports': ['error', {
+      paths: GLOBAL_RESTRICTED_PATHS,
+      patterns: [
+        ...GLOBAL_RESTRICTED_PATTERNS,
+        {
+          group: ['@features/**', '@/src/features/**'],
+          message: 'src/ui is shared: it must not import feature code. Pass feature parts in as props or children.',
+        },
+      ],
+    }],
+  },
+}, {
+  // Same class rules as warnings until PR-05 migrates each folder.
+  files: ['src/features/**', 'app/**'],
+  ignores: ['**/*.stories.tsx'],
+  rules: {
+    'no-restricted-syntax': ['warn', ...RAW_CLASS_RULES, ...LEGACY_UI_IMPORT_RULES],
   },
 }, ...storybook.configs["flat/recommended"]];
 

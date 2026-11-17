@@ -88,10 +88,10 @@ export function CmxCameraCaptureDialog({ open, onOpenChange, onCapture, title }:
           {/* The video stays mounted so the live stream survives a retake. */}
           <video ref={videoRef} autoPlay playsInline muted className={shot ? 'hidden' : 'h-full w-full object-cover'} aria-label={t('cameraPreview')} />
           {shot && (
-            // eslint-disable-next-line @next/next/no-img-element -- local blob preview, not an optimizable asset
             <img src={shot.url} alt={t('capturedPreview')} className="h-full w-full object-contain" />
           )}
           {!shot && state !== 'live' && (
+            // eslint-disable-next-line no-restricted-syntax -- white status text on the always-black camera preview
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-white" role="status">
               <Camera className="h-10 w-10 opacity-60" aria-hidden />
               <p className="text-sm">{state === 'error' ? t('cameraUnavailable') : t('cameraStarting')}</p>

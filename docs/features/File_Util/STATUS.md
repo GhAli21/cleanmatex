@@ -4,12 +4,13 @@
 
 ## Current
 
-Phase 3 done. Next: Phase 4 (order photos: new order + order detail) and the first real browser test. Owner: deploy HQ `platform-workers`.
+Phase 4 code done (build green). **Owner: browser QA with `QA_TEST_GUIDE.md` (A + B); deploy HQ `platform-workers`.** Next: Phase 5 (product images, logo, `product-images` policy fix, MinIO removal).
 
 ## Log
 
 | Date | Task | Result |
 |---|---|---|
+| 2026-11-17 | Phase 4 code | New order: Photo button (badge = pending count) → `CmxCameraCaptureDialog` → `pendingPhotos` in state → `uploadFilesToRecord()` after save (not awaited; result via cmxMessage). Order detail: **Files** tab (`FileAttachments`, read-only without `orders:update`). Old `PhotoCaptureModal` deleted, dead `newOrder.photoCapture.*` keys removed. i18n check passes; tsc + eslint clean on touched files; `npm run build` green; File Util tests 47/47. `QA_TEST_GUIDE.md` written. Locale files are CRLF: edits made byte-preserving (minimal diffs). |
 | 2026-11-17 | Phase 4 started | `uploadFile()` extracted (hook reuses it); new-order state gets `pendingPhotos` (uploaded right after save). Remaining steps listed in RESUME_CONTINUATION §3a. |
 | 2026-11-17 | Phase 3 UI kit | Shared: `CmxFileDropZone`, `CmxCameraCaptureDialog`, `CmxFileGallery`, `CmxFileViewerDialog` (+4 stories with RTL). Feature: `src/features/file-util` (api, hook with upload queue, image downscale + WebP thumb, `FileAttachments` widget, index). i18n `common.files.*` + `fileUtil.json` EN/AR (check:i18n passes). `.clauderc` snippets. tsc + eslint clean on touched files; `npm run build` green. Not browser-tested yet (needs Phase 4 consumer). Note: rewriting `common.json` briefly reformatted it; rebuilt from HEAD so the diff is only the 21 new lines per locale. |
 | 2026-11-17 | `0744` applied by owner (local + remote); types + Prisma regenerated | Verified remote: cron `file-util-expire` at `17 * * * *`, `sys_ops_job_cf` row present. Verification ran `fn_file_util_expire_pending()` once (0 rows; should have been read-only). **Phase 2 done.** HQ `platform-workers` deploy still owner's. |
