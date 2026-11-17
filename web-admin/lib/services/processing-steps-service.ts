@@ -5,7 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 /**
  *

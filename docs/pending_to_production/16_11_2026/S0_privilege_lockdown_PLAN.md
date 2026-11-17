@@ -1,6 +1,6 @@
 # S0 Privilege Lockdown — Implementation Plan
 
-**Status:** Planned — no migration written and nothing applied  
+**Status:** In progress — migrations 0745, 0746, and 0747 are drafted and not applied. Application code that would break after apply is updated. The Owner applies in Phase F.  
 **Written:** 17 Nov 2026  
 **Scope:** S0a, S0b, S0d (function `search_path` only), S0c, and register row 0.4  
 **Repos:** `cleanmatex` owns the migrations and the CI check. `cleanmatexsaas` is in scope for caller inventory and for a code change only if a browser call would break.  
@@ -85,12 +85,12 @@ No migration in this phase.
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| A.1 Re-run the baseline queries (row security, grants, definer functions, view options, default privileges, role bypass flags). Attach counts to the Progress Log. | Dev | Planned | Counts dated in the Progress Log |
-| A.2 Classify every `.rpc(` and every `.from('sys_` / `.from('hq_` in `web-admin`, `cmx-api`, `platform-api`, `platform-web`, and `platform-workers` as user-scoped or service-role. Record file and line. | Dev | Planned | Reviewed caller matrix |
-| A.3 Read each user-scoped function candidate and record whether it checks `auth.uid()` or the session. Reject any candidate that does not. | Dev | Planned | Allowlist with a pass/fail check per name |
-| A.4 Identify the Prisma role and the HQ Supabase server role. Decide `FORCE ROW LEVEL SECURITY`: on if both bypass, stop if either does not. | Dev | Planned | Role names and the force decision |
-| A.5 Write `S0_authenticated_allowlist.md` with the surviving names, the caller, and the check. Empty is a valid result. | Dev | Planned | Reviewed allowlist |
-| A.6 Update plan status for A.1–A.5. | Dev | Planned | Progress Log rows |
+| A.1 Re-run the baseline queries (row security, grants, definer functions, view options, default privileges, role bypass flags). Attach counts to the Progress Log. | Dev | Complete | Counts dated in the Progress Log |
+| A.2 Classify every `.rpc(` and every `.from('sys_` / `.from('hq_` in `web-admin`, `cmx-api`, `platform-api`, `platform-web`, and `platform-workers` as user-scoped or service-role. Record file and line. | Dev | Complete | Reviewed caller matrix |
+| A.3 Read each user-scoped function candidate and record whether it checks `auth.uid()` or the session. Reject any candidate that does not. | Dev | Complete | Allowlist with a pass/fail check per name |
+| A.4 Identify the Prisma role and the HQ Supabase server role. Decide `FORCE ROW LEVEL SECURITY`: on if both bypass, stop if either does not. | Dev | Complete | Role names and the force decision |
+| A.5 Write `S0_authenticated_allowlist.md` with the surviving names, the caller, and the check. Empty is a valid result. | Dev | Complete | Reviewed allowlist |
+| A.6 Update plan status for A.1–A.5. | Dev | Complete | Progress Log rows |
 
 **Phase exit:** every browser and user-JWT call is named, and the force-RLS decision is recorded. No SQL file exists yet.
 
@@ -98,11 +98,11 @@ No migration in this phase.
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| B.1 Draft `{next}_revoke_sys_hq_anon_writes.sql`. Loop `sys_*`, `hq_*`, and `crm_track_test`: revoke all privileges from `anon` and `authenticated`, enable row security, and force it only if A.4 allows. Grant back only the literal allowlist, with a policy that is not `USING (true)`. | Dev | Planned | Reviewed migration |
-| B.2 Revoke future table write grants from `anon` and `authenticated` for `postgres` and `supabase_admin`. Keep `service_role`. Comment the grant change and every policy. | Dev | Planned | Default-privilege statements in the migration |
-| B.3 End the migration with a `RAISE EXCEPTION` self-check for remaining `anon` write or select on the targeted tables. Set `lock_timeout`. Do not drop `crm_track_test`. | Dev | Planned | Self-check present |
-| B.4 If A.2 found a browser read, move that read to the existing server API. Keep tenant filters, permission checks, EN/AR, and `cmxMessage`. No new page. | Dev | Planned | Diff or an explicit "no browser read" note |
-| B.5 Update plan status for B.1–B.4 and register row 0.1 to `In progress` with the file path. Do not mark `Pass`. | Dev | Planned | Progress Log row |
+| B.1 Draft `{next}_revoke_sys_hq_anon_writes.sql`. Loop `sys_*`, `hq_*`, and `crm_track_test`: revoke all privileges from `anon` and `authenticated`, enable row security, and force it only if A.4 allows. Grant back only the literal allowlist, with a policy that is not `USING (true)`. | Dev | Complete | Reviewed migration |
+| B.2 Revoke future table write grants from `anon` and `authenticated` for `postgres` and `supabase_admin`. Keep `service_role`. Comment the grant change and every policy. | Dev | Complete | Default-privilege statements in the migration |
+| B.3 End the migration with a `RAISE EXCEPTION` self-check for remaining `anon` write or select on the targeted tables. Set `lock_timeout`. Do not drop `crm_track_test`. | Dev | Complete | Self-check present |
+| B.4 If A.2 found a browser read, move that read to the existing server API. Keep tenant filters, permission checks, EN/AR, and `cmxMessage`. No new page. | Dev | Complete | Diff or an explicit "no browser read" note |
+| B.5 Update plan status for B.1–B.4 and register row 0.1 to `In progress` with the file path. Do not mark `Pass`. | Dev | Complete | Progress Log row |
 
 **Phase exit:** Migration A is ready for Owner review. It is not applied.
 
@@ -110,11 +110,11 @@ No migration in this phase.
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| C.1 Draft `{next}_revoke_definer_execute_and_lock_search_path.sql`. Revoke execute on every `public` SECURITY DEFINER function from `PUBLIC`, `anon`, and `authenticated`. Grant execute to `service_role`. Grant `authenticated` only the literal function allowlist. | Dev | Planned | Reviewed migration |
-| C.2 For each SECURITY DEFINER function, set `search_path` from the schemas the body references, always ending in `pg_temp`. Do the same for other `public` functions that `anon` or `authenticated` can still execute. Do not rewrite bodies. | Dev | Planned | One `ALTER FUNCTION` per function, path recorded |
-| C.3 Revoke future function execute from `PUBLIC`, `anon`, and `authenticated` for both owner roles. Grant future execute to `service_role`. | Dev | Planned | Default-privilege statements |
-| C.4 Self-check: raise if `anon` or `PUBLIC` can execute any SECURITY DEFINER function, or if a definer function still has no `search_path`. | Dev | Planned | Self-check present |
-| C.5 Update plan status for C.1–C.4 and register row 0.2 to `In progress`. Do not mark `Pass`. | Dev | Planned | Progress Log row |
+| C.1 Draft `{next}_revoke_definer_execute_and_lock_search_path.sql`. Revoke execute on every `public` SECURITY DEFINER function from `PUBLIC`, `anon`, and `authenticated`. Grant execute to `service_role`. Grant `authenticated` only the literal function allowlist. | Dev | Complete | Reviewed migration |
+| C.2 For each SECURITY DEFINER function, set `search_path` from the schemas the body references, always ending in `pg_temp`. Do the same for other `public` functions that `anon` or `authenticated` can still execute. Do not rewrite bodies. | Dev | Complete | One `ALTER FUNCTION` per function, path recorded |
+| C.3 Revoke future function execute from `PUBLIC`, `anon`, and `authenticated` for both owner roles. Grant future execute to `service_role`. | Dev | Complete | Default-privilege statements |
+| C.4 Self-check: raise if `anon` or `PUBLIC` can execute any SECURITY DEFINER function, or if a definer function still has no `search_path`. | Dev | Complete | Self-check present |
+| C.5 Update plan status for C.1–C.4 and register row 0.2 to `In progress`. Do not mark `Pass`. | Dev | Complete | Progress Log row |
 
 **Phase exit:** Migration B is ready for Owner review. It is not applied.
 
@@ -122,10 +122,10 @@ No migration in this phase.
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| D.1 Draft `{next}_security_invoker_catalog_views.sql`. Set `security_invoker` on the seven views. Revoke all privileges on them from `anon` and `authenticated`. Keep `service_role`. | Dev | Planned | Reviewed migration |
-| D.2 Confirm no user-scoped client selects those views. If one does, move it server-side in the same change. Do not leave a definer view as the fix. | Dev | Planned | Caller note |
-| D.3 Self-check: raise if any of the seven is still a definer view or still granted to `anon`. Comment each view. | Dev | Planned | Self-check and comments present |
-| D.4 Update plan status for D.1–D.3 and register row 0.3 to `In progress`. Do not mark `Pass`. | Dev | Planned | Progress Log row |
+| D.1 Draft `{next}_security_invoker_catalog_views.sql`. Set `security_invoker` on the seven views. Revoke all privileges on them from `anon` and `authenticated`. Keep `service_role`. | Dev | Complete | Reviewed migration |
+| D.2 Confirm no user-scoped client selects those views. If one does, move it server-side in the same change. Do not leave a definer view as the fix. | Dev | Complete | Caller note |
+| D.3 Self-check: raise if any of the seven is still a definer view or still granted to `anon`. Comment each view. | Dev | Complete | Self-check and comments present |
+| D.4 Update plan status for D.1–D.3 and register row 0.3 to `In progress`. Do not mark `Pass`. | Dev | Complete | Progress Log row |
 
 **Phase exit:** Migration C is ready for Owner review. It is not applied.
 
@@ -133,10 +133,10 @@ No migration in this phase.
 
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
-| E.1 Add `scripts/db/check-s0-privileges.sql`: fail on `anon` write or select against row-security-off `sys_*`/`hq_*`, `anon` or `PUBLIC` execute of a SECURITY DEFINER function, a definer view granted to `anon`, or default privileges that grant `anon` execute or table write. | Dev | Planned | Script reviewed |
-| E.2 Add a workflow that runs the script with `PRIVILEGE_CHECK_DATABASE_URL`. It fails closed when the secret is missing on a scheduled or manual run. Do not skip green. PR CI does not replay the full migration history. | Dev | Planned | Workflow file |
-| E.3 Add a source test that the three migrations contain the self-checks and that their allowlist matches `S0_authenticated_allowlist.md`. | Dev | Planned | Test command and result |
-| E.4 Update plan status for E.1–E.3 and register row 0.4 to `In progress`. | Dev | Planned | Progress Log row |
+| E.1 Add `scripts/db/check-s0-privileges.sql`: fail on `anon` write or select against row-security-off `sys_*`/`hq_*`, `anon` or `PUBLIC` execute of a SECURITY DEFINER function, a definer view granted to `anon`, or default privileges that grant `anon` execute or table write. | Dev | Complete | Script reviewed |
+| E.2 Add a workflow that runs the script with `PRIVILEGE_CHECK_DATABASE_URL`. It fails closed when the secret is missing on a scheduled or manual run. Do not skip green. PR CI does not replay the full migration history. | Dev | Complete | Workflow file |
+| E.3 Add a source test that the three migrations contain the self-checks and that their allowlist matches `S0_authenticated_allowlist.md`. | Dev | Complete | Test command and result |
+| E.4 Update plan status for E.1–E.3 and register row 0.4 to `In progress`. | Dev | Complete | Progress Log row |
 
 **Phase exit:** the invariant exists. It has not been run against the live database until the Owner applies the migrations.
 
@@ -147,7 +147,7 @@ The assistant stops before this phase. Apply order is A, then B, then C.
 | Task | Owner | Status | Exit evidence |
 |---|---|---|---|
 | F.1 Review the three migrations and the allowlist. Apply them. Do not edit the files after apply. | Owner | Planned | Applied migration names |
-| F.2 Run `scripts/db/check-s0-privileges.sql` against the applied database. Re-run the Supabase security advisor. | Owner + Dev | Planned | Zero remaining findings for these checks |
+| F.2 Run `scripts/db/check-s0-privileges.sql` against the applied database. If the migration notice says `supabase_admin` defaults were skipped, run `scripts/db/s0-supabase-admin-default-privileges.sql` in the SQL editor as `supabase_admin`, then run the check again. Re-run the Supabase security advisor. | Owner + Dev | Planned | Zero remaining findings for these checks |
 | F.3 Smoke-test login, a new order, one HQ screen, and the public tracking page, in EN and AR. Fix a break with a new migration, never by editing A–C. | Owner + Dev | Planned | Four paths recorded |
 | F.4 Turn on leaked-password protection in Supabase Auth. Secure password change (S5) is not needed now. | Owner | Planned | Register 0.5 evidence |
 | F.5 Mark register 0.1–0.6 and this plan from the evidence. `Pass` only with F.2 and F.3. | Owner | Planned | Register decision |
@@ -199,4 +199,15 @@ Append newest entries first. Do not remove historical entries.
 
 | Date | Task | Status | Evidence / result | Owner | Next action |
 |---|---|---|---|---|---|
+| 2026-11-17 | Rules for the lockdown | Complete | Public-key grant rules added to the database skill, `CLAUDE.md`, `AGENTS.md`, `supabaserules.mdc`, and the frontend and backend skills. `sys_*` / `hq_*` reads point at `catalogReadClient`. | Dev | New migrations follow the convention |
+| 2026-11-17 | Local supabase_admin defaults | Complete | Ran `scripts/db/s0-supabase-admin-default-privileges.sql` inside `supabase_db_cleanmatex` as `supabase_admin`. Direct `psql -U supabase_admin` asks for a password and fails; the container password must be passed in. Local `anon` and `authenticated` default grants for that role are gone. | Dev | Remote SQL editor still cannot become `supabase_admin` |
+| 2026-11-17 | Remote apply 0745–0747 | Complete | Remote `schema_migrations` has 0745, 0746, and 0747. `postgres` default privileges no longer grant `anon` or `authenticated`. `supabase_admin` defaults still do. The SQL editor runs as `postgres` and cannot become `supabase_admin`. Not a register Pass. | Owner | Remote dashboard-created objects keep the old default until Supabase provides that role |
+| 2026-11-17 | Local apply 0746–0747 | Complete | Local CLI finished both files and reported the database up to date. The `supabase_admin` line is a notice. Remote `schema_migrations` has no 0745, 0746, or 0747. Not a register Pass. | Owner | Run the `supabase_admin` default-privilege script on that database, then `check-s0-privileges.sql`. Apply the same three files to remote only when ready. |
+| 2026-11-17 | 0746 apply fix | Complete | First apply rolled back. `aclexplode` rejects a column definition list because it has OUT parameters. The self-check in `0746` and `scripts/db/check-s0-privileges.sql` now uses the function's own columns. Not applied. | Dev | Re-apply 0746, then 0747 |
+| 2026-11-17 | E.1–E.4 | Complete | `scripts/db/check-s0-privileges.sql`, `.github/workflows/privilege-lockdown.yml` (scheduled and manual runs exit 1 when `PRIVILEGE_CHECK_DATABASE_URL` is missing), `scripts/db/check-s0-privilege-sources.mjs`, and `web-admin/__tests__/security/s0-privilege-lockdown.source.test.ts`. Not run against the live database. | Dev | Owner applies, then runs the invariant |
+| 2026-11-17 | D.1–D.4 | Complete | `supabase/migrations/0747_security_invoker_catalog_views.sql` drafted. No user-scoped client selects the seven views; HQ reads them with the service role. Not applied. | Dev | Owner review |
+| 2026-11-17 | C.1–C.5 | Complete | `supabase/migrations/0746_revoke_definer_execute_and_lock_search_path.sql` drafted from `S0_authenticated_allowlist.md`. 13 authenticated grants. Not applied. | Dev | Owner review |
+| 2026-11-17 | B.1–B.5 | Complete | `supabase/migrations/0745_revoke_sys_hq_anon_writes.sql` drafted. Table allowlist empty. FORCE ROW LEVEL SECURITY on. Browser `sys_currency_cd` read moved to `readCurrencyMinorUnits`. Other user-JWT `sys_*` reads use `catalogReadClient`. Not applied. | Dev | Owner review |
+| 2026-11-17 | A.4–A.6 | Complete | Force row security is on. Prisma and HQ database roles are `postgres` (`rolbypassrls`). Server clients are `service_role` (`rolbypassrls`). `anon` and `authenticated` do not bypass. Allowlist written. | Dev | Draft migrations |
+| 2026-11-17 | A.1–A.3 | Complete | Remote re-measure matches the 17 Nov baseline in this plan (191 tables with row security off; anon write 162 `sys_*` + 15 `hq_*` + `crm_track_test`; 195 definers; anon execute 98; authenticated execute 109; PUBLIC execute 96). User-JWT functions without a caller check were rejected and their call sites switched to the service role. | Dev | Write the allowlist |
 | 2026-11-17 | Plan created | Complete | Baseline read from the remote database; no SQL written and nothing applied | Dev | Owner approves Phase A |

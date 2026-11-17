@@ -168,6 +168,19 @@ CREATE POLICY tenant_isolation_org_example_mst ON org_example_mst
   WITH CHECK (tenant_org_id = current_tenant_id());
 ```
 
+## Public-key grants (after 0745 / 0746)
+
+Migrations run as `postgres`. New tables, sequences, and functions in `public` do not grant `anon`, `authenticated`, or `PUBLIC`. Grant the privilege the caller needs in the same migration.
+
+- `org_*` reads from the user JWT need an explicit `GRANT` to `authenticated` and a row-security policy. Do not grant `anon`.
+- `sys_*` and `hq_*` stay closed to `anon` and `authenticated`. The app reads them with the service role after its own authorization check. Do not add a policy that allows every row.
+- A function the user JWT calls must `GRANT EXECUTE` to `authenticated` only, and the body must reject a caller who is not the session user (`auth.uid()` or the JWT session). `anon` stays revoked. `service_role` keeps `EXECUTE`.
+- `SECURITY DEFINER` is only for work the caller cannot do. Set `search_path` to `pg_catalog, public`, then only schemas the body names (`auth`, `extensions`, `net`, `storage`, `cron`, `vault`). `pg_temp` is last.
+- A catalog view uses `ALTER VIEW ... SET (security_invoker = true)` and is not granted to `anon` or `authenticated`.
+- Objects created later by `supabase_admin` in the dashboard Table Editor are outside this default. Do not rely on that role to close them.
+
+The invariant is `scripts/db/check-s0-privileges.sql`. The reviewed user-JWT function list is `docs/pending_to_production/16_11_2026/S0_authenticated_allowlist.md`.
+
 ## Code Reuse Patterns
 
 ### Reusable Table Template Function

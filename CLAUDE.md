@@ -60,6 +60,7 @@ If you wrote code without the skill: stop, load it, verify, fix.
 - Prisma-safe composite FKs: child FK, 1:1 UNIQUE and parent key use the same column order; never `ON DELETE SET NULL` on a composite that includes `tenant_org_id`.
 - New ERP Lite objects/identifiers carry `erplt` (`org_erplt_fin_acct_mst`, `erplt_fin:read`, `ERPLT_FIN_ENABLED`).
 - Human-facing codes are DB-generated via `sys_doc_seq_type_cd` (`.claude/skills/database/conventions.md`).
+- Public-key grants: new tables, sequences, and functions do not grant `anon` or `authenticated`. See **Public-key grants** in `.claude/skills/database/conventions.md`. `sys_*` / `hq_*` reads use `catalogReadClient`, not the user JWT.
 - Feature flags need a migration (`hq_ff_feature_flags_mst`) + `lib/constants/feature-flags.ts` sync.
 - Supabase MCP: read-only discovery only.
 

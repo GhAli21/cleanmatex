@@ -1,5 +1,5 @@
 import 'server-only';
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { Prisma } from '@prisma/client';

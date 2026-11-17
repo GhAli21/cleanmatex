@@ -5,8 +5,8 @@
 
 import { createClient, createAdminSupabaseClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/database';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import type {
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
   Subscription,
   PlanLimits,
   PlanComparison,

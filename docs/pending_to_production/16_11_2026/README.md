@@ -13,7 +13,7 @@
 The product itself (orders, workflow, payments, cash drawer, tax, notifications, ERP-Lite) is far along. Most features say "code complete, owner QA pending". **Two problems found in the live database come first:**
 
 - **A. Database permissions are open (file 02, S0a–S0c).** The public `anon` key, which every browser has, can write to 178 tables that have row security off, including plan prices, discount codes, feature flags and tenant settings. It can also execute 98 privileged (SECURITY DEFINER) functions, such as `create_and_link_auth_user` and `cmx_rebuild_user_permissions`. Close this with one revoke migration before anything else.
-- **B. Most background jobs are not scheduled (file 03, I11a).** 13 of 18 enabled jobs have no `pg_cron` entry, including the notification sender (55 messages waiting), POS day rollover, expiries and session sweep.
+- **B. Most background jobs are not scheduled (file 03, I11a).** **Remote re-check 17 Nov:** 14 of 19 desired-enabled jobs have no `pg_cron` entry, including the notification sender (55 queued messages), POS day rollover, expiries and session sweep. Several remaining registry schedules are also unsafe or invalid for their intended workload.
 
 **Then the gaps around the product:**
 

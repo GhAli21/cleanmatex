@@ -44,6 +44,7 @@ Use this skill only when the task explicitly matches **database**. Keep the acti
 - Modify only files required by the task.
 - Preserve CleanMateX Tenant App rules from `CLAUDE.md`.
 - Keep output concise.
+- Public-key grants, `search_path`, and catalog views: follow **Public-key grants** in `conventions.md`. New objects do not inherit `anon` or `authenticated` grants.
 
 ## Multi-Currency Transaction Standard (base == functional)
 

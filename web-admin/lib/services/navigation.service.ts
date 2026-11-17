@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 import { getIcon } from '@/lib/utils/icon-registry'
 import type { NavigationSection, NavigationItem, UserRole } from '@/config/navigation'
 
@@ -78,7 +79,9 @@ export async function getNavigationFromDatabase(
     
     console.log('Jh In getNavigationFromDatabase() [ 6 ] : Calling get_navigation_with_parents_jh with:', functionParams);
     
-    const { data, error } = await supabase.rpc('get_navigation_with_parents_jh', functionParams)
+    // The function trusts the permission array the caller sends, so the public
+    // key must not be able to call it. The menu catalog is not tenant data.
+    const { data, error } = await catalogReadClient(supabase).rpc('get_navigation_with_parents_jh', functionParams)
     
     console.log('Jh In getNavigationFromDatabase() [ 1 ] : data received:', {
       dataLength: data?.length || 0,

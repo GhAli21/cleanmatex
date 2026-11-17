@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthContext } from '@/lib/auth/server-auth'
 import { createClient } from '@/lib/supabase/server'
+import { catalogReadClient } from '@/lib/supabase/catalog-read'
 import { getNavigationFromDatabase } from '@/lib/services/navigation.service'
 import { getFeatureFlags } from '@/lib/services/feature-flags.service'
 import type { UserRole } from '@/config/navigation'
@@ -67,7 +68,9 @@ export async function GET(request: Request) {
     
     // Effective permissions for this user and tenant, not the profile-role default list.
     // Resource-scoped grants do not open the tenant-wide menu.
-    const { data: permissionsData, error: permsError } = await supabase.rpc('get_user_permissions_jh', {
+    // The function accepts a caller-supplied user id, so the session JWT must
+    // not be the database role. The route already resolved this user and tenant.
+    const { data: permissionsData, error: permsError } = await catalogReadClient(supabase).rpc('get_user_permissions_jh', {
       p_cur_user_id: userId,
       p_cur_tenant_org_id: tenantId,
     })

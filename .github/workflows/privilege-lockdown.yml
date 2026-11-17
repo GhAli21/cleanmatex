@@ -1,0 +1,39 @@
+name: Privilege lockdown
+
+on:
+  pull_request:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  source:
+    name: Allowlist matches drafted migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration source against the allowlist
+        run: node scripts/db/check-s0-privilege-sources.mjs
+
+  database:
+    name: Live privilege invariant
+    # Scheduled and manual runs must fail when the database secret is absent.
+    # Pull requests run the source job above and do not skip this job into a green result.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the privilege-check database URL
+        env:
+          PRIVILEGE_CHECK_DATABASE_URL: ${{ secrets.PRIVILEGE_CHECK_DATABASE_URL }}
+        run: |
+          if [ -z "$PRIVILEGE_CHECK_DATABASE_URL" ]; then
+            echo "PRIVILEGE_CHECK_DATABASE_URL is required. This run does not pass by skipping."
+            exit 1
+          fi
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run the privilege invariant
+        env:
+          PRIVILEGE_CHECK_DATABASE_URL: ${{ secrets.PRIVILEGE_CHECK_DATABASE_URL }}
+        run: psql "$PRIVILEGE_CHECK_DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/db/check-s0-privileges.sql

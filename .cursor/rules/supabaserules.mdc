@@ -279,30 +279,47 @@ drop-cascade-migration-workflow.md`.
 ### Creating Functions
 
 ```sql
--- ✅ Good: Use PostgreSQL functions for complex logic
-CREATE OR REPLACE FUNCTION calculate_order_total(order_id UUID)
-RETURNS DECIMAL(10,2) AS $$
-DECLARE
-  total DECIMAL(10,2);
+-- Invoker is the default. The caller must already be allowed to read the rows.
+-- search_path starts at pg_catalog and ends at pg_temp.
+CREATE FUNCTION user_function()
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $$
 BEGIN
-  SELECT COALESCE(SUM(quantity * unit_price), 0)
-  INTO total
-  FROM org_order_items_dtl
-  WHERE order_id = calculate_order_total.order_id;
-
-  RETURN total;
+  NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Expose via Supabase RPC
--- In Supabase dashboard or migration:
--- This function is automatically available as RPC
+-- SECURITY DEFINER only when the body must do work the caller cannot.
+-- After 0746 the public key cannot execute it until this migration grants EXECUTE.
+-- The body must reject a caller who is not the session user.
+CREATE FUNCTION admin_function()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_function() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_function() TO service_role;
+-- Add GRANT EXECUTE ... TO authenticated only when the body checks the caller
+-- and the user JWT must call it. Do not grant anon.
 ```
+
+A new function is not callable with the public key until the migration grants `EXECUTE`. See **Public-key grants** in `.claude/skills/database/conventions.md`.
 
 ### Using Functions via RPC
 
+The session client can call a function only after the migration grants `EXECUTE` to `authenticated`. `sys_*` and `hq_*` reads, and functions that do not check the caller, use `catalogReadClient` from `web-admin/lib/supabase/catalog-read.ts`.
+
 ```typescript
-// Call PostgreSQL function via Supabase RPC
 const { data, error } = await supabase.rpc("calculate_order_total", {
   order_id: orderId,
 });
@@ -310,30 +327,7 @@ const { data, error } = await supabase.rpc("calculate_order_total", {
 
 ### Function Security
 
-```sql
--- ✅ Good: Use SECURITY DEFINER only when necessary
-CREATE FUNCTION admin_function()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER -- Only if function needs elevated privileges
-SET search_path = public
-AS $$
-BEGIN
-  -- Function body
-END;
-$$;
-
--- ✅ Good: Default SECURITY INVOKER (safer)
-CREATE FUNCTION user_function()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY INVOKER -- Uses caller's privileges
-AS $$
-BEGIN
-  -- Function body
-END;
-$$;
-```
+Use the invoker and definer examples above. `search_path` is `pg_catalog, public, pg_temp`, with extra schemas only when the body names them.
 
 ---
 

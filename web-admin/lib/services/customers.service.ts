@@ -9,8 +9,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import {
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
   getCreditLimitPlanCap,
   capCreditLimitToPlan,
 } from '@/lib/services/credit-limit-plan-cap.service';

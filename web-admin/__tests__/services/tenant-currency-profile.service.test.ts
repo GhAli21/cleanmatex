@@ -14,7 +14,12 @@ jest.mock('@/lib/supabase/client', () => {
   return { createClient: jest.fn(() => client), __mockClient: client };
 });
 
+jest.mock('@/app/actions/tenant/read-currency-minor-units', () => ({
+  readCurrencyMinorUnits: jest.fn(),
+}));
+
 import { TenantCurrencyProfileService } from '@/lib/services/fx/tenant-currency-profile.service';
+import { readCurrencyMinorUnits } from '@/app/actions/tenant/read-currency-minor-units';
 import {
   CURRENCY_RESOLUTION_ERRORS,
   CurrencyResolutionError,
@@ -48,6 +53,7 @@ describe('TenantCurrencyProfileService', () => {
     mockClient.select.mockReturnThis();
     mockClient.eq.mockReturnThis();
     mockClient.in.mockReturnThis();
+    jest.mocked(readCurrencyMinorUnits).mockReset();
   });
 
   it('resolves the base currency and decimal places for a single-currency tenant', async () => {
@@ -65,9 +71,9 @@ describe('TenantCurrencyProfileService', () => {
       ],
       error: null,
     });
-    mockClient.in.mockResolvedValueOnce({
-      data: [{ code: 'OMR', minor_unit: 3 }],
-      error: null,
+    jest.mocked(readCurrencyMinorUnits).mockResolvedValueOnce({
+      ok: true,
+      rows: [{ code: 'OMR', minor_unit: 3 }],
     });
 
     const service = new TenantCurrencyProfileService(mockClient as never);
@@ -111,12 +117,12 @@ describe('TenantCurrencyProfileService', () => {
       ],
       error: null,
     });
-    mockClient.in.mockResolvedValueOnce({
-      data: [
+    jest.mocked(readCurrencyMinorUnits).mockResolvedValueOnce({
+      ok: true,
+      rows: [
         { code: 'OMR', minor_unit: 3 },
         { code: 'USD', minor_unit: 2 },
       ],
-      error: null,
     });
 
     const service = new TenantCurrencyProfileService(mockClient as never);

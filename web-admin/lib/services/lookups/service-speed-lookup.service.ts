@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 import type { LookupServiceResult, LookupSupabaseClient } from './types';
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 /** One active speed, in display order (rank: higher = faster). */
 export interface ServiceSpeedLookupRow {

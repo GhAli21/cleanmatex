@@ -304,25 +304,38 @@ COMMIT;
 ### Creating Functions
 
 ```sql
--- ✅ Good: Use PostgreSQL functions for complex logic
-CREATE OR REPLACE FUNCTION fn_calculate_order_total(order_id UUID)
-RETURNS DECIMAL(10,2) AS $$
-DECLARE
-  total DECIMAL(10,2);
+-- Invoker is the default. The caller must already be allowed to read the rows.
+-- search_path starts at pg_catalog and ends at pg_temp.
+CREATE FUNCTION fn_user_function()
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $$
 BEGIN
-  SELECT COALESCE(SUM(quantity * unit_price), 0)
-  INTO total
-  FROM org_order_items_dtl
-  WHERE order_id = calculate_order_total.order_id;
-
-  RETURN total;
+  NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Expose via Supabase RPC
--- In Supabase dashboard or migration:
--- This function is automatically available as RPC
+-- SECURITY DEFINER only when the body must do work the caller cannot.
+-- The public key cannot execute it until this migration grants EXECUTE.
+CREATE FUNCTION fn_admin_function()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.fn_admin_function() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.fn_admin_function() TO service_role;
 ```
+
+A new function is not callable with the public key until the migration grants `EXECUTE`. See **Public-key grants** in `.claude/skills/database/conventions.md`.
 
 ### Using Functions via RPC
 
@@ -335,30 +348,7 @@ const { data, error } = await supabase.rpc("fn_calculate_order_total", {
 
 ### Function Security
 
-```sql
--- ✅ Good: Use SECURITY DEFINER only when necessary
-CREATE FUNCTION fn_admin_function()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER -- Only if function needs elevated privileges
-SET search_path = public
-AS $$
-BEGIN
-  -- Function body
-END;
-$$;
-
--- ✅ Good: Default SECURITY INVOKER (safer)
-CREATE FUNCTION fn_user_function()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY INVOKER -- Uses caller's privileges
-AS $$
-BEGIN
-  -- Function body
-END;
-$$;
-```
+Use the invoker and definer examples above. `search_path` is `pg_catalog, public, pg_temp`, with extra schemas only when the body names them.
 
 ---
 
@@ -473,6 +463,7 @@ async function createOrder(
 - Background jobs
 - System-level operations
 - Never use in client-side code
+- `sys_*` and `hq_*` catalog reads on the server, via `catalogReadClient`. Do not switch the whole client when the same function also reads `org_*`.
 
 ```typescript
 // ✅ Good: Server-side admin operation

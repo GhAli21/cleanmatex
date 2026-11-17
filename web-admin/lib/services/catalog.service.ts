@@ -10,8 +10,8 @@ import { buildProductSearchOrFilter } from '@/lib/utils/product-search';
 import { PRODUCT_PRICE_TYPES, SERVICE_SPEEDS, SPEED_PRICE_TYPES, isTaxCategory } from '@/lib/constants/commercial';
 import { createSpeedRule, listProductExpressRules } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleCreateSchema, type SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import type {
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
   ServiceCategory,
   EnabledCategory,
   EnableCategoriesRequest,

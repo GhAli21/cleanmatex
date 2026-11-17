@@ -2,7 +2,7 @@ import { getDefaultSalesVatRate } from '@/lib/services/tax/tax-explain.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { z } from 'zod';
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';

@@ -14,7 +14,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { externalTagSchema, looksLikeCode, STATIC_CODE_PREFIXES } from '@/lib/validations/code-format-schemas';
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 export const PIECE_TAG_ERROR_CODES = {
   IN_USE: 'PIECE_TAG_IN_USE',

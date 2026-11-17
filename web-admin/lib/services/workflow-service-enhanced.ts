@@ -18,7 +18,7 @@ import { LOYALTY_RECONCILE_TRIGGERS } from '@/lib/constants/order-financial';
 import { logger } from '@/lib/utils/logger';
 import type { Order } from '@/types/order';
 import type { OrderStatus } from '@/lib/types/workflow';
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
 // ==================================================================
 // Type Definitions

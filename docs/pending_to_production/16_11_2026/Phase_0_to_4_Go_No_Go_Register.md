@@ -31,10 +31,10 @@
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 0.1 | Review and draft revoke/RLS migration for anon/authenticated writable `sys_*`/`hq_*` tables; Owner applies only after review. | Dev → Owner | S0a | 21 Nov | Not started | Plan phases A–B in S0_privilege_lockdown_PLAN.md |
-| 0.2 | Review and draft SECURITY DEFINER privilege/default-privilege/search-path migration; Owner applies only after review. | Dev → Owner | S0b, S0d | 21 Nov | Not started | Plan phase C in S0_privilege_lockdown_PLAN.md |
-| 0.3 | Review and draft `security_invoker`/revoke fix for seven definer views; Owner applies only after review. | Dev → Owner | S0c | 21 Nov | Not started | Plan phase D in S0_privilege_lockdown_PLAN.md |
-| 0.4 | Add a DB/CI regression that fails on anon-writable tables or anon-executable SECURITY DEFINER functions. | Dev | S0b | 22 Nov | Not started | Plan phase E in S0_privilege_lockdown_PLAN.md |
+| 0.1 | Review and draft revoke/RLS migration for anon/authenticated writable `sys_*`/`hq_*` tables; Owner applies only after review. | Dev → Owner | S0a | 21 Nov | In progress | `supabase/migrations/0745_revoke_sys_hq_anon_writes.sql` drafted, not applied |
+| 0.2 | Review and draft SECURITY DEFINER privilege/default-privilege/search-path migration; Owner applies only after review. | Dev → Owner | S0b, S0d | 21 Nov | In progress | `supabase/migrations/0746_revoke_definer_execute_and_lock_search_path.sql` drafted, not applied |
+| 0.3 | Review and draft `security_invoker`/revoke fix for seven definer views; Owner applies only after review. | Dev → Owner | S0c | 21 Nov | In progress | `supabase/migrations/0747_security_invoker_catalog_views.sql` drafted, not applied |
+| 0.4 | Add a DB/CI regression that fails on anon-writable tables or anon-executable SECURITY DEFINER functions. | Dev | S0b | 22 Nov | In progress | `scripts/db/check-s0-privileges.sql` and `.github/workflows/privilege-lockdown.yml`. Live check waits for apply |
 | 0.5 | Turn on leaked-password protection in hosted Supabase Auth. Secure password change (S5) is not needed now. | Owner | S0d | 21 Nov | Not started | Owner decision 17 Nov 2026 defers S5 |
 | 0.6 | Re-run security advisor; smoke-test login, new order, HQ screens, and public tracking after the access changes. | Owner + Dev | ROADMAP Phase 0 | 23 Nov | Not started | — |
 
@@ -47,7 +47,7 @@
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | Not started | — |
+| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Remote baseline is captured: 14 desired-enabled jobs are absent; five legacy HTTP bridges are enumerated; session, stale-push, quota/retention, tax-kit, file-expiry, run-capture, and idempotency handlers are evidenced as database work. Finance, campaign/retry, and provider ownership/rollback remain before any enablement. |
 | 1.2 | Decide trial-expiry outcome, implement it under the approved scheduler model, and prove an expired demo trial changes state. | Owner → Dev | B1 | 27 Nov | Not started | — |
 | 1.3 | Cancel/resolve old demo queued notifications before sender enablement. | Owner | D13 | 27 Nov | Not started | — |
 | 1.4 | Deploy Sentry or equivalent to web-admin and platform-web with PII scrubbing; prove a controlled error appears. | Dev | I4 | 28 Nov | Not started | — |
@@ -126,4 +126,5 @@
 | Date | Change | Owner |
 |---|---|---|
 | 2026-11-17 | Created from ROADMAP phases 0–4; all execution rows start unverified. | Dev |
+| 2026-11-17 | Rows 0.1–0.4 moved to In progress. Migrations 0745–0747 and the privilege invariant are drafted and not applied. Not a Pass. | Dev |
 | 2026-11-17 | Linked the S0 privilege-lockdown plan for rows 0.1–0.4. Status stays Not started. | Dev |

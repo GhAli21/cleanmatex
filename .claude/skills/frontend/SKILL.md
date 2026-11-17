@@ -156,8 +156,8 @@ Use this default decision tree:
 - TanStack Query: interactive lists, filters, pagination, refresh, mutations, dialogs, and client-side workflows.
 - Feature API client: all feature-owned API calls.
 - `lib/api`: base HTTP client, interceptors, auth headers, shared errors.
-- Supabase client: only where the existing feature architecture already uses it or the project decision says this module is Supabase-direct.
-- Server Action: only for small, controlled mutations where the current app architecture already uses Server Actions.
+- Supabase client: only where the existing feature architecture already uses it or the project decision says this module is Supabase-direct. `sys_*` and `hq_*` reads use `catalogReadClient` (`web-admin/lib/supabase/catalog-read.ts`), not the session client. `org_*` queries stay on the session client.
+- Server Action: only for small, controlled mutations where the current app architecture already uses Server Actions. A browser catalog read, such as currency minor units, goes through a server action so the service-role key stays on the server.
 
 Never scatter API calls directly inside complex UI components.
 

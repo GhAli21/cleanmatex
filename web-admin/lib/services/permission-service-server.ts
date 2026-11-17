@@ -7,6 +7,7 @@
 
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { getCachedPermissions, setCachedPermissions, invalidatePermissionCache, invalidateTenantPermissionCache } from '@/lib/services/permission-cache';
 import { logger } from '@/lib/utils/logger';
 
@@ -178,7 +179,8 @@ export async function rebuildUserPermissions(
   const client = await createClient();
 
   try {
-    const { error } = await client.rpc('cmx_rebuild_user_permissions', {
+    // The function does not check the caller, so the session JWT must not run it.
+    const { error } = await catalogReadClient(client).rpc('cmx_rebuild_user_permissions', {
       p_user_id: userId,
       p_tenant_id: tenantId,
     });

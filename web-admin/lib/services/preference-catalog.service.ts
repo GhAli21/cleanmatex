@@ -6,8 +6,8 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import type {
-import { catalogReadClient } from '@/lib/supabase/catalog-read'
   ServicePreference,
   PackingPreference,
   PreferenceBundle,

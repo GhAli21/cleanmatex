@@ -115,12 +115,16 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!  // Keep SECRET
 );
 
-// Regular client for user operations
+// Regular client for user operations. This is the user JWT: anon or authenticated.
+// It cannot read sys_* or hq_* after 0745, and it cannot execute a SECURITY DEFINER
+// function unless that function is granted and checks the caller.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 ```
+
+`sys_*` and `hq_*` statements use `catalogReadClient` from `web-admin/lib/supabase/catalog-read.ts`. That is the service role for that statement only. `org_*` queries stay on the session client so row security still applies. Browser code calls a server action for a catalog read and does not import the service-role client.
 
 ## Error Handling
 
