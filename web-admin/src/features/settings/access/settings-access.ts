@@ -193,10 +193,51 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['File Util picks the permission from ?category=TENANT_LOGO (settings:read / settings:branding); see lib/services/file-util/file-util-http.ts.'],
       },
       {
-        label: 'Update tenant profile',
+        label: 'Load branding',
+        method: 'GET',
+        path: '/api/v1/settings/branding',
+        requirement: {
+          permissions: ['settings:read'],
+          requireAllPermissions: true,
+        },
+      },
+      // Saved themes (UI Design System PR-07). The client builds these paths from a prefix,
+      // so derive cannot infer them; overrides and the app name are also plan-gated on the server.
+      {
+        label: 'Create saved theme',
+        method: 'POST',
+        path: '/api/v1/settings/branding/themes',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Edit saved theme',
         method: 'PATCH',
-        path: '/api/v1/tenants/me',
-        notes: ['Auth-only tenant route.'],
+        path: '/api/v1/settings/branding/themes/[id]',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Delete saved theme',
+        method: 'DELETE',
+        path: '/api/v1/settings/branding/themes/[id]',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Use saved theme',
+        method: 'POST',
+        path: '/api/v1/settings/branding/themes/[id]/activate',
+        requirement: {
+          permissions: ['settings:branding'],
+          requireAllPermissions: true,
+        },
       },
     ],
     notes: SETTINGS_NOTES,

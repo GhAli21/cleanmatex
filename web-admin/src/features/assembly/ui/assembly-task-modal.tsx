@@ -294,6 +294,7 @@ export function AssemblyTaskModal({
       {showExceptionDialog ? (
         <ExceptionDialog
           taskId={taskId}
+          orderId={orderId}
           items={taskData?.items ?? []}
           onClose={() => setShowExceptionDialog(false)}
           onSuccess={() => {

@@ -49,7 +49,8 @@ export function useFileAttachments(opts: UseFileAttachmentsOptions) {
   const { token: csrfToken } = useCSRFToken();
   const queryClient = useQueryClient();
   const enabled = (opts.enabled ?? true) && !!tenantId && !!opts.entityId;
-  const filesKey = ['file-util', 'files', tenantId, opts.category, opts.entityId, opts.purposes ?? null];
+  const ref = opts.refType && opts.refId ? { refType: opts.refType, refId: opts.refId } : undefined;
+  const filesKey = ['file-util', 'files', tenantId, opts.category, opts.entityId, opts.purposes ?? null, ref ?? null];
 
   const config = useQuery({
     queryKey: ['file-util', 'config', tenantId, opts.category],
@@ -61,7 +62,7 @@ export function useFileAttachments(opts: UseFileAttachmentsOptions) {
 
   const files = useQuery({
     queryKey: filesKey,
-    queryFn: ({ signal }) => fetchFiles(opts.category, [opts.entityId], opts.purposes, signal),
+    queryFn: ({ signal }) => fetchFiles(opts.category, [opts.entityId], opts.purposes, signal, ref),
     enabled,
     staleTime: FILES_STALE_MS,
     refetchInterval: FILES_STALE_MS,

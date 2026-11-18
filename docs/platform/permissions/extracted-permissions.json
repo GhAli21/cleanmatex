@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-16T20:26:29.409Z",
+  "extractedAt": "2026-11-17T05:47:01.437Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -27,6 +27,14 @@
       "surface": "service"
     },
     {
+      "file": "app/dashboard/customers/[id]/page.tsx",
+      "route": "/dashboard/customers/[id]",
+      "permission": "customers:update",
+      "component": "useHasPermission",
+      "line": 70,
+      "surface": "screen"
+    },
+    {
       "file": "app/dashboard/delivery/page.tsx",
       "route": "/dashboard/delivery",
       "permission": "drivers:read",
@@ -43,6 +51,14 @@
       "surface": "screen"
     },
     {
+      "file": "app/dashboard/orders/[id]/order-detail-client.tsx",
+      "route": "/dashboard/orders/[id]/order-detail-client.tsx",
+      "permission": "orders:update",
+      "component": "useHasPermission",
+      "line": 147,
+      "surface": "screen"
+    },
+    {
       "file": "app/dashboard/orders/[id]/tax-documents/[documentId]/print/page.tsx",
       "route": "/dashboard/orders/[id]/tax-documents/[documentId]/print",
       "permission": "orders:view_financial_breakdown",
@@ -56,6 +72,14 @@
       "permission": "/dashboard/preparation",
       "component": "hasPermissionServer",
       "line": 80,
+      "surface": "screen"
+    },
+    {
+      "file": "app/dashboard/settings/branding/page.tsx",
+      "route": "/dashboard/settings/branding",
+      "permission": "settings:branding",
+      "component": "useHasPermission",
+      "line": 52,
       "surface": "screen"
     },
     {
@@ -387,6 +411,14 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/catalog/ui/product-form.tsx",
+      "route": "src/features/catalog/ui/product-form.tsx",
+      "permission": "products:update",
+      "component": "useHasPermission",
+      "line": 98,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "route": "src/features/customers/ui/customer-account-receipt-client.tsx",
       "permission": "customers:receipt_allocate",
@@ -471,7 +503,7 @@
       "route": "src/features/orders/ui/issues/order-issues-list-dialog.tsx",
       "permission": "orders:transition",
       "component": "useHasPermissionCode",
-      "line": 70,
+      "line": 73,
       "surface": "screen"
     },
     {
@@ -479,7 +511,7 @@
       "route": "src/features/orders/ui/issues/order-issues-list-dialog.tsx",
       "permission": "orders:update",
       "component": "useHasPermissionCode",
-      "line": 71,
+      "line": 74,
       "surface": "screen"
     },
     {
@@ -591,7 +623,7 @@
       "route": "src/features/orders/ui/payment-full-view.tsx",
       "permission": "orders:apply_credit",
       "component": "useHasPermissionCode",
-      "line": 1642,
+      "line": 1641,
       "surface": "screen"
     },
     {
@@ -3637,19 +3669,11 @@
       "surface": "api"
     },
     {
-      "file": "app/api/v1/settings/branding/logo/route.ts",
-      "method": "POST",
-      "route": "/api/v1/settings/branding/logo",
-      "permission": "settings:branding",
-      "line": 32,
-      "surface": "api"
-    },
-    {
       "file": "app/api/v1/settings/branding/route.ts",
       "method": "GET",
       "route": "/api/v1/settings/branding",
       "permission": "settings:read",
-      "line": 45,
+      "line": 41,
       "surface": "api"
     },
     {
@@ -3657,7 +3681,7 @@
       "method": "GET",
       "route": "/api/v1/settings/branding",
       "permission": "settings:branding",
-      "line": 75,
+      "line": 71,
       "surface": "api"
     },
     {

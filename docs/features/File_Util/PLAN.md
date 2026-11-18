@@ -15,8 +15,8 @@
 | 3 | UI kit | Done 2026-11-17 (build green; browser QA in Phase 4) |
 | 4 | First consumer: order photos | Code done 2026-11-17; owner browser QA pending |
 | 5 | Close existing gaps | Code done 2026-11-17; owner: apply `0750`, delete `product-images` bucket, browser QA (guide C) |
-| 6 | Remaining photo columns | Not started |
-| 7 | HQ File Util workspace `/file-util-ws` | Not started |
+| 6 | Remaining photo columns | Done 2026-11-17 (`0751`, `0758` applied); owner QA pending |
+| 7 | HQ File Util workspace `/file-util-config` | Not started |
 | 8 | Docs and close-out | Not started |
 
 ## 1. Current state (repo scan, 2026-11-16)
@@ -44,7 +44,7 @@ There is no shared file feature. Each feature has its own helper.
 2. **Object keys in the DB, never URLs.** URLs are signed on demand.
 3. **Direct-to-storage upload** through a signed upload URL. File bytes do not pass through the Next.js server.
 4. **A file belongs to one entity.** No many-to-many link table until a real case needs it.
-5. **Authorization comes from the owning domain.** Each category maps to that domain's existing read/write permission. No new permission codes.
+5. **Authorization comes from the owning domain.** Each category maps to that domain's existing read/write permission. No new permission codes. Each is an "any of" list (2026-11-17): `ORDER_FILE` write = `orders:update` **or** `orders:transition`, so floor staff who report issues and assembly exceptions can attach photos. The order detail Files tab still shows edit controls only with `orders:update`.
 6. **Thumbnails are made in the browser** and stored as a second object. No dependency on Supabase image transforms or a paid plan.
 7. **No new npm dependencies.** Drag-and-drop, canvas downscale and the native PDF viewer are browser features.
 8. **Delivery POD keeps its own flow for now** (receipt/consume rules, `delivery-pod-evidence` bucket). `ORDER_FILE` already has `DELIVERY_PROOF` and `SIGNATURE` purposes; moving POD onto File Util is task 6.4 (owner, 2026-11-16).
@@ -163,13 +163,25 @@ Every phase also ends with: eslint, typecheck, targeted tests, and `npm run buil
 
 ### Phase 6 — Remaining photo columns
 
-- [ ] 6.1 Order-issue photos.
-- [ ] 6.2 Assembly exception and QA photos.
-- [ ] 6.3 Customer avatar (`CUSTOMER_FILE` / `PHOTO`).
-- [ ] 6.4 Delivery POD photos and signature onto `ORDER_FILE` (`DELIVERY_PROOF`, `SIGNATURE`, ref `DELIVERY_STOP`), keeping its receipt/consume rules; retire the `delivery-pod-evidence` bucket after data move.
-- [ ] 6.4 Update `STATUS.md`, the QA guide and the progress table (after each of 6.1–6.3).
+- [x] 6.1 Order-issue photos (issue dialog picks files with `PendingFilesPicker`, uploads after create: ISSUE_EVIDENCE, ref ORDER_ISSUE).
+- [x] 6.2 Assembly exception and QA photos (exception dialog: ASSEMBLY_EXCEPTION, ref ASM_EXCEPTION; QA endpoint has no screen yet, its URL field removed).
+- [x] 6.3 Customer files (no avatar column exists): customer detail **Files** tab, `CUSTOMER_FILE`.
+- [x] 6.4 Delivery POD photos and signature onto `ORDER_FILE` (`DELIVERY_PROOF`, `SIGNATURE`, ref `DELIVERY_STOP`), keeping its receipt/consume rules; retire the `delivery-pod-evidence` bucket after data move.
+- [x] 6.5 Migration `0751_file_util_drop_photo_url_columns.sql`: drops the 5 empty URL columns. **Stop for the owner.**
+- [x] 6.6 Update `STATUS.md`, the QA guide and the progress table.
 
-### Phase 7 — HQ File Util workspace (`cleanmatexsaas`, route `/file-util-ws`)
+#### 6.4 sub-plan — Delivery POD onto File Util (approved 2026-11-17; migration `0758`)
+
+Today (migs 0451/0452, `delivery-evidence.service.ts`, `delivery-completion.service.ts`): the driver uploads each photo/signature through `POST /api/v1/delivery/stops/[stopId]/evidence` (server receives bytes, checks type, sha256, writes to private bucket `delivery-pod-evidence`, inserts an `org_dlv_ev_uploads_tr` receipt that expires). Completion takes receipt ids, checks they belong to the stop and are unexpired/unconsumed, writes `org_dlv_pod_tr.photo_object_keys` / `signature_object_key`, and marks the receipts consumed in the same transaction. Workflow gates, the proof audit and pickup completion read those keys. All tables have 0 rows.
+
+Target:
+1. Upload: driver screens use File Util (`ORDER_FILE`, purposes `DELIVERY_PROOF` / `SIGNATURE`, ref `DELIVERY_STOP` = stop id, source `ORDER_DELIVERY`), direct-to-storage with content check. Upload permission must fit drivers (today `orders:update`; drivers may only hold delivery permissions) → per-category-purpose write permission or a delivery category. **Decision needed.**
+2. Completion takes file ids instead of receipt ids and checks, in its transaction: READY, same tenant, entity = the stop's order, ref = this stop, purpose matches, not already bound to a POD. "Consumed" = bound: new `org_dlv_pod_tr.signature_file_id` + a `org_dlv_pod_files_dtl` link (composite FKs to `org_file_mst (tenant_org_id, id)`), which also stops a file being deleted while bound (delete refuses bound files).
+3. Gates, proof audit, pickup completion read the bound files instead of object keys.
+4. Migration: new link columns/table; drop `photo_urls`, `photo_object_keys`, `signature_url`, `signature_object_key`, `org_dlv_ev_uploads_tr`; owner deletes the `delivery-pod-evidence` bucket. Evidence route + service removed.
+5. Tests for every completion check (wrong stop, wrong order, other tenant, unready, reused file).
+
+### Phase 7 — HQ File Util workspace (`cleanmatexsaas`, route `/file-util-config`)
 
 One HQ section where platform staff manage files setup and watch storage, without migrations. Built on the existing code-table engine of `products-items-config` (registry-driven list/edit screens, composite keys, `ref` and `textList` fields).
 
@@ -183,8 +195,8 @@ One HQ section where platform staff manage files setup and watch storage, withou
 
 Rules: changes to rules apply to new uploads only (existing files untouched); every write audited; codes are create-only.
 
-- [ ] 7.1 Move the code-table engine out of `products-items-config` into a shared module (behavior unchanged; existing tests stay green), so File Util registers its own tables instead of copying the engine.
-- [ ] 7.2 HQ permissions for view/manage (format of existing HQ permissions); migration written in `cleanmatex`. **Stop for owner to apply.**
+- [x] 7.1 Move the code-table engine out of `products-items-config` into a shared module (behavior unchanged; existing tests stay green), so File Util registers its own tables instead of copying the engine. Done 2026-11-18: API `platform-api/src/common/code-tables/`, web `lib/api/code-tables.ts` + `src/features/code-tables/`, strings in `codeTables` i18n namespace.
+- [x] 7.2 HQ permissions for view/manage (format of existing HQ permissions); migration written in `cleanmatex`. **Stop for owner to apply.** Written 2026-11-19: `0762_hq_file_util_config_perms.sql` (`file_util.view`, `file_util.manage`, `file_util.*` → TECH_ADMIN). Route renamed to `/file-util-config` (owner, 2026-11-19).
 - [ ] 7.3 Registry entries + Buckets, Categories, Purposes screens (EN/AR, RTL).
 - [ ] 7.4 Bucket create flow (storage bucket + row) with rollback if either step fails.
 - [ ] 7.5 Storage usage and Health screens (read-only APIs, paginated).

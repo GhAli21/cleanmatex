@@ -23,6 +23,7 @@ import {
   type UserRole,
 } from '@/config/navigation'
 import { getIcon } from '@/lib/utils/icon-registry'
+import { useTenantBrand } from '@/lib/theme/tenant-brand'
 import { Tooltip } from '@ui/primitives'
 
 /** Section key → icon name when API/DB does not provide a valid icon */
@@ -167,6 +168,7 @@ export default function CmxSidebar() {
   const { isCollapsed, toggleCollapse, prefersReducedMotion } = useSidebar()
   const t = useTranslations('layout.sidebar')
   const tNav = useTranslations('navigation')
+  const brand = useTenantBrand()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [hoverSectionKey, setHoverSectionKey] = useState<string | null>(null)
@@ -322,7 +324,7 @@ export default function CmxSidebar() {
           >
             {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-          <span className={`ms-3 text-lg font-semibold text-foreground`}>CleanMateX</span>
+          <span className={`ms-3 text-lg font-semibold text-foreground`}>{brand.name}</span>
         </div>
       </div>
 
@@ -353,11 +355,16 @@ export default function CmxSidebar() {
             prefetch={false}
             className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
           >
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-lg">C</span>
-            </div>
+            {brand.logoUrl ? (
+              // Organization logo (File Util public storage), decorative: the name is next to it.
+              <img src={brand.logoUrl} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+            ) : (
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-primary-foreground font-bold text-lg">{brand.name.charAt(0)}</span>
+              </div>
+            )}
             <div className={`min-w-0 overflow-hidden ${isCollapsed ? 'lg:hidden' : ''}`}>
-              <span className="block text-xl font-bold text-foreground truncate whitespace-nowrap">CleanMateX</span>
+              <span className="block text-xl font-bold text-foreground truncate whitespace-nowrap">{brand.name}</span>
               {currentTenant && (
                 <span className="block text-xs text-muted-foreground font-medium mt-0.5 truncate whitespace-nowrap">
                   {t('currentPlan')}: {formatPlanDisplay(currentTenant.s_current_plan)}

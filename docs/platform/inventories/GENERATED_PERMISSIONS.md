@@ -3,15 +3,15 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-16T20:26:34.269Z
+Generated: 2026-11-17T06:27:46.404Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 377 |
+| api | 376 |
 | middleware | 4 |
-| screen | 106 |
+| screen | 110 |
 | service | 3 |
 
 ## All permission usages
@@ -169,6 +169,7 @@ Generated: 2026-11-16T20:26:34.269Z
 | customers:read | api | app/api/v1/customers/[id]/route.ts | 43 | /api/v1/customers/[id] |
 | customers:read | api | app/api/v1/customers/[id]/service-prefs/route.ts | 26 | /api/v1/customers/[id]/service-prefs |
 | customers:receipt_allocate | screen | src/features/customers/ui/customer-account-receipt-client.tsx | 57 | src/features/customers/ui/customer-account-receipt-client.tsx |
+| customers:update | screen | app/dashboard/customers/[id]/page.tsx | 70 | /dashboard/customers/[id] |
 | customers:update | screen | src/features/customers/ui/customer-whatsapp-consent-card.tsx | 27 | src/features/customers/ui/customer-whatsapp-consent-card.tsx |
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 132 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
@@ -266,7 +267,7 @@ Generated: 2026-11-16T20:26:34.269Z
 | notifications:read | api | app/api/v1/notifications/route.ts | 19 | /api/v1/notifications |
 | notifications:read | api | app/api/v1/notifications/unread-count/route.ts | 19 | /api/v1/notifications/unread-count |
 | notifications:view_log | api | app/api/v1/notifications/delivery-log/route.ts | 19 | /api/v1/notifications/delivery-log |
-| orders:apply_credit | screen | src/features/orders/ui/payment-full-view.tsx | 1642 | src/features/orders/ui/payment-full-view.tsx |
+| orders:apply_credit | screen | src/features/orders/ui/payment-full-view.tsx | 1641 | src/features/orders/ui/payment-full-view.tsx |
 | orders:apply_credit | api | app/api/v1/orders/[id]/credit-applications/route.ts | 35 | /api/v1/orders/[id]/credit-applications |
 | orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 164 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
@@ -348,7 +349,7 @@ Generated: 2026-11-16T20:26:34.269Z
 | orders:split | screen | src/features/workflow/ui/simple-processing-dialog.tsx | 131 | src/features/workflow/ui/simple-processing-dialog.tsx |
 | orders:split | api | app/api/v1/orders/[id]/split/route.ts | 34 | /api/v1/orders/[id]/split |
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |
-| orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 70 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
+| orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 73 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:transition | screen | src/features/orders/ui/order-actions.tsx | 51 | src/features/orders/ui/order-actions.tsx |
 | orders:transition | api | app/api/v1/assembly/exceptions/[id]/resolve/route.ts | 19 | /api/v1/assembly/exceptions/[id]/resolve |
 | orders:transition | api | app/api/v1/assembly/tasks/route.ts | 15 | /api/v1/assembly/tasks |
@@ -366,7 +367,8 @@ Generated: 2026-11-16T20:26:34.269Z
 | orders:transition | api | app/api/v1/orders/[id]/items/[itemId]/step/route.ts | 22 | /api/v1/orders/[id]/items/[itemId]/step |
 | orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 66 | /api/v1/orders/[id]/transition |
 | orders:transition | api | app/api/v1/preparation/[id]/start/route.ts | 26 | /api/v1/preparation/[id]/start |
-| orders:update | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 71 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
+| orders:update | screen | app/dashboard/orders/[id]/order-detail-client.tsx | 147 | /dashboard/orders/[id]/order-detail-client.tsx |
+| orders:update | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 74 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:update | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 56 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 52 | src/features/orders/ui/order-actions.tsx |
 | orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 53 | src/features/workflow/ui/FastItemizer.tsx |
@@ -453,6 +455,7 @@ Generated: 2026-11-16T20:26:34.269Z
 | products:read | api | app/api/v1/products/route.ts | 52 | /api/v1/products |
 | products:read | api | app/api/v1/products/tax-classes/route.ts | 8 | /api/v1/products/tax-classes |
 | products:read | api | app/api/v1/products/[id]/route.ts | 36 | /api/v1/products/[id] |
+| products:update | screen | src/features/catalog/ui/product-form.tsx | 98 | src/features/catalog/ui/product-form.tsx |
 | products:update | api | app/api/v1/products/[id]/route.ts | 88 | /api/v1/products/[id] |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 61 | /api/v1/marketing/promotions/[promoId] |
@@ -467,10 +470,10 @@ Generated: 2026-11-16T20:26:34.269Z
 | reconciliation:view | api | app/api/v1/finance/reconciliation/runs/[runId]/route.ts | 46 | /api/v1/finance/reconciliation/runs/[runId] |
 | reconciliation:view | api | app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts | 37 | /api/v1/finance/vouchers/[voucherId]/reconciliation |
 | reconciliation:view | api | app/api/v1/orders/[id]/financial-reconciliation/route.ts | 31 | /api/v1/orders/[id]/financial-reconciliation |
-| settings:branding | api | app/api/v1/settings/branding/logo/route.ts | 32 | /api/v1/settings/branding/logo |
-| settings:branding | api | app/api/v1/settings/branding/route.ts | 75 | /api/v1/settings/branding |
+| settings:branding | screen | app/dashboard/settings/branding/page.tsx | 52 | /dashboard/settings/branding |
+| settings:branding | api | app/api/v1/settings/branding/route.ts | 71 | /api/v1/settings/branding |
 | settings:organization | api | app/api/v1/settings/general/route.ts | 116 | /api/v1/settings/general |
-| settings:read | api | app/api/v1/settings/branding/route.ts | 45 | /api/v1/settings/branding |
+| settings:read | api | app/api/v1/settings/branding/route.ts | 41 | /api/v1/settings/branding |
 | settings:read | api | app/api/v1/settings/general/route.ts | 84 | /api/v1/settings/general |
 | settings:workflow | api | app/api/v1/workflows/config/route.ts | 52 | /api/v1/workflows/config |
 | stored_value:issue_advance | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 109 | src/features/customers/ui/customer-stored-value-tab.tsx |

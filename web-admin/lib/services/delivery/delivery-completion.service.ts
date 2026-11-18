@@ -27,6 +27,7 @@ import {
 } from '@/lib/services/delivery/compiled-delivery-evidence';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { WORKFLOW_SYSTEM_ACTOR } from '@/lib/constants/workflow-system-actor';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_STATUSES } from '@/lib/constants/file-util';
 
 const DELIVERY_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_complete';
 const DELIVERY_ORDER_COMPLETE_IDEMPOTENCY_RESOURCE = 'delivery_order_complete';
@@ -82,7 +83,9 @@ export interface CompleteDeliveryCommand {
   podMethodCode: string;
   /** Optional operator context retained with the immutable proof record. */
   podNotes?: string;
+  /** File Util file id (ORDER_FILE / SIGNATURE, ref DELIVERY_STOP = this stop); locked on success. */
   signatureEvidenceId?: string;
+  /** File Util file ids (ORDER_FILE / DELIVERY_PROOF, ref DELIVERY_STOP = this stop); locked on success. */
   photoEvidenceIds?: string[];
   /** Server-derived channel; cookie POS with an OPEN till may be `pos`. */
   channel?: SemanticWorkflowCommandChannel;
@@ -156,10 +159,10 @@ type LockedPod = {
   id: string;
 };
 
-type LockedEvidenceUpload = {
+/** A File Util file offered as proof; purpose tells signature from photo. */
+type LockedEvidenceFile = {
   id: string;
-  evidence_type: 'signature' | 'photo';
-  object_key: string;
+  purpose_code: string;
 };
 
 const UUID_PATTERN =
@@ -252,28 +255,29 @@ async function lockPod(
 }
 
 /**
- * Locks only unexpired uploads that belong to the authenticated tenant and
- * target stop, so object keys cannot be replayed across deliveries.
+ * Row-locks the offered File Util files, but only verified (READY), not-yet-used (unlocked)
+ * order files of this tenant, this stop's order and this stop, so a file cannot be replayed
+ * across deliveries, orders or organizations.
  */
-async function lockEvidenceUploads(
+async function lockEvidenceFiles(
   tx: PrismaTransactionClient,
   tenantId: string,
-  stopId: string,
-  evidenceIds: readonly string[],
-  now: Date,
-): Promise<LockedEvidenceUpload[]> {
-  if (evidenceIds.length === 0) return [];
+  stop: LockedDeliveryStop,
+  fileIds: readonly string[],
+): Promise<LockedEvidenceFile[]> {
+  if (fileIds.length === 0) return [];
 
-  return tx.$queryRaw<LockedEvidenceUpload[]>`
-    SELECT id, evidence_type, object_key
-    FROM public.org_dlv_ev_uploads_tr
+  return tx.$queryRaw<LockedEvidenceFile[]>`
+    SELECT id, purpose_code
+    FROM public.org_file_mst
     WHERE tenant_org_id = ${tenantId}::uuid
-      AND stop_id = ${stopId}::uuid
-      AND id = ANY(${evidenceIds}::uuid[])
-      AND upload_status = 'uploaded'
-      AND is_active = true
-      AND rec_status = 1
-      AND expires_at > ${now}
+      AND category_code = ${FILE_CATEGORIES.ORDER_FILE}
+      AND entity_id = ${stop.order_id}::uuid
+      AND ref_type_code = ${FILE_REF_TYPES.DELIVERY_STOP}
+      AND ref_id = ${stop.stop_id}::uuid
+      AND id = ANY(${fileIds}::uuid[])
+      AND status_code = ${FILE_STATUSES.READY}
+      AND locked_at IS NULL
     FOR UPDATE
   `;
 }
@@ -305,13 +309,12 @@ async function validateEvidence(
   tx: PrismaTransactionClient,
   params: CompleteDeliveryCommand,
   stop: LockedDeliveryStop,
-  now: Date,
 ): Promise<{
   methodCode: string;
   otpVerified: boolean;
-  signatureObjectKey: string | null;
-  photoObjectKeys: string[];
-  uploadIds: string[];
+  signatureFileId: string | null;
+  photoFileIds: string[];
+  fileIds: string[];
 }> {
   const methodCode = normalisePodMethod(params.podMethodCode);
   // OTP is intentionally unavailable until its durable expiry and retry controls
@@ -364,11 +367,11 @@ async function validateEvidence(
   if (new Set(requestedIds).size !== requestedIds.length) {
     throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Delivery evidence contains duplicate uploads.', 422);
   }
-  const uploads = await lockEvidenceUploads(tx, params.tenantId, stop.stop_id, requestedIds, now);
+  const uploads = await lockEvidenceFiles(tx, params.tenantId, stop, requestedIds);
   if (uploads.length !== requestedIds.length) {
     throw new DeliveryCompletionError(
       'POD_EVIDENCE_INVALID',
-      'Delivery evidence is missing, expired, or belongs to another stop.',
+      'Delivery evidence is missing, not finished uploading, already used, or belongs to another stop.',
       422,
     );
   }
@@ -376,10 +379,10 @@ async function validateEvidence(
   const photos = uploads.filter((upload) => photoEvidenceIds.includes(upload.id));
   const otpVerified = false;
 
-  if (signature && signature.evidence_type !== 'signature') {
+  if (signature && signature.purpose_code !== FILE_PURPOSES.ORDER_FILE.SIGNATURE) {
     throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Signature evidence has an invalid type.', 422);
   }
-  if (photos.some((photo) => photo.evidence_type !== 'photo')) {
+  if (photos.some((photo) => photo.purpose_code !== FILE_PURPOSES.ORDER_FILE.DELIVERY_PROOF)) {
     throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Photo evidence has an invalid type.', 422);
   }
   const notesOnlyMethod = methodCode === 'POD' || methodCode === 'NOTES';
@@ -415,9 +418,9 @@ async function validateEvidence(
   return {
     methodCode,
     otpVerified,
-    signatureObjectKey: signature?.object_key ?? null,
-    photoObjectKeys: photos.map((photo) => photo.object_key),
-    uploadIds: uploads.map((upload) => upload.id),
+    signatureFileId: signature?.id ?? null,
+    photoFileIds: photos.map((photo) => photo.id),
+    fileIds: uploads.map((upload) => upload.id),
   };
 }
 
@@ -429,19 +432,13 @@ async function writePod(
   evidence: {
     methodCode: string;
     otpVerified: boolean;
-    signatureObjectKey: string | null;
-    photoObjectKeys: string[];
   },
   now: Date,
 ): Promise<string> {
   const podData = {
     pod_method_code: evidence.methodCode,
     otp_verified: evidence.otpVerified,
-    signature_url: null,
-    photo_urls: [] as unknown as Prisma.InputJsonValue,
     pod_notes: params.podNotes?.trim() || null,
-    signature_object_key: evidence.signatureObjectKey,
-    photo_object_keys: evidence.photoObjectKeys as unknown as Prisma.InputJsonValue,
     verified_at: now,
     verified_by: params.actorUserId,
     updated_at: now,
@@ -476,25 +473,29 @@ async function writePod(
   return pod.id;
 }
 
-/** Marks evidence uploads consumed only after the POD write is part of the same transaction. */
-async function consumeEvidenceUploads(
+/**
+ * Locks the accepted files as proof, in the same transaction as the POD write: a locked file can
+ * no longer be edited, deleted or used for another delivery. The stop's proof = its locked files.
+ */
+async function lockFilesAsProof(
   tx: PrismaTransactionClient,
   tenantId: string,
-  uploadIds: readonly string[],
+  fileIds: readonly string[],
   actorUserId: string,
   now: Date,
 ): Promise<void> {
-  if (uploadIds.length === 0) return;
-  const consumed = await tx.$queryRaw<Array<{ id: string }>>`
-    UPDATE public.org_dlv_ev_uploads_tr
-    SET upload_status = 'consumed', consumed_at = ${now}, consumed_by = ${actorUserId}::uuid,
-        updated_at = ${now}, updated_by = ${actorUserId}
+  if (fileIds.length === 0) return;
+  const locked = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE public.org_file_mst
+    SET locked_at = ${now}, locked_by = ${actorUserId},
+        updated_at = ${now}, updated_by = ${actorUserId}, updated_info = 'delivery:pod-proof'
     WHERE tenant_org_id = ${tenantId}::uuid
-      AND id = ANY(${uploadIds}::uuid[])
-      AND upload_status = 'uploaded'
+      AND id = ANY(${fileIds}::uuid[])
+      AND status_code = ${FILE_STATUSES.READY}
+      AND locked_at IS NULL
     RETURNING id
   `;
-  if (consumed.length !== uploadIds.length) {
+  if (locked.length !== fileIds.length) {
     throw new DeliveryCompletionError('POD_EVIDENCE_INVALID', 'Delivery evidence changed concurrently.', 409);
   }
 }
@@ -618,9 +619,9 @@ export async function completeDelivery(
 
       const now = new Date();
       const existingPod = await lockPod(tx, params.tenantId, stop.stop_id);
-      const evidence = await validateEvidence(tx, params, stop, now);
+      const evidence = await validateEvidence(tx, params, stop);
       const podId = await writePod(tx, params, stop, existingPod, evidence, now);
-      await consumeEvidenceUploads(tx, params.tenantId, evidence.uploadIds, params.actorUserId, now);
+      await lockFilesAsProof(tx, params.tenantId, evidence.fileIds, params.actorUserId, now);
 
       // The semantic gate must observe the active stop before this transaction resolves it.
       const workflow = await executeAction({
@@ -635,8 +636,8 @@ export async function completeDelivery(
           podId,
           podMethodCode: evidence.methodCode,
           otpVerified: evidence.otpVerified,
-          signatureObjectKey: evidence.signatureObjectKey,
-          photoObjectKeys: evidence.photoObjectKeys,
+          signatureEvidenceId: evidence.signatureFileId,
+          photoEvidenceIds: evidence.photoFileIds,
         },
         idempotencyKey: `delivery:${params.idempotencyKey}`,
         channel: params.channel ?? 'staff_web',

@@ -19,6 +19,8 @@ export interface BuildOrderIssueColumnsOptions {
   includeOrderColumn?: boolean;
   includeScopeColumn?: boolean;
   onSolve?: (row: OrderIssueTableRow) => void;
+  /** Shows a Photos button under the issue text (files attached to this issue). */
+  onPhotos?: (row: OrderIssueTableRow) => void;
 }
 
 function typeLabel(row: OrderIssueTableRow, locale: string): string {
@@ -51,6 +53,7 @@ export function buildOrderIssueTableColumns(
     includeOrderColumn = false,
     includeScopeColumn = false,
     onSolve,
+    onPhotos,
   } = options;
 
   const cols: CmxDataTableSimpleColumn<OrderIssueTableRow>[] = [];
@@ -95,6 +98,11 @@ export function buildOrderIssueTableColumns(
           <p className="text-sm font-medium whitespace-pre-wrap">
             {row.issue_text}
           </p>
+          {onPhotos ? (
+            <CmxButton type="button" variant="ghost" size="sm" className="px-1" onClick={() => onPhotos(row)}>
+              {t('viewPhotos')}
+            </CmxButton>
+          ) : null}
         </div>
       ),
     },

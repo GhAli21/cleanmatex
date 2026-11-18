@@ -172,6 +172,21 @@ export function computeBrandPalette(primaryHex: string, secondaryHex: string): B
   }
 }
 
+/**
+ * Whether each seed is shown as a different, readable shade when used as text
+ * on a light surface, so the branding screen can say so as the colour is entered.
+ * @param primaryHex - Primary seed as `#RRGGBB`
+ * @param secondaryHex - Secondary seed as `#RRGGBB`
+ * @returns `true` per seed when its light-mode text shade differs from the seed
+ */
+export function seedAdjustments(primaryHex: string, secondaryHex: string): { primary: boolean; secondary: boolean } {
+  const light = computeBrandPalette(primaryHex, secondaryHex).LIGHT
+  return {
+    primary: light['primary-text'] !== light.primary,
+    secondary: light['brand-secondary-text'] !== light['brand-secondary'],
+  }
+}
+
 function buildMode(mode: ThemeMode, primary: Oklch, secondary: Oklch): Record<BrandToken, RgbTriplet> {
   const tint = primary.c < ACHROMATIC_CHROMA ? 0 : 1
   const neutrals = {} as Record<NeutralToken, RgbTriplet>

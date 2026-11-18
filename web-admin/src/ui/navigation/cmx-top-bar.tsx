@@ -11,7 +11,7 @@
 import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, LogOut, Settings, ShieldCheck, User } from 'lucide-react'
+import { ChevronDown, LogOut, Paintbrush, Settings, ShieldCheck, User } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxButton } from '@ui/primitives/cmx-button'
@@ -98,6 +98,10 @@ export default function CmxTopBar({ title, actions, search }: CmxTopBarProps) {
               <DropdownMenuItem onSelect={() => router.push('/dashboard/account/security')}>
                 <ShieldCheck className="me-2 h-4 w-4" aria-hidden="true" />
                 {t('accountSecurity')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push('/dashboard/account/appearance')}>
+                <Paintbrush className="me-2 h-4 w-4" aria-hidden="true" />
+                {t('appearance')}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => router.push('/dashboard/settings')}>
                 <Settings className="me-2 h-4 w-4" aria-hidden="true" />

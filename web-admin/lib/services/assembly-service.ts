@@ -78,7 +78,6 @@ export interface CreateExceptionParams {
   description: string;
   description2?: string;
   severity?: string;
-  photoUrls?: string[];
   assemblyItemId?: string;
   userId: string;
 }
@@ -106,7 +105,6 @@ export interface PerformQAParams {
   tenantId: string;
   decisionTypeCode: string;
   qaNote?: string;
-  qaPhotoUrl?: string;
   userId: string;
 }
 
@@ -673,7 +671,6 @@ export class AssemblyService {
         description,
         description2,
         severity,
-        photoUrls,
         assemblyItemId,
         userId,
       } = params;
@@ -712,7 +709,6 @@ export class AssemblyService {
           severity: severity || 'MEDIUM',
           description,
           description2: description2 || null,
-          photo_urls: photoUrls || [],
           exception_status: 'OPEN',
           created_by: userId,
         })
@@ -879,7 +875,6 @@ export class AssemblyService {
         tenantId,
         decisionTypeCode,
         qaNote,
-        qaPhotoUrl,
         userId,
       } = params;
       const supabase = await createClient();
@@ -934,7 +929,6 @@ export class AssemblyService {
         decision_type_code: decisionTypeCode,
         qa_by: userId,
         qa_note: qaNote || null,
-        qa_photo_url: qaPhotoUrl || null,
         created_by: userId,
       });
 
@@ -956,7 +950,6 @@ export class AssemblyService {
           qa_by: userId,
           qa_at: new Date().toISOString(),
           qa_note: qaNote || null,
-          qa_photo_url: qaPhotoUrl || null,
           task_status: qaStatus,
           updated_by: userId,
           updated_at: new Date().toISOString(),

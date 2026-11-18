@@ -319,12 +319,10 @@ export function usePerformQA() {
       taskId,
       decisionTypeCode,
       qaNote,
-      qaPhotoUrl,
     }: {
       taskId: string;
       decisionTypeCode: string;
       qaNote?: string;
-      qaPhotoUrl?: string;
     }) => {
       if (!currentTenant || !user) {
         throw new Error('Not authenticated');
@@ -336,7 +334,6 @@ export function usePerformQA() {
         body: JSON.stringify({
           decisionTypeCode,
           qaNote,
-          qaPhotoUrl,
         }),
       });
       const result = await response.json();

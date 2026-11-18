@@ -430,3 +430,71 @@ What changed in code or data, and what still needs a person. "Fixed" means a tes
 | PDT31 | Catalog > Items > edit; Catalog > Templates > edit | Open Item Type | Pick list `name · item_type_code`; a saved inactive type is marked. |
 | PDT32 | System Codes > Payment methods > new / edit; Settlement > Overpayment resolutions > edit | Open Gateway, Replacement, Settlement type, Permission code | Pick lists; replacement excludes the method itself; settlement type has 4 values; permission is searchable. |
 | PDT33 | Settings > Navigation > edit item; Currency setup list | Open Main Permission Code; open the Country filter | Permission is a searchable pick list; the country filter is a pick list with "All". |
+
+## Financial_Expert_Tester Results — Retest r3 2026-11-17 (HQ remote; QA org only)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Approved writes used (QA org only):** pause + resume of `QA-20261117 Catalog Org` (6556b8f3-ccf6-4bf5-b453-35296b4d9be7); a disposable QA-org quota override (saved, deleted, re-added, deleted). No real test message was sent (no approved recipient was set; `ntf.hq.test_recipients` not changed). All other forms were cancelled. Run 04:54–05:39. Source ledger on the tester box: `/workspace/qa-20261117/backlog/obs/B5-Q12.md`. PDT1–PDT33 ("Pick, don't type") are covered for the first time. Rows above are unchanged.
+
+**Recount (Retest r3 2026-11-17, rows in the table below):** PASS 25 · FAIL 1 · PARTIAL 7 · BLOCKED 7 · NOT RUN 1.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| T8 / T11 / T35 | BLOCKED | Need a staging Redis/test stack; not run on shared HQ. |
+| T18 | BLOCKED | No approved test recipient; allow-list not changed; nothing sent. |
+| T19 | FAIL (still) | 05:00–05:02 Assembly Completed v1 (APPROVED), EMAIL; preview rendered after filling `order_number` = QA-001, but UI still said "These placeholders have no sample value yet: order_number" / "Fill in every placeholder before sending: order_number". QA org, reserved `qa-not-allowed@example.com`, consent ticked: Send stayed disabled after re-render and a click; no request/403 seen; nothing sent. |
+| T22 | BLOCKED | No approved recipient; rate limit not exercised. |
+| T23 | PARTIAL | `/en/notifications/audit` now loads (r2 404 FIXED). Admin actions filtered `notification_template`: 1 row `notification_template_locale.auto_create` (2026-10-16); no `test_send` row; Sending log empty (no send made). |
+| T42 | PASS | 04:58 paused only the QA org, All channels, reason QA; confirmation said notifications refused until resume; held row showed All channels / QA / Resume. Resumed → "No organization is paused". |
+| P1 | BLOCKED | No read-only HQ account. |
+| PDT1 | PASS | Failover: EMAIL From lists `SENDGRID · SendGrid`, `RESEND · Resend`; with SENDGRID, To lists only RESEND; switching to SMS clears both and shows "Only one active provider for SMS. A failover rule needs a second active provider on the same channel." No rule saved. |
+| PDT2 | PASS | Paused-org search returns "QA-20261117 Catalog Org · 6556b8f3-…"; pause/resume as T42. |
+| PDT3 | PASS | Tenant config: Provider disabled with "Pick channel first."; SMS auto-selects TWILIO_SMS; Save disabled until valid; cancelled. |
+| PDT4 | PASS | Private connection: TWILIO_SMS fills Channel, not editable; cancelled. |
+| PDT5 | PARTIAL | Recipient `abc` → Send disabled, inline error text not captured. Revisit 05:35: Templates showed "0 templates matched. 0 currently have approved latest versions" with a spinner, so the check could not be finished. |
+| PDT6 | PASS | Quota override and Broadcast org pickers show `name · id` incl. the QA org; WhatsApp template picker "No template". Observability "All organizations" option not verified. |
+| PDT7 | PASS | TWILIO_WHATSAPP → Add sender: kind WHATSAPP_NUMBER, message-type checkboxes; cancelled. |
+| PDT8 | BLOCKED | No RESEND / TWILIO_SMS account for the EMAIL_ADDRESS / PHONE_NUMBER JSON case. |
+| PDT9 | NOT RUN | DB/API check (UI-only scope). |
+| PDT10 | PASS | Credential ref picker offers existing refs + "New reference"; with `sk_live_abc123` Save stays disabled until Account key and Provider account ID/Name are set; cancelled. |
+| PDT11 | PASS | Private connection provider picker offers Twilio only; channel filled and locked. |
+| PDT12 | PASS | Twilio import Logical locale is a language-code pick list. |
+| PDT13 | PASS | Add Override: tenant, metric, period pickers; QA-org override saved/deleted (see PDT18). Duplicate validation not checked. |
+| PDT14 | PASS | New Campaign: channel change filters templates; WhatsApp "No template". |
+| PDT15 | PASS | Operations channel filter lists catalog channels. |
+| PDT16 | PASS | Configuration Registry `ntf.hq.twilio.content_cred_ref`: picker shows one existing ref, no free entry inside the picker (separate free-entry field present). |
+| PDT17 | BLOCKED | No read-only HQ account. |
+| PDT18 | PARTIAL | QA-org override saved, deleted, re-added and deleted again; whether the re-add reactivated the same soft-deleted row was not recorded. No override left. |
+| PDT19 | PASS | Sender Capabilities `[1]` → "Capabilities must be a JSON object." |
+| PDT20 | PASS | Quota position org search shows name + id; table loads. |
+| PDT21 | PASS | 05:35 Unit Pricing Currency is a pick list (`SAR · Saudi Riyal`, `OMR · Omani Rial`, `AED · …`, `QAR · …`); no free text. Accidental QAR in the unsaved form was cancelled. |
+| PDT22 | PASS | Create Template Event Code picker; Create disabled until picked. |
+| PDT23 | PASS | Operations Catalog outbox summary tenant parameter is an org picker (name + id). |
+| PDT24 | PARTIAL | Shared org pickers show `name · id`; inactive marking/suffix not verified. |
+| PDT25 | PASS | ERP-Lite Posting Simulation event picker; Run disabled until org + event. |
+| PDT26 | PASS | ERP-Lite template edit: Country, Plan, Target account pickers. |
+| PDT27 | BLOCKED | Packages path has no rule-line controls; Account Group edit → 404. |
+| PDT28 | PASS | Billing plan Add Price currency is a catalog picker. |
+| PDT29 | PARTIAL | New Subscription org picker selects the QA org; Discount "No discount"; Payment method "No values to pick from"; org-change reset not checked. |
+| PDT30 | PASS | New tenant wizard Subscription step pickers inspected; cancelled (no tenant created in this step). |
+| PDT31 | PASS | 05:14 Items → Business Blazer: Item Type is a searchable pick list (Accessories · ACCESSORIES, Bottoms · BOTTOMS, …); not saved. |
+| PDT32 | PARTIAL | Payment Methods edit: Gateway, Replacement, Settlement type, Permission code pickers. Overpayment Resolutions → 404. |
+| PDT33 | PARTIAL | 05:34 Currency Setup Country filter includes "All" (PASS). Navigation Registry Permission Code is a plain optional text input (no picker). |
+| cmx New Order sanity (context) | PASS | 04:55 products load after branch pick; 05:38 speed menu lists five speeds, customer search "Jh" returns results; nothing submitted. |
+
+Prior findings, Retest r3 2026-11-17: T23 audit route **FIXED** (loads). T19 Send-stays-disabled **STILL BROKEN**.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r3 2026-11-17)
+- **P1 FET-POC-Nov17-PreviewPlaceholderStale:** After filling `order_number` and re-rendering, the preview still says the placeholder has no sample value and Send stays disabled (T19), so no test send can be made from the UI.
+- **P2 FET-POC-Nov17-TemplatesListEmptySpinner:** At 05:35 Templates showed "0 templates matched" with a spinner although APPROVED templates existed minutes earlier.
+- **P2 FET-POC-Nov17-HqRoutes404:** Overpayment Resolutions and Account Group edit return 404 (PDT32, PDT27).
+- **P2 FET-POC-Nov17-NavPermissionFreeText:** Navigation Registry Permission Code is free text, not a pick list (PDT33).
+- **P3 FET-POC-Nov17-SubscriptionNoPaymentMethods:** New Subscription Payment method shows "No values to pick from" (PDT29).
+
+### Blocked
+- T8/T11/T35 (staging stack), T18/T22 (no approved recipient), P1/PDT17 (no read-only HQ user), PDT8 (no RESEND/TWILIO_SMS account), PDT27 (404).
+
+### Test data left behind
+- QA org `QA-20261117 Catalog Org` is **active and unpaused**; no quota override or failover rule left. No message sent.

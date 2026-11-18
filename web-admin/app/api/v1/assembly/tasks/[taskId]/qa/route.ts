@@ -24,7 +24,7 @@ export async function POST(
     const { tenantId, userId } = authCheck;
     const { taskId } = await context.params;
     const body = await request.json();
-    const { decisionTypeCode, qaNote, qaPhotoUrl } = body;
+    const { decisionTypeCode, qaNote } = body;
 
     if (!decisionTypeCode) {
       return NextResponse.json(
@@ -38,7 +38,6 @@ export async function POST(
       tenantId,
       decisionTypeCode,
       qaNote,
-      qaPhotoUrl,
       userId,
     });
 

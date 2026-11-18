@@ -106,3 +106,68 @@ Recount: **PASS 6 · FAIL 3 · PARTIAL 3 · BLOCKED 3 · NOT RUN 2** on the firs
 - **P3 FET-SH-Nov12-HqFilterPlaceholders:** `[status]`, `[s_current_plan]`.
 - **P3 FET-SH-Nov12-HqFilterAppliesImmediately:** filter applies without Apply Filters.
 - **P3 FET-SH-Nov12-HqArabicLeftovers:** "Audit History", "CleanMateX HQ" title prefix, raw IDs.
+
+### Financial_Expert_Tester Results — Retest r3 2026-11-17 (remote; tenant T1–T16 + HQ H1–H21)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Writes:** none on tenant Setup Health (T6 had no failing row to fix). HQ: Setup Checks runs and Recheck only (read-only checks). No hours, holidays, tax, roles changed. Source ledgers on the tester box: `/workspace/qa-20261117/backlog/obs/B1.md` (tenant, 03:31–03:41), `B3-HQ.md` Part A (HQ, 04:14–04:28), `B11-settings.md` (T6, 08:59). T10–T16 and H12–H21 are covered for the first time. Rows above are unchanged.
+
+**Recount (Retest r3 2026-11-17, rows in the table below):** PASS 18 · FAIL 3 · PARTIAL 9 · BLOCKED 5 · NOT RUN 5.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| T1 | PASS | 03:31 `/dashboard/setup-health` loaded ~3s: "Setup Health" / "What is missing or wrong in your setup, why it matters, and where to fix it."; Tax, Business calendar, Service speeds groups; "Tax setup update needs review" Needs attention / Warning (5 items) with Fix. |
+| T2 | BLOCKED | No failing speed row ("Other speeds are offered" OK, "Express is offered for every item" OK), so no speed Fix link to follow. |
+| T3 viewer | PARTIAL | Setup Health absent from viewer sidebar; direct route shows the T10 denial card. Failing "Business hours are not set" support copy cannot be shown (hours OK). |
+| T3 operator | PARTIAL | Same: no link; denial card; failing-row copy not observable. |
+| T4 operator | PASS (FIXED) | No Setup Health link (Config And Settings shows Cash Control Settings, POS Settings). Direct `/dashboard/setup-health` → lock card, not a blank page. |
+| T5 | PASS | 03:32 dashboard tile "0 blockers · 1 warning · 0 info"; dashboard ~3s. |
+| T6 | NOT RUN | 08:59 nothing failing in scope to fix in another tab (hours OK, speeds OK); only "Tax setup update needs review". No failure induced. |
+| T7 | NOT RUN | Tax is Active, so the not-taxed banner cannot appear. |
+| T8 Arabic | FAIL | Arabic RTL and mirrored sidebar, but heading still "Setup Health" and subtitle, group headings, row titles, descriptions and statuses English (e.g. "Business hours are set" OK). (r2 had these in Arabic.) |
+| T9 | PASS (FIXED) | No "Accounting is not ready" row / Accounting section with ERP-Lite off. |
+| T10 viewer | PASS | 03:36 direct `/dashboard/setup-health`: lock icon, "You don't have access to Setup Health", "Ask an administrator of your organization to give you the Setup Health permission." No blank page/spinner. |
+| T10 operator | PASS | Denial card within ~1s, same text. |
+| T11 | PARTIAL | No Accounting row (ERP-Lite readiness off). Home tile count matches (1 warning) but the readiness-on case not testable. |
+| T12 | PASS (FIXED) | OK rows use positive titles: "Tax setup is confirmed", "Business hours are set". |
+| T13 | PARTIAL | Tile "0 blockers · 1 warning · 0 info" — singular correct; 1/1 and 2/2 variants not exercisable. |
+| T14 | PARTIAL | Arabic sidebar: Dashboard "لوحة التحكم", Orders "الطلبات", Catalog & Pricing "الترميزات والتسعير", Help "المساعدة", Assembly "التجميع"; "JWT Test" still English; Drivers & Routes, Invoices, Add-ons not in this sidebar. |
+| T15 | PASS (FIXED) | 03:34 voluntary Sign Out → `/login?redirect=…setup-health`; no "Your session has expired" banner. |
+| T16 admin | PASS | 03:40:46 hard reload `/dashboard`: rendered by ~10s, no session banner; tile and Setup Health content consistent. |
+| T16 viewer | PARTIAL | Hard reload 03:36:55: denial card within ~1s; viewer has no tile/content, so only the denial state is timed. |
+| H1 | PASS | ~04:14 counters Blockers 1 / Warnings 1 / Info 0 / Could not check 0 stable across three sidebar-away/back cycles (no flip). Demo Saudi 0/1/0/0. |
+| H2 | BLOCKED | No "Business hours are not set" row (Demo Saudi hours set); hours not altered. |
+| H3 | BLOCKED | No "Accounting is not ready" row on inspected orgs. |
+| H4 | PASS (FIXED) | ~04:27 Recheck on Demo Saudi returned the same 0/1/0/0; spinner ended within ~10s. |
+| H5 | BLOCKED | No HQ user without `tenant_setup_health:view`. |
+| H6 | PASS | ~04:18 Arabic: content mirrored, Arabic labels; back to English. |
+| H7 | PASS | "Public holiday dates are not confirmed yet" Info, no Fix. Not confirmed. |
+| H8 | PASS | `/en/tenants` Setup status column with warning/blocker/OK badges; status opens Setup Health; Arabic checked. |
+| H9 | FAIL | Filters "Blockers or warnings" / "Has blockers" / Clear work (`setupHealth=needs_attention`) but pagination "Showing 6 to 4 of 4" / "Page 2 of 1". |
+| H10 | NOT RUN | Needs saving business hours on an org (not done). |
+| H11 | NOT RUN | Confirming estimated holidays not approved; screen viewed only. |
+| H12 | PASS | ~04:22 Setup Checks for all active orgs: results dialog lists orgs and the Setup-column update notice. |
+| H13 | PARTIAL | Per-row Check Setup with BlueWave preselected: one run "The run failed. Try again.", a later run succeeded; changed-setup case not established. |
+| H14 | PASS | Organizations mode: added a second org chip, removed the first with ×. |
+| H15 | PASS | Only "Business hours are not set" selected → area checkbox mixed dash; "The Setup column in the list was not changed (partial run)."; "1 organization checked · 0 blockers · 0 warnings · 0 info". |
+| H16 | PASS | Open Setup Health from the results dialog → BlueWave page, counters match. |
+| H17 | BLOCKED | No user without `tenant_setup_health:view`. |
+| H18 | NOT RUN | Tax confirmation / cache test not performed. |
+| H19 | FAIL | Filtering on page 2 left "Showing 6 to 2 of 2" / "Page 2 of 1"; did not jump to a valid page. |
+| H20 | PARTIAL | Audit History drawer in Arabic opens; English/raw identifiers remain (exact labels not captured). |
+| H21 | PARTIAL | Email autocomplete appears on sign-in; Incognito has no saved password, so autofill separation not verifiable. |
+
+Prior findings, Retest r3 2026-11-17: **FET-SH-Nov12-DirectUrlNotRefused FIXED** (denial card). **FET-SH-Nov12-ViewerBlankPage FIXED** for Setup Health (denial card). **FET-SH-Nov12-ErpLiteRowShown FIXED.** **FET-SH-Nov12-OkTitlesDescribeProblem FIXED.** **FET-SH-Nov12-SignOutSaysExpired FIXED.** **FET-SH-Nov12-TilePlurals FIXED** for the singular case. **FET-SH-Nov13-HqHealthInconsistent not reproduced** (H1 stable). **FET-SH-Nov12-HqTenantsPagination STILL BROKEN** (H9/H19). **FET-SH-Nov12-JwtTestInSidebar STILL BROKEN.** **FET-SH-Nov12-SetupHealthSlowLoad improved** (~3s).
+
+### Financial_Expert_Tester suggestions — Retest r3 2026-11-17
+- **P2 FET-SH-Nov17-ArabicHealthContentEnglish:** In Arabic the Setup Health heading, subtitle, groups, row titles, descriptions and statuses are English (r2 had Arabic). Check the translation namespace loaded for the check catalogue.
+- **P2 FET-SH-Nov17-HqRunFailedOnce:** Per-row Check Setup returned "The run failed. Try again." once before succeeding; no reason given. Show the cause or retry automatically.
+- **P3 FET-SH-Nov17-T6Unexercisable:** T6 needs a failing row; Demo has none in scope. Add a fixture note to the guide (e.g. use a QA org without speeds).
+
+### Blocked
+- T2 (no failing speed row), H2/H3 (no failing rows), H5/H17 (no limited HQ user).
+
+### Test data left behind
+- None. Language left English; HQ filters cleared. Setup Checks runs only refresh check results.

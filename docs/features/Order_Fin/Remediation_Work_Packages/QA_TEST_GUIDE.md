@@ -1143,3 +1143,38 @@ Preview Order Fin is **not VERIFIED** end-to-end while P0 items 1–6 remain ope
 
 **Automated gates at build time (2026-07-24, B10):** tsc clean (2 pre-existing unrelated errors untouched) · eslint 0 (project-wide) · `payment-transition.service.test.ts` +17 new (VOID/REVERSE legality, idempotency-payload, cash-session-required/not-open, compensating-movement lineage, orphan-movement trip-wire) · reconciliation check-modules +5 (`VOIDED_PAYMENT_NO_ORPHAN_MOVEMENT` ×2, `REVERSED_CASH_PAYMENT_HAS_COMPENSATING_MOVEMENT` ×3) · full jest **224/224 suites, 2173/2173 tests — zero known failures** · check:i18n ✓ · build ✓ (exit 0) · check:ui-access-contract --wire PASS (`/dashboard/internal_fin/pending-payments`, `/dashboard/orders/[id]`) · sync:ui-access-contract PASS (144/144 routes, drift 0). Migration **0421 is APPLIED (owner, 2026-07-24), verified via remote DB** — §17 above is runnable.
 
+
+## Financial_Expert_Tester Results
+
+### Round 1 — 2026-11-17 (remote; leftover scope 20.21–20.25, 24.1–24.13, 26.11–26.13, 30.2 only)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Scope:** only the leftover rows named in `12_manual_qa_backlog.md` (Q6); the rest of this guide was not run. Earlier inline results and the sections above are unchanged. Source ledgers on the tester box: `/workspace/qa-20261117/backlog/obs/B12-Q16-Q6.md` (09:08–09:20), plus tax-document evidence from `B2-Q3.md` and `B7-Q7.md`.
+
+**Recount (Round 1 2026-11-17, rows in the table below):** PASS 3 · FAIL 1 · PARTIAL 0 · BLOCKED 4 · NOT RUN 2.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 20.21 | PASS | ~09:16 `/dashboard/internal_fin/outbox` → "Scheduled Jobs" card: 7 rows — Outbox Processor, Gift-Card Expiry, Credit-Note Expiry, **Loyalty Points Expiry** (Loyalty program, 02:10 daily, next 18/11/2026 06:10, cron Inactive, last run 28/10/2026 06:00, Success, 0 processed, 0 failed), Idempotency-Key Cleanup (Active), ERP Posting Retry, POS Session Rollover. Banner: crons inactive/missing — "Apply migration 0505 and confirm pg_cron". Guide expects 6 rows (POS Session Rollover is extra). Related link not clicked. |
+| 20.22 | NOT RUN | Page does not show the no-program case; Run Now not clicked. |
+| 20.23 | BLOCKED | Needs a DB backdate of an earn row (no UI). |
+| 20.24 | BLOCKED | Redeem across two lots needs orders (order pages broken) and a DB read for FIFO allocations. |
+| 20.25 | PASS | ~09:09 Customers → Jh Test dev21 → Loyalty: Points Balance 23, Lifetime Earned 23, Tier Bronze; 6 "Earned" rows (+3, +2, +5, +7, +4, +2) with running balance and reference ids (Sep 17–18 2026). No expiry banner. |
+| 24.1–24.13 | BLOCKED | New orders cannot be submitted after ~07:00 (`ORDER_SUBMIT_FAILED`; `photo_urls`). Not attempted in this window. |
+| 26.11 | PASS | Order Financial tab → Issue tax document → Simplified invoice → Issue worked twice on QA orders: `SIM-2026-000002` (`ORD-20261117-00002`, total 2.675, tax 0.175, 05:47) and `SIM-2026-000003` (`ORD-20261117-00005`, total 3.103, tax 0.203, 06:36:35). Toast "Tax document issued."; card refreshed without reload. |
+| 26.12 | NOT RUN | Button-hidden-after-issue not explicitly recorded; API already-exists check is curl (skipped). |
+| 26.13 | FAIL | Print view of `SIM-2026-000003` (`/orders/<id>/tax-documents/<docId>/print`): customer "Test Customer2 Mohammed Ahmed" (order shows Jh Test dev21); item taxes 0.154/0.049 but tax table "No tax lines recorded on this document."; no Arabic document option. No tax-document list outside the order page: `/dashboard/tax-documents` and `/dashboard/internal_fin/tax-documents` 404; `/dashboard/internal_fin/invoices` renders blank. |
+| 30.2 | BLOCKED | Needs a posted cash receipt reversed with the HQ `order_fin_voucher_unwind` flag on and an OPEN drawer session. Approved, but not run: order pages broken from ~07:00. Flag not changed. |
+
+### Tester suggestions — Financial_Expert_Tester (Round 1 2026-11-17)
+- **P1 FET-RWP-Nov17-TaxDocPrintWrong:** Tax-document print shows a different customer and "No tax lines recorded on this document" while item tax amounts are printed; no Arabic version. Fix the customer join and write/read the document tax lines. (Same family as Q7 FET-TX-Nov17-TaxDocPrint.)
+- **P2 FET-RWP-Nov17-NoTaxDocList:** No tax-document list/search outside the order page (`/dashboard/tax-documents` 404; `/internal_fin/invoices` blank). Add a list so finance can find SIM numbers.
+- **P2 FET-RWP-Nov17-CronsInactive:** Scheduled Jobs shows crons inactive and asks to apply migration 0505 / confirm pg_cron; loyalty expiry last ran 28/10. Enable the jobs or label the banner as expected for this environment. Guide 20.21 says 6 rows; screen shows 7.
+
+### Blocked
+- 20.23 (DB step), 20.24 and 24.1–24.13 (orders broken), 30.2 (approved, needs orders + drawer session).
+
+### Test data left behind
+- No new Q6 data. Tax documents `SIM-2026-000002` / `SIM-2026-000003` belong to QA orders `ORD-20261117-00002` / `-00005` (see Q3/Q7 guides); issued tax documents are permanent.

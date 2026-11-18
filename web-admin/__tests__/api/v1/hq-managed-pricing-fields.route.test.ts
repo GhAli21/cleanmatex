@@ -26,7 +26,7 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-import { PATCH as tenantPATCH } from '@/app/api/v1/tenants/me/route';
+import * as tenantMeRoute from '@/app/api/v1/tenants/me/route';
 import { PATCH as branchPATCH } from '@/app/api/v1/branches/[id]/route';
 
 const patch = (url: string, body: unknown) => new NextRequest(new URL(url, 'http://localhost'), { method: 'PATCH', body: JSON.stringify(body) });
@@ -37,20 +37,9 @@ beforeEach(() => {
 });
 
 describe('HQ-managed pricing fields (L18)', () => {
-  it.each(['tax_pricing_mode', 'extra_price_pricing_mode', 'commercial_level', 'disc_alloc_mode', 'disc_alloc_basis'])(
-    'PATCH /tenants/me refuses %s and writes nothing',
-    async (field) => {
-      const res = await tenantPATCH(patch('/api/v1/tenants/me', { [field]: 'X', name: 'Ok' }));
-      expect(res.status).toBe(403);
-      expect(await res.json()).toMatchObject({ code: 'FIELD_MANAGED_BY_HQ', fields: [field] });
-      expect(updateTenantMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it('PATCH /tenants/me still saves the fields the organization owns', async () => {
-    const res = await tenantPATCH(patch('/api/v1/tenants/me', { brand_color_primary: '#112233' }));
-    expect(res.status).toBe(200);
-    expect(updateTenantMock).toHaveBeenCalled();
+  it('/tenants/me has no write handler, so no organization column can be written through it', () => {
+    expect(Object.keys(tenantMeRoute)).toEqual(['GET']);
+    expect(updateTenantMock).not.toHaveBeenCalled();
   });
 
   it('PATCH /branches/[id] refuses the overrides (even null) and writes nothing; the timezone still saves', async () => {

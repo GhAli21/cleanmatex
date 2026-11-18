@@ -410,3 +410,48 @@ r2 additions (2026-10-10):
 18. **FET-POS-S18 (P2)** Financial_Expert_Tester / FET-POS-S18: Arabic: the navigation aside (dir=ltr) overlaps the page and intercepts clicks when expanded; the top-bar title is not translated (see S10); Z-report archive search filters only on Enter, not as you type.
 19. **FET-POS-S19 (P2)** Financial_Expert_Tester / FET-POS-S19: the Follow-up screen labels a Main Branch 2 drawer as "Second Branch"; Close Session / Open Session exist only in drawer detail pages and the hub row offers only "View Drawer".
 20. **FET-POS-S20 (P3)** Financial_Expert_Tester / FET-POS-S20: the POS Settings path in the guide must be `/dashboard/settings/pos-settings` (`/dashboard/settings/payments/pos-settings` returns 404); the drawer Policy tab has no drawer-assignment control (14.5/14.6 cannot be tested): add the control or fix the guide; the tenant Closing count = DENOMINATION but the drawer policy toggle shows OFF "Type default": inconsistent.
+
+## Financial_Expert_Tester Results — Retest r3 2026-11-17 (remote, §13–19 scope)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Scope:** backlog scope §13–§19 only (§1–§12 not re-run). Run 08:45–09:04 for §13/14/16/19 as Demo admin; settings were changed only to test and then discarded/restored. QA tills QA-TILL-1/2, QA-SAFE-1 and DRIVER-01 were **not** touched (order collection was impossible after ~07:00). Source ledger on the tester box: `/workspace/qa-20261117/backlog/obs/B11-settings.md`. Prior rows above are unchanged.
+
+**Recount (Retest r3 2026-11-17, rows in the table below):** PASS 7 · FAIL 2 · PARTIAL 2 · BLOCKED 3 · NOT RUN 7.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 13.1 | BLOCKED | Needs an order with a balance; order pages fail (`photo_urls`) and submit returns `ORDER_SUBMIT_FAILED`. |
+| 13.2–13.11 | BLOCKED | Need a saved POS Settings change (19.3 still fails) and collectable orders. |
+| 14.1–14.3 | BLOCKED | Need a branch-scoped cashier login; cashier "Ahmed Mohd" exists but no confirmed credentials; no permissions changed. |
+| 14.4 | PASS | 09:03 as admin: opened Main Branch 2 drawer DRW-BR2-002 and its session SES-20261028-0001; drawer and session details loaded. |
+| 14.5–14.8 | NOT RUN | Not rechecked (r2: no drawer-assignment control, FET-POS-S20); no grant changes made. |
+| 15.1–15.6 | NOT RUN | Refund/recount/force-close need orders and open QA sessions. |
+| 16.1–16.6 | NOT RUN | Branch TZ (r2 PASS) and rollover job not re-run. |
+| 16.7 | PASS (FIXED) | 09:02 live X-report for POS-20261028-6E9072AF / SES-20261028-0001 (Main Branch 2): sales by tender, refunds, cash in/out, drawer session figures rendered. No `is_active` 42703. Console 404 for the open session's optional Z-report request did not block the page. |
+| 16.8 | PASS (FIXED) | 09:02 closed POS-20261023-67548A34 / SES-20261023-0001: "Shift report (Z) — closed shift"; "Integrity verified — the stored report matches its fingerprint." Print 80mm/A4 and the Live (X) toggle not exercised. |
+| 16.9–16.10 | NOT RUN | Need closing sessions. |
+| 16.11 | PASS | 09:02 Variance Approvals: pending SES-000019 with Approve / Reject / Review; branch labelled "Second Branch". No decision made. |
+| 16.12 | PASS | 09:03 Cash Variance by Cashier, 2026-09-01–2026-10-31: Admin Demo Lanudry / OMR — 13 sessions, 2 short / 3 over, net −6.018, average −0.463, absolute 22.134, 40% short share, 1 pending; Print enabled. |
+| 17.1–17.14 | NOT RUN | Transfers/denomination closes need open QA sessions. |
+| 18.1–18.11 | NOT RUN | Not reached. |
+| 19.1 | FAIL | 09:00 POS Settings exists, but sidebar order is Cash Control Settings → Security & Sessions → POS Settings (guide: right after Cash Control Settings). |
+| 19.2 | PASS | Session requirement + Shift lifecycle tabs; `?tab=lifecycle` opens Shift lifecycle; baseline PAUSE_AT_ROLLOVER, stale 12 h, Z-report required ON; six per-screen selectors. |
+| 19.3 | FAIL (still) | 09:00–09:01 stale alert 12→13 → "1 unsaved change"; Discard restored 12 (PASS). Retried 12→13 + Save → toast "Failed to update cash-control settings", change still unsaved; Discard + reload → persisted 12. |
+| 19.4 | PASS | Cash Control Settings: Drawer Close Controls, Cash-Change Rounding, Drawer Custody, Branch pending-deposit drawers, Counted denominations; no POS-session card. |
+| 19.5 | PARTIAL | Save failure prevents the saved cross-page independence test; Cash Control opened separately without a POS-session card. |
+| 19.6 | NOT RUN | No `cash_control:view`-only account. |
+| 19.7 | PARTIAL | 09:01–09:02 Arabic content, tabs and descriptions translated; page heading "إعدادات نقطة البيع"; top-bar title still English "POS Settings". Language restored. |
+
+Prior findings: **FET-POS-S13 (P0) — Retest r3 2026-11-17: STILL BROKEN** ("Failed to update cash-control settings"). X/Z report `is_active` 42703 (16.7/16.8, r2 FAIL) — **Retest r3: FIXED / not reproduced.** **FET-POS-S10 — Retest r3: STILL BROKEN** (top-bar title English). **FET-POS-S15 — Retest r3:** report content works (16.12 PASS); tab placement not rechecked. **FET-POS-S19 — Retest r3: STILL BROKEN** (Main Branch 2 drawer labelled "Second Branch" on Variance Approvals).
+
+### Tester suggestions — Financial_Expert_Tester (Retest r3 2026-11-17)
+- **P2 FET-POS-Nov17-SettingsMenuOrder:** POS Settings sits after Security & Sessions, not right after Cash Control Settings (19.1). Move it or update the guide.
+- **P3 FET-POS-Nov17-OpenSessionZReport404:** Opening the X-report for an open session fires an optional Z-report request that returns 404 in the console. Skip the request for open sessions or treat "no Z yet" as an empty result.
+
+### Blocked
+- 13.x (orders + POS Settings save), 14.1–14.3 (cashier login), all money-moving §15/§17 rows (orders broken from ~07:00).
+
+### Test data left behind
+- None from this retest. POS Settings stale alert verified back at 12 h; language back to English. QA tills untouched. (Run-wide QA orders `ORD-20261117-00001..00006` are listed in the Q3/Q4/Q7 guides.)

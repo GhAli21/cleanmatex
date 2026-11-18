@@ -1070,7 +1070,6 @@ export class OrderService {
     scopeLevel?: OrderIssueScope;
     orderItemId?: string | null;
     orderItemPieceId?: string | null;
-    photoUrl?: string;
     priority?: string;
     /** QA reject path only — Report Issue must leave this false/undefined */
     alsoReject?: boolean;
@@ -1086,7 +1085,6 @@ export class OrderService {
       userId,
       issueCode,
       issueText,
-      photoUrl,
       priority = DEFAULT_PRIORITY,
     } = params;
     const orderItemId = params.orderItemId ?? null;
@@ -1187,7 +1185,6 @@ export class OrderService {
           order_item_piece_id: orderItemPieceId,
           issue_code: normalizedCode,
           issue_text: issueText,
-          photo_url: photoUrl,
           priority,
           status: ORDER_ISSUE_STATUS.OPEN,
           created_by: userId,

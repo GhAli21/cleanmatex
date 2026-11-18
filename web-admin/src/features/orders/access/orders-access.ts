@@ -244,12 +244,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
-        label: '[StopId] Evidence',
-        method: 'POST',
-        path: '/api/v1/delivery/stops/[stopId]/evidence',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
         label: '[PaymentId] Transition',
         method: 'POST',
         path: '/api/v1/finance/pending-payments/[paymentId]/transition',
@@ -3332,12 +3326,6 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
       },
       {
-        label: '[StopId] Evidence',
-        method: 'POST',
-        path: '/api/v1/delivery/stops/[stopId]/evidence',
-        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
-      },
-      {
         label: '[PaymentId] Transition',
         method: 'POST',
         path: '/api/v1/finance/pending-payments/[paymentId]/transition',
@@ -4298,13 +4286,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Used when an active stop is present and the existing proof panel is shown.'],
       },
       {
-        label: 'Create private delivery evidence receipt',
+        label: 'Start delivery proof upload',
         method: 'POST',
-        path: '/api/v1/delivery/stops/[stopId]/evidence',
+        path: '/api/v1/file-util',
         requirement: {
-          permissions: ['delivery:pod', 'orders:transition'],
+          permissions: ['orders:transition'],
           requireAllPermissions: true,
         },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=ORDER_FILE (orders:update or orders:transition); proof files are ORDER_FILE, ref DELIVERY_STOP.'],
+      },
+      {
+        label: 'Finish delivery proof upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=ORDER_FILE (orders:update or orders:transition); proof files are ORDER_FILE, ref DELIVERY_STOP.'],
       },
       {
         label: 'Complete delivery atomically',
@@ -4399,14 +4400,26 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['OTP is excluded until its complete verification capability is released.'],
       },
       {
-        label: 'Create private delivery evidence receipt',
+        label: 'Start delivery proof upload',
         method: 'POST',
-        path: '/api/v1/delivery/stops/[stopId]/evidence',
+        path: '/api/v1/file-util',
         requirement: {
-          permissions: ['delivery:pod', 'orders:transition'],
+          permissions: ['orders:transition'],
           requireAllPermissions: true,
         },
-        notes: ['Private upload receipt only; no storage URL is returned.'],
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=ORDER_FILE (orders:update or orders:transition); proof files are ORDER_FILE, ref DELIVERY_STOP.'],
+      },
+      {
+        label: 'Finish delivery proof upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['File Util picks the permission from ?category=ORDER_FILE (orders:update or orders:transition); proof files are ORDER_FILE, ref DELIVERY_STOP.'],
       },
       {
         label: 'Complete delivery atomically',

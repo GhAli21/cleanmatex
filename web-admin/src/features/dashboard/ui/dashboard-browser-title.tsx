@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
+import { useTenantBrand } from '@/lib/theme/tenant-brand'
 
 const SEGMENT_LABELS: Readonly<Record<string, string>> = {
   ar: 'Accounts Receivable',
@@ -43,6 +44,7 @@ function getFallbackTitle(pathname: string): string {
  */
 export function DashboardBrowserTitle() {
   const pathname = usePathname()
+  const { name } = useTenantBrand()
 
   useEffect(() => {
     if (!pathname) {
@@ -50,8 +52,8 @@ export function DashboardBrowserTitle() {
     }
 
     const title = getPageAccessContractByPath(pathname)?.label ?? getFallbackTitle(pathname)
-    document.title = `${title} — CleanMateX`
-  }, [pathname])
+    document.title = `${title} — ${name}`
+  }, [pathname, name])
 
   return null
 }

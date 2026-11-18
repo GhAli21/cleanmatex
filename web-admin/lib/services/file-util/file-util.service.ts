@@ -44,6 +44,7 @@ export type FileUtilErrorCode =
   | 'QUOTA_EXCEEDED'
   | 'PLAN_UNAVAILABLE'
   | 'FILE_NOT_FOUND'
+  | 'FILE_LOCKED'
   | 'UPLOAD_MISSING'
   | 'CONTENT_MISMATCH'
   | 'SIZE_MISMATCH'
@@ -117,6 +118,8 @@ export interface FileView {
   sortOrder: number;
   createdAt: string;
   createdBy: string | null;
+  /** Set when the file became proof of a completed record (e.g. delivery); it can no longer change. */
+  lockedAt: string | null;
   url: string;
   thumbUrl: string | null;
 }
@@ -160,6 +163,7 @@ const FILE_VIEW_SELECT = {
   sort_order: true,
   created_at: true,
   created_by: true,
+  locked_at: true,
   bucket_code: true,
   object_key: true,
   thumb_object_key: true,
@@ -360,6 +364,11 @@ async function syncPublishedUrl(tx: Prisma.TransactionClient, tenantId: string, 
     // The organization row is the tenant itself: its id is the tenant id.
     await tx.org_tenants_mst.updateMany({ where: { id: tenantId }, data: { logo_url: url, ...audit } });
   }
+}
+
+/** A locked file is proof of a completed record (e.g. delivery) and cannot change any more. */
+function lockedError(): FileUtilError {
+  return new FileUtilError('FILE_LOCKED', 'This file is proof of a completed record and cannot be changed or deleted.', 409);
 }
 
 /** Marks a file DELETED with the standard soft-delete columns (ck_ofm_rec_sync). */
@@ -630,6 +639,7 @@ async function viewFiles(rows: FileViewRow[]): Promise<FileView[]> {
     sortOrder: r.sort_order,
     createdAt: r.created_at.toISOString(),
     createdBy: r.created_by,
+    lockedAt: r.locked_at?.toISOString() ?? null,
     url: urls.get(r.object_key) ?? '',
     thumbUrl: r.thumb_object_key ? urls.get(r.thumb_object_key) ?? null : null,
   }));
@@ -685,9 +695,10 @@ export async function signFiles(tenantId: string, categoryCode: FileCategoryCode
 export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
   const file = await prisma.org_file_mst.findFirst({
     where: { id: cmd.fileId, tenant_org_id: cmd.tenantId, category_code: cmd.categoryCode, status_code: FILE_STATUSES.READY },
-    select: { mime_type: true, purpose_code: true, entity_id: true },
+    select: { mime_type: true, purpose_code: true, entity_id: true, locked_at: true },
   });
   if (!file) throw new FileUtilError('FILE_NOT_FOUND', 'The file was not found.', 404);
+  if (file.locked_at) throw lockedError();
 
   await prisma.$transaction(async (tx) => {
     if (cmd.purposeCode && cmd.purposeCode !== file.purpose_code) {
@@ -702,8 +713,8 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
         }
       }
     }
-    await tx.org_file_mst.updateMany({
-      where: { id: cmd.fileId, tenant_org_id: cmd.tenantId, status_code: FILE_STATUSES.READY },
+    const updated = await tx.org_file_mst.updateMany({
+      where: { id: cmd.fileId, tenant_org_id: cmd.tenantId, status_code: FILE_STATUSES.READY, locked_at: null },
       data: {
         ...(cmd.purposeCode ? { purpose_code: cmd.purposeCode } : {}),
         ...(cmd.notes !== undefined ? { notes: cmd.notes?.trim() || null } : {}),
@@ -712,6 +723,8 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
         updated_info: 'file-util:update',
       },
     });
+    // Locked by a completion between the read above and this write.
+    if (updated.count === 0) throw lockedError();
     // Moving a file into or out of a published slot changes the record's URL.
     const moved = cmd.purposeCode && cmd.purposeCode !== file.purpose_code;
     if (moved && (publishesUrl(cmd.categoryCode, file.purpose_code) || publishesUrl(cmd.categoryCode, cmd.purposeCode!))) {
@@ -733,10 +746,12 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
 export async function deleteFile(tenantId: string, userId: string, categoryCode: FileCategoryCode, fileId: string): Promise<void> {
   const where = { id: fileId, tenant_org_id: tenantId, category_code: categoryCode, status_code: { in: [FILE_STATUSES.READY, FILE_STATUSES.PENDING] } };
   await prisma.$transaction(async (tx) => {
-    const file = await tx.org_file_mst.findFirst({ where, select: { entity_id: true, purpose_code: true, status_code: true } });
+    const file = await tx.org_file_mst.findFirst({ where, select: { entity_id: true, purpose_code: true, status_code: true, locked_at: true } });
     if (!file) throw new FileUtilError('FILE_NOT_FOUND', 'The file was not found.', 404);
-    const result = await tx.org_file_mst.updateMany({ where, data: softDeleteData(userId, 'file-util:delete') });
-    if (result.count === 0) throw new FileUtilError('FILE_NOT_FOUND', 'The file was not found.', 404);
+    if (file.locked_at) throw lockedError();
+    // locked_at: null also guards a completion that locks the file concurrently.
+    const result = await tx.org_file_mst.updateMany({ where: { ...where, locked_at: null }, data: softDeleteData(userId, 'file-util:delete') });
+    if (result.count === 0) throw lockedError();
     if (file.status_code === FILE_STATUSES.READY && publishesUrl(categoryCode, file.purpose_code)) {
       await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id);
     }

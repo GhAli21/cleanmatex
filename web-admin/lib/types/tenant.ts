@@ -28,8 +28,6 @@ export interface Tenant {
   /** 'creating' only while self-signup runs (0678, A-31); insert-only. */
   status: 'creating' | 'trial' | 'active' | 'suspended' | 'canceled';
   logo_url?: string | null;
-  brand_color_primary: string;
-  brand_color_secondary: string;
   business_hours?: BusinessHours | null;
   feature_flags?: FeatureFlags | null;
   created_at: string;
@@ -123,7 +121,6 @@ export interface FeatureFlags {
     tenant_in_app_receipts: boolean;
     tenant_multi_branch: boolean;
     tenant_driver_app: boolean;
-    tenant_white_label: boolean;
     tenant_advanced_analytics: boolean;
     wallet_enabled: boolean;
     webhooks: boolean;
@@ -133,14 +130,12 @@ export interface FeatureFlags {
     whatsapp_receipts: boolean;
     whatsapp_receipts_enabled: boolean;
     white_label: boolean;
-    white_label_enabled: boolean;
     workflow_automation: boolean;
     /** Workflow Order Advance V1.0 — single app engine canary (HQ-seeded; env override for emergency). */
     workflow_engine_v2: boolean;
     workflow_per_service_category: boolean;
     tenant_pdf_invoices: boolean;
     tenant_custom_domain: string;
-    tenant_branding_config: Record<string, any>;
     smart_suggestions: boolean;
     processing_confirmation: boolean;
     service_preferences_enabled: boolean;
@@ -621,8 +616,6 @@ export interface TenantUpdateRequest {
   phone?: string;
   address?: string;
   city?: string;
-  brand_color_primary?: string;
-  brand_color_secondary?: string;
   business_hours?: BusinessHours;
   tax_pricing_mode?: string;
   extra_price_pricing_mode?: string;

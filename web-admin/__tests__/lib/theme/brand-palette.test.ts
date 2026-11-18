@@ -1,16 +1,9 @@
-import { BRAND_TOKENS, computeBrandPalette, contrastRatio, cssVarName } from '@/lib/theme/brand-palette'
+import { BRAND_TOKENS, computeBrandPalette, contrastRatio, cssVarName, seedAdjustments } from '@/lib/theme/brand-palette'
+import { UI_THEME_SEEDS } from '@/lib/constants/ui-theme'
 
 const SEEDS: Array<[string, string]> = [
-  ['#0AB6D8', '#0E2A47'],
-  ['#2563EB', '#0F172A'],
-  ['#059669', '#064E3B'],
-  ['#0D9488', '#134E4A'],
-  ['#7C3AED', '#1E1B4B'],
-  ['#E11D48', '#4C0519'],
-  ['#EA580C', '#7C2D12'],
-  ['#B45309', '#451A03'],
-  ['#475569', '#0F172A'],
-  ['#18181B', '#52525B'],
+  // the HQ themes seeded by the catalog migration
+  ...Object.values(UI_THEME_SEEDS).map((s): [string, string] => [s.primary, s.secondary]),
   // hard cases
   ['#FACC15', '#0F172A'],
   ['#FFFFFF', '#000000'],
@@ -49,6 +42,12 @@ describe.each(SEEDS)('seeds %s / %s', (primary, secondary) => {
       expect(contrastRatio(p['muted-foreground'], p[bg])).toBeGreaterThanOrEqual(4.5)
     }
   })
+})
+
+test('seedAdjustments flags a seed whose readable text shade differs from it', () => {
+  // Bright yellow is unreadable as text on white, so a darker shade is used.
+  expect(seedAdjustments('#FACC15', '#0E2A47')).toEqual({ primary: true, secondary: false })
+  expect(seedAdjustments('#0E2A47', '#FACC15')).toEqual({ primary: false, secondary: true })
 })
 
 test('seeds are kept unchanged as the solid colours', () => {

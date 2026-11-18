@@ -3,8 +3,7 @@
 const mockOrderFindFirst = jest.fn();
 const mockStopsFindMany = jest.fn();
 const mockOperatorsFindMany = jest.fn();
-const mockCreateSignedUrl = jest.fn();
-const mockCreateAdminSupabaseClient = jest.fn();
+const mockListFiles = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -14,8 +13,8 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-jest.mock('@/lib/supabase/server', () => ({
-  createAdminSupabaseClient: (...args: unknown[]) => mockCreateAdminSupabaseClient(...args),
+jest.mock('@/lib/services/file-util/file-util.service', () => ({
+  listFiles: (...args: unknown[]) => mockListFiles(...args),
 }));
 
 jest.mock('@/lib/utils/logger', () => ({ logger: { warn: jest.fn() } }));
@@ -47,13 +46,6 @@ describe('DeliveryProofAuditService', () => {
         id: '66666666-6666-4666-8666-666666666666',
         pod_method_code: 'SIGNATURE_PHOTO',
         pod_notes: 'Received by the customer at the front door.',
-        signature_object_key: `${TENANT_ID}/delivery/${STOP_ID}/signature.jpeg`,
-        photo_object_keys: [
-          `${TENANT_ID}/delivery/${STOP_ID}/photo.jpeg`,
-          'other-tenant/delivery/not-this-stop/photo.jpeg',
-        ],
-        signature_url: null,
-        photo_urls: ['https://legacy.example/first.jpg', 'https://legacy.example/second.jpg'],
         verified_at: new Date('2026-08-21T08:01:00.000Z'),
         verified_by: ACTOR_ID,
         created_by: ACTOR_ID,
@@ -66,16 +58,19 @@ describe('DeliveryProofAuditService', () => {
       first_name: null,
       last_name: null,
     }]);
-    mockCreateSignedUrl.mockImplementation((objectKey: string) => Promise.resolve({
-      data: { signedUrl: `https://signed.example/${encodeURIComponent(objectKey)}` },
-      error: null,
-    }));
-    mockCreateAdminSupabaseClient.mockReturnValue({
-      storage: { from: jest.fn(() => ({ createSignedUrl: mockCreateSignedUrl })) },
+    const file = (id: string, purposeCode: string, refId: string, locked: boolean) => ({
+      id, purposeCode, refTypeCode: 'DELIVERY_STOP', refId,
+      lockedAt: locked ? '2026-08-21T08:01:00.000Z' : null, url: `https://signed.example/${id}`,
     });
+    mockListFiles.mockResolvedValue([
+      file('sig', 'SIGNATURE', STOP_ID, true),
+      file('photo', 'DELIVERY_PROOF', STOP_ID, true),
+      file('draft', 'DELIVERY_PROOF', STOP_ID, false), // uploaded but never used by a completion
+      file('other-stop', 'DELIVERY_PROOF', '99999999-9999-4999-8999-999999999999', true),
+    ]);
   });
 
-  it('returns a tenant-scoped audit and signs only evidence owned by that tenant stop', async () => {
+  it('returns a tenant-scoped audit with only the locked proof files of each stop', async () => {
     const audit = await DeliveryProofAuditService.getOrderAudit(TENANT_ID, ORDER_ID);
 
     expect(mockOrderFindFirst).toHaveBeenCalledWith(expect.objectContaining({
@@ -92,25 +87,29 @@ describe('DeliveryProofAuditService', () => {
     expect(mockOperatorsFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ tenant_org_id: TENANT_ID, user_id: { in: [ACTOR_ID] } }),
     }));
-    expect(mockCreateSignedUrl).toHaveBeenCalledTimes(2);
-    expect(mockCreateSignedUrl).toHaveBeenCalledWith(
-      `${TENANT_ID}/delivery/${STOP_ID}/signature.jpeg`,
-      expect.any(Number),
-    );
-    expect(mockCreateSignedUrl).toHaveBeenCalledWith(
-      `${TENANT_ID}/delivery/${STOP_ID}/photo.jpeg`,
-      expect.any(Number),
-    );
+    expect(mockListFiles).toHaveBeenCalledWith({
+      tenantId: TENANT_ID,
+      categoryCode: 'ORDER_FILE',
+      entityIds: [ORDER_ID],
+      purposeCodes: ['SIGNATURE', 'DELIVERY_PROOF'],
+    });
     expect(audit).toMatchObject({
       order: { id: ORDER_ID, paymentState: 'settled', workflowOutcome: 'delivered' },
       deliveryStopCount: 1,
       entries: [{
         stopId: STOP_ID,
         deliveredBy: 'Delivery Operator',
-        signature: { source: 'private_signed' },
-        photos: [{ source: 'private_signed' }, { source: 'legacy', url: 'https://legacy.example/second.jpg' }],
+        signature: { source: 'private_signed', url: 'https://signed.example/sig' },
+        photos: [{ source: 'private_signed', url: 'https://signed.example/photo' }],
       }],
     });
+    expect(audit?.entries[0].photos).toHaveLength(1);
+  });
+
+  it('still returns the audit, without links, when signing fails', async () => {
+    mockListFiles.mockRejectedValue(new Error('storage down'));
+    const audit = await DeliveryProofAuditService.getOrderAudit(TENANT_ID, ORDER_ID);
+    expect(audit?.entries[0]).toMatchObject({ signature: null, photos: [] });
   });
 
   it('does not read stops, staff, or storage when the tenant cannot access the order', async () => {
@@ -120,6 +119,6 @@ describe('DeliveryProofAuditService', () => {
 
     expect(mockStopsFindMany).not.toHaveBeenCalled();
     expect(mockOperatorsFindMany).not.toHaveBeenCalled();
-    expect(mockCreateSignedUrl).not.toHaveBeenCalled();
+    expect(mockListFiles).not.toHaveBeenCalled();
   });
 });

@@ -157,3 +157,64 @@ Recount (observe + retests; parent guide step counts unchanged): **PASS 6 · FAI
 - **P3 FET-SS-Nov13-ArabicProductInEnList:** "ملابس سباحة (قطعة واحدة)" in the English Speed Pricing list.
 - **P3 FET-SS-Nov13-0721SkippedDemo:** No category Express rules on this org; consistent with 0721 skipping orgs that have an active all-products EXPRESS rule.
 - **P3 FET-SS-Nov13-OmSearchMatchesGB:** HQ template search "OM" also returns United Kingdom.
+
+### Financial_Expert_Tester Results — Retest r3 2026-11-17 (remote; approved mutate-and-restore on Demo settings)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Approved writes used:** calendar hours/holiday/speed-rule changes on Demo, each restored or left inactive (ledger below). Not done (not approved): confirming official holidays, deactivating every Express rule, HQ Estimated edits, a new Saudi org. Source ledgers on the tester box: `/workspace/qa-20261117/backlog/obs/B1.md` Part B (observe, 03:41–03:52) and `B11-settings.md` (writes, 08:45–09:04); Speed rule add/deactivate also in `B6-Q4.md`. §13, §14 and F9 are covered for the first time. Rows above are unchanged.
+
+**Recount (Retest r3 2026-11-17, rows in the table below):** PASS 20 · FAIL 1 · PARTIAL 2 · BLOCKED 3 · NOT RUN 8.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| §1.1 Save hours | PASS | 08:46–08:47 Monday close 18:00→17:00 saved, reload 17:00; restored 18:00 and saved. |
+| §1.2 Close before open | PASS | 08:47 Monday 08:00–07:00 → "Enter both times; closing must be after opening."; nothing saved. |
+| §1.3 All days off | PASS | 09:04 all days off + Save → "Open at least one day."; nothing saved; pattern restored. |
+| §1.4 Copy to open days | PASS | 08:47 Monday 09:00–17:00 → Copy to open days → Mon–Sat 09:00–17:00, Sunday closed; original restored, saved, reload verified. |
+| §1.5 Viewer read-only | FAIL | 08:56–08:57 viewer (Incognito) Business Calendar: page header only, main area blank after retry/reload — no tabs, fields or Save to check. |
+| §2 Main Branch Name load | PASS (FIXED) | 03:45 `/dashboard/settings/calendar?tab=branches&branch=22222222-…`: renders after ~5s (no 400); inherits org hours, cut-off 11:00, ready 18:00. |
+| §2.2–2.3 Own hours | PASS | 08:48–08:50 org-hours off, Monday close 17:00 saved/reloaded; org hours back on and saved; branch ends on inherited values. |
+| §3.2–3.3, §3.5 Holidays | PASS | 08:50–08:52 added QA-20261117 on 2026-12-03 (all branches, closed all day); duplicate same date → "This date already has a holiday for the same branch."; delete confirmed, "Holiday deleted". |
+| §3.4 Override official holiday | NOT RUN | Not approved (no public-holiday override/confirm). |
+| §5.1 Speed Pricing display | PASS | Typical speeds card; "Showing 1 - 10 of 52/53"; OMR 3 decimals; QA Express +25% (2026-11-17) found under Inactive. |
+| §5.2–5.3 Add / deactivate rule | PASS | 08:52–08:55 QA Next day / all products / +20%, 1 working day, cut-off 10:00: deactivated, reactivated, edited (WORKING_DAYS, 1, 10:00); left Inactive. (Also Express +25% add/duplicate/validation/deactivate PASS at ~06:15 — Q4 S18.) |
+| §5.4 Economy discount | PASS | QA Economy −0.10 → "Takes 10% off the normal price", list "10% off"; left Inactive. |
+| §5.5 Faster speed cannot discount | PASS | Express −0.10 → "Only a speed slower than Standard (Economy) can lower the price. Use a value of 0 or more for this speed."; not saved. |
+| §6 / F9 Speed menu preview | PASS (FIXED, settled) | 03:43–03:49 New Order, Main Branch 2, Blouse 2.200: both menus list all five with price + Ready — Economy OMR 2.119 · Wed Nov 25 6:00 PM; Standard 2.354 · Fri Nov 27 10:00 AM; Next day 2.943 · Wed Nov 18 6:00 PM; Express 2.943 · Tue Nov 17 2:00 PM; Urgent 4.708 · Tue Nov 17 11:00 AM. Top-bar menu shows names only on first open until the summary menu loads quotes. Not submitted. |
+| §6.3–6.5, §7, §8 | BLOCKED | Order create/edit/split: after ~07:00 submit returns `ORDER_SUBMIT_FAILED` and order pages fail (`photo_urls`). |
+| §9.3, §10.2, §11.1, §14.6 | NOT RUN | Not approved (deactivate all Express; HQ Estimated / confirm; new Saudi org; HQ confirm). |
+| §13.1 Holiday 24:00 | NOT RUN | Not exercised. |
+| §13.2 Impossible date | NOT RUN | API POST check (UI only). |
+| §13.3 Unsaved changes | PASS | 08:55–08:57 unsaved Monday 17:00 kept across Holidays→Organization tabs; branch switch → "Discard your changes?"; Cancel kept the edit, Confirm discarded. |
+| §13.4 Calendar warnings | PASS (unsaved) | 08:57 cut-off 07:00 → "The cut-off is at or before opening…"; cut-off 20:00 / ready 22:00 → cut-off never applies / ready outside hours; restored, no Save. |
+| §13.5 Overridden holiday | NOT RUN | Needs an org override of a public holiday (not approved). |
+| §13.6 No public data | PASS | 03:47 2028: "No public holiday dates are loaded for OM in 2028. Ask the platform team to add them; until then ready times ignore public holidays." |
+| §13.7 `branches:read` role | BLOCKED | No such test user. |
+| §13.8 Branch 400 | PASS (FIXED) | See §2. |
+| §13.9 Speed quotes / partial coverage / Arabic | PARTIAL | Quotes PASS (see §6). Mixed draft (Bathrobe, Pants, Business Shirt) showed no "Some items only" label — case not reproduced. Arabic 03:51: speeds "اقتصادي / عادي / اليوم التالي / مستعجل / طارئ", OMR 3 decimals, localized ready times; "New Order", order type/source, payment modal heading, product names English. |
+| §13.10 Rule validation | PARTIAL | Number validation and duplicate refusal PASS (Q4 S18); bulk fixed-price, repricing warning, 61-day/501-hour limits NOT RUN. |
+| §13.11 Setup Health speed check | PASS | "Other speeds are offered" OK; "Express is offered for every item" OK. |
+| §13.12 HQ items | NOT RUN | HQ not exercised for §13.12. |
+| §13.13 Customer app | BLOCKED | No customer-app URL. |
+| §14.1 Preview card | PASS | 03:45 "If an order is placed now": Closed now, counting from Tue Nov 17 8:00 AM, five speeds with Ready times; 08:57 Open now with updated times. |
+| §14.2 No-hours state | NOT RUN | Demo has hours; no other org in scope. |
+| §14.3 Oman template fill | PASS (discarded) | 08:58 Sun–Thu 08:00–20:00, Fri/Sat closed, 11:00/18:00; kept across tabs; never saved; original reloaded. |
+| §14.4 Concurrent saves | NOT RUN | Needs two saved writes; discard-only scope. |
+| §14.5 Cut-off hint | PASS | Speed-rule editor: "Optional. Orders received later count from the next working day. Empty = the branch's cut-off. Organization cut-off: 11:00." |
+
+Prior findings, Retest r3 2026-11-17: **FET-SS-Nov13-BranchCalendar400 FIXED** (Main Branch Name loads; own-hours save works). **FET-SS-Nov13-SpeedMenuNoPreview FIXED** in settled state (all five priced with Ready; first-open names-only caveat). **FET-SS-Nov13-StandardReadyNotClosing — changed:** Standard now "Fri Nov 27 10:00 AM" in New Order (see new finding). **FET-SS-Nov13-BranchTimeFormatMix STILL BROKEN** (12-hour hours vs 24-hour "11:00 / 18:00").
+
+### Financial_Expert_Tester suggestions — Retest r3 2026-11-17
+- **P1 FET-SS-Nov17-ViewerCalendarBlank:** Viewer Business Calendar body is blank (no read-only view, no message). Same family as Tax Setup viewer blank.
+- **P2 FET-SS-Nov17-StandardSlowerThanEconomy:** New Order quotes Standard "Ready Fri, Nov 27, 10:00 AM" — later than Economy "Wed, Nov 25, 6:00 PM" — while the calendar preview says Standard (24 working hours) "Thu, Nov 19, 12:00 PM". New Order and preview disagree, and Standard should not be slower than Economy.
+- **P3 FET-SS-Nov17-TopbarSpeedMenuEmptyFirstOpen:** Top-bar Speed menu shows names only until the summary menu loads quotes.
+- **P3 FET-SS-Nov17-ArabicNewOrderLeftovers:** In Arabic, "New Order", order type/source labels, payment-modal heading and product names stay English.
+
+### Blocked
+- §6.3–6.5, §7, §8 (orders broken from ~07:00); §13.7 (no `branches:read` user); §13.13 (customer app).
+
+### Test data left behind
+- Org calendar restored and reloaded: Sun closed; Mon–Fri 08:00–18:00; Sat 09:00–14:00; cut-off 11:00; ready 18:00. Main Branch Name back on organization hours. Holiday QA-20261117 deleted.
+- Speed rules left **inactive**: QA-20261117 Express +25% (from 2026-11-17), QA Next day +20% (1 working day, cut-off 10:00), QA Economy −0.10. Express −0.10 never saved.

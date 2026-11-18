@@ -16,7 +16,6 @@ const allPermissionsHandler = jest.fn();
 const createRouteMock = jest.fn();
 const completeDeliveryMock = jest.fn();
 const getMyActivePosSessionMock = jest.fn();
-const createDeliveryEvidenceUploadMock = jest.fn();
 const validateCSRFMock = jest.fn();
 
 jest.mock('@/lib/middleware/require-permission', () => ({
@@ -45,18 +44,12 @@ jest.mock('@/lib/services/pos-session.service', () => ({
   getMyActivePosSession: (...args: unknown[]) => getMyActivePosSessionMock(...args),
 }));
 
-jest.mock('@/lib/services/delivery/delivery-evidence.service', () => ({
-  createDeliveryEvidenceUpload: (...args: unknown[]) => createDeliveryEvidenceUploadMock(...args),
-  DeliveryEvidenceError: class DeliveryEvidenceError extends Error {},
-}));
-
 jest.mock('@/lib/middleware/rate-limit', () => ({
   checkAPIRateLimitTenant: jest.fn(),
 }));
 
 import { POST as createRoute } from '@/app/api/v1/delivery/routes/route';
 import { POST as completeDelivery } from '@/app/api/v1/delivery/stops/[stopId]/complete/route';
-import { POST as createEvidence } from '@/app/api/v1/delivery/stops/[stopId]/evidence/route';
 import { WorkflowEngineError } from '@/lib/services/workflow/workflow-engine.service';
 import { NextResponse } from 'next/server';
 
@@ -160,36 +153,6 @@ describe('delivery write safety boundary', () => {
       success: false,
       code: 'VERSION_CONFLICT',
     });
-  });
-
-  it('allows private evidence receipts only through the atomic completion path', async () => {
-    createDeliveryEvidenceUploadMock.mockResolvedValue({
-      id: '77777777-7777-4777-8777-777777777777',
-      evidenceType: 'photo',
-      expiresAt: '2026-08-15T10:00:00.000Z',
-    });
-    const form = new FormData();
-    form.append('evidenceType', 'photo');
-    form.append('file', new File([new Uint8Array([0xFF, 0xD8, 0xFF])], 'proof.jpeg', { type: 'image/jpeg' }));
-    const response = await createEvidence(new Request('http://localhost/api/v1/delivery/stops/44444444-4444-4444-8444-444444444444/evidence', {
-      method: 'POST',
-      body: form,
-    }) as NextRequest, {
-      params: Promise.resolve({ stopId: '44444444-4444-4444-8444-444444444444' }),
-    });
-
-    expect(requireAllPermissionsFactory).toHaveBeenCalledWith([
-      'delivery:pod',
-      'orders:transition',
-    ]);
-    expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toMatchObject({
-      success: true,
-    });
-    expect(createDeliveryEvidenceUploadMock).toHaveBeenCalledWith(expect.objectContaining({
-      tenantId: AUTH_CONTEXT.tenantId,
-      evidenceType: 'photo',
-    }));
   });
 
   it('rejects staff completion when delivery:pod and orders:transition are missing', async () => {

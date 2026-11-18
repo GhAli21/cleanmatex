@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-16T20:26:34.269Z
+Generated: 2026-11-17T06:27:46.404Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ Generated: 2026-11-16T20:26:34.269Z
 | getFeatureFlags | lib/services/order-change/order-change-preview-reads.ts | 107 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/setup-health/setup-health.service.ts | 88 | getFeatureFlags(tenantOrgId), |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 225 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 446 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 226 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | lib/services/workflow-service-enhanced.ts | 447 | const flags = await getFeatureFlags(tenantId); |
 | order_fin_voucher_unwind | lib/services/voucher-reversal.service.ts | 88 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | lib/services/feature-flags.service.ts | 402 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |

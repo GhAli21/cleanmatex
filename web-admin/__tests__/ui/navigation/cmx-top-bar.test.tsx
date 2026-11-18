@@ -32,7 +32,7 @@ test('the user menu opens by keyboard and closes on Escape', async () => {
   render(<CmxTopBar title="Orders" />)
   openMenu()
   expect(screen.getByRole('menu')).toBeInTheDocument()
-  expect(screen.getAllByRole('menuitem')).toHaveLength(4)
+  expect(screen.getAllByRole('menuitem')).toHaveLength(5)
   act(() => { fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' }) })
   await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
 })

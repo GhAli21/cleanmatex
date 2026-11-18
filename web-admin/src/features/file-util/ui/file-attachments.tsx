@@ -73,6 +73,7 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
     label: nameOf(f.purposeCode),
     notes: f.notes,
     sizeBytes: f.sizeBytes,
+    locked: Boolean(f.lockedAt),
   }));
 
   const accept = selected?.mimeTypes.map((m) => m.mimeType) ?? [];

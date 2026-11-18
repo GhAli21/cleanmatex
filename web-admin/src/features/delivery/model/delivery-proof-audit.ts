@@ -1,7 +1,8 @@
 /** One evidence link is issued only after the authorized audit request reaches the server. */
 export interface DeliveryProofEvidenceLink {
   url: string;
-  source: 'private_signed' | 'legacy';
+  /** Short-lived signed link to the locked File Util proof file. */
+  source: 'private_signed';
 }
 
 /** Immutable proof and handover record for one completed delivery stop. */

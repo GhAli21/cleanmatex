@@ -303,3 +303,87 @@ Retest r2 2026-10-09 (Asia/Muscat). Demo operator password was changed during QA
 36. **Financial_Expert_Tester / FET-USL-S36 (P2)** — Closed incognito windows leave ACTIVE registry rows until the idle sweep (each window = new device cookie = new session row + NEW_DEVICE alert), e.g. 4 stale "Chrome on Linux" rows for one user; rows ended by the 5-min sweep only after the 30 min idle timeout. Fix hint: send a pagehide beacon to end/mark the session, and/or treat sessions without a recent heartbeat as stale in the list.
 37. **Financial_Expert_Tester / FET-USL-S37 (P2)** — After a password reset or change the other device lands on /login?redirect=%2Fdashboard with no reason banner (6.2, HQ reset). Extends FET-USL-S6: PASSWORD_CHANGED should map to reason=password_changed on redirect and in the 401 body.
 38. **Financial_Expert_Tester / FET-USL-S38 (P3)** — Minor UX: the user Activity tab shows the Effective Permissions block above Recent activity; the HQ users table name is not clickable (use the row menu); "Sign-in failed" messages don't show remaining attempts (generic until the lock on the 5th failure).
+
+## Financial_Expert_Tester Results — Retest r3 2026-11-17 (remote; disposable users only)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Approved writes used:** a disposable tenant user `qa.sess1117` (invited via Team Members, code U000008) and an HQ no-email user `QA Sess HQ 1117` (code QAHQ1117) — both **deactivated** at the end; HQ `AUTH_IDLE_TIMEOUT_MIN` 30 → 29 → 30 (restored and verified in HQ and tenant). No shared account was locked, reset, signed out or had its password changed. Run 08:14–08:44. Source ledger on the tester box: `/workspace/qa-20261117/backlog/obs/B10-Q10.md`. Rows above are unchanged.
+
+**Recount (Retest r3 2026-11-17, rows in the table below):** PASS 14 · FAIL 7 · PARTIAL 8 · BLOCKED 2 · NOT RUN 22.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 0.1 / 0.2 / 0.3 | NOT RUN | Tenant-claim / anonymous REST / RPC checks are API-only (UI-only scope). |
+| 0.4 | PARTIAL | 08:30 admin sign-in OK (Last Login 08:30); `LOGIN_SUCCESS` not visible because Activity fails. |
+| 0.5 | PASS (FIXED) | Five wrong sign-ins for `qa.sess1117` → "This sign-in is locked for 15 minutes" (255-minute defect not reproduced). HQ Unlock → next wrong attempt returns the generic message. |
+| 0.6 | FAIL (regressed) | User Details → Activity (disposable and Operator Demo 1): "Could not load the activity log." — retried 08:42:53. (r2 PASS.) |
+| 0.7 | PASS | 08:14 "Current Tenant: Demo Laundry LLC" read-only label; no tenant switcher. |
+| 1a.1 | FAIL | New HQ user code `QAHQ1117` + its creation password → generic invalid credentials, twice; stopped. |
+| 1a.2 | NOT RUN | No confirmed usable password for the tenant email test user. |
+| 1a.3 | FAIL | Lowercase `qahq1117` → generic invalid credentials (second and last attempt). |
+| 1a.4 | PASS | Unknown `ZZ999999` and wrong password both: "Invalid user code, email or password. Please try again." |
+| 1a.5 | PASS | `ab` → "A user code has 3-30 letters, numbers, dots, underscores or hyphens."; `bad@` → "Enter a valid email address." |
+| 1a.6 | PASS | Disposable lockout after five attempts; 15-minute message; unlocked. |
+| 1a.7 | NOT RUN | Code-change + sign-in path not exercised. |
+| 1a.8 | FAIL | Disposable profile: U000008 → `QAHQ1117` (already used) accepted with no "already in use" error; restored to U000008 immediately. |
+| 1a.9 | NOT RUN | No successful code change to audit. |
+| 1.1 | PASS | Security & Sessions: Sessions, Devices, Passwords, Sign-in protection; idle 30 min, warning 60 s, max 12 h, remember 7 d, concurrent 0 / sign out oldest, new-device alert On, require current password On, freshness 15 min, history 5, breach block On (platform), lockout 5 / 15 min / 60-min window (platform). |
+| 1.2 | PASS | Plan banner: security customization not included; controls read-only. |
+| 1.3–1.6 | BLOCKED | No editable tenant controls on this plan. |
+| 1.7 / 1.8 | NOT RUN | No `auth_config:read`-only or no-permission signed-in user. |
+| 1.9 | NOT RUN | No tenant change; audit UI unavailable. |
+| 1.10 | PASS | Arabic labels + `dir=rtl`; restored English. |
+| 1.11 | NOT RUN | No tenant override above a tightened platform bound. |
+| 2.1 | PARTIAL | Disposable code sign-in failed twice; email path not attempted. |
+| 2.2 / 2.3 | NOT RUN | Order route avoided; no safe short-idle disposable session. |
+| 2.4 | NOT RUN | Retest not possible: idle is platform-managed (30 min) and no disposable user could sign in. Prior FAIL unresolved. |
+| 2.5–2.7 | NOT RUN | No disposable two-tab / remember-me / second-browser session. |
+| 4.1 | PASS | Account security lists "This device" (Chrome/Linux) and other devices with sign-out controls; none used. |
+| 4.2–4.7 | NOT RUN | No sign-out/password self-service actions on shared accounts. |
+| 4.8 | PASS | Active Sessions lists tenant sessions with status/device/IP/time. |
+| 4.9 | PARTIAL | Ended filter 148 entries; page 2 rows 21–40 distinct; reasons Inactivity / Signed out / User deactivated, some as raw `authSession...` keys. |
+| 4.10 | NOT RUN | Retest not possible: no active disposable session; shared sessions not revoked. Prior FAIL unresolved. |
+| 4.11–4.17 | NOT RUN | Sign-out-everyone avoided; no read-only role; no recovery email; cron/DB not used. |
+| 5.1 | PARTIAL | Disposable Sessions tab: none (correct). Operator Demo 1 Sessions tab: none, while Active Sessions lists an Active operator Edge/Windows row. |
+| 5.2 | NOT RUN | Retest not possible (no disposable device session). Prior FAIL unresolved. |
+| 5.3 | FAIL (regressed) | Activity labels unavailable: "Could not load the activity log." (r2 PASS). |
+| 5.4 | PASS | Failure is a finite message, not an endless spinner. |
+| 5.5–5.7 | NOT RUN | New-device / revoke flows not exercised. |
+| 6.1–6.4 | NOT RUN | No self-service password change. |
+| 6.5 | BLOCKED | Require-current-password not customizable on this plan. |
+| 6.6–6.8 | NOT RUN | Depends on freshness setup / email link / no-email user sign-in. |
+| 6.9 | PARTIAL | Tenant admin Set password: dialog stays open after submit — no success view / Copy / redirect. (r2 PASS.) |
+| 6.10–6.14 | NOT RUN | No confirmed temporary password; email-link flow not submitted; unlock audit not visible. |
+| 6.15 | FAIL | Activity fails, so reset/unlock audit rows cannot be shown. |
+| 6.16 | NOT RUN | No role without `users:reset_password`. |
+| 6.17 | PARTIAL | HQ Set password: modal stays open; no success view, notice or session-end confirmation. |
+| 6.18 / 6.19 | NOT RUN | HQ email link and parity checks not run. |
+| 6.20 | PARTIAL | HQ Unlock worked (next wrong attempt generic); no success toast/audit seen. |
+| 6.21 | PASS | HQ catalog Passwords group (4 items); "Block breached passwords" platform-only. |
+| H.1 | PASS | HQ catalog: Sessions (idle 30, 0–480; warning 60, 15–300; max 12 h, 1–72; remember 7, 0–30; concurrent 0, 0–20, REVOKE_OLDEST), Devices, Passwords (freshness 15, 1–120; history 5, 0–24; breach platform-only), Sign-in protection (5, 3–20; 15 min, 1–1440; 60 min, 5–1440). |
+| H.2 | PASS | `AUTH_IDLE_TIMEOUT_MIN` 30 → 29 saved; tenant page showed 29; restored 30 and confirmed in HQ and tenant. Bounds 0–480 unchanged. |
+| H.3–H.5 | NOT RUN | No tenant override to enforce/clear. |
+| H.6 | PARTIAL (was FAIL) | HQ Add User without email succeeded: QA Sess HQ 1117, code QAHQ1117, Operator. Tenant sign-in by code failed twice (1a.1/1a.3). User deactivated. |
+| H.7 | FAIL | HQ create with case-variant and exact duplicate `QAHQ1117`: no duplicate user appeared, but no "already in use"/409 message shown. |
+| H.8 | NOT RUN | No disposable user could sign in. |
+
+Prior findings, Retest r3 2026-11-17: **FET-USL-S32 (255-minute lockout) FIXED** — "locked for 15 minutes". H.6 create-user 400 **FIXED** (create works); sign-in for that user still fails (new finding). 2.4 / 4.10 / 5.2 prior FAILs **not retested** (no signed-in disposable user). Password rules seen: at least 8 characters, an uppercase, a lowercase and a number; not current, not guessable, not previously used.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r3 2026-11-17)
+- **P1 FET-USL-Nov17-ActivityLogFails:** User Details → Activity shows "Could not load the activity log." for every user tried (08:3x, 08:42:53). It passed on 2026-10-09; likely an S0-lockdown grant/RLS regression on the audit tables. Blocks 0.4/0.6/5.3/6.15 evidence.
+- **P1 FET-USL-Nov17-DuplicateUserCodeAccepted:** Tenant profile accepted a user code already used by another user (1a.8), and HQ create gives no duplicate message (H.7). HQ Code Consistency (Human Friendly Codes guide, 07:57) already reports `USER / org_users_mst.user_code / DATA_DUPLICATES (1/8)`. Enforce case-insensitive uniqueness on update and show "already in use".
+- **P1 FET-USL-Nov17-NoEmailUserCannotSignIn:** HQ-created no-email user `QAHQ1117` cannot sign in by code with the password set at creation (two attempts, both cases).
+- **P1 FET-USL-Nov17-SetPasswordNoConfirm:** Set password in tenant and HQ leaves the dialog open with no success view or error — users cannot tell whether the password changed.
+- **P2 FET-USL-Nov17-SessionsTabMismatch:** Operator's Sessions tab shows no sessions while Active Sessions lists an active operator session.
+- **P3 FET-USL-Nov17-EndedReasonRawKeys:** Ended-session reasons partly show raw `authSession...` keys.
+- **P3 FET-USL-Nov17-InviteNoDisplayName:** Team Members invite has no display-name field; the user is named from the email (`qa.sess1117`).
+
+### Blocked
+- 1.3–1.6, 6.5 (plan has no tenant customization). 2.4 / 4.10 / 5.2 retests (no disposable user could sign in; set-password gives no confirmation).
+
+### Test data left behind
+- Tenant user `qa.sess1117` (`qa.sess1117@example.com`, code U000008, operator) — **inactive**; its code was briefly `QAHQ1117` and restored to U000008.
+- HQ user `QA Sess HQ 1117` (code QAHQ1117, operator, no email) — **inactive**.
+- HQ `AUTH_IDLE_TIMEOUT_MIN` back at 30. Language English. No shared account changed.

@@ -160,6 +160,7 @@
         "descriptionEnPlaceholder": "صف الاستثناء...",
         "descriptionAr": "الوصف (العربية)",
         "descriptionArPlaceholder": "وصف الاستثناء...",
+        "photos": "الصور (اختياري)",
         "types": {
           "MISSING": "صنف مفقود",
           "WRONG_ITEM": "صنف خاطئ",

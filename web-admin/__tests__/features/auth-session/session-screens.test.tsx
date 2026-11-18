@@ -39,6 +39,8 @@ jest.mock('@ui/feedback', () => ({
     warning: (...a: unknown[]) => mockMessage.warning(...a),
     info: (...a: unknown[]) => mockMessage.info(...a),
   },
+  // The sessions card badges the current device with CmxStatusBadge (UI PR-02).
+  CmxStatusBadge: ({ label, children }: { label?: React.ReactNode; children?: React.ReactNode }) => <span>{label ?? children}</span>,
   // Minimal stand-in: renders a confirm button only while open.
   CmxConfirmDialog: ({ open, onConfirm, onCancel, title }: { open: boolean; onConfirm: () => void; onCancel: () => void; title: string }) =>
     open ? (

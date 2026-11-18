@@ -50,3 +50,31 @@ Run each check in English and in Arabic. Where it says "dark", switch the mode i
 | 19 | A page with brand-coloured (aqua) badges | Look at them | They have a light aqua fill, not just an outline. |
 | 20 | A dropdown inside a clickable table row or card (if one exists), on a tablet or in touch emulation | Pick an option | Only the value changes; the row or card does not open. |
 | 21 | Storybook → Feedback / CmxStatusBadge, Forms / CmxSelectDropdown | Switch Mode (light/dark), Direction, Density | Badges readable in both modes; the select story "In dialog near bottom" behaves as #5–#6. |
+
+## PR-07 tasks 1–11 — Organization themes, sign-in brand, appearance (implemented 2026-11-17)
+
+**Setup:** migrations 0752, 0753, 0754, 0757 and 0759 applied; `cd web-admin && npm run dev`. You need two Organizations: one on PRO or ENTERPRISE (custom branding), and one on a lower plan. You also need one user with `settings:branding` and one without it.
+
+| # | Where | What to do | What to expect |
+|---|---|---|---|
+| 1 | Any page, Organization with no saved theme | Look around | Same look as before PR-07 (CleanMateX aqua). View the page source: there is no `<style id="cmx-theme">`. |
+| 2 | Settings → Branding | Open it | Logos card (main logo, dark logo, browser icon) and a Themes card that says the Organization uses the CleanMateX theme. |
+| 3 | Same, PRO Organization | New theme → name "Ocean", starting theme Ocean → Save; then **Use this theme** | "Theme saved", then "Theme is now in use". After the page reloads, buttons and links are blue. Hard-reload (Ctrl+F5): no flash of aqua first. |
+| 4 | Same | Edit "Ocean": primary colour `#FACC15` (yellow) | Under the field: "This colour is hard to read as text, so links and text use a darker shade…". The preview shows yellow buttons with dark text and a darker yellow link. Save: the app uses it. |
+| 5 | Same | Edit: Corners → Sharp, Save | Buttons, cards and inputs get square corners on the next page. |
+| 6 | Same | Try to delete the theme in use | There is no Delete button on it. Make another theme active, then delete the old one: "Theme deleted". |
+| 7 | Lower-plan Organization | New theme | The colours, corners and font block is disabled and says the plan does not include it. The app-name block is disabled too. Picking a starting theme and a default density still works. |
+| 8 | ENTERPRISE Organization | Edit the theme in use: app name "Sparkle" / "سباركل" | Sidebar and browser tab say "Sparkle" (Arabic: "سباركل") instead of CleanMateX. |
+| 9 | Settings → Branding, upload a main logo | Look at the sidebar | The logo replaces the "C" square. |
+| 10 | Sign out on that device | Look at the sign-in page | It shows that Organization's logo (and app name, if white-label) in its colours, not CleanMateX. On a different browser (first visit) it shows CleanMateX. |
+| 11 | User without `settings:branding` | Open Settings → Branding | Read-only: no New, Edit, Use or Delete buttons; logos can be viewed but not changed. |
+| 12 | User menu (top bar) → Appearance | Set density Compact and text size Large → Save | "Appearance saved"; the page becomes denser and the text larger. Reload: it stays. |
+| 13 | Same user on another browser or device | Sign in | Same Compact / Large (stored on the user, not the device). |
+| 14 | Shared tablet: user A (Large, Organization with its own colours and logo) signs out, user B (Medium, another Organization) signs in | Look at the sign-in page, then the first page after sign-in, without reloading | Sign-in page: A's brand at most, in normal text size. After sign-in: B's text size, colours, logo and app name, never A's. |
+| 19 | PRO Organization with its own colours and app name, moved to a lower plan | Rename its theme, Save; move it back to the higher plan | The rename saves. After the move back, the theme has its colours and app name again. |
+| 15 | Appearance → density "Same as the Organization"; Organization theme default density Compact | Reload | Compact. |
+| 16 | Customer mobile app / public order page | Open an Organization | Its brand colour matches its theme (blue for Ocean). |
+| 17 | An order receipt or tax invoice while the theme is Ocean | Print or preview | Prints in light colours with the main logo. |
+| 18 | Arabic | Repeat #3, #4, #7 and #12 | All texts in Arabic and laid out right to left; colour codes stay left to right. |
+
+**Not in this section:** dark mode (PR-07 task 6, after PR-05) and the HQ catalog screens (`cleanmatexsaas/docs/features/UI_Theme_Catalogs/`).

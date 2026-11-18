@@ -131,7 +131,6 @@ export const OrderIssueSchema = z.object({
   order_item_piece_id: z.string().uuid().nullable(),
   issue_code: z.string().min(1).max(50),
   issue_text: z.string(),
-  photo_url: z.string().url().nullable(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']),
   created_by: z.string().uuid().nullable(),
   created_at: z.string(),
@@ -189,7 +188,6 @@ export const CreateIssueRequestSchema = z
     orderItemPieceId: z.string().uuid().nullable().optional(),
     issueCode: z.string().min(1).max(50),
     issueText: z.string().min(3).max(1000),
-    photoUrl: z.string().url().optional(),
     priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
   })
   .superRefine((data, ctx) => {

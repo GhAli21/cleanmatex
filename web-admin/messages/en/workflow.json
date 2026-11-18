@@ -160,6 +160,7 @@
         "descriptionEnPlaceholder": "Describe the exception...",
         "descriptionAr": "Description (Arabic)",
         "descriptionArPlaceholder": "وصف الاستثناء...",
+        "photos": "Photos (optional)",
         "types": {
           "MISSING": "Missing item",
           "WRONG_ITEM": "Wrong item",

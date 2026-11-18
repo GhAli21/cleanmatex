@@ -65,7 +65,7 @@ jest.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
-import { completeFileUpload, deleteFile, FileUtilError, initFileUpload } from '@/lib/services/file-util/file-util.service';
+import { completeFileUpload, deleteFile, FileUtilError, initFileUpload, updateFile } from '@/lib/services/file-util/file-util.service';
 
 const T1 = '11111111-1111-1111-1111-111111111111';
 const T2 = '99999999-9999-9999-9999-999999999999';
@@ -262,10 +262,31 @@ describe('deleteFile', () => {
     expect(m.tenantUpdateMany).toHaveBeenCalledWith({ where: { id: T1 }, data: expect.objectContaining({ logo_url: null }) });
   });
 
+  it('refuses to delete a locked file (proof of a completed record)', async () => {
+    m.fileFindFirst.mockResolvedValueOnce({ entity_id: ORDER, purpose_code: 'DELIVERY_PROOF', status_code: 'READY', locked_at: new Date() });
+    await expectCode(deleteFile(T1, 'user-1', 'ORDER_FILE', FILE), 'FILE_LOCKED');
+    expect(m.fileUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('never deletes a file locked between the read and the write', async () => {
+    m.fileFindFirst.mockResolvedValueOnce({ entity_id: ORDER, purpose_code: 'DELIVERY_PROOF', status_code: 'READY', locked_at: null });
+    m.fileUpdateMany.mockResolvedValue({ count: 0 });
+    await expectCode(deleteFile(T1, 'user-1', 'ORDER_FILE', FILE), 'FILE_LOCKED');
+    expect(m.fileUpdateMany.mock.calls[0][0].where).toMatchObject({ locked_at: null, tenant_org_id: T1 });
+  });
+
   it('leaves the URL alone for files outside the published slot', async () => {
     m.fileFindFirst.mockResolvedValueOnce({ entity_id: ORDER, purpose_code: 'GALLERY', status_code: 'READY' });
     await deleteFile(T1, 'user-1', 'PRODUCT_IMAGE', FILE);
     expect(m.productUpdateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('updateFile', () => {
+  it('refuses to edit a locked file', async () => {
+    m.fileFindFirst.mockResolvedValueOnce({ mime_type: 'image/jpeg', purpose_code: 'DELIVERY_PROOF', entity_id: ORDER, locked_at: new Date() });
+    await expectCode(updateFile({ tenantId: T1, userId: 'user-1', categoryCode: 'ORDER_FILE', fileId: FILE, notes: 'x' }), 'FILE_LOCKED');
+    expect(m.fileUpdateMany).not.toHaveBeenCalled();
   });
 });
 

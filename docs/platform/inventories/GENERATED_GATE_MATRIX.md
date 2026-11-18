@@ -1,22 +1,23 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-16T20:26:34.269Z
-Git SHA: 00d5b0ae
+Generated: 2026-11-17T06:27:46.404Z
+Git SHA: 00fba8a4
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 169 |
-| Permission usages | 490 |
+| Access contracts | 170 |
+| Permission usages | 493 |
 | Feature flag usages | 86 |
 | Setting usages | 23 |
 | Plan limit usages | 2 |
 | Navigation entries | 111 |
-| Flag catalog entries | 298 |
+| Flag catalog entries | 295 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
 | --- | --- | --- | --- | --- |
 | /dashboard | Dashboard | — | — | 0 |
+| /dashboard/account/appearance | Appearance | — | — | 0 |
 | /dashboard/account/security | Account security | — | — | 0 |
 | /dashboard/assembly | Assembly | — | — | 0 |
 | /dashboard/assembly/[id] | Assembly Details | — | — | 0 |

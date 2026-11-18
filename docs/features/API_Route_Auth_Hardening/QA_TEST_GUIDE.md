@@ -26,3 +26,45 @@ Owner-runnable scenarios for the session/permission guards added across BF-23 (3
 
 - Scenarios 1–10 are from the original BF-23 implementation; 11 covers the BF-24 `settings/catalog`/`categories` session-check fix; 12–14 cover BF-25 (shadowed `getAuthContext()` in customers routes + `feature-flags.service.ts`).
 - None of these require a DB migration beyond the already-applied `0660` (BF-23) and `0663` (workflow-roles retirement, owner-applied).
+
+## Financial_Expert_Tester Results
+
+### Round 1 — 2026-11-17 (remote; admin, operator, viewer)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Roles available on Team Members (~09:08):** `admin@demo-laundry.example` = super_admin (there is **no** plain `admin` or `tenant_admin` account); operator; viewer; `ahmed@demo-laundry.example` "Ahmed Mohd" = cashier (no confirmed credentials); no `laundry_worker` account. None created or changed. Viewer and operator signed in once each in Incognito (both succeeded). Console/network API checks (rows 2, 11, 12, 13) were not run — UI only. Run 09:08–09:20. Source ledger on the tester box: `/workspace/qa-20261117/backlog/obs/B12-Q16-Q6.md`.
+
+**Recount (Round 1 2026-11-17, rows in the table below):** PASS 4 · FAIL 2 · PARTIAL 2 · BLOCKED 5 · NOT RUN 1.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 1 viewer Services | PASS | 09:12 viewer `/dashboard/catalog/services` → "Access not granted — need admin:manage permission to view Catalog & Pricing"; no New / Import / Export visible (stronger than expected). |
+| 2 viewer POST products | PARTIAL | Console POST not run. UI: viewer sees Add Customer (dialog opened, cancelled), Export CSV, and Customer → Addresses → Add Address (added "QA B12 viewer temp", no 403, then deleted). `products:create` 403 not exercised. |
+| 3 laundry_worker Processing | BLOCKED | No laundry_worker account; Processing broken (`sys_order_sources_cd`), order pages `photo_urls`. |
+| 4 operator Split | BLOCKED | Needs an order (order pages broken). |
+| 5 cashier Issues | BLOCKED | Cashier exists but no confirmed credentials; orders broken. |
+| 6 admin Categories read-only | BLOCKED | No plain `admin` account. As super_admin `/dashboard/catalog/categories` shows editable switches + "Save Categories"; viewer sees "Access not granted". |
+| 7 tenant_admin toggle + Save | FAIL | Done as super_admin (no tenant_admin): "Leather Care" off→on → Save Categories → red "Failed to reset categories"; reload: still OFF (nothing saved). |
+| 8 Workflow Roles | NOT RUN | Retired 2026-10-30 (skip per guide). |
+| 9 No Navigation item | PASS | Settings menu: General, All Settings, User Preferences, Team Members, Roles & Permissions, Permissions, Branding, Finance, Payment Setup, Workflows, Setup Health, Tenant Settings, Branch Settings, Business Calendar, Currencies & FX, Tax Setup, Cash Control, Security & Sessions, POS Settings, Labels & Tags — no Navigation; `/dashboard/settings/navigation` → 404. |
+| 10 Revoked session → Ready | BLOCKED | Needs a disposable signed-in user and a Ready order (neither available). |
+| 11 Catalog settings auth | PARTIAL | `/dashboard/settings/catalog` and `/dashboard/settings/categories` → 404 even as admin, so the "loads when signed in" half cannot be shown. Nearest `/dashboard/catalog/categories` loads signed in; unauthenticated Incognito → `/login?redirect=%2Fdashboard%2Fcatalog%2Fcategories` (09:10). Network 401 not checked. |
+| 12 Customers Export / merge | FAIL | Admin (super_admin) Export CSV → "Insufficient permissions. Only admins can export customer data." (no file). Operator and viewer both **see** Export CSV (09:13, 09:19). No Merge control for viewer/operator with 2 selected; admin merge not tried; nothing merged. |
+| 13 Address add / delete | PASS | 09:10 admin added "QA B12 temp" (QA Street 1 / QA Area / Muscat) on Jh Test dev21 (page shows "Jh Test Customer") → listed → deleted; only "My house" remains. Profile upgrade flow not exercised; unauthenticated 401 not checked. |
+| 14 ERP-Lite gating | PASS (gating) | No ERP-Lite menu; `/dashboard/erp-lite` → "This ERP-Lite module is not enabled — plan or published platform policy does not enable this area"; `/dashboard/erp-lite/accounts` 404. Enabled case not testable on Demo. |
+
+### Tester suggestions — Financial_Expert_Tester (Round 1 2026-11-17)
+- **P1 FET-AUTH-Nov17-SuperAdminExportDenied:** super_admin gets "Only admins can export customer data", while operator and viewer are shown the Export button. Treat super_admin as admin in the export check and hide Export for roles without the permission.
+- **P1 FET-AUTH-Nov17-CategoriesSaveFails:** Save Categories fails with "Failed to reset categories" (row 7's "previously 404" fix not visible). Also super_admin sees editable switches; confirm intended.
+- **P2 FET-AUTH-Nov17-ViewerCanWriteCustomers:** Viewer can open Add Customer and add/delete customer addresses. Row 13 allows "any tenant user" for addresses, but confirm the viewer role should create customers.
+- **P2 FET-AUTH-Nov17-CatalogSettingsRoutes404:** Guide row 11 URLs `/dashboard/settings/catalog` and `/dashboard/settings/categories` are 404; update the guide or restore the routes.
+- **P3 FET-AUTH-Nov17-RoleFixtures:** Demo has no plain admin, tenant_admin or laundry_worker account, and the cashier has no shared credentials, so rows 3, 5, 6, 7 cannot be run as written. Add these test accounts.
+- **P3 FET-AUTH-Nov17-JwtTestPage:** `/dashboard/jhtestui` (JWT debug page) is reachable in production (also "JWT Test" in the sidebar).
+
+### Blocked
+- 3, 4, 5, 10 (orders broken; missing laundry_worker / cashier credentials / disposable session), 6 (no plain admin account).
+
+### Test data left behind
+- None: both temporary addresses deleted (only "My house" remains on Jh Test dev21); Leather Care unchanged (Save failed). Operator Incognito session left signed in on the tester box.

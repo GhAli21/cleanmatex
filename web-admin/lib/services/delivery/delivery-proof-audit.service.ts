@@ -1,8 +1,8 @@
 import 'server-only';
 
-import { DELIVERY_EVIDENCE_BUCKET, DELIVERY_EVIDENCE_SIGNED_URL_TTL_SECONDS } from '@/lib/constants/delivery-evidence';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES } from '@/lib/constants/file-util';
 import { prisma } from '@/lib/db/prisma';
-import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { listFiles, type FileView } from '@/lib/services/file-util/file-util.service';
 import { logger } from '@/lib/utils/logger';
 import type {
   DeliveryProofAudit,
@@ -21,56 +21,19 @@ function toIso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
-function toStringArray(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
-    : [];
+/**
+ * The stop's proof: File Util files of the order tagged to the stop and locked by the delivery
+ * completion. Unlocked uploads (abandoned drafts) are not proof and are left out.
+ */
+function proofFilesOfStop(files: FileView[], stopId: string): { signature: FileView | null; photos: FileView[] } {
+  const ofStop = files.filter((f) => f.lockedAt && f.refTypeCode === FILE_REF_TYPES.DELIVERY_STOP && f.refId === stopId);
+  return {
+    signature: ofStop.find((f) => f.purposeCode === FILE_PURPOSES.ORDER_FILE.SIGNATURE) ?? null,
+    photos: ofStop.filter((f) => f.purposeCode === FILE_PURPOSES.ORDER_FILE.DELIVERY_PROOF),
+  };
 }
 
-function isSafeLegacyUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' || url.protocol === 'http:';
-  } catch {
-    return false;
-  }
-}
-
-function belongsToDeliveryEvidenceScope(tenantId: string, stopId: string, objectKey: string): boolean {
-  return objectKey.startsWith(`${tenantId}/delivery/${stopId}/`);
-}
-
-async function resolveEvidenceLink(params: {
-  tenantId: string;
-  stopId: string;
-  objectKey: string | null;
-  legacyUrl: string | null;
-}): Promise<DeliveryProofEvidenceLink | null> {
-  if (params.objectKey && belongsToDeliveryEvidenceScope(params.tenantId, params.stopId, params.objectKey)) {
-    const { data, error } = await createAdminSupabaseClient()
-      .storage
-      .from(DELIVERY_EVIDENCE_BUCKET)
-      .createSignedUrl(params.objectKey, DELIVERY_EVIDENCE_SIGNED_URL_TTL_SECONDS);
-
-    if (data?.signedUrl) {
-      return { url: data.signedUrl, source: 'private_signed' };
-    }
-
-    logger.warn('Delivery proof signing failed', {
-      tenantId: params.tenantId,
-      stopId: params.stopId,
-      error: error?.message ?? 'No signed URL returned',
-      feature: 'delivery',
-      action: 'read_proof_audit',
-    });
-  }
-
-  if (params.legacyUrl && isSafeLegacyUrl(params.legacyUrl)) {
-    return { url: params.legacyUrl, source: 'legacy' };
-  }
-
-  return null;
-}
+const link = (file: FileView): DeliveryProofEvidenceLink => ({ url: file.url, source: 'private_signed' });
 
 /**
  * Resolves authorized proof-of-delivery records without allowing object keys or
@@ -119,10 +82,6 @@ export class DeliveryProofAuditService {
             id: true,
             pod_method_code: true,
             pod_notes: true,
-            signature_object_key: true,
-            photo_object_keys: true,
-            signature_url: true,
-            photo_urls: true,
             verified_at: true,
             verified_by: true,
             created_by: true,
@@ -157,24 +116,29 @@ export class DeliveryProofAuditService {
       return [operator.user_id, operator.display_name?.trim() || operator.name?.trim() || fullName || null] as const;
     }));
 
-    const entries = (await Promise.all(stops.flatMap((stop) => stop.org_dlv_pod_tr.map(async (pod) => {
-      const signature = await resolveEvidenceLink({
-        tenantId,
-        stopId: stop.id,
-        objectKey: pod.signature_object_key,
-        legacyUrl: pod.signature_url,
-      });
-      const objectKeys = toStringArray(pod.photo_object_keys);
-      const legacyUrls = toStringArray(pod.photo_urls);
-      const photos = await Promise.all(Array.from(
-        { length: Math.max(objectKeys.length, legacyUrls.length) },
-        (_, index) => resolveEvidenceLink({
+    // One batch read + signing call for the whole order; a signing outage hides links, not the audit.
+    let proofFiles: FileView[] = [];
+    if (stops.some((stop) => stop.org_dlv_pod_tr.length > 0)) {
+      try {
+        proofFiles = await listFiles({
           tenantId,
-          stopId: stop.id,
-          objectKey: objectKeys[index] ?? null,
-          legacyUrl: legacyUrls[index] ?? null,
-        }),
-      ));
+          categoryCode: FILE_CATEGORIES.ORDER_FILE,
+          entityIds: [orderId],
+          purposeCodes: [FILE_PURPOSES.ORDER_FILE.SIGNATURE, FILE_PURPOSES.ORDER_FILE.DELIVERY_PROOF],
+        });
+      } catch (error) {
+        logger.warn('Delivery proof signing failed', {
+          tenantId,
+          orderId,
+          error: error instanceof Error ? error.message : String(error),
+          feature: 'delivery',
+          action: 'read_proof_audit',
+        });
+      }
+    }
+
+    const entries = stops.flatMap((stop) => stop.org_dlv_pod_tr.map((pod) => {
+      const proof = proofFilesOfStop(proofFiles, stop.id);
       const actorId = pod.verified_by ?? pod.created_by;
 
       return {
@@ -188,10 +152,10 @@ export class DeliveryProofAuditService {
         verifiedAt: toIso(pod.verified_at),
         deliveredBy: actorId ? operatorNames.get(actorId) ?? null : null,
         notes: pod.pod_notes,
-        signature,
-        photos: photos.filter((photo): photo is DeliveryProofEvidenceLink => photo !== null),
+        signature: proof.signature ? link(proof.signature) : null,
+        photos: proof.photos.map(link),
       } satisfies DeliveryProofAuditEntry;
-    })))).sort((left, right) => {
+    })).sort((left, right) => {
       const leftTime = left.verifiedAt ?? left.deliveredAt ?? '';
       const rightTime = right.verifiedAt ?? right.deliveredAt ?? '';
       return rightTime.localeCompare(leftTime);

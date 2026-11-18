@@ -55,3 +55,33 @@
 - The Custom count input clamps to its ceiling (100 for Bags; no DB ceiling for Hanging, but the UI still caps to a sane 9999) and reflects the clamped number back in the field.
 - Hanging count can be `0` or left as `NULL` in the database — both are valid.
 - If the field save succeeds but the automatic release retry fails for an unrelated reason (e.g., a different gate newly blocks it), the fields are still saved — only the release action needs a normal follow-up click.
+
+## Financial_Expert_Tester Results
+
+### Round 1 — 2026-11-17 (remote; all scenarios BLOCKED)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Why nothing ran:** every scenario needs an order in `ready` (or Processing/Packing with a rack-blocked action). No QA order could reach Ready today: Processing showed `permission denied for table sys_order_sources_cd` from ~05:00 (queue empty, Start Preparation refused "Current status: Processing", `/dashboard/ready/{id}` "Order not found", `/dashboard/ready` once "Unexpected token '<' … is not valid JSON"), and from ~07:00 all order pages failed with `The column org_orders_mst.photo_urls does not exist in the current database` after migration `0751_file_util_drop_photo_url_columns`. The Ready list was empty ("No orders in the Ready area"). Migration `0497` (rack fields) was not checked separately. Evidence: Q3/Q4 ledgers `/workspace/qa-20261117/backlog/obs/B2-Q3.md`, `B6-Q4.md`, `B9-Q11.md` on the tester box. Jest list above was not re-run.
+
+**Recount (Round 1 2026-11-17, rows in the table below):** PASS 0 · FAIL 0 · PARTIAL 0 · BLOCKED 5 · NOT RUN 1.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| Scenario 1 — Ready Details modal + auto-release | BLOCKED | No `ready` order without a rack (Ready list empty; Processing grant error, then `photo_urls`). |
+| Scenario 2 — Proactive Rack & Bags button | BLOCKED | No `ready` order with a rack. |
+| Scenario 3 — Cross-order conflict banner | BLOCKED | Needs two active racked orders for one customer; none reachable. |
+| Scenario 4 — WorkflowActionBar on Processing/Packing | BLOCKED | Processing queue empty with raw `permission denied for table sys_order_sources_cd`; `/dashboard/processing/{id}` "Order not found". |
+| Scenario 5 — Arabic / RTL | BLOCKED | Depends on Scenario 1. |
+| Scenario 6 — Cross-tenant GET rack-bags | NOT RUN | API/devtools check (UI-only scope); no other-tenant probing. |
+
+### Tester suggestions — Financial_Expert_Tester (Round 1 2026-11-17)
+- **P0 FET-RACK-Nov17-NoReadyPath:** Orders cannot reach Ready on cmx: Processing denies `sys_order_sources_cd` (S0 lockdown) and order pages fail on the dropped `photo_urls` column. Fix both, then re-run this guide with one disposable QA order moved to Ready.
+- **P3 FET-RACK-Nov17-FixtureNote:** Add a short fixture recipe to the guide (how to get a `ready` order with / without a rack, and a customer with a second racked order) so the scenarios can be run without DB edits.
+
+### Blocked
+- Scenarios 1–5 (no Ready / Processing order reachable; see above). Scenario 6 is API-only.
+
+### Test data left behind
+- None from this guide. (Run-wide QA orders `ORD-20261117-00001..00006` sit at Processing; see Q3/Q4/Q7 guides.)

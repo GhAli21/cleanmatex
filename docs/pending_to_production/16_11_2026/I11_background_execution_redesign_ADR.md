@@ -10,6 +10,7 @@
 3. Render HQ `platform-workers` owns external-provider delivery/reconciliation and storage-byte work. PostgreSQL remains the durable source for claim, outcome, retry, and audit state; BullMQ/Redis is not business-record authority.
 4. `platform-api/src/modules/jobs-need-api` remains absent. It may be created only for an Owner-approved exception that proves neither a fixed DB function nor a direct worker contract can satisfy the external requirement.
 5. `sys_ops_job_cf` is the HQ operator control plane. It records desired state and safe metadata, never arbitrary command text, URLs, secrets, or SQL. A scheduler may not be silently duplicated to make registry state look healthy.
+6. **Owner-approved notification convergence:** `org_ntf_outbox_dtl` remains the canonical tenant delivery state. HQ workers may claim and finalize only that tenant record through fixed database contracts. `hq_ntf_dispatch_log` is an operational/audit projection and cannot independently authorize or finalize a customer delivery.
 
 ## Approved target map
 
@@ -36,6 +37,10 @@ Remote evidence shows `cron.job` currently runs `tax-kit-update` at `5 2 * * *` 
 - define only fixed, audited metadata compatible with the new control-plane model;
 - prove before/after that one and only one `cron.job` row exists; and
 - be applied only by the Owner, followed by a remote read-only verification.
+
+**Current-state prerequisite:** the existing registry still restricts kinds to `PG_CRON`, completion modes to `SYNC|ASYNC_HTTP`, and requires stored restore SQL. Its HQ restore/run-now/state controls consume those legacy functions. The registry/action allowlist must be modernized compatibly before `tax-kit-update` is registered; adding the row alone would extend the model this ADR retires.
+
+**Applied implementation:** Owner applied `0755_ops_job_action_contract.sql` locally and remotely on 17 Nov 2026. It adds an observation-first action allowlist and V2 capability-gated control functions, then registers tax-kit after an exact scheduler preflight. It does not change `cron.job`. The HQ API/web source now consumes V2 capabilities; no mutation is enabled until a later per-executor decision grants it.
 
 ## Cutover and rollback
 

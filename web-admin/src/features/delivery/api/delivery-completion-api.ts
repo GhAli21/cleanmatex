@@ -1,4 +1,6 @@
 import { getCSRFToken, getCSRFTokenHeaderName } from '@/lib/utils/csrf-token';
+import { fetchFileConfig, FileUtilApiError, uploadFile } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
 import type { DeliveryPodMethod } from '@/lib/services/delivery/delivery-pod-method.service';
 import type { DeliveryStopView } from '@/lib/services/delivery/delivery-route-query.service';
 
@@ -9,10 +11,10 @@ interface ApiEnvelope<T> {
   error?: string;
 }
 
+/** A proof file uploaded for a stop; `id` is the File Util file id that completion locks. */
 export interface DeliveryEvidenceReceipt {
   id: string;
   evidenceType: 'signature' | 'photo';
-  expiresAt: string;
 }
 
 export interface CompleteDeliveryInput {
@@ -81,23 +83,38 @@ export async function listDeliveryPodMethods(stopId?: string): Promise<DeliveryP
   return readEnvelope<DeliveryPodMethod[]>(response);
 }
 
-/** Uploads one private proof file and returns a short-lived completion receipt. */
+/**
+ * Uploads one proof file through File Util: a private ORDER_FILE of the stop's order, tagged to
+ * the stop (signature → SIGNATURE, photo → DELIVERY_PROOF). The completion command then locks it.
+ */
 export async function uploadDeliveryEvidence(input: {
+  orderId: string;
   stopId: string;
   evidenceType: 'signature' | 'photo';
   file: File;
 }): Promise<DeliveryEvidenceReceipt> {
-  const formData = new FormData();
-  formData.append('evidenceType', input.evidenceType);
-  formData.append('file', input.file);
-
-  const response = await fetch(`/api/v1/delivery/stops/${input.stopId}/evidence`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: await csrfHeaders(),
-    body: formData,
-  });
-  return readEnvelope<DeliveryEvidenceReceipt>(response);
+  const csrfToken = await getCSRFToken();
+  if (!csrfToken) {
+    throw new DeliveryApiError('CSRF_UNAVAILABLE', 'Unable to verify this delivery request.');
+  }
+  try {
+    const config = await fetchFileConfig(FILE_CATEGORIES.ORDER_FILE);
+    const file = await uploadFile({
+      file: input.file,
+      imageMaxDimension: config.imageMaxDimension,
+      csrfToken,
+      category: FILE_CATEGORIES.ORDER_FILE,
+      purpose: input.evidenceType === 'signature' ? FILE_PURPOSES.ORDER_FILE.SIGNATURE : FILE_PURPOSES.ORDER_FILE.DELIVERY_PROOF,
+      entityId: input.orderId,
+      refType: FILE_REF_TYPES.DELIVERY_STOP,
+      refId: input.stopId,
+      source: FILE_SOURCES.ORDER_DELIVERY,
+    });
+    return { id: file.id, evidenceType: input.evidenceType };
+  } catch (error) {
+    if (error instanceof FileUtilApiError) throw new DeliveryApiError(error.code, 'Delivery evidence upload failed.');
+    throw error;
+  }
 }
 
 /** Sends the versioned atomic completion command after its proof receipts exist. */

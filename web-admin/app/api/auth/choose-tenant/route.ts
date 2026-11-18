@@ -15,6 +15,7 @@ import { notifyNewDeviceSignIn } from '@/lib/services/auth/session/use-cases/new
 import { emitNotificationEvent } from '@lib/notifications/event-emitter'
 import { selectSessionTenant } from '@/lib/auth/session-tenant'
 import { logger } from '@/lib/utils/logger'
+import { writeLastBrandCookie } from '@/lib/services/ui-theme.service'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -79,6 +80,9 @@ export async function POST(request: NextRequest) {
       ? { maxAge: Math.max(60, Math.floor((new Date(lifetime.expiresAt).getTime() - Date.now()) / 1000)) }
       : {}),
   })
+
+  // The login page shows this Organization's brand on this device next time (never fails sign-in).
+  await writeLastBrandCookie(cookieStore, row.tenant_org_id)
 
   const { data: userData } = await supabase.auth.getUser()
   if (userData.user && row.new_device) {

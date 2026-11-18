@@ -68,6 +68,17 @@ export const AUTH_SESSION_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
   },
   {
+    routePattern: '/dashboard/account/appearance',
+    label: 'Appearance',
+    // Self-service: every signed-in user sets their own density and text size; identity comes from the session.
+    page: {},
+    notes: ['Self-service screen: no RBAC permission; the API only reads and writes the signed-in user own sys_users_mst ui_* columns.'],
+    apiDependencies: [
+      { label: 'Read my appearance', method: 'GET', path: '/api/v1/me/ui-preferences', enforcement: 'auth_only' },
+      { label: 'Save my appearance', method: 'PUT', path: '/api/v1/me/ui-preferences', enforcement: 'auth_only' },
+    ],
+  },
+  {
     routePattern: '/dashboard/users/sessions',
     label: 'Active sessions',
     page: {

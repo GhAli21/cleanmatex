@@ -1,10 +1,9 @@
 /**
- * Tenant profile DTOs for the Settings → General and Settings → Branding pages.
+ * Tenant profile DTOs for the Settings → General page.
  *
  * These shapes mirror the form state in:
  *   - app/dashboard/settings/general/page.tsx
- *   - app/dashboard/settings/branding/page.tsx
- *
+ * *
  * The DB shape lives on `org_tenants_mst` (see migrations 0001, 0006, 0252).
  * Business hours have a different key/shape between DB and UI; conversion
  * happens in `lib/services/tenant-profile.service.ts` via `toDbHours` /
@@ -105,26 +104,4 @@ export interface GeneralSettingsInput {
   defaultLanguage: string;
   /** Absent leaves the stored hours unchanged (they are edited on Business Calendar). */
   businessHours?: UiBusinessHours;
-}
-
-// ---------- Branding settings DTO ----------
-
-/**
- *
- */
-export interface BrandingSettingsDto {
-  logo: string; // URL or '' when no logo set
-  primaryColor: string; // #RRGGBB
-  secondaryColor: string;
-  accentColor: string;
-}
-
-/**
- *
- */
-/** Brand colors. The logo is not part of this input: it is a File Util upload (TENANT_LOGO). */
-export interface BrandingSettingsInput {
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
 }

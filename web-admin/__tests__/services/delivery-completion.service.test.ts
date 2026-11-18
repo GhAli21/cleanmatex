@@ -124,7 +124,7 @@ describe('completeDelivery', () => {
     expect(mockStopUpdateMany).not.toHaveBeenCalled();
   });
 
-  it('consumes the exact tenant-stop receipt before committing the workflow transition', async () => {
+  it('locks the exact tenant-order-stop proof file before committing the workflow transition', async () => {
     const routeId = '66666666-6666-4666-8666-666666666666';
     const orderId = '77777777-7777-4777-8777-777777777777';
     mockQueryRaw
@@ -139,11 +139,7 @@ describe('completeDelivery', () => {
       }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ code: 'SIGNATURE' }])
-      .mockResolvedValueOnce([{
-        id: EVIDENCE_ID,
-        evidence_type: 'signature',
-        object_key: `${COMMAND.tenantId}/delivery/${COMMAND.stopId}/${EVIDENCE_ID}.jpeg`,
-      }])
+      .mockResolvedValueOnce([{ id: EVIDENCE_ID, purpose_code: 'SIGNATURE' }])
       .mockResolvedValueOnce([{ id: EVIDENCE_ID }]);
     mockExecuteAction.mockImplementationOnce(async () => {
       // CONFIRM_DELIVERY must see the stop as active while its staged gate runs.
@@ -160,22 +156,53 @@ describe('completeDelivery', () => {
     expect(mockPodCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         tenant_org_id: COMMAND.tenantId,
-        signature_object_key: `${COMMAND.tenantId}/delivery/${COMMAND.stopId}/${EVIDENCE_ID}.jpeg`,
-        photo_object_keys: [],
         pod_notes: COMMAND.podNotes,
       }),
     }));
     expect(mockQueryRaw).toHaveBeenCalledTimes(5);
+    // The file must be a READY, unlocked ORDER_FILE of this tenant, this stop's order and this stop.
+    const [select, ...selectValues] = mockQueryRaw.mock.calls[3];
+    expect(select.join('?')).toMatch(/FROM public\.org_file_mst[\s\S]*locked_at IS NULL[\s\S]*FOR UPDATE/);
+    expect(selectValues).toEqual(expect.arrayContaining([COMMAND.tenantId, orderId, COMMAND.stopId, 'ORDER_FILE', 'DELIVERY_STOP', 'READY', [EVIDENCE_ID]]));
+    // ...and is locked as proof in the same transaction.
+    const [lock, ...lockValues] = mockQueryRaw.mock.calls[4];
+    expect(lock.join('?')).toMatch(/UPDATE public\.org_file_mst[\s\S]*SET locked_at/);
+    expect(lockValues).toEqual(expect.arrayContaining([COMMAND.tenantId, [EVIDENCE_ID], COMMAND.actorUserId]));
     expect(mockExecuteAction).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: COMMAND.tenantId,
         orderId,
         actionCode: WORKFLOW_ACTIONS.CONFIRM_DELIVERY,
         channel: 'staff_web',
-        input: expect.objectContaining({ podId: '55555555-5555-4555-8555-555555555555' }),
+        input: expect.objectContaining({ podId: '55555555-5555-4555-8555-555555555555', signatureEvidenceId: EVIDENCE_ID, photoEvidenceIds: [] }),
       }),
       expect.anything(),
     );
+  });
+
+  it('rejects a proof file that is already used, unfinished, or from another stop', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([lockedStop()])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ code: 'SIGNATURE' }])
+      .mockResolvedValueOnce([]); // the locked-file query found nothing usable
+
+    await expect(completeDelivery({ ...COMMAND, signatureEvidenceId: EVIDENCE_ID }))
+      .rejects.toMatchObject<DeliveryCompletionError>({ code: 'POD_EVIDENCE_INVALID', httpStatus: 422 });
+    expect(mockPodCreate).not.toHaveBeenCalled();
+    expect(mockExecuteAction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a delivery photo offered as the signature', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([lockedStop()])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ code: 'SIGNATURE' }])
+      .mockResolvedValueOnce([{ id: EVIDENCE_ID, purpose_code: 'DELIVERY_PROOF' }]);
+
+    await expect(completeDelivery({ ...COMMAND, signatureEvidenceId: EVIDENCE_ID }))
+      .rejects.toMatchObject<DeliveryCompletionError>({ code: 'POD_EVIDENCE_INVALID', httpStatus: 422 });
+    expect(mockPodCreate).not.toHaveBeenCalled();
   });
 
   it('blocks pay-on-collection completion while an outstanding balance remains', async () => {
@@ -218,11 +245,7 @@ describe('completeDelivery', () => {
       .mockResolvedValueOnce([lockedStop()])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ code: 'MIXED' }])
-      .mockResolvedValueOnce([{
-        id: EVIDENCE_ID,
-        evidence_type: 'signature',
-        object_key: `${COMMAND.tenantId}/delivery/${COMMAND.stopId}/${EVIDENCE_ID}.jpeg`,
-      }]);
+      .mockResolvedValueOnce([{ id: EVIDENCE_ID, purpose_code: 'SIGNATURE' }]);
 
     await expect(completeDelivery({
       ...COMMAND,
@@ -282,11 +305,7 @@ describe('completeDelivery', () => {
     mockQueryRaw
       .mockResolvedValueOnce([lockedStop()])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{
-        id: photoId,
-        evidence_type: 'photo',
-        object_key: `${COMMAND.tenantId}/delivery/${COMMAND.stopId}/${photoId}.jpeg`,
-      }]);
+      .mockResolvedValueOnce([{ id: photoId, purpose_code: 'DELIVERY_PROOF' }]);
 
     await expect(completeDelivery({
       ...COMMAND,
@@ -324,8 +343,6 @@ describe('completeDelivery', () => {
     expect(mockPodCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         pod_method_code: 'POD',
-        signature_object_key: null,
-        photo_object_keys: [],
         pod_notes: COMMAND.podNotes,
       }),
     }));

@@ -941,3 +941,55 @@ Nothing persisted. Drafts discarded; order ORD-20261107-00001 unchanged at Revis
 
 ### Test data left behind
 Nothing applied/saved. Drafts discarded; order ORD-20261107-00001 still 4.783 OMR, 2 changes, rev3. No passwords changed. No Apply/payment/workflow changes; no messages/printing. Screens under `/workspace/qa-20261110/shots/`.
+
+## Financial_Expert_Tester Results — Retest r3 2026-11-17 (remote, approved writes on QA orders only)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Approved writes used:** QA orders (create, edit, Apply, price override, pay), one Speed Pricing rule (added then deactivated). PIECE commercial level / PIECE policy publish was approved but **not run** (time; order pages broke at ~07:00). Source ledger on the tester box: `/workspace/qa-20261117/backlog/obs/B6-Q4.md` (+ workspace evidence from `B2-Q3.md`). Original steps, prior rounds and Dev notes above are unchanged. Defect rechecks do not change the parent scenario counts (PARTIAL 12 / BLOCKED 11); today's row verdicts are below.
+**QA orders:** `ORD-20261117-00003` (Blouse 2.200 + Pants 1.000, Standard, Pay on Collection, 3.424 → 11.182 after a custom line) and `ORD-20261117-00004` (Express, Blouse 2.750 + Poncho overridden to 3.000, total 6.153, paid cash 7.000, change 0.850, voucher `RV-2026-000119`).
+
+**Recount (Retest r3 2026-11-17, rows in the table below):** PASS 0 · FAIL 3 · PARTIAL 6 · BLOCKED 5 · NOT RUN 6.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| FET-LLMS-Nov10-NoChangeOutstanding | FAIL (still) | ~06:05 `/dashboard/orders/823da8c8-…/edit` (-00003), customer-notes-only edit: "Review result: ACKNOWLEDGEMENT_REQUIRED • Current total: 3.424 • Estimated total: 3.4240 • Financial result: OUTSTANDING"; header chip "No money change / Total 3.424 OMR". After ticking the warning, first re-Review returned "STALE", second "READY" with the same OUTSTANDING. After notes-only Apply (~06:08) a dialog "Balance after this change: Collect 3.4240 OMR on the existing collection screen" (4 decimals). Edit History tab: "No edit history for this order". |
+| FET-LLMS-Nov07-WorkspaceTotal | FAIL (regressed) | Workspace header "Order total 0.000 OMR" vs snapshot 3.643 on `ORD-20261117-00001` and 0.000 vs 14.659 on `ORD-20261116-00002` (Q3 RV-05 evidence ~04:00). The r2 "fix holds" no longer holds on the `/workspace` route. |
+| S1 | PARTIAL | `/full` loads totals, payments and taxes for -00003/-00004 as admin. Role-restricted (no `orders:read`) check NOT RUN. |
+| S2 | NOT RUN | Needs a logged-out old-route check; not done. |
+| S3 | BLOCKED | Customer mobile app not available. |
+| S4 | NOT RUN | UI part not separated; TENANT_MISMATCH is Jest (skipped). |
+| S5 | PARTIAL | Admin override (reason "QA-20261117 override test") → "Price override applied successfully"; order created with Poncho 3.000. Override dialog "Calculated Price: 2.000 OMR" shows the base price, not the Express price 2.500; after override the Express premium is not applied to that line. Cashier-without-`pricing:override` refusal NOT RUN (no cashier password). |
+| S6 | BLOCKED | No tax-exempt customer fixture. |
+| S7 | NOT RUN | Written sign-off + Jest; skipped. |
+| S8 | PARTIAL | Step 3 PASS: -00004 Total 6.153, Paid 6.153, Balance Due 0.000 "Fully Paid"; cash message "Change rounded to the nearest cash increment, from OMR 0.847 to OMR 0.850"; voucher Order outstanding 0.00. Step 5 PASS: -00003 Total 11.182, Paid 0.000, Balance Due 11.182 (edit dialog "Collect 11.1820 OMR", 4 decimals). Payment Details panel on -00004 shows "Tax (VAT) 0.115" (the municipal part; order tax is 0.403 = VAT 0.288 + Municipal 0.115) with a stray "0" and raw keys `orders.detailFull.cardBrand` / `cardLastFour`. Step 1 Ready receipt NOT RUN (no Ready orders; `/orders/{id}/receipt` guess = 404). Steps 2, 4, 6–8 NOT RUN. |
+| S9 / S10 / S13 | BLOCKED | Edit policy at status processing: "Change Item Price is not allowed at the current status." / "Change Discount is not allowed at the current status."; item/qty/speed/add "needs an override before it can be saved". |
+| S11 | FAIL (create) | New Order with Blouse + Poncho + custom item "QA Curtain" 4.000 (Express 5.000, total 11.503), cash 12.000: Submit failed twice with "Some products have invalid IDs. Please refresh the page and try again."; no order created. Same cart without the custom line submitted. Step 4 (custom line via Edit) PASS with override: -00003 Edit → custom item "Curtain" 7.250 → reason "QA-20261117 custom line test" → READY → Apply → line `ORD-20261117-00003-3` 7.250, subtotal 10.450, total 11.182. Steps 2–3 NOT RUN. |
+| S14 | PARTIAL | `/dashboard/settings/finance` explains tax profiles + "Open Tax Setup" (step 3 PASS). `/dashboard/settings/tax` now shows "Tax kit Oman VAT · v2 … 10 tax codes, 17 rules". Orders carry VAT 5% 0.160 + Municipal 2% 0.064 on 3.200 = 0.224. Steps 4–6 NOT RUN. |
+| S15 | BLOCKED | Customer mobile app not available. |
+| S16 / S19 / S23 | NOT RUN | Promo/loyalty fixtures, product speed price screens and Quick Drop not examined. |
+| S17 | PARTIAL | `/dashboard/marketing/loyalty` loads (Bronze…VIP); Jh Test dev21 orders show Loyalty Points 0. Earn / paid-later cases NOT RUN. |
+| S18 | PARTIAL | `/dashboard/catalog/speed-pricing` ~06:15 (53 rules). Step 2 PASS: Express / All products / Percentage 0.25 → "Adds 25% to the normal price.", saved (from 2026-11-17, label QA-20261117 not shown in list). Step 3 PASS: duplicate → "Could not complete this: A rule for this speed, scope and start date already exists…". Step 4 PASS: "abc" → "Enter a number with up to 4 decimals, such as 0.30."; switching to Fixed extra amount clears the amount. Step 5 PASS: Which rule applies? Express 2026-11-17 → new rule "Applies", 2026-11-05 rule "Overridden"; Next day 2026-11-01 → "No rule applies…". Step 7 PASS: Delete → "Orders were priced with this rule, so it cannot be deleted. Deactivate it instead."; Deactivate has no confirm dialog. Step 8 PASS: Express re-priced Blouse 2.200→2.750 and Poncho 2.000→2.500, toast "The speed change re-priced 2 lines". Order Items tab still shows base 2.200/2.000. Steps 6, 9, 10, Arabic NOT RUN. |
+| S20 | NOT RUN | `/dashboard/reports/financial/tax` (guessed URL) = 404; report not located. |
+| S21 | NOT RUN | No retire/restore done. |
+| S22 | BLOCKED | PIECE commercial level + PIECE policy publish approved but not run before order pages broke; ITEM/PIECE rules still missing on STANDARD. |
+
+Other screens: Processing ~06:30 red banner "permission denied for table sys_order_sources_cd", "No orders in processing queue"; Ready "No orders in the Ready area"; Delivery loads but console 400 on `GET /api/v1/orders?status_filter=delivered…`; `/dashboard/orders-delivery` 404.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r3 2026-11-17)
+- **P2 FET-LLMS-Nov10-NoChangeOutstanding — Retest r3 2026-11-17: STILL BROKEN.** Notes-only Review still OUTSTANDING with Estimated 3.4240; first re-Review after acknowledging returns STALE; post-Apply dialog says "Collect 3.4240 OMR" for a notes-only change.
+- **P1 FET-LLMS-Nov07-WorkspaceTotal — Retest r3 2026-11-17: REGRESSED** on `/workspace` (header 0.000 vs snapshot). See Q3 FET-RV-Nov17-WorkspaceHeaderZero.
+- **P1 FET-LLMS-Nov17-CustomItemInvalidIds:** A New Order with a custom item cannot be submitted ("Some products have invalid IDs…"), twice; the same custom line can be added later through Edit. Accept custom lines at create (no product id) or explain how to add them.
+- **P1 FET-LLMS-Nov17-ProcessingSourcesGrant:** Processing shows raw `permission denied for table sys_order_sources_cd` and hides all processing orders since ~05:00 (S0 lockdown regression). Grant SELECT on `sys_order_sources_cd` to the app role (or read it through a definer function) and show a plain error.
+- **P2 FET-LLMS-Nov17-OverrideBaseNotSpeed:** Price override dialog shows "Calculated Price" at base (2.000) while the line is at Express 2.500, and the Order Items tab shows base prices under Express. Show the speed-adjusted price everywhere.
+- **P2 FET-LLMS-Nov17-PaymentPanelTax:** Payments tab "Tax (VAT) 0.115" shows only the municipal part of 0.403, with a stray "0" and raw keys `orders.detailFull.cardBrand` / `cardLastFour`.
+- **P3 FET-LLMS-Nov17-DeactivateNoConfirm:** Speed rule Deactivate has no confirmation; rule label is not shown in the list.
+
+### Blocked
+- S3, S15 (customer app); S6 (exemption fixture); S9/S10/S13 (edit policy at processing); S22 (PIECE level not set); S8 step 1 and all Ready receipts (no Ready orders; Processing grant error; from ~07:00 `photo_urls`).
+
+### Test data left behind
+- `ORD-20261117-00003` — unpaid, Pay on Collection, 3 lines incl. custom `Curtain` 7.250, total 11.182, notes "QA-20261117-LLMS edit1".
+- `ORD-20261117-00004` — paid 6.153 cash (tendered 7.000, change 0.850), voucher `RV-2026-000119`.
+- Speed rule Express / All products +25% from 2026-11-17 (label QA-20261117) — **deactivated** (cannot be deleted: orders priced with it).

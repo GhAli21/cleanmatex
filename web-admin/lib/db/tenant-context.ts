@@ -77,6 +77,17 @@ export function withTenantContextSync<T>(
  * @returns Tenant ID or null if not authenticated/no tenant
  */
 export async function getTenantIdFromSession(): Promise<string | null> {
+  return (await getSessionIdentity())?.tenantId ?? null;
+}
+
+/**
+ * The validated session's tenant and user, from one auth check (same rules as
+ * {@link getTenantIdFromSession}). `userId` is the Supabase auth user id, which is
+ * also `sys_users_mst.id`.
+ *
+ * @returns Tenant and user ids, or null if not authenticated/no active session
+ */
+export async function getSessionIdentity(): Promise<{ tenantId: string; userId: string } | null> {
   try {
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
@@ -92,7 +103,9 @@ export async function getTenantIdFromSession(): Promise<string | null> {
     ]);
     const validation = await guardSession(supabase, await getCurrentRequestMeta());
 
-    return validation.state === 'ACTIVE' ? validation.tenantOrgId : null;
+    return validation.state === 'ACTIVE' && validation.tenantOrgId
+      ? { tenantId: validation.tenantOrgId, userId: user.id }
+      : null;
   } catch (error) {
     console.error('[getTenantIdFromSession] Error:', error);
     return null;

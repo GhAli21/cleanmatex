@@ -153,7 +153,8 @@ describe('formatWorkflowStatusLabel', () => {
   it('pairs terminal and hold statuses with a matching badge tone', () => {
     expect(workflowStatusBadgeVariant('ready')).toBe('success');
     expect(workflowStatusBadgeVariant('on_hold')).toBe('warning');
-    expect(workflowStatusBadgeVariant('stopped')).toBe('error');
+    // CmxStatusBadge tones (UI PR-02): the red tone is `danger`.
+    expect(workflowStatusBadgeVariant('stopped')).toBe('danger');
     expect(workflowStatusBadgeVariant('intake')).toBe('info');
   });
 });

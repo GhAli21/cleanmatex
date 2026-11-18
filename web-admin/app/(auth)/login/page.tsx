@@ -23,6 +23,7 @@ import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { Alert, AlertDescription, CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives'
 import { CmxForm, CmxFormField } from '@ui/forms'
 import { TenantPickerDialog } from '@features/auth/ui/tenant-picker-dialog'
+import { useLoginBrand } from '@features/auth/ui/login-brand'
 import type { TenantChoiceResult } from '@/types/auth'
 
 interface LoginFormValues {
@@ -104,6 +105,9 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const { signIn, chooseTenant, signOut, isLoading } = useAuth()
   const t = useTranslations('auth')
+  // Brand of the Organization last signed in on this device; null = CleanMateX.
+  const brand = useLoginBrand()
+  const brandName = (useLocale() === 'ar' ? brand?.name2 ?? brand?.name : brand?.name) ?? null
 
   const form = useForm<LoginFormValues>({
     defaultValues: {
@@ -302,14 +306,20 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mx-auto w-full max-w-[17rem]">
-                  <Image
-                    src="/brand/cleanmatex-wordmark.png"
-                    alt={t('login.brandAlt')}
-                    width={920}
-                    height={320}
-                    className="h-auto w-full"
-                    priority
-                  />
+                  {brand?.logo ? (
+                    // Organization logo from File Util's public storage (host checked when the cookie is read).
+                    <img src={brand.logo} alt={brandName ?? t('login.brandAlt')} className="mx-auto max-h-24 w-auto object-contain" />
+                  ) : (
+                    <Image
+                      src="/brand/cleanmatex-wordmark.png"
+                      alt={t('login.brandAlt')}
+                      width={920}
+                      height={320}
+                      className="h-auto w-full"
+                      priority
+                    />
+                  )}
+                  {brandName ? <p className="mt-3 text-lg font-semibold text-foreground">{brandName}</p> : null}
                 </div>
 
                 <div className="space-y-2">

@@ -35,7 +35,8 @@
       "noFeatureFlags": "No feature flags found for this tenant.",
       "viewFullInventory": "View full inventory in Help →"
     },
-    "accountSecurity": "Account security"
+    "accountSecurity": "Account security",
+    "appearance": "Appearance"
   },
   "sidebar": {
     "currentTenant": "Current Tenant",

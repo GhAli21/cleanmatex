@@ -31,6 +31,8 @@ export interface CmxFileItem {
   /** User note, shown under the label. */
   notes?: string | null;
   sizeBytes?: number;
+  /** Proof of a completed record: shown without edit/delete. */
+  locked?: boolean;
 }
 
 export interface CmxFileGalleryProps {
@@ -107,7 +109,7 @@ export function CmxFileGallery({ items, loading, onOpen, onEdit, onDelete, readO
                 {item.notes || item.name}
               </p>
             </div>
-            {!readOnly && (onEdit || onDelete) && (
+            {!readOnly && !item.locked && (onEdit || onDelete) && (
               <div className="absolute end-1 top-1 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 {onEdit && (
                   <CmxButton size="icon" variant="secondary" className="h-7 w-7" onClick={() => onEdit(item)} aria-label={t('editFile', { name: item.name })}>

@@ -71,8 +71,8 @@ export const fileIdParamsSchema = z.object({ id: z.string().uuid() });
 
 /**
  * Guard chain for File Util routes: CSRF on writes (blocks cross-site form posts riding the
- * session cookie) → the category's read/write permission (tenant resolved server-side from the
- * authenticated session) → per-tenant API rate limit.
+ * session cookie) → any one of the category's read/write permissions (tenant resolved server-side
+ * from the authenticated session) → per-tenant API rate limit.
  *
  * @returns the auth context, or the response to return
  */
@@ -85,7 +85,12 @@ export async function guardFileRequest(
     const csrf = await validateCSRF(request);
     if (csrf) return csrf;
   }
-  const auth = await requirePermission(FILE_CATEGORY_ACCESS[category][mode])(request);
+  let auth: AuthContext | NextResponse = NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  for (const code of FILE_CATEGORY_ACCESS[category][mode]) {
+    auth = await requirePermission(code)(request);
+    // Only a permission denial (403) tries the next code; sign-in, tenant or timeout failures are final.
+    if (!(auth instanceof NextResponse) || auth.status !== 403) break;
+  }
   if (auth instanceof NextResponse) return auth;
   const rateLimit = await checkAPIRateLimitTenant(auth.tenantId);
   if (rateLimit) return rateLimit;

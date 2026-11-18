@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-16T20:26:34.269Z
+Generated: 2026-11-17T06:27:46.404Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
@@ -54,7 +54,7 @@ Generated: 2026-11-16T20:26:34.269Z
 | erp_lite_gl_enabled | navigation | config/navigation.ts | 772 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
 | erp_lite_po_enabled | navigation | config/navigation.ts | 804 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
 | getFeatureFlags | api | app/api/feature-flags/route.ts | 23 | const flags = await Promise.race([getFeatureFlags(tenantId), timeoutPromise]) |
-| getFeatureFlags | api | app/api/navigation/route.ts | 88 | const flags = await withTimeout(getFeatureFlags(tenantId), 3000) |
+| getFeatureFlags | api | app/api/navigation/route.ts | 91 | const flags = await withTimeout(getFeatureFlags(tenantId), 3000) |
 | getFeatureFlags | api | app/api/settings/tenants/[tenantId]/feature-flags/route.ts | 34 | const flags = await hqApiClient.getFeatureFlags({ |
 | getFeatureFlags | service | lib/api/hq-api-client.ts | 406 | async getFeatureFlags(options?: { authHeader?: string | null; search?: string }) { |
 | getFeatureFlags | workflow | lib/config/workflow-engine-v2.server.ts | 31 | const flags = await getFeatureFlags(tenantId); |
@@ -69,13 +69,13 @@ Generated: 2026-11-16T20:26:34.269Z
 | getFeatureFlags | service | lib/services/order-change/order-change-preview-reads.ts | 107 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/setup-health/setup-health.service.ts | 88 | getFeatureFlags(tenantOrgId), |
-| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 225 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 446 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 226 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 447 | const flags = await getFeatureFlags(tenantId); |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 544 | {plan.feature_flags.multi_branch && ( |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
 | multi_currency_fx | screen | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
-| online_booking | api | app/api/v1/public/customer/booking/route.ts | 381 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
-| online_booking | api | app/api/v1/public/customer/booking/route.ts | 710 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
+| online_booking | api | app/api/v1/public/customer/booking/route.ts | 382 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
+| online_booking | api | app/api/v1/public/customer/booking/route.ts | 711 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
 | order_fin_refund_execution | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 55 | const executionEnabled = await canAccess(tenantId, 'order_fin_refund_execution'); |
 | order_fin_refund_execution | screen | app/dashboard/internal_fin/refunds/page.tsx | 46 | currentTenantCan('order_fin_refund_execution').catch(() => false), |
 | order_fin_refund_execution | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 196 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |

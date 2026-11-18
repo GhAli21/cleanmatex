@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-16T20:26:30.564Z",
+  "extractedAt": "2026-11-17T05:47:05.351Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -35,7 +35,7 @@
       },
       {
         "path": "app/api/navigation/route.ts",
-        "line": 88,
+        "line": 91,
         "context": "const flags = await withTimeout(getFeatureFlags(tenantId), 3000)",
         "surface": "api",
         "pattern": "getFeatureFlags"
@@ -140,14 +140,14 @@
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 225,
+        "line": 226,
         "context": "const featureFlags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 446,
+        "line": 447,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -179,14 +179,14 @@
     "online_booking": [
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 381,
+        "line": 382,
         "context": "const bookingEnabled = await canAccess(tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"
       },
       {
         "path": "app/api/v1/public/customer/booking/route.ts",
-        "line": 710,
+        "line": 711,
         "context": "const bookingEnabled = await canAccess(body.tenantId, 'online_booking');",
         "surface": "api",
         "pattern": "canAccess"

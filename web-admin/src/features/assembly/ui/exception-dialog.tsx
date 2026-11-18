@@ -16,11 +16,17 @@ import {
 } from '@ui/forms';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useMessage } from '@ui/feedback/useMessage';
+import { cmxMessage } from '@ui/feedback';
+import { PendingFilesPicker, uploadFilesToRecord } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
+import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import type { AssemblyTaskItem } from '../hooks/use-assembly';
 import { AlertTriangle, X } from 'lucide-react';
 
 interface ExceptionDialogProps {
   taskId: string;
+  /** Order of the task; exception photos are saved as files of this order. */
+  orderId: string;
   items?: AssemblyTaskItem[];
   onClose: () => void;
   onSuccess?: () => void;
@@ -39,18 +45,23 @@ const SEVERITY_CODES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 /**
  * @param root0
  * @param root0.taskId
+ * @param root0.orderId
  * @param root0.items
  * @param root0.onClose
  * @param root0.onSuccess
  */
 export function ExceptionDialog({
   taskId,
+  orderId,
   items = [],
   onClose,
   onSuccess,
 }: ExceptionDialogProps) {
   const t = useTranslations('workflow.assembly.task.exception');
   const tTask = useTranslations('workflow.assembly.task');
+  const tFiles = useTranslations('fileUtil');
+  const { token: csrfToken } = useCSRFToken();
+  const [photos, setPhotos] = useState<File[]>([]);
   const [exceptionType, setExceptionType] = useState('');
   const [severity, setSeverity] = useState('MEDIUM');
   const [assemblyItemId, setAssemblyItemId] = useState('');
@@ -88,6 +99,22 @@ export function ExceptionDialog({
 
       if (result.success) {
         showSuccess(t('messages.success'));
+        // The exception id exists only now; photos upload in the background and report their own result.
+        if (result.exceptionId && photos.length > 0) {
+          void uploadFilesToRecord({
+            category: FILE_CATEGORIES.ORDER_FILE,
+            entityId: orderId,
+            purpose: FILE_PURPOSES.ORDER_FILE.ASSEMBLY_EXCEPTION,
+            source: FILE_SOURCES.ORDER_ASSEMBLY,
+            refType: FILE_REF_TYPES.ASM_EXCEPTION,
+            refId: result.exceptionId,
+            files: photos,
+            csrfToken,
+          }).then(({ saved, failed }) => {
+            if (failed > 0) cmxMessage.warning(tFiles('orderPhotosFailed', { failed }));
+            else cmxMessage.success(tFiles('orderPhotosSaved', { count: saved }));
+          });
+        }
         onSuccess?.();
         onClose();
       } else {
@@ -197,6 +224,15 @@ export function ExceptionDialog({
               dir="rtl"
             />
           </div>
+
+          <PendingFilesPicker
+            label={t('photos')}
+            category={FILE_CATEGORIES.ORDER_FILE}
+            purpose={FILE_PURPOSES.ORDER_FILE.ASSEMBLY_EXCEPTION}
+            files={photos}
+            onChange={setPhotos}
+            disabled={isSubmitting}
+          />
 
           <div className="flex justify-end gap-2 border-t pt-4">
             <CmxButton variant="outline" onClick={onClose} disabled={isSubmitting}>

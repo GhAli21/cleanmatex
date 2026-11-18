@@ -50,6 +50,21 @@ describe('/api/v1/file-util', () => {
     expect(mockInit.mock.calls[0][0]).toMatchObject({ tenantId: 'tenant-from-session', userId: 'u1' });
   });
 
+  it('lets floor staff with only orders:transition add order files', async () => {
+    mockRequirePermission.mockImplementation(async (code: string) =>
+      code === 'orders:transition' ? AUTH : NextResponse.json({ error: 'Forbidden' }, { status: 403 }));
+    const res = await POST(post(body('ORDER_FILE')));
+    expect(res.status).toBe(201);
+    expect(mockRequirePermission.mock.calls.map((c) => c[0])).toEqual(['orders:update', 'orders:transition']);
+  });
+
+  it('stops at a sign-in failure instead of trying the next permission', async () => {
+    mockRequirePermission.mockResolvedValue(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
+    const res = await POST(post(body('ORDER_FILE')));
+    expect(res.status).toBe(401);
+    expect(mockRequirePermission).toHaveBeenCalledTimes(1);
+  });
+
   it('returns the permission denial and never calls the service', async () => {
     mockRequirePermission.mockResolvedValue(NextResponse.json({ error: 'Forbidden' }, { status: 403 }));
     const res = await POST(post(body('ORDER_FILE')));

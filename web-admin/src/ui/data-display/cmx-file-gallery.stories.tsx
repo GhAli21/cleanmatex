@@ -13,7 +13,7 @@ const swatch = (fill: string, text: string) =>
 
 const ITEMS: CmxFileItem[] = [
   { id: '1', name: 'shirt-front.jpg', mimeType: 'image/jpeg', url: swatch('#2563eb', 'Before'), previewMode: 'IMAGE', label: 'Before processing', notes: 'Collar stain' },
-  { id: '2', name: 'shirt-after.jpg', mimeType: 'image/jpeg', url: swatch('#16a34a', 'After'), previewMode: 'IMAGE', label: 'After processing' },
+  { id: '2', name: 'shirt-after.jpg', mimeType: 'image/jpeg', url: swatch('#16a34a', 'After'), previewMode: 'IMAGE', label: 'Delivery proof', notes: 'Locked: proof of delivery (no edit/delete)', locked: true },
   { id: '3', name: 'care-instructions.pdf', mimeType: 'application/pdf', url: '#', previewMode: 'PDF', label: 'Customer document' },
   { id: '4', name: 'sleeve-tear.mp4', mimeType: 'video/mp4', url: '#', previewMode: 'VIDEO', label: 'Item video', notes: 'Tear on left sleeve' },
   { id: '5', name: 'price-list.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', url: '#', previewMode: 'DOWNLOAD', label: 'Other' },

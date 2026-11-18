@@ -85,6 +85,14 @@ function mount() {
   )
 }
 
+beforeAll(() => {
+  // jsdom lacks these; the Radix select (CmxSelectDropdown since UI PR-02) calls them on open.
+  Element.prototype.hasPointerCapture = () => false
+  Element.prototype.releasePointerCapture = () => {}
+  Element.prototype.scrollIntoView = () => {}
+  global.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as never
+})
+
 beforeEach(() => {
   permissions.clear()
   fetchConfig.mockReset().mockResolvedValue(CFG)
@@ -98,7 +106,8 @@ describe('LabelPrintingSettingsScreen', () => {
     expect(await screen.findByText('Order label')).toBeInTheDocument()
     expect(screen.getByText('Piece tag')).toBeInTheDocument()
     expect(screen.getByText('Receipt')).toBeInTheDocument()
-    expect(screen.getByText('Use default (4 × 6 in)')).toBeInTheDocument()
+    // The Radix select also renders its value in a hidden native <select>, so the text appears more than once.
+    expect(screen.getAllByText('Use default (4 × 6 in)')[0]).toBeInTheDocument()
     expect(screen.getByText('In use: 4 × 6 in (system default)')).toBeInTheDocument()
     expect(screen.getByText(labelSettings.receiptBarcodeNote)).toBeInTheDocument()
     expect(screen.getByText('View only')).toBeInTheDocument()
@@ -113,7 +122,7 @@ describe('LabelPrintingSettingsScreen', () => {
     const save = screen.getByRole('button', { name: 'Save' })
     expect(save).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('combobox', { name: 'Order barcode' }))
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Order barcode' }), { key: 'Enter' })
     fireEvent.click(await screen.findByRole('option', { name: 'Show' }))
     expect(screen.getByText('1 unsaved change')).toBeInTheDocument()
 

@@ -1080,7 +1080,6 @@ model org_orders_mst {
   prepared_by                                                                     String?                           @db.Uuid
   ready_by_override                                                               DateTime?                         @db.Timestamp(6)
   priority_multiplier                                                             Decimal?                          @default(1.0) @db.Decimal(4, 2)
-  photo_urls                                                                      Json?                             @default("[]")
   bag_count                                                                       Int?                              @default(1)
   service_category_code                                                           String?                           @db.VarChar(120)
   workflow_template_id                                                            String?                           @db.Uuid
@@ -1605,8 +1604,6 @@ model org_tenants_mst {
   updated_by                       String?
   updated_info                     String?
   logo_url                         String?                            @db.VarChar(500)
-  brand_color_primary              String?                            @default("#3B82F6") @db.VarChar(7)
-  brand_color_secondary            String?                            @default("#10B981") @db.VarChar(7)
   business_hours                   Json?                              @default("{\"fri\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"mon\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"sat\": {\"open\": \"09:00\", \"close\": \"14:00\"}, \"sun\": null, \"thu\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"tue\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"wed\": {\"open\": \"08:00\", \"close\": \"18:00\"}}")
   feature_flags                    Json?                              @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": true, \"advanced_analytics\": false, \"marketplace_listings\": false}")
   business_type                    String?                            @db.VarChar(50)
@@ -1620,7 +1617,6 @@ model org_tenants_mst {
   stng_profile_code                String?
   stng_profile_version_applied     Int?
   stng_profile_locked              Boolean?                           @default(false)
-  brand_color_accent               String?                            @default("#F59E0B")
   is_hq_test_demo                  Boolean                            @default(false)
   tax_pricing_mode                 String                             @default("TAX_EXCLUSIVE")
   extra_price_pricing_mode         String                             @default("INCLUDED_IN_ITEM_PRICE")
@@ -1801,6 +1797,7 @@ model org_tenants_mst {
   org_tax_rules_cf                 org_tax_rules_cf[]
   org_tenant_order_sources_cf      org_tenant_order_sources_cf[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
+  org_tenant_ui_theme_dtl          org_tenant_ui_theme_dtl[]
   org_tenant_workflow_settings_cf  org_tenant_workflow_settings_cf?
   org_tenant_workflow_templates_cf org_tenant_workflow_templates_cf[]
   sys_calendar_templates_mst       sys_calendar_templates_mst?        @relation(fields: [calendar_template_code], references: [calendar_code], onDelete: Restrict, onUpdate: Restrict, map: "fk_org_tnt_cal_template")
@@ -2263,7 +2260,6 @@ model org_order_issues {
   order_item_id                            String?                    @db.Uuid
   issue_code                               String
   issue_text                               String
-  photo_url                                String?
   priority                                 String?                    @default("normal")
   created_by                               String?                    @db.Uuid
   created_at                               DateTime?                  @default(now()) @db.Timestamptz(6)
@@ -5256,7 +5252,6 @@ model org_asm_exceptions_tr {
   severity            String?           @default("MEDIUM") @db.VarChar(20)
   description         String
   description2        String?
-  photo_urls          Json?             @default("[]")
   notes               String?
   exception_status    String?           @default("OPEN") @db.VarChar(50)
   resolved_at         DateTime?         @db.Timestamp(6)
@@ -5372,7 +5367,6 @@ model org_asm_tasks_mst {
   qa_by                     String?                     @db.Uuid
   qa_at                     DateTime?                   @db.Timestamp(6)
   qa_note                   String?
-  qa_photo_url              String?
   packaging_type_code       String?                     @db.VarChar(50)
   packing_note              String?
   packed_at                 DateTime?                   @db.Timestamp(6)
@@ -5410,33 +5404,29 @@ model org_asm_tasks_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_dlv_pod_tr {
-  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  stop_id              String            @db.Uuid
-  tenant_org_id        String            @db.Uuid
-  pod_method_code      String            @db.VarChar(50)
-  otp_code             String?           @db.VarChar(10)
-  otp_verified         Boolean?          @default(false)
-  signature_url        String?
-  photo_urls           Json?             @default("[]")
-  verified_at          DateTime?         @db.Timestamp(6)
-  verified_by          String?           @db.Uuid
-  metadata             Json?             @default("{}")
-  is_active            Boolean           @default(true)
-  rec_status           Int?              @default(1) @db.SmallInt
-  rec_order            Int?
-  rec_notes            String?           @db.VarChar(200)
-  created_at           DateTime?         @default(now()) @db.Timestamp(6)
-  created_by           String?           @db.VarChar(120)
-  created_info         String?
-  updated_at           DateTime?         @db.Timestamp(6)
-  updated_by           String?           @db.VarChar(120)
-  updated_info         String?
-  branch_id            String?           @db.Uuid
-  pod_notes            String?
-  signature_object_key String?
-  photo_object_keys    Json              @default("[]")
-  org_branches_mst     org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_pod_branch")
-  org_dlv_stops_dtl    org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_pod_stop")
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stop_id           String            @db.Uuid
+  tenant_org_id     String            @db.Uuid
+  pod_method_code   String            @db.VarChar(50)
+  otp_code          String?           @db.VarChar(10)
+  otp_verified      Boolean?          @default(false)
+  verified_at       DateTime?         @db.Timestamp(6)
+  verified_by       String?           @db.Uuid
+  metadata          Json?             @default("{}")
+  is_active         Boolean           @default(true)
+  rec_status        Int?              @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?           @db.VarChar(200)
+  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_by        String?           @db.VarChar(120)
+  created_info      String?
+  updated_at        DateTime?         @db.Timestamp(6)
+  updated_by        String?           @db.VarChar(120)
+  updated_info      String?
+  branch_id         String?           @db.Uuid
+  pod_notes         String?
+  org_branches_mst  org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_pod_branch")
+  org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_pod_stop")
 
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_dlv_pod_created")
   @@index([stop_id], map: "idx_dlv_pod_stop")
@@ -5566,39 +5556,38 @@ model org_dlv_slots_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_dlv_stops_dtl {
-  id                    String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  route_id              String                  @db.Uuid
-  order_id              String                  @db.Uuid
-  tenant_org_id         String                  @db.Uuid
-  sequence              Int
-  address               String
-  address_lat           Decimal?                @db.Decimal(10, 8)
-  address_lng           Decimal?                @db.Decimal(11, 8)
-  stop_status_code      String?                 @default("pending") @db.VarChar(50)
-  scheduled_time        DateTime?               @db.Timestamp(6)
-  estimated_arrival     DateTime?               @db.Timestamp(6)
-  actual_time           DateTime?               @db.Timestamp(6)
-  contact_name          String?                 @db.VarChar(255)
-  contact_phone         String?                 @db.VarChar(50)
-  notes                 String?
-  is_active             Boolean                 @default(true)
-  rec_status            Int?                    @default(1) @db.SmallInt
-  rec_order             Int?
-  rec_notes             String?                 @db.VarChar(200)
-  created_at            DateTime?               @default(now()) @db.Timestamp(6)
-  created_by            String?                 @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
-  updated_by            String?                 @db.VarChar(120)
-  updated_info          String?
-  branch_id             String?                 @db.Uuid
-  confirm_level         String?
-  confirm_notes         String?
-  org_dlv_ev_uploads_tr org_dlv_ev_uploads_tr[]
-  org_dlv_pod_tr        org_dlv_pod_tr[]
-  org_orders_mst        org_orders_mst          @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
-  org_dlv_routes_mst    org_dlv_routes_mst      @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
-  org_branches_mst      org_branches_mst?       @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_stops_branch")
+  id                 String             @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  route_id           String             @db.Uuid
+  order_id           String             @db.Uuid
+  tenant_org_id      String             @db.Uuid
+  sequence           Int
+  address            String
+  address_lat        Decimal?           @db.Decimal(10, 8)
+  address_lng        Decimal?           @db.Decimal(11, 8)
+  stop_status_code   String?            @default("pending") @db.VarChar(50)
+  scheduled_time     DateTime?          @db.Timestamp(6)
+  estimated_arrival  DateTime?          @db.Timestamp(6)
+  actual_time        DateTime?          @db.Timestamp(6)
+  contact_name       String?            @db.VarChar(255)
+  contact_phone      String?            @db.VarChar(50)
+  notes              String?
+  is_active          Boolean            @default(true)
+  rec_status         Int?               @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?            @db.VarChar(200)
+  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  created_by         String?            @db.VarChar(120)
+  created_info       String?
+  updated_at         DateTime?          @db.Timestamp(6)
+  updated_by         String?            @db.VarChar(120)
+  updated_info       String?
+  branch_id          String?            @db.Uuid
+  confirm_level      String?
+  confirm_notes      String?
+  org_dlv_pod_tr     org_dlv_pod_tr[]
+  org_orders_mst     org_orders_mst     @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
+  org_dlv_routes_mst org_dlv_routes_mst @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
+  org_branches_mst   org_branches_mst?  @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_stops_branch")
 
   @@id([id, tenant_org_id], map: "pk_org_dlv_stops_dtl")
   @@unique([tenant_org_id, route_id, order_id])
@@ -5606,38 +5595,6 @@ model org_dlv_stops_dtl {
   @@index([route_id], map: "idx_dlv_stops_route")
   @@index([tenant_org_id, scheduled_time], map: "idx_dlv_stops_scheduled")
   @@index([route_id, stop_status_code], map: "idx_dlv_stops_status")
-  @@schema("public")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model org_dlv_ev_uploads_tr {
-  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id     String            @db.Uuid
-  stop_id           String            @db.Uuid
-  evidence_type     String
-  object_key        String
-  content_type      String
-  file_size_bytes   Int
-  sha256_hex        String
-  upload_status     String            @default("uploaded")
-  expires_at        DateTime          @db.Timestamp(6)
-  consumed_at       DateTime?         @db.Timestamp(6)
-  consumed_by       String?           @db.Uuid
-  is_active         Boolean           @default(true)
-  rec_status        Int               @default(1) @db.SmallInt
-  rec_order         Int?
-  rec_notes         String?
-  created_at        DateTime          @default(now()) @db.Timestamp(6)
-  created_by        String?
-  created_info      String?
-  updated_at        DateTime?         @db.Timestamp(6)
-  updated_by        String?
-  updated_info      String?
-  org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_dlv_ev_upload_stop")
-
-  @@unique([tenant_org_id, object_key], map: "uq_dlv_ev_upload_key")
-  @@index([tenant_org_id, stop_id, upload_status], map: "idx_dlv_ev_up_stop")
   @@schema("public")
 }
 
@@ -5728,7 +5685,6 @@ model org_qa_decisions_tr {
   qa_by              String            @db.Uuid
   qa_at              DateTime?         @default(now()) @db.Timestamp(6)
   qa_note            String?
-  qa_photo_url       String?
   is_active          Boolean           @default(true)
   rec_status         Int?              @default(1) @db.SmallInt
   rec_order          Int?
@@ -16285,6 +16241,7 @@ model sys_ops_job_cf {
   rec_order           Int?
   rec_notes           String?
   restore_command     String?
+  operator_actions    String[]              @default(["OBSERVE"])
   sys_ops_job_run_dtl sys_ops_job_run_dtl[]
 
   @@index([module, category], map: "idx_sys_ops_job_cf_mod_cat")
@@ -18439,6 +18396,9 @@ model sys_users_mst {
   updated_at            DateTime?        @db.Timestamptz(6)
   updated_by            String?
   updated_info          String?
+  ui_color_mode         String           @default("SYSTEM")
+  ui_density            String?
+  ui_font_scale         String           @default("MD")
   org_tenants_mst       org_tenants_mst? @relation(fields: [last_chosen_tenant_id], references: [id], onUpdate: NoAction, map: "fk_sys_users_hint_tenant")
 
   @@schema("public")
@@ -18486,6 +18446,8 @@ model org_file_mst {
   rec_order              Int?
   rec_notes              String?
   is_active              Boolean                @default(true)
+  locked_at              DateTime?              @db.Timestamptz(6)
+  locked_by              String?
   sys_file_bucket_cd     sys_file_bucket_cd     @relation(fields: [bucket_code], references: [bucket_code], onUpdate: NoAction, map: "fk_ofm_bucket")
   sys_file_mime_types_cd sys_file_mime_types_cd @relation(fields: [mime_type], references: [mime_type], onUpdate: NoAction, map: "fk_ofm_mime")
   sys_file_purpose_cd    sys_file_purpose_cd    @relation(fields: [category_code, purpose_code], references: [category_code, purpose_code], onUpdate: NoAction, map: "fk_ofm_purpose")
@@ -18831,6 +18793,145 @@ model sys_file_status_cd {
   is_active     Boolean        @default(true)
   org_file_mst  org_file_mst[]
 
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ui_font_pair_cd {
+  code                    String                    @id(map: "pk_sys_ui_font_pair_cd")
+  name                    String
+  name2                   String?
+  font_family_en          String
+  font_family_ar          String
+  is_default              Boolean                   @default(false)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?                 @db.Timestamptz(6)
+  updated_by              String?
+  updated_info            String?
+  updated_count           Int                       @default(0)
+  deleted_at              DateTime?                 @db.Timestamptz(6)
+  deleted_by              String?
+  deleted_info            String?
+  rec_status              Int                       @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean                   @default(true)
+  org_tenant_ui_theme_dtl org_tenant_ui_theme_dtl[]
+  sys_ui_theme_cd         sys_ui_theme_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ui_radius_cd {
+  code                    String                    @id(map: "pk_sys_ui_radius_cd")
+  name                    String
+  name2                   String?
+  radius_sm               String
+  radius_md               String
+  radius_lg               String
+  is_default              Boolean                   @default(false)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?                 @db.Timestamptz(6)
+  updated_by              String?
+  updated_info            String?
+  updated_count           Int                       @default(0)
+  deleted_at              DateTime?                 @db.Timestamptz(6)
+  deleted_by              String?
+  deleted_info            String?
+  rec_status              Int                       @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean                   @default(true)
+  org_tenant_ui_theme_dtl org_tenant_ui_theme_dtl[]
+  sys_ui_theme_cd         sys_ui_theme_cd[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ui_theme_cd {
+  code                    String                    @id(map: "pk_sys_ui_theme_cd")
+  name                    String
+  name2                   String?
+  description             String?
+  description2            String?
+  brand_color_primary     String
+  brand_color_secondary   String
+  ui_radius_code          String
+  ui_font_pair_code       String
+  is_default              Boolean                   @default(false)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?                 @db.Timestamptz(6)
+  updated_by              String?
+  updated_info            String?
+  updated_count           Int                       @default(0)
+  deleted_at              DateTime?                 @db.Timestamptz(6)
+  deleted_by              String?
+  deleted_info            String?
+  rec_status              Int                       @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean                   @default(true)
+  org_tenant_ui_theme_dtl org_tenant_ui_theme_dtl[]
+  sys_ui_font_pair_cd     sys_ui_font_pair_cd       @relation(fields: [ui_font_pair_code], references: [code], onUpdate: Restrict, map: "fk_suit_font_pair")
+  sys_ui_radius_cd        sys_ui_radius_cd          @relation(fields: [ui_radius_code], references: [code], onUpdate: Restrict, map: "fk_suit_radius")
+
+  @@index([ui_font_pair_code], map: "idx_suit_font_pair")
+  @@index([ui_radius_code], map: "idx_suit_radius")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tenant_ui_theme_dtl {
+  id                    String               @id(map: "pk_org_tenant_ui_theme_dtl") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String               @db.Uuid
+  theme_name            String
+  theme_name2           String?
+  ui_theme_code         String
+  brand_color_primary   String?
+  brand_color_secondary String?
+  ui_radius_code        String?
+  ui_font_pair_code     String?
+  default_ui_density    String?
+  app_display_name      String?
+  app_display_name2     String?
+  created_at            DateTime             @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime?            @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  updated_count         Int                  @default(0)
+  deleted_at            DateTime?            @db.Timestamptz(6)
+  deleted_by            String?
+  deleted_info          String?
+  rec_status            Int                  @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean              @default(false)
+  sys_ui_font_pair_cd   sys_ui_font_pair_cd? @relation(fields: [ui_font_pair_code], references: [code], onDelete: Restrict, onUpdate: Restrict, map: "fk_otut_font_pair")
+  sys_ui_radius_cd      sys_ui_radius_cd?    @relation(fields: [ui_radius_code], references: [code], onDelete: Restrict, onUpdate: Restrict, map: "fk_otut_radius")
+  org_tenants_mst       org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otut_tenant")
+  sys_ui_theme_cd       sys_ui_theme_cd      @relation(fields: [ui_theme_code], references: [code], onUpdate: Restrict, map: "fk_otut_theme")
+
+  @@unique([id, tenant_org_id], map: "uq_otut_id_tenant")
+  @@index([tenant_org_id, rec_status, theme_name], map: "idx_otut_tenant_list")
+  @@index([ui_theme_code], map: "idx_otut_theme")
   @@schema("public")
 }
 

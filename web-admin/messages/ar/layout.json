@@ -35,7 +35,8 @@
       "noFeatureFlags": "لم يتم العثور على علامات ميزات لهذا المستأجر.",
       "viewFullInventory": "عرض المخزون الكامل في المساعدة ←"
     },
-    "accountSecurity": "أمان الحساب"
+    "accountSecurity": "أمان الحساب",
+    "appearance": "المظهر"
   },
   "sidebar": {
     "currentTenant": "المستأجر الحالي",

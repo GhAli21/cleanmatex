@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+import { getTenantPrimaryColor } from '@/lib/services/ui-theme.service';
 
 /**
  *
@@ -40,7 +41,7 @@ export async function resolveTenantBySlug(
 
     const { data, error } = await supabase
       .from('org_tenants_mst')
-      .select('id, name, name2, logo_url, brand_color_primary, slug')
+      .select('id, name, name2, logo_url, slug')
       .eq('slug', slug)
       .eq('is_active', true)
       .single();
@@ -54,7 +55,8 @@ export async function resolveTenantBySlug(
       name: (data.name as string) ?? '',
       name2: (data.name2 as string | null) ?? null,
       logoUrl: (data.logo_url as string | null) ?? null,
-      primaryColor: (data.brand_color_primary as string | null) ?? null,
+      // From the Organization's theme (HQ theme + plan-gated overrides).
+      primaryColor: await getTenantPrimaryColor(data.id as string),
     };
   } catch (err) {
     logger.error(

@@ -1,7 +1,7 @@
 /**
- * Tenant profile service — backs the Settings → General and Settings →
- * Branding pages by reading and writing first-class columns on
- * `org_tenants_mst`.
+ * Tenant profile service — backs the Settings → General page by reading and
+ * writing first-class columns on `org_tenants_mst`. Branding (themes, colours)
+ * lives in org-ui-theme.service.ts; the logo is a File Util upload.
  *
  * NOT to be confused with `tenant-settings.service.ts`, which deals with the
  * extensible per-tenant settings catalog (`sys_tenant_settings_cd`) resolved
@@ -20,8 +20,6 @@ import type { Database, Json } from '@/types/database';
 
 type OrgTenantUpdate = Database['public']['Tables']['org_tenants_mst']['Update'];
 import type {
-  BrandingSettingsDto,
-  BrandingSettingsInput,
   DbBusinessHours,
   DbDayHours,
   GeneralSettingsDto,
@@ -108,12 +106,12 @@ export function fromDbHours(hours: DbBusinessHours | null | undefined): UiBusine
 // Profile read
 // =============================================================================
 
-/** Columns on `org_tenants_mst` present in generated `Database` types (accent may exist in DB after migration 0252). */
+/** Columns on `org_tenants_mst` for the General view. */
 const PROFILE_COLUMNS =
-  'id, name, name2, email, phone, address, city, country, currency, timezone, language, business_hours, logo_url, brand_color_primary, brand_color_secondary';
+  'id, name, name2, email, phone, address, city, country, currency, timezone, language, business_hours';
 
 /**
- * Load the General + Branding view of a tenant in one round-trip, plus the
+ * Load the General view of a tenant, plus the
  * lock flags driven by whether any orders already exist for the tenant.
  *
  * @param tenantOrgId — tenant id, MUST come from the authenticated session,
@@ -121,7 +119,7 @@ const PROFILE_COLUMNS =
  */
 export async function getTenantProfile(
   tenantOrgId: string
-): Promise<{ general: GeneralSettingsDto; branding: BrandingSettingsDto }> {
+): Promise<{ general: GeneralSettingsDto }> {
   const supabase = await createServerSupabaseClient();
 
   const { data, error } = await supabase
@@ -157,14 +155,7 @@ export async function getTenantProfile(
     isLocked: { currency: hasOrders, country: hasOrders },
   };
 
-  const branding: BrandingSettingsDto = {
-    logo: data.logo_url ?? '',
-    primaryColor: data.brand_color_primary ?? '#3B82F6',
-    secondaryColor: data.brand_color_secondary ?? '#10B981',
-    accentColor: '#F59E0B',
-  };
-
-  return { general, branding };
+  return { general };
 }
 
 async function tenantHasOrders(tenantOrgId: string): Promise<boolean> {
@@ -305,54 +296,4 @@ export async function updateTenantGeneral(
 
   const { general } = await getTenantProfile(tenantOrgId);
   return general;
-}
-
-/** Branding after a save. */
-export interface UpdateBrandingResult {
-  branding: BrandingSettingsDto;
-}
-
-/**
- * Saves the brand colors. `logo_url` is not written here: File Util publishes it when the
- * TENANT_LOGO/MAIN file changes.
- * @param tenantOrgId organization resolved from the session
- * @param input brand colors
- * @param audit acting user
- */
-export async function updateTenantBranding(
-  tenantOrgId: string,
-  input: BrandingSettingsInput,
-  audit: AuditMeta
-): Promise<UpdateBrandingResult> {
-  const supabase = await createServerSupabaseClient();
-
-  const update = {
-    brand_color_primary: input.primaryColor,
-    brand_color_secondary: input.secondaryColor,
-    brand_color_accent: input.accentColor,
-    updated_at: new Date().toISOString(),
-    updated_by: audit.userId,
-    updated_info: audit.userInfo ?? null,
-  } as OrgTenantUpdate;
-
-  const { data: updated, error } = await supabase
-    .from('org_tenants_mst')
-    .update(update)
-    .eq('id', tenantOrgId)
-    .select('id');
-
-  if (!error && (!updated || updated.length === 0)) {
-    throw new TenantProfileError('NOT_FOUND', 'Tenant not found');
-  }
-  if (error) {
-    logger.error(
-      'tenant-profile: updateTenantBranding failed',
-      new Error(error.message),
-      { tenantId: tenantOrgId }
-    );
-    throw new TenantProfileError('INTERNAL', 'Failed to update branding settings');
-  }
-
-  const { branding } = await getTenantProfile(tenantOrgId);
-  return { branding };
 }

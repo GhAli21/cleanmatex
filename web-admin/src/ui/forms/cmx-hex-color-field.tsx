@@ -2,7 +2,9 @@
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
 import { type ChangeEvent, useCallback, useId, useMemo } from 'react';
-import { CmxButton, CmxInput } from '@ui/primitives';
+// Direct files, not the @ui/primitives barrel: the barrel loads the money field and its server action.
+import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxInput } from '@ui/primitives/cmx-input';
 import { COLOR_HEX_PICKER_FALLBACK } from '@/lib/constants/css-color';
 import { bridgeHexForNativePicker, parseCssHexToFull } from '@/lib/utils/color-hex';
 import { CmxFieldShell } from './cmx-field-shell';

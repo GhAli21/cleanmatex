@@ -16,7 +16,7 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxTextarea, CmxInput, Label, CmxSpinner } from '@ui/primitives';
+import { CmxButton, CmxTextarea, Label, CmxSpinner } from '@ui/primitives';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
@@ -26,6 +26,8 @@ import {
 } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
+import { PendingFilesPicker, uploadFilesToRecord } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
 import {
   DEFAULT_PRIORITY,
   ORDER_ISSUE_CODE,
@@ -64,13 +66,14 @@ export function OrderIssueReportDialog({
 }: OrderIssueReportDialogProps) {
   const t = useTranslations('orders.issues');
   const tCommon = useTranslations('common');
+  const tFiles = useTranslations('fileUtil');
   const locale = useLocale();
   const { token: csrfToken } = useCSRFToken();
 
   const [issueCode, setIssueCode] = React.useState<string>(ORDER_ISSUE_CODE.OTHER);
   const [priority, setPriority] = React.useState<string>(DEFAULT_PRIORITY);
   const [issueText, setIssueText] = React.useState('');
-  const [photoUrl, setPhotoUrl] = React.useState('');
+  const [photos, setPhotos] = React.useState<File[]>([]);
   const [fieldError, setFieldError] = React.useState('');
 
   const { data: issueTypes = [], isLoading: typesLoading } = useQuery({
@@ -98,7 +101,7 @@ export function OrderIssueReportDialog({
   React.useEffect(() => {
     if (!open) return;
     setIssueText('');
-    setPhotoUrl('');
+    setPhotos([]);
     setFieldError('');
     const defaultType =
       issueTypes.find((r) => r.code === ORDER_ISSUE_CODE.OTHER)?.code ||
@@ -131,9 +134,6 @@ export function OrderIssueReportDialog({
       if (scopeLevel === ORDER_ISSUE_SCOPE.PIECE) {
         body.orderItemPieceId = orderItemPieceId ?? null;
       }
-      if (photoUrl.trim()) {
-        body.photoUrl = photoUrl.trim();
-      }
 
       const response = await fetch(`/api/v1/orders/${orderId}/issue`, {
         method: 'POST',
@@ -149,10 +149,27 @@ export function OrderIssueReportDialog({
           (data as { error?: string }).error || t('submitFailed')
         );
       }
-      return data;
+      return data as { data?: { id?: string } };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       cmxMessage.success(t('submitSuccess'));
+      // The issue id exists only now; photos upload in the background and report their own result.
+      const issueId = data.data?.id;
+      if (issueId && photos.length > 0) {
+        void uploadFilesToRecord({
+          category: FILE_CATEGORIES.ORDER_FILE,
+          entityId: orderId,
+          purpose: FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE,
+          source: FILE_SOURCES.ORDER_ISSUE,
+          refType: FILE_REF_TYPES.ORDER_ISSUE,
+          refId: issueId,
+          files: photos,
+          csrfToken,
+        }).then(({ saved, failed }) => {
+          if (failed > 0) cmxMessage.warning(tFiles('orderPhotosFailed', { failed }));
+          else cmxMessage.success(tFiles('orderPhotosSaved', { count: saved }));
+        });
+      }
       onOpenChange(false);
       onSuccess?.();
     },
@@ -247,15 +264,14 @@ export function OrderIssueReportDialog({
               ) : null}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="issue-photo">{t('photoUrl')}</Label>
-              <CmxInput
-                id="issue-photo"
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                placeholder={t('photoUrlPlaceholder')}
-              />
-            </div>
+            <PendingFilesPicker
+              label={t('photos')}
+              category={FILE_CATEGORIES.ORDER_FILE}
+              purpose={FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE}
+              files={photos}
+              onChange={setPhotos}
+              disabled={mutation.isPending}
+            />
           </div>
         )}
 

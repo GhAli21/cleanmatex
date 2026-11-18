@@ -47,7 +47,7 @@
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Owner approved the DB/worker matrix. Remote baseline still has 14 desired-enabled registry jobs absent and one active DB-native `tax-kit-update` scheduler outside the registry. Add that registry record without duplicating/mutating its live schedule; complete handler contracts, ADR, and rollback proof before any enablement. |
+| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Owner applied `0755_ops_job_action_contract.sql` locally and remotely. Remote evidence confirms V2 functions, the unchanged single active `tax-kit-update` scheduler, and observation-only registry capability. HQ source uses V2 capability gates; no mutation or enablement is authorized until per-executor contracts, tests, and rollback proof are complete. |
 | 1.2 | Decide trial-expiry outcome, implement it under the approved scheduler model, and prove an expired demo trial changes state. | Owner → Dev | B1 | 27 Nov | Not started | — |
 | 1.3 | Cancel/resolve old demo queued notifications before sender enablement. | Owner | D13 | 27 Nov | Not started | — |
 | 1.4 | Deploy Sentry or equivalent to web-admin and platform-web with PII scrubbing; prove a controlled error appears. | Dev | I4 | 28 Nov | Not started | — |

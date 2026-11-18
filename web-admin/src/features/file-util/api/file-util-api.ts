@@ -40,10 +40,21 @@ export const fetchFileConfig = (category: FileCategoryCode, signal?: AbortSignal
  * @param entityIds owning records
  * @param purposes only these purposes (all when omitted)
  * @param signal cancels a superseded request
+ * @param ref only the files of this sub-record (issue, exception, ...)
  */
-export const fetchFiles = (category: FileCategoryCode, entityIds: string[], purposes?: string[], signal?: AbortSignal) => {
+export const fetchFiles = (
+  category: FileCategoryCode,
+  entityIds: string[],
+  purposes?: string[],
+  signal?: AbortSignal,
+  ref?: { refType: FileRefTypeCode; refId: string },
+) => {
   const query = new URLSearchParams({ category, entityIds: entityIds.join(',') });
   if (purposes?.length) query.set('purposes', purposes.join(','));
+  if (ref) {
+    query.set('refType', ref.refType);
+    query.set('refId', ref.refId);
+  }
   return request<FileView[]>(`${BASE}?${query}`, { signal });
 };
 
@@ -193,6 +204,10 @@ export async function uploadFilesToRecord(params: {
   entityId: string;
   purpose?: string;
   source: FileSourceCode;
+  /** Sub-record the files belong to (issue, exception, QA decision, ...), same organization and record. */
+  refType?: FileRefTypeCode;
+  refId?: string;
+  notes?: string;
   files: File[];
   csrfToken: string | null;
 }): Promise<{ saved: number; failed: number }> {
@@ -209,6 +224,9 @@ export async function uploadFilesToRecord(params: {
         purpose: params.purpose,
         entityId: params.entityId,
         source: params.source,
+        refType: params.refType,
+        refId: params.refId,
+        notes: params.notes,
       });
       saved += 1;
     } catch {

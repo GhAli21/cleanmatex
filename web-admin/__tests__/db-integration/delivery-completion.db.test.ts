@@ -49,7 +49,7 @@ beforeAll(async () => {
     const readiness = await prisma.$queryRaw<Array<{ ready: boolean }>>`
       SELECT
         to_regclass('public.org_dlv_stops_dtl') IS NOT NULL
-        AND to_regclass('public.org_dlv_ev_uploads_tr') IS NOT NULL
+        AND to_regclass('public.org_file_mst') IS NOT NULL
         AND EXISTS (
           SELECT 1
           FROM public.sys_dlv_pod_method_cd
@@ -194,38 +194,36 @@ async function seedDelivery(options?: {
     )
     RETURNING id
   `;
-  const evidence = await prisma.$queryRaw<Array<{ id: string }>>`
-    INSERT INTO public.org_dlv_ev_uploads_tr (
-      tenant_org_id,
-      stop_id,
-      evidence_type,
-      object_key,
-      content_type,
-      file_size_bytes,
-      sha256_hex,
-      upload_status,
-      expires_at
-    ) VALUES (
-      ${DEMO_TENANT}::uuid,
-      ${stop[0].id}::uuid,
-      'photo',
-      ${`${DEMO_TENANT}/delivery/${stop[0].id}/${randomUUID()}.jpeg`},
-      'image/jpeg',
-      128,
-      ${'a'.repeat(64)},
-      'uploaded',
-      NOW() + INTERVAL '30 minutes'
-    )
-    RETURNING id
-  `;
+  const evidenceId = await seedProofPhoto(order[0].id, stop[0].id);
   return {
     customerId: customer[0].id,
     orderId: order[0].id,
     routeId: route[0].id,
     stopId: stop[0].id,
-    evidenceId: evidence[0].id,
+    evidenceId,
     idempotencyKey: `delivery-db-${randomUUID()}`,
   };
+}
+
+/**
+ * A verified (READY) File Util delivery photo of the order, tagged to the stop, as the driver
+ * upload leaves it. Bytes are not needed: completion only checks and locks the row.
+ */
+async function seedProofPhoto(orderId: string, stopId: string): Promise<string> {
+  const fileId = randomUUID();
+  await prisma.$executeRaw`
+    INSERT INTO public.org_file_mst (
+      id, tenant_org_id, category_code, purpose_code, entity_id, ref_type_code, ref_id,
+      source_code, bucket_code, object_key, original_name, mime_type, size_bytes,
+      sha256_hex, status_code, ready_at
+    ) VALUES (
+      ${fileId}::uuid, ${DEMO_TENANT}::uuid, 'ORDER_FILE', 'DELIVERY_PROOF', ${orderId}::uuid,
+      'DELIVERY_STOP', ${stopId}::uuid, 'ORDER_DELIVERY', 'TENANT_FILES',
+      ${`${DEMO_TENANT}/ORDER_FILE/${orderId}/${fileId}.jpg`}, 'proof.jpg', 'image/jpeg', 128,
+      ${'a'.repeat(64)}, 'READY', NOW()
+    )
+  `;
+  return fileId;
 }
 
 async function cleanupSeed(seed: DeliverySeed, extraIdempotencyKeys: string[] = []): Promise<void> {
@@ -255,9 +253,10 @@ async function cleanupSeed(seed: DeliverySeed, extraIdempotencyKeys: string[] = 
       AND stop_id = ${seed.stopId}::uuid
   `;
   await prisma.$executeRaw`
-    DELETE FROM public.org_dlv_ev_uploads_tr
+    DELETE FROM public.org_file_mst
     WHERE tenant_org_id = ${DEMO_TENANT}::uuid
-      AND stop_id = ${seed.stopId}::uuid
+      AND ref_type_code = 'DELIVERY_STOP'
+      AND ref_id = ${seed.stopId}::uuid
   `;
   await prisma.$executeRaw`
     DELETE FROM public.org_dlv_stops_dtl
@@ -656,30 +655,7 @@ describe('completeDelivery database invariants', () => {
   dbit('serializes two concurrent completes of the same stop', async () => {
     const seed = await seedDelivery();
     const secondKey = `delivery-db-${randomUUID()}`;
-    const secondEvidence = await prisma.$queryRaw<Array<{ id: string }>>`
-      INSERT INTO public.org_dlv_ev_uploads_tr (
-        tenant_org_id,
-        stop_id,
-        evidence_type,
-        object_key,
-        content_type,
-        file_size_bytes,
-        sha256_hex,
-        upload_status,
-        expires_at
-      ) VALUES (
-        ${DEMO_TENANT}::uuid,
-        ${seed.stopId}::uuid,
-        'photo',
-        ${`${DEMO_TENANT}/delivery/${seed.stopId}/${randomUUID()}.jpeg`},
-        'image/jpeg',
-        128,
-        ${'b'.repeat(64)},
-        'uploaded',
-        NOW() + INTERVAL '30 minutes'
-      )
-      RETURNING id
-    `;
+    const secondEvidenceId = await seedProofPhoto(seed.orderId, seed.stopId);
     try {
       const settled = await Promise.allSettled([
         completeDelivery({
@@ -698,7 +674,7 @@ describe('completeDelivery database invariants', () => {
           expectedStateVersion: 4,
           idempotencyKey: secondKey,
           podMethodCode: 'PHOTO',
-          photoEvidenceIds: [secondEvidence[0].id],
+          photoEvidenceIds: [secondEvidenceId],
         }),
       ]);
 

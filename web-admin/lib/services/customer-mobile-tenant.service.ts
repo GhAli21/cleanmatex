@@ -2,6 +2,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 import { normalizePhone } from './customers.service';
+import { getTenantPrimaryColor } from './ui-theme.service';
 import type { BranchPublicProfile, TenantPublicProfile } from './tenant-resolve.service';
 
 function buildPhoneLookupCandidates(inputPhone: string) {
@@ -133,7 +134,7 @@ export async function listCustomerTenantsByPhone(
 
     const { data: tenants, error: tenantsError } = await supabase
       .from('org_tenants_mst')
-      .select('id, name, name2, logo_url, brand_color_primary')
+      .select('id, name, name2, logo_url')
       .in('id', tenantIds)
       .eq('is_active', true)
       .order('name', { ascending: true });
@@ -214,12 +215,14 @@ export async function listCustomerTenantsByPhone(
       branchesByTenant.set(tenantOrgId, tenantBranches);
     }
 
-    const result = tenants.map((tenant) => ({
+    // shortcut: one theme read per Organization; a customer belongs to a handful. Batch if lists grow.
+    const colours = await Promise.all(tenants.map((tenant) => getTenantPrimaryColor(tenant.id as string)));
+    const result = tenants.map((tenant, i) => ({
       tenantOrgId: tenant.id as string,
       name: (tenant.name as string | null) ?? '',
       name2: (tenant.name2 as string | null) ?? null,
       logoUrl: (tenant.logo_url as string | null) ?? null,
-      primaryColor: (tenant.brand_color_primary as string | null) ?? null,
+      primaryColor: colours[i],
       branches: branchesByTenant.get(tenant.id as string) ?? [],
     }));
 

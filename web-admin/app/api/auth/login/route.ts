@@ -30,6 +30,7 @@ import { startSession } from '@/lib/services/auth/session/use-cases/session-life
 import { notifyNewDeviceSignIn } from '@/lib/services/auth/session/use-cases/new-device-alert';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { getSessionLifetime } from '@/lib/services/auth/session/auth-session.repository';
+import { writeLastBrandCookie } from '@/lib/services/ui-theme.service';
 
 /**
  *
@@ -326,6 +327,9 @@ export async function POST(request: NextRequest) {
         ? { maxAge: Math.max(60, Math.floor((new Date(lifetime.expiresAt).getTime() - Date.now()) / 1000)) }
         : {}),
     });
+
+    // The login page shows this Organization's brand on this device next time (never fails sign-in).
+    await writeLastBrandCookie(cookieStore, registration.tenantOrgId);
 
     console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ done — returning response`);
     // Return session + tenants so client can skip a redundant get_user_tenants call

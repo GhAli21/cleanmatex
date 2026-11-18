@@ -243,5 +243,25 @@
     "doneLink": "A link was sent to {email}. Nothing changes until the user opens it.",
     "shareHint": "Share it securely (in person or by phone). It will not be shown again.",
     "close": "Close"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "subtitle": "How the app looks for you on every device you sign in on. Your Organization sets the colours and logo.",
+    "density": "Density",
+    "densityHint": "Compact fits more on the screen; comfortable is easier to tap.",
+    "densityFollow": "Same as the Organization",
+    "densityOptions": {
+      "COMFORTABLE": "Comfortable",
+      "COMPACT": "Compact"
+    },
+    "fontScale": "Text size",
+    "fontScaleOptions": {
+      "SM": "Small",
+      "MD": "Medium",
+      "LG": "Large"
+    },
+    "saved": "Appearance saved",
+    "loadError": "Could not load your appearance settings.",
+    "saveError": "Could not save. Please try again."
   }
 }

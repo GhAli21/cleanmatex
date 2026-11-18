@@ -1,6 +1,6 @@
 # File Util — QA Test Guide (owner-runnable)
 
-**Covers:** Phase 4 (order photos and files) and Phase 5 (product images, logo). Updated after each phase.
+**Covers:** Phase 4 (order photos and files), Phase 5 (product images, logo), Phase 6 (issue, assembly exception and customer files). Updated after each phase.
 **Before you start:**
 - Sign in to an organization that **has a subscription** (only 2 of the 4 demo organizations do). Without one, every upload shows "No active plan was found for this organization."
 - Use a user with `orders:read` and `orders:update` for the edit tests, plus one with only `orders:read` for the read-only test.
@@ -63,7 +63,37 @@ Apply `0750` first. Use a user with `products:update` and `settings:branding`.
 | C11 | Try to upload an SVG or a PDF as logo | Refused before upload (type not allowed). |
 | C12 | Supabase dashboard → Storage → `product-images` | After `0750`: bucket private; an upload attempt there is refused. Then delete the bucket. |
 
-## D. Not testable yet
+## D. Issues, assembly exceptions, customer files (Phase 6)
+
+Apply `0751` first, then pull Prisma and regenerate types (the app fails on orders until you do).
+
+| # | Where / do | Expect |
+|---|---|---|
+| D1 | Open an order → **Issues** → **Report issue** | The old "Photo URL" box is gone; a **Photos (optional)** drop zone and **Take photo** button are shown. |
+| D2 | Add 2 photos, type a description, **Submit issue** | "Issue reported", then "2 photos saved to the order". |
+| D3 | Same order → **Files** tab | Both photos, File type "Issue evidence". |
+| D3b | Issues list → that issue → **Photos** | Dialog shows only this issue's photos; a user with `orders:transition` can add more there. |
+| D4 | Try a PDF in the issue photos | Refused before upload (images only). |
+| D5 | Remove one picked photo with the X before submitting | Only the remaining photo is saved. |
+| D6 | Sign in as a user with `orders:transition` but **not** `orders:update`; report an issue with a photo | Photo saves. On the Files tab this user sees files without edit/delete. |
+| D7 | Assembly (`/dashboard/assembly`) → open a task → **Record exception** → add a photo → submit | Exception recorded, then "1 photo saved to the order"; order Files tab shows it as "Assembly exception". |
+| D8 | Sidebar **Customers** → open a customer → tab **Files** | Upload a photo (Photo), an ID document (PDF) under ID document; view, edit, delete. Without `customers:update`: view only. |
+| D9 | Arabic | All new labels in Arabic, layout mirrored. |
+
+## E. Delivery proof of delivery (task 6.4)
+
+Needs an order out for delivery on a route with an active stop, and a user with `delivery:pod` + `orders:transition`.
+
+| # | Where / do | Expect |
+|---|---|---|
+| E1 | Delivery screen → open the active stop → completion panel → method **Photo** → pick 2 photos → **Complete** | Delivery completes; stop shows Delivered. |
+| E2 | Open the order → **Files** | The 2 photos, File type "Delivery proof", **no** edit/delete buttons (locked as proof). |
+| E3 | Same order → delivery proof audit (order detail, proof of delivery section) | Both photos open (links valid ~5 minutes; reopen the audit for fresh links). |
+| E4 | Method **Signature** with a signature image; then **Mixed** (signature + photo) on another stop | Each completes; the signature shows as "Signature" in Files, locked. |
+| E5 | Pick photos, then cancel before completing | The uploaded photos stay in Files as normal (unlocked) delivery photos; they can be deleted. |
+| E6 | Try to delete a locked delivery photo through any screen | Refused: "This file is proof of a completed record…". |
+| E7 | HQ → Tenants → tenant → Maintenance → Delete Orders (dry run, then execute) on a test order with files | Succeeds; that order's files become deleted and the purge job removes their bytes. |
+
+## F. Not testable yet
 
 - Storage purge of deleted files runs in the HQ `platform-workers` job `file-util-purge` — needs that worker deployed.
-- Customer photos, delivery POD and the other photo columns: Phase 6.

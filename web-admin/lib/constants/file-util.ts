@@ -77,18 +77,22 @@ export const FILE_PURPOSES = {
   },
   CUSTOMER_FILE: { PHOTO: 'PHOTO', ID_DOCUMENT: 'ID_DOCUMENT', OTHER: 'OTHER' },
   PRODUCT_IMAGE: { MAIN: 'MAIN', FOR_ORDER: 'FOR_ORDER', BACKSIDE: 'BACKSIDE', GALLERY: 'GALLERY' },
-  TENANT_LOGO: { MAIN: 'MAIN', RECEIPT: 'RECEIPT' },
+  // DARK and FAVICON added by 0757 (theme runtime, PR-07).
+  TENANT_LOGO: { MAIN: 'MAIN', RECEIPT: 'RECEIPT', DARK: 'DARK', FAVICON: 'FAVICON' },
 } as const;
 
 /**
  * Who may read or change the files of each category. Files reuse the owning domain's existing
  * permissions (no File Util permission codes); all codes exist in `sys_auth_permissions`.
+ * Each list is "any of": holding one listed code is enough.
  */
-export const FILE_CATEGORY_ACCESS: Record<FileCategoryCode, { read: string; write: string }> = {
-  ORDER_FILE: { read: 'orders:read', write: 'orders:update' },
-  CUSTOMER_FILE: { read: 'customers:read', write: 'customers:update' },
-  PRODUCT_IMAGE: { read: 'products:read', write: 'products:update' },
-  TENANT_LOGO: { read: 'settings:read', write: 'settings:branding' },
+export const FILE_CATEGORY_ACCESS: Record<FileCategoryCode, { read: readonly string[]; write: readonly string[] }> = {
+  // Order files: editors, and floor staff who move orders through the workflow (they report
+  // issues and assembly exceptions with photos); either permission is enough.
+  ORDER_FILE: { read: ['orders:read'], write: ['orders:update', 'orders:transition'] },
+  CUSTOMER_FILE: { read: ['customers:read'], write: ['customers:update'] },
+  PRODUCT_IMAGE: { read: ['products:read'], write: ['products:update'] },
+  TENANT_LOGO: { read: ['settings:read'], write: ['settings:branding'] },
 };
 
 /** Lifetime of signed read URLs for private files: 5 minutes, never stored. */

@@ -8,7 +8,6 @@
  */
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { sessionActivityStore } from '@lib/session-activity'
 import { getUserPermissions } from '@/lib/services/permission-service-client'
@@ -82,7 +81,6 @@ function buildLoginUrl(reason: LoginReason | null, returnTo?: string): string {
   return query ? `/login?${query}` : '/login'
 }
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const router = useRouter()
   const queryClient = useQueryClient()
 
   // State
@@ -375,8 +373,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const destination = getSafeRedirectPath(redirectTo)
       console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ done — redirecting to ${destination}`)
-      // Redirect after state is set
-      router.push(destination)
+      // Full load: the root layout holds the per-user theme and brand, and router.push never re-renders it.
+      window.location.assign(destination)
     } catch (error: unknown) {
       // Error handling is done in API route, just re-throw
       throw error
@@ -384,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
       isLoggingInRef.current = false
     }
-  }, [router])
+  }, [])
 
   /**
    * Bind the pending sign-in to the organization the global user chose.
@@ -442,12 +440,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions(authData.permissions)
       permissionsLoadedForTenantRef.current = activeTenant.tenant_id
       setIsTenantContextReady(true)
-      router.push(getSafeRedirectPath(redirectTo))
+      window.location.assign(getSafeRedirectPath(redirectTo))
     } finally {
       setIsLoading(false)
       isLoggingInRef.current = false
     }
-  }, [router])
+  }, [])
 
   /**
    * Sign up with email and password
@@ -568,7 +566,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
       }
 
-      router.push(buildLoginUrl(loginReason, reason === 'user' ? undefined : options.returnTo))
+      window.location.assign(buildLoginUrl(loginReason, reason === 'user' ? undefined : options.returnTo))
     } catch (error) {
       console.error('Error signing out:', error)
       isSigningOutRef.current = false
@@ -576,7 +574,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [router, user, currentTenant, queryClient])
+  }, [user, currentTenant, queryClient])
 
   /**
    * Request password reset
@@ -738,7 +736,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Redirect to login with reason when session expired (not user-initiated), remembering where the
           // user was so they come back to it after signing in again.
           if (!isSigningOutRef.current) {
-            router.push(buildLoginUrl(LOGIN_REASONS.SESSION_EXPIRED, currentLocationPath()))
+            window.location.assign(buildLoginUrl(LOGIN_REASONS.SESSION_EXPIRED, currentLocationPath()))
           }
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession({

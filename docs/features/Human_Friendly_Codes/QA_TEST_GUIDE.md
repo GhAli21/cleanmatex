@@ -174,3 +174,47 @@ Prerequisites: `0687`–`0689` applied; web-admin, HQ `platform-api` and `platfo
 - External tag `TAGQA0001` linked to piece `ORD-20261105-0004-1-1`.
 - ORDER counter `org_doc_seq_mst` period `20261105` last_value=8; 0 duplicate order numbers; 0 sub-orders (S4 split fails); 15 pieces total; failed pay-later attempts left no partial rows and consumed no numbers (counter increments roll back with the caller transaction).
 - No passwords changed; no flags or settings modified.
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-17 (remote; HQ read-only + tenant order attempts)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals) and HQ `https://hqsaas.cleanmatex.com` (Incognito). Run window 2026-11-17 ~04:40–09:20 Asia/Muscat (UTC+4). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes. Read-only `SELECT`s only where stated. Jest skipped.
+**Accounts by role (no passwords; see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault):** Demo Laundry admin `admin@demo-laundry.example` (shows role `super_admin`); operator `operator@demo-laundry.example`; viewer `viewer@demo-laundry.example`; HQ System Administrator `admin@cleanmatex.com`. No shared password was changed.
+**Deploy caveats (2026-11-17):** (1) S0 privilege-lockdown migrations 0745–0749 were applied ~04:00–05:15; during that window New Order broke (403 `fn_stng_resolve_all_settings`, 400 `/api/v1/categories`, 500 `/api/v1/lookups/service-speeds`, "Failed to fetch customers", empty sidebar) and it was working again by ~05:38. (2) From ~05:00 Processing shows the raw error `permission denied for table sys_order_sources_cd` and an empty queue (regression; blocks Ready/Delivery/prints). (3) From ~07:00 All Orders fails with `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database`, order detail pages show "Order not found" and New Order submit returns `ORDER_SUBMIT_FAILED`, after migration `0751_file_util_drop_photo_url_columns` dropped the column while the deployed app still reads it (still failing at 08:44). Rows that needed an order after ~07:00 are BLOCKED for that reason.
+**Writes:** none succeeded. Two New Order submits (cash and Pay on Collection) were attempted at 08:10–08:12 and both failed, so no order was created. HQ: one read-only "Run again" on Code Consistency. Source ledger on the tester box: `/workspace/qa-20261117/backlog/obs/B9-Q11.md` (HQ 07:55–07:59; tenant 08:05–08:12). Rows above are unchanged.
+
+**Recount (Retest r2 2026-11-17, rows in the table below):** PASS 3 · FAIL 2 · PARTIAL 2 · BLOCKED 7 · NOT RUN 4.
+
+| # | Verdict | Evidence |
+|---|---|---|
+| §8 Doc-seq hub EN/AR | PASS | 07:55 EN / 07:58 AR `/doc-seq-config`: 51 active code types, 2 tenants with counters / 11 rows, 0 HQ / 0 system counters, 13 issuing modules; banner "1 error and 19 warnings need attention"; AR RTL with Arabic labels. |
+| §8 Counters EN/AR | PASS | 07:56–07:58 "Read only", cannot edit/reset. ORDER period 20261117, last 6, next `ORD-20261117-00007`; closed periods "Closed"/"مغلقة" with no next value; STOCK_TRANSACTION 5 rows (4 Demo Laundry, 1 Demo Saudi), all closed. Codes stay LTR in Arabic. |
+| S16 ORDER type EN/AR | PARTIAL | 07:59 prefix exactly `ORD` (no "ORD-ORD"), YYYYMMDD-SEQ, daily, shared generator; Arabic heading "رقم الطلب" and "How it works" paragraph in Arabic. Short line under the Arabic heading still English ("Order number shown on receipts, labels and search."). |
+| S16 STOCK_TRANSACTION type | PARTIAL | 07:56 prefix `STK`, `-`, 4 digits, daily, `org_inv_stock_tr.transaction_no`, migration 0703; Arabic title "رقم حركة المخزون" + Arabic implementation text; short line still English ("Inventory stock movement number."). |
+| S17 Consistency | FAIL (overall) | 07:57 EN / 07:58 AR: 1 error / 19 warnings / 37 info; 52 types checked, 49 tables fine. STOCK_TRANSACTION now `DATA_OK` — "Codes on this table are complete and unique", 14 rows scanned. Remaining ERROR: `USER` / `org_users_mst.user_code` / `DATA_DUPLICATES` (1 / 8 affected). Run again → 10-second cooldown message. |
+| S18 General Config EN/AR | PASS | Asia/Muscat, en-OM, Oman, OMR, FY2026 from January, week starts Saturday, DD/MM/YYYY, 24-hour, VAT 5%, trial 30 days. Support email/phone blank. Not edited. |
+| HQ read-only role (§8) | BLOCKED | No `hq_doc_seq:read`-only account; HQ users page says "You do not have permission to open this". |
+| Tenant All Orders | FAIL | 08:05 `/dashboard/orders`: `Invalid prisma.org_orders_mst.findMany() invocation: The column org_orders_mst.photo_urls does not exist in the current database.` Cards: Total 8, Pending Prep 8, In Progress 8, Ready 0. |
+| S1 Cash order | BLOCKED | 08:10 Bathrobe/Robe + Blouse, Jh Test dev21, note QA-20261117-HFC, ready-by 18 Nov 17:00, subtotal 4.000, tax 0.280, total 4.280: both confirms → "Order submission failed. [ORDER_SUBMIT_FAILED]"; no order number. |
+| S1 Pay on Collection | BLOCKED | 08:12 same draft, "Pay later Applied", OMR 4.280 unpaid → same `ORDER_SUBMIT_FAILED`. Old 422 `SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER` not shown (cannot tell if FET-HFC-S1 is fixed). Note: Pay on Collection orders were created successfully earlier today at 05:45 and 05:57 (`ORD-20261117-00002`, `-00003`), so FET-HFC-S1 looks fixed before the `photo_urls` break. |
+| S13 Receipt | BLOCKED | `ORD-20261117-00006` / `-00005` detail → "Order not found … It may have been deleted or you may not have access to it." |
+| S4 Split | BLOCKED | No reachable order detail. |
+| S14 Sub-order numbers | NOT RUN | Depends on S4. |
+| S15 Notifications | BLOCKED | No approved test recipient used. |
+| S19 Flag off | NOT RUN | Flag not changed. |
+| S20 >9,999/day | NOT RUN | Staging-only script. |
+| S7 / S8 Scanner | BLOCKED | No scanner / assembly hardware (backlog Q20). |
+| S2, S3, S5, S6, S9–S12 | NOT RUN | Not re-run; Round 1 verdicts stand. |
+
+Prior findings, Retest r2 2026-11-17: **FET-HFC-S17 (STOCK_TRANSACTION duplicates) FIXED** at runtime — `DATA_OK`, 14 rows, complete and unique. **FET-HFC-S16** prefix part **FIXED** (`ORD`, `STK` once); Arabic short description **STILL English**. **FET-HFC-S18 STILL OPEN** (support contacts blank). **FET-HFC-S1** — Pay on Collection worked at 05:45/05:57 today (likely fixed), retest at 08:12 blocked by `ORDER_SUBMIT_FAILED`. **FET-HFC-S4 / S13 / S13b** not retestable (order pages).
+
+### Tester suggestions — Financial_Expert_Tester (Retest r2 2026-11-17)
+- **P0 FET-HFC-Nov17-PhotoUrlsColumnDropped:** Since ~07:00 All Orders, order detail and New Order submit fail: migration `0751_file_util_drop_photo_url_columns` dropped `org_orders_mst.photo_urls` (confirmed read-only on remote) while the deployed Prisma client still selects it. Deploy the app build that no longer reads the column (or restore the column until it is live); show a plain error instead of the raw Prisma text, and don't say "Order not found" for a server error.
+- **P1 FET-HFC-Nov17-UserCodeDuplicates:** Consistency ERROR `USER / org_users_mst.user_code / DATA_DUPLICATES (1/8)`. The session guide confirms the app still accepts a duplicate user code on update. Add the unique index (case-insensitive) after cleaning the duplicate.
+- **P3 FET-HFC-Nov17-ArabicShortDescription:** The one-line description under each Arabic code-type heading is still English.
+- **P3 FET-HFC-Nov17-GenericSubmitError:** `ORDER_SUBMIT_FAILED` gives no reason; include a short cause and a retry hint.
+
+### Blocked
+- S1/S4/S13 (order pages and submit broken from ~07:00), S15 (no test recipient), S7/S8 (hardware), HQ read-only role (no account).
+
+### Test data left behind
+- None from this retest (both submits failed with no order number; the ORDER counter was last read at 07:56, next `-00007`, and was not rechecked after the failed submits). Run-wide QA orders `ORD-20261117-00001..00006` are listed in the Q3/Q4/Q7 guides.

@@ -64,7 +64,6 @@ export async function POST(
         scopeLevel === ORDER_ISSUE_SCOPE.ORDER ? null : orderItemId,
       orderItemPieceId:
         scopeLevel === ORDER_ISSUE_SCOPE.PIECE ? orderItemPieceId : null,
-      photoUrl: parsed.data.photoUrl,
       priority: parsed.data.priority || 'normal',
       alsoReject,
     });

@@ -29,7 +29,6 @@ export async function POST(
       description,
       description2,
       severity,
-      photoUrls,
       assemblyItemId,
     } = body;
 
@@ -47,7 +46,6 @@ export async function POST(
       description,
       description2,
       severity,
-      photoUrls,
       assemblyItemId,
       userId,
     });

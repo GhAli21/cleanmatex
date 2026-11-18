@@ -481,7 +481,6 @@ export interface OrderIssue {
   order_item_id: string;
   issue_code: string;
   issue_text: string;
-  photo_url?: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   created_by: string;
   created_at: string;

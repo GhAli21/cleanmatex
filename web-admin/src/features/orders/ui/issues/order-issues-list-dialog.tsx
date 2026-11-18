@@ -18,6 +18,8 @@ import {
 import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { cn } from '@/lib/utils';
+import { FileAttachments } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
 import { OrderIssueReportDialog } from './order-issue-report-dialog';
@@ -67,6 +69,7 @@ export function OrderIssuesListDialog({
     null
   );
   const [reportOpen, setReportOpen] = React.useState(false);
+  const [photosTarget, setPhotosTarget] = React.useState<OrderIssueTableRow | null>(null);
   const canReportIssues = useHasPermissionCode('orders:transition');
   const canResolveIssues = useHasPermissionCode('orders:update');
   const [scopeFilter, setScopeFilter] =
@@ -174,6 +177,7 @@ export function OrderIssuesListDialog({
         t: (key, values) => t(key as never, values as never),
         includeScopeColumn: showScopeCol,
         onSolve: canResolveIssues ? (row) => setSolveTarget(row) : undefined,
+        onPhotos: (row) => setPhotosTarget(row),
       }),
     [locale, showScopeCol, t, canResolveIssues]
   );
@@ -183,7 +187,7 @@ export function OrderIssuesListDialog({
       <CmxDialog
         open={open}
         onOpenChange={(next) => {
-          if (solveTarget || reportOpen) return;
+          if (solveTarget || reportOpen || photosTarget) return;
           onOpenChange(next);
         }}
       >
@@ -289,6 +293,32 @@ export function OrderIssuesListDialog({
           onSuccess={refresh}
         />
       ) : null}
+
+      <CmxDialog open={Boolean(photosTarget)} onOpenChange={(next) => !next && setPhotosTarget(null)}>
+        <CmxDialogContent className="max-w-3xl">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('photosTitle')}</CmxDialogTitle>
+            <CmxDialogDescription className="line-clamp-2">{photosTarget?.issue_text}</CmxDialogDescription>
+          </CmxDialogHeader>
+          {photosTarget ? (
+            <FileAttachments
+              title={t('viewPhotos')}
+              category={FILE_CATEGORIES.ORDER_FILE}
+              entityId={photosTarget.order_id ?? orderId}
+              purposes={[FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE]}
+              refType={FILE_REF_TYPES.ORDER_ISSUE}
+              refId={photosTarget.id}
+              source={FILE_SOURCES.ORDER_ISSUE}
+              readOnly={!canReportIssues}
+            />
+          ) : null}
+          <CmxDialogFooter>
+            <CmxButton type="button" variant="secondary" onClick={() => setPhotosTarget(null)}>
+              {tCommon('close')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       <OrderIssueReportDialog
         open={reportOpen}

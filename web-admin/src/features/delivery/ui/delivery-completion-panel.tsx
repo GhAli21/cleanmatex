@@ -42,7 +42,7 @@ function evidenceRequirements(methodCode: string | null) {
 }
 
 /**
- * Stage-owned staff delivery command UI. It coordinates upload receipts and
+ * Stage-owned staff delivery command UI. It uploads proof files (File Util) and
  * the versioned API while every business mutation remains server-side.
  */
 export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletionPanelProps) {
@@ -122,6 +122,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
     try {
       if (signatureFile && !evidenceReceiptsRef.current.signature) {
         evidenceReceiptsRef.current.signature = await uploadDeliveryEvidence({
+          orderId: stop.order.id,
           stopId: stop.id,
           evidenceType: 'signature',
           file: signatureFile,
@@ -130,7 +131,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
       while (evidenceReceiptsRef.current.photos.length < photoFiles.length) {
         const photoFile = photoFiles[evidenceReceiptsRef.current.photos.length];
         evidenceReceiptsRef.current.photos.push(
-          await uploadDeliveryEvidence({ stopId: stop.id, evidenceType: 'photo', file: photoFile }),
+          await uploadDeliveryEvidence({ orderId: stop.order.id, stopId: stop.id, evidenceType: 'photo', file: photoFile }),
         );
       }
 

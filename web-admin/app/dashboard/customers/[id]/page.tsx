@@ -33,9 +33,12 @@ import {
 } from '@features/customers/ui/customer-b2b-tabs'
 import UpgradeProfileModal from '@features/customers/ui/upgrade-profile-modal'
 import { CustomerEditModal } from '@features/orders/ui/customer-edit-modal'
+import { FileAttachments } from '@features/file-util'
+import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
+import { useHasPermission } from '@/lib/hooks/use-has-permission'
 
 // Tab definitions
-type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'stored_value' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
+type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'stored_value' | 'files' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
 
 interface Tab {
   id: TabId
@@ -64,6 +67,7 @@ export default function CustomerDetailPage() {
   const { formatMoneyWithCode } = useTenantCurrency()
   const t = useTranslations('customers')
   const tB2b = useTranslations('b2b')
+  const canUpdateCustomer = useHasPermission('customers', 'update')
 
   const baseTabs: Tab[] = [
     { id: 'profile', label: t('profile'), icon: '👤' },
@@ -72,6 +76,7 @@ export default function CustomerDetailPage() {
     { id: 'preferences', label: t('preferences'), icon: '⚙️' },
     { id: 'stored_value', label: t('storedValue.title'), icon: '💳' },
     { id: 'loyalty', label: t('loyalty'), icon: '⭐' },
+    { id: 'files', label: t('files'), icon: '📎' },
   ]
 
   const b2bTabs: Tab[] = [
@@ -422,6 +427,14 @@ export default function CustomerDetailPage() {
             )}
             {activeTab === 'loyalty' && (
               <CustomerLoyaltyTab customerId={customer.id} />
+            )}
+            {activeTab === 'files' && (
+              <FileAttachments
+                category={FILE_CATEGORIES.CUSTOMER_FILE}
+                entityId={customer.id}
+                source={FILE_SOURCES.CUSTOMER_PROFILE}
+                readOnly={!canUpdateCustomer}
+              />
             )}
             {activeTab === 'b2b_contacts' && (
               <CustomerB2BContactsTab customerId={customer.id} />
