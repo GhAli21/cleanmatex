@@ -90,7 +90,6 @@ export function OrdersVouchersTabRprt({
       as="span"
       value={value}
       maxLength={maxLength}
-      align={isRTL ? 'right' : 'left'}
       className={`px-0 py-0 text-sm text-foreground ${className}`}
     />
   );
@@ -98,9 +97,9 @@ export function OrdersVouchersTabRprt({
   if (filtered.length === 0) {
     return (
       <div
-        className={`flex flex-col items-center justify-center py-12 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+        className="flex flex-col items-center justify-center py-12 text-muted-foreground text-start"
       >
-        <Receipt className="mb-3 h-12 w-12 text-gray-300" />
+        <Receipt className="mb-3 h-12 w-12 text-muted-foreground" />
         <p>{t.emptyVouchers}</p>
       </div>
     );
@@ -110,26 +109,26 @@ export function OrdersVouchersTabRprt({
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <tr className="border-b border-border bg-muted">
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {t.voucherNo}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {tDetail('voucherType')}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {tDetail('source')}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {tDetail('references')}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {tDetail('amountSummary')}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {tCommon('date')}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {tCommon('actions')}
             </th>
           </tr>
@@ -141,8 +140,8 @@ export function OrdersVouchersTabRprt({
             const voucherDate = voucher.voucher_datetime ?? voucher.voucher_date ?? voucher.issued_at ?? voucher.created_at;
 
             return (
-              <tr key={voucher.id} className="border-b border-gray-100 align-top hover:bg-gray-50">
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <tr key={voucher.id} className="border-b border-border align-top hover:bg-muted">
+                <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <CopyValue value={voucher.voucher_no} className="font-medium" />
@@ -157,7 +156,7 @@ export function OrdersVouchersTabRprt({
                     <CopyValue value={voucher.id} maxLength={12} className="text-muted-foreground" />
                   </div>
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
                     <CopyValue value={voucher.voucher_type} className="font-medium" />
                     <div className="flex flex-wrap items-center gap-2">
@@ -169,7 +168,7 @@ export function OrdersVouchersTabRprt({
                     </div>
                   </div>
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-foreground">
                       {voucher.source_module ?? '—'}
@@ -193,7 +192,7 @@ export function OrdersVouchersTabRprt({
                     )}
                   </div>
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
                     <div className="text-sm">
                       <span className="text-muted-foreground">{t.invoiceId ?? 'Invoice ID'}:</span>{' '}
@@ -209,7 +208,7 @@ export function OrdersVouchersTabRprt({
                     </div>
                   </div>
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
                     <CopyValue
                       value={formatMoneyAmountWithCode(Number(voucher.total_amount ?? 0), {
@@ -237,7 +236,7 @@ export function OrdersVouchersTabRprt({
                     </div>
                   </div>
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
                     <CopyValue
                       value={voucherDate ? new Date(voucherDate).toLocaleString() : null}
@@ -247,7 +246,7 @@ export function OrdersVouchersTabRprt({
                     </div>
                   </div>
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-4 py-3 text-start">
                   <div className="flex flex-wrap gap-2">
                     <CmxButton
                       variant="outline"

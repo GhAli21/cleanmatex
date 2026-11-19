@@ -97,7 +97,7 @@ export function PaymentExtraReceiptDialog({
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent className="max-w-lg" scrollBody draggable>
         <CmxDialogHeader>
-          <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+          <CmxDialogTitle className="text-start">
             {tValidate('excessFound', { amount: formattedExcess })}
           </CmxDialogTitle>
         </CmxDialogHeader>
@@ -131,7 +131,7 @@ export function PaymentExtraReceiptDialog({
           />
         </div>
 
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse gap-2' : 'gap-2'}>
+        <CmxDialogFooter className="gap-2">
           <CmxButton type="button" variant="outline" onClick={onBack}>
             {tCommon('back')}
           </CmxButton>

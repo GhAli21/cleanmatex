@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Makes accounting exceptions easy to identify among open work tabs. */
@@ -9,8 +10,6 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteExceptionsService } from '@/lib/services/erp-lite-exceptions.service'
 import { ErpLiteExceptionsScreen } from '@features/erp-lite/ui/erp-lite-exceptions-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -46,9 +45,9 @@ export default async function ErpLiteExceptionsPage() {
       permissions={['erp_lite_exceptions:view']}
     >
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLiteExceptionsScreen rows={rows} />
       )}

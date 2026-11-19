@@ -8,6 +8,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -22,6 +24,8 @@ import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
+import { OrderIssueReportDialog } from '@features/orders/ui/issues/order-issue-report-dialog';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
 
 interface QAItem {
   id: string;
@@ -59,6 +63,8 @@ export default function QADetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  /** Item whose QA reject dialog (reason + photos) is open. */
+  const [rejectItemId, setRejectItemId] = useState<string | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const toggleItemExpansion = (itemId: string) => {
@@ -162,30 +168,14 @@ export default function QADetailPage() {
     }
   };
 
-  const handleReject = async (itemId: string, reason: string) => {
+  /**
+   * Runs after the QA reject dialog saved the issue (with alsoReject and its QA photos):
+   * sends the order back to processing.
+   */
+  const handleReject = async () => {
     if (!orderId) return;
     setSubmitting(true);
     try {
-      // Create issue + explicit reject (alsoReject) — report alone never rejects
-      const issueRes = await fetch(`/api/v1/orders/${orderId}/issue`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scopeLevel: 'ITEM',
-          orderItemId: itemId,
-          issueCode: 'OTHER',
-          issueText: reason,
-          priority: 'high',
-          alsoReject: true,
-        }),
-      });
-      if (!issueRes.ok) {
-        const errBody = await issueRes.json().catch(() => ({}));
-        throw new Error(
-          (errBody as { error?: string }).error || t('qa.messages.rejectFailed')
-        );
-      }
-
       // Transition back to processing
       const result = await transition.mutateAsync({
         orderId,
@@ -214,14 +204,14 @@ export default function QADetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
         Order not found
       </div>
     );
@@ -242,15 +232,15 @@ export default function QADetailPage() {
         </div>
       ) : null}
       <div className="mb-6">
-        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
           ← {t('qa.actions.backToQa')}
         </Link>
         <h1 className="text-3xl font-bold">{t('screens.qa')} - {order.order_no}</h1>
-        <p className="text-gray-600 mt-1">{order.customer.name} • {order.customer.phone}</p>
+        <p className="text-muted-foreground mt-1">{order.customer.name} • {order.customer.phone}</p>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -259,11 +249,11 @@ export default function QADetailPage() {
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
           {order.items.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg border border-gray-200 p-4">
+            <div key={item.id} className="bg-card rounded-lg border border-border p-4">
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-semibold">{item.product_name}</h3>
-                  <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                  <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                 </div>
               </div>
 
@@ -273,14 +263,14 @@ export default function QADetailPage() {
                   <button
                     onClick={() => handleAccept()}
                     disabled={submitting}
-                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    className="flex-1 px-3 py-2 bg-success text-on-solid rounded-lg hover:bg-success/90 disabled:opacity-50"
                   >
                     ✓ {t('qa.actions.accept')}
                   </button>
                   <button
-                    onClick={() => handleReject(item.id, 'Quality issue found')}
+                    onClick={() => setRejectItemId(item.id)}
                     disabled={submitting}
-                    className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    className="flex-1 px-3 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
                   >
                     ✗ {t('qa.actions.reject')}
                   </button>
@@ -289,10 +279,10 @@ export default function QADetailPage() {
 
               {/* Pieces Section - Expandable */}
               {trackByPiece && orderId && currentTenant?.tenant_id && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="mt-4 pt-4 border-t border-border">
                   <button
                     onClick={() => toggleItemExpansion(item.id)}
-                    className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                    className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                   >
                     <span>
                       {tPieces('viewPieces') || 'View Pieces'}
@@ -310,6 +300,7 @@ export default function QADetailPage() {
                             <OrderPiecesManager
                               orderId={orderId}
                               itemId={item.id}
+                              fileSource={FILE_SOURCES.ORDER_QA}
                               tenantId={currentTenant.tenant_id}
                               branchId={order?.branch_id}
                               readOnly={false}
@@ -326,17 +317,31 @@ export default function QADetailPage() {
               )}
             </div>
           ))}
+          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_QA} />}
+          {orderId && (
+            <OrderIssueReportDialog
+              open={rejectItemId !== null}
+              orderId={orderId}
+              scopeLevel={ORDER_ISSUE_SCOPE.ITEM}
+              orderItemId={rejectItemId}
+              qaReject
+              onOpenChange={(open) => {
+                if (!open) setRejectItemId(null);
+              }}
+              onSuccess={() => void handleReject()}
+            />
+          )}
         </div>
 
         {/* Actions Panel */}
         <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">QA Actions</h3>
             
             <button
               onClick={handleAccept}
               disabled={submitting}
-              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+              className="w-full px-4 py-3 bg-success text-on-solid rounded-lg font-semibold hover:bg-success/90 disabled:opacity-50"
             >
               {submitting ? t('qa.actions.processing') : t('qa.actions.acceptAll')}
             </button>

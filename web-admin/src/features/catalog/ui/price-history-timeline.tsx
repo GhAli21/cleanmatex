@@ -138,8 +138,8 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
 
   if (loading) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4" />
+      <div className="text-center py-12 text-muted-foreground">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
         Loading price history...
       </div>
     )
@@ -148,22 +148,22 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
   return (
     <div className="space-y-4">
       <CmxCard className="p-4">
-        <div className={`flex items-center gap-2 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Filter className="w-5 h-5 text-gray-600" />
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="w-5 h-5 text-muted-foreground" />
           <h3 className="font-medium">Filters</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">From Date</label>
+            <label className="block text-xs font-medium text-foreground mb-1">From Date</label>
             <CmxInput type="date" value={filters.fromDate} onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">To Date</label>
+            <label className="block text-xs font-medium text-foreground mb-1">To Date</label>
             <CmxInput type="date" value={filters.toDate} onChange={(e) => setFilters({ ...filters, toDate: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Entity Type</label>
-            <select value={filters.entityType} onChange={(e) => setFilters({ ...filters, entityType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            <label className="block text-xs font-medium text-foreground mb-1">Entity Type</label>
+            <select value={filters.entityType} onChange={(e) => setFilters({ ...filters, entityType: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm">
               <option value="">All Types</option>
               <option value="price_list_item">Price List Item</option>
               <option value="product_default">Product Default</option>
@@ -171,7 +171,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
           </div>
           <div className="flex items-end">
             <CmxButton variant="outline" onClick={handleExport} className="w-full">
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 me-2" />
                   Export CSV
             </CmxButton>
           </div>
@@ -180,26 +180,26 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
 
       {history.length === 0 ? (
         <CmxCard className="p-12 text-center">
-          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">No price history available</p>
-          <p className="text-sm text-gray-400 mt-2">Price changes will be tracked here automatically</p>
+          <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No price history available</p>
+          <p className="text-sm text-muted-foreground mt-2">Price changes will be tracked here automatically</p>
         </CmxCard>
       ) : (
         <div className="space-y-4">
           {history.map((entry) => (
             <CmxCard key={entry.id} className="p-4">
-              <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2" />
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2" />
                 <div className="flex-1 min-w-0">
-                  <div className={`flex items-start justify-between gap-4 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex items-start justify-between gap-4 mb-2">
                     <div className="flex-1">
-                      <div className={`flex items-center gap-2 mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <DollarSign className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium text-gray-900">
+                      <div className="flex items-center gap-2 mb-1">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium text-foreground">
                           {entry.entity_type === 'price_list_item' ? `Price List: ${entry.price_list_name || 'N/A'}` : `Product: ${entry.product_name || 'N/A'}`}
                         </span>
                       </div>
-                      <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatDate(entry.created_at)}</span>
                         {entry.created_by && (
                           <span className="flex items-center gap-1">
@@ -210,21 +210,21 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
                       </div>
                     </div>
                   </div>
-                  <div className={`bg-gray-50 rounded-lg p-3 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <div className="bg-muted rounded-lg p-3 mt-3 text-start">
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div><p className="text-xs text-gray-500 mb-1">Old Price</p><p className="font-medium">{formatPrice(entry.old_price)}</p></div>
-                      <div><p className="text-xs text-gray-500 mb-1">New Price</p><p className="font-medium text-blue-600">{formatPrice(entry.new_price)}</p></div>
+                      <div><p className="text-xs text-muted-foreground mb-1">Old Price</p><p className="font-medium">{formatPrice(entry.old_price)}</p></div>
+                      <div><p className="text-xs text-muted-foreground mb-1">New Price</p><p className="font-medium text-primary-text">{formatPrice(entry.new_price)}</p></div>
                       {entry.old_discount_percent !== null && entry.new_discount_percent !== null && (
                         <>
-                          <div><p className="text-xs text-gray-500 mb-1">Old Discount</p><p className="font-medium">{entry.old_discount_percent.toFixed(2)}%</p></div>
-                          <div><p className="text-xs text-gray-500 mb-1">New Discount</p><p className="font-medium text-blue-600">{entry.new_discount_percent.toFixed(2)}%</p></div>
+                          <div><p className="text-xs text-muted-foreground mb-1">Old Discount</p><p className="font-medium">{entry.old_discount_percent.toFixed(2)}%</p></div>
+                          <div><p className="text-xs text-muted-foreground mb-1">New Discount</p><p className="font-medium text-primary-text">{entry.new_discount_percent.toFixed(2)}%</p></div>
                         </>
                       )}
                     </div>
                     {entry.change_reason && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Reason</p>
-                        <p className="text-sm text-gray-700">{entry.change_reason}</p>
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs text-muted-foreground mb-1">Reason</p>
+                        <p className="text-sm text-foreground">{entry.change_reason}</p>
                       </div>
                     )}
                   </div>

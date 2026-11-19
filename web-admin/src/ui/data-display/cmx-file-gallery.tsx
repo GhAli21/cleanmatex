@@ -28,6 +28,8 @@ export interface CmxFileItem {
   previewMode: CmxFilePreviewMode;
   /** Short label shown on the tile (e.g. the purpose). */
   label?: string;
+  /** Where the file came from, under the label (e.g. "Preparation · Order details"). */
+  meta?: string;
   /** User note, shown under the label. */
   notes?: string | null;
   sizeBytes?: number;
@@ -58,7 +60,7 @@ export function formatFileSize(bytes: number): string {
 
 function TypeIcon({ mode }: { mode: CmxFilePreviewMode }) {
   const Icon = mode === 'PDF' ? FileText : mode === 'VIDEO' ? FileVideo : mode === 'AUDIO' ? Music : FileIcon;
-  return <Icon className="h-10 w-10 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />;
+  return <Icon className="h-10 w-10 text-muted-foreground" aria-hidden />;
 }
 
 /**
@@ -79,7 +81,7 @@ export function CmxFileGallery({ items, loading, onOpen, onEdit, onDelete, readO
     );
   }
   if (items.length === 0) {
-    return <p className="py-6 text-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel ?? t('noFiles')}</p>;
+    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyLabel ?? t('noFiles')}</p>;
   }
 
   return (
@@ -89,12 +91,12 @@ export function CmxFileGallery({ items, loading, onOpen, onEdit, onDelete, readO
         return (
           <li
             key={item.id}
-            className="group relative overflow-hidden rounded-[var(--cmx-radius-md,0.375rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))]"
+            className="group relative overflow-hidden rounded-[var(--cmx-radius-md,0.375rem)] border border-border bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))]"
           >
             <button
               type="button"
               onClick={() => onOpen?.(index)}
-              className="flex aspect-square w-full items-center justify-center bg-[rgb(var(--cmx-muted-rgb,241_245_249))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+              className="flex aspect-square w-full items-center justify-center bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               aria-label={t('openFile', { name: item.name })}
             >
               {thumb ? (
@@ -104,8 +106,13 @@ export function CmxFileGallery({ items, loading, onOpen, onEdit, onDelete, readO
               )}
             </button>
             <div className="space-y-0.5 p-2 text-start">
-              {item.label && <p className="truncate text-xs font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{item.label}</p>}
-              <p className="truncate text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" title={item.notes ?? item.name}>
+              {item.label && <p className="truncate text-xs font-medium text-foreground">{item.label}</p>}
+              {item.meta && (
+                <p className="truncate text-[11px] text-muted-foreground" title={item.meta}>
+                  {item.meta}
+                </p>
+              )}
+              <p className="truncate text-xs text-muted-foreground" title={item.notes ?? item.name}>
                 {item.notes || item.name}
               </p>
             </div>

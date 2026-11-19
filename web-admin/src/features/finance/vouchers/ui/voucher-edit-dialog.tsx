@@ -325,7 +325,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
               <div className="min-w-0 flex-1">
                 <CmxDialogTitle>{t('actions.edit')}</CmxDialogTitle>
                 {detail && (
-                  <p className="mt-1 font-mono text-sm text-blue-700">{detail.voucher_no}</p>
+                  <p className="mt-1 font-mono text-sm text-primary-text">{detail.voucher_no}</p>
                 )}
               </div>
               {detail && (
@@ -349,7 +349,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
             {/* Error */}
             {!loading && fetchError && (
               <div className="p-6">
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <div className="rounded-lg border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
                   {fetchError}
                 </div>
               </div>
@@ -360,17 +360,17 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
               <div className="space-y-5 p-6">
 
                 {/* ── Summary strip ── */}
-                <div className="grid grid-cols-2 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted p-4 text-sm sm:grid-cols-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t('voucherType')}
                     </p>
-                    <p className="mt-0.5 font-medium text-gray-900">
+                    <p className="mt-0.5 font-medium text-foreground">
                       {voucherTypeLabels[detail.voucher_type] ?? detail.voucher_type}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t('direction')}
                     </p>
                     <p className="mt-0.5">
@@ -378,25 +378,25 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t('totalAmount')}
                     </p>
-                    <p className="mt-0.5 font-mono font-semibold text-gray-900">
+                    <p className="mt-0.5 font-mono font-semibold text-foreground">
                       {detail.total_amount > 0
                         ? detail.total_amount.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })
                         : '—'}
                       {detail.total_amount > 0 && detail.currency_code && (
-                        <span className="ms-1 text-xs font-normal text-gray-400">
+                        <span className="ms-1 text-xs font-normal text-muted-foreground">
                           {detail.currency_code}
                         </span>
                       )}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {t('voucherNo')}
                     </p>
-                    <p className="mt-0.5 font-mono text-blue-700">{detail.voucher_no}</p>
+                    <p className="mt-0.5 font-mono text-primary-text">{detail.voucher_no}</p>
                   </div>
                 </div>
 
@@ -446,18 +446,18 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                       <>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
                               {t('voucherDate')}
                             </label>
                             <input
                               type="date"
                               value={form.voucher_date}
                               onChange={setField('voucher_date')}
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
                               {t('party')}
                             </label>
                             <input
@@ -465,12 +465,12 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                               value={form.party_name}
                               onChange={(e) => { setField('party_name')(e); setFieldErrors((p) => ({ ...p, party_name: undefined })); }}
                               maxLength={250}
-                              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-destructive focus:border-destructive focus:ring-destructive' : 'border-border focus:border-ring focus:ring-ring'}`}
                             />
-                            {fieldErrors.party_name && <p className="mt-1 text-xs text-red-600">{fieldErrors.party_name}</p>}
+                            {fieldErrors.party_name && <p className="mt-1 text-xs text-danger-text">{fieldErrors.party_name}</p>}
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
                               {t('declaredTotal')}
                             </label>
                             <CmxMoneyField
@@ -481,11 +481,11 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                               onValueChange={(_, d) => { setForm((prev) => ({ ...prev, total_amount: d })); setFieldErrors((p) => ({ ...p, total_amount: undefined })); }}
                               placeholder="0.00"
                             />
-                            {fieldErrors.total_amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.total_amount}</p>}
+                            {fieldErrors.total_amount && <p className="mt-1 text-xs text-danger-text">{fieldErrors.total_amount}</p>}
                           </div>
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                          <label className="mb-1.5 block text-sm font-medium text-foreground">
                             {t('description')}
                           </label>
                           <input
@@ -493,18 +493,18 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                             value={form.description}
                             onChange={setField('description')}
                             maxLength={500}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                          <label className="mb-1.5 block text-sm font-medium text-foreground">
                             {t('notes')}
                           </label>
                           <textarea
                             value={form.notes}
                             onChange={setField('notes')}
                             rows={2}
-                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </div>
                         <div className="flex justify-end">
@@ -532,8 +532,8 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                           { label: t('notes'),        value: detail.notes        },
                         ].map(({ label, value }) => (
                           <div key={label}>
-                            <p className="text-xs font-medium text-gray-400">{label}</p>
-                            <p className="mt-0.5 text-sm text-gray-900">{value ?? '—'}</p>
+                            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                            <p className="mt-0.5 text-sm text-foreground">{value ?? '—'}</p>
                           </div>
                         ))}
                       </div>
@@ -563,45 +563,45 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
 
                   <CmxCardContent className="p-0">
                     {lines.length === 0 ? (
-                      <div className="py-12 text-center text-sm text-gray-500">
+                      <div className="py-12 text-center text-sm text-muted-foreground">
                         {t('noLines')}
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                          <thead className="bg-gray-50">
+                        <table className="min-w-full divide-y divide-border text-sm">
+                          <thead className="bg-muted">
                             <tr>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">
+                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 #
                               </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">
+                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('lineRole')}
                               </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">
+                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('paymentMethod')}
                               </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">
+                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('direction')}
                               </th>
-                              <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wide text-gray-500">
+                              <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('amount')}
                               </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">
+                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('description')}
                               </th>
                               {isDraft && <th className="w-12 px-4 py-3" />}
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 bg-white">
+                          <tbody className="divide-y divide-border bg-card">
                             {lines.map((line) => (
-                              <tr key={line.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 tabular-nums text-gray-500">
+                              <tr key={line.id} className="hover:bg-muted">
+                                <td className="px-4 py-3 tabular-nums text-muted-foreground">
                                   {line.line_no}
                                 </td>
-                                <td className="px-4 py-3 font-medium text-gray-900">
+                                <td className="px-4 py-3 font-medium text-foreground">
                                   {getRoleLabel(line.line_role)}
                                 </td>
-                                <td className="px-4 py-3 text-gray-600">
+                                <td className="px-4 py-3 text-muted-foreground">
                                   {line.payment_method_code ?? '—'}
                                 </td>
                                 <td className="px-4 py-3">
@@ -610,15 +610,15 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                                 <td
                                   className={`px-4 py-3 text-end font-mono font-medium tabular-nums ${
                                     line.direction === 'OUT'
-                                      ? 'text-red-600'
-                                      : 'text-green-700'
+                                      ? 'text-danger-text'
+                                      : 'text-success-text'
                                   }`}
                                 >
                                   {line.amount.toLocaleString(isRtl ? 'ar' : 'en', {
                                     minimumFractionDigits: 2,
                                   })}
                                 </td>
-                                <td className="max-w-[12rem] truncate px-4 py-3 text-gray-600">
+                                <td className="max-w-[12rem] truncate px-4 py-3 text-muted-foreground">
                                   {line.description ?? '—'}
                                 </td>
                                 {isDraft && (
@@ -633,7 +633,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                                         <CmxButton
                                           variant="ghost"
                                           size="sm"
-                                          className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                          className="text-danger-text hover:bg-danger-bg hover:text-danger-text/80"
                                           loading={deletingLineId === line.id}
                                           disabled={deletingLineId !== null}
                                           title={tCommon('delete')}
@@ -647,15 +647,15 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                               </tr>
                             ))}
                           </tbody>
-                          <tfoot className="border-t border-gray-200 bg-gray-50">
+                          <tfoot className="border-t border-border bg-muted">
                             <tr>
                               <td colSpan={4} className="px-4 py-3" />
                               <td className="px-4 py-3 text-end tabular-nums">
-                                <div className="font-mono font-semibold text-gray-900">
+                                <div className="font-mono font-semibold text-foreground">
                                   {linesTotal.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
                                 </div>
                                 {declaredAmt > 0 && (
-                                  <div className={`mt-0.5 text-xs font-medium ${isBalanced ? 'text-green-700' : 'text-amber-700'}`}>
+                                  <div className={`mt-0.5 text-xs font-medium ${isBalanced ? 'text-success-text' : 'text-warning-text'}`}>
                                     {isBalanced
                                       ? `✓ ${t('balanceOk')}`
                                       : `⚠ ${t('balanceOff', { diff: Math.abs(linesTotal - declaredAmt).toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 }) })}`}

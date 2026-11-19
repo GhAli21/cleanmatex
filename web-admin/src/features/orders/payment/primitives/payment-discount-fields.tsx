@@ -25,7 +25,6 @@ import {
   type FieldErrors,
   type UseFormSetValue,
 } from 'react-hook-form';
-import { useRTL } from '@/lib/hooks/useRTL';
 import type { PaymentFormData } from '@features/orders/model/payment-form-schema';
 import {
   formatDecimalDraft,
@@ -85,7 +84,6 @@ export function PaymentDiscountFields({
   lockedReason = null,
 }: PaymentDiscountFieldsProps) {
   const t = useTranslations('newOrder.payment');
-  const isRTL = useRTL();
   const [amountFocused, setAmountFocused] = useState(false);
   const [amountDraft, setAmountDraft] = useState('');
 
@@ -110,12 +108,12 @@ export function PaymentDiscountFields({
     <div className={className}>
       <div>
         <p
-          className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+          className="text-sm font-semibold text-foreground text-start"
         >
           {t('rightRail.discounts')}
         </p>
         <p
-          className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+          className="mt-1 text-xs text-muted-foreground text-start"
         >
           {lockedReason ?? t('rightRail.discountsHelp')}
         </p>
@@ -202,7 +200,7 @@ export function PaymentDiscountFields({
       )}
       {errors.percentDiscount || errors.amountDiscount ? (
         <p
-          className={`mt-2 text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}
+          className="mt-2 text-xs text-danger-text text-start"
           role="alert"
         >
           {errors.percentDiscount?.message || errors.amountDiscount?.message}

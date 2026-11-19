@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -84,7 +83,6 @@ export function PiecePreferencesEditorDialog({
 }: PiecePreferencesEditorDialogProps) {
   const t = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
   const { showErrorFrom, showSuccess } = useMessage();
   const { servicePrefs: catalogService, packingPrefs } = usePreferenceCatalog(branchId ?? null);
 
@@ -264,7 +262,7 @@ export function PiecePreferencesEditorDialog({
 
   return (
     <CmxDialog open={open} onOpenChange={handleDismiss}>
-      <CmxDialogContent className={`max-w-lg max-h-[85vh] overflow-y-auto ${isRTL ? 'text-right' : 'text-left'}`}>
+      <CmxDialogContent className="max-w-lg max-h-[85vh] overflow-y-auto text-start">
         <CmxDialogHeader>
           <CmxDialogTitle>
             {t('preferencesDialogTitle', { seq: piece.piece_seq })}
@@ -297,7 +295,7 @@ export function PiecePreferencesEditorDialog({
           />
 
           <div>
-            <p className={`text-sm font-semibold text-gray-800 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="text-sm font-semibold text-foreground mb-2 text-start">
               {t('conditionsSection')}
             </p>
             <StainConditionToggles
@@ -308,7 +306,7 @@ export function PiecePreferencesEditorDialog({
           </div>
         </div>
 
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+        <CmxDialogFooter className="">
           <CmxButton variant="outline" onClick={() => handleDismiss(false)} disabled={busy}>
             {tCommon('cancel')}
           </CmxButton>

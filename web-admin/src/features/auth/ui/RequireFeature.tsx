@@ -17,8 +17,8 @@ export { useFeature, useFeatureOptional }
 function FeatureGateSkeleton() {
   return (
     <div className="space-y-6 p-4" role="status" aria-live="polite" aria-busy="true">
-      <div className="h-8 bg-gray-200 rounded w-1/3 max-w-xs animate-pulse" />
-      <div className="h-40 bg-gray-200 rounded animate-pulse" />
+      <div className="h-8 bg-muted rounded w-1/3 max-w-xs animate-pulse" />
+      <div className="h-40 bg-muted rounded animate-pulse" />
     </div>
   )
 }
@@ -109,11 +109,11 @@ export function UpgradePrompt({
   }
 
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+    <div className="bg-warning-bg border border-warning-border rounded-md p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <svg
-            className="h-5 w-5 text-yellow-400"
+            className="h-5 w-5 text-warning-text"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -124,11 +124,11 @@ export function UpgradePrompt({
             />
           </svg>
         </div>
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium text-yellow-800">
+        <div className="ms-3 flex-1">
+          <h3 className="text-sm font-medium text-warning-text">
             Upgrade Required
           </h3>
-          <div className="mt-2 text-sm text-yellow-700">
+          <div className="mt-2 text-sm text-warning-text">
             <p>
               {message ||
                 `The "${featureNames[feature] ?? feature.replace(/_/g, ' ')}" feature is not available on your current plan. Upgrade to access this feature.`}
@@ -137,7 +137,7 @@ export function UpgradePrompt({
           <div className="mt-4">
             <button
               type="button"
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-warning-text bg-warning-bg hover:bg-warning-border/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-warning"
               onClick={() => {
                 window.location.href = '/dashboard/tenant-admin/subscription'
               }}

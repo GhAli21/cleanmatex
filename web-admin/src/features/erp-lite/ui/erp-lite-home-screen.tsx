@@ -1,5 +1,6 @@
 'use client'
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { ComponentType } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -18,8 +19,6 @@ import {
 } from 'lucide-react'
 import type { ErpLiteTenantReadiness } from '@/lib/types/erp-lite-ops'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -200,9 +199,9 @@ export function ErpLiteHomeScreen({
       </div>
 
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : null}
 
       {!loadError && readiness && (
@@ -245,9 +244,9 @@ export function ErpLiteHomeScreen({
       )}
 
       {!loadError && !readiness && (
-        <Alert>
-          <AlertDescription>{tCommon('loadError')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="info">
+          <div>{tCommon('loadError')}</div>
+        </CmxSummaryMessage>
       )}
 
       {visibleShortcuts.length > 0 && (

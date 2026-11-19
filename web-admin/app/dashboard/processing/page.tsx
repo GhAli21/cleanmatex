@@ -16,7 +16,6 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
@@ -55,7 +54,6 @@ export default function ProcessingPage() {
   const t = useTranslations('processing');
   const tCommon = useTranslations('common');
   const tOrders = useTranslations('orders');
-  const isRTL = useRTL();
   const { currentTenant, isLoading: authLoading } = useAuth();
   const useNewWorkflowSystem = useWorkflowSystemMode();
 
@@ -227,16 +225,16 @@ export default function ProcessingPage() {
       />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
 
       {isLoading || authLoading ? (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="bg-card rounded-lg border border-border shadow-sm">
           <div className="p-12 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-sm text-gray-600">
+            <Loader2 className="h-8 w-8 animate-spin text-primary-text mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
               {tOrders('loadingOrders') || tCommon('loading')}
             </p>
           </div>
@@ -257,9 +255,7 @@ export default function ProcessingPage() {
 
       {pagination.totalPages > 1 && (
         <div
-          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 bg-white rounded-lg ${
-            isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
-          }`}
+          className="flex items-center border-t border-border px-4 py-3 text-xs text-muted-foreground bg-card rounded-lg justify-between"
         >
           <div>
             {tOrders('showing')} {(pagination.page - 1) * pagination.limit + 1}{' '}
@@ -268,12 +264,12 @@ export default function ProcessingPage() {
             {tOrders('of')} {pagination.total}{' '}
             {tOrders('orders')?.toLowerCase() || 'orders'}
           </div>
-          <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page <= 1 || isLoading}
-              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="rounded border border-border px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               {tOrders('previous')}
             </button>
@@ -281,7 +277,7 @@ export default function ProcessingPage() {
               type="button"
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages || isLoading}
-              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="rounded border border-border px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               {tOrders('next')}
             </button>

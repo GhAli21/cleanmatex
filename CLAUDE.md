@@ -18,6 +18,7 @@ Less-frequent rules, role definition, inventories, skills catalog and doc index:
 | Inline comment, JSDoc, SQL comment | `/code-documentation` |
 | `.stories.tsx` / new Cmx component | `/storybook` |
 | Navigation add/modify | `/navigation` |
+| Files / photos / attachments on a screen (wire, change, unwire) | `/file-util-wire` |
 | Dashboard route gating | `/refill-ui-access-contract-permissions` + `/rebuild-ui-access-contract` |
 | RBAC role create/update | `/update-rbac-role` |
 | New feature flag | `/create-feature-flag` |

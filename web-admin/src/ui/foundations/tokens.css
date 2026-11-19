@@ -11,9 +11,13 @@
  *
  * The dark values appear twice (explicit DARK, and SYSTEM when the device
  * prefers dark). CSS cannot share them; the same test keeps the copies equal.
+ * Both apply only on screen, so paper always gets the light values. The light
+ * block also answers to [data-mode=LIGHT]: an element with that attribute
+ * (a print preview) is light inside a dark page.
  */
 
-:root {
+:root,
+[data-mode=LIGHT] {
   color-scheme: light;
 
   /* Brand and neutrals — STANDARD theme, light */
@@ -91,67 +95,69 @@
   --cmx-touch-min: 44px;
 }
 
-[data-mode=DARK] {
-  color-scheme: dark;
-  --cmx-primary-rgb: 10 182 216;
-  --cmx-primary-hover-rgb: 49 198 233;
-  --cmx-primary-fg-rgb: 14 23 38;
-  --cmx-primary-bg-rgb: 5 38 46;
-  --cmx-primary-text-rgb: 10 182 216;
-  --cmx-brand-secondary-rgb: 14 42 71;
-  --cmx-brand-secondary-hover-rgb: 2 29 57;
-  --cmx-brand-secondary-fg-rgb: 255 255 255;
-  --cmx-brand-secondary-text-rgb: 100 131 166;
-  --cmx-focus-ring-rgb: 10 182 216;
-  --cmx-background-rgb: 4 9 11;
-  --cmx-surface-rgb: 9 18 21;
-  --cmx-surface-muted-rgb: 15 24 26;
-  --cmx-surface-elevated-rgb: 17 27 30;
-  --cmx-card-rgb: 9 18 21;
-  --cmx-card-bg-rgb: 9 18 21;
-  --cmx-input-bg-rgb: 15 24 26;
-  --cmx-muted-rgb: 18 27 30;
-  --cmx-secondary-bg-rgb: 25 36 39;
-  --cmx-secondary-hover-bg-rgb: 36 48 52;
-  --cmx-secondary-fg-rgb: 235 239 241;
-  --cmx-ghost-hover-bg-rgb: 25 36 39;
-  --cmx-field-hover-rgb: 18 28 32;
-  --cmx-table-header-bg-rgb: 15 24 26;
-  --cmx-table-row-hover-bg-rgb: 18 28 32;
-  --cmx-border-rgb: 36 48 52;
-  --cmx-border-subtle-rgb: 27 38 41;
-  --cmx-foreground-rgb: 235 239 241;
-  --cmx-text-primary-rgb: 235 239 241;
-  --cmx-text-secondary-rgb: 199 207 210;
-  --cmx-muted-foreground-rgb: 155 167 171;
-  --cmx-destructive-rgb: 248 113 113;
-  --cmx-debit-rgb: 248 113 113;
-  --cmx-destructive-hover-rgb: 239 68 68;
-  --cmx-destructive-bg-rgb: 69 10 10;
-  --cmx-error-bg-rgb: 69 10 10;
-  --cmx-success-rgb: 74 222 128;
-  --cmx-credit-rgb: 74 222 128;
-  --cmx-success-dark-rgb: 74 222 128;
-  --cmx-success-darker-rgb: 134 239 172;
-  --cmx-success-bg-rgb: 5 46 22;
-  --cmx-success-border-rgb: 22 101 52;
-  --cmx-warning-rgb: 251 191 36;
-  --cmx-warning-dark-rgb: 252 211 77;
-  --cmx-warning-darker-rgb: 253 230 138;
-  --cmx-warning-bg-rgb: 66 32 6;
-  --cmx-warning-border-rgb: 133 77 14;
-  --cmx-info-rgb: 96 165 250;
-  --cmx-info-bg-rgb: 23 37 84;
-  --cmx-info-border-rgb: 30 64 175;
-  --cmx-success-text-rgb: 134 239 172;
-  --cmx-warning-text-rgb: 253 230 138;
-  --cmx-info-text-rgb: 147 197 253;
-  --cmx-danger-bg-rgb: 69 10 10;
-  --cmx-danger-border-rgb: 153 27 27;
-  --cmx-danger-text-rgb: 252 165 165;
+@media screen {
+  [data-mode=DARK] {
+    color-scheme: dark;
+    --cmx-primary-rgb: 10 182 216;
+    --cmx-primary-hover-rgb: 49 198 233;
+    --cmx-primary-fg-rgb: 14 23 38;
+    --cmx-primary-bg-rgb: 5 38 46;
+    --cmx-primary-text-rgb: 10 182 216;
+    --cmx-brand-secondary-rgb: 14 42 71;
+    --cmx-brand-secondary-hover-rgb: 2 29 57;
+    --cmx-brand-secondary-fg-rgb: 255 255 255;
+    --cmx-brand-secondary-text-rgb: 100 131 166;
+    --cmx-focus-ring-rgb: 10 182 216;
+    --cmx-background-rgb: 4 9 11;
+    --cmx-surface-rgb: 9 18 21;
+    --cmx-surface-muted-rgb: 15 24 26;
+    --cmx-surface-elevated-rgb: 17 27 30;
+    --cmx-card-rgb: 9 18 21;
+    --cmx-card-bg-rgb: 9 18 21;
+    --cmx-input-bg-rgb: 15 24 26;
+    --cmx-muted-rgb: 18 27 30;
+    --cmx-secondary-bg-rgb: 25 36 39;
+    --cmx-secondary-hover-bg-rgb: 36 48 52;
+    --cmx-secondary-fg-rgb: 235 239 241;
+    --cmx-ghost-hover-bg-rgb: 25 36 39;
+    --cmx-field-hover-rgb: 18 28 32;
+    --cmx-table-header-bg-rgb: 15 24 26;
+    --cmx-table-row-hover-bg-rgb: 18 28 32;
+    --cmx-border-rgb: 36 48 52;
+    --cmx-border-subtle-rgb: 27 38 41;
+    --cmx-foreground-rgb: 235 239 241;
+    --cmx-text-primary-rgb: 235 239 241;
+    --cmx-text-secondary-rgb: 199 207 210;
+    --cmx-muted-foreground-rgb: 155 167 171;
+    --cmx-destructive-rgb: 248 113 113;
+    --cmx-debit-rgb: 248 113 113;
+    --cmx-destructive-hover-rgb: 239 68 68;
+    --cmx-destructive-bg-rgb: 69 10 10;
+    --cmx-error-bg-rgb: 69 10 10;
+    --cmx-success-rgb: 74 222 128;
+    --cmx-credit-rgb: 74 222 128;
+    --cmx-success-dark-rgb: 74 222 128;
+    --cmx-success-darker-rgb: 134 239 172;
+    --cmx-success-bg-rgb: 5 46 22;
+    --cmx-success-border-rgb: 22 101 52;
+    --cmx-warning-rgb: 251 191 36;
+    --cmx-warning-dark-rgb: 252 211 77;
+    --cmx-warning-darker-rgb: 253 230 138;
+    --cmx-warning-bg-rgb: 66 32 6;
+    --cmx-warning-border-rgb: 133 77 14;
+    --cmx-info-rgb: 96 165 250;
+    --cmx-info-bg-rgb: 23 37 84;
+    --cmx-info-border-rgb: 30 64 175;
+    --cmx-success-text-rgb: 134 239 172;
+    --cmx-warning-text-rgb: 253 230 138;
+    --cmx-info-text-rgb: 147 197 253;
+    --cmx-danger-bg-rgb: 69 10 10;
+    --cmx-danger-border-rgb: 153 27 27;
+    --cmx-danger-text-rgb: 252 165 165;
+  }
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   [data-mode=SYSTEM] {
     color-scheme: dark;
     --cmx-primary-rgb: 10 182 216;

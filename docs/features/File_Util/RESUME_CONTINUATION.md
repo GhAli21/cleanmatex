@@ -2,7 +2,7 @@
 
 **Purpose:** let any assistant or developer continue this feature without the chat history.
 **Authoritative docs:** [PLAN.md](PLAN.md) (design, decisions, task checklist) · [STATUS.md](STATUS.md) (dated log).
-**Last updated:** 2026-11-19 — Phase 7 DONE in code (7.1–7.7; `0765` + `0766` applied). `0767` applied by owner (local + remote). 7.8 done (size only at upload; HQ pick lists). 7.9 done (I11 pilot): `0768` applied by owner (local + remote) 2026-11-19, HQ types + Prisma regenerated; remote check: job row `file-util-purge` (HQ_WORKER, `47 3 * * 0`, WORKER_QUEUE), `sys_ops_job_req_tr` and the 8 functions present; `applied_*` still empty until the worker runs. tsc green on the new types (HQ api, workers, web; tenant). Owner: deploy `platform-workers`, then QA §H. NEXT: Phase 8 (ADR, developer guide, feature doc list, inventories). Owner: delete `delivery-pod-evidence` + `product-images` buckets, QA A–F.
+**Last updated:** 2026-11-19 — **PLAN DONE in code (Phases 1–8).** All migrations `0743`–`0768` applied by owner. Phase 8: [ADR_001](ADR_001_file_util_storage_model.md), [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md), [FEATURE_REFERENCE.md](FEATURE_REFERENCE.md); inventories drift 0. Phase 10 (2026-11-19, `0771` applied): QA reject with photos, per-piece photos, locked pickup proof, delivery Files panels — see STATUS log. `npm run build` green 2026-11-19. Phase 9 (2026-11-19, `0770` applied): files record the order stage at upload (`stage_code`), stage filter + "stage · screen" line in the widget, Files panel on the 6 stage screens — see STATUS log. NEXT: nothing for dev — only the owner follow-ups in §5. New File Util work starts from DEVELOPER_GUIDE.md.
 
 ## 1. Where we are
 
@@ -166,7 +166,10 @@ Target (behavior of `/products-items-config` unchanged):
 - Cmx components only; feedback via `cmxMessage`; EN + AR + RTL.
 - After every step: update PLAN.md checkboxes, STATUS.md log, and this file.
 
-## 5. Owner follow-ups open
+## 5. Owner follow-ups open (the plan closes when these are done)
 
-- Deploy HQ `platform-workers` (purge job `file-util-purge`).
-- Data gap: only 2 of 4 organizations have a subscription → others get `PLAN_UNAVAILABLE` on upload.
+- Deploy HQ `platform-workers`; Job Manager `/ops/jobs` then shows the purge job "In sync".
+- Supabase dashboard: delete the empty, locked buckets `product-images` and `delivery-pod-evidence` with their 4 policies each (a migration cannot drop `storage.objects` policies).
+- Browser QA in `QA_TEST_GUIDE.md`: A–E (tenant), F incl. F18–F29 (HQ File Setup), H (purge schedule; needs the worker deployed), I (stage of each file, stage screens), J (QA reject, piece photos, pickup proof, delivery).
+- Data gap: only 2 of 4 organizations have a subscription → others get `PLAN_UNAVAILABLE` on upload (fix the data, not the code).
+- Commit both repos (`cleanmatex`, `cleanmatexsaas`).

@@ -18,7 +18,6 @@ export interface CmxCountPickerProps {
   /** Label for the trailing chip that reveals a bounded number input. */
   customLabel: string
   disabled?: boolean
-  isRTL?: boolean
   className?: string
 }
 
@@ -35,7 +34,6 @@ export function CmxCountPicker({
   groupLabel,
   customLabel,
   disabled = false,
-  isRTL = false,
   className = '',
 }: CmxCountPickerProps) {
   const valueOutOfRange = value < min || value > max
@@ -69,7 +67,7 @@ export function CmxCountPicker({
     <div
       role="group"
       aria-label={groupLabel}
-      className={cn('flex flex-wrap items-center gap-1', isRTL && 'flex-row-reverse', className)}
+      className={cn('flex flex-wrap items-center gap-1', className)}
     >
       {!isCustom
         ? chips.map((n) => {
@@ -86,7 +84,7 @@ export function CmxCountPicker({
                 className={cn(
                   'min-h-[44px] min-w-[44px] rounded-lg px-3 text-sm font-semibold',
                   selected
-                    ? 'bg-card text-primary-text shadow-sm hover:bg-card border border-border'
+                    ? 'bg-card text-primary-text shadow-sm hover:bg-muted border border-border'
                     : 'text-muted-foreground hover:text-foreground border border-transparent'
                 )}
               >
@@ -112,7 +110,7 @@ export function CmxCountPicker({
         className={cn(
           'min-h-[44px] rounded-lg px-3 text-sm font-semibold',
           isCustom
-            ? 'bg-card text-primary-text shadow-sm hover:bg-card border border-border'
+            ? 'bg-card text-primary-text shadow-sm hover:bg-muted border border-border'
             : 'text-muted-foreground hover:text-foreground border border-transparent'
         )}
       >

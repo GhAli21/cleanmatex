@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives';
 import {
   CmxCard,
@@ -130,7 +129,6 @@ export function OrderWorkspaceScreen({
   workflowJourney,
 }: OrderWorkspaceScreenProps) {
   const t = useTranslations('orders.detail.workspace');
-  const isRTL = useRTL();
   const router = useRouter();
   const refreshMoney = useOrderMoneyRefresh();
   const searchParams = useSearchParams();
@@ -232,20 +230,20 @@ export function OrderWorkspaceScreen({
       {/* Centered workspace column preserves scanability and reserves mobile space for sticky browser controls. */}
       {/* Direction-aware utility row keeps navigation and secondary actions natural in Arabic and English. */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+        className="flex flex-wrap items-center justify-between gap-3"
       >
         <Link
           href={returnUrl}
-          className={`inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground ${isRTL ? 'flex-row-reverse' : ''}`}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft
             aria-hidden="true"
-            className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`}
+            className="h-4 w-4 rtl:rotate-180"
           />
           {returnLabel ?? t('backToOrders')}
         </Link>
         <div
-          className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          className="flex flex-wrap gap-2"
         >
           <StartOrderEditButton orderId={orderId} label={t('edit')} />
           <Link href={detailHref('items')}>
@@ -261,11 +259,11 @@ export function OrderWorkspaceScreen({
         <CmxCardContent className="space-y-5 pt-6">
           {/* Header stacks on narrow screens, then separates identity from financial priority on wider displays. */}
           <div
-            className={`flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}
+            className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
           >
-            <div className={isRTL ? 'text-right' : 'text-left'}>
+            <div className="text-start">
               <div
-                className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex flex-wrap items-center gap-2"
               >
                 <h1 className="text-2xl font-bold tracking-tight">{orderNo}</h1>
                 <OrderWorkspaceStatusBadge
@@ -300,7 +298,7 @@ export function OrderWorkspaceScreen({
                   : t('createdSessionUnknown')}
               </p>
             </div>
-            <div className={isRTL ? 'text-left' : 'text-right'}>
+            <div className="text-end">
               <p className="text-xs font-medium text-muted-foreground">
                 {t('orderTotal')}
               </p>
@@ -315,10 +313,10 @@ export function OrderWorkspaceScreen({
 
           <div className="border-t border-border pt-5">
             <div
-              className={`mb-4 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="mb-4 flex items-center justify-between gap-3"
             >
               <p
-                className={`text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`}
+                className="text-sm font-semibold text-start"
               >
                 {t('workflow')}
               </p>
@@ -333,13 +331,13 @@ export function OrderWorkspaceScreen({
               <>
                 {/* The configured policy order is scrollable rather than compressed on mobile. */}
                 <ol
-                  className={`flex min-w-max items-center gap-1 overflow-x-auto pb-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="flex min-w-max items-center gap-1 overflow-x-auto pb-1"
                   aria-label={t('workflow')}
                 >
                   {stages.map((stage, index) => (
                     <li
                       key={stage.id}
-                      className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}
+                      className="flex items-center"
                       aria-current={
                         stage.state === 'current' ? 'step' : undefined
                       }
@@ -350,7 +348,7 @@ export function OrderWorkspaceScreen({
                         {stage.state === 'complete' ? (
                           <CheckCircle2
                             aria-hidden="true"
-                            className="h-3.5 w-3.5 text-[rgb(var(--cmx-success-rgb,34_197_94))]"
+                            className="h-3.5 w-3.5 text-success"
                           />
                         ) : (
                           <span
@@ -363,14 +361,14 @@ export function OrderWorkspaceScreen({
                       {index < stages.length - 1 ? (
                         <ChevronRight
                           aria-hidden="true"
-                          className={`mx-1 h-4 w-4 shrink-0 text-muted-foreground/50 ${isRTL ? 'rotate-180' : ''}`}
+                          className="mx-1 h-4 w-4 shrink-0 text-muted-foreground/50 rtl:rotate-180"
                         />
                       ) : null}
                     </li>
                   ))}
                 </ol>
                 <p
-                  className={`mt-4 text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="mt-4 text-sm text-muted-foreground text-start"
                 >
                   {t('workflowCurrentStatus', {
                     value:
@@ -390,9 +388,9 @@ export function OrderWorkspaceScreen({
       </CmxCard>
 
       {hasCollectionDue ? (
-        <CmxCard className="border-[rgb(var(--cmx-warning-rgb,234_179_8))]/40">
+        <CmxCard className="border-warning/40">
           <CmxCardContent
-            className={`flex flex-wrap items-center justify-between gap-3 py-4 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="flex flex-wrap items-center justify-between gap-3 py-4"
           >
             <div>
               <p className="font-semibold">{t('collectionAttentionTitle')}</p>
@@ -487,7 +485,7 @@ export function OrderWorkspaceScreen({
                 {t('sections.customer')}
                 <ChevronRight
                   aria-hidden="true"
-                  className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`}
+                  className="h-4 w-4 rtl:rotate-180"
                 />
               </CmxButton>
             </CmxCardContent>
@@ -508,7 +506,7 @@ export function OrderWorkspaceScreen({
                 {t('openActivity')}
                 <ChevronRight
                   aria-hidden="true"
-                  className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`}
+                  className="h-4 w-4 rtl:rotate-180"
                 />
               </CmxButton>
             </CmxCardContent>

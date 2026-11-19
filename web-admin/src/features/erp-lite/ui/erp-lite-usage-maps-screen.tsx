@@ -1,5 +1,6 @@
 'use client'
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import * as React from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -8,8 +9,6 @@ import type { ErpLiteUsageMapRow } from '@/lib/types/erp-lite-ops'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 interface ErpLiteUsageMapsScreenProps {
   rows: ErpLiteUsageMapRow[]
 }
@@ -18,8 +17,8 @@ type FilterMode = 'all' | 'unresolved' | 'requiredIssues'
 
 function StatusBadge({ status }: { status: ErpLiteUsageMapRow['status_code'] }) {
   const palette: Record<string, string> = {
-    ACTIVE: 'bg-green-500/10 text-green-700',
-    DRAFT: 'bg-blue-500/10 text-blue-700',
+    ACTIVE: 'bg-success/10 text-success-text',
+    DRAFT: 'bg-primary/10 text-primary-text',
     INACTIVE: 'bg-muted text-muted-foreground',
   }
   return (
@@ -34,10 +33,10 @@ function StatusBadge({ status }: { status: ErpLiteUsageMapRow['status_code'] }) 
 function IssueBadge({ issue }: { issue: ErpLiteUsageMapRow['mapping_issue'] }) {
   if (issue === 'OK') return null
   const palette: Record<string, string> = {
-    MISSING: 'bg-red-500/10 text-red-700',
-    ACCOUNT_INACTIVE: 'bg-amber-500/10 text-amber-700',
-    ACCOUNT_NOT_POSTABLE: 'bg-amber-500/10 text-amber-700',
-    TYPE_MISMATCH: 'bg-orange-500/10 text-orange-700',
+    MISSING: 'bg-destructive/10 text-danger-text',
+    ACCOUNT_INACTIVE: 'bg-warning/10 text-warning-text',
+    ACCOUNT_NOT_POSTABLE: 'bg-warning/10 text-warning-text',
+    TYPE_MISMATCH: 'bg-warning/10 text-warning-text',
   }
   return (
     <span
@@ -80,7 +79,7 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
       header: t('columns.required'),
       cell: ({ row }) =>
         row.original.is_required ? (
-          <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700">
+          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-danger-text">
             {t('required')}
           </span>
         ) : (
@@ -136,8 +135,8 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <Alert>
-        <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <CmxSummaryMessage type="info">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <span>{t('banner')}</span>
           <span className="flex flex-wrap gap-3 text-sm">
             <Link href="/dashboard/erp-lite" className="font-medium text-primary-text hover:underline">
@@ -147,8 +146,8 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
               {t('linkReadiness')}
             </Link>
           </span>
-        </AlertDescription>
-      </Alert>
+        </div>
+      </CmxSummaryMessage>
 
       <div className="flex flex-wrap gap-2">
         <CmxButton

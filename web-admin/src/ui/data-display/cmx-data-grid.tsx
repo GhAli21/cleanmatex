@@ -771,7 +771,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
   return (
     <div className={cn('flex min-h-0 min-w-0 flex-col gap-3', className)} dir={dir}>
       <div className={cn('flex flex-wrap items-center gap-2', enableGlobalSearch || enableRowSelection ? 'justify-between' : 'justify-end')}>
-        <div className={cn('flex min-w-0 flex-1 flex-wrap items-center gap-2', dir === 'rtl' && 'flex-row-reverse')}>
+        <div className={cn('flex min-w-0 flex-1 flex-wrap items-center gap-2')}>
           {enableGlobalSearch && (
             <div className="relative w-full min-w-[12rem] max-w-sm flex-1">
               <Search
@@ -782,7 +782,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 aria-hidden
               />
               <CmxInput
-                className={'h-9 ps-9'}
+                className="h-9 ps-9"
                 value={globalFilterInput}
                 onChange={(e) => setGlobalFilterInput(e.target.value)}
                 placeholder={labels.globalSearchPlaceholder}
@@ -797,7 +797,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
             </div>
           )}
         </div>
-        <div className={cn('flex flex-wrap items-center gap-2', dir === 'rtl' && 'flex-row-reverse')}>
+        <div className={cn('flex flex-wrap items-center gap-2')}>
           {enableDensityToggle && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -912,7 +912,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                         key={header.id}
                         className={cn(
                           densityHeaderClass(density),
-                          'text-start align-bottom text-xs font-semibold text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+                          'text-start align-bottom text-xs font-semibold text-muted-foreground',
                           canSort && 'cursor-pointer select-none hover:bg-black/[0.03]',
                           rb,
                           'bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]',
@@ -944,9 +944,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                               {!sorted ? (
                                 <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
                               ) : sorted === 'asc' ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-[rgb(var(--cmx-primary-text-rgb,59_130_246))]" />
+                                <ArrowUp className="h-3.5 w-3.5 text-primary-text" />
                               ) : (
-                                <ArrowDown className="h-3.5 w-3.5 text-[rgb(var(--cmx-primary-text-rgb,59_130_246))]" />
+                                <ArrowDown className="h-3.5 w-3.5 text-primary-text" />
                               )}
                             </span>
                           ) : null}
@@ -1093,7 +1093,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
           <span className="tabular-nums">
             {fillPlaceholders(labels.showing, { from, to, total: totalFiltered })}
           </span>
-          <div className={cn('flex flex-wrap items-center gap-3', dir === 'rtl' && 'flex-row-reverse')}>
+          <div className={cn('flex flex-wrap items-center gap-3')}>
             <label className="inline-flex items-center gap-2">
               <span className="whitespace-nowrap font-medium text-foreground">{labels.rowsPerPage}</span>
               <select
@@ -1166,7 +1166,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 <PageLastIcon className="h-4 w-4" />
               </CmxButton>
             </div>
-            <div className={cn('flex items-center gap-2', dir === 'rtl' && 'flex-row-reverse')}>
+            <div className={cn('flex items-center gap-2')}>
               <span className="whitespace-nowrap font-medium text-foreground">{labels.goToPage}</span>
               <CmxInput
                 className="h-8 w-14 px-2 text-center text-xs tabular-nums"

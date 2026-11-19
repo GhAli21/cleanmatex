@@ -40,7 +40,7 @@ export default function ArInvoicePrintPage() {
 
   return (
     <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_INVOICES_PRINT_ACCESS.page.permissions ?? []}>
-      <div className="min-h-screen bg-slate-100 py-6 print:bg-white print:py-0">
+      <div className="min-h-screen bg-muted py-6 print:bg-card print:py-0">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -55,12 +55,12 @@ export default function ArInvoicePrintPage() {
 
       <div className="mx-auto max-w-5xl space-y-6 px-4">
         <div className="print-hidden flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 rtl:flex-row-reverse">
+          <div className="flex items-center gap-3">
             <CmxButton variant="ghost" size="sm" onClick={() => router.push(`/dashboard/internal_fin/invoices/${invoiceId}`)}>
               <ArrowLeft className="h-4 w-4" />
               {tCommon('back')}
             </CmxButton>
-            <h1 className="text-2xl font-semibold text-slate-950">{t('title')}</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
           </div>
           <CmxButton onClick={() => window.print()}>
             <Printer className="h-4 w-4" />
@@ -68,9 +68,9 @@ export default function ArInvoicePrintPage() {
           </CmxButton>
         </div>
 
-        {isLoading ? <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> : null}
+        {isLoading ? <div className="h-72 animate-pulse rounded-2xl bg-muted" /> : null}
         {error instanceof Error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="rounded-2xl border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
             {error.message}
           </div>
         ) : null}

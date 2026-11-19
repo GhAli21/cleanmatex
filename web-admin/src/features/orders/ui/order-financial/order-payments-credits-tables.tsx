@@ -91,8 +91,8 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
   const canInitiateRefund = useHasPermission('orders', 'process_refund');
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const { payments, creditApplications, refunds, currencyCode, orderId } = viewModel;
-  const th = `px-3 py-2 text-xs font-semibold uppercase text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`;
-  const td = `px-3 py-2 text-sm ${isRTL ? 'text-right' : 'text-left'}`;
+  const th = `px-3 py-2 text-xs font-semibold uppercase text-muted-foreground text-start`;
+  const td = `px-3 py-2 text-sm text-start`;
 
   return (
     <div className="space-y-6">
@@ -110,7 +110,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className={th}>{t('col.method')}</th>
-                <th className={`${th} ${isRTL ? 'text-left' : 'text-right'}`}>{t('col.amount')}</th>
+                <th className={`${th} text-end`}>{t('col.amount')}</th>
                 <th className={th}>{t('col.status')}</th>
                 <th className={th}>{t('col.voucher')}</th>
                 <th className={th}>{t('col.reference')}</th>
@@ -157,7 +157,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className={th}>{t('col.creditType')}</th>
-                <th className={`${th} ${isRTL ? 'text-left' : 'text-right'}`}>{t('col.amount')}</th>
+                <th className={`${th} text-end`}>{t('col.amount')}</th>
                 <th className={th}>{t('col.applicationStatus')}</th>
                 <th className={th}>{t('col.reference')}</th>
                 <th className={th}>{t('col.voucher')}</th>
@@ -187,7 +187,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                   return (
                     <tr key={c.id} className="border-b border-border/60">
                       <td className={td}>{c.credit_type.replace(/_/g, ' ')}</td>
-                      <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+                      <td className={`${td} text-end`}>
                         <OrderFinancialMoneyValue
                           amount={c.applied_amount}
                           currencyCode={currencyCode}
@@ -232,7 +232,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
               <thead>
                 <tr className="border-b border-border bg-muted/40">
                   <th className={th}>{t('col.reference')}</th>
-                  <th className={`${th} ${isRTL ? 'text-left' : 'text-right'}`}>{t('col.amount')}</th>
+                  <th className={`${th} text-end`}>{t('col.amount')}</th>
                   <th className={th}>{t('col.sourceType')}</th>
                   <th className={th}>{t('col.context')}</th>
                   <th className={th}>{t('col.method')}</th>
@@ -245,7 +245,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                 {refunds.map((r) => (
                   <tr key={r.id} className="border-b border-border/60">
                     <td className={td}>{r.refund_no ?? '—'}</td>
-                    <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+                    <td className={`${td} text-end`}>
                       <OrderFinancialMoneyValue
                         amount={r.refund_amount}
                         currencyCode={r.currency_code ?? currencyCode}
@@ -263,7 +263,7 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                         : '—'}
                     </td>
                     <td className={td}>{r.refund_method_code?.replace(/_/g, ' ') ?? '—'}</td>
-                    <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+                    <td className={`${td} text-end`}>
                       {r.reopens_due_amount > 0 ? (
                         <OrderFinancialMoneyValue
                           amount={r.reopens_due_amount}
@@ -405,7 +405,7 @@ function PaymentRow({
   return (
     <tr className="border-b border-border/60">
       <td className={td}>{methodLabel}</td>
-      <td className={`${td} ${isRTL ? 'text-left' : 'text-right'}`}>
+      <td className={`${td} text-end`}>
         <OrderFinancialMoneyValue amount={payment.amount} currencyCode={currencyCode} />
       </td>
       <td className={td}>

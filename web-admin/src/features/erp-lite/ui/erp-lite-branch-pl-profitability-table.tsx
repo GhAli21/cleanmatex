@@ -25,12 +25,12 @@ export function ErpLiteBranchPlProfitabilityTable({
 
   const columns: ColumnDef<ErpLitePhase10DashboardSnapshot['profitability_rows'][number]>[] = [
     { accessorKey: 'branch_name', header: t('list.columns.branch'), cell: ({ row }) => <div className="font-medium">{row.original.branch_name}</div> },
-    { id: 'direct_revenue', header: () => <div className="text-right">{t('list.columns.revenue')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.direct_revenue, displayConfig)}</div> },
-    { id: 'direct_expense', header: () => <div className="text-right">{t('list.columns.expense')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.direct_expense, displayConfig)}</div> },
-    { id: 'direct_profit', header: () => <div className="text-right">{t('list.columns.directProfit')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.direct_profit, displayConfig)}</div> },
-    { id: 'allocated_in', header: () => <div className="text-right">{t('list.columns.allocatedIn')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.allocated_in, displayConfig)}</div> },
-    { id: 'allocated_out', header: () => <div className="text-right">{t('list.columns.allocatedOut')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.allocated_out, displayConfig)}</div> },
-    { id: 'allocated_profit', header: () => <div className="text-right">{t('list.columns.finalProfit')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.allocated_profit, displayConfig)}</div> },
+    { id: 'direct_revenue', header: () => <div className="text-end">{t('list.columns.revenue')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.direct_revenue, displayConfig)}</div> },
+    { id: 'direct_expense', header: () => <div className="text-end">{t('list.columns.expense')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.direct_expense, displayConfig)}</div> },
+    { id: 'direct_profit', header: () => <div className="text-end">{t('list.columns.directProfit')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.direct_profit, displayConfig)}</div> },
+    { id: 'allocated_in', header: () => <div className="text-end">{t('list.columns.allocatedIn')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.allocated_in, displayConfig)}</div> },
+    { id: 'allocated_out', header: () => <div className="text-end">{t('list.columns.allocatedOut')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.allocated_out, displayConfig)}</div> },
+    { id: 'allocated_profit', header: () => <div className="text-end">{t('list.columns.finalProfit')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.allocated_profit, displayConfig)}</div> },
   ]
 
   return (

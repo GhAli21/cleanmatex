@@ -177,7 +177,7 @@ export function ArStatementCyclePanel() {
               ]}
             />
             <div className="md:col-span-2">
-              <p className="mb-1 text-sm font-medium text-slate-900">{t('create.fields.customerIds')}</p>
+              <p className="mb-1 text-sm font-medium text-foreground">{t('create.fields.customerIds')}</p>
               <CmxTextarea placeholder={t('create.fields.customerIdsPlaceholder')} value={form.customerIds} onChange={(event) => setValue('customerIds', event.target.value)} />
             </div>
           </div>
@@ -188,15 +188,15 @@ export function ArStatementCyclePanel() {
           </div>
         )}
 
-        {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {message ? <p className="text-sm text-success-text">{message}</p> : null}
+        {error ? <p className="text-sm text-danger-text">{error}</p> : null}
 
         {preview ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-medium text-slate-900">{preview.cycle_code} · {preview.cycle_name}</p>
-            <p className="mt-1 text-sm text-slate-600">{t('preview.resultCount', { count: preview.customerCount })}</p>
+          <div className="rounded-lg border border-border bg-muted p-4">
+            <p className="text-sm font-medium text-foreground">{preview.cycle_code} · {preview.cycle_name}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('preview.resultCount', { count: preview.customerCount })}</p>
             {preview.sampleCustomers.length ? (
-              <ul className="mt-2 space-y-1 text-sm text-slate-600">
+              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                 {preview.sampleCustomers.map((customer) => (
                   <li key={customer}>• {customer}</li>
                 ))}

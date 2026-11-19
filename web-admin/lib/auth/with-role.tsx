@@ -121,8 +121,8 @@ export function withRole<P extends object>(
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600">Verifying access...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground">Verifying access...</p>
           </div>
         </div>
       )
@@ -203,12 +203,12 @@ export function InsufficientPermissions() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-bg">
             <svg
-              className="h-6 w-6 text-red-600"
+              className="h-6 w-6 text-danger-text"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -221,19 +221,19 @@ export function InsufficientPermissions() {
               />
             </svg>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
             Access Denied
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-muted-foreground">
             You don't have permission to access this page
           </p>
         </div>
 
-        <div className="rounded-md bg-yellow-50 p-4">
+        <div className="rounded-md bg-warning-bg p-4">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-yellow-400"
+                className="h-5 w-5 text-warning-text"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -244,8 +244,8 @@ export function InsufficientPermissions() {
                 />
               </svg>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-800">
+            <div className="ms-3">
+              <p className="text-sm text-warning-text">
                 This page requires administrator privileges. Please contact your system
                 administrator if you believe you should have access.
               </p>
@@ -256,7 +256,7 @@ export function InsufficientPermissions() {
         <div>
           <button
             onClick={() => router.push('/dashboard')}
-            className="w-full flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="w-full flex justify-center rounded-md border border-transparent bg-primary py-2 px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >
             Go to Dashboard
           </button>

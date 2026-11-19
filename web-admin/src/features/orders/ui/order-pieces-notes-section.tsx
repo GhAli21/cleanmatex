@@ -107,12 +107,12 @@ export function OrderPiecesNotesSection({
   );
 
   const commonInputClass =
-    'block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
+    'block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring';
 
   return (
     <section aria-label={tPieces('editItemNotes') || 'Edit Item Notes'} className="space-y-4">
-      <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h2 className="text-base font-semibold text-gray-900">{tPieces('editItemNotes') || 'Edit Item Notes'}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-foreground">{tPieces('editItemNotes') || 'Edit Item Notes'}</h2>
         <CmxButton
           variant="outline"
           size="sm"
@@ -130,7 +130,7 @@ export function OrderPiecesNotesSection({
       </div>
 
       {itemGroups.length === 0 ? (
-        <div className={`text-center py-10 text-gray-500 space-y-3 ${isRTL ? 'text-right' : ''}`}>
+        <div className="text-center py-10 text-muted-foreground space-y-3">
           <p className="text-sm">{tPieces('noPiecesToShow') || 'No multi-piece items. Toggle "Show All Items" to view all.'}</p>
           <CmxButton variant="outline" size="sm" onClick={() => { setFilterItemId(null); setShowAllItems(true); }}>
             {tPieces('showAllItems') || 'Show All Items'}
@@ -141,20 +141,20 @@ export function OrderPiecesNotesSection({
           {itemGroups.map(({ item, pieces }, groupIndex) => (
             <div
               key={item.productId}
-              className="rounded-lg border border-gray-200 overflow-hidden"
+              className="rounded-lg border border-border overflow-hidden"
               ref={(el) => {
                 if (el) itemCardRefs.current.set(item.productId, el);
                 else itemCardRefs.current.delete(item.productId);
               }}
             >
-              <div className={`flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-700">
+              <div className="flex items-center gap-2 border-b border-border bg-muted px-3 py-3">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-foreground">
                   {groupIndex + 1}
                 </span>
-                <span className={`flex-1 text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <span className="flex-1 text-base font-semibold text-foreground text-start">
                   {item.productName || '—'}
                 </span>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-info-bg px-2.5 py-1 text-xs font-medium text-info-text">
                   ×{pieces.length} {tPieces('pieces') || 'pcs'}
                 </span>
               </div>
@@ -162,11 +162,11 @@ export function OrderPiecesNotesSection({
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm" dir={isRTL ? 'rtl' : 'ltr'}>
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className={`whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <tr className="bg-muted border-b border-border">
+                      <th className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground text-start">
                         {tPieces('piece') || '#'}
                       </th>
-                      <th className={`w-full px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <th className="w-full px-3 py-3 text-sm font-semibold text-muted-foreground text-start">
                         {tPieces('notes') || 'Notes'}
                       </th>
                       <th className="px-2 py-2 w-8" />
@@ -174,9 +174,9 @@ export function OrderPiecesNotesSection({
                   </thead>
                   <tbody>
                     {pieces.map((piece) => (
-                      <tr key={piece.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
-                        <td className={`px-3 py-3 align-middle ${isRTL ? 'text-right' : 'text-left'}`}>
-                          <span className="text-sm font-semibold text-gray-500">
+                      <tr key={piece.id} className="border-b border-border last:border-b-0 hover:bg-muted">
+                        <td className="px-3 py-3 align-middle text-start">
+                          <span className="text-sm font-semibold text-muted-foreground">
                             {tPieces('pieceNumber', { number: piece.pieceSeq })}
                           </span>
                         </td>
@@ -199,7 +199,7 @@ export function OrderPiecesNotesSection({
                               e.stopPropagation();
                               onCopyPieceToAll(item.productId, piece.id);
                             }}
-                            className="min-h-9 min-w-9 inline-flex items-center justify-center rounded-full p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors"
+                            className="min-h-9 min-w-9 inline-flex items-center justify-center rounded-full p-1.5 text-muted-foreground hover:text-primary-text hover:bg-info-bg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-colors"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>

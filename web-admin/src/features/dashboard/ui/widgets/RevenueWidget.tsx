@@ -73,22 +73,22 @@ export function RevenueWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-6 bg-muted rounded w-1/3 mb-4"></div>
         <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-8 bg-muted rounded"></div>
+          <div className="h-4 bg-muted rounded w-2/3"></div>
+          <div className="h-4 bg-muted rounded w-1/2"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{t('revenue')}</h3>
-        <div className="p-2 rounded-lg bg-green-50 text-green-600">
+        <h3 className="text-lg font-semibold text-foreground">{t('revenue')}</h3>
+        <div className="p-2 rounded-lg bg-success-bg text-success-text">
           <DollarSign className="h-5 w-5" />
         </div>
       </div>
@@ -96,42 +96,42 @@ export function RevenueWidget() {
       <div className="space-y-4">
         {/* Today */}
         <div>
-          <p className="text-sm text-gray-600">{t('today')}</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-sm text-muted-foreground">{t('today')}</p>
+          <p className="text-2xl font-bold text-foreground">
             {formatRevenueMoney(data.today)}
           </p>
           {data.trend !== 0 && (
-            <div className={`flex items-center mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center mt-1">
               <TrendingUp
-                className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'} ${
-                  data.trend >= 0 ? 'text-green-600' : 'text-red-600'
+                className={`h-4 w-4 me-1 ${
+                  data.trend >= 0 ? 'text-success-text' : 'text-danger-text'
                 }`}
               />
               <span
                 className={`text-sm font-medium ${
-                  data.trend >= 0 ? 'text-green-600' : 'text-red-600'
+                  data.trend >= 0 ? 'text-success-text' : 'text-danger-text'
                 }`}
               >
                 {data.trend >= 0 ? '+' : ''}
                 {data.trend}%
               </span>
-              <span className={`text-sm text-gray-600 ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('fromYesterday')}</span>
+              <span className="text-sm text-muted-foreground ms-2">{t('fromYesterday')}</span>
             </div>
           )}
         </div>
 
         {/* MTD */}
-        <div className="pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-600">{t('monthToDate')}</p>
-          <p className="text-xl font-semibold text-gray-900">
+        <div className="pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground">{t('monthToDate')}</p>
+          <p className="text-xl font-semibold text-foreground">
             {formatRevenueMoney(data.mtd)}
           </p>
         </div>
 
         {/* Last 30 Days */}
-        <div className="pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-600">{t('last30Days')}</p>
-          <p className="text-xl font-semibold text-gray-900">
+        <div className="pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground">{t('last30Days')}</p>
+          <p className="text-xl font-semibold text-foreground">
             {formatRevenueMoney(data.last30d)}
           </p>
         </div>

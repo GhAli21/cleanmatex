@@ -153,6 +153,7 @@ Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md` · Cursor rul
 - `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
 - `/manage-currency-setup-hq` — Create a currency and/or complete its seed data across `sys_currency_cd`, `sys_currency_rounding_rules_cf`, `sys_currency_denominations_cd` via migration; researches missing rounding/denomination facts (WebSearch, cited) rather than guessing
 - `/manage-wf-policy-issues-catalog` — **HQ repo only** (`cleanmatexsaas`). Add/update/retire Check-policy issue catalog rows. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/`
+- `/file-util-wire` — Wire, change or unwire File Util (uploads, photos, attachments, single image slots) on any web-admin screen: widget choice, upload-after-save, permissions/read-only, access contract, new purposes/sources/ref types, replacing URL columns, done checklist.
 - `/pull-prisma` — **On demand only** (not a mandatory preload). From the repo root run `npm run prisma:pull` (no `cd web-admin`; includes post-pull `@ignore` patch). Use after a migration is applied, on P1012/schema drift, or when the user asks to pull Prisma.
 
 ---

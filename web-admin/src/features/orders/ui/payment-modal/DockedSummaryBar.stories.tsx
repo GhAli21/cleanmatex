@@ -17,7 +17,6 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     showChange: { control: 'boolean' },
-    isRTL: { control: 'boolean' },
   },
   args: {
     finalTotalLabel: 'Final Total',
@@ -25,7 +24,6 @@ const meta = {
     changeLabel: 'Change',
     changeValue: 'OMR 12.500',
     showChange: false,
-    isRTL: false,
   },
 } satisfies Meta<typeof PaymentDockedSummaryBar>
 
@@ -48,6 +46,7 @@ export const RTL: Story = {
     showChange: true,
     finalTotalLabel: 'الإجمالي النهائي',
     changeLabel: 'الباقي',
-    isRTL: true,
   },
+  // Direction comes from the page's dir, as in the app.
+  decorators: [(Story) => <div dir="rtl"><Story /></div>],
 }

@@ -37,8 +37,9 @@ export function themeStyleCss(theme: ResolvedTheme): string {
   const palette = computeBrandPalette(primary, secondary)
   const vars = (mode: ThemeMode) => BRAND_TOKENS.map((t) => `${cssVarName(t)}:${palette[mode][t]};`).join('')
   return (
-    `:root{${vars('LIGHT')}${radiusVars}}` +
-    `[data-mode=DARK]{${vars('DARK')}}` +
-    `@media (prefers-color-scheme: dark){[data-mode=SYSTEM]{${vars('DARK')}}}`
+    // Same selectors as tokens.css: dark only on screen (paper stays light); LIGHT also forces a light subtree.
+    `:root,[data-mode=LIGHT]{${vars('LIGHT')}${radiusVars}}` +
+    `@media screen{[data-mode=DARK]{${vars('DARK')}}}` +
+    `@media screen and (prefers-color-scheme: dark){[data-mode=SYSTEM]{${vars('DARK')}}}`
   )
 }

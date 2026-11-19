@@ -92,19 +92,19 @@ const variantIcons = {
  */
 const variantStyles = {
   default: {
-    icon: 'text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
+    icon: 'text-primary-text',
     confirmButton: 'primary' as const,
   },
   destructive: {
-    icon: 'text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+    icon: 'text-destructive',
     confirmButton: 'destructive' as const,
   },
   success: {
-    icon: 'text-[rgb(var(--cmx-success-rgb,34_197_94))]',
+    icon: 'text-success',
     confirmButton: 'primary' as const,
   },
   warning: {
-    icon: 'text-[rgb(var(--cmx-warning-rgb,234_179_8))]',
+    icon: 'text-warning',
     confirmButton: 'primary' as const,
   },
 };
@@ -290,7 +290,7 @@ export function CmxAlertDialog({
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className="relative z-10 w-full max-w-sm mx-4 bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] rounded-xl shadow-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] transition-all"
+        className="relative z-10 w-full max-w-sm mx-4 bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] rounded-xl shadow-xl border border-border transition-all"
         style={{
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'scale(1)' : 'scale(0.95)',
@@ -311,13 +311,13 @@ export function CmxAlertDialog({
             <div className="flex-1 min-w-0">
               <h2
                 id={titleId}
-                className="text-lg font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+                className="text-lg font-semibold text-foreground"
               >
                 {title}
               </h2>
 
               {message && (
-                <div className="mt-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <div className="mt-2 text-sm text-muted-foreground">
                   {typeof message === 'string' ? <p>{message}</p> : message}
                 </div>
               )}
@@ -325,7 +325,7 @@ export function CmxAlertDialog({
               {description && (
                 <p
                   id={descriptionId}
-                  className="mt-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+                  className="mt-2 text-sm text-muted-foreground"
                 >
                   {description}
                 </p>

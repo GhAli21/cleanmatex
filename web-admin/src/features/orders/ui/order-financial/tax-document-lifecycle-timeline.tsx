@@ -34,9 +34,9 @@ function taxDocStatusVariant(status: string | undefined): StatusVariant {
 function Field({ label, value, isRTL }: { label: string; value: string | number | undefined | null; isRTL: boolean }) {
   if (value == null || value === '') return null;
   return (
-    <div className={`flex items-start justify-between gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div className="flex items-start justify-between gap-2 text-sm">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className={`font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{value}</span>
+      <span className="font-medium text-start">{value}</span>
     </div>
   );
 }
@@ -77,7 +77,7 @@ export function TaxDocumentLifecycleTimeline({
 
   return (
     <div className="space-y-2">
-      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-2">
         <CmxStatusBadge size="sm" tone={taxDocStatusVariant(doc.status)}>{statusLabel}</CmxStatusBadge>
         <span className="text-sm font-medium">{typeLabel}</span>
         {doc.status === 'ISSUED' && doc.id && orderId && (

@@ -188,16 +188,16 @@ export function OrderDetailsFullClient({
   });
   const balanceColorClass =
     orderBalanceDue < 0
-      ? 'text-blue-700'
+      ? 'text-primary-text'
       : orderBalanceDue === 0
-        ? 'text-green-700'
-        : 'text-orange-600';
+        ? 'text-success-text'
+        : 'text-warning-text';
   const balanceBadgeClass =
     orderBalanceDue < 0
-      ? 'bg-blue-100 text-blue-700'
+      ? 'bg-info-bg text-info-text'
       : orderBalanceDue === 0
-        ? 'bg-green-100 text-green-700'
-        : 'bg-orange-100 text-orange-700';
+        ? 'bg-success-bg text-success-text'
+        : 'bg-warning-bg text-warning-text';
   const balanceStatusLabel =
     orderBalanceDue < 0
       ? (t.overpaid ?? 'Overpaid')
@@ -238,24 +238,24 @@ export function OrderDetailsFullClient({
   }
 
   const statusColors: Record<string, string> = {
-    intake: 'bg-blue-100 text-blue-800 border-blue-200',
-    preparation: 'bg-purple-100 text-purple-800 border-purple-200',
-    processing: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    ready: 'bg-green-100 text-green-800 border-green-200',
-    ready_for_pickup: 'bg-teal-100 text-teal-800 border-teal-200',
-    delivered: 'bg-gray-100 text-gray-800 border-gray-200',
-    closed: 'bg-gray-100 text-gray-800 border-gray-200',
-    cancelled: 'bg-red-100 text-red-800 border-red-200',
+    intake: 'bg-info-bg text-info-text border-info-border',
+    preparation: 'bg-info-bg text-info-text border-info-border',
+    processing: 'bg-warning-bg text-warning-text border-warning-border',
+    ready: 'bg-success-bg text-success-text border-success-border',
+    ready_for_pickup: 'bg-info-bg text-info-text border-info-border',
+    delivered: 'bg-muted text-foreground border-border',
+    closed: 'bg-muted text-foreground border-border',
+    cancelled: 'bg-danger-bg text-danger-text border-danger-border',
   };
   const priorityColors: Record<string, string> = {
-    normal: 'bg-gray-100 text-gray-700',
-    urgent: 'bg-orange-100 text-orange-700',
-    express: 'bg-red-100 text-red-700',
+    normal: 'bg-muted text-foreground',
+    urgent: 'bg-warning-bg text-warning-text',
+    express: 'bg-danger-bg text-danger-text',
   };
   const preparationStatusColors: Record<string, string> = {
-    pending: 'bg-gray-100 text-gray-700',
-    in_progress: 'bg-blue-100 text-blue-700',
-    completed: 'bg-green-100 text-green-700',
+    pending: 'bg-muted text-foreground',
+    in_progress: 'bg-info-bg text-info-text',
+    completed: 'bg-success-bg text-success-text',
   };
 
   const customer = (order.org_customers_mst as { sys_customers_mst?: { first_name?: string; last_name?: string; phone?: string; email?: string; address?: string }; loyalty_points?: number })?.sys_customers_mst ?? order.org_customers_mst ?? {};
@@ -500,7 +500,7 @@ export function OrderDetailsFullClient({
     return (
       <CmxCard key={sectionKey}>
         <CmxCardHeader>
-          <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{title}</CmxCardTitle>
+          <CmxCardTitle className="text-base font-semibold text-start">{title}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="pt-0">
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
@@ -508,14 +508,13 @@ export function OrderDetailsFullClient({
               const val = o[key];
               const displayKey = (t as Record<string, string>)[`masterField_${key}`] ?? key.replace(/_/g, ' ');
               return (
-                <div key={key} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
-                  <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{displayKey}</dt>
+                <div key={key} className="flex gap-2 border-b border-border pb-2 last:border-0">
+                  <dt className="text-sm font-medium text-muted-foreground shrink-0 min-w-[7rem]">{displayKey}</dt>
                   <dd className="min-w-0 break-all">
                     <CmxCopyableCell
                       as="span"
                       value={formatMasterValue(key, val)}
-                      align={isRTL ? 'right' : 'left'}
-                      className="px-0 py-0 text-sm text-gray-900"
+                      className="px-0 py-0 text-sm text-foreground"
                     />
                   </dd>
                 </div>
@@ -613,20 +612,20 @@ export function OrderDetailsFullClient({
       chip?: string;
       meta?: string;
     }) => (
-      <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} gap-2 py-1.5`}>
-        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}>
-          <span className={`shrink-0 text-sm ${isBold ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>{label}</span>
+      <div className="flex items-center justify-between gap-2 py-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`shrink-0 text-sm ${isBold ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{label}</span>
           {chip && (
-            <span className="shrink-0 inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+            <span className="shrink-0 inline-flex items-center rounded-full bg-info-bg px-2 py-0.5 text-xs font-medium text-info-text">
               {chip}
             </span>
           )}
           {meta && (
-            <span className="shrink-0 text-xs text-gray-400">({meta})</span>
+            <span className="shrink-0 text-xs text-muted-foreground">({meta})</span>
           )}
         </div>
         <span
-          className={`shrink-0 text-sm tabular-nums ${isBold ? 'font-semibold' : ''} ${valueColor ?? (isDeduction ? 'text-green-700' : 'text-gray-900')}`}
+          className={`shrink-0 text-sm tabular-nums ${isBold ? 'font-semibold' : ''} ${valueColor ?? (isDeduction ? 'text-success-text' : 'text-foreground')}`}
         >
           {value}
         </span>
@@ -636,7 +635,7 @@ export function OrderDetailsFullClient({
     return (
       <CmxCard>
         <CmxCardHeader>
-          <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+          <CmxCardTitle className="text-base font-semibold text-start">
             {t.masterSectionFinancial ?? 'Amounts & totals'}
           </CmxCardTitle>
         </CmxCardHeader>
@@ -644,13 +643,13 @@ export function OrderDetailsFullClient({
           <div className="space-y-3">
 
             {/* Zone 1: Price Calculation Waterfall */}
-            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
-              <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+            <div className="rounded-lg border border-border bg-muted/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 {t.priceBreakdown ?? 'Price Breakdown'}
               </p>
               <div>
                 {/* Starting amounts */}
-                <div className="pb-2 border-b border-gray-200 space-y-0">
+                <div className="pb-2 border-b border-border space-y-0">
                   <WRow label={t.masterField_subtotal ?? 'Subtotal'} value={fmtOrderMoney(subtotal)} isBold />
                   <WRow
                     label={t.lineDiscount ?? 'Line Discount'}
@@ -675,7 +674,7 @@ export function OrderDetailsFullClient({
                 </div>
 
                 {/* Net subtotal */}
-                <div className="py-2 border-b border-gray-200">
+                <div className="py-2 border-b border-border">
                   <WRow
                     label={t.netAfterDiscounts ?? 'Net after discounts'}
                     value={fmtOrderMoney(netAfterDiscounts)}
@@ -684,7 +683,7 @@ export function OrderDetailsFullClient({
                 </div>
 
                 {/* Charges and tax */}
-                <div className="py-2 border-b border-gray-200 space-y-0">
+                <div className="py-2 border-b border-border space-y-0">
                   <WRow
                     label={t.masterField_service_charge ?? 'Service Charge'}
                     value={fmtOrderMoney(serviceCharge)}
@@ -694,14 +693,14 @@ export function OrderDetailsFullClient({
                 </div>
 
                 {/* Order total */}
-                <div className="py-2 border-b-2 border-gray-400">
+                <div className="py-2 border-b-2 border-muted-foreground">
                   <WRow label={t.masterField_total ?? 'Total'} value={fmtOrderMoney(total)} isBold />
                 </div>
 
                 {/* Settlements — gift card is a settlement, not a commercial discount */}
                 {giftCardApplied > 0 && (
-                  <div className="py-2 border-b border-gray-200 space-y-0">
-                    <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1 ${isRTL ? 'text-right' : ''}`}>
+                  <div className="py-2 border-b border-border space-y-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                       {t.settlements ?? 'Settlements'}
                     </p>
                     <WRow
@@ -714,20 +713,20 @@ export function OrderDetailsFullClient({
                 )}
 
                 {/* Paid amount */}
-                <div className="py-2 border-b border-gray-200">
+                <div className="py-2 border-b border-border">
                   <WRow
                     label={t.paidAmount ?? 'Paid Amount'}
                     value={paidAmount > 0 ? `− ${fmtOrderMoney(paidAmount)}` : fmtOrderMoney(paidAmount)}
                     isDeduction={paidAmount > 0}
-                    valueColor={paidAmount > 0 ? 'text-green-700' : 'text-gray-500'}
+                    valueColor={paidAmount > 0 ? 'text-success-text' : 'text-muted-foreground'}
                   />
                 </div>
 
                 {/* Balance Due — highlighted row */}
                 <div className="pt-3">
-                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} gap-2`}>
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <span className="text-sm font-bold text-gray-900">{t.balanceDue ?? 'Balance Due'}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">{t.balanceDue ?? 'Balance Due'}</span>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${balanceBadgeClass}`}>
                         {balanceStatusLabel}
                       </span>
@@ -741,8 +740,8 @@ export function OrderDetailsFullClient({
             </div>
 
             {/* Zone 2: Applied Discounts detail */}
-            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
-              <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+            <div className="rounded-lg border border-border bg-muted/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 {t.appliedDiscounts ?? 'Applied Discounts'}
               </p>
               <div className="space-y-0">
@@ -767,7 +766,7 @@ export function OrderDetailsFullClient({
                 {discountLines.length > 0 && (
                   <OrderDiscountBreakdown lines={discountLines} locale={locale} />
                 )}
-                <div className="pt-2 mt-2 border-t border-gray-200">
+                <div className="pt-2 mt-2 border-t border-border">
                   <WRow
                     label={t.totalDiscounts ?? 'Total Discounts'}
                     value={totalDiscounts > 0 ? `− ${fmtOrderMoney(totalDiscounts)}` : fmtOrderMoney(totalDiscounts)}
@@ -779,8 +778,8 @@ export function OrderDetailsFullClient({
             </div>
 
             {/* Zone 3: Currency */}
-            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
-              <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+            <div className="rounded-lg border border-border bg-muted/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                 {t.currencyInfo ?? 'Currency'}
               </p>
               <div className="space-y-0">
@@ -801,8 +800,8 @@ export function OrderDetailsFullClient({
               const hasSettlementData = outstandingAmount !== 0 || totalCreditApplied !== 0 || payOnCollectionAmount !== 0 || paymentTypeCode || paymentStatus;
               if (!hasSettlementData) return null;
               return (
-                <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
-                  <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+                <div className="rounded-lg border border-border bg-muted/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
                     {t.paymentSettlement ?? 'Payment & Settlement'}
                   </p>
                   <div className="space-y-0">
@@ -832,14 +831,14 @@ export function OrderDetailsFullClient({
                         label={t.outstandingAmount ?? 'Outstanding Amount'}
                         value={fmtOrderMoney(Math.abs(outstandingAmount))}
                         isBold
-                        valueColor={outstandingAmount > 0 ? 'text-orange-600' : 'text-green-700'}
+                        valueColor={outstandingAmount > 0 ? 'text-warning-text' : 'text-success-text'}
                       />
                     )}
                     {payOnCollectionAmount > 0 && (
                       <WRow
                         label={t.payOnCollectionAmount ?? 'Pay on Collection'}
                         value={fmtOrderMoney(payOnCollectionAmount)}
-                        valueColor="text-amber-600"
+                        valueColor="text-warning-text"
                       />
                     )}
                   </div>
@@ -901,7 +900,7 @@ export function OrderDetailsFullClient({
           {order.org_customers_mst != null && (
             <CmxCard>
               <CmxCardHeader>
-                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                <CmxCardTitle className="text-base font-semibold text-start">
                   {t.masterCustomerData ?? 'Customer data'}
                 </CmxCardTitle>
               </CmxCardHeader>
@@ -921,14 +920,13 @@ export function OrderDetailsFullClient({
                   ]
                     .filter((row) => row.value != null && row.value !== '')
                     .map((row) => (
-                      <div key={row.label} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
-                        <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{row.label}</dt>
+                      <div key={row.label} className="flex gap-2 border-b border-border pb-2 last:border-0">
+                        <dt className="text-sm font-medium text-muted-foreground shrink-0 min-w-[7rem]">{row.label}</dt>
                         <dd className="min-w-0 break-all">
                           <CmxCopyableCell
                             as="span"
                             value={String(row.value)}
-                            align={isRTL ? 'right' : 'left'}
-                            className="px-0 py-0 text-sm text-gray-900"
+                            className="px-0 py-0 text-sm text-foreground"
                           />
                         </dd>
                       </div>
@@ -939,7 +937,7 @@ export function OrderDetailsFullClient({
           )}
           {/* Items count */}
           {(order.items ?? order.org_order_items_dtl) != null && (
-            <p className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="text-sm text-muted-foreground text-start">
               {t.masterItemsCount ?? 'Items count'}:{' '}
               {Array.isArray(order.items) ? order.items.length : Array.isArray(order.org_order_items_dtl) ? order.org_order_items_dtl.length : 0}{' '}
               line(s)
@@ -952,7 +950,7 @@ export function OrderDetailsFullClient({
       id: 'items',
       label: t.tabsItems ?? 'Items & Pieces',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrderItemsList
             items={items}
             orderId={order.id as string}
@@ -968,7 +966,7 @@ export function OrderDetailsFullClient({
       id: 'preferences',
       label: t.tabsPreferences ?? 'Preferences',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 min-h-0 max-h-[min(82vh,36rem)] flex flex-col overflow-hidden">
+        <div className="bg-card rounded-lg border border-border p-6 min-h-0 max-h-[min(82vh,36rem)] flex flex-col overflow-hidden">
           <div className="min-h-0 flex-1 flex flex-col">
             <OrdersPreferencesTabRprt
               preferences={orderPreferences}
@@ -1031,7 +1029,7 @@ export function OrderDetailsFullClient({
       id: 'history',
       label: t.tabsHistory ?? 'Order History',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrderTimeline orderId={order.id as string} currentStatus={order.status as OrderStatus} />
         </div>
       ),
@@ -1040,7 +1038,7 @@ export function OrderDetailsFullClient({
       id: 'edit_history',
       label: t.tabsEditHistory ?? 'Edit History',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrdersEditHistoryTabRprt
             entries={editHistory}
             currencyCode={(order.currency_code as string) ?? ''}
@@ -1068,7 +1066,7 @@ export function OrderDetailsFullClient({
       id: 'invoices',
       label: t.tabsInvoices ?? 'Invoices',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrdersInvoicesTabRprt
             invoices={orderInvoices}
             orderId={order.id as string}
@@ -1081,7 +1079,7 @@ export function OrderDetailsFullClient({
       id: 'vouchers',
       label: t.tabsVouchers ?? 'Receipt Vouchers',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrdersVouchersTabRprt
             vouchers={vouchers}
             orderId={order.id as string}
@@ -1097,48 +1095,48 @@ export function OrderDetailsFullClient({
       content: (
         <div className="space-y-6">
           {/* Payment Summary - moved from sidebar for better UX */}
-          <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
-            <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="bg-muted rounded-lg border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4 text-start">
               {t.paymentDetails}
             </h3>
             <div className="space-y-3">
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                <span className="text-gray-600">{t.subtotal}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{t.subtotal}</span>
                 <span className="font-medium">{fmtOrderMoney(parseFloat(String(order.subtotal ?? 0)))}</span>
               </div>
               {order.discount && parseFloat(String(order.discount)) > 0 && (
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                  <span className="text-gray-600">{t.discount}</span>
-                  <span className="font-medium text-red-600">-{fmtOrderMoney(parseFloat(String(order.discount)))}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.discount}</span>
+                  <span className="font-medium text-danger-text">-{fmtOrderMoney(parseFloat(String(order.discount)))}</span>
                 </div>
               )}
               {order.tax && parseFloat(String(order.tax)) > 0 && (
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                  <span className="text-gray-600">{t.tax}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t.tax}</span>
                   <span className="font-medium">{fmtOrderMoney(parseFloat(String(order.tax)))}</span>
                 </div>
               )}
-              <div className="pt-3 border-t border-gray-200">
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+              <div className="pt-3 border-t border-border">
+                <div className="flex justify-between">
                   <span className="text-base font-semibold">{t.total}</span>
                   <span className="text-base font-bold">{fmtOrderMoney(parseFloat(String(order.total ?? 0)))}</span>
                 </div>
               </div>
               {order.paid_amount != null && parseFloat(String(order.paid_amount)) > 0 && (
                 <>
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                    <span className="text-gray-600">{t.paidAmount}</span>
-                    <span className="font-medium text-green-600">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t.paidAmount}</span>
+                    <span className="font-medium text-success-text">
                       {fmtOrderMoney(parseFloat(String(order.paid_amount)))}
                     </span>
                   </div>
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                    <span className="text-gray-600">{t.balance}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t.balance}</span>
                     <span
                       className={`font-medium ${
                         parseFloat(String(order.total ?? 0)) - parseFloat(String(order.paid_amount ?? 0)) >= 0
-                          ? 'text-orange-600'
-                          : 'text-green-600'
+                          ? 'text-warning-text'
+                          : 'text-success-text'
                       }`}
                     >
                       {fmtOrderMoney(
@@ -1150,7 +1148,7 @@ export function OrderDetailsFullClient({
               )}
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-card rounded-lg border border-border p-6">
             <OrdersPaymentsTabRprt
               payments={allPayments}
               filterVoucherId={voucherIdFromUrl}
@@ -1164,12 +1162,12 @@ export function OrderDetailsFullClient({
       id: 'actions',
       label: t.tabsActions ?? 'Actions',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className="bg-card rounded-lg border border-border p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4 text-start">
             {t.quickActions}
           </h3>
           {isTerminalStatus ? (
-            <p className="text-sm text-gray-500">{t.noActionsForClosedOrder}</p>
+            <p className="text-sm text-muted-foreground">{t.noActionsForClosedOrder}</p>
           ) : (
             <OrderActions
               order={
@@ -1189,7 +1187,7 @@ export function OrderDetailsFullClient({
       id: 'stock',
       label: t.tabsStock ?? 'Stock',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrdersStockTabRprt transactions={stockTransactions} translations={tabTranslations} />
         </div>
       ),
@@ -1198,7 +1196,7 @@ export function OrderDetailsFullClient({
       id: 'receipts',
       label: t.tabsReceipts ?? 'Receipt Sending',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-card rounded-lg border border-border p-6">
           <OrdersReceiptsTabRprt receipts={receipts} translations={tabTranslations} />
         </div>
       ),
@@ -1221,13 +1219,13 @@ export function OrderDetailsFullClient({
           {/* Customer identity card */}
           <CmxCard>
             <CmxCardHeader>
-              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+              <CmxCardTitle className="text-base font-semibold text-start">
                 {t.customerProfile ?? 'Customer Profile'}
               </CmxCardTitle>
             </CmxCardHeader>
             <CmxCardContent className="pt-0">
               {order.org_customers_mst == null && !order.customer_id ? (
-                <p className="text-sm text-gray-500">{t.noCustomerData ?? 'No customer linked to this order'}</p>
+                <p className="text-sm text-muted-foreground">{t.noCustomerData ?? 'No customer linked to this order'}</p>
               ) : (
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                   {[
@@ -1240,14 +1238,13 @@ export function OrderDetailsFullClient({
                   ]
                     .filter((row) => row.value != null && row.value !== '')
                     .map((row) => (
-                      <div key={row.label} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-3 last:border-0`}>
-                        <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">{row.label}</dt>
+                      <div key={row.label} className="flex gap-2 border-b border-border pb-3 last:border-0">
+                        <dt className="text-sm font-medium text-muted-foreground shrink-0 min-w-[8rem]">{row.label}</dt>
                         <dd className="min-w-0 break-all">
                           <CmxCopyableCell
                             as="span"
                             value={String(row.value)}
-                            align={isRTL ? 'right' : 'left'}
-                            className="px-0 py-0 text-sm text-gray-900"
+                            className="px-0 py-0 text-sm text-foreground"
                           />
                         </dd>
                       </div>
@@ -1261,22 +1258,21 @@ export function OrderDetailsFullClient({
           {(order.org_customers_mst as Record<string, unknown> | null)?.loyalty_points != null && (
             <CmxCard>
               <CmxCardHeader>
-                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                <CmxCardTitle className="text-base font-semibold text-start">
                   {t.customerLoyalty ?? 'Loyalty & Membership'}
                 </CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent className="pt-0">
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-3 last:border-0`}>
-                    <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">
+                  <div className="flex gap-2 border-b border-border pb-3 last:border-0">
+                    <dt className="text-sm font-medium text-muted-foreground shrink-0 min-w-[8rem]">
                       {t.customerLoyaltyPoints ?? 'Loyalty Points'}
                     </dt>
                     <dd>
                       <CmxCopyableCell
                         as="span"
                         value={String((order.org_customers_mst as Record<string, unknown>).loyalty_points ?? 0)}
-                        align={isRTL ? 'right' : 'left'}
-                        className="px-0 py-0 text-sm text-gray-900"
+                        className="px-0 py-0 text-sm text-foreground"
                       />
                     </dd>
                   </div>
@@ -1289,34 +1285,32 @@ export function OrderDetailsFullClient({
           {(order.customer_notes || order.payment_notes) && (
             <CmxCard>
               <CmxCardHeader>
-                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                <CmxCardTitle className="text-base font-semibold text-start">
                   {t.masterSectionNotes ?? 'Notes'}
                 </CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent className="pt-0 space-y-3">
                 {order.customer_notes && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       {t.masterField_customer_notes ?? 'Customer Notes'}
                     </p>
                     <CmxCopyableCell
                       as="span"
                       value={String(order.customer_notes)}
-                      align={isRTL ? 'right' : 'left'}
-                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap text-start"
                     />
                   </div>
                 )}
                 {order.payment_notes && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       {t.masterField_payment_notes ?? 'Payment Notes'}
                     </p>
                     <CmxCopyableCell
                       as="span"
                       value={String(order.payment_notes)}
-                      align={isRTL ? 'right' : 'left'}
-                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap text-start"
                     />
                   </div>
                 )}
@@ -1334,7 +1328,7 @@ export function OrderDetailsFullClient({
           {/* Customer notes */}
           <CmxCard>
             <CmxCardHeader>
-              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+              <CmxCardTitle className="text-base font-semibold text-start">
                 {t.masterField_customer_notes ?? 'Customer Notes'}
               </CmxCardTitle>
             </CmxCardHeader>
@@ -1343,11 +1337,10 @@ export function OrderDetailsFullClient({
                 <CmxCopyableCell
                   as="span"
                   value={String(order.customer_notes)}
-                  align={isRTL ? 'right' : 'left'}
-                  className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap leading-relaxed text-start"
                 />
               ) : (
-                <p className="text-sm text-gray-400 italic">{t.noNotes ?? 'No customer notes'}</p>
+                <p className="text-sm text-muted-foreground italic">{t.noNotes ?? 'No customer notes'}</p>
               )}
             </CmxCardContent>
           </CmxCard>
@@ -1355,7 +1348,7 @@ export function OrderDetailsFullClient({
           {/* Internal notes */}
           <CmxCard>
             <CmxCardHeader>
-              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+              <CmxCardTitle className="text-base font-semibold text-start">
                 {t.masterField_internal_notes ?? 'Internal Notes'}
               </CmxCardTitle>
             </CmxCardHeader>
@@ -1364,11 +1357,10 @@ export function OrderDetailsFullClient({
                 <CmxCopyableCell
                   as="span"
                   value={String(order.internal_notes)}
-                  align={isRTL ? 'right' : 'left'}
-                  className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap leading-relaxed text-start"
                 />
               ) : (
-                <p className="text-sm text-gray-400 italic">{t.noInternalNotes ?? 'No internal notes'}</p>
+                <p className="text-sm text-muted-foreground italic">{t.noInternalNotes ?? 'No internal notes'}</p>
               )}
             </CmxCardContent>
           </CmxCard>
@@ -1376,7 +1368,7 @@ export function OrderDetailsFullClient({
           {/* Payment notes */}
           <CmxCard>
             <CmxCardHeader>
-              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+              <CmxCardTitle className="text-base font-semibold text-start">
                 {t.masterField_payment_notes ?? 'Payment Notes'}
               </CmxCardTitle>
             </CmxCardHeader>
@@ -1385,11 +1377,10 @@ export function OrderDetailsFullClient({
                 <CmxCopyableCell
                   as="span"
                   value={String(order.payment_notes)}
-                  align={isRTL ? 'right' : 'left'}
-                  className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap leading-relaxed text-start"
                 />
               ) : (
-                <p className="text-sm text-gray-400 italic">{t.noPaymentNotes ?? 'No payment notes'}</p>
+                <p className="text-sm text-muted-foreground italic">{t.noPaymentNotes ?? 'No payment notes'}</p>
               )}
             </CmxCardContent>
           </CmxCard>
@@ -1398,34 +1389,32 @@ export function OrderDetailsFullClient({
           {(order.cancelled_note || order.return_reason) && (
             <CmxCard>
               <CmxCardHeader>
-                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                <CmxCardTitle className="text-base font-semibold text-start">
                   {t.masterSectionCancellationReturn ?? 'Cancellation / Return'}
                 </CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent className="pt-0 space-y-3">
                 {order.cancelled_note && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       {t.masterField_cancelled_note ?? 'Cancellation Note'}
                     </p>
                     <CmxCopyableCell
                       as="span"
                       value={String(order.cancelled_note)}
-                      align={isRTL ? 'right' : 'left'}
-                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap text-start"
                     />
                   </div>
                 )}
                 {order.return_reason && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                       {t.masterField_return_reason ?? 'Return Reason'}
                     </p>
                     <CmxCopyableCell
                       as="span"
                       value={String(order.return_reason)}
-                      align={isRTL ? 'right' : 'left'}
-                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="px-0 py-0 text-sm text-foreground whitespace-pre-wrap text-start"
                     />
                   </div>
                 )}
@@ -1443,15 +1432,15 @@ export function OrderDetailsFullClient({
         String(order.current_status ?? order.status ?? '') === 'awaiting_collection' &&
         typeof order.id === 'string' && (
           <div
-            className={`rounded-lg border border-sky-200 bg-sky-50 p-4 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="rounded-lg border border-info-border bg-info-bg p-4 text-start"
             role="status"
           >
-            <p className="mb-3 text-sm text-sky-900">
+            <p className="mb-3 text-sm text-primary-text">
               {t.awaitingHomeCollectionHint ??
                 'This order is waiting for inbound home collection. Use the home collection floor to assign and confirm.'}
             </p>
             <Link href={`/dashboard/home-collection/${order.id}`}>
-              <CmxButton type="button" variant="primary" className="bg-sky-700 hover:bg-sky-800">
+              <CmxButton type="button" variant="primary" className="bg-primary-hover hover:bg-primary-hover">
                 {t.openHomeCollectionFloor ?? 'Open home collection floor'}
               </CmxButton>
             </Link>
@@ -1460,10 +1449,10 @@ export function OrderDetailsFullClient({
       {String(order.physical_intake_status ?? '') === 'pending_dropoff' &&
         String(order.current_status ?? order.status ?? '') === 'draft' && (
           <div
-            className={`rounded-lg border border-amber-200 bg-amber-50 p-4 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="rounded-lg border border-warning-border bg-warning-bg p-4 text-start"
             role="status"
           >
-            <p className="mb-3 text-sm text-amber-900">
+            <p className="mb-3 text-sm text-warning-text">
               {t.awaitingDropoffHint ??
                 'Customer booked remotely; confirm when garments arrive at this branch.'}
             </p>
@@ -1489,7 +1478,7 @@ export function OrderDetailsFullClient({
                   setIntakeConfirming(false);
                 }
               }}
-              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              className="rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground hover:bg-warning/90 disabled:opacity-50"
             >
               {intakeConfirming
                 ? (t.confirmIntakeWorking ?? 'Saving…')
@@ -1498,17 +1487,17 @@ export function OrderDetailsFullClient({
           </div>
         )}
       {/* Header */}
-      <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-        <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <Link
             href={returnUrl}
-            className={`inline-flex items-center text-sm text-gray-600 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
-            <ChevronLeft className={`w-4 h-4 ${isRTL ? 'ml-1 rotate-180' : 'mr-1'}`} />
+            <ChevronLeft className="w-4 h-4 me-1 rtl:rotate-180" />
             {returnLabel ?? t.backToSimpleView ?? t.backToOrders}
           </Link>
         </div>
-        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex items-center gap-2">
           <PrintLabelButton order={order as unknown as PrintLabelOrderInput} />
           {!isTerminalStatus && (
             <StartOrderEditButton orderId={String(order.id)} label={t.edit} />
@@ -1517,7 +1506,7 @@ export function OrderDetailsFullClient({
             <button
               type="button"
               onClick={handleCopyPublicLink}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-info-text bg-info-bg border border-info-border rounded-lg hover:bg-info-border/50"
             >
               <Link2 className="w-4 h-4" />
               <span>{t.publicTrackingLink ?? 'Public tracking link'}</span>
@@ -1528,11 +1517,11 @@ export function OrderDetailsFullClient({
       </div>
 
       {/* Order Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className={`flex items-start ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <h1 className={`text-2xl font-bold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="bg-card rounded-lg border border-border p-6">
+        <div className="flex items-start justify-between">
+          <div className="text-start">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold text-foreground text-start">
                 {String(order.order_no)}
               </h1>
               <span
@@ -1550,21 +1539,21 @@ export function OrderDetailsFullClient({
                 {t[`priority_${String(order.priority ?? 'normal')}` as keyof typeof t] ?? String(order.priority ?? 'normal')}
               </span>
               {order.is_retail && (
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                <span className="inline-flex items-center rounded-full bg-warning-bg px-3 py-1 text-xs font-medium text-warning-text">
                   {t.retail}
                 </span>
               )}
             </div>
             {order.received_at && (
-              <p className={`text-sm text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className="text-sm text-muted-foreground mb-2 text-start">
                 {new Date(order.received_at as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
                   dateStyle: 'medium',
                   timeStyle: 'short',
                 })}
               </p>
             )}
-            <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 {t.received}:{' '}
                 {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
@@ -1573,7 +1562,7 @@ export function OrderDetailsFullClient({
                 )}
               </span>
               {order.ready_by && (
-                <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="flex items-center gap-1">
                   <Package className="w-4 h-4" />
                   {t.readyBy}:{' '}
                   {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
@@ -1584,28 +1573,28 @@ export function OrderDetailsFullClient({
               )}
             </div>
           </div>
-          <div className={isRTL ? 'text-left' : 'text-right'}>
-            <div className={`text-sm text-gray-600 mb-1 ${isRTL ? 'text-left' : 'text-right'}`}>
+          <div className="text-end">
+            <div className="text-sm text-muted-foreground mb-1 text-end">
               {t.totalAmount}
             </div>
-            <div className={`text-3xl font-bold text-gray-900 ${isRTL ? 'text-left' : 'text-right'}`}>
+            <div className="text-3xl font-bold text-foreground text-end">
               {fmtOrderMoney(parseFloat(String(order.total ?? 0)))}
             </div>
-            <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-left' : 'text-right'}`}>
+            <div className="text-xs text-muted-foreground mt-1 text-end">
               {normalizedOrderPaid ? (
-                <span className="text-green-600 font-medium">✓ {t.paid}</span>
+                <span className="text-success-text font-medium">✓ {t.paid}</span>
               ) : (
-                <span className="text-orange-600 font-medium">{t.pendingPayment}</span>
+                <span className="text-warning-text font-medium">{t.pendingPayment}</span>
               )}
             </div>
           </div>
         </div>
 
         {order.preparation_status && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground text-start">
                   {t.preparationStatus}:
                 </span>
                 <span
@@ -1620,7 +1609,7 @@ export function OrderDetailsFullClient({
                 order.preparation_status === 'pending' && (
                   <Link
                     href={`/dashboard/preparation/${order.id}`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="text-sm font-medium text-primary-text hover:text-primary-text/80"
                   >
                     {isRTL ? '← ' : ''}{t.startPreparation}{isRTL ? '' : ' →'}
                   </Link>
@@ -1629,7 +1618,7 @@ export function OrderDetailsFullClient({
                 order.preparation_status === 'in_progress' && (
                   <Link
                     href={`/dashboard/preparation/${order.id}`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="text-sm font-medium text-primary-text hover:text-primary-text/80"
                   >
                     {isRTL ? '← ' : ''}{t.continuePreparation}{isRTL ? '' : ' →'}
                   </Link>
@@ -1642,60 +1631,60 @@ export function OrderDetailsFullClient({
       {/* Customer + Notes compact */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="bg-card rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 text-start">
               {t.customerInformation}
             </h2>
             <div className="space-y-3">
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.name}</div>
-                <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="text-start">
+                <div className="text-sm text-muted-foreground text-start">{t.name}</div>
+                <div className="text-base font-medium text-foreground text-start">
                   {(customer as { first_name?: string }).first_name} {(customer as { last_name?: string }).last_name ?? ''}
                 </div>
               </div>
               {(customer as { phone?: string }).phone && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.phone}</div>
-                  <div className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="text-start">
+                  <div className="text-sm text-muted-foreground text-start">{t.phone}</div>
+                  <div className="text-base font-medium text-start">
                     {(customer as { phone?: string }).phone}
                   </div>
                 </div>
               )}
               {(customer as { email?: string }).email && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.email}</div>
-                  <div className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="text-start">
+                  <div className="text-sm text-muted-foreground text-start">{t.email}</div>
+                  <div className="text-base font-medium text-start">
                     {(customer as { email?: string }).email}
                   </div>
                 </div>
               )}
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.loyaltyPoints}</div>
-                <div className={`text-base font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="text-start">
+                <div className="text-sm text-muted-foreground text-start">{t.loyaltyPoints}</div>
+                <div className="text-base font-medium text-start">
                   {(order.org_customers_mst as { loyalty_points?: number })?.loyalty_points ?? 0} {t.points}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="bg-card rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 text-start">
               {t.notes}
             </h2>
             <div className="space-y-4">
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="text-start">
+                <div className="text-sm font-medium text-foreground mb-1 text-start">
                   {t.customerNotes}
                 </div>
-                <div className={`text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="text-sm text-muted-foreground bg-info-bg border border-info-border rounded p-3 text-start">
                   {order.customer_notes ? String(order.customer_notes) : '—'}
                 </div>
               </div>
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="text-start">
+                <div className="text-sm font-medium text-foreground mb-1 text-start">
                   {t.internalNotes}
                 </div>
-                <div className={`text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="text-sm text-muted-foreground bg-muted border border-border rounded p-3 text-start">
                   {order.internal_notes ? String(order.internal_notes) : '—'}
                 </div>
               </div>
@@ -1705,41 +1694,41 @@ export function OrderDetailsFullClient({
 
         <div className="space-y-4">
           {/* Financial Summary card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="bg-card rounded-lg border border-border p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 text-start">
               {t.financialSummary ?? 'Financial Summary'}
             </h2>
             <div className="space-y-2">
               {/* Subtotal line */}
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                <span className="text-gray-600">{t.masterField_subtotal ?? 'Subtotal'}</span>
-                <span className="font-medium text-gray-900 tabular-nums">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t.masterField_subtotal ?? 'Subtotal'}</span>
+                <span className="font-medium text-foreground tabular-nums">
                   {fmtOrderMoney(Number(_o.subtotal ?? 0))}
                 </span>
               </div>
               {/* Total line */}
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-                <span className="text-sm text-gray-600">{t.masterField_total ?? 'Total'}</span>
-                <span className="text-xl font-bold text-gray-900 tabular-nums">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{t.masterField_total ?? 'Total'}</span>
+                <span className="text-xl font-bold text-foreground tabular-nums">
                   {fmtOrderMoney(orderTotal)}
                 </span>
               </div>
               {/* Paid amount */}
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                <span className="text-gray-600">{t.paidAmount ?? 'Paid Amount'}</span>
-                <span className={`font-semibold tabular-nums ${orderPaidAmount > 0 ? 'text-green-700' : 'text-gray-500'}`}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{t.paidAmount ?? 'Paid Amount'}</span>
+                <span className={`font-semibold tabular-nums ${orderPaidAmount > 0 ? 'text-success-text' : 'text-muted-foreground'}`}>
                   {fmtOrderMoney(orderPaidAmount)}
                 </span>
               </div>
               {/* Balance Due — highlighted */}
-              <div className="pt-2 border-t border-gray-200">
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-                  <span className="text-sm font-semibold text-gray-800">{t.balanceDue ?? 'Balance Due'}</span>
+              <div className="pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">{t.balanceDue ?? 'Balance Due'}</span>
                   <span className={`text-lg font-bold tabular-nums ${balanceColorClass}`}>
                     {fmtOrderMoney(orderBalanceDueAbs)}
                   </span>
                 </div>
-                <div className={`mt-1 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <div className="mt-1 flex justify-end">
                   <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${balanceBadgeClass}`}>
                     {balanceStatusLabel}
                   </span>
@@ -1747,40 +1736,40 @@ export function OrderDetailsFullClient({
               </div>
               {/* Payment method */}
               {_o.payment_method_code && (
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm pt-1`}>
-                  <span className="text-gray-600">{t.paymentMethod ?? 'Payment Method'}</span>
-                  <span className="font-medium text-gray-900">{String(_o.payment_method_code)}</span>
+                <div className="flex items-center justify-between text-sm pt-1">
+                  <span className="text-muted-foreground">{t.paymentMethod ?? 'Payment Method'}</span>
+                  <span className="font-medium text-foreground">{String(_o.payment_method_code)}</span>
                 </div>
               )}
             </div>
 
             {/* Quick navigation links */}
-            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
-              <div className={`flex flex-col gap-2 ${isRTL ? 'items-end' : 'items-start'}`}>
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              <div className="flex flex-col gap-2 items-start">
                 <button
                   type="button"
                   onClick={() => handleTabChange('payments')}
-                  className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:text-primary-text/80"
                 >
                   {t.paymentDetails}
-                  <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTabChange('history')}
-                  className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:text-primary-text/80"
                 >
                   {t.tabsHistory ?? 'Order History'}
-                  <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
                 </button>
                 {!isTerminalStatus && (
                   <button
                     type="button"
                     onClick={() => handleTabChange('actions')}
-                    className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:text-primary-text/80"
                   >
                     {t.quickActions}
-                    <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                    <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
                   </button>
                 )}
               </div>
@@ -1788,13 +1777,13 @@ export function OrderDetailsFullClient({
           </div>
 
           {/* Dates & preparation compact card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="space-y-2">
-              <div className={`flex items-start gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm">
+                <Clock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div>
-                  <span className="text-gray-500">{t.received}: </span>
-                  <span className="font-medium text-gray-900">
+                  <span className="text-muted-foreground">{t.received}: </span>
+                  <span className="font-medium text-foreground">
                     {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
                       locale === 'ar' ? 'ar' : 'en',
                       { dateStyle: 'medium', timeStyle: 'short' }
@@ -1803,11 +1792,11 @@ export function OrderDetailsFullClient({
                 </div>
               </div>
               {order.ready_by && (
-                <div className={`flex items-start gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <Package className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 text-sm">
+                  <Package className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-gray-500">{t.readyBy}: </span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t.readyBy}: </span>
+                    <span className="font-medium text-foreground">
                       {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
                         dateStyle: 'medium',
                         timeStyle: 'short',
@@ -1817,8 +1806,8 @@ export function OrderDetailsFullClient({
                 </div>
               )}
               {order.preparation_status && (
-                <div className={`flex items-center justify-between pt-2 border-t border-gray-100 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="text-sm text-gray-500">{t.preparationStatus}:</span>
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <span className="text-sm text-muted-foreground">{t.preparationStatus}:</span>
                   <span
                     className={`px-2 py-0.5 text-xs font-medium rounded ${
                       preparationStatusColors[String(order.preparation_status)] ?? preparationStatusColors.pending
@@ -1833,7 +1822,7 @@ export function OrderDetailsFullClient({
                 (order.preparation_status === 'pending' || order.preparation_status === 'in_progress') && (
                   <Link
                     href={`/dashboard/preparation/${order.id}`}
-                    className={`block text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'text-right' : ''}`}
+                    className="block text-sm font-medium text-primary-text hover:text-primary-text/80"
                   >
                     {isRTL ? '← ' : ''}
                     {order.preparation_status === 'pending' ? t.startPreparation : t.continuePreparation}
@@ -1846,7 +1835,7 @@ export function OrderDetailsFullClient({
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-card rounded-lg border border-border p-6">
         <CmxTabsPanel tabs={tabs} value={activeTab} onChange={handleTabChange} />
       </div>
 

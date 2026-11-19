@@ -88,10 +88,10 @@ function BannerShell({
   tone: 'success' | 'warning' | 'danger' | 'info';
 }) {
   const toneClass = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-950',
-    warning: 'border-amber-200 bg-amber-50 text-amber-950',
-    danger: 'border-red-200 bg-red-50 text-red-950',
-    info: 'border-sky-200 bg-sky-50 text-sky-950',
+    success: 'border-success-border bg-success-bg text-success-text',
+    warning: 'border-warning-border bg-warning-bg text-warning-text',
+    danger: 'border-danger-border bg-danger-bg text-danger-text',
+    info: 'border-info-border bg-info-bg text-info-text',
   }[tone];
 
   return (

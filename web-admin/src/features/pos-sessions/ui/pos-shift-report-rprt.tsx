@@ -47,16 +47,16 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
   return (
     <article
       dir={isRTL ? 'rtl' : 'ltr'}
-      className={`mx-auto bg-white text-gray-900 ${
+      className={`mx-auto bg-card text-foreground ${
         thermal ? 'w-[80mm] p-2 text-[11px]' : 'max-w-3xl p-6 text-sm'
       } print:shadow-none`}
     >
-      <header className="mb-3 border-b border-gray-300 pb-2 text-center">
+      <header className="mb-3 border-b border-border pb-2 text-center">
         <h1 className={thermal ? 'text-sm font-bold' : 'text-xl font-bold'}>
           {isZ ? t('zTitle') : t('xTitle')}
         </h1>
         {zReport ? <p className="font-mono">{zReport.reportNo}</p> : null}
-        {!isZ ? <p className="text-gray-600">{t('liveNote')}</p> : null}
+        {!isZ ? <p className="text-muted-foreground">{t('liveNote')}</p> : null}
       </header>
 
       <dl className="mb-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
@@ -86,7 +86,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
             foot={snapshot.payments.totals.map((r) => [t('total'), '', String(r.count), money(r.amount, r.currencyCode)])}
           />
         ) : (
-          <p className="text-gray-500">{t('none')}</p>
+          <p className="text-muted-foreground">{t('none')}</p>
         )}
       </Section>
 
@@ -103,7 +103,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
             foot={snapshot.refunds.totals.map((r) => [t('total'), '', String(r.count), money(r.amount, r.currencyCode)])}
           />
         ) : (
-          <p className="text-gray-500">{t('none')}</p>
+          <p className="text-muted-foreground">{t('none')}</p>
         )}
       </Section>
 
@@ -119,7 +119,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
             ])}
           />
         ) : (
-          <p className="text-gray-500">{t('none')}</p>
+          <p className="text-muted-foreground">{t('none')}</p>
         )}
         {snapshot.cash.changeRounding.length > 0 ? (
           <div className="mt-2">
@@ -132,7 +132,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
                 money(r.net, r.currencyCode),
               ])}
             />
-            <p className="mt-1 text-gray-500">{t('changeRoundingHint')}</p>
+            <p className="mt-1 text-muted-foreground">{t('changeRoundingHint')}</p>
           </div>
         ) : null}
       </Section>
@@ -193,7 +193,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
         </Section>
       ) : null}
 
-      <footer className="mt-4 border-t border-gray-300 pt-2 text-[0.9em] text-gray-600">
+      <footer className="mt-4 border-t border-border pt-2 text-[0.9em] text-muted-foreground">
         <p>
           {t('generatedAt')}: {formatDateTime(zReport?.generatedAt ?? snapshot.generatedAt)}
         </p>
@@ -202,7 +202,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
             <p className="break-all font-mono">
               SHA-256: {thermal ? `${zReport.snapshotHash.slice(0, 24)}…` : zReport.snapshotHash}
             </p>
-            <p className={zReport.hashVerified ? 'text-green-700' : 'font-semibold text-red-700'}>
+            <p className={zReport.hashVerified ? 'text-success-text' : 'font-semibold text-danger-text'}>
               {zReport.hashVerified ? t('hashVerified') : t('hashMismatch')}
             </p>
           </>
@@ -215,7 +215,7 @@ export function PosShiftReportRprt({ snapshot, zReport = null, layout = 'a4' }: 
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return (
     <>
-      <dt className="text-gray-600">{label}</dt>
+      <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium">{value}</dd>
     </>
   );
@@ -224,7 +224,7 @@ function Fact({ label, value }: { label: string; value: ReactNode }) {
 function Section({ title, thermal, children }: { title: string; thermal: boolean; children: ReactNode }) {
   return (
     <section className="mb-3 break-inside-avoid">
-      <h2 className={`mb-1 border-b border-gray-200 font-semibold ${thermal ? 'text-xs' : 'text-base'}`}>{title}</h2>
+      <h2 className={`mb-1 border-b border-border font-semibold ${thermal ? 'text-xs' : 'text-base'}`}>{title}</h2>
       {children}
     </section>
   );
@@ -234,7 +234,7 @@ function ReportTable({ head, rows, foot }: { head: string[]; rows: string[][]; f
   return (
     <table className="w-full border-collapse">
       <thead>
-        <tr className="text-start text-gray-600">
+        <tr className="text-start text-muted-foreground">
           {head.map((h, i) => (
             <th key={`${h}-${i}`} className={`py-0.5 font-medium ${i === 0 ? 'text-start' : 'text-end'}`}>
               {h}
@@ -244,7 +244,7 @@ function ReportTable({ head, rows, foot }: { head: string[]; rows: string[][]; f
       </thead>
       <tbody>
         {rows.map((row, r) => (
-          <tr key={r} className="border-t border-gray-100">
+          <tr key={r} className="border-t border-border">
             {row.map((cell, c) => (
               <td key={c} className={`py-0.5 ${c === 0 ? 'text-start' : 'text-end tabular-nums'}`}>
                 {cell}
@@ -256,7 +256,7 @@ function ReportTable({ head, rows, foot }: { head: string[]; rows: string[][]; f
       {foot && foot.length > 0 ? (
         <tfoot>
           {foot.map((row, r) => (
-            <tr key={r} className="border-t border-gray-400 font-semibold">
+            <tr key={r} className="border-t border-muted-foreground font-semibold">
               {row.map((cell, c) => (
                 <td key={c} className={`py-0.5 ${c === 0 ? 'text-start' : 'text-end tabular-nums'}`}>
                   {cell}

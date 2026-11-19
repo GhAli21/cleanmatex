@@ -153,8 +153,8 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       {!externalBranchId && (
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Branch Settings</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-lg font-semibold text-foreground">Branch Settings</h2>
+            <p className="text-sm text-muted-foreground">
               Select a branch to view and override settings at the branch level.
             </p>
           </div>
@@ -188,11 +188,11 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       )}
 
       {initialLoading ? (
-        <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
           Loading branches...
         </div>
       ) : !selectedBranchId ? (
-        <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
           No branch selected.
         </div>
       ) : (

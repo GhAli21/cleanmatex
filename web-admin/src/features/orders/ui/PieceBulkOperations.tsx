@@ -7,7 +7,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives';
 import {
   CmxSelectDropdown,
@@ -53,7 +52,6 @@ export function PieceBulkOperations({
   onExport,
 }: PieceBulkOperationsProps) {
   const t = useTranslations('orders.pieces');
-  const isRTL = useRTL();
   const [bulkStatus, setBulkStatus] = React.useState<string>('');
   const [bulkRackLocation, setBulkRackLocation] = React.useState('');
   const [applying, setApplying] = React.useState(false);
@@ -118,7 +116,7 @@ export function PieceBulkOperations({
 
   if (selectedPieces.size === 0) {
     return (
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2 p-3 bg-gray-50 rounded-lg`}>
+      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
         <CmxCheckbox
           checked={false}
           onChange={() => handleSelectAll()}
@@ -129,23 +127,23 @@ export function PieceBulkOperations({
   }
 
   return (
-    <div className={`space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between`}>
-        <span className="text-sm font-semibold text-blue-900">
+    <div className="space-y-3 p-4 bg-info-bg border border-info-border rounded-lg text-start">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-primary-text">
           {t('selectedCount', { count: selectedPieces.size }) || `${selectedPieces.size} pieces selected`}
         </span>
         <CmxButton
           variant="ghost"
           size="sm"
           onClick={() => onSelectionChange(new Set())}
-          className={isRTL ? 'flex-row-reverse' : ''}
+          className=""
         >
-          <XSquare className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+          <XSquare className="h-4 w-4 me-1" />
           {t('clearSelection') || 'Clear'}
         </CmxButton>
       </div>
 
-      <div className={`grid grid-cols-12 gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="grid grid-cols-12 gap-3">
         {/* Bulk Status */}
         <div className="col-span-4">
           <CmxSelectDropdown value={bulkStatus} onValueChange={setBulkStatus}>
@@ -195,7 +193,7 @@ export function PieceBulkOperations({
             variant="outline"
             className="w-full"
           >
-            <MapPin className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+            <MapPin className="h-4 w-4 me-1" />
             {t('apply')}
           </CmxButton>
         </div>
@@ -203,14 +201,14 @@ export function PieceBulkOperations({
 
       {/* Export */}
       {onExport && (
-        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} justify-end`}>
+        <div className="flex justify-end">
           <CmxButton
             onClick={handleExport}
             variant="outline"
             size="sm"
-            className={isRTL ? 'flex-row-reverse' : ''}
+            className=""
           >
-            <FileDown className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+            <FileDown className="h-4 w-4 me-1" />
             {t('exportSelected') || 'Export Selected'}
           </CmxButton>
         </div>

@@ -102,9 +102,9 @@ export function CmxFieldShell({
               >
                 {label}
                 {required ? (
-                  <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+                  <span className="ms-1 text-destructive">*</span>
                 ) : optionalLabel ? (
-                  <span className="ms-2 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <span className="ms-2 text-muted-foreground">
                     {optionalLabel}
                   </span>
                 ) : null}
@@ -117,7 +117,7 @@ export function CmxFieldShell({
               id={descriptionId}
               className={cn(
                 'cmx-type-field-helper mt-1 text-[rgb(var(--cmx-text-secondary-rgb,51_65_85))]',
-                tone === 'muted' && 'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
+                tone === 'muted' && 'text-muted-foreground'
               )}
             >
               {description}
@@ -134,7 +134,7 @@ export function CmxFieldShell({
               {hint && !error ? (
                 <p
                   id={helperId}
-                  className="cmx-type-field-helper text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+                  className="cmx-type-field-helper text-muted-foreground"
                 >
                   {hint}
                 </p>
@@ -142,7 +142,7 @@ export function CmxFieldShell({
               {error ? (
                 <p
                   id={errorId}
-                  className="cmx-type-field-error text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+                  className="cmx-type-field-error text-destructive"
                   role="alert"
                 >
                   {error}
@@ -151,7 +151,7 @@ export function CmxFieldShell({
             </div>
             {counter ? (
               <div
-                className="cmx-type-field-helper shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+                className="cmx-type-field-helper shrink-0 text-muted-foreground"
                 aria-live="polite"
               >
                 {counter}

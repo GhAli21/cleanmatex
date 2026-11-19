@@ -128,8 +128,8 @@ export function ArDisputePanel() {
           </div>
         )}
 
-        {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {message ? <p className="text-sm text-success-text">{message}</p> : null}
+        {error ? <p className="text-sm text-danger-text">{error}</p> : null}
         <div className="flex justify-end">
           <CmxButton onClick={onSubmit} loading={isPending}>
             {mode === 'create' ? t('create.submit') : t('resolve.submit')}

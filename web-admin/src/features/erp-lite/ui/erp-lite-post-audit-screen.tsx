@@ -15,10 +15,10 @@ interface ErpLitePostAuditScreenProps {
 
 function LogStatusBadge({ status }: { status: string }) {
   const palette: Record<string, string> = {
-    POSTED: 'bg-green-500/10 text-green-700',
-    FAILED: 'bg-red-500/10 text-red-700',
-    REVERSED: 'bg-amber-500/10 text-amber-700',
-    PENDING: 'bg-blue-500/10 text-blue-700',
+    POSTED: 'bg-success/10 text-success-text',
+    FAILED: 'bg-destructive/10 text-danger-text',
+    REVERSED: 'bg-warning/10 text-warning-text',
+    PENDING: 'bg-primary/10 text-primary-text',
   }
   return (
     <span
@@ -94,7 +94,7 @@ export function ErpLitePostAuditScreen({
       header: t('columns.errorCode'),
       cell: ({ row }) =>
         row.original.error_code ? (
-          <span className="text-xs text-red-700">{row.original.error_code}</span>
+          <span className="text-xs text-danger-text">{row.original.error_code}</span>
         ) : (
           '—'
         ),

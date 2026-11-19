@@ -11,11 +11,11 @@ test('the plain STANDARD theme adds nothing: tokens.css already holds those valu
 test('another theme writes every brand variable for light, dark and system-dark, plus the radius', () => {
   const css = themeStyleCss({ ...ocean, radius: { sm: '0px', md: '0px', lg: '0px' } })
   const p = computeBrandPalette('#2563EB', '#0F172A')
-  const blocks = [
-    css.slice(css.indexOf(':root{'), css.indexOf('}')),
-    css.slice(css.indexOf('[data-mode=DARK]{')),
-    css.slice(css.indexOf('@media (prefers-color-scheme: dark){[data-mode=SYSTEM]{')),
-  ]
+  const starts = [':root,[data-mode=LIGHT]{', '@media screen{[data-mode=DARK]{', '@media screen and (prefers-color-scheme: dark){[data-mode=SYSTEM]{'].map((m) => css.indexOf(m))
+  expect(starts.every((i) => i >= 0)).toBe(true)
+  const blocks = [css.slice(starts[0], css.indexOf('}')), css.slice(starts[1]), css.slice(starts[2])]
+  // Dark values never reach paper: no dark rule outside @media screen.
+  expect(css.match(/\[data-mode=(DARK|SYSTEM)\]/g)).toHaveLength(2)
   for (const token of BRAND_TOKENS) {
     expect(blocks[0]).toContain(`${cssVarName(token)}:${p.LIGHT[token]};`)
     expect(blocks[1]).toContain(`${cssVarName(token)}:${p.DARK[token]};`)

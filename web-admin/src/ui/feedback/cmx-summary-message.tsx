@@ -1,6 +1,7 @@
 /**
- * CmxSummaryMessage - Operation results with success/warning/info/error styling
- * Theme tokens and RTL support. Compatible with legacy summary-message.
+ * CmxSummaryMessage - persistent status banner (success / warning / info / error).
+ * Theme status tokens and logical (RTL-safe) layout. Replaces the legacy `Alert`:
+ * pass `title` + `items` for an operation summary, or `message` / `children` for free content.
  * @module ui/feedback
  */
 
@@ -16,14 +17,18 @@ import {
   X,
 } from 'lucide-react';
 
-/**
- *
- */
-export interface CmxSummaryMessageProps {
+/** Props of {@link CmxSummaryMessage}. Other div attributes (`id`, `role`, `aria-*`) reach the root. */
+export interface CmxSummaryMessageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   type: 'success' | 'warning' | 'info' | 'error';
-  title: string;
-  items: string[];
+  title?: string;
+  /** Bullet list under the title. */
+  items?: string[];
+  /** Body text; `children` is used when it is absent. */
+  message?: React.ReactNode;
+  children?: React.ReactNode;
   onDismiss?: () => void;
+  /** Accessible name of the dismiss button; pass the translated "Close". */
+  dismissLabel?: string;
   className?: string;
   autoHide?: boolean;
   autoHideDuration?: number;
@@ -36,62 +41,37 @@ const iconMap = {
   error: XCircle,
 };
 
+// Locked status tones (PR-02): bg + border + readable text, contrast-tested in light and dark.
 const colorMap = {
-  success: {
-    bg: 'bg-[rgb(var(--cmx-success-bg-rgb,240_253_244))]',
-    border: 'border-[rgb(var(--cmx-success-border-rgb,187_247_208))]',
-    icon: 'text-[rgb(var(--cmx-success-rgb,34_197_94))]',
-    title: 'text-[rgb(var(--cmx-success-dark-rgb,22_163_74))]',
-    text: 'text-[rgb(var(--cmx-success-darker-rgb,21_128_61))]',
-  },
-  warning: {
-    bg: 'bg-[rgb(var(--cmx-warning-bg-rgb,254_252_232))]',
-    border: 'border-[rgb(var(--cmx-warning-border-rgb,253_224_71))]',
-    icon: 'text-[rgb(var(--cmx-warning-rgb,234_179_8))]',
-    title: 'text-[rgb(var(--cmx-warning-dark-rgb,202_138_4))]',
-    text: 'text-[rgb(var(--cmx-warning-darker-rgb,161_98_7))]',
-  },
-  info: {
-    bg: 'bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))]',
-    border: 'border-[rgb(var(--cmx-info-border-rgb,191_219_254))]',
-    icon: 'text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
-    title: 'text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
-    text: 'text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
-  },
-  error: {
-    bg: 'bg-[rgb(var(--cmx-error-bg-rgb,254_242_242))]',
-    border: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
-    icon: 'text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
-    title: 'text-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',
-    text: 'text-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',
-  },
+  success: { bg: 'bg-success-bg', border: 'border-success-border', icon: 'text-success-text', text: 'text-success-text' },
+  warning: { bg: 'bg-warning-bg', border: 'border-warning-border', icon: 'text-warning-text', text: 'text-warning-text' },
+  info: { bg: 'bg-info-bg', border: 'border-info-border', icon: 'text-info-text', text: 'text-info-text' },
+  error: { bg: 'bg-danger-bg', border: 'border-danger-border', icon: 'text-danger-text', text: 'text-danger-text' },
 } as const;
 
 /**
- *
- * @param root0
- * @param root0.type
- * @param root0.title
- * @param root0.items
- * @param root0.onDismiss
- * @param root0.className
- * @param root0.autoHide
- * @param root0.autoHideDuration
+ * Status banner with an icon, optional title, bullet items or free content, and an optional dismiss button.
+ * @param props See {@link CmxSummaryMessageProps}.
  */
 export function CmxSummaryMessage({
   type,
   title,
-  items,
+  items = [],
+  message,
+  children,
   onDismiss,
+  dismissLabel = 'Dismiss',
   className,
   autoHide = false,
   autoHideDuration = 5000,
+  ...rest
 }: CmxSummaryMessageProps) {
   const Icon = iconMap[type];
   const colors = colorMap[type];
 
-  const safeTitle = typeof title === 'string' ? title : String(title);
+  const safeTitle = title === undefined ? undefined : typeof title === 'string' ? title : String(title);
   const safeItems = items.map((item) => (typeof item === 'string' ? item : String(item)));
+  const body = message ?? children;
 
   React.useEffect(() => {
     if (autoHide && onDismiss) {
@@ -102,35 +82,32 @@ export function CmxSummaryMessage({
 
   return (
     <div
-      className={cn('rounded-lg border p-4', colors.bg, colors.border, className)}
       role="alert"
+      {...rest}
+      className={cn('rounded-lg border p-4', colors.bg, colors.border, colors.text, className)}
     >
       <div className="flex items-start gap-3">
-        <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', colors.icon)} />
-        <div className="flex-1 space-y-2">
-          <h4 className={cn('font-semibold text-sm', colors.title)}>
-            {safeTitle}
-          </h4>
+        <Icon className={cn('h-5 w-5 shrink-0 mt-0.5', colors.icon)} aria-hidden="true" />
+        <div className="min-w-0 flex-1 space-y-2">
+          {safeTitle && <h4 className="font-semibold text-sm">{safeTitle}</h4>}
           {safeItems.length > 0 && (
-            <ul className={cn('text-sm space-y-1', colors.text)}>
+            <ul className="text-sm space-y-1">
               {safeItems.map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5">•</span>
+                  <span className="text-xs mt-0.5" aria-hidden="true">•</span>
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
           )}
+          {body !== undefined && body !== null && body !== false && <div className="text-sm">{body}</div>}
         </div>
         {onDismiss && (
           <button
+            type="button"
             onClick={onDismiss}
-            className={cn(
-              'flex-shrink-0 rounded-md p-1',
-              'hover:bg-black/5 transition-colors',
-              colors.icon
-            )}
-            aria-label="Dismiss"
+            className={cn('shrink-0 rounded-md p-1 hover:bg-foreground/5 transition-colors', colors.icon)}
+            aria-label={dismissLabel}
           >
             <X className="h-4 w-4" />
           </button>

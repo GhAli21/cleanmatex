@@ -41,6 +41,7 @@ export const RTL: Story = {
   args: {
     groupLabel: 'الأكياس',
     customLabel: 'مخصص',
-    isRTL: true,
   },
+  // Direction comes from the page's dir, as in the app.
+  decorators: [(Story) => <div dir="rtl"><Story /></div>],
 }

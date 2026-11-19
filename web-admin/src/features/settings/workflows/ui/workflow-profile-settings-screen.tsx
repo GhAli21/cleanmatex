@@ -261,7 +261,7 @@ export function WorkflowProfileSettingsScreen({
                 </div>
                 <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                   <span>{t('effectiveProfile.defaultTemplateLabel')}</span>
-                  <span className="text-right font-medium">
+                  <span className="text-end font-medium">
                     {defaultTemplate
                       ? localizeLabel(
                           locale,

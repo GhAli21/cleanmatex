@@ -179,45 +179,45 @@ export default function ReconciliationListClient({
       {runs.length === 0 ? (
         <CmxSummaryMessage type="info" title={t('noRuns')} items={[]} />
       ) : (
-        <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="rounded-lg border border-border bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="w-full divide-y divide-border text-sm">
+              <thead className="bg-muted">
                 <tr>
                   {/* RTL: header alignment flips alongside the row cells below. */}
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('runNo')}
                   </th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('status')}
                   </th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('period')}
                   </th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('currency')}
                   </th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('ranAt')}
                   </th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('ranBy')}
                   </th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('totalChecked')}
                   </th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('blockers')}
                   </th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('warnings')}
                   </th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500" />
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="divide-y divide-border bg-card">
                 {runs.map((run) => (
-                  <tr key={run.id} className="hover:bg-gray-50">
+                  <tr key={run.id} className="hover:bg-muted">
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">
                       {run.run_no}
                     </td>
@@ -230,40 +230,40 @@ export default function ReconciliationListClient({
                         )}
                       </CmxStatusBadge>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
                       {fmtPeriod(locale, run.period_from, run.period_to)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
                       {run.currency_code}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
                       {fmtDate(locale, run.completed_at ?? run.started_at)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
                       {run.triggered_by ?? EM_DASH}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left tabular-nums text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-end tabular-nums text-foreground">
                       {run.total_checked ?? EM_DASH}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
+                    <td className="whitespace-nowrap px-4 py-3 text-end">
                       {(run.failed_checks ?? 0) > 0 ? (
-                        <span className="font-semibold text-red-700">
+                        <span className="font-semibold text-danger-text">
                           {run.failed_checks}
                         </span>
                       ) : (
-                        <span className="text-gray-400">0</span>
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
+                    <td className="whitespace-nowrap px-4 py-3 text-end">
                       {(run.warning_checks ?? 0) > 0 ? (
-                        <span className="font-semibold text-yellow-700">
+                        <span className="font-semibold text-warning-text">
                           {run.warning_checks}
                         </span>
                       ) : (
-                        <span className="text-gray-400">0</span>
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left">
+                    <td className="whitespace-nowrap px-4 py-3 text-end">
                       <CmxButton asChild variant="outline" size="xs">
                         <Link
                           href={`/dashboard/internal_fin/reconciliation/${run.id}`}
@@ -278,7 +278,7 @@ export default function ReconciliationListClient({
             </table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+          <div className="flex items-center justify-between border-t border-border bg-card px-4 py-3 text-sm text-foreground">
             <div>{t('paginationTotal', { count: pagination.total })}</div>
             <div className="flex items-center gap-2">
               {pagination.page > 1 && (
@@ -290,7 +290,7 @@ export default function ReconciliationListClient({
                   {tCommon('previous')}
                 </CmxButton>
               )}
-              <span className="px-2 text-gray-600">
+              <span className="px-2 text-muted-foreground">
                 {pagination.page} / {totalPages}
               </span>
               {pagination.page < totalPages && (
@@ -325,7 +325,7 @@ export default function ReconciliationListClient({
             )}
             <div>
               <label
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
                 htmlFor="recon-period-from"
               >
                 {t('runForm.periodFrom')}
@@ -340,7 +340,7 @@ export default function ReconciliationListClient({
             </div>
             <div>
               <label
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
                 htmlFor="recon-period-to"
               >
                 {t('runForm.periodTo')}
@@ -355,7 +355,7 @@ export default function ReconciliationListClient({
             </div>
             <div>
               <label
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-foreground"
                 htmlFor="recon-currency"
               >
                 {t('runForm.currency')}

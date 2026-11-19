@@ -8,9 +8,10 @@
  * including this one, and the user signs in again. "Sign out" is always available.
  */
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useState, type FormEvent } from 'react'
 import { useTranslations } from 'next-intl'
-import { Alert, AlertDescription, CmxButton } from '@ui/primitives'
+import { CmxButton } from '@ui/primitives'
 import { useAuth } from '@/lib/auth/auth-context'
 import { changePassword, PasswordApiError } from '../api/password-api'
 import { passwordErrorKey } from '../model/password-errors'
@@ -47,17 +48,17 @@ export function ForcedPasswordChangeScreen() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-muted px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-6">
         <div>
-          <h1 className="text-center text-3xl font-bold tracking-tight text-gray-900">{t('forced.title')}</h1>
-          <p className="mt-2 text-center text-sm text-gray-600">{t('forced.subtitle')}</p>
+          <h1 className="text-center text-3xl font-bold tracking-tight text-foreground">{t('forced.title')}</h1>
+          <p className="mt-2 text-center text-sm text-muted-foreground">{t('forced.subtitle')}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {errorKey ? (
-            <Alert variant="error" role="alert">
-              <AlertDescription>{t(`errors.${errorKey}`)}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage type="error" role="alert">
+              <div>{t(`errors.${errorKey}`)}</div>
+            </CmxSummaryMessage>
           ) : null}
           <NewPasswordFields
             idPrefix="forced-password"
@@ -75,7 +76,7 @@ export function ForcedPasswordChangeScreen() {
           <div className="text-center">
             <button
               type="button"
-              className="text-sm font-medium text-blue-600 hover:text-blue-500"
+              className="text-sm font-medium text-primary-text hover:text-primary-text/80"
               onClick={() => void signOut('user')}
             >
               {t('forced.signOut')}

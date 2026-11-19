@@ -63,9 +63,9 @@ export function PrintItemLabels({ orderNo, items }: PrintItemLabelsProps) {
             );
             const code = lineCode(item);
             return (
-              <div key={item.id} className="p-3 border border-gray-300 rounded">
-                <div className="text-xs text-gray-600">{orderNo}</div>
-                <div className="text-sm font-semibold text-gray-900">{name}</div>
+              <div key={item.id} className="p-3 border border-border rounded">
+                <div className="text-xs text-muted-foreground">{orderNo}</div>
+                <div className="text-sm font-semibold text-foreground">{name}</div>
                 {code ? (
                   <div className="mt-2">
                     <CmxBarcode
@@ -76,12 +76,12 @@ export function PrintItemLabels({ orderNo, items }: PrintItemLabelsProps) {
                       height={40}
                       className="block [&_svg]:max-w-full [&_svg]:h-auto"
                     />
-                    <div dir="ltr" className="mt-1 font-mono text-sm text-gray-900 break-all">
+                    <div dir="ltr" className="mt-1 font-mono text-sm text-foreground break-all">
                       {code}
                     </div>
                   </div>
                 ) : null}
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {item.quantity}
                 </div>
               </div>

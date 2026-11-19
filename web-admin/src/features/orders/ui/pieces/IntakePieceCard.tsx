@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceBaseCard } from './PieceBaseCard';
 import { CmxButton, CmxCheckbox, CmxInput, CmxTextarea } from '@ui/primitives';
 import { EditIcon } from 'lucide-react';
@@ -48,7 +47,6 @@ export function IntakePieceCard({
   density = 'comfortable',
 }: IntakePieceCardProps) {
   const t = useTranslations('orders.pieces');
-  const isRTL = useRTL();
 
   const handleChange = (field: keyof OrderItemPiece, value: unknown) => {
     if (!readOnly && onUpdate) {
@@ -62,14 +60,14 @@ export function IntakePieceCard({
     
     if (!hasPrefs) {
       return (
-        <div className={`space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-          <p className="text-xs text-slate-600">{t('prefSummaryNone')}</p>
+        <div className="space-y-1 text-start">
+          <p className="text-xs text-muted-foreground">{t('prefSummaryNone')}</p>
           {!readOnly && onEditPreferences && (
             <CmxButton
               type="button"
               variant="ghost"
               size="xs"
-              className="h-7 px-2 text-xs text-sky-700 hover:text-sky-800"
+              className="h-7 px-2 text-xs text-primary-text hover:text-primary-text/80"
               onClick={() => onEditPreferences(piece.id)}
             >
               {t('prefSummaryNoneCta')}
@@ -80,9 +78,9 @@ export function IntakePieceCard({
     }
 
     return (
-      <div className={`flex flex-wrap gap-1 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+      <div className="flex flex-wrap gap-1 justify-start">
         {piece.packing_pref_code && (
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-foreground border border-border">
             {formatCodeLabel(piece.packing_pref_code)}
           </span>
         )}
@@ -92,7 +90,7 @@ export function IntakePieceCard({
           return (
             <span
               key={p.preference_code}
-              className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100"
+              className="text-[11px] px-2 py-0.5 rounded-full bg-info-bg text-info-text border border-info-border"
             >
               {formatCodeLabel(p.preference_code)}{priceDisplay}
             </span>
@@ -102,14 +100,14 @@ export function IntakePieceCard({
         {(piece.conditions ?? []).map((c) => (
           <span
             key={c}
-            className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-100"
+            className="text-[11px] px-2 py-0.5 rounded-full bg-warning-bg text-warning-text border border-warning-border"
           >
             {formatCodeLabel(c)}
           </span>
         ))}
 
         {piece.color && (
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-900 border border-purple-100">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-info-bg text-info-text border border-info-border">
             {typeof piece.color === 'object' ? (piece.color as { primary?: string })?.primary ?? '' : piece.color}
           </span>
         )}
@@ -120,7 +118,7 @@ export function IntakePieceCard({
   // Build the action slot: Edit Preferences & Split
   const renderActions = () => {
     return (
-      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-2">
         {!readOnly && onEditPreferences && (
           <CmxButton 
             variant="outline" 
@@ -128,7 +126,7 @@ export function IntakePieceCard({
             onClick={() => onEditPreferences(piece.id)}
             className="text-xs h-8"
           >
-            <EditIcon className="w-3.5 h-3.5 mr-1" />
+            <EditIcon className="w-3.5 h-3.5 me-1" />
             {t('editPreferences')}
           </CmxButton>
         )}
@@ -151,11 +149,11 @@ export function IntakePieceCard({
       <div className="grid grid-cols-12 gap-3 mt-1">
         {/* Notes Input */}
         <div className="col-span-12 sm:col-span-8 min-w-0">
-          <label className="block text-xs font-medium text-slate-700 mb-1">
+          <label className="block text-xs font-medium text-foreground mb-1">
             {t('notes')}
           </label>
           {readOnly ? (
-            <div className="text-sm text-slate-600 min-h-[36px]">
+            <div className="text-sm text-muted-foreground min-h-[36px]">
               {piece.notes || t('noNotes')}
             </div>
           ) : (
@@ -171,11 +169,11 @@ export function IntakePieceCard({
 
         {/* Rack Location Input */}
         <div className="col-span-12 sm:col-span-4 min-w-0">
-          <label className="block text-xs font-medium text-slate-700 mb-1">
+          <label className="block text-xs font-medium text-foreground mb-1">
             {t('rackLocation')}
           </label>
           {readOnly ? (
-            <div className="text-sm text-slate-600">
+            <div className="text-sm text-muted-foreground">
               {piece.rack_location || t('notSet')}
             </div>
           ) : (

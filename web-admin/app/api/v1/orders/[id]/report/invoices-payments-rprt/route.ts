@@ -66,8 +66,7 @@ export async function GET(
         org_customers_mst(
           name,
           name2,
-          phone,
-          sys_customers_mst(name, name2, phone)
+          phone
         )
       `)
       .eq('id', id)

@@ -13,7 +13,8 @@ const FIXTURES: Record<string, { file: string; code: string }> = {
   uiClean: { file: 'src/ui/x/fixture.tsx', code: 'export const A = () => <div className="bg-black/50 text-foreground ms-2 border-s" />\n' },
   uiStory: { file: 'src/ui/x/fixture.stories.tsx', code: 'export const A = () => <div className="bg-gray-100 ml-2" />\n' },
   featureClasses: { file: 'src/features/x/fixture.tsx', code: 'export const A = () => <div className={`p-2 ${"text-left"} bg-white`} />\n' },
-  featureAlert: { file: 'src/features/x/fixture.tsx', code: "import { Alert } from '@ui/primitives'\nexport const A = Alert\n" },
+  appClasses: { file: 'app/x/fixture.tsx', code: 'export const A = () => <div className="text-gray-500 pr-4" />\n' },
+  libClasses: { file: 'lib/x/fixture.ts', code: "export const TONE = { DRAFT: 'bg-gray-100 text-gray-800' }\n" },
 }
 
 // Jest cannot load the ESM eslint.config.mjs in-process, so ESLint runs once in a child process.
@@ -63,14 +64,11 @@ describe('ESLint guardrails', () => {
     expect(of('uiStory', 'no-restricted-syntax')).toEqual([])
   })
 
-  test('the same classes are warnings in features, also inside template literals', () => {
-    const msgs = of('featureClasses', 'no-restricted-syntax')
-    expect(msgs.length).toBeGreaterThanOrEqual(2)
-    expect(msgs.every((m) => m.severity === 1)).toBe(true)
-  })
-
-  test('legacy Alert import in features warns and names the replacement', () => {
-    const msgs = of('featureAlert', 'no-restricted-syntax')
-    expect(msgs).toEqual([expect.objectContaining({ severity: 1, message: expect.stringContaining('CmxSummaryMessage') })])
+  test('PR-05: the same classes are errors in features, app and lib, also inside template literals', () => {
+    for (const k of ['featureClasses', 'appClasses', 'libClasses']) {
+      const msgs = of(k, 'no-restricted-syntax')
+      expect(msgs.length).toBeGreaterThanOrEqual(1)
+      expect(msgs.every((m) => m.severity === 2)).toBe(true)
+    }
   })
 })

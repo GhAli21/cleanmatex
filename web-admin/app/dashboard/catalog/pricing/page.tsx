@@ -97,7 +97,7 @@ export default function PricingPage() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>
+        <div className="rounded-md border border-danger-border bg-danger-bg p-3 text-danger-text">{error}</div>
       )}
 
       {/* Create form */}
@@ -131,14 +131,14 @@ export default function PricingPage() {
       {/* List */}
       <CmxCard className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-4 text-gray-500">{tCommon('loading')}</div>
+          <div className="p-4 text-muted-foreground">{tCommon('loading')}</div>
         ) : lists.length === 0 ? (
-          <div className="p-4 text-gray-500">{t('noPriceLists')}</div>
+          <div className="p-4 text-muted-foreground">{t('noPriceLists')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
+                <tr className="bg-muted text-start">
                   <th className="px-4 py-2">{t('priceListName')}</th>
                   <th className="px-4 py-2">{t('priceListType')}</th>
                   <th className="px-4 py-2">{t('effectiveFrom')}</th>

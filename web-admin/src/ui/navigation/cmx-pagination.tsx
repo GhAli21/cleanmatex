@@ -61,7 +61,7 @@ export function CmxPagination({
       <div className="flex flex-wrap items-center justify-between gap-4 px-2 py-3">
         {showPageSizeSelector && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            <span className="text-muted-foreground">
               {rowsPerPageLabel}
             </span>
             <CmxSelect
@@ -79,7 +79,7 @@ export function CmxPagination({
           </div>
         )}
         {showInfo && (
-          <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <div className="text-sm text-muted-foreground">
             {totalItems > 0 ? (
               <>
                 {`${startItem}-${endItem} ${tCommon('of')} ${totalItems}`}
@@ -126,7 +126,7 @@ export function CmxPagination({
       {/* Page size selector */}
       {showPageSizeSelector && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <span className="text-muted-foreground">
             {rowsPerPageLabel}
           </span>
           <CmxSelect
@@ -146,7 +146,7 @@ export function CmxPagination({
 
       {/* Page info */}
       {showInfo && (
-        <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+        <div className="text-sm text-muted-foreground">
           {totalItems > 0 ? (
             <>
               {`${startItem}-${endItem} ${tCommon('of')} ${totalItems}`}
@@ -185,7 +185,7 @@ export function CmxPagination({
           {getVisiblePages().map((page, index) => (
             <div key={index}>
               {page === '...' ? (
-                <span className="px-2 py-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+                <span className="px-2 py-1 text-sm text-muted-foreground">
                   ...
                 </span>
               ) : (

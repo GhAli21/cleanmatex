@@ -55,14 +55,14 @@ export const CmxRadioGroup: React.FC<CmxRadioGroupProps> = ({
             <legend className="cmx-type-field-label text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
               {label}
               {required ? (
-                <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">
+                <span className="ms-1 text-destructive">
                   *
                 </span>
               ) : null}
             </legend>
           ) : null}
           {description ? (
-            <p className="cmx-type-field-helper mt-1 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="cmx-type-field-helper mt-1 text-muted-foreground">
               {description}
             </p>
           ) : null}
@@ -71,7 +71,7 @@ export const CmxRadioGroup: React.FC<CmxRadioGroupProps> = ({
 
       <div
         className={cn(
-          'grid gap-3 rounded-[var(--cmx-radius-lg,1.125rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.35)] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4',
+          'grid gap-3 rounded-[var(--cmx-radius-lg,1.125rem)] border-2 border-foreground/35 bg-surface p-4',
           columns === 1 && 'grid-cols-1',
           columns === 2 && 'grid-cols-1 md:grid-cols-2',
           columns === 3 && 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
@@ -81,10 +81,10 @@ export const CmxRadioGroup: React.FC<CmxRadioGroupProps> = ({
           <div
             key={option.value}
             className={cn(
-              'flex min-h-[44px] items-start rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.25)] bg-[rgb(var(--cmx-input-bg-rgb,255_255_255))] px-3 py-3 transition',
-              'hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.45)] hover:bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))]',
+              'flex min-h-[44px] items-start rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-foreground/25 bg-[rgb(var(--cmx-input-bg-rgb,255_255_255))] px-3 py-3 transition',
+              'hover:border-foreground/45 hover:bg-secondary',
               value === option.value &&
-                'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.06)]',
+                'border-primary bg-primary/6',
               (disabled || option.disabled) && 'cursor-not-allowed opacity-60'
             )}
           >
@@ -103,7 +103,7 @@ export const CmxRadioGroup: React.FC<CmxRadioGroupProps> = ({
 
       {error ? (
         <p
-          className="cmx-type-field-error text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+          className="cmx-type-field-error text-destructive"
           role="alert"
         >
           {error}

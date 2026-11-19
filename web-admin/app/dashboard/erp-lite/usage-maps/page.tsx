@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Clarifies that this screen maps current ERP Lite feature usage. */
@@ -9,8 +10,6 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteUsageMapService } from '@/lib/services/erp-lite-usage-map.service'
 import { ErpLiteUsageMapsScreen } from '@features/erp-lite/ui/erp-lite-usage-maps-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -47,9 +46,9 @@ export default async function ErpLiteUsageMapsPage() {
       permissions={['erp_lite_usage_map:view']}
     >
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLiteUsageMapsScreen rows={rows} />
       )}

@@ -51,9 +51,9 @@ export interface CmxScanInputProps {
 }
 
 const STATUS_CLASS: Record<CmxScanStatusTone, string> = {
-  success: 'text-[rgb(var(--cmx-success-rgb,22_163_74))]',
-  error: 'text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
-  info: 'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+  success: 'text-success',
+  error: 'text-destructive',
+  info: 'text-muted-foreground',
 }
 
 export const CmxScanInput = React.forwardRef<HTMLInputElement, CmxScanInputProps>(function CmxScanInput(

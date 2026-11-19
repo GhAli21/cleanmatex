@@ -9,7 +9,6 @@
 import type { CartQuoteRequest } from '@/lib/validations/new-order-payment-schemas';
 import { memo } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { SummaryCartItem } from './summary-cart-item';
 import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
@@ -102,7 +101,6 @@ function ItemCartListComponent({
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
-  const isRTL = useRTL();
 
   const totalPieces = trackByPiece && items.length > 0
     ? items.reduce((sum, item) => sum + (item.pieces?.length || item.quantity), 0)
@@ -110,12 +108,12 @@ function ItemCartListComponent({
 
   if (items.length === 0) {
     return (
-      <div className={`flex flex-col items-center justify-center py-10 px-4 ${isRTL ? 'text-right' : 'text-center'}`}>
-        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-          <ShoppingCart className="w-10 h-10 text-gray-400" aria-hidden="true" />
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+        <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+          <ShoppingCart className="w-10 h-10 text-muted-foreground" aria-hidden="true" />
         </div>
-        <p className="text-base font-medium text-gray-700 mb-1">{t('noItemsAdded')}</p>
-        <p className="text-sm text-gray-500 max-w-xs">
+        <p className="text-base font-medium text-foreground mb-1">{t('noItemsAdded')}</p>
+        <p className="text-sm text-muted-foreground max-w-xs">
           {t('selectItemsFromGrid') || 'Select items from the grid above to add to your order.'}
         </p>
       </div>
@@ -125,11 +123,11 @@ function ItemCartListComponent({
   return (
     <div>
       {/* Header */}
-      <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-2 pb-2 border-b-2 border-gray-200`}>
-        <h3 className={`font-semibold text-gray-900 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="flex items-center justify-between mb-2 pb-2 border-b-2 border-border">
+        <h3 className="font-semibold text-foreground text-sm text-start">
           {t('orderItems')} ({items.length})
         </h3>
-        <span className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>
+        <span className="text-xs text-muted-foreground text-end">
           {trackByPiece ? (
             <span>{totalPieces} {tPieces('totalPieces')}</span>
           ) : (
@@ -139,7 +137,7 @@ function ItemCartListComponent({
       </div>
 
       {/* Items */}
-      <div className="rounded-lg border border-gray-200 overflow-hidden">
+      <div className="rounded-lg border border-border overflow-hidden">
         {items.map((item, index) => (
           <SummaryCartItem
             key={item.id}

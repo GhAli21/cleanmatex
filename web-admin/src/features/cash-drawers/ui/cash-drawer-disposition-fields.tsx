@@ -94,7 +94,7 @@ export function CashDrawerDispositionFields({
         const variance = balance.closingVariance != null ? Number(balance.closingVariance) : 0
 
         return (
-          <div key={balance.currencyCode} className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+          <div key={balance.currencyCode} className="space-y-3 rounded-xl border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-semibold">{balance.currencyCode}</span>
               {balance.closingVariance != null ? (
@@ -129,7 +129,7 @@ export function CashDrawerDispositionFields({
               placeholder={t('wizard.selectDisposition')}
             />
             {dispositionOptions(balance.currencyCode).some((o) => o.disabled) ? (
-              <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('wizard.unavailableDispositionsHint')}</p>
+              <p className="text-xs text-muted-foreground">{t('wizard.unavailableDispositionsHint')}</p>
             ) : null}
 
             {disp && disp.cashMoveMode !== 'NONE' ? (
@@ -169,8 +169,8 @@ export function CashDrawerDispositionFields({
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</div>
+    <div className="rounded-lg border border-border bg-muted p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-1 text-sm font-bold">{value}</div>
     </div>
   )

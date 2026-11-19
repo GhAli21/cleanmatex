@@ -11,9 +11,10 @@
 
 import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Alert, AlertDescription, CmxButton, CmxSkeleton } from '@ui/primitives'
+import { CmxButton, CmxSkeleton } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
 import { cmxMessage } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { AUTH_CONFIG_GROUPS, AUTH_CONFIG_ERROR_CODES } from '@/lib/constants/auth-admin-config'
 import type { AuthConfigGroup } from '@/lib/types/auth-admin-config'
@@ -57,9 +58,9 @@ export function SecuritySettingsScreen() {
   if (isError || !data) {
     return (
       <div className="space-y-4 p-6">
-        <Alert variant="error">
-          <AlertDescription>{t('loadFailed')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{t('loadFailed')}</div>
+        </CmxSummaryMessage>
         <CmxButton variant="secondary" onClick={() => void refetch()} loading={isFetching}>
           {tCommon('retry')}
         </CmxButton>
@@ -98,22 +99,22 @@ export function SecuritySettingsScreen() {
   return (
     <div className="space-y-6 p-6 pb-24">
       <div>
-        <h1 className="text-2xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
-        <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('subtitle')}</p>
+        <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       {!planAllowsEdit ? (
-        <Alert variant="info">
-          <AlertDescription>{t('readOnlyPlan')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="info">
+          <div>{t('readOnlyPlan')}</div>
+        </CmxSummaryMessage>
       ) : !canUpdatePermission ? (
-        <Alert variant="info">
-          <AlertDescription>{t('readOnlyPermission')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="info">
+          <div>{t('readOnlyPermission')}</div>
+        </CmxSummaryMessage>
       ) : (
-        <Alert variant="info">
-          <AlertDescription>{t('appliesToNewSignIns')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="info">
+          <div>{t('appliesToNewSignIns')}</div>
+        </CmxSummaryMessage>
       )}
 
       {GROUP_ORDER.map((group) => {
@@ -151,9 +152,9 @@ export function SecuritySettingsScreen() {
       })}
 
       {dirtyCount > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white/95 px-6 py-3 shadow-lg backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-6 py-3 shadow-lg backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-sm text-muted-foreground">
               {t('unsavedChanges', { count: dirtyCount })}
             </p>
             <div className="flex gap-2">

@@ -5,6 +5,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { logger } from '@/lib/utils/logger';
 
 export interface LastOrderServicePrefCatalogRow {
@@ -121,7 +122,8 @@ export class PreferenceResolutionService {
     customerId: string
   ): Promise<LastOrderPrefItem[]> {
     try {
-      const { data, error } = await supabase.rpc('get_last_order_preferences', {
+      // INVOKER RPC reads sys_* preference catalogs — service role after lockdown.
+      const { data, error } = await catalogReadClient(supabase).rpc('get_last_order_preferences', {
         p_tenant_org_id: tenantId,
         p_customer_id: customerId,
       });
@@ -159,7 +161,8 @@ export class PreferenceResolutionService {
     limit = 5
   ): Promise<SuggestedPref[]> {
     try {
-      const { data, error } = await supabase.rpc('suggest_preferences_from_history', {
+      // INVOKER RPC reads sys_* preference catalogs — service role after lockdown.
+      const { data, error } = await catalogReadClient(supabase).rpc('suggest_preferences_from_history', {
         p_tenant_org_id: tenantId,
         p_customer_id: customerId,
         p_product_code: productCode ?? null,

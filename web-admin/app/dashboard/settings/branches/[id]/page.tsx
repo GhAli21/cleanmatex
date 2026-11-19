@@ -8,11 +8,12 @@
 
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton, Alert } from '@ui/primitives';
+import { CmxButton } from '@ui/primitives';
 import { CmxTabsPanel } from '@ui/navigation';
 import { settingsClient, type ResolvedSetting, type SettingDefinition } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
@@ -83,8 +84,8 @@ export default function BranchSettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading branch settings...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading branch settings...</p>
         </div>
       </div>
     );
@@ -93,7 +94,7 @@ export default function BranchSettingsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert variant="error" title="Error" message={error} />
+        <CmxSummaryMessage type="error" title="Error" message={error} />
       </div>
     );
   }
@@ -160,20 +161,20 @@ export default function BranchSettingsPage() {
           onClick={() => router.back()}
           className="mb-4"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4 me-2" />
           Back to Settings
         </CmxButton>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Building2 className="h-6 w-6 text-purple-600" />
+            <div className="p-2 bg-info-bg rounded-lg">
+              <Building2 className="h-6 w-6 text-primary-text" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-foreground">
                 Branch Settings
               </h1>
-              <p className="mt-1 text-gray-600">{branchName}</p>
+              <p className="mt-1 text-muted-foreground">{branchName}</p>
             </div>
           </div>
 
@@ -184,8 +185,8 @@ export default function BranchSettingsPage() {
       </div>
 
       {/* Info Banner */}
-      <CmxCard className="mb-6 p-4 bg-purple-50 border-purple-200">
-        <p className="text-sm text-purple-800">
+      <CmxCard className="mb-6 p-4 bg-info-bg border-info-border">
+        <p className="text-sm text-primary-text">
           Branch-level overrides apply to all users in this branch and take precedence over tenant-level settings.
         </p>
       </CmxCard>
@@ -215,7 +216,7 @@ function SettingInput({ setting, value, onChange }: SettingInputProps) {
           type="checkbox"
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
-          className="rounded border-gray-300"
+          className="rounded border-border"
         />
       );
 
@@ -225,7 +226,7 @@ function SettingInput({ setting, value, onChange }: SettingInputProps) {
           type="number"
           value={value || ''}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full rounded border-gray-300"
+          className="w-full rounded border-border"
         />
       );
 
@@ -236,7 +237,7 @@ function SettingInput({ setting, value, onChange }: SettingInputProps) {
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded border-gray-300"
+          className="w-full rounded border-border"
         />
       );
   }

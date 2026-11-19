@@ -54,7 +54,6 @@ export default async function RootLayout({
   return (
     // Organization theme and the person's preferences, resolved on the server, so
     // there is no flash and no theme script. Values are the UPPERCASE database codes.
-    // data-mode stays LIGHT until dark mode is offered (PR-07 task 6).
     <html
       lang={locale}
       dir={dir}

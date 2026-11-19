@@ -60,7 +60,7 @@ export default function InvoicesReportPage() {
       <div className="space-y-6">
         <ReportFiltersBar basePath={BASE_PATH} showStatusFilter statusOptions={INVOICE_STATUSES} />
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     );
@@ -70,7 +70,7 @@ export default function InvoicesReportPage() {
     return (
       <div className="space-y-6">
         <ReportFiltersBar basePath={BASE_PATH} showStatusFilter statusOptions={INVOICE_STATUSES} />
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center text-danger-text">{error}</div>
       </div>
     );
   }
@@ -82,29 +82,29 @@ export default function InvoicesReportPage() {
       label: t('kpi.totalInvoices'),
       value: data.kpis.totalInvoices,
       icon: FileText,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-primary-text',
+      bgColor: 'bg-info-bg',
     },
     {
       label: t('kpi.totalOutstanding'),
       value: `${data.kpis.currencyCode} ${data.kpis.totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-warning-text',
+      bgColor: 'bg-warning-bg',
     },
     {
       label: t('kpi.collectionRate'),
       value: `${data.kpis.collectionRate}%`,
       icon: TrendingDown,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-success-text',
+      bgColor: 'bg-success-bg',
     },
     {
       label: t('kpi.overdueCount'),
       value: data.kpis.overdueCount,
       icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
+      color: 'text-danger-text',
+      bgColor: 'bg-danger-bg',
     },
   ];
 

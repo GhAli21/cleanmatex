@@ -138,7 +138,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
           <CmxDialogTitle className="flex items-center gap-2">
             {t('actions.addItem')}
             {selectedBranch && (
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+              <span className="rounded-full bg-info-bg px-2 py-0.5 text-xs font-medium text-info-text">
                 + {t('sections.branchStock')}: {selectedBranch.name}
               </span>
             )}
@@ -148,11 +148,11 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 px-6 py-4">
             {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>
+              <div className="rounded-lg bg-danger-bg p-3 text-sm text-danger-text">{error}</div>
             )}
 
             {/* Read-only defaults */}
-            <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
+            <div className="rounded-md border border-border bg-muted p-3 text-sm text-muted-foreground">
               <span className="font-medium">{t('labels.serviceCategoryCode')}:</span> RETAIL_ITEMS
               {' · '}
               <span className="font-medium">{t('labels.isRetailItem')}:</span> {tc('yes')}
@@ -161,10 +161,10 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
             {/* Product Master */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-gray-700">
+                <h3 className="text-sm font-semibold text-foreground">
                   {t('sections.productMaster')}
                 </h3>
-                <p className="mt-0.5 text-xs text-gray-500">{t('messages.productMasterDescription')}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t('messages.productMasterDescription')}</p>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <CmxInput
@@ -206,7 +206,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
 
             {/* Pricing */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700">{t('labels.sellPrice')} / {t('labels.unitCost')}</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('labels.sellPrice')} / {t('labels.unitCost')}</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <CmxInput
                   label={t('labels.unitCost')}
@@ -238,15 +238,15 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
             {/* Inventory / Branch Stock */}
             <div
               className={`space-y-4 rounded-lg p-4 ${
-                branchId ? 'border border-blue-100 bg-blue-50/30' : ''
+                branchId ? 'border border-info-border bg-info-bg/30' : ''
               }`}
             >
               <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold text-gray-700">
+                <h3 className="text-sm font-semibold text-foreground">
                   {branchId ? t('sections.branchStock') : t('labels.quantity') + ' / ' + t('labels.storageLocation')}
                 </h3>
                 {branchId && (
-                  <p className="text-xs text-gray-500">{t('messages.branchStockDescription')}</p>
+                  <p className="text-xs text-muted-foreground">{t('messages.branchStockDescription')}</p>
                 )}
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -300,7 +300,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
 
             {/* Optional */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700">{t('sections.optional')}</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t('sections.optional')}</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <CmxInput
                   label={t('labels.productGroup1')}
@@ -371,7 +371,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                     id="isActive"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    className="h-4 w-4 rounded border-border"
                   />
                   <label htmlFor="isActive" className="text-sm font-medium">
                     {tc('active')}

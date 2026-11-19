@@ -49,7 +49,7 @@ function OrganizationTab({ canSave }: { canSave: boolean }) {
   const template = query.data.template;
   return (
     <div className="space-y-3">
-      {query.data.timezone ? <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('timezone', { timezone: query.data.timezone })}</p> : null}
+      {query.data.timezone ? <p className="text-sm text-muted-foreground">{t('timezone', { timezone: query.data.timezone })}</p> : null}
       <CalendarHoursForm
         key={query.dataUpdatedAt}
         idPrefix="org"
@@ -152,7 +152,7 @@ export function BusinessCalendarScreen() {
     <div className="max-w-5xl space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('subtitle')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
       <CmxTabsPanel tabs={tabs} value={active} onChange={(tab) => setParams({ tab })} keepMounted />
     </div>

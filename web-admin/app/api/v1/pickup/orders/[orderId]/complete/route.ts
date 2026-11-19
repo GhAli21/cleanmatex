@@ -30,6 +30,8 @@ const routeParamsSchema = z.object({
 const completePickupRequestSchema = z.object({
   expectedStateVersion: z.number().int().nonnegative(),
   handoverNotes: z.string().trim().max(1000).optional(),
+  // PICKUP_PROOF files uploaded through File Util; the command locks them as proof.
+  proofFileIds: z.array(z.string().uuid()).max(10).optional(),
 }).strict();
 
 const idempotencyKeySchema = z.string().trim().min(1).max(255);

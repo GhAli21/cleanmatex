@@ -149,9 +149,9 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className={`flex items-center gap-2 text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Clock className="w-5 h-5 animate-spin" />
-          <span className={isRTL ? 'text-right' : 'text-left'}>{tCommon('loading')}</span>
+          <span className="text-start">{tCommon('loading')}</span>
         </div>
       </div>
     );
@@ -159,7 +159,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
 
   if (error) {
     return (
-      <div className={`rounded-lg bg-red-50 p-4 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="rounded-lg bg-danger-bg p-4 text-sm text-danger-text text-start">
         {error}
       </div>
     );
@@ -167,7 +167,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
 
   if (history.length === 0) {
     return (
-      <div className={`rounded-lg bg-gray-50 p-8 text-center text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="rounded-lg bg-muted p-8 text-center text-sm text-muted-foreground text-start">
         {t('noHistory')}
       </div>
     );
@@ -184,7 +184,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
         const statusMeta = entry.to_value ? STATUS_META[entry.to_value as OrderStatus] : null;
 
         return (
-          <div key={entry.id} className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div key={entry.id} className="flex gap-3">
             {/* Icon and connecting line */}
             <div className="flex flex-col items-center">
               <div
@@ -197,17 +197,17 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
                 />
               </div>
               {index < history.length - 1 && (
-                <div className="w-0.5 h-full min-h-[40px] bg-gray-200" />
+                <div className="w-0.5 h-full min-h-[40px] bg-muted" />
               )}
             </div>
 
             {/* Content */}
             <div className="flex-1 pb-6">
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="rounded-lg border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
                 {/* Header */}
-                <div className={`flex items-start ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} gap-4`}>
-                  <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 text-start">
+                    <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                         style={{
@@ -218,7 +218,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
                         {getActionLabel(entry.action_type)}
                       </span>
                       {entry.from_value && entry.to_value && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           {entry.from_value} {isRTL ? '←' : '→'} {entry.to_value}
                         </span>
                       )}
@@ -235,14 +235,14 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
                       )}
                     </div>
 
-                    <div className={`mt-2 flex items-center gap-2 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                       <span>
                         {entry.done_at ? formatTimestamp(entry.done_at) : 'N/A'}
                       </span>
                       {entry.payload?.done_by_name && (
                         <>
                           <span>•</span>
-                          <User className="w-4 h-4 text-gray-400" />
+                          <User className="w-4 h-4 text-muted-foreground" />
                           <span>{entry.payload.done_by_name}</span>
                         </>
                       )}
@@ -252,13 +252,13 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
                   {(hasNotes || hasMetadata) && (
                     <button
                       onClick={() => toggleExpand(entry.id)}
-                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      className="p-1 rounded hover:bg-muted transition-colors"
                       aria-label={isExpanded ? t('collapseDetails') : t('expandDetails')}
                     >
                       {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-gray-500" />
+                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                       )}
                     </button>
                   )}
@@ -266,11 +266,11 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
 
                 {/* Details (expandable) */}
                 {isExpanded && (
-                  <div className={`mt-3 pt-3 border-t border-gray-100 space-y-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <div className="mt-3 pt-3 border-t border-border space-y-3 text-start">
                     {hasNotes && (
                       <div>
-                        <div className={`text-xs font-medium text-gray-500 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t('notes')}:</div>
-                        <div className={`text-sm text-gray-700 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <div className="text-xs font-medium text-muted-foreground mb-1 text-start">{t('notes')}:</div>
+                        <div className="text-sm text-foreground whitespace-pre-wrap text-start">
                           {entry.payload.notes}
                         </div>
                       </div>
@@ -279,10 +279,10 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
                     {/* Additional metadata */}
                     {entry.payload && Object.keys(entry.payload).length > (hasNotes ? 1 : 0) && (
                       <details>
-                        <summary className={`text-xs font-medium text-gray-400 cursor-pointer hover:text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground text-start">
                           {t('details')}
                         </summary>
-                        <pre className={`mt-2 text-xs text-gray-500 overflow-auto ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <pre className="mt-2 text-xs text-muted-foreground overflow-auto text-start">
                           {JSON.stringify(entry.payload, null, 2)}
                         </pre>
                       </details>

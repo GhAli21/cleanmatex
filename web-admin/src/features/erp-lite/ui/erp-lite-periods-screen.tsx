@@ -21,8 +21,8 @@ interface ErpLitePeriodsScreenProps {
 
 function PeriodStatusBadge({ status }: { status: ErpLitePeriodRow['status_code'] }) {
   const palette: Record<string, string> = {
-    OPEN: 'bg-green-500/10 text-green-700',
-    SOFT_LOCKED: 'bg-amber-500/10 text-amber-700',
+    OPEN: 'bg-success/10 text-success-text',
+    SOFT_LOCKED: 'bg-warning/10 text-warning-text',
     CLOSED: 'bg-muted text-muted-foreground',
   }
   return (
@@ -107,7 +107,7 @@ export function ErpLitePeriodsScreen({ rows }: ErpLitePeriodsScreenProps) {
             <li key={i}>
               <span
                 className={
-                  b.severity === 'error' ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'
+                  b.severity === 'error' ? 'text-destructive' : 'text-warning-text'
                 }
               >
                 {b.message}

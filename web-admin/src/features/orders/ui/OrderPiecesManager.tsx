@@ -8,13 +8,13 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceList } from './PieceList';
 import { PieceBarcodeScanner } from './PieceBarcodeScanner';
 import { PieceBulkOperations } from './PieceBulkOperations';
 import { CmxButton } from '@ui/primitives';
 import { Loader2, RefreshCw } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
+import type { FileSourceCode } from '@/lib/constants/file-util';
 import { log } from '@/lib/utils/logger';
 import { downloadPiecesCSV } from '@/lib/utils/piece-export';
 import { pieceTagErrorMessage } from '@features/workflow/lib/piece-tag-error';
@@ -43,6 +43,8 @@ export interface OrderPiecesManagerProps {
   mode?: 'intake' | 'processing' | 'sorting' | 'assembly' | 'qc';
   /** Piece id or piece code to scroll to and highlight (`?piece=`, HFC T3.9). */
   highlightPiece?: string | null;
+  /** Screen for per-piece photos (e.g. FILE_SOURCES.ORDER_PROCESSING); omitted = no photo button. */
+  fileSource?: FileSourceCode;
 }
 
 /**
@@ -82,11 +84,11 @@ export function OrderPiecesManager({
   pieceDensity = 'comfortable',
   mode = 'intake',
   highlightPiece = null,
+  fileSource,
 }: OrderPiecesManagerProps) {
   const t = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
   const tTag = useTranslations('processing.modal');
-  const isRTL = useRTL();
 
   const [pieces, setPieces] = React.useState<OrderItemPiece[]>([]);
   const [loading, setLoading] = React.useState(autoLoad);
@@ -285,7 +287,7 @@ export function OrderPiecesManager({
 
   if (!hasRequiredParams) {
     return (
-      <div className="text-center py-4 text-sm text-red-600">
+      <div className="text-center py-4 text-sm text-danger-text">
         Missing required parameters: orderId, itemId, or tenantId
       </div>
     );
@@ -293,9 +295,9 @@ export function OrderPiecesManager({
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center py-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-        <span className={`ml-2 text-sm text-gray-500 ${isRTL ? 'mr-2 ml-0' : ''}`}>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ms-2 text-sm text-muted-foreground">
           {tCommon('loading')}
         </span>
       </div>
@@ -304,15 +306,15 @@ export function OrderPiecesManager({
 
   if (error) {
     return (
-      <div className={`text-center py-8 ${isRTL ? 'text-right' : 'text-left'}`}>
-        <p className="text-sm text-red-600 mb-2">{error}</p>
+      <div className="text-center py-8 text-start">
+        <p className="text-sm text-danger-text mb-2">{error}</p>
         <CmxButton
           variant="outline"
           size="sm"
           onClick={loadPieces}
-          className={isRTL ? 'flex-row-reverse' : ''}
+          className=""
         >
-          <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+          <RefreshCw className="h-4 w-4 me-2" />
           {t('retry')}
         </CmxButton>
       </div>
@@ -322,8 +324,8 @@ export function OrderPiecesManager({
   return (
     <div className="space-y-4">
       {/* Header with refresh button */}
-      <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} items-center`}>
-        <h3 className={`text-sm font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-semibold text-foreground text-start">
           {t('pieces')} ({pieces.length})
         </h3>
         {!readOnly && (
@@ -331,9 +333,9 @@ export function OrderPiecesManager({
             variant="ghost"
             size="sm"
             onClick={loadPieces}
-            className={isRTL ? 'flex-row-reverse' : ''}
+            className=""
           >
-            <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+            <RefreshCw className="h-4 w-4 me-1" />
             {t('refresh')}
           </CmxButton>
         )}
@@ -388,6 +390,7 @@ export function OrderPiecesManager({
         density={pieceDensity}
         mode={mode}
         highlightPiece={highlightPiece}
+        fileSource={fileSource}
       />
     </div>
   );

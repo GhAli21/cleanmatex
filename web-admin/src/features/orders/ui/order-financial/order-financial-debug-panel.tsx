@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 
 import type { OrderFinancialSummaryViewModel } from '@features/orders/model/order-financial-summary-view';
@@ -40,7 +39,6 @@ const RAW_FIELDS: Array<{ key: keyof OrderFinancialSummaryViewModel['rawSnapshot
  */
 export function OrderFinancialDebugPanel({ viewModel }: OrderFinancialDebugPanelProps) {
   const t = useTranslations('orders.detail.financial');
-  const isRTL = useRTL();
   const raw = viewModel.rawSnapshot;
 
   const reconVariant =
@@ -52,7 +50,7 @@ export function OrderFinancialDebugPanel({ viewModel }: OrderFinancialDebugPanel
 
   return (
     <CmxCard>
-      <CmxCardHeader className={`flex flex-wrap items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <CmxCardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CmxCardTitle>{t('debug.rawSnapshot')}</CmxCardTitle>
         <CmxStatusBadge size="sm" tone={reconVariant}>{t(`debug.reconciliation.${viewModel.reconciliationStatus}`)}</CmxStatusBadge>
       </CmxCardHeader>
@@ -61,7 +59,7 @@ export function OrderFinancialDebugPanel({ viewModel }: OrderFinancialDebugPanel
           {RAW_FIELDS.map(({ key, labelKey }) => (
             <div
               key={key}
-              className={`rounded-md border border-border bg-muted/30 px-3 py-2 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="rounded-md border border-border bg-muted/30 px-3 py-2 text-start"
             >
               <dt className="text-xs text-muted-foreground">{t(`debug.fields.${labelKey}`)}</dt>
               <dd className="mt-0.5 font-mono text-sm tabular-nums">

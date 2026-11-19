@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
@@ -20,6 +21,47 @@ import {
   parseReadyListQueryFromApi,
   readyListQueryToWorklist,
 } from '@/lib/constants/ready-list-focus';
+
+type OrderSourceCatalogRow = {
+  order_source_code: string;
+  name: string | null;
+  name2: string | null;
+  requires_remote_intake_confirm: boolean | null;
+};
+
+/**
+ * Load catalog labels for the order_source_code values on this page.
+ * `sys_order_sources_cd` is closed to the session JWT after the privilege lockdown.
+ */
+async function loadOrderSourceCatalog(
+  sessionClient: Awaited<ReturnType<typeof createClient>>,
+  codes: string[],
+): Promise<Map<string, OrderSourceCatalogRow>> {
+  const uniqueCodes = [...new Set(codes.map((code) => code.trim()).filter(Boolean))];
+  const byCode = new Map<string, OrderSourceCatalogRow>();
+  if (uniqueCodes.length === 0) {
+    return byCode;
+  }
+
+  const { data, error } = await catalogReadClient(sessionClient)
+    .from('sys_order_sources_cd')
+    .select('order_source_code, name, name2, requires_remote_intake_confirm')
+    .in('order_source_code', uniqueCodes);
+
+  if (error) {
+    logger.warn('Order source catalog enrich failed', {
+      feature: 'orders',
+      action: 'list',
+      message: error.message,
+    });
+    return byCode;
+  }
+
+  for (const row of data ?? []) {
+    byCode.set(row.order_source_code, row as OrderSourceCatalogRow);
+  }
+  return byCode;
+}
 
 /**
  * GET /api/v1/orders
@@ -129,25 +171,12 @@ export async function GET(request: NextRequest) {
         rack_location,
         ready_by_at_new,
         ready_by,
-        sys_order_sources_cd(
-          order_source_code,
-          name,
-          name2,
-          requires_remote_intake_confirm
-        ),
         org_customers_mst(
           id,
           name,
           name2,
           phone,
-          email,
-          sys_customers_mst(
-            id,
-            name,
-            name2,
-            phone,
-            email
-          )
+          email
         )
         ${includeItems
         ? includeItemsPreview
@@ -400,10 +429,22 @@ export async function GET(request: NextRequest) {
       tenantId,
       orderIds: (normalizedOrders ?? []).map((order: { id: string }) => order.id),
     });
-    const unorderedOrders = (normalizedOrders ?? []).map((order: Record<string, unknown>) => ({
-      ...order,
-      pickup_release: pickupReleaseSummaries.get(String(order.id)),
-    }));
+    const orderSourceByCode = await loadOrderSourceCatalog(
+      supabase,
+      (normalizedOrders ?? []).map((order: { order_source_code?: string | null }) =>
+        String(order.order_source_code ?? ''),
+      ),
+    );
+    const unorderedOrders = (normalizedOrders ?? []).map((order: Record<string, unknown>) => {
+      const sourceCode = String(order.order_source_code ?? '');
+      const source = orderSourceByCode.get(sourceCode) ?? null;
+      return {
+        ...order,
+        sys_order_sources_cd: source,
+        order_source: source,
+        pickup_release: pickupReleaseSummaries.get(String(order.id)),
+      };
+    });
     const ordersWithPickupRelease = stageWorklistOrderIds
       ? stageWorklistOrderIds.flatMap((orderId) => {
           const match = unorderedOrders.find((order) => String(order.id) === orderId);

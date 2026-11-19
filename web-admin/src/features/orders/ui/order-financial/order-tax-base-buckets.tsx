@@ -35,7 +35,7 @@ function BucketRow({
   isRTL: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-4 py-1 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div className="flex items-center justify-between gap-4 py-1 text-xs">
       <span className="text-muted-foreground">{label}</span>
       <OrderFinancialMoneyValue amount={amount} currencyCode={currencyCode} />
     </div>
@@ -65,7 +65,7 @@ export function OrderTaxBaseBuckets({ amounts, currencyCode, pricingMode }: Orde
 
   return (
     <div className="mt-2 space-y-0.5 border-t border-dashed border-border pt-2">
-      <p className={`mb-1 text-xs font-medium text-muted-foreground/80 uppercase tracking-wide ${isRTL ? 'text-right' : 'text-left'}`}>
+      <p className="mb-1 text-xs font-medium text-muted-foreground/80 uppercase tracking-wide text-start">
         {t('taxBase.title')}
       </p>
 
@@ -82,7 +82,7 @@ export function OrderTaxBaseBuckets({ amounts, currencyCode, pricingMode }: Orde
       )}
 
       {pricingMode && (
-        <p className={`pt-1 text-xs text-muted-foreground/70 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p className="pt-1 text-xs text-muted-foreground/70 text-start">
           {t('pricingMode.atCalculation')}:{' '}
           <span className="font-medium">
             {pricingMode === TAX_PRICING_MODES.TAX_INCLUSIVE

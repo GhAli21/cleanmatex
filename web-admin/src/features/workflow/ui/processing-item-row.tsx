@@ -87,7 +87,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
     <CmxCard
       className={cn(
         'overflow-hidden transition-all hover:shadow-md',
-        isRejected && rejectEnabled && 'border-l-4 bg-red-50/30'
+        isRejected && rejectEnabled && 'border-s-4 bg-danger-bg/30'
       )}
       style={{
         borderLeftColor: isRejected && rejectEnabled ? rejectColor : undefined,
@@ -99,10 +99,10 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-3 mb-2">
-              <Package className="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+              <Package className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <h3 className="font-semibold text-lg text-gray-900 truncate">
+                  <h3 className="font-semibold text-lg text-foreground truncate">
                     {item.org_product_data_mst?.product_name || item.product_name || 'Unknown Item'}
                   </h3>
                   {orderId ? (
@@ -118,7 +118,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
                   ) : null}
                 </div>
                 {(item.org_product_data_mst?.product_name2 || item.product_name2) && (
-                  <p className="text-sm text-gray-600 mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     {item.org_product_data_mst?.product_name2 || item.product_name2}
                   </p>
                 )}
@@ -182,9 +182,9 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
             >
               {t('pieces')} ({pieces.length})
               {isExpanded ? (
-                <ChevronUp className="ml-2 h-4 w-4" aria-hidden="true" />
+                <ChevronUp className="ms-2 h-4 w-4" aria-hidden="true" />
               ) : (
-                <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
+                <ChevronDown className="ms-2 h-4 w-4" aria-hidden="true" />
               )}
             </CmxButton>
           )}
@@ -223,7 +223,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
 
       {!trackByPiece && (
         <CmxCardContent>
-          <div className="text-sm text-gray-600 space-y-2">
+          <div className="text-sm text-muted-foreground space-y-2">
             <p className="font-medium">Item-level tracking active</p>
             <div className="flex items-center gap-2">
               <span>Status:</span>
@@ -235,9 +235,9 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               />
             </div>
             {item.notes && (
-              <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                <span className="font-medium text-gray-700">Notes:</span>
-                <p className="mt-1 text-gray-600">{item.notes}</p>
+              <div className="mt-3 p-3 bg-muted rounded-md">
+                <span className="font-medium text-foreground">Notes:</span>
+                <p className="mt-1 text-muted-foreground">{item.notes}</p>
               </div>
             )}
           </div>

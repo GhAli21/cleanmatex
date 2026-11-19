@@ -59,20 +59,20 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
       <aside
         role="complementary"
         aria-label={t('gl.detail.panelLabel')}
-        className="fixed inset-y-0 end-0 z-50 flex w-full max-w-lg flex-col bg-[rgb(var(--cmx-surface-rgb,255_255_255))] shadow-2xl"
+        className="fixed inset-y-0 end-0 z-50 flex w-full max-w-lg flex-col bg-surface shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-5">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-widest text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               {t('gl.detail.eyebrow')}
             </p>
-            <h2 className="truncate text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <h2 className="truncate text-xl font-semibold text-foreground">
               {journal.journal_no}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <StatusBadge status={journal.status_code} />
-              <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <span className="text-xs text-muted-foreground">
                 {journal.txn_event_code}
               </span>
             </div>
@@ -80,7 +80,7 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
           <button
             onClick={closeDetail}
             aria-label={t('gl.detail.close')}
-            className="ms-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] transition hover:bg-[rgb(var(--cmx-muted-rgb,241_245_249))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+            className="ms-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -129,21 +129,21 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
           {/* Narration */}
           {journal.narration && (
             <div className="border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] px-5 py-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {t('gl.detail.narration')}
               </p>
-              <p className="mt-1 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{journal.narration}</p>
+              <p className="mt-1 text-sm text-foreground">{journal.narration}</p>
             </div>
           )}
 
           {/* Journal lines table */}
           <div className="px-5 py-4">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {t('gl.detail.lines')} ({journal.lines.length})
             </p>
             <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
               <table className="min-w-full text-sm">
-                <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 text-start font-medium">#</th>
                     <th className="px-3 py-2 text-start font-medium">{t('columns.account')}</th>
@@ -158,12 +158,12 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
                       key={line.line_no}
                       className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
                     >
-                      <td className="px-3 py-2 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      <td className="px-3 py-2 text-muted-foreground">
                         {line.line_no}
                       </td>
                       <td className="px-3 py-2">
                         <div className="font-medium">{line.account_code}</div>
-                        <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                        <div className="text-xs text-muted-foreground">
                           {line.account_name}
                         </div>
                       </td>
@@ -176,7 +176,7 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
                           currencyCode: journal.currency_code || displayConfig.currencyCode,
                         })}
                       </td>
-                      <td className="px-3 py-2 text-end font-mono text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      <td className="px-3 py-2 text-end font-mono text-xs text-muted-foreground">
                         {formatErpLiteMoney(line.amount_base_currency, displayConfig)}
                       </td>
                     </tr>
@@ -186,7 +186,7 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
             </div>
 
             {/* Totals footer */}
-            <div className="mt-3 flex justify-end gap-6 rounded-lg bg-[rgb(var(--cmx-muted-rgb,241_245_249))] px-4 py-3 text-sm">
+            <div className="mt-3 flex justify-end gap-6 rounded-lg bg-muted px-4 py-3 text-sm">
               <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-debit-rgb))]">
                 <ArrowUpRight className="h-3.5 w-3.5" />
                 {t('columns.debit')}: {formatErpLiteMoney(totalDebit, {
@@ -202,7 +202,7 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
                 })}
               </span>
               {!isBalanced && (
-                <span className="font-semibold text-[rgb(var(--cmx-destructive-rgb,239_68_68))]">
+                <span className="font-semibold text-destructive">
                   ⚠ {t('gl.detail.unbalanced')}
                 </span>
               )}
@@ -228,12 +228,12 @@ function MetaField({
   value: string
 }) {
   return (
-    <div className="flex flex-col gap-0.5 bg-[rgb(var(--cmx-surface-rgb,255_255_255))] px-5 py-3">
-      <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <div className="flex flex-col gap-0.5 bg-surface px-5 py-3">
+      <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
         {icon}
         {label}
       </span>
-      <span className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{value}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
   )
 }
@@ -241,14 +241,14 @@ function MetaField({
 function SideChip({ side }: { side: string }) {
   if (side === 'DEBIT') {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-danger-bg px-2 py-0.5 text-xs font-medium text-danger-text">
         <ArrowUpRight className="h-3 w-3" />
         DR
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success-text">
       <ArrowDownLeft className="h-3 w-3" />
       CR
     </span>
@@ -257,12 +257,12 @@ function SideChip({ side }: { side: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    POSTED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    DRAFT: 'bg-amber-50 text-amber-700 border-amber-200',
-    REVERSED: 'bg-slate-100 text-slate-600 border-slate-200',
-    FAILED: 'bg-red-50 text-red-700 border-red-200',
+    POSTED: 'bg-success-bg text-success-text border-success-border',
+    DRAFT: 'bg-warning-bg text-warning-text border-warning-border',
+    REVERSED: 'bg-muted text-muted-foreground border-border',
+    FAILED: 'bg-danger-bg text-danger-text border-danger-border',
   }
-  const cls = colors[status] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+  const cls = colors[status] ?? 'bg-muted text-muted-foreground border-border'
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${cls}`}>
       {status}

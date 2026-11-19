@@ -19,7 +19,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 
-import { useLocale, useRTL } from '@/lib/hooks/useRTL';
+import { useLocale } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
@@ -48,7 +48,6 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   const t = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
   const uiLocale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const { currentTenant } = useAuth();
@@ -56,11 +55,11 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-        <p className="text-gray-600">{t('noOrdersFound')}</p>
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <p className="text-muted-foreground">{t('noOrdersFound')}</p>
         <Link
           href="/dashboard/orders/new"
-          className="mt-4 inline-block text-blue-600 hover:text-blue-700"
+          className="mt-4 inline-block text-primary-text hover:text-primary-text/80"
         >
           {t('createFirstOrder')}
         </Link>
@@ -75,45 +74,45 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50">
+          <thead className="border-b border-border bg-muted">
             <tr>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-start">
                 {t('orderNumber')}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-start">
                 {t('customer')}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-start">
                 {t('status')}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-start">
                 {t('prepStatus')}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-end">
                 {t('items')}
                 {trackByPiece && (
-                  <span className="ml-1 text-xs text-gray-500">/ {tPieces('totalPieces') || 'Pieces'}</span>
+                  <span className="ms-1 text-xs text-muted-foreground">/ {tPieces('totalPieces') || 'Pieces'}</span>
                 )}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-end">
                 {t('total')}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-start">
                 {t('readyBy')}
               </th>
-              <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
+              <th className="px-4 py-3 font-medium text-foreground text-end">
                 {tCommon('actions')}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-border">
             {orders.map((order) => (
               <tr
                 key={order.id}
-                className="cursor-pointer hover:bg-gray-50"
+                className="cursor-pointer hover:bg-muted"
                 onClick={() => router.push(`/dashboard/orders/${order.id}`)}
               >
                 <td className="px-4 py-3">
@@ -121,29 +120,29 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 </td>
                 <td className="px-4 py-3">
                   <div className="font-medium">{order.customer?.name || '—'}</div>
-                  <div className="text-xs text-gray-500">{order.customer?.phone ? <bdi className="tabular-nums">{order.customer.phone}</bdi> : '—'}</div>
+                  <div className="text-xs text-muted-foreground">{order.customer?.phone ? <bdi className="tabular-nums">{order.customer.phone}</bdi> : '—'}</div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="capitalize">{order.status?.replace(/_/g, ' ') || '—'}</span>
                     {order.physical_intake_status === 'pending_dropoff' &&
                     String(order.status ?? '').toLowerCase() === 'draft' ? (
-                      <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+                      <span className="inline-flex items-center rounded bg-warning-bg px-1.5 py-0.5 text-xs font-medium text-warning-text">
                         {t('badgeAwaitingDropoff')}
                       </span>
                     ) : null}
                     {String(order.status ?? '').toLowerCase() === 'awaiting_collection' ? (
-                      <span className="inline-flex items-center rounded bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-900">
+                      <span className="inline-flex items-center rounded bg-info-bg px-1.5 py-0.5 text-xs font-medium text-info-text">
                         {t('badgeAwaitingCollection')}
                       </span>
                     ) : null}
                     {order.order_source?.name && (
-                      <span className="inline-flex max-w-[8rem] truncate rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700" title={order.order_source.name}>
+                      <span className="inline-flex max-w-[8rem] truncate rounded bg-muted px-1.5 py-0.5 text-xs text-foreground" title={order.order_source.name}>
                         {order.order_source.name}
                       </span>
                     )}
                     {order.is_retail && (
-                      <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                      <span className="inline-flex items-center rounded bg-warning-bg px-1.5 py-0.5 text-xs font-medium text-warning-text">
                         {t('retail')}
                       </span>
                     )}
@@ -152,17 +151,17 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 <td className="px-4 py-3 capitalize">
                   {order.preparation_status?.replace(/_/g, ' ') || '—'}
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
-                  <div className={`flex flex-col ${isRTL ? 'items-start' : 'items-end'}`}>
+                <td className="px-4 py-3 text-end">
+                  <div className="flex flex-col items-end">
                     <bdi className="tabular-nums">{order.total_items}</bdi>
                     {trackByPiece && order.total_pieces !== null && order.total_pieces !== undefined && (
-                      <span className="text-xs text-gray-500 mt-0.5">
+                      <span className="text-xs text-muted-foreground mt-0.5">
                         <bdi className="tabular-nums">{order.total_pieces}</bdi> {tPieces('totalPieces') || 'pieces'}
                       </span>
                     )}
                   </div>
                 </td>
-                <td className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}>
+                <td className="px-4 py-3 font-medium text-end">
                   <bdi className="tabular-nums">
                     {formatPrice(
                       order.total,
@@ -174,35 +173,35 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 </td>
                 <td className="px-4 py-3">
                   {order.ready_by ? (
-                    <span className="text-xs text-gray-700">
+                    <span className="text-xs text-foreground">
                       {formatReadyByDate(order.ready_by instanceof Date ? order.ready_by : new Date(order.ready_by))}
                     </span>
                   ) : (
-                    <span className="text-gray-400">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
+                <td className="px-4 py-3 text-end">
                   <div
-                    className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}
+                    className="flex flex-wrap gap-2 justify-end"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {order.id ? (
                       <>
                         <Link
                           href={`/dashboard/orders/${order.id}`}
-                          className="text-xs text-blue-600 hover:text-blue-700"
+                          className="text-xs text-primary-text hover:text-primary-text/80"
                         >
                           {t('view')}
                         </Link>
                         <Link
                           href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent('/dashboard/orders')}&returnLabel=${encodeURIComponent(t('allOrders'))}`}
-                          className="text-xs text-blue-600 hover:text-blue-700"
+                          className="text-xs text-primary-text hover:text-primary-text/80"
                         >
                           {t('detail.viewFullDetails')}
                         </Link>
                       </>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </div>
                 </td>
@@ -214,7 +213,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
 
       {/* Pagination: the page reads only ?page=, so no page-size selector (PR-04 ruling 10). */}
       {pagination.totalPages > 1 && (
-        <div className="border-t border-gray-200 px-4 py-3">
+        <div className="border-t border-border px-4 py-3">
           <CmxPagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}

@@ -116,9 +116,9 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   }));
 
   return (
-    <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+    <div className="sticky top-0 z-20 bg-card border-b border-border shadow-sm flex-shrink-0">
       {/* Row 1: Branch + Customer + Express */}
-      <div className={`px-4 py-2 flex items-center gap-3 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="px-4 py-2 flex items-center gap-3 flex-wrap">
         {/* Branch Selector — only if multiple branches */}
         {branches.length > 1 && (
           <select
@@ -136,7 +136,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               }
               onBranchChange(newId);
             }}
-            className={`max-w-[180px] px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${branchLocked ? 'border-gray-200 bg-gray-50 text-gray-700' : !branchId ? 'border-amber-400 bg-amber-50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
+            className={`max-w-[180px] px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-transparent ${branchLocked ? 'border-border bg-muted text-foreground' : !branchId ? 'border-warning bg-warning-bg' : 'border-border'} text-start`}
             dir={isRTL ? 'rtl' : 'ltr'}
             aria-label={tCommon('branch')}
           >
@@ -149,17 +149,17 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           </select>
         )}
         {branchesLoading && branches.length === 0 && (
-          <span className="text-xs text-gray-400">{tCommon('loading') || 'Loading...'}</span>
+          <span className="text-xs text-muted-foreground">{tCommon('loading') || 'Loading...'}</span>
         )}
 
         {/* Customer pill */}
         <button
           type="button"
           onClick={customerName ? (onEditCustomer ?? onSelectCustomer) : onSelectCustomer}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${isRTL ? 'flex-row-reverse' : ''} ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1  ${
             customerName
-              ? 'border-blue-400 bg-blue-50 text-blue-800'
-              : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+              ? 'border-primary bg-info-bg text-info-text'
+              : 'border-border bg-card text-muted-foreground hover:border-muted-foreground'
           }`}
           aria-label={customerName ? (t('orderSummary.editCustomer') || 'Edit customer') : t('selectCustomer')}
         >
@@ -191,10 +191,10 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           <button
             type="button"
             onClick={onOpenOrderPreferences}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${isRTL ? 'flex-row-reverse' : ''} ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1  ${
               orderPrefsCount > 0
-                ? 'border-blue-400 bg-blue-50 text-blue-800'
-                : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                ? 'border-primary bg-info-bg text-info-text'
+                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground'
             }`}
             aria-label={
               t('topBar.orderPreferencesAria', { count: orderPrefsCount }) ||
@@ -205,7 +205,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
             <span>{t('topBar.orderPreferences') || 'Preferences'}</span>
             {orderPrefsCount > 0 && (
               <span
-                className={`flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-blue-600 text-white text-xs font-semibold ${isRTL ? 'ms-0.5' : ''}`}
+                className="flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
               >
                 {orderPrefsCount}
               </span>
@@ -215,9 +215,9 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
 
         {/* Context remains above the fold because it changes workflow and audit semantics, not item pricing. */}
         {showOrderContextSelectors && (
-          <div className={`flex items-center gap-3 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {t('topBar.orderTypeLabel')}
               </span>
               <CmxSelect
@@ -233,8 +233,8 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               />
             </div>
 
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {t('topBar.orderSourceLabel')}
               </span>
               <CmxSelect

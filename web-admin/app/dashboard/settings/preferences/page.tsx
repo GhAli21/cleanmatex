@@ -68,8 +68,8 @@ export default function UserPreferencesPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading preferences...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading preferences...</p>
         </div>
       </div>
     );
@@ -78,13 +78,13 @@ export default function UserPreferencesPage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <CmxCard className="p-6 border-red-200 bg-red-50">
+        <CmxCard className="p-6 border-danger-border bg-danger-bg">
           <div className="flex items-start gap-3">
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-red-900 mb-2">
+              <h2 className="text-lg font-semibold text-danger-text mb-2">
                 Error Loading Preferences
               </h2>
-              <p className="text-red-800 mb-4">{error}</p>
+              <p className="text-danger-text mb-4">{error}</p>
               <CmxButton onClick={fetchSettings} variant="outline">
                 Try Again
               </CmxButton>
@@ -100,14 +100,14 @@ export default function UserPreferencesPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-teal-100 rounded-lg">
-            <User className="h-6 w-6 text-teal-600" />
+          <div className="p-2 bg-info-bg rounded-lg">
+            <User className="h-6 w-6 text-primary-text" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               User Preferences
             </h1>
-            <p className="mt-1 text-gray-600">
+            <p className="mt-1 text-muted-foreground">
               Customize your personal settings and preferences
             </p>
           </div>
@@ -117,8 +117,8 @@ export default function UserPreferencesPage() {
       {/* Language & Localization */}
       <CmxCard className="mb-6 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Globe className="h-5 w-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <Globe className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">
             Language & Localization
           </h2>
         </div>
@@ -131,7 +131,7 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
               <option value="en">English</option>
               <option value="ar">Arabic</option>
             </select>
@@ -144,7 +144,7 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
               <option value="Asia/Muscat">Asia/Muscat (Oman)</option>
               <option value="Asia/Riyadh">Asia/Riyadh (Saudi Arabia)</option>
               <option value="Asia/Dubai">Asia/Dubai (UAE)</option>
@@ -158,7 +158,7 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
               <option value="DD/MM/YYYY">DD/MM/YYYY</option>
               <option value="MM/DD/YYYY">MM/DD/YYYY</option>
               <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -170,8 +170,8 @@ export default function UserPreferencesPage() {
       {/* Theme & Appearance */}
       <CmxCard className="mb-6 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Palette className="h-5 w-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <Palette className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">
             Theme & Appearance
           </h2>
         </div>
@@ -184,7 +184,7 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
               <option value="light">Light</option>
               <option value="dark">Dark</option>
               <option value="system">System</option>
@@ -198,7 +198,7 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
               <option value="compact">Compact</option>
               <option value="comfortable">Comfortable</option>
               <option value="spacious">Spacious</option>
@@ -210,8 +210,8 @@ export default function UserPreferencesPage() {
       {/* Notifications */}
       <CmxCard className="mb-6 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Bell className="h-5 w-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <Bell className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">
             Notifications
           </h2>
         </div>
@@ -225,7 +225,7 @@ export default function UserPreferencesPage() {
             onSave={handleSave}
             isBoolean
           >
-            <input type="checkbox" className="rounded border-gray-300" />
+            <input type="checkbox" className="rounded border-border" />
           </UserPreference>
 
           <UserPreference
@@ -236,7 +236,7 @@ export default function UserPreferencesPage() {
             onSave={handleSave}
             isBoolean
           >
-            <input type="checkbox" className="rounded border-gray-300" />
+            <input type="checkbox" className="rounded border-border" />
           </UserPreference>
 
           <UserPreference
@@ -247,7 +247,7 @@ export default function UserPreferencesPage() {
             onSave={handleSave}
             isBoolean
           >
-            <input type="checkbox" className="rounded border-gray-300" />
+            <input type="checkbox" className="rounded border-border" />
           </UserPreference>
         </div>
       </CmxCard>
@@ -255,8 +255,8 @@ export default function UserPreferencesPage() {
       {/* Default Branch */}
       <CmxCard className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Clock className="h-5 w-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <Clock className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">
             Workspace
           </h2>
         </div>
@@ -268,7 +268,7 @@ export default function UserPreferencesPage() {
           effectiveSettings={effectiveSettings}
           onSave={handleSave}
         >
-          <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+          <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
             <option value="">Select branch...</option>
             {/* Branch options would be loaded dynamically */}
           </select>

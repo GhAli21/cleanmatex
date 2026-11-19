@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-17T05:47:01.437Z",
+  "extractedAt": "2026-11-19T05:41:03.223Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -55,7 +55,7 @@
       "route": "/dashboard/orders/[id]/order-detail-client.tsx",
       "permission": "orders:update",
       "component": "useHasPermission",
-      "line": 147,
+      "line": 145,
       "surface": "screen"
     },
     {
@@ -71,15 +71,7 @@
       "route": "/dashboard/preparation/[orderId]",
       "permission": "/dashboard/preparation",
       "component": "hasPermissionServer",
-      "line": 80,
-      "surface": "screen"
-    },
-    {
-      "file": "app/dashboard/settings/branding/page.tsx",
-      "route": "/dashboard/settings/branding",
-      "permission": "settings:branding",
-      "component": "useHasPermission",
-      "line": 52,
+      "line": 83,
       "surface": "screen"
     },
     {
@@ -175,7 +167,7 @@
       "route": "src/features/auth-session/ui/tenant-sessions-screen.tsx",
       "permission": "user_sessions:revoke",
       "component": "useHasPermission",
-      "line": 32,
+      "line": 31,
       "surface": "screen"
     },
     {
@@ -191,7 +183,7 @@
       "route": "src/features/auth-session/ui/user-sessions-tab.tsx",
       "permission": "user_sessions:revoke",
       "component": "useHasPermission",
-      "line": 41,
+      "line": 40,
       "surface": "screen"
     },
     {
@@ -455,7 +447,7 @@
       "route": "src/features/delivery/ui/delivery-order-detail-screen.tsx",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 48,
+      "line": 51,
       "surface": "screen"
     },
     {
@@ -527,7 +519,7 @@
       "route": "src/features/orders/ui/order-actions.tsx",
       "permission": "orders:transition",
       "component": "useHasPermissionCode",
-      "line": 51,
+      "line": 49,
       "surface": "screen"
     },
     {
@@ -535,7 +527,7 @@
       "route": "src/features/orders/ui/order-actions.tsx",
       "permission": "orders:update",
       "component": "useHasPermissionCode",
-      "line": 52,
+      "line": 50,
       "surface": "screen"
     },
     {
@@ -607,7 +599,7 @@
       "route": "src/features/orders/ui/order-financial/order-tax-document-panel.tsx",
       "permission": "tax_document:issue",
       "component": "useHasPermission",
-      "line": 35,
+      "line": 33,
       "surface": "screen"
     },
     {
@@ -619,11 +611,59 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/orders/ui/order-stage-files.tsx",
+      "route": "src/features/orders/ui/order-stage-files.tsx",
+      "permission": "orders:update",
+      "component": "useHasPermission",
+      "line": 31,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/order-stage-files.tsx",
+      "route": "src/features/orders/ui/order-stage-files.tsx",
+      "permission": "orders:transition",
+      "component": "useHasPermission",
+      "line": 32,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/order-stage-files.tsx",
+      "route": "src/features/orders/ui/order-stage-files.tsx",
+      "permission": "orders:read",
+      "component": "useHasPermission",
+      "line": 34,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/orders/ui/payment-full-view.tsx",
       "route": "src/features/orders/ui/payment-full-view.tsx",
       "permission": "orders:apply_credit",
       "component": "useHasPermissionCode",
       "line": 1641,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "route": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "permission": "orders:read",
+      "component": "useHasPermission",
+      "line": 51,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "route": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "permission": "orders:update",
+      "component": "useHasPermission",
+      "line": 98,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "route": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "permission": "orders:transition",
+      "component": "useHasPermission",
+      "line": 99,
       "surface": "screen"
     },
     {
@@ -795,6 +835,14 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/settings/ui/branding/branding-screen.tsx",
+      "route": "src/features/settings/ui/branding/branding-screen.tsx",
+      "permission": "settings:branding",
+      "component": "useHasPermission",
+      "line": 41,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/users/ui/membership-lock-action.tsx",
       "route": "src/features/users/ui/membership-lock-action.tsx",
       "permission": "users:update",
@@ -937,6 +985,14 @@
       "component": "hasPermissionServer",
       "line": 144,
       "surface": "middleware"
+    },
+    {
+      "file": "lib/services/org-ui-theme-http.ts",
+      "route": "lib/services/org-ui-theme-http.ts",
+      "permission": "settings:branding",
+      "component": "requirePermission",
+      "line": 25,
+      "surface": "service"
     }
   ],
   "apis": [
@@ -2857,7 +2913,7 @@
       "method": "GET",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 40,
+      "line": 82,
       "surface": "api"
     },
     {
@@ -3361,7 +3417,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/state",
       "permission": "orders:read",
-      "line": 94,
+      "line": 87,
       "surface": "api"
     },
     {
@@ -3673,15 +3729,7 @@
       "method": "GET",
       "route": "/api/v1/settings/branding",
       "permission": "settings:read",
-      "line": 41,
-      "surface": "api"
-    },
-    {
-      "file": "app/api/v1/settings/branding/route.ts",
-      "method": "GET",
-      "route": "/api/v1/settings/branding",
-      "permission": "settings:branding",
-      "line": 71,
+      "line": 24,
       "surface": "api"
     },
     {

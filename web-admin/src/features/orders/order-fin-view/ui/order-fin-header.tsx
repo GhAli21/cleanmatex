@@ -57,8 +57,8 @@ export function OrderFinHeader({ view, header, density = 'comfortable' }: OrderF
 
   if (header.layout === 'badge') {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--cmx-border-rgb))] px-3 py-1 text-sm">
-        <span className="text-[rgb(var(--cmx-muted-foreground-rgb))]">{t(`orders.finView.metrics.${hero}`)}</span>
+      <span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm">
+        <span className="text-muted-foreground">{t(`orders.finView.metrics.${hero}`)}</span>
         {money(metrics[hero], { tone: heroTone === 'default' ? 'default' : heroTone })}
         {heroWord && <span className="font-medium">{heroWord}</span>}
         {delta != null && delta !== 0 && money(Math.abs(delta), { sign: delta < 0 ? 'minus' : 'plus', size: 'sm', tone: 'muted' })}
@@ -79,7 +79,7 @@ export function OrderFinHeader({ view, header, density = 'comfortable' }: OrderF
       )}
       <div className={cn('flex flex-wrap items-end gap-x-6 gap-y-2', header.layout === 'inline' && 'items-center')}>
         <div className="flex flex-col">
-          <span className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb))]">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t(`orders.finView.metrics.${hero}`)}
           </span>
           <span className="flex flex-wrap items-baseline gap-2">
@@ -91,7 +91,7 @@ export function OrderFinHeader({ view, header, density = 'comfortable' }: OrderF
           <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {others.map((m) => (
               <div key={m} className="flex items-baseline gap-1">
-                <dt className="text-[rgb(var(--cmx-muted-foreground-rgb))]">{t(`orders.finView.metrics.${m}`)}</dt>
+                <dt className="text-muted-foreground">{t(`orders.finView.metrics.${m}`)}</dt>
                 <dd>{m === 'totalDelta' && metrics[m] != null
                   ? money(Math.abs(metrics[m] as number), { sign: (metrics[m] as number) < 0 ? 'minus' : (metrics[m] as number) > 0 ? 'plus' : 'neutral' })
                   : money(metrics[m])}</dd>

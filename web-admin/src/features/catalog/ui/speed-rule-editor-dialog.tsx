@@ -164,7 +164,7 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
         </CmxDialogHeader>
 
         <div className="space-y-4">
-          {mode === 'bulk' ? <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('bulk.description')}</p> : null}
+          {mode === 'bulk' ? <p className="text-sm text-muted-foreground">{t('bulk.description')}</p> : null}
           {formError ? <CmxSummaryMessage type="error" title={t('errors.title')} items={[formError]} onDismiss={() => setFormError(null)} /> : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -285,7 +285,7 @@ export function SpeedRuleEditorDialog({ mode, rule, fixedProduct, speedOptions, 
             <CmxSwitch id="speed-rule-active" checked={isActive} onCheckedChange={setIsActive} aria-labelledby="speed-rule-active-label" />
             <Label id="speed-rule-active-label" htmlFor="speed-rule-active">{tCommon('active')}</Label>
           </div>
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('newOrdersOnly')}</p>
+          <p className="text-xs text-muted-foreground">{t('newOrdersOnly')}</p>
         </div>
 
         <CmxDialogFooter>

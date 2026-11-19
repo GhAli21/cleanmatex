@@ -105,14 +105,14 @@ export function WorkboardFilterToolbar({
       <CmxCardHeader className="flex flex-col gap-2 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 pb-2 md:p-3 md:pb-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <CmxCardTitle>{t('filters.title')}</CmxCardTitle>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-live="polite">
+          <p className="text-sm text-muted-foreground" aria-live="polite">
             {t('filters.resultsCount', { count: totalRows })}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           {hasActiveFilters ? (
-            <span className="text-xs font-medium uppercase tracking-[0.08em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
               {t('filters.activeLabel')}
             </span>
           ) : null}
@@ -120,7 +120,7 @@ export function WorkboardFilterToolbar({
           {activeFilters.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center rounded-full border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] px-3 py-1 text-xs text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+              className="inline-flex items-center rounded-full border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-muted px-3 py-1 text-xs text-foreground"
             >
               {item}
             </span>

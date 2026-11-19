@@ -40,7 +40,7 @@ export default async function VouchersPage({ searchParams }: PageProps) {
     return (
     <RequireAnyPermission permissions={FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {error instanceof Error ? error.message : tCommon('error')}
         </div>
       </div>
@@ -52,7 +52,7 @@ export default async function VouchersPage({ searchParams }: PageProps) {
   if (!canView) {
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {tCommon('error')}
         </div>
       </div>
@@ -76,7 +76,7 @@ export default async function VouchersPage({ searchParams }: PageProps) {
   if (!result.success) {
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {result.error ?? tCommon('error')}
         </div>
       </div>
@@ -91,19 +91,19 @@ export default async function VouchersPage({ searchParams }: PageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {tCommon('total')}: {total}
           </p>
         </div>
         <Link
           href="/dashboard/internal_fin/vouchers/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
         >
           {t('newVoucher')}
         </Link>
       </div>
 
-      <Suspense fallback={<div className="py-8 text-center text-sm text-gray-500">{tCommon('loading')}</div>}>
+      <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">{tCommon('loading')}</div>}>
         <VouchersListClient
           items={items}
           total={total}

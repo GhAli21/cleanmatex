@@ -1031,15 +1031,10 @@ export async function exportProducts(
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
-  // Get all active products
+  // Product rows only — do not embed sys_service_category_cd (closed to the session JWT).
   const { data, error } = await supabase
     .from('org_product_data_mst')
-    .select(
-      `
-      *,
-      sys_service_category_cd(ctg_name, ctg_name2)
-    `
-    )
+    .select('*')
     .eq('tenant_org_id', tenantId)
     .eq('is_active', true)
     .order('product_code');

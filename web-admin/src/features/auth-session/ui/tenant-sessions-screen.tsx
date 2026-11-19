@@ -10,10 +10,10 @@
 
 import { useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Alert, AlertDescription, CmxButton, CmxSelect } from '@ui/primitives'
-
+import { CmxButton, CmxSelect } from '@ui/primitives'
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display'
 import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { SESSION_STATES } from '@/lib/constants/auth-session'
 import type { SessionItem } from '../api/sessions-api'
@@ -80,7 +80,7 @@ export function TenantSessionsScreen() {
       render: (row) => (
         <div className="min-w-0">
           <div className="text-sm font-medium">{row.user?.displayName ?? row.user?.email ?? '—'}</div>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="text-xs text-muted-foreground">
             {[row.user?.userCode, row.user?.email].filter(Boolean).join(' · ')}
           </div>
         </div>
@@ -151,8 +151,8 @@ export function TenantSessionsScreen() {
     <div className="space-y-4 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
-          <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('subtitle')}</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         {canRevoke ? (
           <CmxButton variant="destructive" onClick={() => setConfirmAll('first')} disabled={revoke.isPending}>
@@ -179,9 +179,9 @@ export function TenantSessionsScreen() {
 
       {isError ? (
         <div className="space-y-3">
-          <Alert variant="error">
-            <AlertDescription>{t('loadFailed')}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{t('loadFailed')}</div>
+          </CmxSummaryMessage>
           <CmxButton variant="secondary" onClick={() => void refetch()} loading={isFetching}>
             {tCommon('retry')}
           </CmxButton>

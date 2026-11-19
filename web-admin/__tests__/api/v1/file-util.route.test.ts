@@ -84,4 +84,18 @@ describe('/api/v1/file-util', () => {
     expect(mockRequirePermission).toHaveBeenCalledWith('orders:read');
     expect(mockList.mock.calls[0][0]).toMatchObject({ tenantId: 'tenant-from-session', entityIds: [ORDER], purposeCodes: ['DAMAGE', 'STAIN'] });
   });
+
+  it('list passes the source and stage filters', async () => {
+    const res = await GET(new NextRequest(`http://localhost/api/v1/file-util?category=ORDER_FILE&entityIds=${ORDER}&sources=ORDER_QA,ORDER_PACKING&stages=qa,ready_for_pickup`));
+    expect(res.status).toBe(200);
+    expect(mockList.mock.calls[0][0]).toMatchObject({ sourceCodes: ['ORDER_QA', 'ORDER_PACKING'], stageCodes: ['qa', 'ready_for_pickup'] });
+  });
+
+  it('list rejects an unknown source and a malformed stage', async () => {
+    const bad = await GET(new NextRequest(`http://localhost/api/v1/file-util?category=ORDER_FILE&entityIds=${ORDER}&sources=NOPE`));
+    expect(bad.status).toBe(400);
+    const badStage = await GET(new NextRequest(`http://localhost/api/v1/file-util?category=ORDER_FILE&entityIds=${ORDER}&stages=QA;drop`));
+    expect(badStage.status).toBe(400);
+    expect(mockList).not.toHaveBeenCalled();
+  });
 });

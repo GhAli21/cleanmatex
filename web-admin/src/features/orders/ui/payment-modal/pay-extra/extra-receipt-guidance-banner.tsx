@@ -39,10 +39,10 @@ export function ExtraReceiptGuidanceBanner({
         type="warning"
         title={t('title', { amount: formatted })}
         items={[t('pickOne')]}
-        className={isRTL ? 'text-right' : 'text-left'}
+        className="text-start"
       />
       {!hasLinkedCustomer ? (
-        <p className={`text-xs text-slate-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p className="text-xs text-muted-foreground text-start">
           {t('walkInHint')}
         </p>
       ) : null}

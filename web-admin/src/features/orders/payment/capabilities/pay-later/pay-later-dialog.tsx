@@ -16,7 +16,6 @@
  */
 
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import type { OutstandingPolicy } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_CAPABILITY } from '../capability-keys';
 import type { PaymentEngineActions } from '../../engine/payment-engine-actions';
@@ -81,7 +80,6 @@ export function PayLaterDialog({
 }: PayLaterDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
 
   return (
     <PaymentCapabilityDialog
@@ -94,7 +92,6 @@ export function PayLaterDialog({
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
       maxWidthClassName="max-w-lg"
     >
       <div
@@ -113,16 +110,14 @@ export function PayLaterDialog({
               aria-checked={selected}
               data-testid={`pay-later-option-${option.policy}`}
               onClick={() => actions.changeOutstandingPolicy(option.policy)}
-              className={`w-full rounded-2xl border px-4 py-3 transition-colors ${
-                isRTL ? 'text-right' : 'text-left'
-              } ${
+              className={`w-full rounded-2xl border px-4 py-3 transition-colors text-start ${
                 selected
-                  ? 'border-teal-500 bg-teal-50 text-slate-900 shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  ? 'border-primary bg-info-bg text-foreground shadow-sm'
+                  : 'border-border bg-card text-foreground hover:border-border'
               }`}
             >
               <span className="block text-sm font-semibold">{t(option.titleKey)}</span>
-              <span className="mt-1 block text-xs text-slate-500">{t(option.descriptionKey)}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">{t(option.descriptionKey)}</span>
             </button>
           );
         })}

@@ -59,12 +59,6 @@ const RAW_CLASS_RULES = [
   { selector: `Literal[value=/${RAW_PHYSICAL}/]`, message: PHYSICAL_MESSAGE },
   { selector: `TemplateElement[value.raw=/${RAW_PHYSICAL}/]`, message: PHYSICAL_MESSAGE },
 ];
-// Legacy shared parts that PR-05 replaces folder by folder.
-const LEGACY_UI_IMPORT_RULES = ['@ui/primitives', '@ui/primitives/alert'].map((source) => ({
-  selector: `ImportDeclaration[source.value="${source}"] > ImportSpecifier[imported.name="Alert"]`,
-  message: 'Alert is legacy: use CmxSummaryMessage from @ui/feedback.',
-}));
-
 const eslintConfig = [...nextVitals, {
   ignores: [
     "node_modules/**",
@@ -223,11 +217,11 @@ const eslintConfig = [...nextVitals, {
     }],
   },
 }, {
-  // Same class rules as warnings until PR-05 migrates each folder.
-  files: ['src/features/**', 'app/**'],
+  // PR-05 migrated every feature, page and lib file: the class rules are errors there too.
+  files: ['src/features/**', 'app/**', 'lib/**'],
   ignores: ['**/*.stories.tsx'],
   rules: {
-    'no-restricted-syntax': ['warn', ...RAW_CLASS_RULES, ...LEGACY_UI_IMPORT_RULES],
+    'no-restricted-syntax': ['error', ...RAW_CLASS_RULES],
   },
 }, ...storybook.configs["flat/recommended"]];
 

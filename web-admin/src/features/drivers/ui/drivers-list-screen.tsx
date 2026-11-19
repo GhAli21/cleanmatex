@@ -88,8 +88,8 @@ export function DriversListScreen() {
   const header = (
     <div className="mb-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <Truck className="h-8 w-8 text-blue-600" aria-hidden />
-        <h1 className="text-2xl font-bold text-gray-900">{t('allDriversTitle')}</h1>
+        <Truck className="h-8 w-8 text-primary-text" aria-hidden />
+        <h1 className="text-2xl font-bold text-foreground">{t('allDriversTitle')}</h1>
       </div>
       <CmxButton onClick={() => setShowCreate(true)}>
         <Plus className="h-4 w-4 me-2" />

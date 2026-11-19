@@ -66,8 +66,8 @@ export default async function ArStatementsPage({ searchParams }: PageProps) {
     <div className="space-y-6 p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
-          <p className="text-sm text-slate-600">{t('subtitle')}</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <CmxButton asChild variant="outline">
           <Link

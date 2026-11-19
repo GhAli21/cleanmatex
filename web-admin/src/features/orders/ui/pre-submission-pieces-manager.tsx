@@ -8,7 +8,6 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
@@ -62,7 +61,6 @@ export function PreSubmissionPiecesManager({
   onSelectPiece,
 }: PreSubmissionPiecesManagerProps) {
   const t = useTranslations('newOrder.pieces');
-  const isRTL = useRTL();
   // Create has no Edit session and remains interactive; a policy cell cannot
   // enable a persisted-piece operation whose writer has not shipped.
   const brandCapability = useEditControlGroup(['CHANGE_PIECE_BRAND']);
@@ -109,16 +107,16 @@ export function PreSubmissionPiecesManager({
 
   if (pieces.length === 0 && readOnly) {
     return (
-      <div className={`text-sm text-gray-500 py-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="text-sm text-muted-foreground py-2 text-start">
         {t('noPieces')}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3 mt-3 pt-3 border-t border-gray-200">
-      <div className={`flex items-center justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h4 className={`text-sm font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className="space-y-3 mt-3 pt-3 border-t border-border">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-semibold text-foreground text-start">
           {t('pieces')} ({pieces.length})
         </h4>
         {!readOnly && (
@@ -126,10 +124,10 @@ export function PreSubmissionPiecesManager({
             variant="outline"
             size="sm"
             onClick={handleAddPiece}
-            className={`min-h-[44px] ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="min-h-[44px]"
             aria-label={t('addPiece') || 'Add piece'}
           >
-            <Plus className={`w-4 h-4 ${isRTL ? 'ms-1' : 'me-1'}`} aria-hidden />
+            <Plus className="w-4 h-4 me-1" aria-hidden />
             {t('addPiece')}
           </CmxButton>
         )}
@@ -146,8 +144,8 @@ export function PreSubmissionPiecesManager({
             role="listitem"
             data-piece-index={index}
             className={`rounded-lg border transition-colors ${
-              onSelectPiece ? 'cursor-pointer hover:bg-gray-100' : ''
-            } ${isSelected ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300' : 'bg-gray-50 border-gray-200'}`}
+              onSelectPiece ? 'cursor-pointer hover:bg-muted' : ''
+            } ${isSelected ? 'ring-2 ring-warning bg-warning-bg/50 border-warning-border' : 'bg-muted border-border'}`}
             onClick={onSelectPiece ? () => onSelectPiece(piece.id) : undefined}
             tabIndex={onSelectPiece ? 0 : undefined}
             aria-label={onSelectPiece && isSelected ? `${t('pieceNumber', { number: piece.pieceSeq })} — ${t('selectedForPreferences') || 'Selected for preferences'}` : undefined}
@@ -166,22 +164,22 @@ export function PreSubmissionPiecesManager({
             }}
           >
             {/* Collapsed summary row */}
-            <div className={`flex items-center justify-between p-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className={`flex items-center gap-2 min-w-0 flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center justify-between p-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 {piece.color && /^#[0-9A-Fa-f]{3,8}$/.test(piece.color) && (
-                  <span className="w-3 h-3 rounded-full shrink-0 border border-gray-300" style={{ backgroundColor: piece.color }} aria-hidden />
+                  <span className="w-3 h-3 rounded-full shrink-0 border border-border" style={{ backgroundColor: piece.color }} aria-hidden />
                 )}
-                <span className="text-sm font-medium text-gray-700 truncate">
+                <span className="text-sm font-medium text-foreground truncate">
                   {t('pieceNumber', { number: piece.pieceSeq })}
-                  <span className="text-gray-500 font-normal ms-1">({summaryText})</span>
+                  <span className="text-muted-foreground font-normal ms-1">({summaryText})</span>
                 </span>
                 {isSelected && (
-                  <span className="text-xs text-orange-600 font-medium ms-1 shrink-0">
+                  <span className="text-xs text-warning-text font-medium ms-1 shrink-0">
                     — {t('selectedForPreferences') || 'Selected for preferences'}
                   </span>
                 )}
               </div>
-              <div className={`flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -193,7 +191,7 @@ export function PreSubmissionPiecesManager({
                       return next;
                     });
                   }}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-500 hover:text-gray-700 rounded transition-colors"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition-colors"
                   aria-label={isExpanded ? (t('hidePieces') || 'Collapse') : (t('viewPieces') || 'Expand')}
                   aria-expanded={isExpanded}
                 >
@@ -204,7 +202,7 @@ export function PreSubmissionPiecesManager({
                     variant="ghost"
                     size="sm"
                     onClick={(e) => { e.stopPropagation(); handleRemovePiece(piece.id); }}
-                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-danger-text hover:text-danger-text/80 hover:bg-danger-bg"
                     aria-label={t('removePiece') || 'Remove piece'}
                   >
                     <Trash2 className="w-4 h-4" aria-hidden />
@@ -215,14 +213,14 @@ export function PreSubmissionPiecesManager({
 
             {/* Expanded details */}
             {isExpanded && (
-            <div className="grid grid-cols-2 gap-3 px-3 pb-3 pt-0 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-3 px-3 pb-3 pt-0 border-t border-border">
               {/* Color */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   {t('color')}
                 </label>
                 {readOnly ? (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {piece.color || t('notSet')}
                   </div>
                 ) : (
@@ -237,11 +235,11 @@ export function PreSubmissionPiecesManager({
 
               {/* Brand */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   {t('brand')}
                 </label>
                 {readOnly ? (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {piece.brand || t('notSet')}
                   </div>
                 ) : (
@@ -283,11 +281,11 @@ export function PreSubmissionPiecesManager({
 
               {/* Notes */}
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   {t('notes')}
                 </label>
                 {readOnly ? (
-                  <div className="text-sm text-gray-600 min-h-[32px]">
+                  <div className="text-sm text-muted-foreground min-h-[32px]">
                     {piece.notes || t('noNotes')}
                   </div>
                 ) : (
@@ -303,11 +301,11 @@ export function PreSubmissionPiecesManager({
 
               {/* Rack Location */}
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   {t('rackLocation')}
                 </label>
                 {readOnly ? (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {piece.rackLocation || t('notSet')}
                   </div>
                 ) : (

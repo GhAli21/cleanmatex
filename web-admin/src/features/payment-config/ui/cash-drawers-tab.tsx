@@ -97,7 +97,7 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
             {missingPendingDepositBranches.map((branch) => (
               <div
                 key={branch.id}
-                className="flex items-center justify-between rounded-md border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-dashed border-warning-border bg-warning-bg px-3 py-2 text-sm"
               >
                 <span>{tPendingDeposit('missingNotice')} — {branch.branch_name}</span>
                 <PendingDepositDrawerEnsureButton branchId={branch.id} onCreated={onRefresh} />
@@ -206,7 +206,7 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
       render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => {
         if (!d.currentSession) return <CmxStatusBadge size="sm" tone="neutral">{t('cashDrawers.noOpenSession')}</CmxStatusBadge>;
         return (
-          <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-600">
+          <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-success">
             {t('cashDrawers.openSince', { time: new Date(d.currentSession.opened_at).toLocaleTimeString() })}
           </CmxStatusBadge>
         );
@@ -244,7 +244,7 @@ export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefr
           {missingPendingDepositBranches.map((branch) => (
             <div
               key={branch.id}
-              className="flex items-center justify-between rounded-md border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-md border border-dashed border-warning-border bg-warning-bg px-3 py-2 text-sm"
             >
               <span>{tPendingDeposit('missingNotice')} — {branch.branch_name}</span>
               <PendingDepositDrawerEnsureButton branchId={branch.id} onCreated={onRefresh} />

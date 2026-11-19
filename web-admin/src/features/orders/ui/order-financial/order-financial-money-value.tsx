@@ -37,20 +37,20 @@ export function OrderFinancialMoneyValue({
 
   const tone =
     variant === 'credit'
-      ? 'text-emerald-600 dark:text-emerald-400'
+      ? 'text-success-text'
       : variant === 'balanceDue'
         ? amount > 0
-          ? 'text-orange-600 dark:text-orange-400'
-          : 'text-emerald-600 dark:text-emerald-400'
+          ? 'text-warning-text'
+          : 'text-success-text'
         : variant === 'paid'
-          ? 'text-emerald-600 dark:text-emerald-400'
+          ? 'text-success-text'
           : 'text-foreground';
 
   return (
     <span
       className={cn(
         'tabular-nums font-medium',
-        isRTL ? 'text-left' : 'text-right',
+        'text-end',
         tone,
         className,
       )}

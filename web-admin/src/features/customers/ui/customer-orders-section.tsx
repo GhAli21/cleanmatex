@@ -16,7 +16,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import { listOrders } from '@/app/actions/orders/list-orders';
@@ -53,7 +52,6 @@ export function CustomerOrdersSection({
   const tOrders = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
   const nextLocale = useLocale();
   const moneyUiLocale = nextLocale.startsWith('ar') ? 'ar' : 'en';
   const { currencyCode, decimalPlaces } = useTenantCurrency();
@@ -135,17 +133,17 @@ export function CustomerOrdersSection({
   if (loading && orders.length === 0) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           {tCustomers('orderHistory')}
         </h3>
-        <div className="rounded-lg border border-gray-200 bg-white p-8">
+        <div className="rounded-lg border border-border bg-card p-8">
           <div className="animate-pulse space-y-3">
-            <div className="h-4 bg-gray-200 rounded w-3/4" />
-            <div className="h-4 bg-gray-200 rounded w-1/2" />
-            <div className="h-4 bg-gray-200 rounded w-2/3" />
-            <div className="h-10 bg-gray-200 rounded w-full mt-6" />
-            <div className="h-10 bg-gray-200 rounded w-full" />
-            <div className="h-10 bg-gray-200 rounded w-full" />
+            <div className="h-4 bg-muted rounded w-3/4" />
+            <div className="h-4 bg-muted rounded w-1/2" />
+            <div className="h-4 bg-muted rounded w-2/3" />
+            <div className="h-10 bg-muted rounded w-full mt-6" />
+            <div className="h-10 bg-muted rounded w-full" />
+            <div className="h-10 bg-muted rounded w-full" />
           </div>
         </div>
       </div>
@@ -155,10 +153,10 @@ export function CustomerOrdersSection({
   if (error && orders.length === 0) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           {tCustomers('orderHistory')}
         </h3>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center text-sm text-danger-text">
           {error}
         </div>
       </div>
@@ -168,12 +166,12 @@ export function CustomerOrdersSection({
   if (!orders || orders.length === 0) {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           {tCustomers('orderHistory')}
         </h3>
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="text-center py-12 bg-muted rounded-lg border border-border">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+            className="mx-auto h-12 w-12 text-muted-foreground mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -186,8 +184,8 @@ export function CustomerOrdersSection({
               d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
             />
           </svg>
-          <p className="text-gray-500 mb-2">{tCustomers('noOrdersYet')}</p>
-          <p className="text-sm text-gray-400">
+          <p className="text-muted-foreground mb-2">{tCustomers('noOrdersYet')}</p>
+          <p className="text-sm text-muted-foreground">
             {tCustomers('orderHistoryEmptyDescription')}
           </p>
         </div>
@@ -197,22 +195,22 @@ export function CustomerOrdersSection({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">
+      <h3 className="text-lg font-semibold text-foreground">
         {tCustomers('orderHistory')}
       </h3>
 
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" role="table" aria-label={tCustomers('orderHistory')}>
-            <thead className="border-b border-gray-200 bg-gray-50">
+            <thead className="border-b border-border bg-muted">
               <tr>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-4 py-3 font-medium text-foreground text-start"
                 >
                   <button
                     type="button"
                     onClick={() => handleSort('order_no')}
-                    className={`inline-flex items-center gap-1 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="inline-flex items-center gap-1 hover:text-foreground"
                   >
                     {tOrders('orderNumber')}
                     {sortBy === 'order_no' ? (
@@ -223,12 +221,12 @@ export function CustomerOrdersSection({
                   </button>
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-4 py-3 font-medium text-foreground text-start"
                 >
                   <button
                     type="button"
                     onClick={() => handleSort('received_at')}
-                    className={`inline-flex items-center gap-1 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="inline-flex items-center gap-1 hover:text-foreground"
                   >
                     {tOrders('received')}
                     {sortBy === 'received_at' ? (
@@ -239,32 +237,32 @@ export function CustomerOrdersSection({
                   </button>
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-4 py-3 font-medium text-foreground text-start"
                 >
                   {tOrders('status')}
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-4 py-3 font-medium text-foreground text-start"
                 >
                   {tOrders('prepStatus')}
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}
+                  className="px-4 py-3 font-medium text-foreground text-end"
                 >
                   {tOrders('items')}
                   {trackByPiece && (
-                    <span className="ml-1 text-xs text-gray-500">
+                    <span className="ms-1 text-xs text-muted-foreground">
                       / {tPieces('totalPieces') || 'Pieces'}
                     </span>
                   )}
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}
+                  className="px-4 py-3 font-medium text-foreground text-end"
                 >
                   <button
                     type="button"
                     onClick={() => handleSort('total')}
-                    className={`inline-flex items-center gap-1 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="inline-flex items-center gap-1 hover:text-foreground"
                   >
                     {tOrders('total')}
                     {sortBy === 'total' ? (
@@ -275,12 +273,12 @@ export function CustomerOrdersSection({
                   </button>
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-4 py-3 font-medium text-foreground text-start"
                 >
                   <button
                     type="button"
                     onClick={() => handleSort('ready_by')}
-                    className={`inline-flex items-center gap-1 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="inline-flex items-center gap-1 hover:text-foreground"
                   >
                     {tOrders('readyBy')}
                     {sortBy === 'ready_by' ? (
@@ -291,23 +289,23 @@ export function CustomerOrdersSection({
                   </button>
                 </th>
                 <th
-                  className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="px-4 py-3 font-medium text-foreground text-start"
                 >
                   {tCommon('actions')}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {orders.map((order) => (
                 <tr
                   key={order.id}
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="cursor-pointer hover:bg-muted transition-colors"
                   onClick={() => router.push(buildOrderHref(order.id))}
                 >
                   <td className="px-4 py-3">
-                    <span className="font-medium text-blue-600">{order.order_no}</span>
+                    <span className="font-medium text-primary-text">{order.order_no}</span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600">
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
                     {order.received_at
                       ? formatReadyByDate(
                           order.received_at instanceof Date ? order.received_at : new Date(order.received_at)
@@ -321,15 +319,15 @@ export function CustomerOrdersSection({
                     {order.preparation_status?.replace(/_/g, ' ') || '—'}
                   </td>
                   <td
-                    className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}
+                    className="px-4 py-3 text-end"
                   >
                     <div
-                      className={`flex flex-col ${isRTL ? 'items-start' : 'items-end'}`}
+                      className="flex flex-col items-end"
                     >
                       <span>{order.total_items}</span>
                       {trackByPiece &&
                         order.total_pieces != null && (
-                          <span className="text-xs text-gray-500 mt-0.5">
+                          <span className="text-xs text-muted-foreground mt-0.5">
                             {order.total_pieces}{' '}
                             {tPieces('totalPieces') || 'pieces'}
                           </span>
@@ -337,7 +335,7 @@ export function CustomerOrdersSection({
                     </div>
                   </td>
                   <td
-                    className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}
+                    className="px-4 py-3 font-medium text-end"
                   >
                     {formatPrice(
                       order.total,
@@ -348,7 +346,7 @@ export function CustomerOrdersSection({
                   </td>
                   <td className="px-4 py-3">
                     {order.ready_by ? (
-                      <span className="text-xs text-gray-700">
+                      <span className="text-xs text-foreground">
                         {formatReadyByDate(
                           order.ready_by instanceof Date
                             ? order.ready_by
@@ -356,13 +354,13 @@ export function CustomerOrdersSection({
                         )}
                       </span>
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
+                  <td className="px-4 py-3 text-end">
                     <Link
                       href={buildOrderHref(order.id)}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-xs text-primary-text hover:text-primary-text/80 font-medium"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {tOrders('view')}
@@ -376,9 +374,7 @@ export function CustomerOrdersSection({
 
         {pagination.totalPages > 1 && (
           <div
-            className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 ${
-              isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
-            }`}
+            className="flex items-center border-t border-border px-4 py-3 text-xs text-muted-foreground justify-between"
           >
             <div>
               {tOrders('showing')}{' '}
@@ -388,12 +384,12 @@ export function CustomerOrdersSection({
               {tOrders('of')}{' '}
               {pagination.total} {tOrders('orders').toLowerCase()}
             </div>
-            <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => goToPage(pagination.page - 1)}
                 disabled={isFirstPage}
-                className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 hover:bg-gray-50"
+                className="rounded border border-border px-3 py-1 disabled:opacity-50 hover:bg-muted"
               >
                 {tOrders('previous')}
               </button>
@@ -401,7 +397,7 @@ export function CustomerOrdersSection({
                 type="button"
                 onClick={() => goToPage(pagination.page + 1)}
                 disabled={isLastPage}
-                className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 hover:bg-gray-50"
+                className="rounded border border-border px-3 py-1 disabled:opacity-50 hover:bg-muted"
               >
                 {tOrders('next')}
               </button>

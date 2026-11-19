@@ -3,16 +3,16 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-17T06:27:46.404Z
+Generated: 2026-11-19T05:41:09.314Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 376 |
+| api | 375 |
 | middleware | 4 |
-| screen | 110 |
-| service | 3 |
+| screen | 116 |
+| service | 4 |
 
 ## All permission usages
 
@@ -38,7 +38,7 @@ Generated: 2026-11-17T06:27:46.404Z
             code: | middleware | lib/middleware/tenant-guard.ts | 95 | lib/middleware/tenant-guard.ts |
 | )}]`,
             code: | middleware | lib/middleware/tenant-guard.ts | 144 | lib/middleware/tenant-guard.ts |
-| /dashboard/preparation | screen | app/dashboard/preparation/[orderId]/page.tsx | 80 | /dashboard/preparation/[orderId] |
+| /dashboard/preparation | screen | app/dashboard/preparation/[orderId]/page.tsx | 83 | /dashboard/preparation/[orderId] |
 | admin:read | api | app/api/admin/jwt-health/route.ts | 21 | /api/admin/jwt-health |
 | ar_aging:view | api | app/api/v1/ar/reports/aging/route.ts | 12 | /api/v1/ar/reports/aging |
 | ar_credits:apply | api | app/api/v1/ar/credits/applications/route.ts | 12 | /api/v1/ar/credits/applications |
@@ -274,7 +274,7 @@ Generated: 2026-11-17T06:27:46.404Z
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 73 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 77 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 120 | /dashboard/delivery |
-| orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 48 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
+| orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 51 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
 | orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 205 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 41 | /api/v1/orders/[id]/collect-payment |
 | orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 45 | /api/v1/orders/[id]/payments |
@@ -303,6 +303,8 @@ Generated: 2026-11-17T06:27:46.404Z
 | orders:process_refund | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 34 | /api/v1/orders/refunds/[refundId]/process |
 | orders:process_refund | api | app/api/v1/orders/[id]/refund/route.ts | 66 | /api/v1/orders/[id]/refund |
 | orders:process_refund | api | app/api/v1/orders/[id]/refunds/route.ts | 108 | /api/v1/orders/[id]/refunds |
+| orders:read | screen | src/features/orders/ui/order-stage-files.tsx | 34 | src/features/orders/ui/order-stage-files.tsx |
+| orders:read | screen | src/features/orders/ui/pieces/piece-photos.tsx | 51 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:read | service | lib/constants/permissions/orders-perm.ts | 5 | lib/constants/permissions/orders-perm.ts |
 | orders:read | api | app/api/orders/[orderId]/status/route.ts | 59 | /api/orders/[orderId]/status |
 | orders:read | api | app/api/orders/[orderId]/status-history/route.ts | 25 | /api/orders/[orderId]/status-history |
@@ -318,7 +320,7 @@ Generated: 2026-11-17T06:27:46.404Z
 | orders:read | api | app/api/v1/orders/lookup/route.ts | 15 | /api/v1/orders/lookup |
 | orders:read | api | app/api/v1/orders/pieces/lookup/route.ts | 15 | /api/v1/orders/pieces/lookup |
 | orders:read | api | app/api/v1/orders/pieces/[pieceId]/history/route.ts | 36 | /api/v1/orders/pieces/[pieceId]/history |
-| orders:read | api | app/api/v1/orders/route.ts | 40 | /api/v1/orders |
+| orders:read | api | app/api/v1/orders/route.ts | 82 | /api/v1/orders |
 | orders:read | api | app/api/v1/orders/[id]/change-context/route.ts | 34 | /api/v1/orders/[id]/change-context |
 | orders:read | api | app/api/v1/orders/[id]/changes/route.ts | 33 | /api/v1/orders/[id]/changes |
 | orders:read | api | app/api/v1/orders/[id]/discounts/route.ts | 18 | /api/v1/orders/[id]/discounts |
@@ -335,7 +337,7 @@ Generated: 2026-11-17T06:27:46.404Z
 | orders:read | api | app/api/v1/orders/[id]/rack-bags/route.ts | 16 | /api/v1/orders/[id]/rack-bags |
 | orders:read | api | app/api/v1/orders/[id]/report/invoices-payments-rprt/route.ts | 53 | /api/v1/orders/[id]/report/invoices-payments-rprt |
 | orders:read | api | app/api/v1/orders/[id]/report/payments-rprt/route.ts | 44 | /api/v1/orders/[id]/report/payments-rprt |
-| orders:read | api | app/api/v1/orders/[id]/state/route.ts | 94 | /api/v1/orders/[id]/state |
+| orders:read | api | app/api/v1/orders/[id]/state/route.ts | 87 | /api/v1/orders/[id]/state |
 | orders:read | api | app/api/v1/orders/[id]/transitions/route.ts | 13 | /api/v1/orders/[id]/transitions |
 | orders:read | api | app/api/v1/preferences/last-order/route.ts | 22 | /api/v1/preferences/last-order |
 | orders:read | api | app/api/v1/preferences/resolve/route.ts | 21 | /api/v1/preferences/resolve |
@@ -350,7 +352,9 @@ Generated: 2026-11-17T06:27:46.404Z
 | orders:split | api | app/api/v1/orders/[id]/split/route.ts | 34 | /api/v1/orders/[id]/split |
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |
 | orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 73 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
-| orders:transition | screen | src/features/orders/ui/order-actions.tsx | 51 | src/features/orders/ui/order-actions.tsx |
+| orders:transition | screen | src/features/orders/ui/order-actions.tsx | 49 | src/features/orders/ui/order-actions.tsx |
+| orders:transition | screen | src/features/orders/ui/order-stage-files.tsx | 32 | src/features/orders/ui/order-stage-files.tsx |
+| orders:transition | screen | src/features/orders/ui/pieces/piece-photos.tsx | 99 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:transition | api | app/api/v1/assembly/exceptions/[id]/resolve/route.ts | 19 | /api/v1/assembly/exceptions/[id]/resolve |
 | orders:transition | api | app/api/v1/assembly/tasks/route.ts | 15 | /api/v1/assembly/tasks |
 | orders:transition | api | app/api/v1/assembly/tasks/[taskId]/complete/route.ts | 19 | /api/v1/assembly/tasks/[taskId]/complete |
@@ -367,10 +371,12 @@ Generated: 2026-11-17T06:27:46.404Z
 | orders:transition | api | app/api/v1/orders/[id]/items/[itemId]/step/route.ts | 22 | /api/v1/orders/[id]/items/[itemId]/step |
 | orders:transition | api | app/api/v1/orders/[id]/transition/route.ts | 66 | /api/v1/orders/[id]/transition |
 | orders:transition | api | app/api/v1/preparation/[id]/start/route.ts | 26 | /api/v1/preparation/[id]/start |
-| orders:update | screen | app/dashboard/orders/[id]/order-detail-client.tsx | 147 | /dashboard/orders/[id]/order-detail-client.tsx |
+| orders:update | screen | app/dashboard/orders/[id]/order-detail-client.tsx | 145 | /dashboard/orders/[id]/order-detail-client.tsx |
 | orders:update | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 74 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:update | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 56 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
-| orders:update | screen | src/features/orders/ui/order-actions.tsx | 52 | src/features/orders/ui/order-actions.tsx |
+| orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
+| orders:update | screen | src/features/orders/ui/order-stage-files.tsx | 31 | src/features/orders/ui/order-stage-files.tsx |
+| orders:update | screen | src/features/orders/ui/pieces/piece-photos.tsx | 98 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 53 | src/features/workflow/ui/FastItemizer.tsx |
 | orders:update | api | app/api/orders/bulk-status/route.ts | 16 | /api/orders/bulk-status |
 | orders:update | api | app/api/orders/[orderId]/status/route.ts | 21 | /api/orders/[orderId]/status |
@@ -470,10 +476,10 @@ Generated: 2026-11-17T06:27:46.404Z
 | reconciliation:view | api | app/api/v1/finance/reconciliation/runs/[runId]/route.ts | 46 | /api/v1/finance/reconciliation/runs/[runId] |
 | reconciliation:view | api | app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts | 37 | /api/v1/finance/vouchers/[voucherId]/reconciliation |
 | reconciliation:view | api | app/api/v1/orders/[id]/financial-reconciliation/route.ts | 31 | /api/v1/orders/[id]/financial-reconciliation |
-| settings:branding | screen | app/dashboard/settings/branding/page.tsx | 52 | /dashboard/settings/branding |
-| settings:branding | api | app/api/v1/settings/branding/route.ts | 71 | /api/v1/settings/branding |
+| settings:branding | screen | src/features/settings/ui/branding/branding-screen.tsx | 41 | src/features/settings/ui/branding/branding-screen.tsx |
+| settings:branding | service | lib/services/org-ui-theme-http.ts | 25 | lib/services/org-ui-theme-http.ts |
 | settings:organization | api | app/api/v1/settings/general/route.ts | 116 | /api/v1/settings/general |
-| settings:read | api | app/api/v1/settings/branding/route.ts | 41 | /api/v1/settings/branding |
+| settings:read | api | app/api/v1/settings/branding/route.ts | 24 | /api/v1/settings/branding |
 | settings:read | api | app/api/v1/settings/general/route.ts | 84 | /api/v1/settings/general |
 | settings:workflow | api | app/api/v1/workflows/config/route.ts | 52 | /api/v1/workflows/config |
 | stored_value:issue_advance | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 109 | src/features/customers/ui/customer-stored-value-tab.tsx |
@@ -485,7 +491,7 @@ Generated: 2026-11-17T06:27:46.404Z
 | stored_value:view | api | app/api/v1/customers/[id]/credit-notes/route.ts | 15 | /api/v1/customers/[id]/credit-notes |
 | stored_value:view | api | app/api/v1/customers/[id]/wallet/ledger/route.ts | 16 | /api/v1/customers/[id]/wallet/ledger |
 | stored_value:view_balances | api | app/api/v1/customers/[id]/stored-value/route.ts | 15 | /api/v1/customers/[id]/stored-value |
-| tax_document:issue | screen | src/features/orders/ui/order-financial/order-tax-document-panel.tsx | 35 | src/features/orders/ui/order-financial/order-tax-document-panel.tsx |
+| tax_document:issue | screen | src/features/orders/ui/order-financial/order-tax-document-panel.tsx | 33 | src/features/orders/ui/order-financial/order-tax-document-panel.tsx |
 | tax_document:issue | api | app/api/v1/orders/[id]/tax-documents/issue/route.ts | 34 | /api/v1/orders/[id]/tax-documents/issue |
 | tax:manage_config | api | app/api/v1/settings/tax/exemptions/route.ts | 55 | /api/v1/settings/tax/exemptions |
 | tax:manage_config | api | app/api/v1/tax/codes/route.ts | 22 | /api/v1/tax/codes |
@@ -510,8 +516,8 @@ Generated: 2026-11-17T06:27:46.404Z
 | tax:view_reports | api | app/api/v1/tax/returns/lines/route.ts | 9 | /api/v1/tax/returns/lines |
 | tax:view_reports | api | app/api/v1/tax/returns/route.ts | 9 | /api/v1/tax/returns |
 | user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 41 | src/features/users/ui/user-detail-screen.tsx |
-| user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
-| user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |
+| user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 31 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
+| user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 40 | src/features/auth-session/ui/user-sessions-tab.tsx |
 | users:read | screen | src/features/users/access/users-access.ts | 106 | src/features/users/access/users-access.ts |
 | users:read | screen | src/features/users/access/users-access.ts | 122 | src/features/users/access/users-access.ts |
 | users:read | api | app/api/users/[userId]/membership-lock/route.ts | 26 | /api/users/[userId]/membership-lock |

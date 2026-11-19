@@ -7,8 +7,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton, Alert, CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
 import { CmxProgressBar, CmxStatusBadge } from '@ui/feedback';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type {
   PlanComparison,
   UsageMetrics,
@@ -197,8 +198,8 @@ export function TenantAdminSubscriptionScreen() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading subscription data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading subscription data...</p>
         </div>
       </div>
     );
@@ -207,8 +208,8 @@ export function TenantAdminSubscriptionScreen() {
   if (error && !tenant) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert
-          variant="error"
+        <CmxSummaryMessage
+          type="error"
           title="Error Loading Subscription"
           message={error}
         />
@@ -225,10 +226,10 @@ export function TenantAdminSubscriptionScreen() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               Subscription & Billing
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-muted-foreground">
               Manage your plan and view usage
             </p>
           </div>
@@ -248,16 +249,16 @@ export function TenantAdminSubscriptionScreen() {
 
       {/* Success/Error Messages */}
       {success && (
-        <Alert
-          variant="success"
+        <CmxSummaryMessage
+          type="success"
           title="Success"
           message={success}
           className="mb-6"
         />
       )}
       {error && (
-        <Alert
-          variant="error"
+        <CmxSummaryMessage
+          type="error"
           title="Error"
           message={error}
           className="mb-6"
@@ -266,8 +267,8 @@ export function TenantAdminSubscriptionScreen() {
 
       {/* Trial Countdown Banner */}
       {isOnTrial && tenant?.status === 'trial' && (
-        <Alert
-          variant="warning"
+        <CmxSummaryMessage
+          type="warning"
           title="Trial Period Active"
           message={`You have ${tenant?.status === 'trial' && usage ? getDaysRemaining(usage.currentPeriod.end) : 0} days remaining in your free trial. Upgrade now to unlock all features!`}
           className="mb-6"
@@ -283,7 +284,7 @@ export function TenantAdminSubscriptionScreen() {
           >
             Upgrade Now
           </CmxButton>
-        </Alert>
+        </CmxSummaryMessage>
       )}
 
       {/* Current Plan Card */}
@@ -292,22 +293,22 @@ export function TenantAdminSubscriptionScreen() {
           <h2 className="text-xl font-semibold mb-4">Current Plan</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-gray-600">Plan</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-muted-foreground">Plan</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {plans.find(p => p.plan_code === currentPlan)?.plan_name || 'Loading...'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Price</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-muted-foreground">Price</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {fmtPlanMoney(Number(plans.find(p => p.plan_code === currentPlan)?.price_monthly || 0))}/month
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {isOnTrial ? 'Trial Ends' : 'Next Billing Date'}
               </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-2xl font-bold text-foreground mt-1">
                 {usage?.currentPeriod.end ? new Date(usage.currentPeriod.end).toLocaleDateString() : '-'}
               </p>
             </div>
@@ -321,7 +322,7 @@ export function TenantAdminSubscriptionScreen() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Usage & Limits</h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Period: {new Date(usage.currentPeriod.start).toLocaleDateString()} - {new Date(usage.currentPeriod.end).toLocaleDateString()}
               </p>
             </div>
@@ -330,10 +331,10 @@ export function TenantAdminSubscriptionScreen() {
               {/* Orders Usage */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-foreground">
                     Orders
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {usage.usage.ordersCount} / {usage.limits.ordersLimit}
                   </span>
                 </div>
@@ -342,7 +343,7 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.ordersPercentage)}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {usage.usage.ordersPercentage.toFixed(1)}% used
                 </p>
               </div>
@@ -350,10 +351,10 @@ export function TenantAdminSubscriptionScreen() {
               {/* Users Usage */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-foreground">
                     Users
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {usage.usage.usersCount} / {usage.limits.usersLimit}
                   </span>
                 </div>
@@ -362,7 +363,7 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.usersPercentage)}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {usage.usage.usersPercentage.toFixed(1)}% used
                 </p>
               </div>
@@ -370,10 +371,10 @@ export function TenantAdminSubscriptionScreen() {
               {/* Branches Usage */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-foreground">
                     Branches
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {usage.usage.branchesCount} / {usage.limits.branchesLimit}
                   </span>
                 </div>
@@ -382,7 +383,7 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.branchesPercentage)}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {usage.usage.branchesPercentage.toFixed(1)}% used
                 </p>
               </div>
@@ -390,10 +391,10 @@ export function TenantAdminSubscriptionScreen() {
               {/* Storage Usage */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-foreground">
                     Storage
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {usage.usage.storageMb} MB / {usage.limits.storageMbLimit} MB
                   </span>
                 </div>
@@ -402,7 +403,7 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.storagePercentage)}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {usage.usage.storagePercentage.toFixed(1)}% used
                 </p>
               </div>
@@ -410,15 +411,15 @@ export function TenantAdminSubscriptionScreen() {
 
             {/* Warnings */}
             {usage.warnings.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              <div className="mt-6 pt-6 border-t border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   ⚠️ Warnings ({usage.warnings.length})
                 </h3>
                 <div className="space-y-2">
                   {usage.warnings.map((warning, idx) => (
-                    <Alert
+                    <CmxSummaryMessage
                       key={idx}
-                      variant={warning.type === 'limit_exceeded' ? 'error' : 'warning'}
+                      type={warning.type === 'limit_exceeded' ? 'error' : 'warning'}
                       title={warning.resource.toUpperCase()}
                       message={warning.message}
                     />
@@ -440,8 +441,8 @@ export function TenantAdminSubscriptionScreen() {
                 onClick={() => setShowPricing('monthly')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   showPricing === 'monthly'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-border'
                 }`}
               >
                 Monthly
@@ -450,44 +451,44 @@ export function TenantAdminSubscriptionScreen() {
                 onClick={() => setShowPricing('yearly')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   showPricing === 'yearly'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-border'
                 }`}
               >
                 Yearly
-                <span className="ml-1 text-xs">(Save 20%)</span>
+                <span className="ms-1 text-xs">(Save 20%)</span>
               </button>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Plan
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Price
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Orders
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Users
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Branches
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Key Features
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Action
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {plans.map((plan) => {
                   const price = showPricing === 'yearly' && plan.price_yearly
                     ? plan.price_yearly / 12
@@ -496,11 +497,11 @@ export function TenantAdminSubscriptionScreen() {
                   return (
                     <tr
                       key={plan.plan_code}
-                      className={plan.isCurrentPlan ? 'bg-blue-50' : ''}
+                      className={plan.isCurrentPlan ? 'bg-info-bg' : ''}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-foreground">
                             {plan.plan_name}
                           </span>
                           {plan.isCurrentPlan && (
@@ -516,18 +517,18 @@ export function TenantAdminSubscriptionScreen() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-lg font-bold text-gray-900">
+                        <span className="text-lg font-bold text-foreground">
                           {fmtPlanMoney(price)}
                         </span>
-                        <span className="text-sm text-gray-500">/mo</span>
+                        <span className="text-sm text-muted-foreground">/mo</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {plan.orders_limit === 999999 ? 'Unlimited' : plan.orders_limit}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {plan.users_limit === 999999 ? 'Unlimited' : plan.users_limit}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         {plan.branches_limit === 999999 ? 'Unlimited' : plan.branches_limit}
                       </td>
                       <td className="px-6 py-4">
@@ -594,16 +595,16 @@ export function TenantAdminSubscriptionScreen() {
 
       {/* Upgrade Modal */}
       {showUpgradeModal && selectedPlan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-foreground">
                   Upgrade to {selectedPlan.plan_name}
                 </h2>
                 <button
                   onClick={() => setShowUpgradeModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                   disabled={isProcessing}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -613,8 +614,8 @@ export function TenantAdminSubscriptionScreen() {
               </div>
 
               {error && (
-                <Alert
-                  variant="error"
+                <CmxSummaryMessage
+                  type="error"
                   title="Error"
                   message={error}
                   className="mb-4"
@@ -622,7 +623,7 @@ export function TenantAdminSubscriptionScreen() {
               )}
 
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   Select Billing Cycle
                 </h3>
                 <div className="flex space-x-4">
@@ -632,7 +633,7 @@ export function TenantAdminSubscriptionScreen() {
                       value="monthly"
                       checked={billingCycle === 'monthly'}
                       onChange={(e) => setBillingCycle(e.target.value as 'monthly')}
-                      className="mr-2"
+                      className="me-2"
                       disabled={isProcessing}
                     />
                     <span className="text-sm">
@@ -645,7 +646,7 @@ export function TenantAdminSubscriptionScreen() {
                       value="yearly"
                       checked={billingCycle === 'yearly'}
                       onChange={(e) => setBillingCycle(e.target.value as 'yearly')}
-                      className="mr-2"
+                      className="me-2"
                       disabled={isProcessing}
                     />
                     <span className="text-sm">
@@ -655,7 +656,7 @@ export function TenantAdminSubscriptionScreen() {
                           : Number(selectedPlan.price_monthly) * 12
                       )}/mo
                       {selectedPlan.price_yearly && (
-                        <span className="ml-2 text-green-600 font-semibold">
+                        <span className="ms-2 text-success-text font-semibold">
                           Save 20%!
                         </span>
                       )}
@@ -664,11 +665,11 @@ export function TenantAdminSubscriptionScreen() {
                 </div>
               </div>
 
-              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              <div className="mb-6 p-4 bg-info-bg rounded-lg">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
                   New Features You&apos;ll Get:
                 </h3>
-                <ul className="space-y-1 text-sm text-gray-700">
+                <ul className="space-y-1 text-sm text-foreground">
                   {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>}
                   {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>}
                   {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>}
@@ -678,11 +679,11 @@ export function TenantAdminSubscriptionScreen() {
                 </ul>
               </div>
 
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              <div className="mb-6 p-4 bg-muted rounded-lg">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
                   Payment Integration
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Payment gateway integration coming soon. For now, your plan will be upgraded immediately
                   and you&apos;ll receive an invoice via email.
                 </p>
@@ -715,31 +716,31 @@ export function TenantAdminSubscriptionScreen() {
 
       {/* Cancel Subscription Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-md w-full">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              <h2 className="text-2xl font-bold text-foreground mb-4">
                 Cancel Subscription
               </h2>
 
               {error && (
-                <Alert
-                  variant="error"
+                <CmxSummaryMessage
+                  type="error"
                   title="Error"
                   message={error}
                   className="mb-4"
                 />
               )}
 
-              <Alert
-                variant="warning"
+              <CmxSummaryMessage
+                type="warning"
                 title="Warning"
                 message="Your subscription will remain active until the end of the current billing period. You will lose access to premium features after cancellation."
                 className="mb-4"
               />
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Reason for Cancellation *
                 </label>
                 <CmxSelect
@@ -760,7 +761,7 @@ export function TenantAdminSubscriptionScreen() {
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Additional Feedback (Optional)
                 </label>
                 <textarea
@@ -768,13 +769,13 @@ export function TenantAdminSubscriptionScreen() {
                   onChange={(e) => setCancelFeedback(e.target.value)}
                   disabled={isProcessing}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="Help us improve by sharing your feedback..."
                 />
               </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700">
+              <div className="mb-4 p-3 bg-muted rounded-lg">
+                <p className="text-sm text-foreground">
                   <strong>Effective Date:</strong>{' '}
                   {usage?.currentPeriod.end
                     ? new Date(usage.currentPeriod.end).toLocaleDateString()

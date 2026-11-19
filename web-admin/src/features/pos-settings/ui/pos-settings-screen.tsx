@@ -24,7 +24,7 @@ import { PosSettingsRequirementTab } from './pos-settings-requirement-tab'
 function UnsavedDot({ label }: { label: string }) {
   return (
     <span
-      className="absolute -end-1 -top-1 h-2 w-2 rounded-full bg-[rgb(var(--cmx-warning-rgb,245_158_11))]"
+      className="absolute -end-1 -top-1 h-2 w-2 rounded-full bg-warning"
       role="img"
       aria-label={label}
     />
@@ -113,8 +113,8 @@ export function PosSettingsScreen() {
   return (
     <form onSubmit={save} className="max-w-4xl space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-[rgb(var(--cmx-primary-bg-rgb,239_246_255))] p-2">
-          <MonitorSmartphone className="h-6 w-6 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" aria-hidden />
+        <div className="rounded-lg bg-primary-bg p-2">
+          <MonitorSmartphone className="h-6 w-6 text-primary-text" aria-hidden />
         </div>
         <div>
           <h1 className="text-xl font-semibold">{t('title')}</h1>
@@ -133,7 +133,7 @@ export function PosSettingsScreen() {
       <CmxTabsPanel tabs={tabs} value={activeTab} onChange={selectTab} />
 
       {canManage && (
-        <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-6 py-3">
+        <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t bg-background px-6 py-3">
           {dirtyTotal > 0 && (
             <span className="me-auto text-sm text-muted-foreground" aria-live="polite">
               {t('unsavedChanges', { count: dirtyTotal })}

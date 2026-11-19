@@ -184,35 +184,35 @@ export default function PermissionAssignmentModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
+        <div className="bg-card rounded-lg p-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+      <div className="bg-card rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               Assign Permissions to {role.name}
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Select permissions to assign to this role. Users with this role will have access to the selected permissions.
             </p>
             {role.is_system && (
-              <p className="text-xs text-amber-600 mt-1 font-medium">
+              <p className="text-xs text-warning-text mt-1 font-medium">
                 ⚠ System role — changes will affect all users with this role
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted-foreground hover:text-foreground"
             aria-label="Close"
           >
             <X className="h-6 w-6" />
@@ -220,30 +220,30 @@ export default function PermissionAssignmentModal({
         </div>
 
         {/* Search */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search permissions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full ps-10 pe-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
             />
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="px-6 py-3 bg-red-50 border-b border-red-200">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="px-6 py-3 bg-danger-bg border-b border-danger-border">
+            <p className="text-sm text-danger-text">{error}</p>
           </div>
         )}
 
         {/* Permissions List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {Object.keys(filteredGrouped).length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               {searchQuery ? 'No permissions match your search.' : 'No permissions available.'}
             </div>
           ) : (
@@ -254,13 +254,13 @@ export default function PermissionAssignmentModal({
                 const allSelected = perms.every(p => selectedPermissions.has(p.code))
 
                 return (
-                  <div key={category} className="border border-gray-200 rounded-lg">
+                  <div key={category} className="border border-border rounded-lg">
                     {/* Category Header */}
-                    <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                    <div className="bg-muted px-4 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
                         <button
                           onClick={() => toggleCategory(category)}
-                          className="text-gray-600 hover:text-gray-900"
+                          className="text-muted-foreground hover:text-foreground"
                           aria-label={isExpanded ? 'Collapse' : 'Expand'}
                         >
                           {isExpanded ? (
@@ -269,20 +269,20 @@ export default function PermissionAssignmentModal({
                             <ChevronRight className="h-5 w-5" />
                           )}
                         </button>
-                        <Shield className="h-5 w-5 text-gray-400" />
+                        <Shield className="h-5 w-5 text-muted-foreground" />
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{categoryInfo.name}</div>
+                          <div className="font-medium text-foreground">{categoryInfo.name}</div>
                           {categoryInfo.name2 && (
-                            <div className="text-sm text-gray-500">{categoryInfo.name2}</div>
+                            <div className="text-sm text-muted-foreground">{categoryInfo.name2}</div>
                           )}
                         </div>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-muted-foreground">
                           {perms.length} permission{perms.length !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <button
                         onClick={() => toggleCategorySelection(category)}
-                        className="ml-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        className="ms-4 text-sm text-primary-text hover:text-primary-text/80 font-medium"
                       >
                         {allSelected ? 'Deselect All' : 'Select All'}
                       </button>
@@ -290,7 +290,7 @@ export default function PermissionAssignmentModal({
 
                     {/* Permissions */}
                     {isExpanded && (
-                      <div className="divide-y divide-gray-200">
+                      <div className="divide-y divide-border">
                         {perms.map((perm) => {
                           const isSelected = selectedPermissions.has(perm.code)
                           const resource = getResourceFromCode(perm.code)
@@ -298,40 +298,40 @@ export default function PermissionAssignmentModal({
                           return (
                             <label
                               key={perm.code}
-                              className={`flex items-start p-4 hover:bg-gray-50 cursor-pointer ${
-                                isSelected ? 'bg-blue-50' : ''
+                              className={`flex items-start p-4 hover:bg-muted cursor-pointer ${
+                                isSelected ? 'bg-info-bg' : ''
                               }`}
                             >
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => togglePermission(perm.code)}
-                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                className="mt-1 h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
                               />
-                              <div className="ml-3 flex-1">
+                              <div className="ms-3 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-gray-900">
+                                  <span className="font-medium text-foreground">
                                     {perm.name || perm.code}
                                   </span>
                                   {isSelected && (
-                                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                                    <CheckCircle2 className="h-4 w-4 text-primary-text" />
                                   )}
                                   {perm.is_system && (
-                                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                    <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
                                       system
                                     </span>
                                   )}
                                 </div>
                                 {perm.name2 && (
-                                  <div className="text-sm text-gray-500 mt-1">{perm.name2}</div>
+                                  <div className="text-sm text-muted-foreground mt-1">{perm.name2}</div>
                                 )}
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs font-mono text-gray-400">{perm.code}</span>
-                                  <span className="text-xs text-gray-400">•</span>
-                                  <span className="text-xs text-gray-400 capitalize">{resource}</span>
+                                  <span className="text-xs font-mono text-muted-foreground">{perm.code}</span>
+                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <span className="text-xs text-muted-foreground capitalize">{resource}</span>
                                 </div>
                                 {perm.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{perm.description}</p>
+                                  <p className="text-sm text-muted-foreground mt-1">{perm.description}</p>
                                 )}
                               </div>
                             </label>
@@ -347,25 +347,25 @@ export default function PermissionAssignmentModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-          <div className="text-sm text-gray-600">
+        <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-muted">
+          <div className="text-sm text-muted-foreground">
             <strong>{selectedPermissions.size}</strong> permission{selectedPermissions.size !== 1 ? 's' : ''} selected
           </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card"></div>
               )}
               Save Permissions
             </button>

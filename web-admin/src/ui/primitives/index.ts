@@ -19,8 +19,7 @@ export * from './cmx-skeleton'
 export * from './tabs'
 
 // ===== Radix-based primitives with no Cmx twin =====
-// Alert callers move to CmxSummaryMessage per folder in PR-05; new imports are flagged by lint.
-export * from './alert'
+// The legacy Alert was removed in PR-05: use CmxSummaryMessage from @ui/feedback.
 export * from './avatar'
 export * from './data-table'
 export * from './dropdown-menu'

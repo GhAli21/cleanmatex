@@ -71,12 +71,13 @@ export function GlFilterBar({ eventCodes }: GlFilterBarProps) {
     })
   }
 
+  // No frame of its own: CmxCrudPageShell frames the filters slot.
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4">
+    <div className="flex flex-col gap-3">
       {/* Row 1: search inputs */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[160px] flex-1">
-          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]" />
+          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <CmxInput
             className="ps-8 text-sm"
             placeholder={t('gl.filters.journalNo')}
@@ -91,7 +92,7 @@ export function GlFilterBar({ eventCodes }: GlFilterBarProps) {
         </div>
 
         <div className="relative min-w-[160px] flex-1">
-          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]" />
+          <Search className="absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <CmxInput
             className="ps-8 text-sm"
             placeholder={t('gl.filters.accountCode')}
@@ -114,7 +115,7 @@ export function GlFilterBar({ eventCodes }: GlFilterBarProps) {
             value={current.dateFrom}
             onChange={(e) => push({ dateFrom: e.target.value })}
           />
-          <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">–</span>
+          <span className="text-xs text-muted-foreground">–</span>
           <CmxInput
             type="date"
             className="text-sm"
@@ -127,7 +128,7 @@ export function GlFilterBar({ eventCodes }: GlFilterBarProps) {
 
       {/* Row 2: dropdowns + clear */}
       <div className="flex flex-wrap items-center gap-2">
-        <SlidersHorizontal className="h-4 w-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]" />
+        <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
 
         {/* Event code */}
         <CmxSelectDropdown
@@ -179,7 +180,7 @@ export function GlFilterBar({ eventCodes }: GlFilterBarProps) {
         )}
 
         {isPending && (
-          <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <span className="text-xs text-muted-foreground">
             {tCommon('loading')}…
           </span>
         )}

@@ -25,8 +25,8 @@ export default function CatalogAddonsPage() {
       </div>
 
       <CmxCard className="flex flex-col items-center justify-center p-12">
-        <Tag className="mb-4 h-12 w-12 text-gray-400" aria-hidden />
-        <p className="text-center text-gray-600">
+        <Tag className="mb-4 h-12 w-12 text-muted-foreground" aria-hidden />
+        <p className="text-center text-muted-foreground">
           {t('addonsComingSoon')}
         </p>
       </CmxCard>

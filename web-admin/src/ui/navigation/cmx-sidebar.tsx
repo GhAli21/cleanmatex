@@ -314,17 +314,17 @@ export default function CmxSidebar() {
 
   return (
     <>
-      <div className={`lg:hidden fixed top-0 start-0 end-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="lg:hidden fixed top-0 start-0 end-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center">
           <button
             type="button"
-            className="text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded-md p-2"
+            className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded-md p-2"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
             aria-label="Toggle menu"
           >
             {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-          <span className={`ms-3 text-lg font-semibold text-foreground`}>{brand.name}</span>
+          <span className="ms-3 text-lg font-semibold text-foreground">{brand.name}</span>
         </div>
       </div>
 
@@ -336,7 +336,6 @@ export default function CmxSidebar() {
       )}
 
       <aside
-        dir="ltr"
         role="navigation"
         aria-label={t('navLabel')}
         className={`
@@ -345,15 +344,14 @@ export default function CmxSidebar() {
           start-0 border-e
           w-64 lg:translate-x-0
           ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
-          ${isMobileOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}
+          ${isMobileOpen ? 'translate-x-0' : ('ltr:-translate-x-full rtl:translate-x-full')}
         `}
-        style={isRTL ? { left: 'auto', right: 0 } : { right: 'auto', left: 0 }}
       >
-        <div className={`pt-4 pb-3 border-b border-border bg-card flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`pt-4 pb-3 border-b border-border bg-card flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} `}>
           <Link
             href="/dashboard"
             prefetch={false}
-            className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
+            className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} space-x-2`}
           >
             {brand.logoUrl ? (
               // Organization logo (File Util public storage), decorative: the name is next to it.
@@ -389,7 +387,7 @@ export default function CmxSidebar() {
             aria-expanded={!isCollapsed}
             aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            className={`hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+            className={`hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${isCollapsed ? 'lg:justify-center' : ''} `}
           >
             {isCollapsed ? (
               <PanelLeft className="h-5 w-5" />
@@ -466,7 +464,7 @@ export default function CmxSidebar() {
                                       childActive
                                         ? 'bg-info-bg text-info-text font-medium'
                                         : 'text-muted-foreground hover:bg-muted'
-                                    } ${isRTL ? 'flex-row-reverse' : ''}`}
+                                    } `}
                                   >
                                     <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
                                     <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
@@ -513,9 +511,9 @@ export default function CmxSidebar() {
                             isActive
                               ? 'bg-info-bg text-info-text border border-info-border'
                               : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                          } ${isRTL ? 'flex-row-reverse' : ''}`}
+                          } `}
                         >
-                          <div className={`flex items-center min-w-0 gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <div className="flex items-center min-w-0 gap-3">
                             <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
                             <span className="truncate">{label}</span>
                           </div>
@@ -539,7 +537,7 @@ export default function CmxSidebar() {
                                       childActive
                                         ? 'bg-info-bg text-info-text font-medium border border-info-border'
                                         : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                                    } ${isRTL ? 'flex-row-reverse' : ''}`}
+                                    } `}
                                   >
                                     <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
                                     <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
@@ -558,7 +556,7 @@ export default function CmxSidebar() {
                           isActive
                             ? 'bg-info-bg text-info-text border border-info-border'
                             : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                        } ${isRTL ? 'flex-row-reverse' : ''}`}
+                        } `}
                       >
                         <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
                         <span className="truncate flex-1">{label}</span>

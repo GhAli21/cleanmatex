@@ -33,7 +33,7 @@ export function CmxEmptyState({
         {icon && <div className="mx-auto mb-4">{icon}</div>}
         <h3 className="text-lg font-semibold mb-2">{title}</h3>
         {description && (
-          <p className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <p className="text-muted-foreground">
             {description}
           </p>
         )}

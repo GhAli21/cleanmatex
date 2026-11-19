@@ -158,7 +158,7 @@ export function VoucherReversalDialog({
           />
 
           {canPickLines ? (
-            <fieldset className="space-y-2 rounded-lg border border-slate-200 p-3">
+            <fieldset className="space-y-2 rounded-lg border border-border p-3">
               <legend className="px-1 text-sm font-medium text-foreground">{t('reversal.linesTitle')}</legend>
               <p className="text-xs text-muted-foreground">{t('reversal.linesHint')}</p>
               {reversibleLines.map((line) => (
@@ -182,8 +182,8 @@ export function VoucherReversalDialog({
           ) : null}
 
           {placementRequired ? (
-            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs text-amber-900">{t('reversal.placementExplain')}</p>
+            <div className="space-y-2 rounded-lg border border-warning-border bg-warning-bg p-3">
+              <p className="text-xs text-warning-text">{t('reversal.placementExplain')}</p>
               <CashPlacementPicker
                 branchId={branchId}
                 currencyCode={currencyCode}

@@ -247,6 +247,13 @@
   "appearance": {
     "title": "Appearance",
     "subtitle": "How the app looks for you on every device you sign in on. Your Organization sets the colours and logo.",
+    "mode": "Light or dark",
+    "modeHint": "\"Same as this device\" follows the light or dark setting of the computer or phone you are using.",
+    "modeOptions": {
+      "LIGHT": "Light",
+      "DARK": "Dark",
+      "SYSTEM": "Same as this device"
+    },
     "density": "Density",
     "densityHint": "Compact fits more on the screen; comfortable is easier to tap.",
     "densityFollow": "Same as the Organization",

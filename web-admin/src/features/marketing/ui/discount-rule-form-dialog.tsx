@@ -7,6 +7,7 @@
  * Structured conditions form based on discountConditionsSchema fields.
  */
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm, Controller } from 'react-hook-form';
@@ -30,7 +31,6 @@ import {
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms';
-import { Alert, AlertDescription } from '@ui/primitives';
 import { createDiscountRule, updateDiscountRule } from '@/app/actions/marketing/discount-rule-actions';
 import type { DiscountRule } from '@/lib/types/payment';
 
@@ -193,9 +193,9 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
           {serverError && (
-            <Alert variant="destructive">
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage type="error">
+              <div>{serverError}</div>
+            </CmxSummaryMessage>
           )}
 
           <div className="grid grid-cols-2 gap-3">

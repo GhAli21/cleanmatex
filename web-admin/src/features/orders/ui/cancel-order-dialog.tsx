@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useMessage } from '@ui/feedback';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import {
   CmxDialog,
@@ -19,7 +20,7 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
-import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
+import { Label, CmxTextarea } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -130,19 +131,19 @@ export function CancelOrderDialog({
 
   return (
     <CmxDialog open={open} onOpenChange={handleOpenChange}>
-      <CmxDialogContent className={isRTL ? 'text-right' : 'text-left'}>
-        <CmxDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-          <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+      <CmxDialogContent className="text-start">
+        <CmxDialogHeader className="text-start">
+          <CmxDialogTitle className="text-start">
             {t('title')}
           </CmxDialogTitle>
-          <CmxDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+          <CmxDialogDescription className="text-start">
             {t('description')}
           </CmxDialogDescription>
         </CmxDialogHeader>
 
-        <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className="space-y-4 text-start">
           <div>
-            <Label htmlFor="cancel-reason" className={isRTL ? 'text-right' : 'text-left'}>
+            <Label htmlFor="cancel-reason" className="text-start">
               {t('reasonLabel')} *
             </Label>
             <CmxTextarea
@@ -152,32 +153,32 @@ export function CancelOrderDialog({
               onChange={(e) => setReason(e.target.value)}
               rows={4}
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`mt-1 w-full ${isRTL ? 'text-right' : 'text-left'}`}
+              className="mt-1 w-full text-start"
             />
-            <p className={`mt-1 text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="mt-1 text-sm text-muted-foreground text-start">
               {t('reasonHint', { min: MIN_REASON_LENGTH })}
             </p>
           </div>
 
           {hasCollectedMoney && (
-            <Alert variant="warning">
-              <AlertDescription>
+            <CmxSummaryMessage type="warning">
+              <div>
                 {t('moneyFinHint', {
                   amount: formatMoneyWithCode(paidAmount ?? 0),
                 })}
-              </AlertDescription>
-            </Alert>
+              </div>
+            </CmxSummaryMessage>
           )}
 
           <div>
-            <Label htmlFor="cancel-reason-code" className={isRTL ? 'text-right' : 'text-left'}>
+            <Label htmlFor="cancel-reason-code" className="text-start">
               {t('reasonCodeLabel')} ({tCommon('optional')})
             </Label>
             <select
               id="cancel-reason-code"
               value={reasonCode}
               onChange={(e) => setReasonCode(e.target.value)}
-              className={`mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-start"
               dir={isRTL ? 'rtl' : 'ltr'}
             >
               <option value="">{t('reasonCodePlaceholder')}</option>
@@ -190,7 +191,7 @@ export function CancelOrderDialog({
           </div>
         </div>
 
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+        <CmxDialogFooter className="">
           <CmxButton
             variant="outline"
             onClick={() => handleOpenChange(false)}

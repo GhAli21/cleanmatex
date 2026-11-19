@@ -140,7 +140,7 @@ export function OrdersChangeHistoryTabRprt({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">{t('title')}</h2>
-          <p className="max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{t('description')}</p>
+          <p className="max-w-3xl text-sm text-muted-foreground">{t('description')}</p>
         </div>
         <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{t('totalCount', { count: totalCount })}</CmxStatusBadge>
       </div>
@@ -151,7 +151,7 @@ export function OrdersChangeHistoryTabRprt({
         <CmxEmptyState icon={<History className="mx-auto h-8 w-8" aria-hidden />} title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <p className="text-sm text-muted-foreground">
             {t('shownOf', { shown: items.length, total: totalCount })}
           </p>
           {items.map((item) => (
@@ -278,7 +278,7 @@ function ChangeCard({
             <span className="text-base font-semibold">
               {labels.changeNo} #{item.changeNo}
             </span>
-            <span className="text-sm font-normal text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            <span className="text-sm font-normal text-muted-foreground">
               {open ? labels.hideDetails : labels.viewDetails}
             </span>
           </CmxButton>
@@ -287,11 +287,11 @@ function ChangeCard({
             <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{item.legacy ? labels.legacySource : labels.editSource}</CmxStatusBadge>
             <span className="text-sm font-semibold tabular-nums">
               {delta.text}
-              <span className="ms-1 font-normal text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{delta.tone}</span>
+              <span className="ms-1 font-normal text-muted-foreground">{delta.tone}</span>
             </span>
           </div>
         </div>
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+        <p className="text-sm text-muted-foreground">
           {labels.appliedAt}: {formatWhen(item.appliedAt)}
           <span className="mx-2">·</span>
           {labels.actor}: {item.actorName ?? labels.unknownActor}
@@ -318,7 +318,7 @@ function ChangeCard({
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">{labels.operationsTitle}</h3>
             {item.operations.length === 0 ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{labels.noOperations}</p>
+              <p className="text-sm text-muted-foreground">{labels.noOperations}</p>
             ) : (
               <ol className="space-y-3">
                 {item.operations.map((operation) => (
@@ -326,7 +326,7 @@ function ChangeCard({
                     <div className="flex flex-wrap items-center gap-2">
                       <CmxStatusBadge size="sm" tone="neutral">{labels.sequence} {operation.seq}</CmxStatusBadge>
                       <span className="font-medium">{operationName(operation.code)}</span>
-                      <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+                      <span className="text-sm text-muted-foreground">
                         {labels.target}: {targetName(operation.targetType)}
                         {operation.targetLabel || operation.targetLabel2
                           ? ` · ${pickLabel(operation.targetLabel, operation.targetLabel2)}`
@@ -340,7 +340,7 @@ function ChangeCard({
                       <ValueList title={labels.before} fields={operation.before} currencyCode={item.currencyCode} fieldName={fieldName} fieldValue={fieldValue} empty={labels.notRecorded} />
                       <ValueList title={labels.after} fields={operation.after} currencyCode={item.currencyCode} fieldName={fieldName} fieldValue={fieldValue} empty={labels.notRecorded} />
                     </div>
-                    <p className="mt-2 break-all text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+                    <p className="mt-2 break-all text-xs text-muted-foreground">
                       {labels.reference}: {operation.orderItemId ?? operation.orderItemPieceId ?? operation.orderPreferenceId ?? operation.clientRef ?? labels.notRecorded}
                     </p>
                   </li>
@@ -352,7 +352,7 @@ function ChangeCard({
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">{labels.removals}</h3>
             {item.removals.length === 0 ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{labels.noRemovals}</p>
+              <p className="text-sm text-muted-foreground">{labels.noRemovals}</p>
             ) : (
               <div className="space-y-3">
                 <RemovalGroup title={labels.removedItems} rows={itemRemovals} labels={labels} formatWhen={formatWhen} formatMoney={formatMoney} currencyCode={item.currencyCode} pickLabel={pickLabel} />
@@ -374,7 +374,7 @@ function ChangeCard({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{label}</dt>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium">{value}</dd>
     </div>
   );
@@ -396,15 +396,15 @@ function ValueList({
   empty: string;
 }) {
   return (
-    <div className="rounded-lg bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
+    <div className="rounded-lg bg-muted p-3">
       <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide">{title}</h4>
       {fields.length === 0 ? (
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{empty}</p>
+        <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
         <dl className="space-y-1">
           {fields.map((field) => (
             <div key={field.key} className="flex items-start justify-between gap-3 text-sm">
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{fieldName(field.key)}</dt>
+              <dt className="text-muted-foreground">{fieldName(field.key)}</dt>
               <dd className="break-all text-end font-medium tabular-nums">{fieldValue(field, currencyCode)}</dd>
             </div>
           ))}
@@ -439,7 +439,7 @@ function RemovalGroup({
         {rows.map((row) => (
           <li key={row.id} className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 text-sm">
             <p className="font-medium">{pickLabel(row.label, row.label2)}</p>
-            <p className="mt-1 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            <p className="mt-1 text-muted-foreground">
               {[
                 row.quantity ? `${labels.quantity}: ${row.quantity}` : null,
                 row.code ? `${labels.code}: ${row.code}` : null,
@@ -449,7 +449,7 @@ function RemovalGroup({
                 row.deletedAt ? `${labels.deletedAt}: ${formatWhen(row.deletedAt)}` : null,
               ].filter((part): part is string => part != null).join(' · ')}
             </p>
-            <p className="mt-1 break-all text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            <p className="mt-1 break-all text-xs text-muted-foreground">
               {labels.reference}: {row.id}
             </p>
           </li>

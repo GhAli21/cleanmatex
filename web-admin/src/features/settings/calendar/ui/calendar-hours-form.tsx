@@ -152,7 +152,7 @@ export function CalendarHoursForm({ initial, organization, canSave, onSave, onDi
               <InheritSwitch id={`${idPrefix}-inherit-cutoff`} checked={inheritCutoff} disabled={!canSave} onChange={setInheritCutoff} label={t('branch.useOrganizationCutoff')} />
             ) : null}
             {inheritCutoff ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('cutoff.label')}: <span dir="ltr">{organization?.cutoffTime || t('cutoff.none')}</span></p>
+              <p className="text-sm text-muted-foreground">{t('cutoff.label')}: <span dir="ltr">{organization?.cutoffTime || t('cutoff.none')}</span></p>
             ) : (
               <CmxInput label={t('cutoff.label')} type="time" dir="ltr" value={cutoff} disabled={!canSave} onChange={(e) => setCutoff(e.target.value)} error={fieldErrors.cutoffTime} helpText={t('cutoff.help')} />
             )}
@@ -162,7 +162,7 @@ export function CalendarHoursForm({ initial, organization, canSave, onSave, onDi
               <InheritSwitch id={`${idPrefix}-inherit-ready`} checked={inheritReady} disabled={!canSave} onChange={setInheritReady} label={t('branch.useOrganizationReady')} />
             ) : null}
             {inheritReady ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('ready.label')}: <span dir="ltr">{organization?.readyTime || t('ready.none')}</span></p>
+              <p className="text-sm text-muted-foreground">{t('ready.label')}: <span dir="ltr">{organization?.readyTime || t('ready.none')}</span></p>
             ) : (
               <CmxInput label={t('ready.label')} type="time" dir="ltr" value={ready} disabled={!canSave} onChange={(e) => setReady(e.target.value)} error={fieldErrors.readyTime} helpText={t('ready.help')} />
             )}

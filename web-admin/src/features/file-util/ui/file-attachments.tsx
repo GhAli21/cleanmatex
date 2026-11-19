@@ -2,7 +2,8 @@
  * FileAttachments — one-line files section for any record:
  * `<FileAttachments category="ORDER_FILE" entityId={orderId} source="ORDER_DETAIL" />`.
  * Pick a purpose and an optional note, then drop / pick / paste / photograph files; see them in a
- * gallery, open them in the viewer, change purpose or note, delete them.
+ * gallery, open them in the viewer, change purpose or note, delete them. Each file shows the stage
+ * the record was in and the screen it came from; files can be filtered by purpose and stage.
  */
 
 'use client';
@@ -46,6 +47,15 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
     const p = fa.config?.purposes.find((x) => x.purposeCode === code);
     return p ? (locale === 'ar' ? p.name2 || p.name : p.name) : code;
   };
+  const labelOf = useMemo(() => {
+    const map = new Map<string, string>();
+    const labels = fa.config?.labels;
+    for (const [kind, list] of [['source', labels?.sources], ['stage', labels?.stages], ['ref', labels?.refTypes]] as const) {
+      for (const l of list ?? []) map.set(`${kind}:${l.code}`, locale === 'ar' ? l.name2 || l.name : l.name);
+    }
+    // Unknown code (e.g. a stage the lookup lacks): show the code rather than nothing.
+    return (kind: 'source' | 'stage' | 'ref', code: string) => map.get(`${kind}:${code}`) ?? code;
+  }, [fa.config, locale]);
   const previewOf = useMemo(() => {
     const map = new Map<string, CmxFilePreviewMode>();
     for (const p of fa.config?.purposes ?? []) for (const m of p.mimeTypes) map.set(m.mimeType, m.previewCode as CmxFilePreviewMode);
@@ -56,13 +66,29 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
   const selected = purposes.find((p) => p.purposeCode === purpose) ?? purposes.find((p) => p.isDefault) ?? purposes[0];
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState(ALL);
+  const [stageFilter, setStageFilter] = useState(ALL);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [viewIndex, setViewIndex] = useState<number | null>(null);
   const [editing, setEditing] = useState<{ id: string; purpose: string; notes: string } | null>(null);
 
   const errorText = (code?: string) => (code && t.has(`errors.${code}`) ? t(`errors.${code}`) : t('errors.FILE_UTIL_FAILED'));
 
-  const visible: FileView[] = filter === ALL ? fa.files : fa.files.filter((f) => f.purposeCode === filter);
+  // Stages present on this record's files, in workflow order (lookup order), then unknown ones.
+  const stageOptions = useMemo(() => {
+    const present = new Set(fa.files.map((f) => f.stageCode).filter((c): c is string => !!c));
+    const ordered = (fa.config?.labels.stages ?? []).map((l) => l.code).filter((c) => present.has(c));
+    const rest = [...present].filter((c) => !ordered.includes(c));
+    return [...ordered, ...rest].map((code) => ({ value: code, label: labelOf('stage', code) }));
+  }, [fa.files, fa.config, labelOf]);
+  // A stage whose last file was deleted (or the filter hidden) must not keep hiding files.
+  const activeStage = stageOptions.length > 1 && stageOptions.some((o) => o.value === stageFilter) ? stageFilter : ALL;
+  const visible: FileView[] = fa.files.filter(
+    (f) => (filter === ALL || f.purposeCode === filter) && (activeStage === ALL || f.stageCode === activeStage),
+  );
+  const metaOf = (f: FileView) =>
+    [f.stageCode && labelOf('stage', f.stageCode), labelOf('source', f.sourceCode), f.refTypeCode && labelOf('ref', f.refTypeCode)]
+      .filter(Boolean)
+      .join(' · ');
   const items: CmxFileItem[] = visible.map((f) => ({
     id: f.id,
     name: f.originalName,
@@ -71,6 +97,7 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
     thumbUrl: f.thumbUrl,
     previewMode: previewOf(f.mimeType),
     label: nameOf(f.purposeCode),
+    meta: metaOf(f),
     notes: f.notes,
     sizeBytes: f.sizeBytes,
     locked: Boolean(f.lockedAt),
@@ -123,15 +150,26 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
     <section className={className} aria-label={title ?? t('title')}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold">{title ?? t('title')}</h3>
-        {purposes.length > 1 && fa.files.length > 0 && (
-          <CmxSelect
-            aria-label={t('filterByPurpose')}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            options={[{ value: ALL, label: t('allPurposes') }, ...purposeOptions]}
-            className="w-48"
-          />
-        )}
+        <div className="flex flex-wrap gap-2">
+          {stageOptions.length > 1 && (
+            <CmxSelect
+              aria-label={t('filterByStage')}
+              value={activeStage}
+              onChange={(e) => setStageFilter(e.target.value)}
+              options={[{ value: ALL, label: t('allStages') }, ...stageOptions]}
+              className="w-44"
+            />
+          )}
+          {purposes.length > 1 && fa.files.length > 0 && (
+            <CmxSelect
+              aria-label={t('filterByPurpose')}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              options={[{ value: ALL, label: t('allPurposes') }, ...purposeOptions]}
+              className="w-44"
+            />
+          )}
+        </div>
       </div>
 
       {!readOnly && (
@@ -176,10 +214,10 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
           {fa.uploads.length > 0 && (
             <ul className="space-y-2" aria-live="polite">
               {fa.uploads.map((u) => (
-                <li key={u.key} className="rounded-[var(--cmx-radius-md,0.375rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-2 text-sm">
+                <li key={u.key} className="rounded-[var(--cmx-radius-md,0.375rem)] border border-border p-2 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">{u.name}</span>
-                    <span className="shrink-0 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {u.status === 'error' ? errorText(u.errorCode) : t(`status.${u.status}`)}
                     </span>
                     {u.status === 'error' && (

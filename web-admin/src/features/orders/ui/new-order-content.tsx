@@ -6,7 +6,6 @@
 
 'use client';
 
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useBreakpoint } from '@/lib/hooks/use-breakpoint';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useCategories, useProducts } from '../hooks/use-category-products';
@@ -91,7 +90,6 @@ export function NewOrderContent() {
   const tWorkflow = useTranslations('workflow');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const isRTL = useRTL();
   const { currentTenant } = useAuth();
   const state = useNewOrderStateWithDispatch();
   const dispatch = useNewOrderDispatch();
@@ -1150,7 +1148,7 @@ export function NewOrderContent() {
       )}
 
       <div
-        className={`flex-1 min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}
+        className="flex-1 min-h-0 flex"
         inert={orderEntryLocked ? true : undefined}
       >
         {/* Left/Center Panel */}
@@ -1158,14 +1156,14 @@ export function NewOrderContent() {
           {/* Branch Required Gate */}
           {branchRequired ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-                <GitBranch className="w-8 h-8 text-amber-500" aria-hidden />
+              <div className="w-16 h-16 rounded-full bg-warning-bg flex items-center justify-center">
+                <GitBranch className="w-8 h-8 text-warning-text" aria-hidden />
               </div>
               <div>
-                <p className="text-lg font-semibold text-gray-800">
+                <p className="text-lg font-semibold text-foreground">
                   {t('errors.selectBranch') || 'Please select a branch'}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {tCommon('selectBranch') || 'Select a branch to continue'}
                 </p>
               </div>
@@ -1175,12 +1173,12 @@ export function NewOrderContent() {
               {/* Step Tabs */}
               <div className="shrink-0 px-4 pt-4 pb-2">
                 <div
-                  className="bg-white rounded-lg border border-gray-200 p-2"
+                  className="bg-card rounded-lg border border-border p-2"
                   role="tablist"
                   aria-label={t('title') || 'New order steps'}
                 >
                   <div
-                    className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="flex gap-2"
                   >
                     <button
                       type="button"
@@ -1188,7 +1186,7 @@ export function NewOrderContent() {
                       aria-selected={activeTab === 'select'}
                       tabIndex={activeTab === 'select' ? 0 : -1}
                       onClick={() => setRequestedActiveTab('select')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'select' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${activeTab === 'select' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                     >
                       1) {t('itemsGrid.selectItems') || 'Select Items'}
                     </button>
@@ -1198,7 +1196,7 @@ export function NewOrderContent() {
                       aria-selected={activeTab === 'details'}
                       tabIndex={activeTab === 'details' ? 0 : -1}
                       onClick={() => setRequestedActiveTab('details')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'details' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center gap-1.5  ${activeTab === 'details' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                     >
                       {state.state.items.length > 0 && (
                         <Check
@@ -1219,7 +1217,7 @@ export function NewOrderContent() {
                           onClick={() =>
                             setRequestedActiveTab('piecePreferences')
                           }
-                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'piecePreferences' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${activeTab === 'piecePreferences' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                         >
                           3) {t('pieces.editItemPreferences')} ({totalPieces})
                         </button>
@@ -1229,7 +1227,7 @@ export function NewOrderContent() {
                           aria-selected={activeTab === 'pieces'}
                           tabIndex={activeTab === 'pieces' ? 0 : -1}
                           onClick={() => setRequestedActiveTab('pieces')}
-                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'pieces' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${activeTab === 'pieces' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                         >
                           4) {t('pieces.editItemNotes') || 'Edit Item Notes'} (
                           {totalPieces})
@@ -1243,7 +1241,7 @@ export function NewOrderContent() {
                         aria-selected={activeTab === 'customer'}
                         tabIndex={activeTab === 'customer' ? 0 : -1}
                         onClick={() => setRequestedActiveTab('customer')}
-                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'customer' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center gap-1.5  ${activeTab === 'customer' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                       >
                         <Check
                           className="w-4 h-4 shrink-0"
@@ -1370,15 +1368,15 @@ export function NewOrderContent() {
 
         {/* Right Sidebar (desktop) */}
         {isDesktop ? (
-          <div className="w-[28rem] shrink-0 border-s border-gray-200 bg-white h-full flex flex-col overflow-hidden">
+          <div className="w-[28rem] shrink-0 border-s border-border bg-card h-full flex flex-col overflow-hidden">
             {!state.state.createdOrderId && !state.state.isEditMode && (
               <div
-                className={`shrink-0 px-4 pt-3 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}
+                className="shrink-0 px-4 pt-3 pb-2 border-b border-border text-end"
               >
                 <button
                   type="button"
                   onClick={handleAddNewOrder}
-                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                  className="text-sm text-primary-text hover:text-primary-text/80 hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 rounded"
                 >
                   + {t('addNewOrder')}
                 </button>
@@ -1387,7 +1385,7 @@ export function NewOrderContent() {
             <OrderSummaryPanel {...sharedSummaryPanelProps} />
             {state.state.createdOrderId && (
               <div
-                className={`p-4 border-t border-gray-200 bg-blue-50 space-y-2 ${isRTL ? 'space-y-reverse' : ''}`}
+                className="p-4 border-t border-border bg-info-bg space-y-2"
               >
                 <CmxButton
                   onClick={handleAddNewOrder}
@@ -1431,12 +1429,12 @@ export function NewOrderContent() {
           >
             {!state.state.createdOrderId && !state.state.isEditMode && (
               <div
-                className={`shrink-0 px-4 pt-2 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}
+                className="shrink-0 px-4 pt-2 pb-2 border-b border-border text-end"
               >
                 <button
                   type="button"
                   onClick={handleAddNewOrder}
-                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                  className="text-sm text-primary-text hover:text-primary-text/80 hover:underline"
                 >
                   + {t('addNewOrder')}
                 </button>
@@ -1445,7 +1443,7 @@ export function NewOrderContent() {
             <OrderSummaryPanel {...sharedSummaryPanelProps} />
             {state.state.createdOrderId && (
               <div
-                className={`p-4 border-t border-gray-200 bg-blue-50 space-y-2 ${isRTL ? 'space-y-reverse' : ''}`}
+                className="p-4 border-t border-border bg-info-bg space-y-2"
               >
                 <CmxButton
                   onClick={handleAddNewOrder}

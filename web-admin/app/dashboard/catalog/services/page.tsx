@@ -160,14 +160,14 @@ export default function ServicesPage() {
 
       <CmxCard className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-4 text-gray-500">{tCommon('loading')}</div>
+          <div className="p-4 text-muted-foreground">{tCommon('loading')}</div>
         ) : products.length === 0 ? (
-          <div className="p-4 text-gray-500">{t('noProducts')}</div>
+          <div className="p-4 text-muted-foreground">{t('noProducts')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
+                <tr className="bg-muted text-start">
                   <th className="px-4 py-2">{t('productCode')}</th>
                   <th className="px-4 py-2">{t('productName')}</th>
                   <th className="px-4 py-2">{t('category')}</th>
@@ -201,7 +201,7 @@ export default function ServicesPage() {
         )}
 
         <div className="flex items-center justify-between p-4">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {pagination.total} / {pagination.totalPages}
           </div>
           <div className="flex gap-2">

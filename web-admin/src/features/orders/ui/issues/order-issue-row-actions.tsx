@@ -78,7 +78,7 @@ export function OrderIssueRowActions({
             }}
             aria-label={t('reportHint')}
           >
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTriangle className="h-4 w-4 text-warning-text" />
             {!compact ? <span>{t('reportTitle')}</span> : null}
           </CmxButton>
         </Tooltip>

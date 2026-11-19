@@ -1,21 +1,11 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type { Metadata } from 'next';
 
 /** Differentiates branch profit-and-loss analysis from the main financial reports. */
 export const metadata: Metadata = { title: 'Branch Profit & Loss' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import {
-  Alert,
-  AlertDescription,
-  CmxButton,
-  CmxCard,
-  CmxCardContent,
-  CmxCardDescription,
-  CmxCardHeader,
-  CmxInput,
-  CmxSelect,
-  CmxCardTitle,
-} from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxInput, CmxSelect, CmxCardTitle } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLitePhase10Service } from '@/lib/services/erp-lite-phase10.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
@@ -119,21 +109,21 @@ export default async function ErpLiteBranchPlPage({
         </div>
 
         {notice ? (
-          <Alert>
-            <AlertDescription>{t(`notices.${notice}`)}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="info">
+            <div>{t(`notices.${notice}`)}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{error}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {loadError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{loadError}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

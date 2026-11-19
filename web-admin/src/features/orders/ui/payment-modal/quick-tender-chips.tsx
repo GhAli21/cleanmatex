@@ -24,7 +24,6 @@ export interface PaymentQuickTenderChipsProps {
   onSelect: (item: PaymentQuickTenderChipItem) => void;
   /** Disables every chip (no active leg / submit busy). */
   disabled?: boolean;
-  isRTL?: boolean;
   className?: string;
 }
 
@@ -39,7 +38,6 @@ export function PaymentQuickTenderChips({
   items,
   onSelect,
   disabled = false,
-  isRTL = false,
   className = '',
 }: PaymentQuickTenderChipsProps) {
   if (items.length === 0) return null;
@@ -47,7 +45,7 @@ export function PaymentQuickTenderChips({
   return (
     <div
       data-testid="payment-quick-tender-chips"
-      className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''} ${className}`}
+      className={`flex flex-wrap gap-2  ${className}`}
     >
       {items.map((item) => (
         <CmxButton
@@ -61,8 +59,8 @@ export function PaymentQuickTenderChips({
           onClick={() => onSelect(item)}
           className={`h-11 min-w-[64px] rounded-xl px-3 text-sm font-semibold tabular-nums ${
             item.kind === 'exact'
-              ? 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100'
-              : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:text-cyan-800'
+              ? 'border-info-border bg-info-bg text-info-text hover:bg-info-border/50'
+              : 'border-border bg-card text-foreground hover:border-info-border hover:text-info-text'
           }`}
         >
           {item.label}

@@ -18,6 +18,8 @@ import { OrderStatsCards } from '@features/orders/ui/order-stats-cards';
 import { OrderFiltersBar } from '@features/orders/ui/order-filters-bar';
 import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
 import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
+import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 
 /** Labels the tenant order list independently from individual order workspaces. */
 export const metadata: Metadata = { title: 'Orders' };
@@ -62,7 +64,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     console.error('[OrdersPage] Auth error:', error);
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
         </div>
       </div>
@@ -121,37 +123,30 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     statsOk && statsResult.status === 'fulfilled' ? statsResult.value.data : null;
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t('title')}</h1>
-          <p className="mt-1 text-gray-600">{t('manageAndTrack')}</p>
-        </div>
-
-        <div className="flex items-center gap-3">
+    <CmxCrudPageShell
+      className="p-6"
+      title={t('title')}
+      subtitle={t('manageAndTrack')}
+      actions={
+        <>
           <OrdersRefreshButton />
           <Link
             href="/dashboard/orders?status=draft&physicalIntakeStatus=pending_dropoff"
-            className="text-sm font-medium text-amber-800 hover:text-amber-900"
+            className="text-sm font-medium text-warning-text hover:text-warning-text/80"
           >
             {t('awaitingDropoffQueue')}
           </Link>
           <Link
             href="/dashboard/orders/new"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
           >
             + {t('newOrder')}
           </Link>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <OrderFiltersBar currentFilters={params} />
-
-      {/* Stats cards */}
-      {statsData && <OrderStatsCards stats={statsData} />}
-
+        </>
+      }
+      kpis={statsData ? <OrderStatsCards stats={statsData} /> : undefined}
+      filters={<OrderFiltersBar currentFilters={params} />}
+    >
       {/* Orders table with graceful error state (simplified table component) */}
       <Suspense fallback={<div>{t('loadingOrders')}</div>}>
         {ordersData ? (
@@ -160,13 +155,16 @@ export default async function OrdersPage({ searchParams }: PageProps) {
             pagination={ordersData.pagination}
           />
         ) : (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            {ordersResult.status === 'fulfilled' && ordersResult.value.error
-              ? ordersResult.value.error
-              : t('failedToLoadOrders')}
-          </div>
+          <CmxSummaryMessage
+            type="error"
+            message={
+              ordersResult.status === 'fulfilled' && ordersResult.value.error
+                ? ordersResult.value.error
+                : t('failedToLoadOrders')
+            }
+          />
         )}
       </Suspense>
-    </div>
+    </CmxCrudPageShell>
   );
 }

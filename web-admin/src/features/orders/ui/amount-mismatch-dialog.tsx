@@ -8,7 +8,6 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { AlertCircle, RefreshCw, X } from 'lucide-react';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
@@ -39,7 +38,6 @@ export function AmountMismatchDialog({
   differences = {},
 }: AmountMismatchDialogProps) {
   const t = useTranslations('amountMismatch');
-  const isRTL = useRTL();
   const locale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
@@ -55,15 +53,15 @@ export function AmountMismatchDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
-        <header className={`flex items-center gap-3 p-4 border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <AlertCircle className="w-8 h-8 text-amber-500 flex-shrink-0" />
-          <h2 className={`flex-1 font-bold text-lg text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="bg-card rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+        <header className="flex items-center gap-3 p-4 border-b border-border">
+          <AlertCircle className="w-8 h-8 text-warning-text flex-shrink-0" />
+          <h2 className="flex-1 font-bold text-lg text-foreground text-start">
             {t('title')}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="p-2 text-muted-foreground hover:text-foreground rounded-lg"
             aria-label={t('cancel')}
           >
             <X className="w-5 h-5" />
@@ -71,36 +69,36 @@ export function AmountMismatchDialog({
         </header>
 
         <div className="p-4 space-y-4">
-          <p className={`text-gray-600 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p className="text-muted-foreground text-sm text-start">
             {message ?? t('message')}
           </p>
 
           {entries.length > 0 && (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className={`py-2 px-3 font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <tr className="bg-muted border-b border-border">
+                    <th className="py-2 px-3 font-semibold text-foreground text-start">
                       {t('field')}
                     </th>
-                    <th className={`py-2 px-3 font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <th className="py-2 px-3 font-semibold text-foreground text-start">
                       {t('yourValue')}
                     </th>
-                    <th className={`py-2 px-3 font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <th className="py-2 px-3 font-semibold text-foreground text-start">
                       {t('serverValue')}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map(([field, { client, server }]) => (
-                    <tr key={field} className="border-b border-gray-100 last:border-b-0">
-                      <td className={`py-2 px-3 text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <tr key={field} className="border-b border-border last:border-b-0">
+                      <td className="py-2 px-3 text-foreground text-start">
                         {t(`fields.${field}` as any) || field}
                       </td>
-                      <td className={`py-2 px-3 text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <td className="py-2 px-3 text-muted-foreground text-start">
                         {fmt(client)}
                       </td>
-                      <td className={`py-2 px-3 text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <td className="py-2 px-3 text-muted-foreground text-start">
                         {fmt(server)}
                       </td>
                     </tr>
@@ -110,11 +108,11 @@ export function AmountMismatchDialog({
             </div>
           )}
 
-          <div className={`flex gap-2 pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex gap-2 pt-2">
             <button
               type="button"
               onClick={onRefresh}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg font-medium"
             >
               <RefreshCw className="w-4 h-4" />
               {t('refreshAmounts')}
@@ -122,7 +120,7 @@ export function AmountMismatchDialog({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-300 hover:bg-gray-50 rounded-lg font-medium"
+              className="flex-1 px-4 py-2.5 border border-border hover:bg-muted rounded-lg font-medium"
             >
               {t('cancel')}
             </button>

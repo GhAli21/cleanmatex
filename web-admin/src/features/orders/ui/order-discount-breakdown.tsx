@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
@@ -13,10 +12,10 @@ interface Props {
 }
 
 const BADGE_CLASSES: Record<string, string> = {
-  MANUAL:        'bg-gray-100 text-gray-700',
-  DISCOUNT_RULE: 'bg-blue-100 text-blue-700',
-  PROMO_CODE:    'bg-green-100 text-green-700',
-  GIFT_CARD:     'bg-purple-100 text-purple-700',
+  MANUAL:        'bg-muted text-foreground',
+  DISCOUNT_RULE: 'bg-info-bg text-info-text',
+  PROMO_CODE:    'bg-success-bg text-success-text',
+  GIFT_CARD:     'bg-info-bg text-info-text',
 };
 
 /**
@@ -28,7 +27,6 @@ const BADGE_CLASSES: Record<string, string> = {
  */
 export function OrderDiscountBreakdown({ lines, isLoading, locale }: Props) {
   const t = useTranslations('orders.detail');
-  const isRTL = useRTL();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
 
   if (isLoading) {
@@ -36,8 +34,8 @@ export function OrderDiscountBreakdown({ lines, isLoading, locale }: Props) {
       <div className="mt-1 space-y-1">
         {[0, 1].map((i) => (
           <div key={i} className="flex justify-between animate-pulse">
-            <div className="h-4 w-24 rounded bg-gray-200" />
-            <div className="h-4 w-16 rounded bg-gray-200" />
+            <div className="h-4 w-24 rounded bg-muted" />
+            <div className="h-4 w-16 rounded bg-muted" />
           </div>
         ))}
       </div>
@@ -71,17 +69,17 @@ export function OrderDiscountBreakdown({ lines, isLoading, locale }: Props) {
       {lines.map((line) => (
         <div
           key={line.id}
-          className={`flex items-center gap-2 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}
+          className="flex items-center gap-2 text-xs"
         >
           <span
-            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${BADGE_CLASSES[line.source_type] ?? 'bg-gray-100 text-gray-600'}`}
+            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${BADGE_CLASSES[line.source_type] ?? 'bg-muted text-muted-foreground'}`}
           >
             {badgeLabel(line)}
           </span>
-          <span className={`flex-1 text-gray-500 ${isRTL ? 'text-right' : ''}`}>
+          <span className="flex-1 text-muted-foreground">
             {sourceName(line)}
           </span>
-          <span className="font-medium text-red-600 shrink-0">
+          <span className="font-medium text-danger-text shrink-0">
             -{fmtAmount(line.discount_amount)}
           </span>
         </div>

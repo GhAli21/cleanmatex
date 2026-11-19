@@ -46,7 +46,6 @@ export const RTL: Story = {
     amount: 4.71,
     formattedAmount: '4.710 ر.ع.',
     epsilon: EPSILON,
-    isRTL: true,
   },
   decorators: [
     (Story) => (

@@ -81,7 +81,7 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
       <div className="flex-1">{children}</div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-4">
+      <div className="flex items-center justify-between border-t border-border pt-4">
         <div className="flex gap-2">
           {/* Back button */}
           {!isFirstStep && (
@@ -142,7 +142,7 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
       </div>
 
       {/* Step indicator text */}
-      <div className="text-center text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <div className="text-center text-xs text-muted-foreground">
         Step {currentStep + 1} of {steps.length}
         {currentStepData?.isOptional && ' (Optional)'}
       </div>

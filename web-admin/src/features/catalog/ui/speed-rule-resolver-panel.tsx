@@ -83,7 +83,7 @@ export function SpeedRuleResolverPanel({ speedOptions, branchOptions, categoryOp
           <div className="space-y-2" aria-live="polite">
             {result.winner ? null : <CmxSummaryMessage type="info" title={t('resolver.noRuleTitle')} items={[t('resolver.noRule')]} />}
             {result.matched.map((rule) => (
-              <div key={rule.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-3 text-sm">
+              <div key={rule.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3 text-sm">
                 <SpeedRuleScopeText rule={rule} categoryLabel={categoryLabel} branchLabel={branchLabel} />
                 <div className="flex items-center gap-2">
                   <span>{valueText(rule)}</span>

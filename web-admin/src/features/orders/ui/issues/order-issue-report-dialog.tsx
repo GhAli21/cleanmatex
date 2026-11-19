@@ -49,11 +49,17 @@ export interface OrderIssueReportDialogProps {
   orderItemId?: string | null;
   orderItemPieceId?: string | null;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  /** Called after the issue is saved, with its id (photos keep uploading in the background). */
+  onSuccess?: (issueId?: string) => void;
+  /**
+   * QA reject mode: the issue also rejects its item/piece (`alsoReject`), the photos are saved as
+   * QA evidence from the QA screen, and the dialog shows reject wording.
+   */
+  qaReject?: boolean;
 }
 
 /**
- * Creates an issue without rejecting the order/item/piece.
+ * Creates an issue; by default without rejecting the order/item/piece (see `qaReject`).
  */
 export function OrderIssueReportDialog({
   open,
@@ -63,7 +69,10 @@ export function OrderIssueReportDialog({
   orderItemPieceId,
   onOpenChange,
   onSuccess,
+  qaReject = false,
 }: OrderIssueReportDialogProps) {
+  const photoPurpose = qaReject ? FILE_PURPOSES.ORDER_FILE.QA_EVIDENCE : FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE;
+  const photoSource = qaReject ? FILE_SOURCES.ORDER_QA : FILE_SOURCES.ORDER_ISSUE;
   const t = useTranslations('orders.issues');
   const tCommon = useTranslations('common');
   const tFiles = useTranslations('fileUtil');
@@ -125,6 +134,7 @@ export function OrderIssueReportDialog({
         issueCode,
         issueText: issueText.trim(),
         priority,
+        ...(qaReject ? { alsoReject: true } : {}),
       };
       if (scopeLevel !== ORDER_ISSUE_SCOPE.ORDER) {
         body.orderItemId = orderItemId ?? null;
@@ -152,15 +162,15 @@ export function OrderIssueReportDialog({
       return data as { data?: { id?: string } };
     },
     onSuccess: (data) => {
-      cmxMessage.success(t('submitSuccess'));
+      if (!qaReject) cmxMessage.success(t('submitSuccess'));
       // The issue id exists only now; photos upload in the background and report their own result.
       const issueId = data.data?.id;
       if (issueId && photos.length > 0) {
         void uploadFilesToRecord({
           category: FILE_CATEGORIES.ORDER_FILE,
           entityId: orderId,
-          purpose: FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE,
-          source: FILE_SOURCES.ORDER_ISSUE,
+          purpose: photoPurpose,
+          source: photoSource,
           refType: FILE_REF_TYPES.ORDER_ISSUE,
           refId: issueId,
           files: photos,
@@ -171,7 +181,7 @@ export function OrderIssueReportDialog({
         });
       }
       onOpenChange(false);
-      onSuccess?.();
+      onSuccess?.(issueId);
     },
     onError: (error) => {
       cmxMessage.error(
@@ -201,7 +211,7 @@ export function OrderIssueReportDialog({
     >
       <CmxDialogContent className="max-w-lg">
         <CmxDialogHeader>
-          <CmxDialogTitle>{t('reportTitle')}</CmxDialogTitle>
+          <CmxDialogTitle>{t(qaReject ? 'qaRejectTitle' : 'reportTitle')}</CmxDialogTitle>
           <CmxDialogDescription>
             {t(`scope.${scopeLevel.toLowerCase()}`)}
           </CmxDialogDescription>
@@ -267,7 +277,7 @@ export function OrderIssueReportDialog({
             <PendingFilesPicker
               label={t('photos')}
               category={FILE_CATEGORIES.ORDER_FILE}
-              purpose={FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE}
+              purpose={photoPurpose}
               files={photos}
               onChange={setPhotos}
               disabled={mutation.isPending}
@@ -286,12 +296,12 @@ export function OrderIssueReportDialog({
           </CmxButton>
           <CmxButton
             type="button"
-            variant="primary"
+            variant={qaReject ? 'destructive' : 'primary'}
             onClick={handleSubmit}
             loading={mutation.isPending}
             disabled={mutation.isPending || catalogsLoading}
           >
-            {t('submit')}
+            {t(qaReject ? 'qaRejectSubmit' : 'submit')}
           </CmxButton>
         </CmxDialogFooter>
       </CmxDialogContent>

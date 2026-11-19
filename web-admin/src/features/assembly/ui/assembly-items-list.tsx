@@ -133,15 +133,15 @@ export function AssemblyItemsList({
                       isItemPending
                         ? 'border-border bg-background hover:bg-muted/40'
                         : item.itemStatus === 'SCANNED'
-                          ? 'border-green-200 bg-green-50/60 dark:border-green-900 dark:bg-green-950/30'
-                          : 'border-red-200 bg-red-50/60 dark:border-red-900 dark:bg-red-950/30'
+                          ? 'border-success-border bg-success-bg/60'
+                          : 'border-danger-border bg-danger-bg/60'
                     }`}
                   >
                     <div className="shrink-0 text-muted-foreground" aria-hidden>
                       {item.itemStatus === 'SCANNED' ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <CheckCircle2 className="h-5 w-5 text-success-text" />
                       ) : item.itemStatus === 'EXCEPTION' ? (
-                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                        <AlertTriangle className="h-5 w-5 text-danger-text" />
                       ) : (
                         <Circle className="h-5 w-5" />
                       )}

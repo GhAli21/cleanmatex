@@ -6,6 +6,8 @@ import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 export interface ConfirmPickupRequest {
   expectedStateVersion: number;
   handoverNotes?: string;
+  /** Uploaded PICKUP_PROOF file ids; locked as proof by the command. */
+  proofFileIds?: string[];
 }
 
 /** Successful payload returned by the pickup completion endpoint. */

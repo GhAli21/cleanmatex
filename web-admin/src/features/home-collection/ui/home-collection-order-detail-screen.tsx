@@ -1,12 +1,13 @@
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Alert, CmxSpinner } from '@ui/primitives';
+import { CmxSpinner } from '@ui/primitives';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { HomeCollectionHandoverCard } from '@features/home-collection/ui/home-collection-handover-card';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
@@ -78,25 +79,25 @@ export function HomeCollectionOrderDetailScreen() {
   }
 
   if (!order || !orderId) {
-    return <Alert variant="error" message={error || t('messages.notFound')} />;
+    return <CmxSummaryMessage type="error" message={error || t('messages.notFound')} />;
   }
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
       <div>
-        <Link href={returnUrl} className="mb-2 inline-block text-blue-600 hover:underline">
+        <Link href={returnUrl} className="mb-2 inline-block text-primary-text hover:underline">
           ← {t('actions.backToList')}
         </Link>
         <h1 className="text-3xl font-bold">
           {tWorkflow('screens.homeCollection')}{' '}
           <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-muted-foreground">
           {order.customer.name} • {order.customer.phone}
         </p>
       </div>
 
-      {error ? <Alert variant="error" message={error} /> : null}
+      {error ? <CmxSummaryMessage type="error" message={error} /> : null}
 
       <RequireAnyPermission permissions={[ORDERS_PERMISSIONS.TRANSITION]}>
         <HomeCollectionHandoverCard

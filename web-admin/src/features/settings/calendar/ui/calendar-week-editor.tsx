@@ -39,7 +39,7 @@ export function CalendarWeekEditor({ value, onChange, readOnly = false, errors, 
         const row = value[day];
         const switchId = `${idPrefix}-${day}-open`;
         return (
-          <div key={day} className="grid items-start gap-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-3 sm:grid-cols-[9rem_1fr_1fr_auto]">
+          <div key={day} className="grid items-start gap-3 rounded-lg border border-border p-3 sm:grid-cols-[9rem_1fr_1fr_auto]">
             <div className="flex items-center gap-3 sm:pt-7">
               <CmxSwitch id={switchId} checked={row.isOpen} disabled={readOnly} onCheckedChange={(isOpen) => setDay(day, { isOpen })} aria-labelledby={`${switchId}-label`} />
               <Label id={`${switchId}-label`} htmlFor={switchId}>{tSettings(DAY_LABEL_KEY[day])}</Label>
@@ -55,7 +55,7 @@ export function CalendarWeekEditor({ value, onChange, readOnly = false, errors, 
                 )}
               </>
             ) : (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] sm:col-span-3 sm:pt-7">{tSettings('closed')}</p>
+              <p className="text-sm text-muted-foreground sm:col-span-3 sm:pt-7">{tSettings('closed')}</p>
             )}
           </div>
         );

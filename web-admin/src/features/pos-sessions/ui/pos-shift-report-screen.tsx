@@ -114,7 +114,7 @@ export function PosShiftReportScreen({ sessionId }: { sessionId: string }) {
         </div>
       </div>
 
-      {loading ? <p className="py-12 text-center text-sm text-gray-500">{tCommon('loading')}</p> : null}
+      {loading ? <p className="py-12 text-center text-sm text-muted-foreground">{tCommon('loading')}</p> : null}
 
       {!loading && loadError ? (
         <CmxSummaryMessage
@@ -161,7 +161,7 @@ export function PosShiftReportScreen({ sessionId }: { sessionId: string }) {
           ) : null}
 
           <CmxCard>
-            <CmxCardContent className="overflow-x-auto bg-gray-50 p-3 sm:p-6">
+            <CmxCardContent className="overflow-x-auto bg-muted p-3 sm:p-6">
               {snapshot ? <PosShiftReportRprt snapshot={snapshot} zReport={showingZ ? z : null} layout="a4" /> : null}
             </CmxCardContent>
           </CmxCard>

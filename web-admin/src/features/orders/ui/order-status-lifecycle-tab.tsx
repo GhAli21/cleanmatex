@@ -64,36 +64,36 @@ interface StatusFieldGroup {
 
 const GROUP_COLOR_CLASSES: Record<GroupColor, { frame: string; title: string }> = {
   blue: {
-    frame: 'border-blue-500/30 bg-blue-500/5',
-    title: 'text-blue-700 dark:text-blue-400',
+    frame: 'border-primary/30 bg-primary/5',
+    title: 'text-primary-text',
   },
   violet: {
-    frame: 'border-violet-500/30 bg-violet-500/5',
-    title: 'text-violet-700 dark:text-violet-400',
+    frame: 'border-primary/30 bg-primary/5',
+    title: 'text-primary-text',
   },
   slate: {
-    frame: 'border-slate-400/40 bg-slate-400/5',
-    title: 'text-slate-700 dark:text-slate-300',
+    frame: 'border-muted-foreground/40 bg-border/5',
+    title: 'text-foreground',
   },
   amber: {
-    frame: 'border-amber-500/30 bg-amber-500/5',
-    title: 'text-amber-700 dark:text-amber-400',
+    frame: 'border-warning/30 bg-warning/5',
+    title: 'text-warning-text',
   },
   teal: {
-    frame: 'border-teal-500/30 bg-teal-500/5',
-    title: 'text-teal-700 dark:text-teal-400',
+    frame: 'border-primary/30 bg-primary/5',
+    title: 'text-primary-text',
   },
   emerald: {
-    frame: 'border-emerald-500/30 bg-emerald-500/5',
-    title: 'text-emerald-700 dark:text-emerald-400',
+    frame: 'border-success/30 bg-success/5',
+    title: 'text-success-text',
   },
   red: {
-    frame: 'border-red-500/30 bg-red-500/5',
-    title: 'text-red-700 dark:text-red-400',
+    frame: 'border-destructive/30 bg-destructive/5',
+    title: 'text-danger-text',
   },
   orange: {
-    frame: 'border-orange-500/30 bg-orange-500/5',
-    title: 'text-orange-700 dark:text-orange-400',
+    frame: 'border-warning/30 bg-warning/5',
+    title: 'text-warning-text',
   },
 };
 
@@ -277,7 +277,7 @@ export function OrderStatusLifecycleTab({ order, locale }: OrderStatusLifecycleT
     const colors = GROUP_COLOR_CLASSES[group.color];
     return (
       <div key={group.id} className={`rounded-lg border p-3 ${colors.frame}`}>
-        <p className={`mb-2 text-xs font-semibold uppercase tracking-wide rtl:text-right ${colors.title}`}>
+        <p className={`mb-2 text-xs font-semibold uppercase tracking-wide ${colors.title}`}>
           {t(`groups.${group.id}`)}
         </p>
         <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">

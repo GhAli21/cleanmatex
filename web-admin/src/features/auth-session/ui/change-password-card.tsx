@@ -14,9 +14,10 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import { useMutation } from '@tanstack/react-query'
-import { Alert, AlertDescription, CmxButton } from '@ui/primitives'
+import { CmxButton } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
 import { cmxMessage, type MessageResult } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useAuth } from '@/lib/auth/auth-context'
 import { PASSWORD_ERROR_CODES } from '@/lib/constants/auth-session'
 import { changePassword, PasswordApiError } from '../api/password-api'
@@ -135,13 +136,13 @@ export function ChangePasswordCard() {
       </CmxCardHeader>
       <CmxCardContent>
         <form onSubmit={handleSubmit} className="max-w-md space-y-4" noValidate>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-muted-foreground">
             {requireCurrent ? t('changeHint') : t('changeHintNoCurrent')}
           </p>
 
           {needsReauth ? (
-            <Alert variant="warning" role="alert">
-              <AlertDescription>
+            <CmxSummaryMessage type="warning" role="alert">
+              <div>
                 <p>{t('errors.reauth')}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {policy.data?.canEmailLink ? (
@@ -151,8 +152,8 @@ export function ChangePasswordCard() {
                     {t('reauthSignIn')}
                   </CmxButton>
                 </div>
-              </AlertDescription>
-            </Alert>
+              </div>
+            </CmxSummaryMessage>
           ) : null}
 
           {requireCurrent ? (
@@ -207,9 +208,9 @@ export function ChangePasswordCard() {
         </form>
 
         {policy.data?.canEmailLink ? (
-          <div className="mt-6 max-w-md space-y-2 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-4">
-            <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('link.title')}</p>
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="mt-6 max-w-md space-y-2 border-t border-border pt-4">
+            <p className="text-sm font-medium text-foreground">{t('link.title')}</p>
+            <p className="text-sm text-muted-foreground">
               {t('link.hint', { email: policy.data.maskedEmail ?? '' })}
             </p>
             <EmailPasswordLinkButton maskedEmail={policy.data.maskedEmail} disabled={mutation.isPending} />

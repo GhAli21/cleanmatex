@@ -35,6 +35,8 @@ Saudi Arabia is outside the pilot. The Saudi Personal Data Protection Law is not
 
 Tax invoices and books follow the tax law of the Organization's country. This memo does not decide VAT rates or e-invoicing dates. Those stay with the tax adviser and Tax_Config/KIT_FACTS.md. This memo only fixes how long the Service must be able to keep a finance record after a person asks to be erased: 10 years from the end of the financial year, unless file 18 is later updated from written tax advice.
 
+The tax, accounting, and finance functions were written by a software developer. They were not certified by a licensed accountant, a tax adviser, an audit firm, or a government. The Service is not an e-invoicing provider authorized by any government. The Tenant reviews every figure before relying on it. A requested change must arrive with a letter from a person professionally authorized to give tax or accounting advice in the relevant country. We study the request. We do not promise to change the Service. A customization, if offered, is priced for that case and starts only after the scope and the fee are agreed in writing. Terms clauses 7.7 to 7.12 state this.
+
 3. DECISION — SIGN-UP ACCEPTANCE (B4)
 Decided.
 
@@ -45,6 +47,8 @@ It is not a consent checkbox for every later processing operation. Processing of
 The DPA is part of the same acceptance, so processor terms exist before the first end customer is typed in.
 
 Store the record in file 14. Store it on the server at the time the Organization is created. A browser-only flag is not acceptance.
+
+That acceptance is the only one. A later published version, a document added to the pack, and a document removed from the pack are accepted when published. Terms clause 17 states this. The Organization reviews the published documents periodically. The Service does not ask for a second acceptance and does not hold new orders for one.
 
 4. DECISION — ORDER INTAKE (N4)
 Decided. Rule code n4-notice-2026-11-17.

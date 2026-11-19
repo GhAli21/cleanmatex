@@ -10,7 +10,6 @@ import { useState, useEffect } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode, roundMoneyAmount } from '@/lib/money/format-money'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
 import { CmxButton, CmxMoneyField } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
@@ -58,7 +57,6 @@ export function PriceOverrideModal({
 }: PriceOverrideModalProps) {
     const t = useTranslations('newOrder.priceOverride')
     const tCommon = useTranslations('common')
-    const isRTL = useRTL()
     const locale = useLocale()
     const { currencyCode, decimalPlaces } = useTenantCurrency()
     const moneyLocale = locale === 'ar' ? 'ar' : 'en'
@@ -133,11 +131,11 @@ export function PriceOverrideModal({
                     <CmxDialogHeader>
                         <CmxDialogTitle>{t('permissionDeniedTitle')}</CmxDialogTitle>
                     </CmxDialogHeader>
-                    <div className={`flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 p-4 bg-danger-bg border border-danger-border rounded-lg">
+                        <AlertCircle className="w-5 h-5 text-danger-text shrink-0 mt-0.5" />
                         <div className="flex-1">
-                            <p className="text-sm font-medium text-red-800">{t('accessDenied')}</p>
-                            <p className="text-sm text-red-700 mt-1">
+                            <p className="text-sm font-medium text-danger-text">{t('accessDenied')}</p>
+                            <p className="text-sm text-danger-text mt-1">
                                 {t('accessDeniedMessage')}
                             </p>
                         </div>
@@ -167,9 +165,9 @@ export function PriceOverrideModal({
 
                 <div className="space-y-4">
                     {/* Item Info */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-900 mb-2">{item.productName}</p>
-                        <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="bg-muted border border-border rounded-lg p-4">
+                        <p className="text-sm font-medium text-foreground mb-2">{item.productName}</p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span>{t('quantity', { quantity: item.quantity })}</span>
                             <span>{t('calculatedPrice', { price: fmt(item.calculatedPrice) })}</span>
                         </div>
@@ -177,19 +175,19 @@ export function PriceOverrideModal({
 
                     {/* Current Calculated Price (Read-only) */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             {t('calculatedPriceReadOnly')}
                         </label>
                         <CmxInput
                             value={String(roundMoneyAmount(item.calculatedPrice, decimalPlaces))}
                             disabled
-                            className="bg-gray-50"
+                            className="bg-muted"
                         />
                     </div>
 
                     {/* Override Price */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             {t('overridePriceLabel', { currency: currencyCode })}
                         </label>
                         <CmxMoneyField
@@ -202,10 +200,10 @@ export function PriceOverrideModal({
                             placeholder={fmt(0)}
                         />
                         {errors.price && (
-                            <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+                            <p className="mt-1 text-sm text-danger-text">{errors.price}</p>
                         )}
                         {!errors.price && priceDiff !== 0 && (
-                            <p className={`mt-1 text-sm ${priceDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            <p className={`mt-1 text-sm ${priceDiff > 0 ? 'text-danger-text' : 'text-success-text'}`}>
                                 {priceDiff > 0
                                     ? t('priceIncrease', { amount: `+${fmt(priceDiff)}`, percent: priceDiffPercent })
                                     : t('priceDecrease', { amount: fmt(priceDiff), percent: priceDiffPercent })}
@@ -221,14 +219,14 @@ export function PriceOverrideModal({
                                     setOverridePrice(next)
                                 }}
                                 onKeyLongPress={(k) => { if (k === 'backspace') setOverridePrice('') }}
-                                getKeyClassName={(k) => k === 'backspace' ? undefined : 'bg-white'}
+                                getKeyClassName={(k) => k === 'backspace' ? undefined : 'bg-card'}
                             />
                         </div>
                     </div>
 
                     {/* Reason */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             {t('reasonLabel')}
                         </label>
                         <CmxTextarea
@@ -239,19 +237,19 @@ export function PriceOverrideModal({
                             required
                         />
                         {errors.reason && (
-                            <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
+                            <p className="mt-1 text-sm text-danger-text">{errors.reason}</p>
                         )}
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             {t('reasonHint')}
                         </p>
                     </div>
 
                     {/* Info Box */}
-                    <div className={`bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                        <div className="flex-1 text-sm text-blue-800">
+                    <div className="bg-info-bg border border-info-border rounded-lg p-4 flex items-start gap-3">
+                        <Info className="w-5 h-5 text-primary-text shrink-0 mt-0.5" />
+                        <div className="flex-1 text-sm text-primary-text">
                             <p className="font-medium mb-1">{t('infoTitle')}</p>
-                            <ul className={`list-disc list-inside space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            <ul className="list-disc list-inside space-y-1 text-start">
                                 <li>{t('infoAudit')}</li>
                                 <li>{t('infoScope')}</li>
                                 <li>{t('infoTax')}</li>
@@ -262,7 +260,7 @@ export function PriceOverrideModal({
 
                     {/* Reset hint — states what the reset restores before the user clicks */}
                     {canReset && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             {t('resetHint', { price: fmt(item.calculatedPrice) })}
                         </p>
                     )}

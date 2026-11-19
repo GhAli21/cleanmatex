@@ -68,7 +68,7 @@ export function PreferenceChip({
     <span
       className={cn(
         'inline-flex max-w-full items-center gap-1.5 rounded-2xl border px-3 py-1.5 text-sm shadow-sm',
-        swatchStyle ? 'border-transparent' : 'border-gray-200/90 bg-white text-gray-900',
+        swatchStyle ? 'border-transparent' : 'border-border/90 bg-card text-foreground',
         !swatchStyle && kindClassName
       )}
       style={swatchStyle ? swatchStyle : accentStyle}
@@ -78,7 +78,7 @@ export function PreferenceChip({
         <span
           className={cn(
             'shrink-0 text-xs font-bold tabular-nums',
-            swatchStyle ? 'text-emerald-200' : 'text-emerald-700'
+            swatchStyle ? 'text-success-text' : 'text-success-text'
           )}
           lang={locale === 'ar' ? 'ar' : 'en'}
         >
@@ -94,10 +94,10 @@ export function PreferenceChip({
               onCopy();
             }}
             className={cn(
-              'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500',
+              'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-ring',
               swatchStyle
-                ? 'text-white/90 hover:bg-white/15'
-                : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
+                ? 'text-on-solid/90 hover:bg-on-solid/15'
+                : 'text-muted-foreground hover:bg-border hover:text-foreground'
             )}
             aria-label={copyLabel}
             title={copyLabel}
@@ -112,10 +112,10 @@ export function PreferenceChip({
             onRemove();
           }}
           className={cn(
-            'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-red-500',
+            'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-destructive',
             swatchStyle
-              ? 'text-white/85 hover:bg-red-500/35 hover:text-white'
-              : 'text-gray-500 hover:bg-red-50 hover:text-red-700'
+              ? 'text-on-solid/85 hover:bg-destructive/35 hover:text-on-solid'
+              : 'text-muted-foreground hover:bg-danger-bg hover:text-danger-text'
           )}
           aria-label={removeLabel}
           title={removeLabel}

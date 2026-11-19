@@ -7,6 +7,7 @@
  * validity, stacking, enablement, and is_auto_apply.
  */
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm, useWatch, Controller, type Resolver } from 'react-hook-form';
@@ -30,7 +31,6 @@ import {
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms';
-import { Alert, AlertDescription } from '@ui/primitives';
 import { createPromoCode, updatePromoCode } from '@/app/actions/marketing/promo-actions';
 import type { PromoCode } from '@/lib/types/payment';
 
@@ -339,9 +339,9 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 py-2">
           {serverError && (
-            <Alert variant="destructive">
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage type="error">
+              <div>{serverError}</div>
+            </CmxSummaryMessage>
           )}
 
           {/* Identity */}
@@ -723,9 +723,9 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
           </div>
 
           {serverError && (
-            <Alert id="promo-form-server-error" variant="destructive">
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage id="promo-form-server-error" type="error">
+              <div>{serverError}</div>
+            </CmxSummaryMessage>
           )}
 
           <CmxDialogFooter>

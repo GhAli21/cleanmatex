@@ -39,9 +39,9 @@ export function ErpLiteExpensesTable({ items, displayConfig }: ErpLiteExpensesTa
     },
     {
       id: 'total_amount',
-      header: () => <div className="text-right">{t('lists.expenses.columns.amount')}</div>,
+      header: () => <div className="text-end">{t('lists.expenses.columns.amount')}</div>,
       cell: ({ row }) => (
-        <div className="text-right">
+        <div className="text-end">
           {formatErpLiteMoney(row.original.total_amount, {
             ...displayConfig,
             currencyCode: row.original.currency_code || displayConfig.currencyCode,

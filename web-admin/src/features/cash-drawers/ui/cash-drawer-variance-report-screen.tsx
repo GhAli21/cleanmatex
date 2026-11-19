@@ -72,8 +72,8 @@ export function CashDrawerVarianceReportScreen() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex gap-2">
           <CmxButton variant="outline" size="sm" loading={reportQuery.isFetching} onClick={() => reportQuery.refetch()}>
@@ -145,7 +145,7 @@ export function CashDrawerVarianceReportScreen() {
               header: t('columns.total'),
               align: 'right' as const,
               render: (r: VarianceByCashierEntry) => (
-                <span className={`tabular-nums font-semibold ${Number(r.totalVariance) < 0 ? 'text-red-700' : ''}`}>
+                <span className={`tabular-nums font-semibold ${Number(r.totalVariance) < 0 ? 'text-danger-text' : ''}`}>
                   {money(r.totalVariance, r.currencyCode)}
                 </span>
               ),
@@ -200,7 +200,7 @@ export function CashDrawerVarianceReportScreen() {
         />
       )}
 
-      <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('footnote')}</p>
+      <p className="text-xs text-muted-foreground">{t('footnote')}</p>
     </div>
   )
 }

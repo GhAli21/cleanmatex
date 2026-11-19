@@ -21,7 +21,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
-import { CmxButton, CmxMoneyField, CmxTextarea, Label, Alert, AlertDescription } from '@ui/primitives';
+import { CmxButton, CmxMoneyField, CmxTextarea, Label } from '@ui/primitives';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -271,7 +271,7 @@ export function RefundInitiateDialog({
                 </CmxSelectDropdownContent>
               </CmxSelectDropdown>
               {isRecordOnlyDestination && (
-                <p className="text-xs text-amber-600 dark:text-amber-500">
+                <p className="text-xs text-warning-text">
                   {t('recordOnlyHint')}
                 </p>
               )}
@@ -335,9 +335,9 @@ export function RefundInitiateDialog({
           </div>
 
           {serverError && (
-            <Alert variant="destructive">
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage type="error">
+              <div>{serverError}</div>
+            </CmxSummaryMessage>
           )}
         </div>
 

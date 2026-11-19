@@ -69,7 +69,7 @@ export const CmxCardDescription = React.forwardRef<
   return (
     <p
       ref={ref}
-      className={cn('text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]', className)}
+      className={cn('text-xs text-muted-foreground', className)}
       {...props}
     />
   )
@@ -95,7 +95,7 @@ export const CmxCardFooter = React.forwardRef<HTMLDivElement, CmxCardFooterProps
       <div
         ref={ref}
         className={cn(
-          'flex items-center p-4 md:p-5 pt-0 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))]',
+          'flex items-center p-4 md:p-5 pt-0 border-t border-border',
           className
         )}
         {...props}

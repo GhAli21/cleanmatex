@@ -18,8 +18,9 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { CmxEmptyState, CmxKpiStatCard } from '@ui/data-display';
 import { CmxStatusBadge } from '@ui/feedback';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { Alert, CmxButton, CmxSpinner } from '@ui/primitives';
+import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { Truck, CheckCircle2 } from 'lucide-react';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
@@ -244,7 +245,7 @@ function DeliveryReadOnlyScreen() {
           <Truck className="h-8 w-8" />
           {t('screens.delivery')}
         </h1>
-        <p className="text-gray-600 mt-1">{t('delivery.description')}</p>
+        <p className="text-muted-foreground mt-1">{t('delivery.description')}</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -260,7 +261,7 @@ function DeliveryReadOnlyScreen() {
         />
       </div>
 
-      {error && <Alert variant="error" message={error} className="mb-6" />}
+      {error && <CmxSummaryMessage type="error" message={error} className="mb-6" />}
 
       {orders.length === 0 ? (
         <CmxEmptyState title={t('delivery.empty')} />
@@ -276,16 +277,16 @@ function DeliveryReadOnlyScreen() {
                         href={`/dashboard/delivery/${order.id}?returnUrl=${encodeURIComponent('/dashboard/delivery')}&returnLabel=${encodeURIComponent(
                           t('delivery.actions.backToDelivery'),
                         )}`}
-                        className="text-lg font-bold text-blue-600 hover:underline"
+                        className="text-lg font-bold text-primary-text hover:underline"
                       >
                         <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                       </Link>
                       <DeliveryOrderStatusBadge status={order.status} />
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       {order.customer.name} • {order.customer.phone}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {t('delivery.items')}: {order.total_items}
                     </div>
                   </div>
@@ -295,7 +296,7 @@ function DeliveryReadOnlyScreen() {
                       SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
                     order.outstandingAmount > 0.001 ? (
                       <div className="flex flex-col items-end gap-1">
-                        <span className="text-xs font-medium text-amber-700">
+                        <span className="text-xs font-medium text-warning-text">
                           {t('delivery.collection.remaining', {
                             amount: formatMoneyWithCode(
                               order.outstandingAmount,
@@ -332,7 +333,7 @@ function DeliveryReadOnlyScreen() {
           >
             {t('labels.previous')}
           </CmxButton>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {t('labels.pageOf', {
               page: pagination.page,
               totalPages: pagination.totalPages,
@@ -363,8 +364,8 @@ function DeliveryReadOnlyScreen() {
           </div>
 
           {routesError instanceof Error ? (
-            <Alert
-              variant="error"
+            <CmxSummaryMessage
+              type="error"
               message={routesError.message}
               className="mb-4"
             />
@@ -376,7 +377,7 @@ function DeliveryReadOnlyScreen() {
             </div>
           ) : routes.length === 0 ? (
             <CmxCard>
-              <CmxCardContent className="py-10 text-center text-gray-600">
+              <CmxCardContent className="py-10 text-center text-muted-foreground">
                 {t('delivery.routes.empty')}
               </CmxCardContent>
             </CmxCard>
@@ -388,20 +389,20 @@ function DeliveryReadOnlyScreen() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold">{r.route_number}</div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-muted-foreground">
                           {t('delivery.routes.fields.status')}:{' '}
                           {r.route_status_code}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-muted-foreground">
                           {t('delivery.routes.fields.stops')}:{' '}
                           {r.completed_stops}/{r.total_stops}
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {new Date(r.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs text-gray-600">
+                    <div className="mt-3 text-xs text-muted-foreground">
                       {t('delivery.routes.fields.driverId')}:{' '}
                       {r.driver_id || t('delivery.routes.fields.unassigned')}
                     </div>
@@ -431,7 +432,7 @@ function DeliveryReadOnlyScreen() {
               >
                 {t('labels.previous')}
               </CmxButton>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 {t('labels.pageOf', {
                   page: routesPagination.page,
                   totalPages: routesPagination.totalPages,

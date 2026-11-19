@@ -33,11 +33,11 @@ export function OrderPreferencesDialog({
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent className="w-full max-w-lg p-0 sm:max-w-xl">
-        <CmxDialogHeader className="border-b border-gray-100 px-4 py-3">
+        <CmxDialogHeader className="border-b border-border px-4 py-3">
           <CmxDialogTitle>{t('orderLevelPrefs') || 'Whole Order'}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] overflow-y-auto px-4 py-4">
-          <p className="mb-3 text-xs text-gray-500">
+          <p className="mb-3 text-xs text-muted-foreground">
             {t('orderLevelPrefsDialogDesc') ||
               'Applies to the whole order regardless of which items are added.'}
           </p>

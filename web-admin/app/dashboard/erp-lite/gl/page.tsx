@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Makes general-ledger analysis distinguishable from other ERP reports. */
@@ -18,8 +19,7 @@ import { GlSummaryBar } from '@features/erp-lite/ui/gl-summary-bar'
 import { GlInquiryTable } from '@features/erp-lite/ui/gl-inquiry-table'
 import { GlPagination } from '@features/erp-lite/ui/gl-pagination'
 import { GlJournalDetailPanel } from '@features/erp-lite/ui/gl-journal-detail-panel'
-import { Alert, AlertDescription } from '@ui/primitives'
-
+import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell'
 interface GlPageProps {
   searchParams: Promise<{
     page?: string
@@ -107,43 +107,31 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
       feature={FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED}
       permissions={['erp_lite_gl:view']}
     >
-      <div className="space-y-5">
-        {/* Page header */}
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-            ERP-Lite
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-            {t('gl.title')}
-          </h1>
-          <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-            {t('gl.subtitle')}
-          </p>
-        </div>
-
-        {/* Error banner */}
-        {loadError && (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
-        )}
-
-        {!loadError && (
-          <>
-            {/* Summary KPI cards */}
-            <GlSummaryBar summary={summary} displayConfig={displayConfig} />
-
-            {/* Filter bar — needs Suspense because it reads useSearchParams */}
+      <CmxCrudPageShell
+        breadcrumb={
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">ERP-Lite</p>
+        }
+        title={t('gl.title')}
+        subtitle={t('gl.subtitle')}
+        kpis={loadError ? undefined : <GlSummaryBar summary={summary} displayConfig={displayConfig} />}
+        filters={
+          loadError ? undefined : (
+            // Suspense: the filter bar reads useSearchParams.
             <Suspense>
               <GlFilterBar eventCodes={eventCodes} />
             </Suspense>
-
+          )
+        }
+      >
+        {loadError ? (
+          <CmxSummaryMessage type="error" message={loadError} />
+        ) : (
+          <>
             {/* Master table — clickable rows open the detail panel */}
             <Suspense>
               <GlInquiryTable rows={rows} selectedJournalId={sp.journalId} displayConfig={displayConfig} />
             </Suspense>
 
-            {/* Pagination */}
             {total > 0 && (
               <Suspense>
                 <GlPagination page={page} pageSize={pageSize} total={total} />
@@ -151,7 +139,7 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
             )}
           </>
         )}
-      </div>
+      </CmxCrudPageShell>
 
       {/* Master-detail slide-over rendered outside the main flow */}
       {journalDetail && (

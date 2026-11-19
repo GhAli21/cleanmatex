@@ -122,10 +122,10 @@ export function AssignRolesDialog({
       <CmxDialogContent className="w-full max-w-lg">
         <CmxDialogHeader>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
+            <Shield className="h-5 w-5 text-primary-text" />
             <CmxDialogTitle>{t('assignRoles')}</CmxDialogTitle>
           </div>
-          <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="mt-1 text-sm text-muted-foreground">
             {userName}
           </p>
         </CmxDialogHeader>
@@ -140,7 +140,7 @@ export function AssignRolesDialog({
                 value="tenant"
                 checked={scope === 'tenant'}
                 onChange={() => setScope('tenant')}
-                className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+                className="h-4 w-4 text-primary-text"
               />
               {t('scopeTenant')}
             </label>
@@ -151,7 +151,7 @@ export function AssignRolesDialog({
                 value="resource"
                 checked={scope === 'resource'}
                 onChange={() => setScope('resource')}
-                className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+                className="h-4 w-4 text-primary-text"
               />
               {t('scopeResource')}
             </label>
@@ -161,13 +161,13 @@ export function AssignRolesDialog({
           {scope === 'resource' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   {t('resourceType')}
                 </label>
                 <select
                   value={resourceType}
                   onChange={(e) => setResourceType(e.target.value)}
-                  className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+                  className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">{tCommon('select')}</option>
                   {RESOURCE_TYPES.map((rt) => (
@@ -178,7 +178,7 @@ export function AssignRolesDialog({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   {t('resourceId')}
                 </label>
                 <input
@@ -186,7 +186,7 @@ export function AssignRolesDialog({
                   value={resourceId}
                   onChange={(e) => setResourceId(e.target.value)}
                   placeholder="UUID"
-                  className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+                  className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
@@ -195,14 +195,14 @@ export function AssignRolesDialog({
           {/* Role list */}
           {loading ? (
             <div className="flex items-center justify-center h-24">
-              <div className="animate-spin h-6 w-6 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
+              <div className="animate-spin h-6 w-6 rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : (
-            <div className="h-[300px] overflow-y-auto space-y-1 border border-[rgb(var(--cmx-border-rgb,226_232_240))] rounded-md p-2">
+            <div className="h-[300px] overflow-y-auto space-y-1 border border-border rounded-md p-2">
               {roles.map((role) => (
                 <label
                   key={role.code}
-                  className="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] transition-colors"
+                  className="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-secondary transition-colors"
                 >
                   <CmxCheckbox
                     checked={selected.has(role.code)}
@@ -211,22 +211,22 @@ export function AssignRolesDialog({
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                      <span className="text-sm font-medium text-foreground">
                         {isAr && role.name2 ? role.name2 : role.name}
                       </span>
                       {role.is_system && (
-                        <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                        <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-info-bg text-info-text">
                           {/* system badge */}
                           System
                         </span>
                       )}
                       {role.permission_count !== undefined && (
-                        <span className="px-1.5 py-0.5 text-xs rounded-full bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                        <span className="px-1.5 py-0.5 text-xs rounded-full bg-secondary text-muted-foreground">
                           {role.permission_count} perms
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] font-mono">
+                    <div className="text-xs text-muted-foreground font-mono">
                       {role.code}
                     </div>
                   </div>
@@ -237,7 +237,7 @@ export function AssignRolesDialog({
 
           {/* Change summary */}
           {(added.length > 0 || removed.length > 0) && (
-            <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-xs text-muted-foreground">
               {t('changesSummary', { added: added.length, removed: removed.length })}
             </p>
           )}

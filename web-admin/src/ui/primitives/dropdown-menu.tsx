@@ -5,8 +5,13 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useRTL } from "@/lib/hooks/useRTL"
 
-const DropdownMenu = DropdownMenuPrimitive.Root
+/** Radix menu root; takes the page direction (arrow keys, sub-menu side) unless `dir` is passed. */
+function DropdownMenu({ dir, ...props }: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) {
+  const isRTL = useRTL()
+  return <DropdownMenuPrimitive.Root dir={dir ?? (isRTL ? "rtl" : "ltr")} {...props} />
+}
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 
@@ -34,7 +39,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <ChevronRight className="ms-auto" />
+    <ChevronRight className="ms-auto rtl:rotate-180" />
   </DropdownMenuPrimitive.SubTrigger>
 ))
 DropdownMenuSubTrigger.displayName =

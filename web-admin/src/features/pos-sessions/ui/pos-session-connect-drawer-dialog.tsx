@@ -144,7 +144,7 @@ export function PosSessionConnectDrawerDialog({
           <CmxDialogTitle>{t('hub.connectOpenDrawerTitle')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-muted-foreground">
             {t('hub.connectOpenDrawerDescription', { sessionNo })}
           </p>
 
@@ -155,17 +155,17 @@ export function PosSessionConnectDrawerDialog({
               formatMoney={formatMoneyWithCode}
             />
           ) : hasRegisteredTotal ? (
-            <div className="rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-              <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <div className="rounded-xl border border-border p-4">
+              <p className="text-sm font-medium text-foreground">
                 {t('hub.registeredCount')}
               </p>
-              <p className="mt-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {formatMoneyWithCode(openingCountedAmount, currencyCode)}
               </p>
             </div>
           ) : (
             <>
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="text-sm text-muted-foreground">
                 {t('hub.noDenominationYet')}
               </p>
               <CmxSwitch
@@ -175,7 +175,7 @@ export function PosSessionConnectDrawerDialog({
                 description={tDrawers('wizard.countNowDescription')}
               />
               {countNow ? (
-                <div className="space-y-4 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+                <div className="space-y-4 rounded-xl border border-border p-4">
                   <CashCountMethodField methods={countPolicy.methods} value={countMode} onChange={setCountMode} />
                   {countMode === 'TOTAL_ONLY' ? (
                     <CmxInput
@@ -187,9 +187,9 @@ export function PosSessionConnectDrawerDialog({
                       onChange={(event) => setTotalAmount(event.target.value)}
                     />
                   ) : denominationsQuery.isLoading ? (
-                    <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+                    <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
                   ) : catalog.length === 0 ? (
-                    <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <p className="text-sm text-muted-foreground">
                       {tDrawers('wizard.noDenominationCatalog')}
                     </p>
                   ) : (
@@ -235,9 +235,9 @@ function RegisteredDenominationCount({
   const total = denominations.reduce((sum, line) => sum + line.lineAmount, 0)
 
   return (
-    <div className="space-y-2 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-      <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('hub.registeredCount')}</p>
-      <ul className="space-y-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <div className="space-y-2 rounded-xl border border-border p-4">
+      <p className="text-sm font-medium text-foreground">{t('hub.registeredCount')}</p>
+      <ul className="space-y-1 text-sm text-muted-foreground">
         {denominations.map((line) => (
           <li key={`${line.name}-${line.valueMinor}`} className="flex items-center justify-between gap-3">
             <span>{line.name}</span>
@@ -245,7 +245,7 @@ function RegisteredDenominationCount({
           </li>
         ))}
       </ul>
-      <div className="flex items-center justify-between border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-2 text-sm font-medium">
+      <div className="flex items-center justify-between border-t border-border pt-2 text-sm font-medium">
         <span>{t('hub.registeredCountTotal')}</span>
         <span>{formatMoney(total, currencyCode)}</span>
       </div>

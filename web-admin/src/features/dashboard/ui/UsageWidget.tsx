@@ -81,11 +81,11 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
     return (
       <CmxCard className={compact ? 'p-4' : 'p-6'}>
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/2 mb-4" />
+          <div className="h-6 bg-muted rounded w-1/2 mb-4" />
           <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded" />
-            <div className="h-4 bg-gray-200 rounded" />
-            <div className="h-4 bg-gray-200 rounded" />
+            <div className="h-4 bg-muted rounded" />
+            <div className="h-4 bg-muted rounded" />
+            <div className="h-4 bg-muted rounded" />
           </div>
         </div>
       </CmxCard>
@@ -96,7 +96,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
     return (
       <CmxCard className={compact ? 'p-4' : 'p-6'}>
         <div className="text-center">
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-danger-text">
             {error || 'Failed to load usage data'}
           </p>
           <CmxButton
@@ -117,10 +117,10 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className={`font-semibold text-gray-900 ${compact ? 'text-base' : 'text-lg'}`}>
+          <h3 className={`font-semibold text-foreground ${compact ? 'text-base' : 'text-lg'}`}>
             Usage & Limits
           </h3>
-          <p className={`text-gray-500 ${compact ? 'text-xs' : 'text-sm'}`}>
+          <p className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
             {new Date(usage.currentPeriod.start).toLocaleDateString()} -{' '}
             {new Date(usage.currentPeriod.end).toLocaleDateString()}
           </p>
@@ -137,11 +137,11 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
         {/* Orders */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className={`font-medium text-gray-700 ${compact ? 'text-xs' : 'text-sm'}`}>
+            <span className={`font-medium text-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
               Orders
             </span>
             <div className="flex items-center space-x-2">
-              <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
+              <span className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                 {usage.usage.ordersCount} / {usage.limits.ordersLimit}
               </span>
               <CmxStatusBadge size="sm"
@@ -169,11 +169,11 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
         {/* Users */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className={`font-medium text-gray-700 ${compact ? 'text-xs' : 'text-sm'}`}>
+            <span className={`font-medium text-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
               Users
             </span>
             <div className="flex items-center space-x-2">
-              <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
+              <span className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                 {usage.usage.usersCount} / {usage.limits.usersLimit}
               </span>
               <CmxStatusBadge size="sm"
@@ -201,11 +201,11 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
         {/* Branches */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <span className={`font-medium text-gray-700 ${compact ? 'text-xs' : 'text-sm'}`}>
+            <span className={`font-medium text-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
               Branches
             </span>
             <div className="flex items-center space-x-2">
-              <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
+              <span className={`text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
                 {usage.usage.branchesCount} / {usage.limits.branchesLimit}
               </span>
               <CmxStatusBadge size="sm"
@@ -233,32 +233,32 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
 
       {/* Warnings Section */}
       {hasWarnings && !compact && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="space-y-2">
             {usage.warnings.slice(0, 2).map((warning, idx) => (
               <div
                 key={idx}
                 className={`flex items-start space-x-2 p-2 rounded-lg ${
                   warning.type === 'limit_exceeded'
-                    ? 'bg-red-50'
+                    ? 'bg-danger-bg'
                     : warning.type === 'limit_reached'
-                    ? 'bg-orange-50'
-                    : 'bg-yellow-50'
+                    ? 'bg-warning-bg'
+                    : 'bg-warning-bg'
                 }`}
               >
                 <span className="text-lg">
                   {warning.type === 'limit_exceeded' ? '🔴' : '⚠️'}
                 </span>
                 <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-900">
+                  <p className="text-xs font-medium text-foreground">
                     {warning.resource.toUpperCase()}
                   </p>
-                  <p className="text-xs text-gray-600">{warning.message}</p>
+                  <p className="text-xs text-muted-foreground">{warning.message}</p>
                 </div>
               </div>
             ))}
             {usage.warnings.length > 2 && (
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 +{usage.warnings.length - 2} more warnings
               </p>
             )}
@@ -294,7 +294,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
       <div className="mt-3 text-center">
         <button
           onClick={fetchUsage}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           title="Refresh usage data"
         >
           🔄 Refresh

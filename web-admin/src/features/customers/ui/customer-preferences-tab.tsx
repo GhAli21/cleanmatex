@@ -8,7 +8,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import {
@@ -46,7 +45,6 @@ interface CustomerPreferencesTabProps {
  */
 export function CustomerPreferencesTab({ customerId }: CustomerPreferencesTabProps) {
   const t = useTranslations('customers');
-  const isRTL = useRTL();
   const [prefs, setPrefs] = useState<CustomerPref[]>([]);
   const [servicePrefs, setServicePrefs] = useState<ServicePref[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,7 +126,7 @@ export function CustomerPreferencesTab({ customerId }: CustomerPreferencesTabPro
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
       </div>
     );
   }
@@ -136,10 +134,10 @@ export function CustomerPreferencesTab({ customerId }: CustomerPreferencesTabPro
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           {t('standingPreferences', { defaultValue: 'Standing Preferences' })}
         </h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           {t('standingPreferencesDesc', {
             defaultValue: 'Service preferences applied by default when creating orders for this customer.',
           })}
@@ -147,7 +145,7 @@ export function CustomerPreferencesTab({ customerId }: CustomerPreferencesTabPro
       </div>
 
       {error && (
-        <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+        <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -175,22 +173,22 @@ export function CustomerPreferencesTab({ customerId }: CustomerPreferencesTabPro
 
       {prefs.length === 0 ? (
         <CmxCard className="p-6">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             {t('noPreferences', { defaultValue: 'No standing preferences configured.' })}
           </p>
         </CmxCard>
       ) : (
-        <ul className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <ul className="space-y-2 text-start">
           {prefs.map((p) => (
             <li
               key={p.id}
-              className="flex justify-between items-center py-2 px-3 rounded-md bg-gray-50 text-sm"
+              className="flex justify-between items-center py-2 px-3 rounded-md bg-muted text-sm"
             >
               <span className="font-medium">{nameMap.get(p.preference_code) || p.preference_code}</span>
               <CmxButton
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-red-600 hover:text-red-700"
+                className="h-8 px-2 text-danger-text hover:text-danger-text/80"
                 onClick={() => handleRemove(p.id)}
                 disabled={removingId === p.id}
               >

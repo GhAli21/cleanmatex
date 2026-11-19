@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { prisma } from '@/lib/db/prisma';
 import { Prisma } from '@prisma/client';
 import { type OrderPreferencesSourceDefault } from './order-piece-service';
@@ -1249,7 +1250,7 @@ export class OrderService {
           .eq('tenant_org_id', tenantId);
       }
 
-      await supabase.rpc('log_order_action', {
+      await catalogReadClient(supabase).rpc('log_order_action', {
         p_tenant_org_id: tenantId,
         p_order_id: orderId,
         p_action_type: 'ISSUE_CREATED',
@@ -1676,7 +1677,7 @@ export class OrderService {
           .eq('tenant_org_id', tenantId);
       }
 
-      await supabase.rpc('log_order_action', {
+      await catalogReadClient(supabase).rpc('log_order_action', {
         p_tenant_org_id: tenantId,
         p_order_id: issue.order_id,
         p_action_type: 'ISSUE_SOLVED',

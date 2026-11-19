@@ -44,10 +44,10 @@ export function PriceChangedDialog({ open, lines, itemName, onUseCurrentPrices, 
         <CmxDialogHeader>
           <CmxDialogTitle>{t('title')}</CmxDialogTitle>
         </CmxDialogHeader>
-        <p className="text-sm text-gray-600">{t('message')}</p>
-        <div className="overflow-hidden rounded-lg border border-gray-200">
+        <p className="text-sm text-muted-foreground">{t('message')}</p>
+        <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-700">
+            <thead className="bg-muted text-foreground">
               <tr>
                 <th scope="col" className="px-3 py-2 text-start font-semibold">{t('item')}</th>
                 <th scope="col" className="px-3 py-2 text-end font-semibold">{t('shownPrice')}</th>
@@ -56,16 +56,16 @@ export function PriceChangedDialog({ open, lines, itemName, onUseCurrentPrices, 
             </thead>
             <tbody>
               {lines.map((line) => (
-                <tr key={line.index} className="border-t border-gray-100">
-                  <td className="px-3 py-2 text-start text-gray-800">{itemName(line.index)}</td>
-                  <td className="px-3 py-2 text-end tabular-nums text-gray-500 line-through">{fmt(line.shownUnitPrice)}</td>
-                  <td className="px-3 py-2 text-end tabular-nums font-semibold text-gray-900">{fmt(line.currentUnitPrice)}</td>
+                <tr key={line.index} className="border-t border-border">
+                  <td className="px-3 py-2 text-start text-foreground">{itemName(line.index)}</td>
+                  <td className="px-3 py-2 text-end tabular-nums text-muted-foreground line-through">{fmt(line.shownUnitPrice)}</td>
+                  <td className="px-3 py-2 text-end tabular-nums font-semibold text-foreground">{fmt(line.currentUnitPrice)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-500">{t('hint')}</p>
+        <p className="text-xs text-muted-foreground">{t('hint')}</p>
         <CmxDialogFooter>
           <CmxButton type="button" variant="outline" onClick={onBack}>{t('back')}</CmxButton>
           <CmxButton type="button" onClick={onUseCurrentPrices}>{t('useCurrentPrices')}</CmxButton>

@@ -450,7 +450,7 @@ export default function RefundsListClient({
           <span className="text-sm text-muted-foreground">
             {tCommon('pagination', { page: pagination.page, totalPages })}
           </span>
-          <div className="flex gap-2 rtl:flex-row-reverse">
+          <div className="flex gap-2">
             <CmxButton variant="outline" size="sm" onClick={() => handlePage(pagination.page - 1)} disabled={pagination.page <= 1}>
               {tCommon('previous')}
             </CmxButton>
@@ -501,7 +501,7 @@ export default function RefundsListClient({
               {drawerSessionsLoading ? (
                 <p className="text-xs text-muted-foreground">{tCommon('loading')}</p>
               ) : drawerSessions.length === 0 ? (
-                <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <p role="alert" className="rounded-lg border border-warning-border bg-warning-bg px-3 py-2 text-xs text-warning-text">
                   {t('execution.noOpenDrawerSessions')}
                 </p>
               ) : (

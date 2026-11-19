@@ -46,7 +46,7 @@ export function OrderChargesVoidPanel({ orderId, charges, currencyCode, decimalP
         <CmxCardTitle className="text-base">{t('sections.charges')}</CmxCardTitle>
       </CmxCardHeader>
       <CmxCardContent>
-        <ul className="flex flex-col divide-y divide-[rgb(var(--cmx-border-rgb))]">
+        <ul className="flex flex-col divide-y divide-border">
           {active.map((c) => (
             <li key={c.id} className="flex min-h-11 items-center gap-3 py-2 text-sm">
               <span className="min-w-0 flex-1">{c.label ?? c.charge_type}</span>

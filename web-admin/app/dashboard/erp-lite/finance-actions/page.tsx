@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Labels the controlled finance-action workspace for tab-level orientation. */
@@ -9,8 +10,6 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteFinanceAuditService } from '@/lib/services/erp-lite-finance-audit.service'
 import { ErpLiteFinanceActionsAuditScreen } from '@features/erp-lite/ui/erp-lite-finance-actions-audit-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -46,9 +45,9 @@ export default async function ErpLiteFinanceActionsPage() {
       permissions={['erp_lite_periods:view']}
     >
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLiteFinanceActionsAuditScreen rows={rows} />
       )}

@@ -25,7 +25,7 @@ export function ErpLiteBranchPlCostSummaryTable({
 
   const columns: ColumnDef<ErpLitePhase10DashboardSnapshot['cost_summary_rows'][number]>[] = [
     { accessorKey: 'branch_name', header: t('lists.costSummary.columns.branch') },
-    { id: 'total_cost', header: () => <div className="text-right">{t('lists.costSummary.columns.totalCost')}</div>, cell: ({ row }) => <div className="text-right">{formatErpLiteMoney(row.original.total_cost, displayConfig)}</div> },
+    { id: 'total_cost', header: () => <div className="text-end">{t('lists.costSummary.columns.totalCost')}</div>, cell: ({ row }) => <div className="text-end">{formatErpLiteMoney(row.original.total_cost, displayConfig)}</div> },
   ]
 
   return (

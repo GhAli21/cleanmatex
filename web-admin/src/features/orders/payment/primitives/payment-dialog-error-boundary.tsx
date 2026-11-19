@@ -72,8 +72,8 @@ export class PaymentDialogErrorBoundary extends Component<
         data-testid="payment-dialog-error-fallback"
         className="flex flex-col items-center gap-3 p-6 text-center"
       >
-        <CircleAlert className="h-8 w-8 text-rose-500" aria-hidden="true" />
-        <p className="text-sm text-slate-600">{this.props.fallbackMessage}</p>
+        <CircleAlert className="h-8 w-8 text-danger-text" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">{this.props.fallbackMessage}</p>
         <CmxButton type="button" variant="outline" size="sm" onClick={this.handleClose}>
           {this.props.closeLabel}
         </CmxButton>

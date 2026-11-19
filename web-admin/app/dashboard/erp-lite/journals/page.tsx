@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Identifies journal management without relying on a generic application title. */
@@ -9,8 +10,6 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteJournalsService } from '@/lib/services/erp-lite-journals.service'
 import { ErpLiteJournalsScreen } from '@features/erp-lite/ui/erp-lite-journals-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -38,9 +37,9 @@ export default async function ErpLiteJournalsPage() {
   return (
     <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED} permissions={['erp_lite_gl:view']}>
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLiteJournalsScreen rows={rows} />
       )}

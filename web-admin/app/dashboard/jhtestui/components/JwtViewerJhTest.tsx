@@ -117,19 +117,19 @@ export default function JwtViewerJhTest() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+      <div className="rounded-lg bg-danger-bg border border-danger-border p-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+          <AlertCircle className="h-5 w-5 text-danger-text mt-0.5" />
           <div>
-            <h3 className="font-semibold text-red-900">Error Loading Token</h3>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+            <h3 className="font-semibold text-danger-text">Error Loading Token</h3>
+            <p className="text-sm text-danger-text mt-1">{error}</p>
           </div>
         </div>
       </div>
@@ -138,12 +138,12 @@ export default function JwtViewerJhTest() {
 
   if (!decodedToken) {
     return (
-      <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+      <div className="rounded-lg bg-warning-bg border border-warning-border p-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+          <AlertCircle className="h-5 w-5 text-warning-text mt-0.5" />
           <div>
-            <h3 className="font-semibold text-yellow-900">No Token Available</h3>
-            <p className="text-sm text-yellow-700 mt-1">Please log in to view JWT token.</p>
+            <h3 className="font-semibold text-warning-text">No Token Available</h3>
+            <p className="text-sm text-warning-text mt-1">Please log in to view JWT token.</p>
           </div>
         </div>
       </div>
@@ -158,12 +158,12 @@ export default function JwtViewerJhTest() {
       {/* Header with Refresh Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">JWT Token Viewer</h2>
-          <p className="text-sm text-gray-600 mt-1">Decode and inspect your Supabase authentication token</p>
+          <h2 className="text-2xl font-bold text-foreground">JWT Token Viewer</h2>
+          <p className="text-sm text-muted-foreground mt-1">Decode and inspect your Supabase authentication token</p>
         </div>
         <button
           onClick={loadToken}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover transition-colors"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -171,34 +171,34 @@ export default function JwtViewerJhTest() {
       </div>
 
       {/* Token Overview */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Key className="h-5 w-5 text-blue-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Key className="h-5 w-5 text-primary-text" />
           Token Overview
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Issuer</label>
-            <p className="text-sm text-gray-900 mt-1">{payload.iss || 'N/A'}</p>
+            <label className="text-sm font-medium text-foreground">Issuer</label>
+            <p className="text-sm text-foreground mt-1">{payload.iss || 'N/A'}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Subject (User ID)</label>
-            <p className="text-sm text-gray-900 mt-1 font-mono text-xs break-all">{payload.sub || 'N/A'}</p>
+            <label className="text-sm font-medium text-foreground">Subject (User ID)</label>
+            <p className="text-sm text-foreground mt-1 font-mono text-xs break-all">{payload.sub || 'N/A'}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Issued At</label>
-            <p className="text-sm text-gray-900 mt-1">{payload.iat ? formatDate(payload.iat) : 'N/A'}</p>
+            <label className="text-sm font-medium text-foreground">Issued At</label>
+            <p className="text-sm text-foreground mt-1">{payload.iat ? formatDate(payload.iat) : 'N/A'}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Expires At</label>
+            <label className="text-sm font-medium text-foreground">Expires At</label>
             <div className="flex items-center gap-2 mt-1">
-              <Clock className={`h-4 w-4 ${isExpired ? 'text-red-600' : 'text-green-600'}`} />
-              <p className="text-sm text-gray-900">{payload.exp ? formatDate(payload.exp) : 'N/A'}</p>
+              <Clock className={`h-4 w-4 ${isExpired ? 'text-danger-text' : 'text-success-text'}`} />
+              <p className="text-sm text-foreground">{payload.exp ? formatDate(payload.exp) : 'N/A'}</p>
             </div>
           </div>
           <div className="md:col-span-2">
-            <label className="text-sm font-medium text-gray-700">Time Remaining</label>
-            <p className={`text-lg font-semibold mt-1 ${isExpired ? 'text-red-600' : 'text-green-600'}`}>
+            <label className="text-sm font-medium text-foreground">Time Remaining</label>
+            <p className={`text-lg font-semibold mt-1 ${isExpired ? 'text-danger-text' : 'text-success-text'}`}>
               {timeRemaining}
             </p>
           </div>
@@ -206,69 +206,69 @@ export default function JwtViewerJhTest() {
       </div>
 
       {/* User Claims */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <User className="h-5 w-5 text-blue-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <User className="h-5 w-5 text-primary-text" />
           User Claims
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
-            <p className="text-sm text-gray-900 mt-1">{payload.email || 'N/A'}</p>
+            <label className="text-sm font-medium text-foreground">Email</label>
+            <p className="text-sm text-foreground mt-1">{payload.email || 'N/A'}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Role</label>
-            <p className="text-sm text-gray-900 mt-1">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <label className="text-sm font-medium text-foreground">Role</label>
+            <p className="text-sm text-foreground mt-1">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-bg text-info-text">
                 {payload.role || 'N/A'}
               </span>
             </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Email Confirmed</label>
-            <p className="text-sm text-gray-900 mt-1">
+            <label className="text-sm font-medium text-foreground">Email Confirmed</label>
+            <p className="text-sm text-foreground mt-1">
               {payload.email_confirmed_at ? (
-                <span className="text-green-600 flex items-center gap-1">
+                <span className="text-success-text flex items-center gap-1">
                   <CheckCircle className="h-4 w-4" />
                   Yes
                 </span>
               ) : (
-                <span className="text-yellow-600">No</span>
+                <span className="text-warning-text">No</span>
               )}
             </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Phone</label>
-            <p className="text-sm text-gray-900 mt-1">{payload.phone || 'N/A'}</p>
+            <label className="text-sm font-medium text-foreground">Phone</label>
+            <p className="text-sm text-foreground mt-1">{payload.phone || 'N/A'}</p>
           </div>
         </div>
       </div>
 
       {/* Tenant Context */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-primary-text" />
           Tenant Context
         </h3>
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Tenant Org ID</label>
-            <p className="text-sm text-gray-900 mt-1 font-mono text-xs break-all">
+            <label className="text-sm font-medium text-foreground">Tenant Org ID</label>
+            <p className="text-sm text-foreground mt-1 font-mono text-xs break-all">
               {payload.tenant_org_id || payload.user_metadata?.tenant_org_id || 'N/A'}
             </p>
           </div>
           {payload.app_metadata && (
             <div>
-              <label className="text-sm font-medium text-gray-700">App Metadata</label>
-              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 mt-1 overflow-x-auto">
+              <label className="text-sm font-medium text-foreground">App Metadata</label>
+              <pre className="text-xs bg-muted p-3 rounded border border-border mt-1 overflow-x-auto">
                 {JSON.stringify(payload.app_metadata, null, 2)}
               </pre>
             </div>
           )}
           {payload.user_metadata && (
             <div>
-              <label className="text-sm font-medium text-gray-700">User Metadata</label>
-              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 mt-1 overflow-x-auto">
+              <label className="text-sm font-medium text-foreground">User Metadata</label>
+              <pre className="text-xs bg-muted p-3 rounded border border-border mt-1 overflow-x-auto">
                 {JSON.stringify(payload.user_metadata, null, 2)}
               </pre>
             </div>
@@ -277,24 +277,24 @@ export default function JwtViewerJhTest() {
       </div>
 
       {/* Full Payload */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Full Token Payload</h3>
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Full Token Payload</h3>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Header</label>
-            <pre className="text-xs bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto">
+            <label className="text-sm font-medium text-foreground mb-2 block">Header</label>
+            <pre className="text-xs bg-muted p-4 rounded border border-border overflow-x-auto">
               {JSON.stringify(header, null, 2)}
             </pre>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Payload</label>
-            <pre className="text-xs bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto max-h-96 overflow-y-auto">
+            <label className="text-sm font-medium text-foreground mb-2 block">Payload</label>
+            <pre className="text-xs bg-muted p-4 rounded border border-border overflow-x-auto max-h-96 overflow-y-auto">
               {JSON.stringify(payload, null, 2)}
             </pre>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Signature</label>
-            <p className="text-xs bg-gray-50 p-4 rounded border border-gray-200 font-mono break-all">
+            <label className="text-sm font-medium text-foreground mb-2 block">Signature</label>
+            <p className="text-xs bg-muted p-4 rounded border border-border font-mono break-all">
               {signature}
             </p>
           </div>
@@ -302,19 +302,19 @@ export default function JwtViewerJhTest() {
       </div>
 
       {/* Raw Token */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Raw Token</h3>
+          <h3 className="text-lg font-semibold text-foreground">Raw Token</h3>
           <div className="flex gap-2">
             <button
               onClick={() => setShowRawToken(!showRawToken)}
-              className="text-sm text-blue-600 hover:text-blue-700"
+              className="text-sm text-primary-text hover:text-primary-text/80"
             >
               {showRawToken ? 'Hide' : 'Show'}
             </button>
             <button
               onClick={() => copyToClipboard(raw, 'token')}
-              className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-1 text-sm text-primary-text hover:text-primary-text/80"
             >
               {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? 'Copied!' : 'Copy'}
@@ -322,11 +322,11 @@ export default function JwtViewerJhTest() {
           </div>
         </div>
         {showRawToken ? (
-          <pre className="text-xs bg-gray-50 p-4 rounded border border-gray-200 overflow-x-auto break-all whitespace-pre-wrap">
+          <pre className="text-xs bg-muted p-4 rounded border border-border overflow-x-auto break-all whitespace-pre-wrap">
             {raw}
           </pre>
         ) : (
-          <p className="text-sm text-gray-600 italic">
+          <p className="text-sm text-muted-foreground italic">
             Click &quot;Show&quot; to reveal the full raw token
           </p>
         )}

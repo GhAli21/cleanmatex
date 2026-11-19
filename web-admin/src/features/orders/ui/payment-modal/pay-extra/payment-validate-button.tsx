@@ -53,8 +53,8 @@ export function PaymentValidateButton({
       onClick={onClick}
       data-testid="payment-validate-button"
       className={cn(
-        'gap-2 rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-500 to-amber-600 font-semibold text-white shadow-sm hover:from-amber-600 hover:to-amber-700',
-        isRTL && 'flex-row-reverse',
+        'gap-2 rounded-2xl border border-warning-border bg-gradient-to-r from-warning to-warning font-semibold text-on-solid shadow-sm hover:from-warning/90 hover:to-warning/90',
+        false,
         className
       )}
     >

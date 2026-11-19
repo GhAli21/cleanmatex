@@ -75,4 +75,6 @@ public.fn_stng_resolve_setting_value(p_tenant_id uuid, p_setting_code text, p_br
 
 `sys_*` statements in the tenant app now go through `catalogReadClient`. Outside Jest that is the service role, and only for that statement. `org_*` queries stay on the session client. The browser currency minor-unit read goes through `readCurrencyMinorUnits`, a server action, so the service-role key is not bundled.
 
+**Regression scan (tenant app):** `npm run check:s0-session-catalog-reads` (`scripts/db/scan-s0-session-catalog-reads.py`) fails when a session client still `.from('sys_*'|'hq_*')`, embeds those tables, or calls a non-allowlisted RPC without `catalogReadClient` / `createAdminSupabaseClient`. Admin-bound clients and org-only RPCs such as `resolve_item_preferences` are suppressed. Migration allowlist drift: `npm run check:s0-privilege-sources`.
+
 `platform-api`, `platform-web` server, and `platform-workers` already use the service role. `platform-web` browser code has no `.rpc` and no `sys_` / `hq_` `.from`. No HQ code change.

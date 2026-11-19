@@ -36,7 +36,6 @@ export interface OrderValueBreakdownLabels {
 export interface OrderValueBreakdownPanelProps {
   model: OrderValueBreakdownModel;
   labels: OrderValueBreakdownLabels;
-  isRTL: boolean;
   /** True while server totals are loading and tax rows aren't final yet. */
   taxLoading?: boolean;
 }
@@ -53,15 +52,14 @@ export interface OrderValueBreakdownPanelProps {
 export function OrderValueBreakdownPanel({
   model,
   labels,
-  isRTL,
   taxLoading,
 }: OrderValueBreakdownPanelProps) {
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className={isRTL ? 'text-right' : 'text-left'}>
-          <p className="text-sm font-semibold text-slate-900">{labels.grossValue}</p>
-          <p className="mt-1 text-xs text-slate-500">{labels.grossValueHelp}</p>
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="text-start">
+          <p className="text-sm font-semibold text-foreground">{labels.grossValue}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{labels.grossValueHelp}</p>
         </div>
         <div className="mt-3 space-y-2">
           {model.grossRows.map((row) => (
@@ -71,10 +69,10 @@ export function OrderValueBreakdownPanel({
       </div>
 
       {model.discountRows.length > 0 ? (
-        <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <p className="text-sm font-semibold text-rose-900">{labels.discounts}</p>
-            <p className="mt-1 text-xs text-rose-700">{labels.discountsHelp}</p>
+        <div className="rounded-2xl border border-danger-border bg-danger-bg/60 p-4">
+          <div className="text-start">
+            <p className="text-sm font-semibold text-danger-text">{labels.discounts}</p>
+            <p className="mt-1 text-xs text-danger-text">{labels.discountsHelp}</p>
           </div>
           <div className="mt-3 space-y-2">
             {model.discountRows.map((row) => (
@@ -85,10 +83,10 @@ export function OrderValueBreakdownPanel({
       ) : null}
 
       {taxLoading ? (
-        <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
-            <p className="mt-1 text-xs text-amber-700">{labels.taxesHelp}</p>
+        <div className="rounded-2xl border border-warning-border bg-warning-bg/50 p-4">
+          <div className="text-start">
+            <p className="text-sm font-semibold text-warning-text">{labels.taxes}</p>
+            <p className="mt-1 text-xs text-warning-text">{labels.taxesHelp}</p>
           </div>
           <div className="mt-3 space-y-2">
             <CmxSkeleton className="h-4 w-full" />
@@ -96,10 +94,10 @@ export function OrderValueBreakdownPanel({
           </div>
         </div>
       ) : model.taxRows.length > 0 ? (
-        <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <p className="text-sm font-semibold text-amber-950">{labels.taxes}</p>
-            <p className="mt-1 text-xs text-amber-700">{labels.taxesHelp}</p>
+        <div className="rounded-2xl border border-warning-border bg-warning-bg/50 p-4">
+          <div className="text-start">
+            <p className="text-sm font-semibold text-warning-text">{labels.taxes}</p>
+            <p className="mt-1 text-xs text-warning-text">{labels.taxesHelp}</p>
           </div>
           <div className="mt-3 space-y-2">
             {model.taxRows.map((row) => (

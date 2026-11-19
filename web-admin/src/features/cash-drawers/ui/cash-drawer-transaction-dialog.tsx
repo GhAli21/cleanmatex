@@ -170,7 +170,7 @@ export function CashDrawerTransactionDialog({
     }
   }
 
-  const muted = 'text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
+  const muted = 'text-sm text-muted-foreground'
 
   return (
     <CmxDialog

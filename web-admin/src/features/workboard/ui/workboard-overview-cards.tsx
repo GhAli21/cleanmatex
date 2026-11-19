@@ -19,29 +19,29 @@ type WorkboardOverviewTone = 'primary' | 'info' | 'success' | 'warning' | 'dange
 
 const OVERVIEW_TONE_CLASSES: Record<WorkboardOverviewTone, { idle: string; active: string; icon: string }> = {
   primary: {
-    idle: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.28)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.05)]',
-    active: 'border-[rgb(var(--cmx-primary-rgb,14_165_233)/0.7)] bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
-    icon: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)/0.12)] text-[rgb(var(--cmx-primary-text-rgb,3_105_161))]',
+    idle: 'border-primary/28 bg-primary/5',
+    active: 'border-primary/70 bg-primary/12 text-primary-text',
+    icon: 'bg-primary/12 text-primary-text',
   },
   info: {
-    idle: 'border-[rgb(var(--cmx-info-rgb,59_130_246)/0.28)] bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.05)]',
-    active: 'border-[rgb(var(--cmx-info-rgb,59_130_246)/0.7)] bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.12)] text-[rgb(var(--cmx-info-rgb,37_99_235))]',
-    icon: 'bg-[rgb(var(--cmx-info-rgb,59_130_246)/0.12)] text-[rgb(var(--cmx-info-rgb,37_99_235))]',
+    idle: 'border-info/28 bg-info/5',
+    active: 'border-info/70 bg-info/12 text-info',
+    icon: 'bg-info/12 text-info',
   },
   success: {
-    idle: 'border-[rgb(var(--cmx-success-rgb,22_163_74)/0.28)] bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.05)]',
-    active: 'border-[rgb(var(--cmx-success-rgb,22_163_74)/0.7)] bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.12)] text-[rgb(var(--cmx-success-rgb,22_163_74))]',
-    icon: 'bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.12)] text-[rgb(var(--cmx-success-rgb,22_163_74))]',
+    idle: 'border-success/28 bg-success/5',
+    active: 'border-success/70 bg-success/12 text-success',
+    icon: 'bg-success/12 text-success',
   },
   warning: {
-    idle: 'border-[rgb(var(--cmx-warning-rgb,217_119_6)/0.28)] bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.05)]',
-    active: 'border-[rgb(var(--cmx-warning-rgb,217_119_6)/0.7)] bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.12)] text-[rgb(var(--cmx-warning-rgb,180_83_9))]',
-    icon: 'bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.12)] text-[rgb(var(--cmx-warning-rgb,180_83_9))]',
+    idle: 'border-warning/28 bg-warning/5',
+    active: 'border-warning/70 bg-warning/12 text-warning',
+    icon: 'bg-warning/12 text-warning',
   },
   danger: {
-    idle: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.28)] bg-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.05)]',
-    active: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.7)] bg-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.12)] text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
-    icon: 'bg-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.12)] text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+    idle: 'border-destructive/28 bg-destructive/5',
+    active: 'border-destructive/70 bg-destructive/12 text-destructive',
+    icon: 'bg-destructive/12 text-destructive',
   },
 }
 
@@ -114,7 +114,7 @@ function WorkboardOverviewCard({
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</span>
+        <span className="block truncate text-xs font-medium text-muted-foreground">{label}</span>
         <span className="block text-2xl font-semibold tracking-tight tabular-nums">{value}</span>
       </span>
     </CmxButton>
@@ -147,7 +147,7 @@ export function WorkboardOverviewCards({
     <section aria-labelledby="workboard-queue-focus" className="space-y-1.5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
         <h2 id="workboard-queue-focus" className="text-sm font-semibold">{t('overview.title')}</h2>
-        <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('overview.description')}</p>
+        <p className="text-xs text-muted-foreground">{t('overview.description')}</p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">

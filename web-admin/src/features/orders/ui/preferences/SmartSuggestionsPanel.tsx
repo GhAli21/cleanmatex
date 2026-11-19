@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { CmxButton } from '@ui/primitives';
@@ -43,7 +42,6 @@ function SmartSuggestionsForCustomer({
   updateItemServicePrefs,
 }: SmartSuggestionsForCustomerProps) {
   const t = useTranslations('newOrder.preferences');
-  const isRTL = useRTL();
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
 
   useEffect(() => {
@@ -100,15 +98,15 @@ function SmartSuggestionsForCustomer({
   return (
     <div
       data-testid="smart-suggestions-panel"
-      className={`rounded-lg border border-gray-200 bg-gray-50/50 p-3 ${isRTL ? 'text-right' : 'text-left'}`}
+      className="rounded-lg border border-border bg-muted/50 p-3 text-start"
     >
-      <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <Sparkles className="w-4 h-4 text-gray-600 shrink-0" />
-        <span className="text-sm font-medium text-gray-700">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-4 h-4 text-muted-foreground shrink-0" />
+        <span className="text-sm font-medium text-foreground">
           {t('smartSuggestions') || 'Suggested for you'}
         </span>
       </div>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="text-xs text-muted-foreground mb-2">
         {t('smartSuggestionsDesc') || 'Based on your order history'}
       </p>
       {loading ? (
@@ -116,13 +114,13 @@ function SmartSuggestionsForCustomer({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-8 w-20 animate-pulse rounded-md bg-gray-200"
+              className="h-8 w-20 animate-pulse rounded-md bg-muted"
               aria-hidden
             />
           ))}
         </div>
       ) : (
-        <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex flex-wrap gap-2">
           {suggestions.map((s) => (
             <CmxButton
               key={s.preference_code}

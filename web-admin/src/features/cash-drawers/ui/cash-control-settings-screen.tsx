@@ -169,8 +169,8 @@ export function CashControlSettingsScreen() {
   return (
     <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="max-w-4xl space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-[rgb(var(--cmx-primary-bg-rgb,239_246_255))] p-2">
-          <ShieldCheck className="h-6 w-6 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" aria-hidden />
+        <div className="rounded-lg bg-primary-bg p-2">
+          <ShieldCheck className="h-6 w-6 text-primary-text" aria-hidden />
         </div>
         <div>
           <h1 className="text-xl font-semibold">{t('title')}</h1>

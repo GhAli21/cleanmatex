@@ -86,7 +86,7 @@ export default function PreparationPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
@@ -95,7 +95,7 @@ export default function PreparationPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{t('screens.preparation')}</h1>
-        <p className="text-gray-600 mt-1">{t('preparation.description')}</p>
+        <p className="text-muted-foreground mt-1">{t('preparation.description')}</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -121,7 +121,7 @@ export default function PreparationPage() {
           />
         </div>
         <div className="w-full md:w-44 space-y-1">
-          <p id="prep-sort-by-label" className="text-xs font-medium text-gray-600">
+          <p id="prep-sort-by-label" className="text-xs font-medium text-muted-foreground">
             {t('preparation.list.sortBy')}
           </p>
           <CmxSelectDropdown value={sortBy} onValueChange={(v) => setSortBy(v as 'order_no' | 'received_at')}>
@@ -141,7 +141,7 @@ export default function PreparationPage() {
           </CmxSelectDropdown>
         </div>
         <div className="w-full md:w-40 space-y-1">
-          <p id="prep-sort-dir-label" className="text-xs font-medium text-gray-600">
+          <p id="prep-sort-dir-label" className="text-xs font-medium text-muted-foreground">
             {t('preparation.list.sortDirection')}
           </p>
           <CmxSelectDropdown value={sortOrder} onValueChange={(v) => setSortOrder(v as 'asc' | 'desc')}>
@@ -161,14 +161,14 @@ export default function PreparationPage() {
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
 
       {orders.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <p className="text-gray-600 text-lg">{t('preparation.empty')}</p>
+        <div className="bg-card rounded-lg border border-border p-12 text-center">
+          <p className="text-muted-foreground text-lg">{t('preparation.empty')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -181,16 +181,16 @@ export default function PreparationPage() {
             <Link
               key={order.id}
               href={`/dashboard/preparation/${order.id}?returnUrl=${encodeURIComponent('/dashboard/preparation')}`}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
+              className="bg-card rounded-lg border border-border p-6 hover:border-primary hover:shadow-lg transition-all cursor-pointer"
             >
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-blue-600"><CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} /></h3>
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                <h3 className="text-xl font-bold text-primary-text"><CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} /></h3>
+                <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs font-medium">
                   {t('preparation.bags', { count: order.bag_count })}
                 </span>
               </div>
               
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{t('labels.customer')}:</span>
                   <span>{order.customer?.name || 'Unknown Customer'}</span>
@@ -205,8 +205,8 @@ export default function PreparationPage() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium">
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover text-center font-medium">
                   {t('preparation.actions.continueItemization')}
                 </div>
               </div>
@@ -226,7 +226,7 @@ export default function PreparationPage() {
           >
             {t('labels.previous')}
           </CmxButton>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
           </div>
           <CmxButton

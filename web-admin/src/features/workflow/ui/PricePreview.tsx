@@ -42,7 +42,7 @@ export function PricePreview({ orderId, refreshNonce = 0 }: PricePreviewProps) {
 
   if (loading) {
     return (
-      <div className="border border-gray-200 rounded-lg p-4 text-sm text-muted-foreground">
+      <div className="border border-border rounded-lg p-4 text-sm text-muted-foreground">
         {tCommon('loading')}
       </div>
     );
@@ -51,7 +51,7 @@ export function PricePreview({ orderId, refreshNonce = 0 }: PricePreviewProps) {
   if (!data) return null;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4" role="region" aria-label={t('preparation.pricePreview.regionAria')}>
+    <div className="border border-border rounded-lg p-4" role="region" aria-label={t('preparation.pricePreview.regionAria')}>
       <div className="flex justify-between text-sm">
         <span>{t('preparation.pricePreview.items')}</span>
         <span>{data.total_items}</span>

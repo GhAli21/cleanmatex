@@ -370,8 +370,8 @@ export function CmxDialogContent({
           draggable &&
             isDragging &&
             '[&_[data-cmx-dialog-header]]:cursor-grabbing [&_[data-cmx-dialog-drag-handle]]:cursor-grabbing',
-          'bg-[rgb(var(--cmx-background-rgb,255_255_255))]',
-          'ring-1 ring-[rgb(var(--cmx-border-rgb,226_232_240))]',
+          'bg-background',
+          'ring-1 ring-border',
           bodyPadding === 'default' &&
             '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4 sm:[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-6 [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-4',
           bodyPadding === 'compact' &&
@@ -393,9 +393,9 @@ export function CmxDialogContent({
             onClick={() => context.onOpenChange(false)}
             className={cn(
               'absolute top-4 end-4',
-              'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-              'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
-              'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))] rounded',
+              'text-muted-foreground',
+              'hover:text-foreground',
+              'focus:outline-none focus:ring-2 focus:ring-ring rounded',
             )}
             aria-label={tCommon('close')}
           >
@@ -424,7 +424,7 @@ export function CmxDialogHeader({
       data-cmx-dialog-header=""
       aria-grabbed={drag?.enabled ? drag.isDragging : undefined}
       className={cn(
-        'px-6 pt-6 pb-4 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]',
+        'px-6 pt-6 pb-4 border-b border-border',
         className,
       )}
       {...props}
@@ -451,7 +451,7 @@ export function CmxDialogTitle({
     <h2
       id={titleId}
       className={cn(
-        'text-lg font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+        'text-lg font-semibold text-foreground',
         className,
       )}
       {...props}
@@ -479,7 +479,7 @@ export function CmxDialogDescription({
     <p
       id={descriptionId}
       className={cn(
-        'mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+        'mt-1 text-sm text-muted-foreground',
         className,
       )}
       {...props}
@@ -502,7 +502,7 @@ export function CmxDialogFooter({
     <div
       data-cmx-dialog-footer=""
       className={cn(
-        'px-6 py-4 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] flex justify-end gap-3',
+        'px-6 py-4 border-t border-border flex justify-end gap-3',
         className,
       )}
       {...props}

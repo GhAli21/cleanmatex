@@ -50,16 +50,16 @@ export function SessionIdleWarningDialog({ open, secondsLeft, onStaySignedIn, on
           <CmxDialogTitle>{t('idleWarningTitle')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-3 px-1 py-2">
-          <p className="text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('idleWarningMessage')}</p>
+          <p className="text-sm text-foreground">{t('idleWarningMessage')}</p>
           {/* role=timer: assistive tech is not interrupted every second; the dialog itself is announced on open. */}
           <p
             role="timer"
-            className="text-center text-3xl font-semibold tabular-nums text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+            className="text-center text-3xl font-semibold tabular-nums text-primary-text"
           >
             {t('countdown', { seconds: secondsLeft })}
           </p>
           {failed ? (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger-text">
               {t('stayFailed')}
             </p>
           ) : null}

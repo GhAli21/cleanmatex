@@ -67,7 +67,6 @@ export function OrdersPaymentsTabRprt({
       as="span"
       value={value}
       maxLength={maxLength}
-      align={isRTL ? 'right' : 'left'}
       className={`px-0 py-0 text-sm text-foreground ${className}`}
     />
   );
@@ -75,9 +74,9 @@ export function OrdersPaymentsTabRprt({
   if (payments.length === 0) {
     return (
       <div
-        className={`flex flex-col items-center justify-center py-12 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+        className="flex flex-col items-center justify-center py-12 text-muted-foreground text-start"
       >
-        <CreditCard className="mb-3 h-12 w-12 text-gray-300" />
+        <CreditCard className="mb-3 h-12 w-12 text-muted-foreground" />
         <p>{t.emptyPayments}</p>
       </div>
     );
@@ -85,15 +84,15 @@ export function OrdersPaymentsTabRprt({
 
   return (
     <div className="space-y-4">
-      <div className={`flex flex-wrap gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex flex-wrap gap-4">
         <div className="relative min-w-[180px] flex-1">
-          <Search className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ${isRTL ? 'left-auto right-3' : 'left-3 right-auto'}`} />
+          <Search className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground start-3 end-auto" />
           <CmxInput
             type="text"
             placeholder={t.searchByVoucherId}
             value={searchVoucherId}
             onChange={(e) => setSearchVoucherId(e.target.value)}
-            className={isRTL ? 'pl-3 pr-10' : 'pl-10 pr-3'}
+            className="ps-10 pe-3"
           />
         </div>
       </div>
@@ -101,26 +100,26 @@ export function OrdersPaymentsTabRprt({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <tr className="border-b border-border bg-muted">
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {t.paymentId ?? 'ID'}
               </th>
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {tDetail('amountSummary')}
               </th>
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {tDetail('methodAndStatus')}
               </th>
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {tDetail('references')}
               </th>
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {tDetail('instrument')}
               </th>
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {tDetail('paidAt')}
               </th>
-              <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                 {t.notes ?? 'Notes'}
               </th>
             </tr>
@@ -137,8 +136,8 @@ export function OrdersPaymentsTabRprt({
                 });
 
               return (
-                <tr key={payment.id} className="border-b border-gray-100 align-top hover:bg-gray-50">
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <tr key={payment.id} className="border-b border-border align-top hover:bg-muted">
+                  <td className="px-4 py-3 text-start">
                     <div className="space-y-2">
                       <CopyValue value={payment.id} maxLength={12} className="font-medium" />
                       {payment.fin_voucher_id && (
@@ -152,7 +151,7 @@ export function OrdersPaymentsTabRprt({
                       )}
                     </div>
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <td className="px-4 py-3 text-start">
                     <div className="space-y-2">
                       <CopyValue value={fmtMoney(payment.amount)} className="font-medium" />
                       {payment.tendered_amount != null && payment.tendered_amount > 0 && (
@@ -170,7 +169,7 @@ export function OrdersPaymentsTabRprt({
                       </div>
                     </div>
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <td className="px-4 py-3 text-start">
                     <div className="space-y-2">
                       <CopyValue
                         value={payment.payment_method_name_snapshot ?? payment.payment_method_code}
@@ -184,7 +183,7 @@ export function OrdersPaymentsTabRprt({
                       </div>
                     </div>
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <td className="px-4 py-3 text-start">
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">{t.voucherId ?? 'Voucher ID'}:</span>{' '}
@@ -209,7 +208,7 @@ export function OrdersPaymentsTabRprt({
                       </div>
                     </div>
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <td className="px-4 py-3 text-start">
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">{tDetail('cardBrand')}:</span>{' '}
@@ -229,7 +228,7 @@ export function OrdersPaymentsTabRprt({
                       </div>
                     </div>
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <td className="px-4 py-3 text-start">
                     <div className="space-y-2 text-sm">
                       <CopyValue value={paidDate ? new Date(paidDate).toLocaleString() : null} />
                       <div className="text-xs text-muted-foreground">
@@ -237,7 +236,7 @@ export function OrdersPaymentsTabRprt({
                       </div>
                     </div>
                   </td>
-                  <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <td className="px-4 py-3 text-start">
                     <CopyValue value={payment.rec_notes} maxLength={28} />
                   </td>
                 </tr>
@@ -247,7 +246,7 @@ export function OrdersPaymentsTabRprt({
         </table>
       </div>
       {filtered.length === 0 && searchVoucherId && (
-        <p className="text-sm text-gray-500">{tDetail('noPaymentsMatch')}</p>
+        <p className="text-sm text-muted-foreground">{tDetail('noPaymentsMatch')}</p>
       )}
     </div>
   );

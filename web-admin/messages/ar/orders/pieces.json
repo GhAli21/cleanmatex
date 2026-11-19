@@ -1,6 +1,7 @@
 {
   "title": "القطع",
   "piece": "قطعة",
+  "pieceNumber": "قطعة {number}",
   "pieces": "القطع",
   "noPieces": "لا توجد قطع",
   "loading": "جاري تحميل القطع...",

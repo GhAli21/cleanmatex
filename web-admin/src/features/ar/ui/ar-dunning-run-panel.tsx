@@ -87,11 +87,11 @@ export function ArDunningRunPanel() {
           ]}
         />
         <div className="md:col-span-2">
-          <p className="mb-1 text-sm font-medium text-slate-900">{t('run.fields.notes')}</p>
+          <p className="mb-1 text-sm font-medium text-foreground">{t('run.fields.notes')}</p>
           <CmxTextarea placeholder={t('run.fields.notesPlaceholder')} value={notes} onChange={(event) => setNotes(event.target.value)} />
         </div>
-        {message ? <p className="text-sm text-emerald-700 md:col-span-2">{message}</p> : null}
-        {error ? <p className="text-sm text-red-700 md:col-span-2">{error}</p> : null}
+        {message ? <p className="text-sm text-success-text md:col-span-2">{message}</p> : null}
+        {error ? <p className="text-sm text-danger-text md:col-span-2">{error}</p> : null}
         <div className="md:col-span-2 flex justify-end">
           <CmxButton onClick={onSubmit} loading={isPending}>
             {t('run.submit')}

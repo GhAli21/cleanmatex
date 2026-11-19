@@ -66,7 +66,7 @@ export function CmxCollapsibleSection({
         <ChevronRight
           aria-hidden="true"
           className={cn(
-            'h-4 w-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb))] motion-safe:transition-transform rtl:-scale-x-100',
+            'h-4 w-4 shrink-0 text-muted-foreground motion-safe:transition-transform rtl:-scale-x-100',
             isOpen && 'rotate-90 rtl:-rotate-90',
           )}
         />
@@ -86,7 +86,7 @@ export function CmxCollapsibleSection({
           onClick={toggle}
           className={cn(
             'flex w-full min-h-11 items-center gap-2 rounded-md px-2 py-1.5 text-sm',
-            'hover:bg-[rgb(var(--cmx-ghost-hover-bg-rgb))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb))]',
+            'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             headerClassName,
           )}
         >

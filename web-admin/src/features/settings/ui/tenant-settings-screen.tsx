@@ -60,16 +60,16 @@ export function TenantSettingsScreen() {
       <CmxCard>
         <CmxCardHeader>
           <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-[rgb(var(--cmx-muted-foreground-rgb))]" aria-hidden="true" />
+            <Building2 className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             <div>
               <h2 className="text-base font-semibold">{t('tenantSettings.pricingSection')}</h2>
-              <p className="mt-0.5 text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('tenantSettings.pricingDescription')}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">{t('tenantSettings.pricingDescription')}</p>
             </div>
           </div>
         </CmxCardHeader>
         <CmxCardContent>
           {loading || !modes ? (
-            <div className="py-8 text-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('loading')}</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">{t('loading')}</div>
           ) : (
             <dl className="space-y-5">
               <div className="space-y-1">
@@ -80,7 +80,7 @@ export function TenantSettingsScreen() {
                 <dt className="text-sm font-medium">{t('pricingMode.extraPricePricingMode')}</dt>
                 <dd className="text-sm">{extraLabel(modes.extra_price_pricing_mode)}</dd>
               </div>
-              <p className="border-t pt-4 text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('pricingMode.managedByPlatform')}</p>
+              <p className="border-t pt-4 text-xs text-muted-foreground">{t('pricingMode.managedByPlatform')}</p>
             </dl>
           )}
         </CmxCardContent>

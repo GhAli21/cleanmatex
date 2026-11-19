@@ -96,15 +96,15 @@ export function CmxFileDropZone({
       }}
       className={cn(
         'flex flex-col items-center justify-center gap-2 rounded-[var(--cmx-radius-md,0.375rem)] border-2 border-dashed p-6 text-center transition-colors',
-        'border-[rgb(var(--cmx-border-rgb,226_232_240))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]',
-        dragging && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-bg-rgb,240_249_255))]',
+        'border-border text-muted-foreground',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        dragging && 'border-primary bg-primary-bg',
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-[rgb(var(--cmx-field-hover-rgb,248_250_252))]',
         className,
       )}
     >
       <UploadCloud className="h-8 w-8" aria-hidden />
-      <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{label ?? t('dropTitle')}</p>
+      <p className="text-sm font-medium text-foreground">{label ?? t('dropTitle')}</p>
       <p className="text-xs">{hint ?? t('dropHint')}</p>
       <input
         ref={inputRef}

@@ -103,18 +103,18 @@ export function OrderCustomerDetailsSection() {
 
   return (
     <div
-      className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`}
+      className="space-y-6 text-start"
       role="region"
       aria-label={t('title') || 'Customer details'}
     >
-      <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+      <p className="text-sm text-warning-text bg-warning-bg border border-warning-border rounded-lg px-4 py-2">
         {t('orderOnlyNote') || 'Changes apply to this order only, not to customer profile.'}
       </p>
       <EditControlNotice identity />
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="order-customer-name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="order-customer-name" className="block text-sm font-medium text-foreground mb-1">
             {tCommon('name') || 'Name'}
           </label>
           <CmxInput
@@ -131,7 +131,7 @@ export function OrderCustomerDetailsSection() {
         </div>
 
         <div>
-          <label htmlFor="order-customer-phone" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="order-customer-phone" className="block text-sm font-medium text-foreground mb-1">
             {tCommon('phone') || 'Phone'}
           </label>
           <CmxInput
@@ -148,7 +148,7 @@ export function OrderCustomerDetailsSection() {
         </div>
 
         <div>
-          <label htmlFor="order-customer-email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="order-customer-email" className="block text-sm font-medium text-foreground mb-1">
             {tCommon('email') || 'Email'}
           </label>
           <CmxInput
@@ -165,7 +165,7 @@ export function OrderCustomerDetailsSection() {
         </div>
 
         <div>
-          <label htmlFor="order-customer-notes" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="order-customer-notes" className="block text-sm font-medium text-foreground mb-1">
             {t('customerNotes') || 'Customer notes'}
           </label>
           <CmxTextarea

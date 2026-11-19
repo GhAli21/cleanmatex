@@ -12,14 +12,14 @@ const STATUS_OPTIONS = ['', 'QUEUED', 'PROCESSING', 'SENT', 'FAILED_TEMPORARY', 
 const CHANNEL_OPTIONS = ['', 'IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH'] as const
 
 const STATUS_BADGE: Record<string, { bg: string; text: string }> = {
-  SENT:             { bg: 'bg-green-100',  text: 'text-green-800' },
-  DELIVERED:        { bg: 'bg-green-100',  text: 'text-green-800' },
-  FAILED_PERMANENT: { bg: 'bg-red-100',    text: 'text-red-800' },
-  FAILED_TEMPORARY: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  SKIPPED:          { bg: 'bg-gray-100',   text: 'text-gray-600' },
-  QUEUED:           { bg: 'bg-blue-50',    text: 'text-blue-700' },
-  PROCESSING:       { bg: 'bg-blue-100',   text: 'text-blue-800' },
-  CANCELLED:        { bg: 'bg-gray-100',   text: 'text-gray-600' },
+  SENT:             { bg: 'bg-success-bg',  text: 'text-success-text' },
+  DELIVERED:        { bg: 'bg-success-bg',  text: 'text-success-text' },
+  FAILED_PERMANENT: { bg: 'bg-danger-bg',    text: 'text-danger-text' },
+  FAILED_TEMPORARY: { bg: 'bg-warning-bg', text: 'text-warning-text' },
+  SKIPPED:          { bg: 'bg-muted',   text: 'text-muted-foreground' },
+  QUEUED:           { bg: 'bg-info-bg',    text: 'text-primary-text' },
+  PROCESSING:       { bg: 'bg-info-bg',   text: 'text-primary-text' },
+  CANCELLED:        { bg: 'bg-muted',   text: 'text-muted-foreground' },
 }
 
 interface LogRow {
@@ -37,7 +37,7 @@ interface LogRow {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const style = STATUS_BADGE[status] ?? { bg: 'bg-gray-100', text: 'text-gray-600' }
+  const style = STATUS_BADGE[status] ?? { bg: 'bg-muted', text: 'text-muted-foreground' }
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
       {status}
@@ -104,7 +104,7 @@ export function DeliveryLogPage() {
       header: t('deliveryLog.recipient'),
       cell: ({ row }) => {
         const addr = row.original.recipient_address
-        if (!addr) return <span className="text-xs text-gray-400">—</span>
+        if (!addr) return <span className="text-xs text-muted-foreground">—</span>
         return <span className="text-xs">{addr.length > 30 ? addr.slice(0, 27) + '…' : addr}</span>
       },
     },
@@ -128,8 +128,8 @@ export function DeliveryLogPage() {
       header: t('deliveryLog.error'),
       cell: ({ row }) => {
         const msg = row.original.error_message ?? row.original.skip_reason
-        if (!msg) return <span className="text-xs text-gray-400">—</span>
-        return <span className="text-xs text-red-600 line-clamp-1" title={msg}>{msg}</span>
+        if (!msg) return <span className="text-xs text-muted-foreground">—</span>
+        return <span className="text-xs text-danger-text line-clamp-1" title={msg}>{msg}</span>
       },
     },
   ]
@@ -137,7 +137,7 @@ export function DeliveryLogPage() {
   return (
     <div className="px-4 py-6">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] me-auto">
+        <h1 className="text-xl font-semibold text-foreground me-auto">
           {t('deliveryLog.title')}
         </h1>
 

@@ -125,22 +125,22 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
     let status: React.ReactNode;
     if (section.status === 'error') {
       status = (
-        <div className="flex items-center gap-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]" role="alert">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground" role="alert">
           {t('orders.finView.states.loadFailed')}
           {onRetry && <CmxButton size="xs" variant="outline" onClick={onRetry}>{t('orders.finView.states.retry')}</CmxButton>}
         </div>
       );
     } else if (section.status === 'empty' || (section.lines && section.lines.length === 0)) {
-      status = <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('orders.finView.states.none')}</p>;
+      status = <p className="text-sm text-muted-foreground">{t('orders.finView.states.none')}</p>;
     } else if (section.status === 'forbidden') {
-      status = <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('orders.finView.states.forbidden')}</p>;
+      status = <p className="text-sm text-muted-foreground">{t('orders.finView.states.forbidden')}</p>;
     }
     const lines = section.lines && section.lines.length > 0 ? (
       <>
         <CmxStatementLineList cap={cap} showAllLabel={(n) => t('orders.finView.actions.showAll', { count: n })} showLessLabel={t('orders.finView.actions.showLess')}>
           {section.lines.map((l) => line(key, l))}
         </CmxStatementLineList>
-        {section.partial && <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('orders.finView.banners.partialTimeline')}</p>}
+        {section.partial && <p className="text-xs text-muted-foreground">{t('orders.finView.banners.partialTimeline')}</p>}
       </>
     ) : null;
     const marker = section.warningCodes?.length

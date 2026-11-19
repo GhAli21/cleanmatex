@@ -16,9 +16,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxSkeleton } from '@ui/primitives';
 
-import { Alert, AlertDescription } from '@ui/primitives';
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
-import { useRTL } from '@/lib/hooks/useRTL';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import {
   getCustomerLoyaltyDetail,
   type CustomerLoyaltyDetail,
@@ -44,7 +43,6 @@ const TXN_BADGE_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'neut
 export function CustomerLoyaltyTab({ customerId }: Props) {
   const t = useTranslations('customers.loyaltyPanel');
   const locale = useLocale();
-  const isRTL = useRTL();
 
   const [detail, setDetail] = useState<CustomerLoyaltyDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
@@ -104,13 +102,13 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
 
   return (
     <div className="space-y-6">
-      <h3 className={`text-lg font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <h3 className="text-lg font-semibold text-foreground text-start">
         {t('title')}
       </h3>
 
       {!account ? (
-        <div className="rounded-lg bg-gray-50 py-12 text-center">
-          <p className="text-sm text-gray-500">{t('noAccount')}</p>
+        <div className="rounded-lg bg-muted py-12 text-center">
+          <p className="text-sm text-muted-foreground">{t('noAccount')}</p>
         </div>
       ) : (
         <>
@@ -120,7 +118,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
                 <CmxCardTitle className="text-base">{t('pointsBalance')}</CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent>
-                <p className="text-3xl font-bold text-gray-900">{account.pointsBalance.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-foreground">{account.pointsBalance.toLocaleString()}</p>
               </CmxCardContent>
             </CmxCard>
             <CmxCard>
@@ -128,7 +126,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
                 <CmxCardTitle className="text-base">{t('lifetimeEarned')}</CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent>
-                <p className="text-3xl font-bold text-gray-900">{account.lifetimeEarned.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-foreground">{account.lifetimeEarned.toLocaleString()}</p>
               </CmxCardContent>
             </CmxCard>
             <CmxCard>
@@ -136,7 +134,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
                 <CmxCardTitle className="text-base">{t('currentTier')}</CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-lg font-semibold text-foreground">
                   {detail?.tier ? (locale === 'ar' ? detail.tier.tierName2 ?? detail.tier.tierName : detail.tier.tierName) : t('noTier')}
                 </p>
               </CmxCardContent>
@@ -144,24 +142,24 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
           </div>
 
           {(expirySummary?.expiredUnappliedPoints ?? 0) > 0 && (
-            <Alert variant="destructive">
-              <AlertDescription>
+            <CmxSummaryMessage type="error">
+              <div>
                 {t('expiredUnapplied', { points: expirySummary?.expiredUnappliedPoints ?? 0 })}
-              </AlertDescription>
-            </Alert>
+              </div>
+            </CmxSummaryMessage>
           )}
 
           {expirySummary?.nextExpiry && (
-            <Alert variant="warning">
-              <AlertDescription>
+            <CmxSummaryMessage type="warning">
+              <div>
                 {expirySummary.expiringWithin30Days > expirySummary.nextExpiry.points
                   ? t('expiryWarningMultiple', { points: expirySummary.expiringWithin30Days })
                   : t('expiryWarning', {
                       points: expirySummary.nextExpiry.points,
                       date: formatDate(expirySummary.nextExpiry.expiresAt),
                     })}
-              </AlertDescription>
-            </Alert>
+              </div>
+            </CmxSummaryMessage>
           )}
 
           <CmxCard>
@@ -171,39 +169,39 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
             <CmxCardContent className="p-0">
               {transactions.length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className="mb-2 text-gray-500">{t('noTransactions')}</p>
-                  <p className="text-sm text-gray-400">{t('noTransactionsHint')}</p>
+                  <p className="mb-2 text-muted-foreground">{t('noTransactions')}</p>
+                  <p className="text-sm text-muted-foreground">{t('noTransactionsHint')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-border">
                     <thead>
                       <tr>
-                        <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>{t('columns.date')}</th>
-                        <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>{t('columns.type')}</th>
-                        <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.points')}</th>
-                        <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>{t('columns.balanceAfter')}</th>
-                        <th className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>{t('columns.reference')}</th>
+                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-start">{t('columns.date')}</th>
+                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-start">{t('columns.type')}</th>
+                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-end">{t('columns.points')}</th>
+                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-end">{t('columns.balanceAfter')}</th>
+                        <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-start">{t('columns.reference')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border">
                       {transactions.map((row) => (
                         <tr key={row.id}>
-                          <td className={`px-4 py-3 text-sm text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <td className="px-4 py-3 text-sm text-foreground text-start">
                             {formatDateTime(row.createdAt)}
                           </td>
-                          <td className={`px-4 py-3 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <td className="px-4 py-3 text-sm text-start">
                             <CmxStatusBadge size="sm" tone={TXN_BADGE_VARIANT[row.txnType] ?? 'neutral'}>
                               {txnTypeLabel(row.txnType)}
                             </CmxStatusBadge>
                           </td>
-                          <td className={`px-4 py-3 text-sm font-medium tabular-nums ${row.points >= 0 ? 'text-green-700' : 'text-red-600'} ${isRTL ? 'text-left' : 'text-right'}`}>
+                          <td className={`px-4 py-3 text-sm font-medium tabular-nums ${row.points >= 0 ? 'text-success-text' : 'text-danger-text'} text-end`}>
                             {row.points >= 0 ? '+' : ''}{row.points.toLocaleString()}
                           </td>
-                          <td className={`px-4 py-3 text-sm tabular-nums text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
+                          <td className="px-4 py-3 text-sm tabular-nums text-foreground text-end">
                             {row.pointsAfter.toLocaleString()}
                           </td>
-                          <td className={`px-4 py-3 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <td className="px-4 py-3 text-sm text-muted-foreground text-start">
                             {row.notes || row.orderId || '—'}
                           </td>
                         </tr>

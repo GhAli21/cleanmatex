@@ -17,7 +17,7 @@ export function VoucherDirectionBadge({ direction }: VoucherDirectionBadgeProps)
 
   if (direction === VOUCHER_DIRECTION.IN) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 rtl:flex-row-reverse">
+      <span className="inline-flex items-center gap-1 rounded-full bg-info-bg px-2 py-0.5 text-xs font-medium text-info-text">
         <ArrowDownLeft className="h-3 w-3" />
         IN
       </span>
@@ -25,14 +25,14 @@ export function VoucherDirectionBadge({ direction }: VoucherDirectionBadgeProps)
   }
   if (direction === VOUCHER_DIRECTION.OUT) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 rtl:flex-row-reverse">
+      <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2 py-0.5 text-xs font-medium text-warning-text">
         <ArrowUpRight className="h-3 w-3" />
         OUT
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
       <Minus className="h-3 w-3" />
       NEUTRAL
     </span>

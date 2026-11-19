@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceBaseCard } from './PieceBaseCard';
 import { CmxCheckbox } from '@ui/primitives';
 import {
@@ -52,7 +51,6 @@ export function ProcessingPieceCard({
   readOnly = false,
 }: ProcessingPieceCardProps) {
   const t = useTranslations('orders.pieces');
-  const isRTL = useRTL();
 
   const handleChange = (field: keyof OrderItemPiece, value: unknown) => {
     if (!readOnly && onUpdate) {
@@ -67,17 +65,17 @@ export function ProcessingPieceCard({
 
   const renderDetails = () => {
     return (
-      <div className={`flex flex-col gap-2 mt-2 ${isRTL ? 'items-end' : 'items-start'}`}>
+      <div className="flex flex-col gap-2 mt-2 items-start">
         
         {/* Critical Warnings */}
         {criticalConditions.length > 0 && (
-          <div className={`flex flex-wrap gap-1 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+          <div className="flex flex-wrap gap-1 justify-start">
             {criticalConditions.map((c) => (
               <span
                 key={c}
-                className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-sm bg-red-50 text-red-700 border border-red-200 font-semibold"
+                className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-sm bg-danger-bg text-danger-text border border-danger-border font-semibold"
               >
-                <AlertTriangle className="w-3 h-3 mr-1" />
+                <AlertTriangle className="w-3 h-3 me-1" />
                 {c.replace(/_/g, ' ')}
               </span>
             ))}
@@ -86,11 +84,11 @@ export function ProcessingPieceCard({
 
         {/* Processing Step Dropdown */}
         <div className="w-full sm:w-1/2 min-w-0 mt-2">
-          <label className="block text-xs font-medium text-slate-700 mb-1">
+          <label className="block text-xs font-medium text-foreground mb-1">
             {t('step')}
           </label>
           {readOnly ? (
-            <div className="text-sm text-slate-600 font-medium">
+            <div className="text-sm text-muted-foreground font-medium">
               {piece.last_step
                 ? t(`steps.${piece.last_step}`) || piece.last_step
                 : t('notSet')}
@@ -122,13 +120,13 @@ export function ProcessingPieceCard({
 
   const renderActions = () => {
     return (
-      <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-3">
         <PieceStatusBadge
           status={piece.piece_status}
           isRejected={piece.is_rejected || false}
         />
         {!readOnly && (
-          <div className="flex items-center justify-center bg-slate-50 p-2 rounded-lg border border-slate-200">
+          <div className="flex items-center justify-center bg-muted p-2 rounded-lg border border-border">
             {/* Massive checkbox for touch screens */}
             <CmxCheckbox
               checked={isBulkSelected}

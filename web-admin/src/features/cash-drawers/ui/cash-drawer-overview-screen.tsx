@@ -256,7 +256,7 @@ export function CashDrawerOverviewScreen({
             </Link>
           </CmxButton>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <h1 className="text-3xl font-bold text-foreground">
               {overview.drawer.drawerName}
             </h1>
             <CashDrawerTypeBadge drawerType={overview.drawer.drawerType} />
@@ -266,7 +266,7 @@ export function CashDrawerOverviewScreen({
             </CmxStatusBadge>
           </div>
           {overview.drawer.drawerName2 ? (
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-sm text-muted-foreground">
               {overview.drawer.drawerName2}
             </p>
           ) : null}
@@ -286,7 +286,7 @@ export function CashDrawerOverviewScreen({
             </CmxButton>
           ) : null}
           {closingSession ? (
-            <p className="w-full text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="w-full text-sm text-muted-foreground">
               {t('finishCloseHint', { sessionNo: closingSession.sessionNo })}
             </p>
           ) : null}
@@ -311,7 +311,7 @@ export function CashDrawerOverviewScreen({
             </CmxButton>
           ) : null}
           {closingSession && !canCloseSession ? (
-            <p className="w-full text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="w-full text-sm text-muted-foreground">
               {t('finishClosePermission')}
             </p>
           ) : null}
@@ -403,7 +403,7 @@ export function CashDrawerOverviewScreen({
                 />
               </div>
             ) : (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="text-sm text-muted-foreground">
                 {t('noSessionsYet')}
               </p>
             )}

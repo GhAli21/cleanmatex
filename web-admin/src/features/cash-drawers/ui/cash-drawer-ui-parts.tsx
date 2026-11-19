@@ -32,10 +32,10 @@ export function CashDrawerInfoTile({
   return (
     <CmxCard className="shadow-none">
       <CmxCardContent className="space-y-1 p-4">
-        <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </div>
-        <div className="break-words text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <div className="break-words text-sm font-semibold text-foreground">
           {value}
         </div>
       </CmxCardContent>
@@ -184,8 +184,8 @@ export function buildDrawerSessionIndicator(
 export function CashDrawerMovementBadge({ movement }: { movement: CashDrawerMovementRow }) {
   const className =
     movement.direction === 'IN'
-      ? 'bg-emerald-100 text-emerald-900'
-      : 'bg-rose-100 text-rose-900'
+      ? 'bg-success-bg text-success-text'
+      : 'bg-danger-bg text-danger-text'
 
   return (
     <CmxStatusBadge size="sm" tone="neutral" appearance="outline" className={className}>

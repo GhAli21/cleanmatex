@@ -108,11 +108,11 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         </label>
         <input
           {...register('name')}
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.namePlaceholder')}
         />
         {errors.name && (
-          <p className="text-xs text-red-600">{errors.name.message}</p>
+          <p className="text-xs text-danger-text">{errors.name.message}</p>
         )}
       </div>
 
@@ -120,12 +120,12 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
       <div className="space-y-1">
         <label className="block text-sm font-medium">
           {t('campaigns.form.nameAr')}
-          <span className="ms-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">({t('campaigns.form.optional')})</span>
+          <span className="ms-1 text-xs text-muted-foreground">({t('campaigns.form.optional')})</span>
         </label>
         <input
           {...register('name2')}
           dir="rtl"
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.nameArPlaceholder')}
         />
       </div>
@@ -149,7 +149,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
         {errors.channel_code && (
-          <p className="text-xs text-red-600">{errors.channel_code.message}</p>
+          <p className="text-xs text-danger-text">{errors.channel_code.message}</p>
         )}
       </div>
 
@@ -157,12 +157,12 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
       <div className="space-y-1">
         <label className="block text-sm font-medium">
           {t('campaigns.form.description')}
-          <span className="ms-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">({t('campaigns.form.optional')})</span>
+          <span className="ms-1 text-xs text-muted-foreground">({t('campaigns.form.optional')})</span>
         </label>
         <textarea
           {...register('description')}
           rows={2}
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.descriptionPlaceholder')}
         />
       </div>
@@ -175,14 +175,14 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         <textarea
           {...register('target_user_ids')}
           rows={4}
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.targetUserIdsPlaceholder')}
         />
-        <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <p className="text-xs text-muted-foreground">
           {t('campaigns.form.targetUserIdsHint')}
         </p>
         {errors.target_user_ids && (
-          <p className="text-xs text-red-600">{errors.target_user_ids.message}</p>
+          <p className="text-xs text-danger-text">{errors.target_user_ids.message}</p>
         )}
       </div>
 
@@ -190,14 +190,14 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
       <div className="space-y-1">
         <label className="block text-sm font-medium">
           {t('campaigns.form.scheduledAt')}
-          <span className="ms-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">({t('campaigns.form.optional')})</span>
+          <span className="ms-1 text-xs text-muted-foreground">({t('campaigns.form.optional')})</span>
         </label>
         <input
           {...register('scheduled_at')}
           type="datetime-local"
-          className="w-full rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
-        <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <p className="text-xs text-muted-foreground">
           {t('campaigns.form.scheduledAtHint')}
         </p>
       </div>

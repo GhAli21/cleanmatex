@@ -3,12 +3,12 @@
  * @module lib/types/ui-theme
  */
 
-import type { UiDensity, UiFontScale } from '@/lib/constants/ui-theme'
+import type { UiColorMode, UiDensity, UiFontScale } from '@/lib/constants/ui-theme'
 
 /** Everything the server needs to render one page's appearance. */
 export interface ResolvedTheme {
-  /** Always LIGHT until dark mode is offered (PR-07 task 6). */
-  mode: 'LIGHT'
+  /** `<html data-mode>`: the person's choice; SYSTEM (follow the device) when signed out. */
+  mode: UiColorMode
   density: UiDensity
   fontScale: UiFontScale
   /** HQ theme the values come from. */

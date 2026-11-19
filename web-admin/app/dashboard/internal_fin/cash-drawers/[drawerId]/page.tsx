@@ -52,7 +52,7 @@ export default async function CashDrawerDetailPage({
     return (
       <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_CASH_DRAWERS_ACCESS.page.permissions ?? []}>
         <div className="space-y-6 p-6">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
             {t('messages.loadFailed')}
           </div>
         </div>

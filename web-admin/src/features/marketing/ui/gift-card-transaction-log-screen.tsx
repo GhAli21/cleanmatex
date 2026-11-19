@@ -69,7 +69,7 @@ function formatSignedAmount(row: GiftCardTransactionLogRow): {
   if (isDebit) {
     return { text: `−${formatted}`, className: 'text-destructive font-medium tabular-nums' };
   }
-  return { text: `+${formatted}`, className: 'text-green-600 font-medium tabular-nums' };
+  return { text: `+${formatted}`, className: 'text-success-text font-medium tabular-nums' };
 }
 
 /**

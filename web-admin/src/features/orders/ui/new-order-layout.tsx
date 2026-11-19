@@ -6,7 +6,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { useRTL } from '@/lib/hooks/useRTL';
 
 /**
  * New Order Layout Props
@@ -21,11 +20,10 @@ interface NewOrderLayoutProps {
  * @param root0.children
  */
 export function NewOrderLayout({ children }: NewOrderLayoutProps) {
-    const isRTL = useRTL();
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
-            <div className={`flex-1 min-h-0 overflow-hidden flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex flex-col h-screen bg-muted">
+            <div className="flex-1 min-h-0 overflow-hidden flex">
                 {children}
             </div>
         </div>

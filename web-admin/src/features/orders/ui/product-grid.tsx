@@ -9,7 +9,6 @@
 import { memo, useRef } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { ProductCard } from './product-card';
 import { PreferencesPanel } from './preferences-panel';
 import { Camera, Package, Plus, Search } from 'lucide-react';
@@ -107,7 +106,6 @@ export const ProductGrid = memo(function ProductGrid({
 }: ProductGridProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
 
   const getItemQuantity = (productId: string): number => {
     const item = items.find((i) => i.productId === productId);
@@ -138,12 +136,12 @@ export const ProductGrid = memo(function ProductGrid({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {/* Header panel */}
-        <div className="border-b border-gray-200 bg-gradient-to-b from-slate-50 to-white px-4 py-4 sm:px-5">
-          <div className={`mb-3 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="border-b border-border bg-gradient-to-b from-muted to-card px-4 py-4 sm:px-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <h2
-              className={`text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl ${isRTL ? 'text-right' : 'text-left'}`}
+              className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl text-start"
             >
               {t('selectItems')}
             </h2>
@@ -153,7 +151,7 @@ export const ProductGrid = memo(function ProductGrid({
                   <Camera className="h-4 w-4" aria-hidden="true" />
                   {t('addPhoto')}
                   {pendingPhotoCount > 0 && (
-                    <span className="rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233))] px-1.5 text-xs text-[rgb(var(--cmx-primary-fg-rgb,255_255_255))]">
+                    <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
                       {pendingPhotoCount}
                     </span>
                   )}
@@ -171,19 +169,19 @@ export const ProductGrid = memo(function ProductGrid({
 
           {onProductSearchChange ? (
             <div
-              className={`rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="rounded-xl border border-border/90 bg-card p-3 shadow-sm sm:p-4 text-start"
               role="search"
               aria-label={t('searchProductsLabel')}
             >
               <div
-                className={`flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4 ${isRTL ? 'xl:flex-row-reverse' : ''}`}
+                className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4"
               >
                 <div className="relative min-w-0 flex-1 xl:max-w-md">
                   <label htmlFor="new-order-product-search" className="sr-only">
                     {t('searchProductsLabel')}
                   </label>
                   <Search
-                    className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 ${isRTL ? 'right-3' : 'left-3'}`}
+                    className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground start-3"
                     aria-hidden="true"
                   />
                   <CmxInput
@@ -192,17 +190,17 @@ export const ProductGrid = memo(function ProductGrid({
                     value={productSearch}
                     onChange={(event) => onProductSearchChange(event.target.value)}
                     placeholder={t('searchProductsPlaceholder')}
-                    className={`border-slate-200 bg-slate-50/50 focus:bg-white ${isRTL ? 'pr-9' : 'pl-9'}`}
+                    className="border-border bg-muted/50 focus:bg-card ps-9"
                     aria-busy={isSearchPending}
                   />
                 </div>
 
                 <div
-                  className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:shrink-0 ${isRTL ? 'sm:flex-row-reverse' : ''}`}
+                  className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:shrink-0"
                 >
                   {onSearchAllCategoriesChange ? (
                     <div
-                      className={`flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}
+                      className="flex items-center gap-2.5 rounded-lg border border-border bg-muted/80 px-3 py-2.5"
                     >
                       <CmxSwitch
                         id="new-order-search-all-categories"
@@ -213,13 +211,13 @@ export const ProductGrid = memo(function ProductGrid({
                       <div className="min-w-0">
                         <Label
                           htmlFor="new-order-search-all-categories"
-                          className="cursor-pointer text-sm font-medium text-slate-800 whitespace-nowrap"
+                          className="cursor-pointer text-sm font-medium text-foreground whitespace-nowrap"
                         >
                           {t('searchAllCategories')}
                         </Label>
                         <p
                           id="new-order-search-all-categories-help"
-                          className="text-xs text-slate-500 sr-only sm:not-sr-only sm:max-w-[12rem] sm:leading-snug"
+                          className="text-xs text-muted-foreground sr-only sm:not-sr-only sm:max-w-[12rem] sm:leading-snug"
                         >
                           {t('searchAllCategoriesHelp')}
                         </p>
@@ -229,13 +227,13 @@ export const ProductGrid = memo(function ProductGrid({
 
                   {onPageSizeChange ? (
                     <div
-                      className={`flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600 ${isRTL ? 'flex-row-reverse' : ''}`}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-muted/80 px-3 py-2 text-sm text-muted-foreground"
                     >
                       <span className="whitespace-nowrap font-medium">{tCommon('rowsPerPage')}</span>
                       <CmxSelect
                         fullWidth={false}
                         size="sm"
-                        className="w-[4.5rem] border-slate-200 bg-white"
+                        className="w-[4.5rem] border-border bg-card"
                         options={ORDER_DEFAULTS.LIMITS.PRODUCTS_PAGE_SIZE_OPTIONS.map((size) => ({
                           value: String(size),
                           label: String(size),
@@ -251,8 +249,8 @@ export const ProductGrid = memo(function ProductGrid({
               </div>
 
               {isGlobalSearch ? (
-                <div className={`mt-3 flex ${isRTL ? 'justify-end' : 'justify-start'}`}>
-                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-800">
+                <div className="mt-3 flex justify-start">
+                  <span className="inline-flex items-center rounded-full border border-info-border bg-info-bg px-3 py-1 text-xs font-medium text-info-text">
                     {t('searchingAllCategories')}
                   </span>
                 </div>
@@ -265,15 +263,15 @@ export const ProductGrid = memo(function ProductGrid({
         <div className="p-3 sm:p-4">
           {products.length === 0 ? (
             <div
-              className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/40 py-12 px-4 ${isRTL ? 'text-right' : 'text-center'}`}
+              className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/40 py-12 px-4 text-center"
             >
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200">
-                <Package className="h-8 w-8 text-slate-400" aria-hidden="true" />
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-card shadow-sm ring-1 ring-border">
+                <Package className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
               </div>
-              <h3 className="mb-1 text-base font-semibold text-slate-800 sm:text-lg">
+              <h3 className="mb-1 text-base font-semibold text-foreground sm:text-lg">
                 {productSearch.trim() ? t('noSearchResults') : t('noProductsAvailable')}
               </h3>
-              <p className="mb-4 max-w-sm text-sm text-slate-500">{emptyHint}</p>
+              <p className="mb-4 max-w-sm text-sm text-muted-foreground">{emptyHint}</p>
               {productSearch.trim() && onProductSearchChange ? (
                 <CmxButton variant="outline" size="sm" onClick={() => onProductSearchChange('')}>
                   {t('clearSearch')}
@@ -313,8 +311,8 @@ export const ProductGrid = memo(function ProductGrid({
 
         {/* Footer panel */}
         {showPaginationFooter ? (
-          <div className="border-t border-gray-200 bg-gradient-to-t from-slate-50 to-white px-2 py-1 sm:px-3">
-            <div className="rounded-lg border border-slate-200/80 bg-white px-1 shadow-sm sm:px-2">
+          <div className="border-t border-border bg-gradient-to-t from-muted to-card px-2 py-1 sm:px-3">
+            <div className="rounded-lg border border-border/80 bg-card px-1 shadow-sm sm:px-2">
               <CmxPagination
                 currentPage={currentPage}
                 totalPages={totalPages}

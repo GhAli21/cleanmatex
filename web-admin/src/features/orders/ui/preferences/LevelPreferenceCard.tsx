@@ -17,7 +17,6 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { useBilingual } from '@/lib/utils/bilingual';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { OrderItemServicePref } from '@/src/features/orders/model/new-order-types';
@@ -31,8 +30,8 @@ import {
 } from '../piece-preferences/piece-pref-kind-styles';
 
 function chipFallbackClass(kind: string): string | undefined {
-  if (kind === 'service_prefs') return 'border-blue-200 bg-blue-50 text-blue-900';
-  if (kind === 'packing_prefs') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
+  if (kind === 'service_prefs') return 'border-info-border bg-info-bg text-info-text';
+  if (kind === 'packing_prefs') return 'border-success-border bg-success-bg text-success-text';
   return undefined;
 }
 
@@ -107,7 +106,6 @@ export function LevelPreferenceCard({
 }: LevelPreferenceCardProps) {
   const t = useTranslations('newOrder.piecePreferences');
   const getBilingual = useBilingual();
-  const isRTL = useRTL();
   const [pickerKind, setPickerKind] = useState<PreferenceKind | null>(null);
 
   const nameByCode = useMemo(() => {
@@ -186,30 +184,30 @@ export function LevelPreferenceCard({
   return (
     <div
       className={cn(
-        !bare && 'rounded-xl border border-slate-300/80 bg-white p-3 shadow-sm ring-1 ring-slate-200/60'
+        !bare && 'rounded-xl border border-border/80 bg-card p-3 shadow-sm ring-1 ring-border/60'
       )}
     >
       {title && (
-        <h3 className={cn('text-sm font-semibold leading-snug text-slate-900 mb-2', isRTL ? 'text-right' : 'text-left')}>
+        <h3 className={cn('text-sm font-semibold leading-snug text-foreground mb-2', 'text-start')}>
           {title}
         </h3>
       )}
 
       <div
-        className="rounded-xl border border-slate-200 bg-slate-100/95 p-1.5 shadow-inner"
+        className="rounded-xl border border-border bg-muted/95 p-1.5 shadow-inner"
         role="toolbar"
         aria-label={t('kindToolbarAria')}
       >
         {kindsLoading ? (
-          <span className="block px-2 py-2 text-sm text-gray-500">{t('loadingKinds')}</span>
+          <span className="block px-2 py-2 text-sm text-muted-foreground">{t('loadingKinds')}</span>
         ) : (
-          <div className={cn('flex flex-wrap gap-x-2 gap-y-2', isRTL ? 'flex-row-reverse justify-end' : '')}>
+          <div className={cn('flex flex-wrap gap-x-2 gap-y-2', '')}>
             {kindsForBar.map((kind) => {
               const hex = kindVisualByCode.get(kind.kind_code)?.hex ?? null;
               const tw = kindVisualByCode.get(kind.kind_code)?.tw;
               const inactiveSurf = kindToolbarInactiveSurface(hex);
               const inactiveClass = tw
-                ? cn('border border-gray-200 bg-white text-gray-800 shadow-sm hover:brightness-[0.98]', tw)
+                ? cn('border border-border bg-card text-foreground shadow-sm hover:brightness-[0.98]', tw)
                 : cn(hex ? 'hover:brightness-[0.99]' : inactiveSurf.textClass, 'hover:brightness-[0.98]');
               return (
                 <button
@@ -218,7 +216,7 @@ export function LevelPreferenceCard({
                   onClick={() => setPickerKind(kind)}
                   className={cn(
                     'rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                     inactiveClass
                   )}
                   style={tw ? undefined : Object.keys(inactiveSurf.style).length > 0 ? inactiveSurf.style : undefined}
@@ -232,7 +230,7 @@ export function LevelPreferenceCard({
       </div>
 
       {chips.length > 0 && (
-        <div className={cn('mt-3 flex flex-wrap gap-2', isRTL ? 'flex-row-reverse' : '')}>
+        <div className={cn('mt-3 flex flex-wrap gap-2', '')}>
           {chips.map((chip) => {
             const pres = chipPresentation(chip.kindCode);
             return (

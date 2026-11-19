@@ -1,6 +1,6 @@
 # File Util — Plan
 
-**Status:** APPROVED 2026-11-16 — Phases 1–3 done, Phase 4 next (see [STATUS.md](STATUS.md)).
+**Status:** DONE in code 2026-11-19 — all 8 phases; owner deploy + QA left (see [STATUS.md](STATUS.md) and [RESUME_CONTINUATION.md](RESUME_CONTINUATION.md) §5).
 **Date:** 2026-11-16
 **Scope:** one shared, domain-agnostic module to upload, store, list, view and delete files (images, PDF, documents) for any feature. Built in `cleanmatex` (`web-admin`); catalog management in HQ (`cleanmatexsaas`).
 
@@ -16,8 +16,8 @@
 | 4 | First consumer: order photos | Code done 2026-11-17; owner browser QA pending |
 | 5 | Close existing gaps | Code done 2026-11-17; owner: apply `0750`, delete `product-images` bucket, browser QA (guide C) |
 | 6 | Remaining photo columns | Done 2026-11-17 (`0751`, `0758` applied); owner QA pending |
-| 7 | HQ File Util workspace `/file-util-config` | Not started |
-| 8 | Docs and close-out | Not started |
+| 7 | HQ File Util workspace `/file-util-config` | Done 2026-11-19 (`0762`–`0768` applied); owner QA pending |
+| 8 | Docs and close-out | Done 2026-11-19 (ADR, developer guide, feature reference, inventories) |
 
 ## 1. Current state (repo scan, 2026-11-16)
 
@@ -101,7 +101,7 @@ Every route: `validateCSRF` → `requirePermission` (code from the category) →
 | `CmxFileGallery` | Thumbnail grid or list, lazy-loaded, reorder, caption, delete with confirm. |
 | `CmxFileViewerDialog` | Images with zoom and keyboard navigation; PDF in the browser viewer; download for other types. |
 | `FileAttachments` (feature widget, `@features/file-util`) | One-line integration: `<FileAttachments source="ORDER_DETAIL" category="PRODUCT_IMAGE" entityId={id} purposes={['FOR_ORDER', 'BACKSIDE']} readOnly={...} />`. No `purposes` = all, grouped by purpose in `rec_order`; upload picks the purpose (default preselected). |
-| `CmxFileThumb` | One image for list rows (`category`, `entityId`, `purpose`, fallback to default); fed by one batch call per list. |
+| `CmxFileThumb` (**not built**; deferred until a list screen needs it) | One image for list rows (`category`, `entityId`, `purpose`, fallback to default); fed by one batch call per list. |
 
 Hooks `use-files`, `use-file-upload` (TanStack Query) and the API client live in `src/features/file-util/`. Feedback through `cmxMessage`. Loading, empty and error states on every component. Keyboard and screen-reader support. Stories for each component. `.clauderc` import snippets updated.
 
@@ -151,7 +151,7 @@ Every phase also ends with: eslint, typecheck, targeted tests, and `npm run buil
 - [x] 4.1 New order: **Photo** button with pending count; photos kept in state (`pendingPhotos`) and uploaded with `uploadFilesToRecord()` right after save (`ORDER_FILE`/`BEFORE_IMAGE`, source `ORDER_NEW`/`ORDER_EDIT`). Old `PhotoCaptureModal` deleted.
 - [x] 4.2 Order detail: new **Files** tab with `FileAttachments` (read-only without `orders:update`).
 - [x] 4.3 QA guide `QA_TEST_GUIDE.md` (sections A order detail, B new order).
-- [ ] 4.4 Update `STATUS.md` and the progress table.
+- [x] 4.4 Update `STATUS.md` and the progress table.
 
 ### Phase 5 — Close existing gaps
 
@@ -159,7 +159,7 @@ Every phase also ends with: eslint, typecheck, targeted tests, and `npm run buil
 - [x] 5.2 Tenant logo moved to the module (Branding page → `FileAttachments`; both old logo routes, `uploadLogo`, `tenant-logo.ts` deleted; PUT saves colors only).
 - [x] 5.3 Migration `0750_file_util_retire_product_images.sql` written (policies cannot be dropped by a migration: `postgres` does not own `storage.objects`; the bucket is locked instead and its URLs cleared). **Owner applies, then deletes the bucket in the dashboard.**
 - [x] 5.4 Remove MinIO (client, dependency, docker-compose), `upload-photo.ts`, `tenant-logo.ts`, `tenant-assets` code; old routes removed.
-- [ ] 5.5 Update `STATUS.md`, the QA guide and the progress table.
+- [x] 5.5 Update `STATUS.md`, the QA guide and the progress table.
 
 ### Phase 6 — Remaining photo columns
 
@@ -210,9 +210,26 @@ Any migration this phase needs is still written in `cleanmatex`. Not in v1: brow
 
 ### Phase 8 — Docs and close-out
 
-- [ ] 8.1 ADR; developer guide ("how to add a category", "how to add a bucket").
-- [ ] 8.2 Feature doc list: permissions used, flags, plan limits, i18n keys, API routes, migrations, env vars.
-- [ ] 8.3 Platform inventories refresh; final `STATUS.md`; owner follow-ups list.
+- [x] 8.1 ADR; developer guide ("how to add a category", "how to add a bucket"). Done 2026-11-19: [ADR_001_file_util_storage_model.md](ADR_001_file_util_storage_model.md), [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
+- [x] 8.2 Feature doc list: permissions used, flags, plan limits, i18n keys, API routes, migrations, env vars. Done 2026-11-19: [FEATURE_REFERENCE.md](FEATURE_REFERENCE.md).
+- [x] 8.3 Platform inventories refresh; final `STATUS.md`; owner follow-ups list. Done 2026-11-19: `npm run rebuild:platform-info-inventories` → drift 0 (File Util routes pick the permission per category at runtime, so the scanner lists none); owner list in RESUME §5.
+
+### Phase 9 — Stage of each file (owner question 2026-11-19)
+
+- [x] 9.1 `0770_file_util_upload_stage.sql`: `org_file_mst.stage_code`, source `ORDER_PACKING`, missing order statuses in `sys_order_status_cd`. Applied by owner 2026-11-19 (local + remote).
+- [x] 9.2 Service + route: stage snapshot at upload, `sources` / `stages` list filters, config `labels`.
+- [x] 9.3 UI: stage · screen line on each tile, stage filter, `OrderStageFiles` panel on 6 stage screens + access contracts.
+- [x] 9.4 Tests, STATUS, QA §I, RESUME, DEVELOPER_GUIDE, FEATURE_REFERENCE, `/file-util-wire` skill.
+- Pickup: the Ready screen is the pickup screen (source `ORDER_READY` = "Ready for pickup"); the stage tells `ready` from `ready_for_pickup`. A separate pickup-proof purpose (locked at handover, like `DELIVERY_PROOF`) is not built.
+
+### Phase 10 — Files on each transaction (owner approved 2026-11-19)
+
+- [x] 10.1 QA reject with reason + photos (issue dialog `qaReject` mode, QA_EVIDENCE on the reject issue).
+- [x] 10.2 Per-piece photos (`PiecePhotosControl`, ref ORDER_PIECE) on every pieces screen.
+- [x] 10.3 Pickup proof: `0771` purpose PICKUP_PROOF (applied by owner), locked by `completePickup`.
+- [x] 10.4 Files panel on delivery order and stop pages.
+- [x] 10.5 Contracts (incl. order detail File Util deps missing since Phase 4), tests, docs, QA §J.
+- Not done: `QA_DECISION` / `ASM_TASK` refs stay unused (no screen creates assembly-task QA decisions); `ORDER_ITEM` photos (pieces cover it); `MOBILE_APP` / `API` upload endpoints (§8).
 
 ## 8. Not in this plan
 

@@ -105,14 +105,14 @@ export default function LogoutPage() {
   if (error) {
     return (
       <div 
-        className="min-h-screen flex items-center justify-center bg-gray-50 px-4"
+        className="min-h-screen flex items-center justify-center bg-muted px-4"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         <div className="text-center max-w-md">
-          <div className="rounded-md bg-red-50 p-4 mb-4">
-            <p className="text-sm font-medium text-red-800">{error}</p>
+          <div className="rounded-md bg-danger-bg p-4 mb-4">
+            <p className="text-sm font-medium text-danger-text">{error}</p>
           </div>
-          <p className="text-sm text-gray-600">{t('redirecting')}</p>
+          <p className="text-sm text-muted-foreground">{t('redirecting')}</p>
         </div>
       </div>
     )
@@ -122,7 +122,7 @@ export default function LogoutPage() {
   if (showConfirmDialog && isAuthenticated) {
     return (
       <div 
-        className="min-h-screen flex items-center justify-center bg-gray-50 px-4"
+        className="min-h-screen flex items-center justify-center bg-muted px-4"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         <CmxAlertDialog
@@ -143,7 +143,7 @@ export default function LogoutPage() {
   // Loading state
   return (
     <div 
-      className="min-h-screen flex items-center justify-center bg-gray-50 px-4"
+      className="min-h-screen flex items-center justify-center bg-muted px-4"
       dir={isRTL ? 'rtl' : 'ltr'}
       role="status"
       aria-live="polite"
@@ -151,12 +151,12 @@ export default function LogoutPage() {
     >
       <div className="text-center">
         <div 
-          className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+          className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"
           aria-hidden="true"
         />
-        <p className="mt-4 text-gray-600">{t('signingOut')}</p>
+        <p className="mt-4 text-muted-foreground">{t('signingOut')}</p>
         {isLoggingOut && (
-          <p className="mt-2 text-sm text-gray-500">{t('pleaseWait')}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('pleaseWait')}</p>
         )}
       </div>
     </div>

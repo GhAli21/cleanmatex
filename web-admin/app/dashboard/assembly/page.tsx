@@ -93,7 +93,7 @@ export default function AssemblyPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
@@ -102,7 +102,7 @@ export default function AssemblyPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{t('screens.assembly')}</h1>
-        <p className="text-gray-600 mt-1">{t('assembly.description')}</p>
+        <p className="text-muted-foreground mt-1">{t('assembly.description')}</p>
       </div>
 
       {dashboardData && (
@@ -116,7 +116,7 @@ export default function AssemblyPage() {
       )}
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -124,7 +124,7 @@ export default function AssemblyPage() {
       {orders.length === 0 ? (
         <CmxCard>
           <CmxCardContent className="py-12 text-center">
-            <p className="text-gray-600 text-lg">{t('assembly.empty')}</p>
+            <p className="text-muted-foreground text-lg">{t('assembly.empty')}</p>
           </CmxCardContent>
         </CmxCard>
       ) : (
@@ -135,16 +135,16 @@ export default function AssemblyPage() {
                 <div className="flex justify-between items-start mb-4">
                   <Link
                     href={`/dashboard/assembly/${order.id}?returnUrl=${encodeURIComponent('/dashboard/assembly')}`}
-                    className="text-xl font-bold text-blue-600 hover:underline"
+                    className="text-xl font-bold text-primary-text hover:underline"
                   >
                     <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                   </Link>
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                  <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs font-medium">
                     {order.total_items} {t('assembly.items')}
                   </span>
                 </div>
 
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
+                <div className="space-y-2 text-sm text-muted-foreground mb-4">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('labels.customer')}:</span>
                     <span>{order.customer.name}</span>
@@ -155,7 +155,7 @@ export default function AssemblyPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-200">
+                <div className="pt-4 border-t border-border">
                   <CmxButton
                     className="w-full"
                     onClick={(e) => handleAssembleOrder(order, e)}
@@ -182,7 +182,7 @@ export default function AssemblyPage() {
           >
             {t('labels.previous')}
           </CmxButton>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
           </div>
           <CmxButton

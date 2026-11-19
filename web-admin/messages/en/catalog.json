@@ -32,6 +32,7 @@
   "unit": "Unit",
   "unitPiece": "Per Piece",
   "unitKg": "Per Kg",
+  "unitItem": "Per Item",
   "turnaround": "Turnaround Time",
   "turnaroundHours": "Hours",
   "minQuantity": "Min Quantity",

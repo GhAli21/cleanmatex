@@ -29,7 +29,7 @@ export function EditControlNotice({
     : codes.filter((code) => resolveEditControlCapability(session.editPolicy, code, targetType).reasonKey === 'deny');
   if (denied.length > 0) {
     return (
-      <div role="status" className="text-start rounded border border-[rgb(var(--cmx-destructive-rgb,220_38_38))] bg-[rgb(var(--cmx-destructive-bg-rgb,254_242_242))] px-3 py-2">
+      <div role="status" className="text-start rounded border border-destructive bg-[rgb(var(--cmx-destructive-bg-rgb,254_242_242))] px-3 py-2">
         <ul className="space-y-1">
           {denied.map((code) => (
             <li key={code} className="text-sm">
@@ -51,7 +51,7 @@ export function EditControlNotice({
   if (named.length > 0) {
     const list = new Intl.ListFormat(locale, { type: 'conjunction' });
     return (
-      <ul role="status" className="text-start space-y-0.5 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <ul role="status" className="text-start space-y-0.5 text-xs text-muted-foreground">
         {named.map((row) => (
           <li key={row.key}>
             {t(`capability.${row.key}Operations`, {
@@ -67,7 +67,7 @@ export function EditControlNotice({
     : resolveEditControlGroup(session.editPolicy, codes ?? [], targetType);
   if (!capability.reasonKey || capability.state === 'CREATE') return null;
   return (
-    <p role="status" className="text-start text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <p role="status" className="text-start text-sm text-muted-foreground">
       {t(`capability.${capability.reasonKey}`)}
     </p>
   );

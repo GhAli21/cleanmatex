@@ -92,7 +92,7 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
   if (rolesLoading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="animate-spin h-8 w-8 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
+        <div className="animate-spin h-8 w-8 rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
   }
@@ -114,13 +114,13 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
       </div>
 
       {/* Section 1: Tenant-Level Roles */}
-      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 bg-secondary border-b border-border">
           <div>
-            <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <h3 className="text-sm font-semibold text-foreground">
               {t('tenantRoles')}
             </h3>
-            <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-xs text-muted-foreground">
               {t('tenantRolesDesc')}
             </p>
           </div>
@@ -131,41 +131,41 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
         </div>
 
         {tenantRoles.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             {t('noRolesAssigned')}
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
-            <thead className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-secondary">
               <tr>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {tCommon('name')}
                 </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Perms
                 </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t('tenantRolesDesc').split(' ')[0]}
                 </th>
-                <th className="px-4 py-2.5 text-end text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {tCommon('actions')}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+            <tbody className="divide-y divide-border">
               {tenantRoles.map((role) => (
-                <tr key={role.role_code} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+                <tr key={role.role_code} className="hover:bg-secondary">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
+                      <Shield className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                        <p className="text-sm font-medium text-foreground">
                           {isAr && role.name2 ? role.name2 : role.name}
                         </p>
-                        <p className="text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                        <p className="text-xs font-mono text-muted-foreground">
                           {role.role_code}
                         </p>
                       </div>
@@ -173,19 +173,19 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
                   </td>
                   <td className="px-4 py-3">
                     {role.is_system ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-info-bg text-info-text">
                         System
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text">
                         Custom
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {role.permission_count ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     {formatDate(role.assigned_at)}
                   </td>
                   <td className="px-4 py-3 text-end">
@@ -194,7 +194,7 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
                       size="xs"
                       onClick={() => handleRemoveRole(role.role_code)}
                       disabled={removingRole === role.role_code}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-danger-text hover:text-danger-text/80 hover:bg-danger-bg"
                     >
                       {tCommon('delete')}
                     </CmxButton>
@@ -208,52 +208,52 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
 
       {/* Section 2: Resource-Scoped Roles (conditional) */}
       {resourceRoles.length > 0 && (
-        <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
-          <div className="px-4 py-3 bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
-            <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <div className="rounded-lg border border-border overflow-hidden">
+          <div className="px-4 py-3 bg-secondary border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">
               {t('resourceRoles')}
             </h3>
           </div>
-          <table className="min-w-full divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
-            <thead className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-secondary">
               <tr>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {tCommon('name')}
                 </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Resource
                 </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Resource ID
                 </th>
-                <th className="px-4 py-2.5 text-end text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+                <th className="px-4 py-2.5 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {tCommon('actions')}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+            <tbody className="divide-y divide-border">
               {resourceRoles.map((role, i) => (
-                <tr key={i} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+                <tr key={i} className="hover:bg-secondary">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
+                      <Shield className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                        <p className="text-sm font-medium text-foreground">
                           {isAr && role.name2 ? role.name2 : role.name}
                         </p>
-                        <p className="text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                        <p className="text-xs font-mono text-muted-foreground">
                           {role.role_code}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] text-xs font-mono text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary text-xs font-mono text-foreground">
                       <MapPin className="h-3 w-3" />
                       {role.resource_type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] max-w-[160px] truncate">
+                  <td className="px-4 py-3 text-xs font-mono text-muted-foreground max-w-[160px] truncate">
                     {role.resource_id}
                   </td>
                   <td className="px-4 py-3 text-end">
@@ -262,7 +262,7 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
                       size="xs"
                       onClick={() => handleRemoveRole(role.role_code)}
                       disabled={removingRole === role.role_code}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-danger-text hover:text-danger-text/80 hover:bg-danger-bg"
                     >
                       {tCommon('delete')}
                     </CmxButton>
@@ -275,13 +275,13 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
       )}
 
       {/* Section 3: Permission Overrides */}
-      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 bg-secondary border-b border-border">
           <div>
-            <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <h3 className="text-sm font-semibold text-foreground">
               {t('permissionOverrides')}
             </h3>
-            <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-xs text-muted-foreground">
               {t('permissionOverridesDesc')}
             </p>
           </div>
@@ -291,7 +291,7 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
         </div>
         <div className="p-4">
           {globalOverrides.length === 0 && resourceOverrides.length === 0 ? (
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-sm text-muted-foreground">
               {t('noOverrides')}
             </p>
           ) : (
@@ -299,23 +299,23 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
               {globalOverrides.map((o) => (
                 <div
                   key={o.permission_code}
-                  className="flex items-center gap-3 p-2 rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))]"
+                  className="flex items-center gap-3 p-2 rounded border border-border"
                 >
                   {o.allow ? (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text">
                       <Check className="h-3 w-3" />
                       {t('allow')}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-danger-bg text-danger-text">
                       <ShieldOff className="h-3 w-3" />
                       {t('deny')}
                     </span>
                   )}
-                  <span className="text-xs font-mono flex-1 text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span className="text-xs font-mono flex-1 text-foreground">
                     {o.permission_code}
                   </span>
-                  <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <span className="text-xs text-muted-foreground">
                     {t('scopeTenant')}
                   </span>
                 </div>
@@ -323,23 +323,23 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
               {resourceOverrides.map((o, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-2 rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))]"
+                  className="flex items-center gap-3 p-2 rounded border border-border"
                 >
                   {o.allow ? (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text">
                       <Check className="h-3 w-3" />
                       {t('allow')}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-danger-bg text-danger-text">
                       <ShieldOff className="h-3 w-3" />
                       {t('deny')}
                     </span>
                   )}
-                  <span className="text-xs font-mono flex-1 text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span className="text-xs font-mono flex-1 text-foreground">
                     {o.permission_code}
                   </span>
-                  <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <span className="text-xs text-muted-foreground">
                     {o.resource_type}/{o.resource_id}
                   </span>
                 </div>

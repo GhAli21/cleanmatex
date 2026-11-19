@@ -38,16 +38,16 @@ function CardFigures({ view, pending }: { view: OrderFinancialViewModel; pending
     // Confirmed figures only are announced; a pending quote is not read out.
     <div className={cn('flex flex-col gap-1 motion-safe:transition-opacity', pending && 'opacity-60')} aria-live={pending ? 'off' : 'polite'}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('edit.newTotal')}</span>
+        <span className="text-sm text-muted-foreground">{t('edit.newTotal')}</span>
         {money(m.projectedTotal, { size: 'lg' })}
       </div>
-      <div className="flex flex-wrap items-baseline justify-end gap-2 text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">
+      <div className="flex flex-wrap items-baseline justify-end gap-2 text-xs text-muted-foreground">
         <span>{t('metrics.originalTotal')}</span>
         {money(m.originalTotal, { size: 'sm', tone: 'muted' })}
         {delta !== 0 && money(Math.abs(delta), { size: 'sm', sign: delta < 0 ? 'minus' : 'plus' })}
       </div>
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-        <span className="text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('metrics.projectedBalance')}</span>
+        <span className="text-muted-foreground">{t('metrics.projectedBalance')}</span>
         {money(m.projectedBalance)}
       </div>
       {outcome && <CmxStatusBadge className="self-start" size="sm" tone={OUTCOME_TONE[outcome]} label={t(`edit.outcomes.${outcome}`)} />}
@@ -63,10 +63,10 @@ export function OrderEditFinancialCard({ orderId, quote, className }: OrderEditF
   const [details, setDetails] = useState(false);
 
   return (
-    <section aria-label={t('title')} className={cn('flex flex-col gap-2 rounded-lg border border-[rgb(var(--cmx-border-rgb))] p-3', className)}>
+    <section aria-label={t('title')} className={cn('flex flex-col gap-2 rounded-lg border border-border p-3', className)}>
       {quote.status === 'saved' ? (
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('edit.noChange')}</span>
+          <span className="text-xs text-muted-foreground">{t('edit.noChange')}</span>
           <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'badge', header: { emphasize: 'total' } }} />
         </div>
       ) : quote.view ? (

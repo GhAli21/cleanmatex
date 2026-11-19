@@ -39,11 +39,11 @@ export const CmxWizardStep: React.FC<CmxWizardStepProps> = ({
     <div className={cn('space-y-6 animate-in fade-in-50 duration-200', className)}>
       {/* Step header */}
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <h2 className="text-2xl font-semibold text-foreground">
           {title}
         </h2>
         {description && (
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-muted-foreground">
             {description}
           </p>
         )}

@@ -73,15 +73,16 @@ export default function CustomerFiltersBar({
     filters.status ||
     (filters.sortBy && filters.sortBy !== 'createdAt')
 
+  // No frame or margin of its own: CmxCrudPageShell frames the filters slot.
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6">
-      <div className={`flex flex-col md:flex-row md:items-center ${isRTL ? 'md:flex-row-reverse md:justify-between' : 'md:justify-between'} space-y-4 md:space-y-0`}>
+    <div>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         {/* Search */}
         <div className="flex-1 max-w-md">
           <div className="relative">
-            <div className={`absolute inset-y-0 ${isRTL ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none`}>
+            <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-5 w-5 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -100,15 +101,15 @@ export default function CustomerFiltersBar({
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder={t('search')}
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`block w-full ${isRTL ? 'pr-10 pl-3 text-right' : 'pl-10 pr-3'} py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+              className="block w-full ps-10 pe-3 py-2 border border-border rounded-md leading-5 bg-card placeholder:text-muted-foreground focus:outline-none focus:placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:border-ring sm:text-sm"
             />
             {searchInput && (
               <button
                 onClick={() => setSearchInput('')}
-                className={`absolute inset-y-0 ${isRTL ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center`}
+                className="absolute inset-y-0 end-0 pe-3 flex items-center"
               >
                 <svg
-                  className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                  className="h-5 w-5 text-muted-foreground hover:text-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -126,17 +127,17 @@ export default function CustomerFiltersBar({
         </div>
 
         {/* Filters */}
-        <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-4' : 'space-x-4'}`}>
+        <div className="flex items-center space-x-4">
           {/* Type Filter */}
-          <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
-            <label className="text-sm font-medium text-gray-700">{t('type')}:</label>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-foreground">{t('type')}:</label>
             <select
               value={filters.type || 'all'}
               onChange={(e) =>
                 handleTypeFilter(e.target.value as CustomerType | 'all')
               }
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`block w-32 ${isRTL ? 'pr-10 pl-3 text-right' : 'pl-3 pr-10'} py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md`}
+              className="block w-32 ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
             >
               <option value="all">{t('all')}</option>
               <option value="guest">{t('types.guest')}</option>
@@ -146,15 +147,15 @@ export default function CustomerFiltersBar({
           </div>
 
           {/* Status Filter */}
-          <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
-            <label className="text-sm font-medium text-gray-700">{t('status')}:</label>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-foreground">{t('status')}:</label>
             <select
               value={filters.status || 'all'}
               onChange={(e) =>
                 handleStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
               }
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`block w-32 ${isRTL ? 'pr-10 pl-3 text-right' : 'pl-3 pr-10'} py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md`}
+              className="block w-32 ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
             >
               <option value="all">{t('all')}</option>
               <option value="active">{t('active')}</option>
@@ -163,13 +164,13 @@ export default function CustomerFiltersBar({
           </div>
 
           {/* Sort By */}
-          <div className={`flex items-center ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
-            <label className="text-sm font-medium text-gray-700">{t('sortBy')}</label>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-foreground">{t('sortBy')}</label>
             <select
               value={filters.sortBy || 'createdAt'}
               onChange={(e) => handleSortChange(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`block w-40 ${isRTL ? 'pr-10 pl-3 text-right' : 'pl-3 pr-10'} py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md`}
+              className="block w-40 ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
             >
               <option value="createdAt">{t('newestFirst')}</option>
               <option value="name">{t('nameAZ')}</option>
@@ -182,10 +183,10 @@ export default function CustomerFiltersBar({
           {hasActiveFilters && (
             <button
               onClick={handleClearFilters}
-              className={`inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="inline-flex items-center px-3 py-2 border border-border shadow-sm text-sm leading-4 font-medium rounded-md text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
             >
               <svg
-                className={`h-4 w-4 ${isRTL ? 'ml-2 -mr-0.5' : '-ml-0.5 mr-2'}`}
+                className="h-4 w-4 -ms-0.5 me-2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -205,8 +206,8 @@ export default function CustomerFiltersBar({
 
       {/* Selected Count */}
       {selectedCount > 0 && (
-        <div className="mt-4 px-4 py-2 bg-blue-50 rounded-md">
-          <p className="text-sm text-blue-700">
+        <div className="mt-4 px-4 py-2 bg-info-bg rounded-md">
+          <p className="text-sm text-primary-text">
             {selectedCount} {selectedCount === 1 ? t('customer') : t('customers')} {t('selected')}
           </p>
         </div>

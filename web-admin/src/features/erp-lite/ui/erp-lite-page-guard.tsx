@@ -25,8 +25,8 @@ function GuardIcon({
 }) {
   const palette =
     tone === 'warning'
-      ? 'bg-amber-500/10 text-amber-600'
-      : 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/10 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]'
+      ? 'bg-warning/10 text-warning-text'
+      : 'bg-primary/10 text-primary-text'
 
   return (
     <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${palette}`}>

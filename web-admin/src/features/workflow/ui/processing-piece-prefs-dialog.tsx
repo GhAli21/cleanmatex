@@ -627,7 +627,7 @@ export function ProcessingPiecePrefsDialog({
                                     {labelForPref(row)}
                                   </span>
                                   {price ? (
-                                    <span className="text-xs font-semibold text-emerald-700">
+                                    <span className="text-xs font-semibold text-success-text">
                                       {price}
                                     </span>
                                   ) : null}

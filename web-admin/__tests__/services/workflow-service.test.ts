@@ -154,50 +154,63 @@ describe('WorkflowService', () => {
   describe('getWorkflowTemplate', () => {
     test('should fetch workflow template', async () => {
       const mockFrom = mockSupabaseClient.from as jest.Mock;
-      // Service: .from('org_tenant_workflow_templates_cf').select('*,...').eq(...).eq(...).eq(...).single()
-      const mockSelect = jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              single: jest.fn(() =>
-                Promise.resolve({
-                  data: {
-                    template_id: 'template-1',
-                    template_code: 'WF_STANDARD',
-                    template_name: 'Standard Workflow',
-                  },
-                  error: null,
-                })
-              ),
-            })),
-          })),
-        })),
-      }));
-      mockFrom.mockReturnValue({ select: mockSelect });
+      // Chainable mock: tenant row (3 eq) then catalog template (1 eq).
+      const tenantRow = {
+        template_id: 'template-1',
+        is_default: true,
+        is_active: true,
+      };
+      const catalogRow = {
+        template_id: 'template-1',
+        template_code: 'WF_STANDARD',
+        template_name: 'Standard Workflow',
+      };
+
+      mockFrom.mockImplementation((table: string) => {
+        const terminal = {
+          maybeSingle: jest.fn(() =>
+            Promise.resolve({
+              data: table === 'sys_workflow_template_cd' ? catalogRow : tenantRow,
+              error: null,
+            }),
+          ),
+        };
+        const chain: Record<string, unknown> = {
+          eq: jest.fn(() => chain),
+          ...terminal,
+        };
+        return {
+          select: jest.fn(() => chain),
+        };
+      });
 
       const result = await WorkflowService.getWorkflowTemplate('tenant-1');
 
       expect(mockFrom).toHaveBeenCalledWith('org_tenant_workflow_templates_cf');
-      expect(result?.template_code).toBe('WF_STANDARD');
+      expect(mockFrom).toHaveBeenCalledWith('sys_workflow_template_cd');
+      expect(result?.template_id).toBe('template-1');
+      expect(result?.template?.template_code).toBe('WF_STANDARD');
     });
 
     test('should return null if template not found', async () => {
       const mockFrom = mockSupabaseClient.from as jest.Mock;
-      const mockSelect = jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              single: jest.fn(() =>
-                Promise.resolve({
-                  data: null,
-                  error: { code: 'PGRST116' },
-                })
-              ),
-            })),
-          })),
-        })),
-      }));
-      mockFrom.mockReturnValue({ select: mockSelect });
+      mockFrom.mockImplementation(() => {
+        const terminal = {
+          maybeSingle: jest.fn(() =>
+            Promise.resolve({
+              data: null,
+              error: { code: 'PGRST116' },
+            }),
+          ),
+        };
+        const chain: Record<string, unknown> = {
+          eq: jest.fn(() => chain),
+          ...terminal,
+        };
+        return {
+          select: jest.fn(() => chain),
+        };
+      });
 
       const result = await WorkflowService.getWorkflowTemplate('nonexistent-tenant');
 

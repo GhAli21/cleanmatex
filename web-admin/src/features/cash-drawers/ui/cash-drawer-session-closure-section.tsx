@@ -130,7 +130,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
     <div className="space-y-4">
       {view.balances.length === 0 ? (
         <CmxCard>
-          <CmxCardContent className="p-4 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <CmxCardContent className="p-4 text-sm text-muted-foreground">
             {t('noBalances')}
           </CmxCardContent>
         </CmxCard>
@@ -177,7 +177,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
               </div>
 
               {b.dispositionCode ? (
-                <div className="space-y-2 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+                <div className="space-y-2 rounded-xl border border-border p-4">
                   <div className="text-sm font-semibold">{t('disposition')}</div>
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{dispositionLabel(b.dispositionCode)}</CmxStatusBadge>
@@ -189,7 +189,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                     ) : null}
                   </div>
                   {b.dispositionNotes ? (
-                    <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{b.dispositionNotes}</p>
+                    <p className="text-sm text-muted-foreground">{b.dispositionNotes}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -198,7 +198,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                 <section className="space-y-3" aria-label={t('countHistory')}>
                   <h3 className="text-sm font-semibold">{t('countHistory')}</h3>
                   {countsByCurrency(b.currencyCode).map((c) => (
-                    <div key={c.countId} className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+                    <div key={c.countId} className="space-y-3 rounded-xl border border-border p-4">
                       <div className="flex flex-wrap items-center gap-3 text-sm">
                         <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{tDrawers(`tabs.counts.types.${c.countType}` as Parameters<typeof tDrawers>[0])}</CmxStatusBadge>
                         <span>{fmtDateTime(c.countedAt)}</span>
@@ -215,12 +215,12 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                           {c.denominations.map((d) => (
                             <li
                               key={`${c.countId}-${d.denominationId}`}
-                              className="min-w-[8.5rem] rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] px-3 py-2"
+                              className="min-w-[8.5rem] rounded-lg border border-border bg-muted px-3 py-2"
                             >
-                              <div className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                              <div className="text-sm font-medium text-foreground">
                                 {locale === 'ar' && d.name2 ? d.name2 : d.name}
                               </div>
-                              <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                              <div className="mt-1 text-xs text-muted-foreground">
                                 {t('denominationQuantity', { quantity: d.quantity })}
                               </div>
                               <div className="mt-1 text-sm tabular-nums">{money(d.lineAmount, c.currencyCode)}</div>
@@ -228,9 +228,9 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('totalOnlyCount')}</p>
+                        <p className="text-sm text-muted-foreground">{t('totalOnlyCount')}</p>
                       )}
-                      {c.notes ? <p className="text-sm italic text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{c.notes}</p> : null}
+                      {c.notes ? <p className="text-sm italic text-muted-foreground">{c.notes}</p> : null}
                     </div>
                   ))}
                 </section>
@@ -244,7 +244,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
         <CmxCard>
           <CmxCardHeader>
             <CmxCardTitle>{t('attribution.title')}</CmxCardTitle>
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('attribution.description')}</p>
+            <p className="text-sm text-muted-foreground">{t('attribution.description')}</p>
           </CmxCardHeader>
           <CmxCardContent>
             <CmxDataTable
@@ -299,7 +299,7 @@ export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawe
           </CmxCardHeader>
           <CmxCardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('postClose.current')}</span>
+              <span className="text-muted-foreground">{t('postClose.current')}</span>
               <CmxStatusBadge size="sm" tone="neutral" appearance="outline">
                 {view.postClose.statusCode
                   ? localized(statusRow(view.postClose.statusCode), view.postClose.statusCode)
@@ -366,7 +366,7 @@ function VarianceTile({
   return (
     <CmxCard className="shadow-none">
       <CmxCardContent className="space-y-1 p-4">
-        <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </div>
         <div className="text-sm font-semibold">{amount !== null ? badge(amount, currency) : '—'}</div>

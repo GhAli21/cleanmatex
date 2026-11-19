@@ -25,31 +25,31 @@ export default function StatsCards({ stats, branchName }: StatsCardsProps) {
       label: t('totalItems'),
       value: stats.totalItems,
       icon: Package,
-      color: 'text-blue-600 bg-blue-50',
+      color: 'text-info-text bg-info-bg',
     },
     {
       label: t('lowStock'),
       value: stats.lowStockCount,
       icon: AlertTriangle,
-      color: 'text-yellow-600 bg-yellow-50',
+      color: 'text-warning-text bg-warning-bg',
     },
     {
       label: t('outOfStock'),
       value: stats.outOfStockCount,
       icon: XCircle,
-      color: 'text-red-600 bg-red-50',
+      color: 'text-danger-text bg-danger-bg',
     },
     {
       label: t('negativeStock'),
       value: stats.negativeStockCount,
       icon: TrendingDown,
-      color: 'text-orange-600 bg-orange-50',
+      color: 'text-warning-text bg-warning-bg',
     },
     {
       label: t('totalStockValue'),
       value: stats.totalStockValue.toFixed(2),
       icon: DollarSign,
-      color: 'text-green-600 bg-green-50',
+      color: 'text-success-text bg-success-bg',
     },
   ];
 
@@ -62,8 +62,8 @@ export default function StatsCards({ stats, branchName }: StatsCardsProps) {
               <card.icon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">{card.label}</p>
-              <p className="text-xs text-gray-400">{atBranch}</p>
+              <p className="text-sm text-muted-foreground">{card.label}</p>
+              <p className="text-xs text-muted-foreground">{atBranch}</p>
               <p className="text-xl font-semibold">{card.value}</p>
             </div>
           </div>

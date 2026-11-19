@@ -16,22 +16,22 @@ interface OrdersReportTableProps {
 }
 
 const STATUS_BADGE_COLORS: Record<string, string> = {
-  completed: 'bg-green-100 text-green-800',
-  delivered: 'bg-blue-100 text-blue-800',
-  processing: 'bg-yellow-100 text-yellow-800',
-  pending: 'bg-gray-100 text-gray-800',
-  cancelled: 'bg-red-100 text-red-800',
-  intake: 'bg-purple-100 text-purple-800',
-  preparing: 'bg-pink-100 text-pink-800',
-  ready: 'bg-cyan-100 text-cyan-800',
-  ready_for_pickup: 'bg-teal-100 text-teal-800',
-  draft: 'bg-gray-100 text-gray-600',
+  completed: 'bg-success-bg text-success-text',
+  delivered: 'bg-info-bg text-info-text',
+  processing: 'bg-warning-bg text-warning-text',
+  pending: 'bg-muted text-foreground',
+  cancelled: 'bg-danger-bg text-danger-text',
+  intake: 'bg-info-bg text-info-text',
+  preparing: 'bg-info-bg text-info-text',
+  ready: 'bg-info-bg text-info-text',
+  ready_for_pickup: 'bg-info-bg text-info-text',
+  draft: 'bg-muted text-muted-foreground',
 };
 
 const PAYMENT_BADGE_COLORS: Record<string, string> = {
-  paid: 'bg-green-100 text-green-800',
-  partial: 'bg-yellow-100 text-yellow-800',
-  pending: 'bg-gray-100 text-gray-800',
+  paid: 'bg-success-bg text-success-text',
+  partial: 'bg-warning-bg text-warning-text',
+  pending: 'bg-muted text-foreground',
 };
 
 /**
@@ -88,83 +88,83 @@ export default function OrdersReportTable({
   const PAGE_SIZES = [10, 20, 50, 100] as const;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted">
             <tr>
               <th
-                className="cursor-pointer px-4 py-3 text-start font-medium text-gray-600 hover:bg-gray-100"
+                className="cursor-pointer px-4 py-3 text-start font-medium text-muted-foreground hover:bg-muted"
                 onClick={() => handleSort('order_no')}
               >
                 {t('table.orderNo')}
               </th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">
                 {t('table.customer')}
               </th>
               <th
-                className="cursor-pointer px-4 py-3 text-start font-medium text-gray-600 hover:bg-gray-100"
+                className="cursor-pointer px-4 py-3 text-start font-medium text-muted-foreground hover:bg-muted"
                 onClick={() => handleSort('status')}
               >
                 {t('table.status')}
               </th>
-              <th className="px-4 py-3 text-end font-medium text-gray-600">
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">
                 {t('table.items')}
               </th>
               <th
-                className="cursor-pointer px-4 py-3 text-end font-medium text-gray-600 hover:bg-gray-100"
+                className="cursor-pointer px-4 py-3 text-end font-medium text-muted-foreground hover:bg-muted"
                 onClick={() => handleSort('total')}
               >
                 {t('table.total')}
               </th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">
                 {t('table.paymentStatus')}
               </th>
               <th
-                className="cursor-pointer px-4 py-3 text-start font-medium text-gray-600 hover:bg-gray-100"
+                className="cursor-pointer px-4 py-3 text-start font-medium text-muted-foreground hover:bg-muted"
                 onClick={() => handleSort('created_at')}
               >
                 {t('table.date')}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {orders.map((order) => (
               <tr
                 key={order.id}
-                className="cursor-pointer hover:bg-gray-50"
+                className="cursor-pointer hover:bg-muted"
                 onClick={() => router.push(`/dashboard/orders/${order.id}`)}
               >
-                <td className="px-4 py-3 font-medium text-blue-600">
+                <td className="px-4 py-3 font-medium text-primary-text">
                   <CmxCodeChip code={order.orderNo} kind="order" />
                 </td>
-                <td className="px-4 py-3 text-gray-900">
+                <td className="px-4 py-3 text-foreground">
                   {order.customerName}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_COLORS[order.status] ?? 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_COLORS[order.status] ?? 'bg-muted text-foreground'}`}>
                     {order.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-end text-gray-700">
+                <td className="px-4 py-3 text-end text-foreground">
                   {order.totalItems}
                 </td>
-                <td className="px-4 py-3 text-end font-medium text-gray-900">
+                <td className="px-4 py-3 text-end font-medium text-foreground">
                   {currencyCode} {order.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_BADGE_COLORS[order.paymentStatus] ?? 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_BADGE_COLORS[order.paymentStatus] ?? 'bg-muted text-foreground'}`}>
                     {order.paymentStatus}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-muted-foreground">
                   {order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy') : '-'}
                 </td>
               </tr>
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                   {t('noData')}
                 </td>
               </tr>
@@ -175,8 +175,8 @@ export default function OrdersReportTable({
 
       {/* Pagination: always show when there is data or total count so user sees position and can change page size */}
       {(pagination.total > 0 || orders.length === 0) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-4 py-3 sm:flex-nowrap">
-          <span className="text-sm text-gray-600">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 sm:flex-nowrap">
+          <span className="text-sm text-muted-foreground">
             {t('pagination.showing', {
               from: pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1,
               to: Math.min(pagination.page * pagination.limit, pagination.total),
@@ -185,14 +185,14 @@ export default function OrdersReportTable({
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <label htmlFor="orders-report-limit" className="whitespace-nowrap text-sm text-gray-600">
+              <label htmlFor="orders-report-limit" className="whitespace-nowrap text-sm text-muted-foreground">
                 {t('pagination.rowsPerPage')}
               </label>
               <select
                 id="orders-report-limit"
                 value={pagination.limit}
                 onChange={(e) => handleLimitChange(Number(e.target.value))}
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 {PAGE_SIZES.map((size) => (
                   <option key={size} value={size}>
@@ -206,19 +206,19 @@ export default function OrdersReportTable({
                 type="button"
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page <= 1}
-                className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
                 aria-label="Previous page"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="min-w-[4rem] px-2 py-1 text-center text-sm font-medium text-gray-700">
+              <span className="min-w-[4rem] px-2 py-1 text-center text-sm font-medium text-foreground">
                 {pagination.page} / {Math.max(1, pagination.totalPages)}
               </span>
               <button
                 type="button"
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
-                className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
                 aria-label="Next page"
               >
                 <ChevronRight className="h-4 w-4" />

@@ -100,7 +100,7 @@ export function EditReviewChanges({ operations, currencyCode, timezone, renderWa
         const afterItems = isItemList(operation.after.items) ? operation.after.items : [];
         // The shared border token keeps each change and its policy warning visually grouped.
         return (
-          <li key={operation.seq} className="space-y-1 rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] px-3 py-2 text-sm">
+          <li key={operation.seq} className="space-y-1 rounded border border-border px-3 py-2 text-sm">
             <p className="font-medium">{name}{target ? <> · <bdi>{target}</bdi></> : null}{kind ? <> · {t(`review.kind.${kind}`)}</> : null}</p>
             {effect !== 'change' ? <p className="text-xs">{effect === 'add' ? t('review.willAdd') : t('review.willRemove')}</p> : null}
             {keys.map((key) => (

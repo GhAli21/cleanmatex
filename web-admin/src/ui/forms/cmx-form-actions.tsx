@@ -85,7 +85,7 @@ export function CmxFormActions({
         {(isDirty && dirtyLabel) || tertiary || (align === 'between' && (secondary || secondaryLabel || destructive)) ? (
           <div className="flex flex-1 flex-wrap items-center gap-2">
             {isDirty && dirtyLabel ? (
-              <span className="cmx-type-field-helper rounded-full bg-[rgb(var(--cmx-warning-bg-rgb,255_251_235))] px-3 py-1 text-[rgb(var(--cmx-warning-darker-rgb,146_64_14))]">
+              <span className="cmx-type-field-helper rounded-full bg-warning-bg px-3 py-1 text-[rgb(var(--cmx-warning-darker-rgb,146_64_14))]">
                 {dirtyLabel}
               </span>
             ) : null}

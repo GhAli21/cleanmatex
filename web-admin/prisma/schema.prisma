@@ -18453,6 +18453,7 @@ model org_file_mst {
   is_active              Boolean                @default(true)
   locked_at              DateTime?              @db.Timestamptz(6)
   locked_by              String?
+  stage_code             String?
   sys_file_bucket_cd     sys_file_bucket_cd     @relation(fields: [bucket_code], references: [bucket_code], onUpdate: NoAction, map: "fk_ofm_bucket")
   sys_file_mime_types_cd sys_file_mime_types_cd @relation(fields: [mime_type], references: [mime_type], onUpdate: NoAction, map: "fk_ofm_mime")
   sys_file_purpose_cd    sys_file_purpose_cd    @relation(fields: [category_code, purpose_code], references: [category_code, purpose_code], onUpdate: NoAction, map: "fk_ofm_purpose")

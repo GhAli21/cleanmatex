@@ -13,20 +13,20 @@ import { editPolicyExplanationKeys, sortEditPolicyRules } from './edit-policy-in
 
 const TONE = {
   ALLOW: {
-    row: 'border-[rgb(var(--cmx-success-border-rgb,187_247_208))] bg-[rgb(var(--cmx-success-bg-rgb,240_253_244))]',
-    dot: 'bg-[rgb(var(--cmx-success-rgb,34_197_94))]',
+    row: 'border-success-border bg-success-bg',
+    dot: 'bg-success',
   },
   ALLOW_WITH_WARNING: {
-    row: 'border-[rgb(var(--cmx-warning-border-rgb,253_224_71))] bg-[rgb(var(--cmx-warning-bg-rgb,254_252_232))]',
-    dot: 'bg-[rgb(var(--cmx-warning-rgb,234_179_8))]',
+    row: 'border-warning-border bg-warning-bg',
+    dot: 'bg-warning',
   },
   REQUIRE_OVERRIDE: {
-    row: 'border-[rgb(var(--cmx-info-border-rgb,191_219_254))] bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))]',
-    dot: 'bg-[rgb(var(--cmx-info-rgb,37_99_235))]',
+    row: 'border-info-border bg-info-bg',
+    dot: 'bg-info',
   },
   DENY: {
-    row: 'border-[rgb(var(--cmx-destructive-rgb,220_38_38))] bg-[rgb(var(--cmx-destructive-bg-rgb,254_242_242))]',
-    dot: 'bg-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+    row: 'border-destructive bg-[rgb(var(--cmx-destructive-bg-rgb,254_242_242))]',
+    dot: 'bg-destructive',
   },
 } as const;
 
@@ -93,7 +93,7 @@ export function EditPolicyInfoDialog({
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-2xl">
-        <CmxDialogHeader className="border-b border-gray-100 px-4 py-3">
+        <CmxDialogHeader className="border-b border-border px-4 py-3">
           <CmxDialogTitle>{t('policyInfo.title')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] space-y-3 overflow-y-auto px-4 py-4">
@@ -112,12 +112,12 @@ export function EditPolicyInfoDialog({
           {/* Show the resolver's authority level so staff can distinguish overrides from defaults. */}
           <p className="text-sm">{t('policyInfo.resolutionLabel')}{': '}{t(`policyInfo.resolutionLevels.${policy.resolutionLevel ?? 'DENY'}`)}</p>
           {policy.status === 'MISSING' ? (
-            <p className="rounded border border-[rgb(var(--cmx-warning-border-rgb,253_224_71))] bg-[rgb(var(--cmx-warning-bg-rgb,254_252_232))] px-3 py-2 text-sm">
+            <p className="rounded border border-warning-border bg-warning-bg px-3 py-2 text-sm">
               {policy.denyReason && policy.denyReason !== 'NONE' ? t(`policyInfo.denyReasons.${policy.denyReason}`) : t('policyInfo.missing')}
             </p>
           ) : (
             <>
-              <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="text-xs text-muted-foreground">
                 {t('policyInfo.revisionLine', { revision: policy.policyRevision ?? 0 })}
               </p>
               <ul className="flex flex-wrap gap-2">
@@ -136,7 +136,7 @@ export function EditPolicyInfoDialog({
             </>
           )}
         </div>
-        <CmxDialogFooter className="border-t border-gray-100 px-4 py-3">
+        <CmxDialogFooter className="border-t border-border px-4 py-3">
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {tCommon('close')}
           </CmxButton>
@@ -309,11 +309,11 @@ function PolicyIdentifierRow({
   const ids = row.values.filter((value) => value.tone !== 'code');
   return (
     <div className="px-3 py-2.5">
-      <dt className="text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <dt className="text-xs font-medium text-muted-foreground">
         {row.label}
       </dt>
       {row.values.length === 0 ? (
-        <dd className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel}</dd>
+        <dd className="mt-1 text-xs text-muted-foreground">{emptyLabel}</dd>
       ) : (
         <dd className="mt-1.5 space-y-1.5">
           {codes.map((value) => (
@@ -327,7 +327,7 @@ function PolicyIdentifierRow({
           {ids.map((value) => (
             <div
               key={`${row.key}-id-${value.text}`}
-              className="flex min-w-0 items-center gap-2 rounded-md border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))] px-2 py-1"
+              className="flex min-w-0 items-center gap-2 rounded-md border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-accent px-2 py-1"
             >
               <span className="min-w-0 flex-1 select-text break-all font-mono text-xs leading-5">{value.text}</span>
               <CopyFactButton value={value.text} label={copyLabel} copiedLabel={copiedLabel} copyFailedLabel={copyFailedLabel} />
@@ -356,15 +356,15 @@ function PolicyFactTile({
     <div
       className={
         row.hero
-          ? 'rounded-lg border border-[rgb(var(--cmx-info-border-rgb,191_219_254))] bg-[rgb(var(--cmx-info-bg-rgb,239_246_255))] px-3 py-2.5 sm:col-span-2'
-          : `h-full rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))] px-3 py-2${row.wide ? ' sm:col-span-2' : ''}`
+          ? 'rounded-lg border border-info-border bg-info-bg px-3 py-2.5 sm:col-span-2'
+          : `h-full rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-accent px-3 py-2${row.wide ? ' sm:col-span-2' : ''}`
       }
     >
-      <dt className="text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <dt className="text-xs font-medium text-muted-foreground">
         {row.label}
       </dt>
       {row.values.length === 0 ? (
-        <dd className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel}</dd>
+        <dd className="mt-1 text-xs text-muted-foreground">{emptyLabel}</dd>
       ) : (
         <dd className="mt-1.5">
           <ul className="space-y-1.5">

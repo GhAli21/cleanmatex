@@ -46,7 +46,7 @@ export function AutoAllocationPreviewDrawer({
   isRTL = false,
 }: AutoAllocationPreviewDrawerProps) {
   const t = useTranslations('newOrder.payment.extraReceipt.allocation');
-  const textAlign = isRTL ? 'text-right' : 'text-left';
+  const textAlign = 'text-start';
 
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
@@ -56,46 +56,46 @@ export function AutoAllocationPreviewDrawer({
         </CmxDialogHeader>
 
         {loading ? (
-          <p className={`text-sm text-slate-600 ${textAlign}`}>{t('loadingPreview')}</p>
+          <p className={`text-sm text-muted-foreground ${textAlign}`}>{t('loadingPreview')}</p>
         ) : preview ? (
           <div className="space-y-3">
-            <p className={`text-sm text-slate-600 ${textAlign}`}>
+            <p className={`text-sm text-muted-foreground ${textAlign}`}>
               {t('excessToAllocate', {
                 amount: `${currencyCode} ${formatAmount(preview.excessAmount)}`,
               })}
             </p>
-            <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-200">
+            <div className="max-h-64 overflow-y-auto rounded-xl border border-border">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600">
+                <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className={`px-3 py-2 ${textAlign}`}>{t('document')}</th>
-                    <th className={`px-3 py-2 ${isRTL ? 'text-left' : 'text-right'}`}>{t('amount')}</th>
+                    <th className="px-3 py-2 text-end">{t('amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {preview.allocations.map((line) => (
-                    <tr key={`${line.targetType}-${line.targetId}`} className="border-t border-slate-100">
+                    <tr key={`${line.targetType}-${line.targetId}`} className="border-t border-border">
                       <td className={`px-3 py-2 ${textAlign}`}>
-                        <span className="font-medium text-slate-900">{line.documentNo ?? line.targetType}</span>
+                        <span className="font-medium text-foreground">{line.documentNo ?? line.targetType}</span>
                         {line.dueDate ? (
-                          <span className="mt-0.5 block text-xs text-slate-500">{line.dueDate}</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">{line.dueDate}</span>
                         ) : null}
                       </td>
-                      <td className={`px-3 py-2 tabular-nums ${isRTL ? 'text-left' : 'text-right'}`}>
+                      <td className="px-3 py-2 tabular-nums text-end">
                         {currencyCode} {formatAmount(line.allocationAmount)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
                 {/* QA C17-1.4: summary total of the previewed allocation lines. */}
-                <tfoot className="border-t border-slate-200 bg-slate-50">
+                <tfoot className="border-t border-border bg-muted">
                   <tr>
-                    <td className={`px-3 py-2 text-sm font-semibold text-slate-900 ${textAlign}`}>
+                    <td className={`px-3 py-2 text-sm font-semibold text-foreground ${textAlign}`}>
                       {t('totalAllocated')}
                     </td>
                     <td
                       data-testid="auto-allocation-total"
-                      className={`px-3 py-2 text-sm font-semibold tabular-nums text-slate-900 ${isRTL ? 'text-left' : 'text-right'}`}
+                      className="px-3 py-2 text-sm font-semibold tabular-nums text-foreground text-end"
                     >
                       {currencyCode}{' '}
                       {formatAmount(
@@ -107,16 +107,16 @@ export function AutoAllocationPreviewDrawer({
               </table>
             </div>
             {preview.remainingUnallocatedAmount > 0.001 ? (
-              <p className="text-sm font-medium text-rose-600">
+              <p className="text-sm font-medium text-danger-text">
                 {t('remainingUnallocated', {
                   amount: `${currencyCode} ${formatAmount(preview.remainingUnallocatedAmount)}`,
                 })}
               </p>
             ) : (
-              <p className="text-sm text-emerald-700">{t('fullyAllocated')}</p>
+              <p className="text-sm text-success-text">{t('fullyAllocated')}</p>
             )}
             {preview.fallbackAllocation && preview.fallbackAllocation.allocationAmount > 0.001 ? (
-              <p className={`text-sm text-amber-800 ${textAlign}`}>
+              <p className={`text-sm text-warning-text ${textAlign}`}>
                 {t('autoFallbackHint', {
                   amount: `${currencyCode} ${formatAmount(preview.fallbackAllocation.allocationAmount)}`,
                   destination: preview.fallbackAllocation.targetType,
@@ -124,7 +124,7 @@ export function AutoAllocationPreviewDrawer({
               </p>
             ) : null}
             {preview.warnings.length > 0 ? (
-              <ul className="list-disc space-y-1 ps-5 text-xs text-amber-800">
+              <ul className="list-disc space-y-1 ps-5 text-xs text-warning-text">
                 {preview.warnings.map((warning) => (
                   <li key={warning.code}>{warning.message ?? warning.code}</li>
                 ))}
@@ -132,10 +132,10 @@ export function AutoAllocationPreviewDrawer({
             ) : null}
           </div>
         ) : (
-          <p className={`text-sm text-slate-600 ${textAlign}`}>{t('noPreview')}</p>
+          <p className={`text-sm text-muted-foreground ${textAlign}`}>{t('noPreview')}</p>
         )}
 
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+        <CmxDialogFooter className="">
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('cancel')}
           </CmxButton>

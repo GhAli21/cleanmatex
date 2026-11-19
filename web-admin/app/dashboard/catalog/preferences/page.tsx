@@ -192,18 +192,18 @@ function TableSkeleton({ rows = 5 }: { rows?: number }) {
         <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]">
           <tr>
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <th key={i} className="px-4 py-3 text-left">
-                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+              <th key={i} className="px-4 py-3 text-start">
+                <div className="h-4 w-20 bg-muted rounded animate-pulse" />
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {Array.from({ length: rows }).map((_, i) => (
-            <tr key={i} className="border-t border-gray-100">
+            <tr key={i} className="border-t border-border">
               {[1, 2, 3, 4, 5, 6].map((j) => (
                 <td key={j} className="px-4 py-3">
-                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 bg-muted rounded animate-pulse" />
                 </td>
               ))}
             </tr>
@@ -337,12 +337,12 @@ function ServicePrefsKindDataGrid({
                 title={swatchHex}
                 aria-hidden
               />
-              <span className="font-mono text-[11px] text-gray-600 max-w-[5.5rem] truncate" dir="ltr" lang="en">
+              <span className="font-mono text-[11px] text-muted-foreground max-w-[5.5rem] truncate" dir="ltr" lang="en">
                 {swatchHex}
               </span>
             </span>
           ) : (
-            <span className="text-xs text-gray-400">—</span>
+            <span className="text-xs text-muted-foreground">—</span>
           );
         },
       });
@@ -362,14 +362,14 @@ function ServicePrefsKindDataGrid({
         header: t('nameAr', { defaultValue: 'Name (AR)' }),
         meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
         cell: ({ row }) => (
-          <span className="text-gray-600">{servicePrefSecondaryLabel(row.original, isAdmin)}</span>
+          <span className="text-muted-foreground">{servicePrefSecondaryLabel(row.original, isAdmin)}</span>
         ),
       },
       {
         accessorKey: 'preference_category',
         header: t('category', { defaultValue: 'Category' }),
         cell: ({ row }) => (
-          <span className="text-gray-600">{row.original.preference_category ?? '—'}</span>
+          <span className="text-muted-foreground">{row.original.preference_category ?? '—'}</span>
         ),
       },
       {
@@ -402,7 +402,7 @@ function ServicePrefsKindDataGrid({
           const rowEnabled =
             adminRow && !adminRow.cf_id ? null : adminRow ? adminRow.cf_is_active !== false : true;
           if (rowEnabled === null) {
-            return <span className="text-xs text-gray-400">—</span>;
+            return <span className="text-xs text-muted-foreground">—</span>;
           }
           return (
             <CmxStatusBadge size="sm" tone={rowEnabled ? 'success' : 'brand'}>
@@ -431,7 +431,7 @@ function ServicePrefsKindDataGrid({
                     : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
                 </CmxStatusBadge>
                 {!sysActive ? (
-                  <span className="text-xs text-amber-700">
+                  <span className="text-xs text-warning-text">
                     {t('systemInactive', { defaultValue: 'Unavailable at platform' })}
                   </span>
                 ) : null}
@@ -455,7 +455,7 @@ function ServicePrefsKindDataGrid({
                     <CmxButton
                       variant="outline"
                       size="sm"
-                      className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                      className="h-8 gap-1 border-success-border text-success-text hover:bg-success-bg"
                       onClick={() => onEdit(adminRow)}
                       aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
                       title={t('enablePreference', { defaultValue: 'Add to catalog' })}
@@ -482,7 +482,7 @@ function ServicePrefsKindDataGrid({
                     <CmxButton
                       variant="ghost"
                       size="sm"
-                      className="h-8 px-2 text-red-600 hover:text-red-700"
+                      className="h-8 px-2 text-danger-text hover:text-danger-text/80"
                       onClick={() => onRemove(adminRow)}
                       disabled={removePendingCode === adminRow.code}
                       aria-label={t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
@@ -620,20 +620,20 @@ function ServicePrefsTable({
     if (isAdmin && rowsRaw.length > 0) {
       return (
         <div
-          className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+          className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
           data-testid="service-prefs-filter-empty"
         >
-          <Shirt className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+          <Shirt className="h-12 w-12 text-muted-foreground mb-3" aria-hidden />
           <p className="text-sm font-medium">{t('catalogFilterEmpty', { defaultValue: 'No options match this filter' })}</p>
         </div>
       );
     }
     return (
       <div
-        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
         data-testid="service-prefs-empty"
       >
-        <Shirt className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <Shirt className="h-12 w-12 text-muted-foreground mb-3" aria-hidden />
         <p className="text-sm font-medium">{t('noServicePrefs', { defaultValue: 'No service preferences configured' })}</p>
       </div>
     );
@@ -650,19 +650,19 @@ function ServicePrefsTable({
         return (
         <section
           key={group.kindCode}
-          className="overflow-hidden rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white"
+          className="overflow-hidden rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-card"
           data-testid={`service-prefs-group-${group.kindCode}`}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] px-4 py-3">
             <div className="flex items-center gap-3">
               <span
-                className="h-3 w-3 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                className="h-3 w-3 rounded-full border border-card shadow-sm ring-1 ring-border"
                 style={{ backgroundColor: group.color ?? 'rgb(var(--cmx-primary-rgb,37_99_235))' }}
                 aria-hidden="true"
               />
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">{group.label}</h3>
-                <p className="font-mono text-xs text-gray-500">{group.kindCode}</p>
+                <h3 className="text-sm font-semibold text-foreground">{group.label}</h3>
+                <p className="font-mono text-xs text-muted-foreground">{group.kindCode}</p>
               </div>
             </div>
             <CmxStatusBadge size="sm" tone="brand" appearance="solid">
@@ -810,7 +810,7 @@ function PackingPrefsDataGrid({
                     : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
                 </CmxStatusBadge>
                 {!sysActive ? (
-                  <span className="text-xs text-amber-700">
+                  <span className="text-xs text-warning-text">
                     {t('systemInactive', { defaultValue: 'Unavailable at platform' })}
                   </span>
                 ) : null}
@@ -834,7 +834,7 @@ function PackingPrefsDataGrid({
                     <CmxButton
                       variant="outline"
                       size="sm"
-                      className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                      className="h-8 gap-1 border-success-border text-success-text hover:bg-success-bg"
                       onClick={() => onEdit(adminRow)}
                       aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
                       title={t('enablePreference', { defaultValue: 'Add to catalog' })}
@@ -861,7 +861,7 @@ function PackingPrefsDataGrid({
                     <CmxButton
                       variant="ghost"
                       size="sm"
-                      className="h-8 px-2 text-red-600 hover:text-red-700"
+                      className="h-8 px-2 text-danger-text hover:text-danger-text/80"
                       onClick={() => onRemove(adminRow)}
                       disabled={removePendingCode === adminRow.code}
                       aria-label={t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
@@ -944,20 +944,20 @@ function PackingPrefsTable({
     if (isAdmin && rowsRaw.length > 0) {
       return (
         <div
-          className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+          className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
           data-testid="packing-prefs-filter-empty"
         >
-          <Package className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+          <Package className="h-12 w-12 text-muted-foreground mb-3" aria-hidden />
           <p className="text-sm font-medium">{t('catalogFilterEmpty', { defaultValue: 'No options match this filter' })}</p>
         </div>
       );
     }
     return (
       <div
-        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
         data-testid="packing-prefs-empty"
       >
-        <Package className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <Package className="h-12 w-12 text-muted-foreground mb-3" aria-hidden />
         <p className="text-sm font-medium">{t('noPackingPrefs', { defaultValue: 'No packing preferences configured' })}</p>
       </div>
     );
@@ -1076,7 +1076,7 @@ function BundlesTable({
             <CmxButton
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-red-600 hover:text-red-700"
+              className="h-8 px-2 text-danger-text hover:text-danger-text/80"
               onClick={() => onDelete(row.original)}
               disabled={deletePending}
               aria-label={t('delete', { defaultValue: 'Delete' })}
@@ -1098,10 +1098,10 @@ function BundlesTable({
   if (bundles.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
         data-testid="bundles-empty"
       >
-        <Gift className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <Gift className="h-12 w-12 text-muted-foreground mb-3" aria-hidden />
         <p className="text-sm font-medium">{t('noBundles', { defaultValue: 'No care packages configured' })}</p>
       </div>
     );
@@ -1223,7 +1223,7 @@ function PreferenceKindsTable({
           return bgColor ? (
             <span className="flex items-center gap-1.5">
               <span
-                className="inline-block h-4 w-4 rounded-full border border-gray-300"
+                className="inline-block h-4 w-4 rounded-full border border-border"
                 style={{ backgroundColor: bgColor }}
                 aria-hidden
               />
@@ -1308,10 +1308,10 @@ function PreferenceKindsTable({
   if (kinds.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
         data-testid="preference-kinds-empty"
       >
-        <Layers className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <Layers className="h-12 w-12 text-muted-foreground mb-3" aria-hidden />
         <p className="text-sm font-medium">{t('noPreferenceKinds', { defaultValue: 'No preference kinds configured' })}</p>
       </div>
     );
@@ -1407,11 +1407,11 @@ function PreferenceKindEditDialog({
         </CmxDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+            <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>
           )}
-          <p className="text-sm text-gray-600 font-mono">{kind.kind_code}</p>
+          <p className="text-sm text-muted-foreground font-mono">{kind.kind_code}</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1420,7 +1420,7 @@ function PreferenceKindEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
             <CmxInput
               value={name2}
               onChange={(e) => setName2(e.target.value)}
@@ -1443,21 +1443,21 @@ function PreferenceKindEditDialog({
               checked={showInQuickBar}
               onCheckedChange={setShowInQuickBar}
             />
-            <label className="text-sm text-gray-700">{t('showInQuickBar', { defaultValue: 'Show in Quick Bar' })}</label>
+            <label className="text-sm text-foreground">{t('showInQuickBar', { defaultValue: 'Show in Quick Bar' })}</label>
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={showForCustomer}
               onCheckedChange={setShowForCustomer}
             />
-            <label className="text-sm text-gray-700">{t('showForCustomer', { defaultValue: 'Show for Customer' })}</label>
+            <label className="text-sm text-foreground">{t('showForCustomer', { defaultValue: 'Show for Customer' })}</label>
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <label className="text-sm text-gray-700">{t('enabled', { defaultValue: 'Enabled' })}</label>
+            <label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</label>
           </div>
           <CmxDialogFooter>
             <CmxDialogClose asChild>
@@ -1636,7 +1636,7 @@ export default function PreferencesCatalogPage() {
         content: (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {t('servicePrefsDesc', { defaultValue: 'Processing options: starch, perfume, delicate, etc.' })}
               </p>
               <RequireAnyPermission
@@ -1648,13 +1648,13 @@ export default function PreferencesCatalogPage() {
                   onClick={() => setCreateServicePrefOpen(true)}
                   data-testid="add-service-pref-btn"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4 me-1" />
                   {t('addServicePref', { defaultValue: 'Add Service Preference' })}
                 </CmxButton>
               </RequireAnyPermission>
             </div>
             {servicePrefsAdmin.length > 0 ? (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {t('catalogAddRowHint', {
                   defaultValue:
                     'To offer a platform option on new orders, find a â€œNot in catalogâ€ row and use Add to catalog, or switch the filter above to Not in catalog.',
@@ -1685,7 +1685,7 @@ export default function PreferencesCatalogPage() {
         content: (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {t('packingPrefsDesc', { defaultValue: 'Assembly options: hang, fold, box, etc.' })}
               </p>
               <RequireAnyPermission
@@ -1697,13 +1697,13 @@ export default function PreferencesCatalogPage() {
                   onClick={() => setCreatePackingPrefOpen(true)}
                   data-testid="add-packing-pref-btn"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4 me-1" />
                   {t('addPackingPref', { defaultValue: 'Add Packing Preference' })}
                 </CmxButton>
               </RequireAnyPermission>
             </div>
             {packingPrefsAdmin.length > 0 ? (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {t('catalogAddRowHint', {
                   defaultValue:
                     'To offer a platform option on new orders, find a â€œNot in catalogâ€ row and use Add to catalog, or switch the filter above to Not in catalog.',
@@ -1733,7 +1733,7 @@ export default function PreferencesCatalogPage() {
         content: (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {t('bundlesDesc', { defaultValue: 'Preference bundles for quick apply (Growth+)' })}
               </p>
               <RequireAnyPermission
@@ -1748,7 +1748,7 @@ export default function PreferencesCatalogPage() {
                   }}
                   data-testid="add-bundle-btn"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-4 w-4 me-1" />
                   {t('addBundle', { defaultValue: 'Add Bundle' })}
                 </CmxButton>
               </RequireAnyPermission>
@@ -1782,10 +1782,10 @@ export default function PreferencesCatalogPage() {
         icon: <Layers className="h-4 w-4" aria-hidden />,
         content: (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {t('preferenceKindsDesc', { defaultValue: 'Configure which preference tabs show in the order panel' })}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {t('preferenceKindsNote', { defaultValue: 'Kind codes are defined by the platform. You can customize labels, colors, and visibility for your tenant.' })}
             </p>
             <PreferenceKindsTable
@@ -1824,38 +1824,38 @@ export default function PreferencesCatalogPage() {
       permissions={CATALOG_PREFERENCES_ACCESS.page.permissions ?? []}
       fallback={
         <CmxCard className="p-6">
-          <p className="text-gray-600">You do not have permission to view the preferences catalog.</p>
+          <p className="text-muted-foreground">You do not have permission to view the preferences catalog.</p>
         </CmxCard>
       }
     >
       <div className="space-y-6" data-testid="preferences-catalog-page">
         {/* Breadcrumb */}
-        <nav className="flex items-center text-sm text-gray-500" aria-label="Breadcrumb">
+        <nav className="flex items-center text-sm text-muted-foreground" aria-label="Breadcrumb">
           <Link
             href="/dashboard/catalog/services"
-            className="hover:text-gray-700 transition-colors"
+            className="hover:text-foreground transition-colors"
           >
             {tCatalog('title', { defaultValue: 'Catalog' })}
           </Link>
-          <ChevronRight className="h-4 w-4 mx-1 text-gray-400 rtl:rotate-180" aria-hidden />
-          <span className="text-gray-900 font-medium">
+          <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground rtl:rotate-180" aria-hidden />
+          <span className="text-foreground font-medium">
             {t('title', { defaultValue: 'Preferences Catalog' })}
           </span>
         </nav>
 
         {/* Page Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             {t('title', { defaultValue: 'Preferences Catalog' })}
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('subtitle', { defaultValue: 'Service and packing preferences for orders' })}
           </p>
         </div>
 
         {error && (
-          <CmxCard className="p-6 border-red-200 bg-red-50">
-            <p className="text-red-800">{error}</p>
+          <CmxCard className="p-6 border-danger-border bg-danger-bg">
+            <p className="text-danger-text">{error}</p>
           </CmxCard>
         )}
 
@@ -1993,10 +1993,10 @@ function BundleFormDialog({
         </CmxDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+            <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('bundleCode', { defaultValue: 'Bundle Code' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('bundleCode', { defaultValue: 'Bundle Code' })}</label>
             <CmxInput
               value={bundleCode}
               onChange={(e) => setBundleCode(e.target.value)}
@@ -2007,7 +2007,7 @@ function BundleFormDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('bundleName', { defaultValue: 'Name' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('bundleName', { defaultValue: 'Name' })}</label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -2017,7 +2017,7 @@ function BundleFormDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('preferences', { defaultValue: 'Preferences' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-2">{t('preferences', { defaultValue: 'Preferences' })}</label>
             <div className="flex flex-wrap gap-2">
               {servicePrefs.map((p) => (
                 <button
@@ -2026,8 +2026,8 @@ function BundleFormDialog({
                   onClick={() => togglePref(p.code)}
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
                     preferenceCodes.includes(p.code)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground hover:bg-border'
                   }`}
                 >
                   {p.name}
@@ -2127,10 +2127,10 @@ function CustomServicePrefCreateDialog({
           </CmxDialogTitle>
         </CmxDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>}
+          {error && <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('code', { defaultValue: 'Code' })} <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t('code', { defaultValue: 'Code' })} <span className="text-danger-text">*</span>
             </label>
             <CmxInput
               value={code}
@@ -2141,13 +2141,13 @@ function CustomServicePrefCreateDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-danger-text">*</span>
             </label>
             <CmxInput value={name} onChange={(e) => setName(e.target.value)} className="w-full" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('customNameAr', { defaultValue: 'Name (AR)' })}
             </label>
             <CmxInput value={name2} onChange={(e) => setName2(e.target.value)} className="w-full" />
@@ -2161,7 +2161,7 @@ function CustomServicePrefCreateDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('extraPrice', { defaultValue: 'Extra Price' })}
             </label>
             <CmxInput
@@ -2174,7 +2174,7 @@ function CustomServicePrefCreateDialog({
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch checked={isActive} onCheckedChange={setIsActive} id="svc-create-active" />
-            <label htmlFor="svc-create-active" className="text-sm text-gray-700">
+            <label htmlFor="svc-create-active" className="text-sm text-foreground">
               {t('active', { defaultValue: 'Active' })}
             </label>
           </div>
@@ -2259,10 +2259,10 @@ function CustomPackingPrefCreateDialog({
           </CmxDialogTitle>
         </CmxDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>}
+          {error && <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('code', { defaultValue: 'Code' })} <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t('code', { defaultValue: 'Code' })} <span className="text-danger-text">*</span>
             </label>
             <CmxInput
               value={code}
@@ -2273,19 +2273,19 @@ function CustomPackingPrefCreateDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-danger-text">*</span>
             </label>
             <CmxInput value={name} onChange={(e) => setName(e.target.value)} className="w-full" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('customNameAr', { defaultValue: 'Name (AR)' })}
             </label>
             <CmxInput value={name2} onChange={(e) => setName2(e.target.value)} className="w-full" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('extraPrice', { defaultValue: 'Extra Price' })}
             </label>
             <CmxInput
@@ -2298,7 +2298,7 @@ function CustomPackingPrefCreateDialog({
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch checked={isActive} onCheckedChange={setIsActive} id="pack-create-active" />
-            <label htmlFor="pack-create-active" className="text-sm text-gray-700">
+            <label htmlFor="pack-create-active" className="text-sm text-foreground">
               {t('active', { defaultValue: 'Active' })}
             </label>
           </div>
@@ -2434,18 +2434,18 @@ function ServicePrefEditDialog({
         </CmxDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+            <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>
           )}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-gray-600 font-mono">{pref.code}</span>
+            <span className="text-sm text-muted-foreground font-mono">{pref.code}</span>
             {pref.preference_sys_kind && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-info-bg text-info-text border border-info-border">
                 {pref.preference_sys_kind}
               </span>
             )}
           </div>
           {!pref.cf_id ? (
-            <p className="text-sm rounded-md bg-sky-50 text-sky-900 px-3 py-2 border border-sky-100">
+            <p className="text-sm rounded-md bg-info-bg text-info-text px-3 py-2 border border-info-border">
               {t('enablePreferenceHint', {
                 defaultValue:
                   'Saving adds this platform option to your tenant catalog so it appears on new orders.',
@@ -2453,7 +2453,7 @@ function ServicePrefEditDialog({
             </p>
           ) : null}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -2462,7 +2462,7 @@ function ServicePrefEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
             <CmxInput
               value={name2}
               onChange={(e) => setName2(e.target.value)}
@@ -2493,7 +2493,7 @@ function ServicePrefEditDialog({
             />
           ) : null}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</label>
             <CmxInput
               type="number"
               step="0.0001"
@@ -2508,14 +2508,14 @@ function ServicePrefEditDialog({
               checked={isIncludedInBase}
               onCheckedChange={setIsIncludedInBase}
             />
-            <label className="text-sm text-gray-700">{t('includedInBase', { defaultValue: 'Included in base price' })}</label>
+            <label className="text-sm text-foreground">{t('includedInBase', { defaultValue: 'Included in base price' })}</label>
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <label className="text-sm text-gray-700">{t('enabled', { defaultValue: 'Enabled' })}</label>
+            <label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</label>
           </div>
           <CmxDialogFooter>
             {pref.cf_id && (
@@ -2524,7 +2524,7 @@ function ServicePrefEditDialog({
                 variant="outline"
                 onClick={() => void handleRemoveFromCatalog()}
                 disabled={saving}
-                className="mr-auto text-red-700 border-red-200 hover:bg-red-50"
+                className="me-auto text-danger-text border-danger-border hover:bg-danger-bg"
               >
                 {t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
               </CmxButton>
@@ -2630,18 +2630,18 @@ function PackingPrefEditDialog({
         </CmxDialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+            <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>
           )}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-gray-600 font-mono">{pref.code}</span>
+            <span className="text-sm text-muted-foreground font-mono">{pref.code}</span>
             {pref.maps_to_packaging_type ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground border border-border">
                 {pref.maps_to_packaging_type}
               </span>
             ) : null}
           </div>
           {!pref.cf_id ? (
-            <p className="text-sm rounded-md bg-sky-50 text-sky-900 px-3 py-2 border border-sky-100">
+            <p className="text-sm rounded-md bg-info-bg text-info-text px-3 py-2 border border-info-border">
               {t('enablePreferenceHint', {
                 defaultValue:
                   'Saving adds this platform option to your tenant catalog so it appears on new orders.',
@@ -2649,7 +2649,7 @@ function PackingPrefEditDialog({
             </p>
           ) : null}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -2658,7 +2658,7 @@ function PackingPrefEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
             <CmxInput
               value={name2}
               onChange={(e) => setName2(e.target.value)}
@@ -2667,7 +2667,7 @@ function PackingPrefEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</label>
             <CmxInput
               type="number"
               step="0.0001"
@@ -2682,7 +2682,7 @@ function PackingPrefEditDialog({
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <label className="text-sm text-gray-700">{t('enabled', { defaultValue: 'Enabled' })}</label>
+            <label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</label>
           </div>
           <CmxDialogFooter>
             {pref.cf_id && (
@@ -2691,7 +2691,7 @@ function PackingPrefEditDialog({
                 variant="outline"
                 onClick={() => void handleRemoveFromCatalog()}
                 disabled={saving}
-                className="mr-auto text-red-700 border-red-200 hover:bg-red-50"
+                className="me-auto text-danger-text border-danger-border hover:bg-danger-bg"
               >
                 {t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
               </CmxButton>

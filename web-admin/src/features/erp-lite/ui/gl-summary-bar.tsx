@@ -28,26 +28,26 @@ export function GlSummaryBar({ summary, displayConfig }: GlSummaryBarProps) {
   return (
     <div className="grid grid-cols-3 gap-3">
       <StatCard
-        icon={<ArrowUpRight className="h-4 w-4 text-red-500" />}
+        icon={<ArrowUpRight className="h-4 w-4 text-danger-text" />}
         label={t('summary.totalDebit')}
         value={formatErpLiteMoney(summary.totalDebit, displayConfig)}
-        valueClass="text-red-600"
+        valueClass="text-danger-text"
       />
       <StatCard
-        icon={<ArrowDownLeft className="h-4 w-4 text-emerald-500" />}
+        icon={<ArrowDownLeft className="h-4 w-4 text-success-text" />}
         label={t('summary.totalCredit')}
         value={formatErpLiteMoney(summary.totalCredit, displayConfig)}
-        valueClass="text-emerald-600"
+        valueClass="text-success-text"
       />
       <StatCard
-        icon={<Rows3 className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />}
+        icon={<Rows3 className="h-4 w-4 text-primary-text" />}
         label={t('gl.summary.rowCount')}
         value={formatErpLiteNumber(summary.rowCount, displayConfig.locale)}
         sub={
           isBalanced ? (
-            <span className="text-emerald-600">{t('gl.summary.balanced')}</span>
+            <span className="text-success-text">{t('gl.summary.balanced')}</span>
           ) : (
-            <span className="text-red-500">{t('gl.summary.unbalanced')}</span>
+            <span className="text-danger-text">{t('gl.summary.unbalanced')}</span>
           )
         }
       />
@@ -69,12 +69,12 @@ function StatCard({
   sub?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <div className="flex flex-col gap-1 rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface p-4">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         {icon}
         {label}
       </div>
-      <div className={`text-lg font-semibold tabular-nums ${valueClass ?? 'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]'}`}>
+      <div className={`text-lg font-semibold tabular-nums ${valueClass ?? 'text-foreground'}`}>
         {value}
       </div>
       {sub && <div className="text-xs">{sub}</div>}

@@ -44,13 +44,13 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
 
     const variantClass = {
       primary:
-        'border-2 border-transparent bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-fg-rgb))] hover:bg-[rgb(var(--cmx-primary-hover-rgb,3_105_161))]',
+        'border-2 border-transparent bg-primary text-primary-foreground hover:bg-primary-hover',
       secondary: CMX_BUTTON_OUTLINE_CHROME.secondary,
       ghost:
-        'border-2 border-transparent bg-transparent hover:bg-[rgb(var(--cmx-ghost-hover-bg-rgb,241_245_249))]',
+        'border-2 border-transparent bg-transparent hover:bg-accent',
       outline: CMX_BUTTON_OUTLINE_CHROME.outline,
       destructive:
-        'border-2 border-transparent bg-[rgb(var(--cmx-destructive-rgb,220_38_38))] text-destructive-foreground hover:bg-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',
+        'border-2 border-transparent bg-destructive text-destructive-foreground hover:bg-[rgb(var(--cmx-destructive-hover-rgb,185_28_28))]',
     }[variant]
 
     const sizeClass = {

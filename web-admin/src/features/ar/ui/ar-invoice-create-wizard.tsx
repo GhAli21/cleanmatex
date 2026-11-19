@@ -288,14 +288,14 @@ export function ArInvoiceCreateWizard() {
             key={item}
             className={`rounded-2xl border p-4 ${
               step === item
-                ? 'border-sky-400 bg-sky-50'
-                : 'border-slate-200 bg-white'
+                ? 'border-primary bg-info-bg'
+                : 'border-border bg-card'
             }`}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {t('steps.stepLabel', { number: item })}
             </p>
-            <p className="mt-2 text-sm font-medium text-slate-900">
+            <p className="mt-2 text-sm font-medium text-foreground">
               {item === 1
                 ? t('steps.basics')
                 : item === 2
@@ -307,7 +307,7 @@ export function ArInvoiceCreateWizard() {
       </div>
 
       {step === 1 ? (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <div className="grid gap-4 md:grid-cols-2">
             <CmxSelect
               label={t('fields.mode')}
@@ -362,7 +362,7 @@ export function ArInvoiceCreateWizard() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-900">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               {t('fields.notes')}
             </label>
             <CmxTextarea
@@ -374,13 +374,13 @@ export function ArInvoiceCreateWizard() {
       ) : null}
 
       {step === 2 && mode === 'MANUAL' ? (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">
+              <h2 className="text-lg font-semibold text-foreground">
                 {t('manualLines.title')}
               </h2>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 {t('manualLines.subtitle')}
               </p>
             </div>
@@ -393,10 +393,10 @@ export function ArInvoiceCreateWizard() {
             {computedLines.map((line, index) => (
               <div
                 key={line.id}
-                className="rounded-2xl border border-slate-200 p-4"
+                className="rounded-2xl border border-border p-4"
               >
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-foreground">
                     {t('manualLines.lineLabel', { number: index + 1 })}
                   </p>
                   <CmxButton
@@ -457,28 +457,28 @@ export function ArInvoiceCreateWizard() {
                     onValueChange={(_, d) => updateLine(line.id, 'tax', d)}
                   />
                 </div>
-                <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-3">
+                <div className="mt-4 grid gap-3 rounded-xl bg-muted p-4 md:grid-cols-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                       {t('fields.subtotalPreview')}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">
+                    <p className="mt-1 text-sm font-medium text-foreground">
                       {line.subtotal.toFixed(4)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                       {t('fields.taxablePreview')}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">
+                    <p className="mt-1 text-sm font-medium text-foreground">
                       {line.taxable.toFixed(4)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                       {t('fields.totalPreview')}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">
+                    <p className="mt-1 text-sm font-medium text-foreground">
                       {line.total.toFixed(4)}
                     </p>
                   </div>
@@ -490,69 +490,69 @@ export function ArInvoiceCreateWizard() {
       ) : null}
 
       {step === 2 && mode === 'FROM_ORDERS' ? (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-lg font-semibold text-foreground">
               {t('orderBatch.title')}
             </h2>
-            <p className="text-sm text-slate-600">{t('orderBatch.subtitle')}</p>
+            <p className="text-sm text-muted-foreground">{t('orderBatch.subtitle')}</p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-900">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               {t('fields.orderIds')}
             </label>
             <CmxTextarea
               value={orderIdsDraft}
               onChange={(event) => setOrderIdsDraft(event.target.value)}
             />
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-muted-foreground">
               {t('orderBatch.hint')}
             </p>
           </div>
-          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+          <div className="rounded-xl bg-muted p-4 text-sm text-foreground">
             {t('orderBatch.count', { count: orderIds.length })}
           </div>
         </div>
       ) : null}
 
       {step === 3 ? (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-lg font-semibold text-foreground">
               {t('review.title')}
             </h2>
-            <p className="text-sm text-slate-600">{t('review.subtitle')}</p>
+            <p className="text-sm text-muted-foreground">{t('review.subtitle')}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.mode')}
               </p>
-              <p className="mt-2 text-sm font-medium text-slate-900">
+              <p className="mt-2 text-sm font-medium text-foreground">
                 {t(`modeOptions.${mode}`)}
               </p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.currency')}
               </p>
-              <p className="mt-2 text-sm font-medium text-slate-900">
+              <p className="mt-2 text-sm font-medium text-foreground">
                 {currencyCode.toUpperCase()}
               </p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.invoiceDate')}
               </p>
-              <p className="mt-2 text-sm font-medium text-slate-900">
+              <p className="mt-2 text-sm font-medium text-foreground">
                 {invoiceDate}
               </p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.dueDate')}
               </p>
-              <p className="mt-2 text-sm font-medium text-slate-900">
+              <p className="mt-2 text-sm font-medium text-foreground">
                 {dueDate}
               </p>
             </div>
@@ -563,61 +563,61 @@ export function ArInvoiceCreateWizard() {
               {computedLines.map((line, index) => (
                 <div
                   key={line.id}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-border p-4"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-foreground">
                       {t('manualLines.lineLabel', { number: index + 1 })}
                     </p>
-                    <p className="text-sm text-slate-600">{line.description}</p>
+                    <p className="text-sm text-muted-foreground">{line.description}</p>
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-foreground">
                     {line.total.toFixed(4)}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-slate-200 p-4">
-              <p className="text-sm text-slate-600">
+            <div className="rounded-xl border border-border p-4">
+              <p className="text-sm text-muted-foreground">
                 {t('orderBatch.count', { count: orderIds.length })}
               </p>
-              <p className="mt-2 break-words text-sm font-medium text-slate-900">
+              <p className="mt-2 break-words text-sm font-medium text-foreground">
                 {orderIds.join(', ')}
               </p>
             </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.subtotal')}
               </p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
+              <p className="mt-2 text-sm font-semibold text-foreground">
                 {totals.subtotal.toFixed(4)}
               </p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.discount')}
               </p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
+              <p className="mt-2 text-sm font-semibold text-foreground">
                 {totals.discount.toFixed(4)}
               </p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
+            <div className="rounded-xl bg-muted p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 {t('review.tax')}
               </p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">
+              <p className="mt-2 text-sm font-semibold text-foreground">
                 {totals.tax.toFixed(4)}
               </p>
             </div>
-            <div className="rounded-xl bg-sky-50 p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-sky-700">
+            <div className="rounded-xl bg-info-bg p-4">
+              <p className="text-xs uppercase tracking-[0.12em] text-primary-text">
                 {t('review.total')}
               </p>
-              <p className="mt-2 text-sm font-semibold text-sky-900">
+              <p className="mt-2 text-sm font-semibold text-primary-text">
                 {totals.total.toFixed(4)}
               </p>
             </div>
@@ -625,7 +625,7 @@ export function ArInvoiceCreateWizard() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rtl:flex-row-reverse">
+      <div className="flex items-center justify-between gap-3">
         <CmxButton
           variant="ghost"
           onClick={() =>
@@ -636,7 +636,7 @@ export function ArInvoiceCreateWizard() {
         >
           {step === 1 ? tCommon('cancel') : tCommon('back')}
         </CmxButton>
-        <div className="flex items-center gap-2 rtl:flex-row-reverse">
+        <div className="flex items-center gap-2">
           {step < 3 ? (
             <CmxButton
               onClick={() => setStep((current) => (current + 1) as 1 | 2 | 3)}

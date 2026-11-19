@@ -1,10 +1,10 @@
 'use client';
 
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useState } from 'react';
 import React from 'react';
 import { AlertCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/hooks/useBilingual';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
@@ -67,7 +67,6 @@ export function OrderItemsList({
 }: OrderItemsListProps) {
   const t = useTranslations('orders.itemsList');
   const tPieces = useTranslations('newOrder.pieces');
-  const isRTL = useRTL();
   const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
   // A piece code names its line; a piece id does not, so then every line opens to find it.
@@ -93,8 +92,8 @@ export function OrderItemsList({
 
   if (items.length === 0) {
     return (
-      <div className={`text-center py-8 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-        <ImageIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+      <div className="text-center py-8 text-muted-foreground text-start">
+        <ImageIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
         <p>{t('noItems')}</p>
         <p className="text-sm mt-1">{t('itemsWillBeAdded')}</p>
       </div>
@@ -106,27 +105,27 @@ export function OrderItemsList({
       {items.map((item, index) => (
         <div
           key={item.id}
-          className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+          className="border border-border rounded-lg p-4 hover:border-muted-foreground transition-colors"
         >
-          <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} items-start mb-2`}>
+          <div className="flex justify-between items-start mb-2">
             <div className="flex-1">
-              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`text-sm font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground text-start">
                   {getBilingual(item.product_name, item.product_name2) || item.service_category_code || t('item')}
                 </span>
                 <CmxCodeChip code={item.order_item_srno} kind="item" />
                 {item.status && (
-                  <span className={`px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <span className="px-2 py-0.5 text-xs bg-muted text-foreground rounded text-start">
                     {item.status.replace('_', ' ')}
                   </span>
                 )}
               </div>
             </div>
-            <div className={isRTL ? 'text-left' : 'text-right'}>
-              <div className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-left' : 'text-right'}`}>
+            <div className="text-end">
+              <div className="text-sm font-semibold text-foreground text-end">
                 {formatMoneyWithCode(parseFloat(item.total_price.toString()))}
               </div>
-              <div className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>
+              <div className="text-xs text-muted-foreground text-end">
                 {item.quantity || 1} × {formatMoneyWithCode(parseFloat(item.price_per_unit.toString()))}
               </div>
               <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
@@ -135,14 +134,14 @@ export function OrderItemsList({
 
           {/* Item Details */}
           {(item.color || item.brand) && (
-            <div className={`flex gap-4 text-xs text-gray-600 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex gap-4 text-xs text-muted-foreground mb-2">
               {item.color && (
-                <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="flex items-center gap-1">
                   <span className="font-medium">{t('color')}:</span> {item.color}
                 </span>
               )}
               {item.brand && (
-                <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="flex items-center gap-1">
                   <span className="font-medium">{t('brand')}:</span> {item.brand}
                 </span>
               )}
@@ -151,15 +150,15 @@ export function OrderItemsList({
 
           {/* Condition Flags */}
           {(item.has_stain || item.has_damage) && (
-            <div className={`flex gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex gap-2 mb-2">
               {item.has_stain && (
-                <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 rounded ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-warning-bg text-warning-text border border-warning-border rounded">
                   <AlertCircle className="w-3 h-3" />
                   {t('stain')}
                 </span>
               )}
               {item.has_damage && (
-                <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-50 text-red-700 border border-red-200 rounded ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-danger-bg text-danger-text border border-danger-border rounded">
                   <AlertCircle className="w-3 h-3" />
                   {t('damage')}
                 </span>
@@ -169,23 +168,23 @@ export function OrderItemsList({
 
           {/* Notes */}
           {(item.stain_notes || item.damage_notes || item.notes) && (
-            <div className={`space-y-1 text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className="space-y-1 text-xs text-start">
               {item.stain_notes && (
-                <div className={`bg-yellow-50 border border-yellow-100 rounded p-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="font-medium text-yellow-800">{t('stainNotes')}:</span>{' '}
-                  <span className="text-yellow-700">{item.stain_notes}</span>
+                <div className="bg-warning-bg border border-warning-border rounded p-2 text-start">
+                  <span className="font-medium text-warning-text">{t('stainNotes')}:</span>{' '}
+                  <span className="text-warning-text">{item.stain_notes}</span>
                 </div>
               )}
               {item.damage_notes && (
-                <div className={`bg-red-50 border border-red-100 rounded p-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="font-medium text-red-800">{t('damageNotes')}:</span>{' '}
-                  <span className="text-red-700">{item.damage_notes}</span>
+                <div className="bg-danger-bg border border-danger-border rounded p-2 text-start">
+                  <span className="font-medium text-danger-text">{t('damageNotes')}:</span>{' '}
+                  <span className="text-danger-text">{item.damage_notes}</span>
                 </div>
               )}
               {item.notes && (
-                <div className={`bg-gray-50 border border-gray-100 rounded p-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="font-medium text-gray-700">{t('notes')}:</span>{' '}
-                  <span className="text-gray-600">{item.notes}</span>
+                <div className="bg-muted border border-border rounded p-2 text-start">
+                  <span className="font-medium text-foreground">{t('notes')}:</span>{' '}
+                  <span className="text-muted-foreground">{item.notes}</span>
                 </div>
               )}
             </div>
@@ -193,28 +192,29 @@ export function OrderItemsList({
 
           {/* Pieces Section - Expandable */}
           {(trackByPiece || isHighlightLine(item)) && orderId && tenantId && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-border">
               <button
                 onClick={() => toggleItemExpansion(item.id)}
-                className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
               >
                 <span>
                   {tPieces('viewPieces')}
                 </span>
                 {expandedItemIds.has(item.id) ? (
-                  <ChevronUp className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  <ChevronUp className="w-4 h-4 rtl:rotate-180" />
                 ) : (
-                  <ChevronDown className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  <ChevronDown className="w-4 h-4 rtl:rotate-180" />
                 )}
               </button>
               
               {expandedItemIds.has(item.id) && orderId && tenantId && item.id && (
                 <div className="mt-3">
                   <PiecesErrorBoundary>
-                    <React.Suspense fallback={<div className="text-sm text-gray-500 p-2">Loading pieces...</div>}>
+                    <React.Suspense fallback={<div className="text-sm text-muted-foreground p-2">Loading pieces...</div>}>
                       <OrderPiecesManager
                         orderId={orderId}
                         itemId={item.id}
+                        fileSource={FILE_SOURCES.ORDER_DETAIL}
                         tenantId={tenantId}
                         branchId={branchId}
                         readOnly={readOnly}
@@ -233,10 +233,10 @@ export function OrderItemsList({
       ))}
 
       {/* Summary */}
-      <div className="pt-4 border-t border-gray-200">
-        <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} text-sm font-medium text-gray-900`}>
-          <span className={isRTL ? 'text-right' : 'text-left'}>{t('totalItems')}:</span>
-          <span className={isRTL ? 'text-left' : 'text-right'}>{items.reduce((sum, item) => sum + (item.quantity || 1), 0)}</span>
+      <div className="pt-4 border-t border-border">
+        <div className="flex justify-between text-sm font-medium text-foreground">
+          <span className="text-start">{t('totalItems')}:</span>
+          <span className="text-end">{items.reduce((sum, item) => sum + (item.quantity || 1), 0)}</span>
         </div>
       </div>
     </div>

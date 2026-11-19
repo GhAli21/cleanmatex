@@ -157,7 +157,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const unitOptions = [
     { value: 'piece', label: t('unitPiece') },
     { value: 'kg', label: t('unitKg') },
-    { value: 'item', label: isRtl ? 'لكل عنصر' : 'Per Item' },
+    { value: 'item', label: t('unitItem') },
   ]
 
   useEffect(() => {
@@ -249,7 +249,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
 
   return (
     <CmxCard className="overflow-hidden">
-      <CmxCardHeader className="border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))]">
+      <CmxCardHeader className="border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface-muted">
         <CmxCardTitle className="cmx-type-page-title text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
           {mode === 'create' ? t('newProduct') : t('editProduct')}
         </CmxCardTitle>
@@ -368,7 +368,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               layout="inline"
             >
               {({ id, value, onChange }) => (
-                <div className="flex items-center justify-between gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] px-4 py-3">
+                <div className="flex items-center justify-between gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface-muted px-4 py-3">
                   <CmxStatusBadge size="sm" tone={value ? 'success' : 'neutral'}>
                     {value ? tCommon('active') : tCommon('inactive')}
                   </CmxStatusBadge>
@@ -477,7 +477,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             aside={
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white text-3xl shadow-inner">
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-card text-3xl shadow-inner">
                     {mainImageUrl ? (
                       <img
                         src={mainImageUrl}
@@ -492,7 +492,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
                     <p className="text-sm font-medium text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
                       {currentValues.product_name || t('productName')}
                     </p>
-                    <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <p className="text-xs text-muted-foreground">
                       {currentValues.product_name2 || t('productNameAr')}
                     </p>
                   </div>
@@ -548,7 +548,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
             productLabel={(isRtl ? currentValues.product_name2 || currentValues.product_name : currentValues.product_name) || currentValues.id}
           />
         ) : (
-          <p className="mt-5 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('speedPricing.product.saveFirst')}</p>
+          <p className="mt-5 text-sm text-muted-foreground">{t('speedPricing.product.saveFirst')}</p>
         )}
       </CmxCardContent>
     </CmxCard>

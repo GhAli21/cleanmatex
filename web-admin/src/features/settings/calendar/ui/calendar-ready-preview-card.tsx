@@ -34,7 +34,7 @@ export function CalendarReadyPreviewCard({ branchId }: CalendarReadyPreviewCardP
     <CmxCard>
       <CmxCardHeader>
         <CmxCardTitle>{t('preview.title')}</CmxCardTitle>
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('preview.subtitle')}</p>
+        <p className="text-sm text-muted-foreground">{t('preview.subtitle')}</p>
       </CmxCardHeader>
       <CmxCardContent className="space-y-3">
         {query.isLoading ? <CmxSkeleton className="h-24 w-full" /> : null}
@@ -46,12 +46,12 @@ export function CalendarReadyPreviewCard({ branchId }: CalendarReadyPreviewCardP
               <CmxStatusBadge label={data.openNow ? t('preview.openNow') : t('preview.closedNow')} tone={data.openNow ? 'success' : 'neutral'} size="sm" />
               {data.countingStartsAt ? <span>{t('preview.countingStarts', { when: when(data.countingStartsAt) })}</span> : null}
             </div>
-            <ul className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+            <ul className="divide-y divide-border">
               {data.rows.map((row) => (
                 <li key={row.speed} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                   <span className="font-medium">
                     {locale === 'ar' ? row.name2 || row.name : row.name}
-                    <span className="ms-2 font-normal text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <span className="ms-2 font-normal text-muted-foreground">
                       {row.unit === 'WORKING_DAYS' ? t('preview.days', { count: row.amount }) : t('preview.hours', { count: row.amount })}
                       {row.source === 'EXAMPLE' ? ` · ${t('preview.example')}` : ''}
                       {row.source === 'DEFAULT' ? ` · ${t('preview.noHours')}` : ''}

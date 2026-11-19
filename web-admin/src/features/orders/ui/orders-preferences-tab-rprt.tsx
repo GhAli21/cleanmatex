@@ -105,19 +105,19 @@ const LEVEL_ITEM = 'ITEM';
 const LEVEL_PIECE = 'PIECE';
 
 function LevelIcon({ level }: { level: string }) {
-  if (level === LEVEL_ORDER) return <Layers className="w-4 h-4 text-blue-500" />;
-  if (level === LEVEL_ITEM) return <Package className="w-4 h-4 text-purple-500" />;
-  return <Settings2 className="w-4 h-4 text-orange-500" />;
+  if (level === LEVEL_ORDER) return <Layers className="w-4 h-4 text-primary-text" />;
+  if (level === LEVEL_ITEM) return <Package className="w-4 h-4 text-primary-text" />;
+  return <Settings2 className="w-4 h-4 text-warning-text" />;
 }
 
 function kindBadge(kind: string | null, t: OrdersPreferencesTabRprtProps['translations']) {
   const map: Record<string, { label: string; cls: string }> = {
-    service_prefs: { label: t.kindServicePrefs, cls: 'bg-blue-100 text-blue-800' },
-    packing_prefs: { label: t.kindPackingPrefs, cls: 'bg-green-100 text-green-800' },
-    condition_stain: { label: t.kindConditionStain, cls: 'bg-red-100 text-red-800' },
-    condition_damag: { label: t.kindConditionDamage, cls: 'bg-orange-100 text-orange-800' },
-    color: { label: t.kindColor, cls: 'bg-pink-100 text-pink-800' },
-    note: { label: t.kindNote, cls: 'bg-gray-100 text-gray-700' },
+    service_prefs: { label: t.kindServicePrefs, cls: 'bg-info-bg text-info-text' },
+    packing_prefs: { label: t.kindPackingPrefs, cls: 'bg-success-bg text-success-text' },
+    condition_stain: { label: t.kindConditionStain, cls: 'bg-danger-bg text-danger-text' },
+    condition_damag: { label: t.kindConditionDamage, cls: 'bg-warning-bg text-warning-text' },
+    color: { label: t.kindColor, cls: 'bg-info-bg text-info-text' },
+    note: { label: t.kindNote, cls: 'bg-muted text-foreground' },
   };
   const entry = map[kind ?? ''];
   if (!entry) return <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{kind ?? '—'}</CmxStatusBadge>;
@@ -150,9 +150,9 @@ function formatDateTime(value: string | null, locale: 'en' | 'ar') {
 }
 
 function UuidCell({ value }: { value: string | null }) {
-  if (!value) return <span className="text-gray-400">—</span>;
+  if (!value) return <span className="text-muted-foreground">—</span>;
   return (
-    <span className="font-mono text-xs text-gray-700 max-w-[11rem] inline-block truncate align-bottom" title={value}>
+    <span className="font-mono text-xs text-foreground max-w-[11rem] inline-block truncate align-bottom" title={value}>
       {value}
     </span>
   );
@@ -181,7 +181,7 @@ function renderDtlCell(
     case 'preference_id':
       return <UuidCell value={pref.preference_id} />;
     case 'prefs_no':
-      return <span className="tabular-nums text-gray-800">{pref.prefs_no}</span>;
+      return <span className="tabular-nums text-foreground">{pref.prefs_no}</span>;
     case 'prefs_level':
       return (
         <span className="inline-flex items-center gap-1">
@@ -190,27 +190,27 @@ function renderDtlCell(
         </span>
       );
     case 'preference_code':
-      return <span className="font-medium text-gray-900">{pref.preference_code}</span>;
+      return <span className="font-medium text-foreground">{pref.preference_code}</span>;
     case 'preference_sys_kind':
       return kindBadge(pref.preference_sys_kind, t);
     case 'preference_category':
-      return <span className="text-xs text-gray-700">{pref.preference_category ?? '—'}</span>;
+      return <span className="text-xs text-foreground">{pref.preference_category ?? '—'}</span>;
     case 'prefs_owner_type':
       return ownerBadge(pref.prefs_owner_type, t);
     case 'prefs_source':
-      return <span className="text-xs text-gray-600">{sourceLabel(pref.prefs_source, t)}</span>;
+      return <span className="text-xs text-muted-foreground">{sourceLabel(pref.prefs_source, t)}</span>;
     case 'extra_price':
       return pref.extra_price > 0 ? (
-        <span className="text-green-700 font-medium tabular-nums text-xs">
+        <span className="text-success-text font-medium tabular-nums text-xs">
           +{pref.extra_price.toLocaleString(locale === 'ar' ? 'ar' : 'en', { minimumFractionDigits: 2 })} {currencyCode}
         </span>
       ) : (
-        <span className="text-gray-400">—</span>
+        <span className="text-muted-foreground">—</span>
       );
     case 'processing_confirmed':
       if (pref.processing_confirmed === true) {
         return (
-          <span className="inline-flex items-center gap-1 text-green-700 text-xs">
+          <span className="inline-flex items-center gap-1 text-success-text text-xs">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {t.valueYes}
           </span>
@@ -218,31 +218,31 @@ function renderDtlCell(
       }
       if (pref.processing_confirmed === false) {
         return (
-          <span className="inline-flex items-center gap-1 text-gray-400 text-xs">
+          <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
             <Clock className="w-3.5 h-3.5" />
             {t.valueNo}
           </span>
         );
       }
-      return <span className="text-gray-400">—</span>;
+      return <span className="text-muted-foreground">—</span>;
     case 'confirmed_by':
-      return <span className="text-xs text-gray-700">{pref.confirmed_by ?? '—'}</span>;
+      return <span className="text-xs text-foreground">{pref.confirmed_by ?? '—'}</span>;
     case 'created_by':
-      return <span className="text-xs text-gray-700">{pref.created_by ?? '—'}</span>;
+      return <span className="text-xs text-foreground">{pref.created_by ?? '—'}</span>;
     case 'updated_by':
-      return <span className="text-xs text-gray-700">{pref.updated_by ?? '—'}</span>;
+      return <span className="text-xs text-foreground">{pref.updated_by ?? '—'}</span>;
     case 'confirmed_at':
     case 'created_at':
     case 'updated_at': {
       const raw =
         col === 'confirmed_at' ? pref.confirmed_at : col === 'created_at' ? pref.created_at : pref.updated_at;
       const formatted = formatDateTime(raw, locale);
-      return <span className="text-xs text-gray-600 whitespace-nowrap">{formatted ?? '—'}</span>;
+      return <span className="text-xs text-muted-foreground whitespace-nowrap">{formatted ?? '—'}</span>;
     }
     case 'rec_status':
       return <span className="tabular-nums text-xs">{pref.rec_status ?? '—'}</span>;
     default:
-      return <span className="text-gray-400">—</span>;
+      return <span className="text-muted-foreground">—</span>;
   }
 }
 
@@ -319,12 +319,12 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColu
   return (
     <CmxCard>
       <CmxCardHeader className="pb-2">
-        <CmxCardTitle className={`text-sm font-semibold flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <CmxCardTitle className="text-sm font-semibold flex items-center gap-2">
           {icon}
           <span>{title}</span>
-          <span className="text-gray-400 font-normal text-xs">({prefs.length})</span>
+          <span className="text-muted-foreground font-normal text-xs">({prefs.length})</span>
           {hasCharges && (
-            <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex items-center gap-1 text-xs text-green-700 font-medium`}>
+            <span className="ms-auto flex items-center gap-1 text-xs text-success-text font-medium">
               <DollarSign className="w-3 h-3" />
               {t.totalExtraCharge}: {totalExtra.toLocaleString(locale === 'ar' ? 'ar' : 'en', { minimumFractionDigits: 2 })} {currencyCode}
             </span>
@@ -365,8 +365,8 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
 
   if (preferences.length === 0) {
     return (
-      <div className={`flex flex-col items-center justify-center py-16 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-        <Settings2 className="w-12 h-12 mb-3 text-gray-300" />
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-start">
+        <Settings2 className="w-12 h-12 mb-3 text-muted-foreground" />
         <p className="text-sm">{t.emptyPreferences}</p>
       </div>
     );
@@ -381,32 +381,32 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
 
   return (
     <div className="flex min-h-0 max-h-full flex-1 flex-col gap-4">
-      <div className={`shrink-0 flex flex-wrap gap-4 items-center p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="text-gray-600 font-medium">
+      <div className="shrink-0 flex flex-wrap gap-4 items-center p-3 bg-muted rounded-lg border border-border text-sm">
+        <span className="text-muted-foreground font-medium">
           {preferences.length} {t.rowCountSuffix}
         </span>
-        <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex gap-3">
           {orderLevel.length > 0 && (
-            <span className="inline-flex items-center gap-1 text-blue-700">
+            <span className="inline-flex items-center gap-1 text-primary-text">
               <Layers className="w-3.5 h-3.5" />
               {t.levelOrder}: {orderLevel.length}
             </span>
           )}
           {itemLevel.length > 0 && (
-            <span className="inline-flex items-center gap-1 text-purple-700">
+            <span className="inline-flex items-center gap-1 text-primary-text">
               <Package className="w-3.5 h-3.5" />
               {t.levelItem}: {itemLevel.length}
             </span>
           )}
           {pieceLevel.length > 0 && (
-            <span className="inline-flex items-center gap-1 text-orange-700">
+            <span className="inline-flex items-center gap-1 text-warning-text">
               <Settings2 className="w-3.5 h-3.5" />
               {t.levelPiece}: {pieceLevel.length}
             </span>
           )}
         </div>
         {hasAnyCharge && (
-          <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex items-center gap-1 font-semibold text-green-700`}>
+          <span className="ms-auto flex items-center gap-1 font-semibold text-success-text">
             <DollarSign className="w-4 h-4" />
             {t.totalExtraCharge}: {totalExtra.toLocaleString(locale === 'ar' ? 'ar' : 'en', { minimumFractionDigits: 2 })} {currencyCode}
           </span>
@@ -417,7 +417,7 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
         <PrefGroup
           prefs={orderLevel}
           title={t.orderLevelPrefs}
-          icon={<Layers className="w-4 h-4 text-blue-500" />}
+          icon={<Layers className="w-4 h-4 text-primary-text" />}
           isRTL={isRTL}
           currencyCode={currencyCode}
           locale={locale}
@@ -428,7 +428,7 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
         <PrefGroup
           prefs={itemLevel}
           title={t.itemLevelPrefs}
-          icon={<Package className="w-4 h-4 text-purple-500" />}
+          icon={<Package className="w-4 h-4 text-primary-text" />}
           isRTL={isRTL}
           currencyCode={currencyCode}
           locale={locale}
@@ -439,7 +439,7 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
         <PrefGroup
           prefs={pieceLevel}
           title={t.pieceLevelPrefs}
-          icon={<Settings2 className="w-4 h-4 text-orange-500" />}
+          icon={<Settings2 className="w-4 h-4 text-warning-text" />}
           isRTL={isRTL}
           currencyCode={currencyCode}
           locale={locale}

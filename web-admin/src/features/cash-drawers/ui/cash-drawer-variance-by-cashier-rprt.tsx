@@ -31,21 +31,21 @@ export function CashDrawerVarianceByCashierRprt({
   const money = useCashDrawerMoneyFormatter()
 
   return (
-    <article className="mx-auto max-w-5xl bg-white p-6 text-sm text-gray-900">
-      <header className="mb-4 border-b border-gray-300 pb-3">
+    <article className="mx-auto max-w-5xl bg-card p-6 text-sm text-foreground">
+      <header className="mb-4 border-b border-border pb-3">
         <h1 className="text-xl font-bold">{t('title')}</h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           {t('period', { from: dateFrom, to: dateTo })} · {branchLabel ?? t('allBranches')}
         </p>
-        <p className="text-gray-500">{t('generatedAt', { when: generatedAt })}</p>
+        <p className="text-muted-foreground">{t('generatedAt', { when: generatedAt })}</p>
       </header>
 
       {rows.length === 0 ? (
-        <p className="py-6 text-center text-gray-500">{t('emptyDescription')}</p>
+        <p className="py-6 text-center text-muted-foreground">{t('emptyDescription')}</p>
       ) : (
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-gray-300 text-gray-600">
+            <tr className="border-b border-border text-muted-foreground">
               <th className="py-1 text-start font-medium">{t('columns.cashier')}</th>
               <th className="py-1 text-start font-medium">{t('columns.currency')}</th>
               <th className="py-1 text-end font-medium">{t('columns.sessions')}</th>
@@ -60,7 +60,7 @@ export function CashDrawerVarianceByCashierRprt({
             {rows.map((r) => {
               const percent = shortageSharePercent(r.shortageShare)
               return (
-                <tr key={`${r.cashierId}-${r.currencyCode}`} className="border-b border-gray-100">
+                <tr key={`${r.cashierId}-${r.currencyCode}`} className="border-b border-border">
                   <td className="py-1">{r.cashierName ?? r.cashierId ?? '—'}</td>
                   <td className="py-1">{r.currencyCode}</td>
                   <td className="py-1 text-end tabular-nums">{r.sessionCount}</td>
@@ -77,7 +77,7 @@ export function CashDrawerVarianceByCashierRprt({
           </tbody>
         </table>
       )}
-      <p className="mt-3 text-xs text-gray-500">{t('footnote')}</p>
+      <p className="mt-3 text-xs text-muted-foreground">{t('footnote')}</p>
     </article>
   )
 }

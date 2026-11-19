@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Keeps accounting-period controls recognizable in browser navigation. */
@@ -9,8 +10,6 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLitePeriodsService } from '@/lib/services/erp-lite-periods.service'
 import { ErpLitePeriodsScreen } from '@features/erp-lite/ui/erp-lite-periods-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -47,9 +46,9 @@ export default async function ErpLitePeriodsPage() {
       permissions={['erp_lite:view']}
     >
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLitePeriodsScreen rows={rows} />
       )}

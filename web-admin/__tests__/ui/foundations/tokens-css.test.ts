@@ -48,6 +48,16 @@ test('dark block equals the STANDARD palette', () => {
   expect(Object.fromEntries(BRAND_TOKENS.map((t) => [cssVarName(t), dark[cssVarName(t)]]))).toEqual(expected)
 })
 
+test('light is also a selector, so data-mode="LIGHT" forces a light subtree (paper previews)', () => {
+  expect(css).toMatch(/^\s*:root,\s*\[data-mode=LIGHT\]\s*\{/)
+})
+
+test('dark values apply only on screen, so paper always gets the light ones', () => {
+  expect(css).toMatch(/@media screen\s*\{\s*\[data-mode=DARK\]\s*\{/)
+  expect(css).toMatch(/@media screen and \(prefers-color-scheme: dark\)\s*\{\s*\[data-mode=SYSTEM\]\s*\{/)
+  expect(css.match(/\[data-mode=(DARK|SYSTEM)\]/g)).toHaveLength(2)
+})
+
 test('SYSTEM media block repeats the dark block exactly', () => {
   expect(block('[data-mode=SYSTEM]')).toEqual(block('[data-mode=DARK]'))
 })

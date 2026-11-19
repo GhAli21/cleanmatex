@@ -42,14 +42,14 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] py-16 text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))]">
-          <ArrowUpRight className="h-6 w-6 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]" />
+      <div className="flex flex-col items-center justify-center rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface py-16 text-center">
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <ArrowUpRight className="h-6 w-6 text-muted-foreground" />
         </div>
-        <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <p className="text-sm font-medium text-foreground">
           {t('gl.empty')}
         </p>
-        <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+        <p className="mt-1 text-xs text-muted-foreground">
           {t('gl.emptyHint')}
         </p>
       </div>
@@ -57,9 +57,9 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))]">
+    <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface">
       <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
           <tr>
             <th className="px-4 py-3 text-start font-medium">{t('columns.journal')}</th>
             <th className="px-4 py-3 text-start font-medium">{t('columns.postingDate')}</th>
@@ -79,40 +79,40 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
                 onClick={() => openDetail(line.journal_id)}
                 className={`cursor-pointer border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors ${
                   isSelected
-                    ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/5 ring-1 ring-inset ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]/30'
+                    ? 'bg-primary/5 ring-1 ring-inset ring-ring/30'
                     : 'hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]'
                 }`}
                 aria-selected={isSelected}
               >
                 {/* Journal column */}
                 <td className="px-4 py-3">
-                  <div className="font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <div className="font-medium text-foreground">
                     {line.journal_no}
                   </div>
-                  <div className="mt-0.5 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {line.source_doc_type_code}
                     {line.source_doc_no ? ` · ${line.source_doc_no}` : ''}
                   </div>
                 </td>
 
                 {/* Posting date */}
-                <td className="px-4 py-3 text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                <td className="px-4 py-3 text-foreground">
                   {line.posting_date}
                 </td>
 
                 {/* Event */}
                 <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] px-2 py-0.5 text-xs font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
                     {line.txn_event_code}
                   </span>
                 </td>
 
                 {/* Account */}
                 <td className="px-4 py-3">
-                  <span className="font-mono text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <span className="font-mono text-xs text-muted-foreground">
                     {line.account_code}
                   </span>
-                  <span className="ms-1.5 text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span className="ms-1.5 text-foreground">
                     {line.account_name}
                   </span>
                 </td>
@@ -120,12 +120,12 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
                 {/* Side */}
                 <td className="px-4 py-3">
                   {line.entry_side === 'DEBIT' ? (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-danger-bg px-2 py-0.5 text-xs font-medium text-danger-text">
                       <ArrowUpRight className="h-3 w-3" />
                       DR
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success-text">
                       <ArrowDownLeft className="h-3 w-3" />
                       CR
                     </span>
@@ -134,7 +134,7 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
 
                 {/* Amount */}
                 <td className="px-4 py-3 text-end">
-                  <span className="font-mono text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span className="font-mono text-sm font-medium text-foreground">
                     {formatErpLiteMoney(line.amount_txn_currency, {
                       ...displayConfig,
                       currencyCode: line.currency_code || displayConfig.currencyCode,
@@ -143,7 +143,7 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
                 </td>
 
                 {/* Chevron indicator */}
-                <td className="px-2 py-3 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+                <td className="px-2 py-3 text-muted-foreground">
                   <ChevronRight
                     className={`h-4 w-4 transition-transform rtl:rotate-180 ${isSelected ? 'rotate-90' : ''}`}
                   />

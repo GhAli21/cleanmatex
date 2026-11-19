@@ -184,16 +184,16 @@ export default function GeneralSettingsPage() {
       {topError && (
         <div
           role="alert"
-          className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          className="mb-4 rounded-md border border-danger-border bg-danger-bg p-3 text-sm text-danger-text"
         >
           {topError}
         </div>
       )}
 
       {/* Business Information Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Mail className="h-5 w-5 text-gray-600" />
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Mail className="h-5 w-5 text-muted-foreground" />
           {t('businessInfo')}
         </h2>
 
@@ -203,7 +203,7 @@ export default function GeneralSettingsPage() {
               type="text"
               value={settings.businessName}
               onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="My Laundry Business"
             />
           </Field>
@@ -213,7 +213,7 @@ export default function GeneralSettingsPage() {
               type="text"
               value={settings.businessNameAr}
               onChange={(e) => setSettings({ ...settings, businessNameAr: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="مغسلة الملابس"
               dir="rtl"
             />
@@ -222,7 +222,7 @@ export default function GeneralSettingsPage() {
           <Field
             label={
               <>
-                <Mail className="inline h-4 w-4 mr-1" />
+                <Mail className="inline h-4 w-4 me-1" />
                 {t('email')}
               </>
             }
@@ -232,7 +232,7 @@ export default function GeneralSettingsPage() {
               type="email"
               value={settings.email}
               onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="info@business.com"
             />
           </Field>
@@ -240,7 +240,7 @@ export default function GeneralSettingsPage() {
           <Field
             label={
               <>
-                <Phone className="inline h-4 w-4 mr-1" />
+                <Phone className="inline h-4 w-4 me-1" />
                 {t('phone')}
               </>
             }
@@ -250,7 +250,7 @@ export default function GeneralSettingsPage() {
               type="tel"
               value={settings.phone}
               onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="+968 9123 4567"
             />
           </Field>
@@ -259,7 +259,7 @@ export default function GeneralSettingsPage() {
             className="md:col-span-2"
             label={
               <>
-                <MapPin className="inline h-4 w-4 mr-1" />
+                <MapPin className="inline h-4 w-4 me-1" />
                 {t('address')}
               </>
             }
@@ -269,7 +269,7 @@ export default function GeneralSettingsPage() {
               type="text"
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="123 Main Street"
             />
           </Field>
@@ -279,7 +279,7 @@ export default function GeneralSettingsPage() {
               type="text"
               value={settings.city}
               onChange={(e) => setSettings({ ...settings, city: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="Muscat"
             />
           </Field>
@@ -288,7 +288,7 @@ export default function GeneralSettingsPage() {
             label={
               <span className="inline-flex items-center gap-1">
                 {t('country')}
-                {isLocked.country && <Lock className="h-3.5 w-3.5 text-gray-400" />}
+                {isLocked.country && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
               </span>
             }
             error={fieldErrors.country}
@@ -298,7 +298,7 @@ export default function GeneralSettingsPage() {
               value={settings.country}
               disabled={isLocked.country}
               onChange={(e) => setSettings({ ...settings, country: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:bg-muted disabled:text-muted-foreground"
             >
               <option value="OM">Oman</option>
               <option value="SA">Saudi Arabia</option>
@@ -312,9 +312,9 @@ export default function GeneralSettingsPage() {
       </div>
 
       {/* Regional Settings Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Globe className="h-5 w-5 text-gray-600" />
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Globe className="h-5 w-5 text-muted-foreground" />
           {t('regionalSettings')}
         </h2>
 
@@ -322,7 +322,7 @@ export default function GeneralSettingsPage() {
           <Field
             label={
               <>
-                <Clock className="inline h-4 w-4 mr-1" />
+                <Clock className="inline h-4 w-4 me-1" />
                 {t('timezone')}
               </>
             }
@@ -331,7 +331,7 @@ export default function GeneralSettingsPage() {
             <select
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
             >
               <option value="Asia/Muscat">Asia/Muscat (GMT+4)</option>
               <option value="Asia/Riyadh">Asia/Riyadh (GMT+3)</option>
@@ -345,9 +345,9 @@ export default function GeneralSettingsPage() {
           <Field
             label={
               <span className="inline-flex items-center gap-1">
-                <DollarSign className="inline h-4 w-4 mr-1" />
+                <DollarSign className="inline h-4 w-4 me-1" />
                 {t('currency')}
-                {isLocked.currency && <Lock className="h-3.5 w-3.5 text-gray-400" />}
+                {isLocked.currency && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
               </span>
             }
             error={fieldErrors.currency}
@@ -357,7 +357,7 @@ export default function GeneralSettingsPage() {
               value={settings.currency}
               disabled={isLocked.currency}
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:bg-muted disabled:text-muted-foreground"
             >
               <option value="SAR">SAR - Saudi Riyal</option>
               <option value="OMR">OMR - Omani Rial</option>
@@ -372,7 +372,7 @@ export default function GeneralSettingsPage() {
             <select
               value={settings.defaultLanguage}
               onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
             >
               <option value="en">English</option>
               <option value="ar">العربية (Arabic)</option>
@@ -382,13 +382,13 @@ export default function GeneralSettingsPage() {
       </div>
 
       {/* Business Hours Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Clock className="h-5 w-5 text-gray-600" />
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Clock className="h-5 w-5 text-muted-foreground" />
           {t('businessHours')}
         </h2>
 
-        <p className="text-sm text-gray-600 mb-4">{t('calendar.movedFromGeneral')}</p>
+        <p className="text-sm text-muted-foreground mb-4">{t('calendar.movedFromGeneral')}</p>
         <CmxButton asChild variant="outline">
           <Link href="/dashboard/settings/calendar">{t('calendar.openPage')}</Link>
         </CmxButton>
@@ -400,14 +400,14 @@ export default function GeneralSettingsPage() {
           {saved ? t('saveSuccess') : ''}
         </span>
         {saved && (
-          <span className="text-sm text-green-600 font-medium">
+          <span className="text-sm text-success-text font-medium">
             ✓ {t('saveSuccess')}
           </span>
         )}
         <button
           onClick={handleSave}
           disabled={loading || !isDirty}
-          className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
         >
           <Save className="h-5 w-5" />
           {loading ? t('saving') : t('saveChanges')}
@@ -434,10 +434,10 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
       {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-      {!error && hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+      {error && <p className="mt-1 text-xs text-danger-text">{error}</p>}
+      {!error && hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -445,24 +445,24 @@ function Field({
 function SkeletonForm() {
   return (
     <div className="max-w-4xl animate-pulse">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+        <div className="h-5 w-40 bg-muted rounded mb-4" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i}>
-              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-              <div className="h-10 w-full bg-gray-100 rounded" />
+              <div className="h-4 w-24 bg-muted rounded mb-2" />
+              <div className="h-10 w-full bg-muted rounded" />
             </div>
           ))}
         </div>
       </div>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
+        <div className="h-5 w-40 bg-muted rounded mb-4" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i}>
-              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-              <div className="h-10 w-full bg-gray-100 rounded" />
+              <div className="h-4 w-24 bg-muted rounded mb-2" />
+              <div className="h-10 w-full bg-muted rounded" />
             </div>
           ))}
         </div>

@@ -182,7 +182,7 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
         size="sm"
         autoFocus={guide != null && !hubOpen}
         className={cn(
-          'max-w-full gap-2 rounded-full border-2 bg-white px-3 shadow-sm',
+          'max-w-full gap-2 rounded-full border-2 bg-card px-3 shadow-sm',
           triggerToneClass(activeQuery.data, activeQuery.isError)
         )}
         onClick={() => setHubOpen(true)}
@@ -217,7 +217,7 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
                 <X className="h-4 w-4" aria-hidden />
               </CmxButton>
             </div>
-            <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="mt-1 text-sm text-muted-foreground">
               {t('hub.description')}
             </p>
             {guide ? (
@@ -318,13 +318,13 @@ export function PosSessionHub({ branchId, guide = null }: PosSessionHubProps) {
           </CmxDialogHeader>
           <div className="space-y-4">
             {actionDialog.action === 'force-close' ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                 <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
                 {t('hub.forceCloseWarning')}
               </div>
             ) : null}
             {linkedDrawerCloseHref(activeSessionContext, { whenBlocked: drawerCloseNeeded }) ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                 <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
                 {canViewCashDrawer && canCloseCashDrawer
                   ? t('messages.drawerStillOpen')
@@ -514,7 +514,7 @@ function HubBody({
               </InfoGrid>
             )
           ) : (
-            <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
               <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
               <span>{t('hub.drawerRestricted')}</span>
             </div>
@@ -549,9 +549,9 @@ function HubBody({
               />
             </InfoGrid>
           ) : canViewCashDrawer ? (
-            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.drawerNotLinked')}</div>
+            <div className="text-sm text-muted-foreground">{t('hub.drawerNotLinked')}</div>
           ) : (
-            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hub.drawerRestricted')}</div>
+            <div className="text-sm text-muted-foreground">{t('hub.drawerRestricted')}</div>
           )}
         </CmxCardContent>
       </CmxCard>
@@ -571,9 +571,9 @@ function DrawerSessionClosedNotice({
   const t = useTranslations('posSessions');
   const lifecycle = useSessionLifecycleLabels();
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+    <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
       <p className="font-medium">{t('drawerSessionClosedTitle')}</p>
-      <p className="mt-1 text-amber-900">
+      <p className="mt-1 text-warning-text">
         {t('drawerSessionClosedDescription', {
           drawer: drawerName ?? t('none'),
           sessionNo: sessionNo ?? t('none'),
@@ -587,7 +587,7 @@ function DrawerSessionClosedNotice({
 function DrawerSetupPausedNotice() {
   const t = useTranslations('posSessions');
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+    <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
       {t('hub.resumeBeforeDrawerLink')}
     </div>
   );
@@ -650,16 +650,16 @@ function InfoGrid({ children }: { children: ReactNode }) {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</div>
-      <div className="mt-1 break-words text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{value}</div>
+    <div className="rounded-lg border border-border bg-muted p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 break-words text-sm font-semibold text-foreground">{value}</div>
     </div>
   );
 }
 
 function NoticeCard({ tone, title, description }: { tone: 'danger'; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-950">
+    <div className="rounded-xl border border-danger-border bg-danger-bg p-4 text-danger-text">
       <div className="flex items-center gap-2 font-semibold">
         <AlertCircle className="h-4 w-4" aria-hidden />
         {title}
@@ -685,11 +685,11 @@ function PanelMessage({
   autoFocusAction?: boolean;
 }) {
   return (
-    <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-      <div className="rounded-full bg-white p-3 text-slate-600 shadow-sm">{icon}</div>
+    <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-muted p-6 text-center">
+      <div className="rounded-full bg-card p-3 text-muted-foreground shadow-sm">{icon}</div>
       <div>
-        <p className="font-semibold text-slate-900">{title}</p>
-        {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
+        <p className="font-semibold text-foreground">{title}</p>
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {actionLabel && onAction ? (
         <CmxButton variant="outline" size="sm" autoFocus={autoFocusAction} onClick={onAction}>
@@ -706,12 +706,12 @@ function getActiveSession(result?: GetMyActivePosSessionResult) {
 }
 
 function triggerToneClass(result?: GetMyActivePosSessionResult, isError?: boolean): string {
-  if (isError || result?.type === 'BRANCH_CONFLICT') return 'border-red-200 text-red-900';
+  if (isError || result?.type === 'BRANCH_CONFLICT') return 'border-danger-border text-danger-text';
   if (result?.type === 'ACTIVE' && result.session.status === POS_SESSION_STATUS.PAUSED) {
-    return 'border-amber-200 text-amber-900';
+    return 'border-warning-border text-warning-text';
   }
-  if (result?.type === 'ACTIVE') return 'border-emerald-200 text-emerald-900';
-  return 'border-sky-200 text-sky-900';
+  if (result?.type === 'ACTIVE') return 'border-success-border text-success-text';
+  return 'border-info-border text-primary-text';
 }
 
 function statusVariant(status: string): CmxBadgeTone {

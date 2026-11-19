@@ -23,7 +23,7 @@ const TABS: TabDef[] = [
 
 function NotificationListSkeleton() {
   return (
-    <div className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+    <div className="divide-y divide-border">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex gap-3 px-4 py-3">
           <CmxSkeleton className="h-9 w-9 flex-shrink-0 rounded-full" />
@@ -51,17 +51,17 @@ export function NotificationCenterPage() {
   const emptyDesc  = tab === 'unread' ? t('center.emptyUnreadDesc') : t('center.emptyDesc')
 
   const listContent = (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white">
+    <div className="rounded-lg border border-border bg-card">
       {isLoading ? (
         <NotificationListSkeleton />
       ) : notifications.length === 0 ? (
         <CmxEmptyState
-          icon={<Bell className="h-10 w-10 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />}
+          icon={<Bell className="h-10 w-10 text-muted-foreground" />}
           title={emptyTitle}
           description={emptyDesc}
         />
       ) : (
-        <div className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+        <div className="divide-y divide-border">
           {notifications.map((n) => (
             <NotificationItem
               key={n.id}
@@ -86,7 +86,7 @@ export function NotificationCenterPage() {
     <div className="mx-auto max-w-2xl space-y-4 p-4 sm:p-6">
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <h1 className="text-xl font-semibold text-foreground">
           {t('title')}
         </h1>
         <CmxButton
@@ -117,7 +117,7 @@ export function NotificationCenterPage() {
           >
             {t('center.prevPage')}
           </CmxButton>
-          <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <span className="text-sm text-muted-foreground">
             {isRtl
               ? `صفحة ${page} من ${pagination.totalPages}`
               : `Page ${page} of ${pagination.totalPages}`}

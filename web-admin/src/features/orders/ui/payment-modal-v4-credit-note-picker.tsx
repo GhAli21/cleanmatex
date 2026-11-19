@@ -85,13 +85,13 @@ export function PaymentModalV4CreditNotePicker({
     >
       <CmxDialogContent className="max-w-md">
         <CmxDialogHeader>
-          <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+          <CmxDialogTitle className="text-start">
             {t('creditNotePickerTitle')}
           </CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-2 py-2">
           {notes.length === 0 ? (
-            <p className={`text-sm text-slate-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="text-sm text-muted-foreground text-start">
               {t('creditNotePickerEmpty')}
             </p>
           ) : (
@@ -108,14 +108,14 @@ export function PaymentModalV4CreditNotePicker({
                   }
                   className={`h-auto w-full justify-between gap-3 rounded-xl border px-3 py-3 ${
                     selected
-                      ? 'border-cyan-300 bg-cyan-50'
-                      : 'border-slate-200 bg-white hover:border-cyan-200 hover:bg-slate-50'
-                  } ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                      ? 'border-info-border bg-info-bg'
+                      : 'border-border bg-card hover:border-info-border hover:bg-muted'
+                  } text-start`}
                 >
-                  <span className="truncate text-sm font-medium text-slate-800">
+                  <span className="truncate text-sm font-medium text-foreground">
                     {t('creditNotePickerItem', { id: note.id.slice(0, 8) })}
                   </span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
                     {formatMoneyAmountWithCode(note.remaining_balance, {
                       currencyCode: note.currency_code,
                       decimalPlaces,
@@ -126,7 +126,7 @@ export function PaymentModalV4CreditNotePicker({
             })
           )}
         </div>
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+        <CmxDialogFooter className="">
           <CmxButton
             type="button"
             variant="outline"

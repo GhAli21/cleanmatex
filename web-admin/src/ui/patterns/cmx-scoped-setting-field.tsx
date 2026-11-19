@@ -53,17 +53,17 @@ export function CmxScopedSettingField({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between',
         className
       )}
     >
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{label}</span>
+          <span className="text-sm font-semibold text-foreground">{label}</span>
           <CmxStatusBadge size="sm" tone={isOverridden ? 'brand' : 'neutral'}>{sourceLabel}</CmxStatusBadge>
         </div>
         {description ? (
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{description}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-3">

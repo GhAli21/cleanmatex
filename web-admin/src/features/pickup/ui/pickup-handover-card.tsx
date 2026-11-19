@@ -17,6 +17,9 @@ import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collec
 import { PickupApiError } from '@features/pickup/api/pickup-api';
 import { usePickupHandover } from '@features/pickup/hooks/use-pickup-handover';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
+import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
+import { fetchFileConfig, PendingFilesPicker, uploadFile } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_SOURCES } from '@/lib/constants/file-util';
 
 /** Props supplied by the Ready screen's tenant-scoped order read model. */
 export interface PickupHandoverCardProps {
@@ -66,6 +69,12 @@ export function PickupHandoverCard({
   const { action, currentStatus, loading, submitting, confirm } = usePickupHandover(orderId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState('');
+  const [proofPhotos, setProofPhotos] = useState<File[]>([]);
+  // Photos already uploaded in an earlier attempt: a retry reuses them instead of uploading twice.
+  const [uploadedIds, setUploadedIds] = useState<Map<File, string>>(() => new Map());
+  const [uploading, setUploading] = useState(false);
+  const { token: csrfToken } = useCSRFToken();
+  const busy = submitting || uploading;
 
   const isPayOnCollection = paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
   const collectionRequired = isPayOnCollection && outstandingAmount > 0;
@@ -107,11 +116,48 @@ export function PickupHandoverCard({
     setDialogOpen(true);
   };
 
-  const handleConfirm = async () => {
+  /** Uploads the not-yet-uploaded proof photos; returns every photo's file id, in order. */
+  const uploadProof = async (): Promise<string[]> => {
+    const pending = proofPhotos.filter((f) => !uploadedIds.has(f));
+    if (pending.length === 0) return proofPhotos.map((f) => uploadedIds.get(f) as string);
+    setUploading(true);
     try {
-      await confirm({ handoverNotes });
+      const config = await fetchFileConfig(FILE_CATEGORIES.ORDER_FILE);
+      const next = new Map(uploadedIds);
+      for (const file of pending) {
+        const saved = await uploadFile({
+          file,
+          imageMaxDimension: config.imageMaxDimension,
+          csrfToken,
+          category: FILE_CATEGORIES.ORDER_FILE,
+          purpose: FILE_PURPOSES.ORDER_FILE.PICKUP_PROOF,
+          entityId: orderId,
+          source: FILE_SOURCES.ORDER_READY,
+        });
+        next.set(file, saved.id);
+        setUploadedIds(new Map(next));
+      }
+      return proofPhotos.map((f) => next.get(f) as string);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    let proofFileIds: string[];
+    try {
+      proofFileIds = await uploadProof();
+    } catch {
+      // Nothing was confirmed; photos that did upload are kept for the retry.
+      showError(t('proofUploadFailed'));
+      return;
+    }
+    try {
+      await confirm({ handoverNotes, proofFileIds });
       setDialogOpen(false);
       setHandoverNotes('');
+      setProofPhotos([]);
+      setUploadedIds(new Map());
       showSuccess(t('success'));
       onCompleted();
     } catch (error) {
@@ -125,6 +171,12 @@ export function PickupHandoverCard({
         && (error.code === 'PICKUP_POLICY_UNAVAILABLE' || error.code === 'PICKUP_DIRECT_NOT_ALLOWED')
       ) {
         showError(t('notConfigured'));
+        return;
+      }
+      if (error instanceof PickupApiError && error.code === 'PICKUP_PROOF_INVALID') {
+        // A photo was deleted or used elsewhere meanwhile: upload the current photos again.
+        setUploadedIds(new Map());
+        showError(t('proofInvalid'));
         return;
       }
       if (error instanceof PickupApiError && error.code.startsWith('PROFILE_')) {
@@ -185,11 +237,11 @@ export function PickupHandoverCard({
       <CmxDialog
         open={dialogOpen}
         onOpenChange={(open) => {
-          if (!submitting) setDialogOpen(open);
+          if (!busy) setDialogOpen(open);
         }}
       >
-        <CmxDialogContent className={isRtl ? 'text-right' : 'text-left'}>
-          <CmxDialogHeader className={isRtl ? 'text-right' : 'text-left'}>
+        <CmxDialogContent className="text-start">
+          <CmxDialogHeader className="text-start">
             <CmxDialogTitle>
               {isDirectCounterPickup ? t('directDialogTitle') : t('dialogTitle')}
             </CmxDialogTitle>
@@ -209,21 +261,34 @@ export function PickupHandoverCard({
               placeholder={t('notesPlaceholder')}
               maxLength={1000}
               rows={3}
-              disabled={submitting}
+              disabled={busy}
             />
             <p className="text-xs text-muted-foreground">{t('notesHelp')}</p>
+            <PendingFilesPicker
+              label={t('proofPhotos')}
+              category={FILE_CATEGORIES.ORDER_FILE}
+              purpose={FILE_PURPOSES.ORDER_FILE.PICKUP_PROOF}
+              files={proofPhotos}
+              onChange={(files) => {
+                setProofPhotos(files);
+                // Forget uploads of photos the user removed (they stay unlocked and unused).
+                setUploadedIds((prev) => new Map([...prev].filter(([f]) => files.includes(f))));
+              }}
+              disabled={busy}
+            />
+            <p className="text-xs text-muted-foreground">{t('proofHelp')}</p>
           </div>
 
-          <CmxDialogFooter className={isRtl ? 'flex-row-reverse' : ''}>
+          <CmxDialogFooter className="">
             <CmxButton
               type="button"
               variant="outline"
-              disabled={submitting}
+              disabled={busy}
               onClick={() => setDialogOpen(false)}
             >
               {tCommon('cancel')}
             </CmxButton>
-            <CmxButton type="button" loading={submitting} disabled={submitting} onClick={() => void handleConfirm()}>
+            <CmxButton type="button" loading={busy} disabled={busy} onClick={() => void handleConfirm()}>
               {isDirectCounterPickup ? t('directConfirmAction') : t('confirmAction')}
             </CmxButton>
           </CmxDialogFooter>

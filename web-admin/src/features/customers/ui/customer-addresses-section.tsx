@@ -9,7 +9,6 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { updateAddress, deleteAddress } from '@/lib/api/customers'
 import type { CustomerAddress } from '@/lib/types/customer'
 import AddressFormModal from './address-form-modal'
@@ -34,7 +33,6 @@ export function CustomerAddressesSection({
 }: CustomerAddressesSectionProps) {
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
-  const isRTL = useRTL()
 
   const [showModal, setShowModal] = useState(false)
   const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null)
@@ -97,17 +95,17 @@ export function CustomerAddressesSection({
   }
 
   return (
-    <div className={isRTL ? 'text-right' : 'text-left'}>
+    <div className="text-start">
       <div
-        className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}
+        className="flex items-center justify-between mb-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           {t('deliveryAddresses')}
         </h3>
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
         >
           {t('addAddress')}
         </button>
@@ -115,16 +113,16 @@ export function CustomerAddressesSection({
 
       {actionError && (
         <div
-          className={`mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-800 ${isRTL ? 'text-right border-r-4 border-l-0' : 'text-left border-l-4 border-r-0'}`}
+          className="mb-4 p-3 rounded-md bg-danger-bg border border-danger-border text-sm text-danger-text text-start border-s-4 border-e-0"
         >
           {actionError}
         </div>
       )}
 
       {addresses.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <div className="text-center py-12 bg-muted rounded-lg">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400 mb-4"
+            className="mx-auto h-12 w-12 text-muted-foreground mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -142,11 +140,11 @@ export function CustomerAddressesSection({
               d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <p className="text-gray-500 mb-4">{t('noAddresses')}</p>
+          <p className="text-muted-foreground mb-4">{t('noAddresses')}</p>
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
           >
             {t('addFirstAddress')}
           </button>
@@ -156,39 +154,39 @@ export function CustomerAddressesSection({
           {addresses.map((address) => (
             <div
               key={address.id}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
             >
               <div
-                className={`flex items-start justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex items-start justify-between mb-2"
               >
-                <h4 className="font-medium text-gray-900">
+                <h4 className="font-medium text-foreground">
                   {address.label ?? t('addressLabel')}
                 </h4>
                 {address.isDefault && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                  <span className="px-2 py-1 bg-info-bg text-info-text text-xs rounded-full">
                     {t('defaultAddress')}
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-muted-foreground mb-3">
                 {[address.street, address.area].filter(Boolean).join(', ')}
                 <br />
                 {address.city ?? ''}
               </p>
               {address.deliveryNotes && (
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   {address.deliveryNotes}
                 </p>
               )}
               <div
-                className={`flex items-center gap-2 flex-wrap ${isRTL ? 'flex-row-reverse justify-end' : ''}`}
+                className="flex items-center gap-2 flex-wrap"
               >
                 {!address.isDefault && (
                   <button
                     type="button"
                     onClick={() => handleSetDefault(address)}
                     disabled={settingDefaultId !== null}
-                    className="text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                    className="text-sm text-primary-text hover:text-primary-text/80 disabled:opacity-50"
                   >
                     {settingDefaultId === address.id
                       ? tCommon('loading')
@@ -196,21 +194,21 @@ export function CustomerAddressesSection({
                   </button>
                 )}
                 {!address.isDefault && (
-                  <span className="text-gray-300">|</span>
+                  <span className="text-muted-foreground">|</span>
                 )}
                 <button
                   type="button"
                   onClick={() => handleOpenEdit(address)}
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="text-sm text-primary-text hover:text-primary-text/80"
                 >
                   {tCommon('edit')}
                 </button>
-                <span className="text-gray-300">|</span>
+                <span className="text-muted-foreground">|</span>
                 <button
                   type="button"
                   onClick={() => handleDelete(address)}
                   disabled={deletingId !== null}
-                  className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
+                  className="text-sm text-danger-text hover:text-danger-text/80 disabled:opacity-50"
                 >
                   {deletingId === address.id
                     ? tCommon('deleting')

@@ -26,7 +26,7 @@ beforeEach(() => {
   prisma.sys_ui_radius_cd.findMany.mockResolvedValue([])
   prisma.sys_ui_font_pair_cd.findMany.mockResolvedValue([])
   prisma.org_tenant_ui_theme_dtl.findFirst.mockResolvedValue(null)
-  prisma.sys_users_mst.findFirst.mockResolvedValue({ ui_density: 'COMPACT', ui_font_scale: 'LG' })
+  prisma.sys_users_mst.findFirst.mockResolvedValue({ ui_color_mode: 'DARK', ui_density: 'COMPACT', ui_font_scale: 'LG' })
   prisma.org_tenants_mst.findFirst.mockResolvedValue({ logo_url: null })
   getFeatureFlags.mockResolvedValue({ custom_branding: false, white_label: false })
 })
@@ -39,7 +39,7 @@ test("reads only the session Organization's theme in use and the session person'
   )
   expect(prisma.sys_users_mst.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'user-y' } }))
   expect(getFeatureFlags).toHaveBeenCalledWith('tenant-a')
-  expect([theme.density, theme.fontScale]).toEqual(['COMPACT', 'LG'])
+  expect([theme.mode, theme.density, theme.fontScale]).toEqual(['DARK', 'COMPACT', 'LG'])
 })
 
 test('signed out: built-in STANDARD, no database read', async () => {

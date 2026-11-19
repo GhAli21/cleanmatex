@@ -1,5 +1,5 @@
 /**
- * GET  /api/v1/file-util?category=&entityIds=a,b&purposes=X,Y&refType=&refId=
+ * GET  /api/v1/file-util?category=&entityIds=a,b&purposes=X,Y&refType=&refId=&sources=S1,S2&stages=s1,s2
  *      READY files of one or many records with fresh URLs (one call per list screen).
  * POST /api/v1/file-util
  *      Starts an upload: checks rules, ownership, limits, quota; returns signed upload URLs.
@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { FILE_LIST_MAX_ENTITIES, FILE_REF_TYPE_CODES } from '@/lib/constants/file-util';
+import { FILE_LIST_MAX_ENTITIES, FILE_REF_TYPE_CODES, FILE_SOURCE_CODES } from '@/lib/constants/file-util';
 import { initFileUpload, listFiles } from '@/lib/services/file-util/file-util.service';
 import {
   badRequest,
@@ -27,6 +27,9 @@ const listQuerySchema = z
     purposes: z.array(z.string().regex(/^[A-Z][A-Z0-9_]{1,49}$/)).max(50).optional(),
     refType: z.enum(FILE_REF_TYPE_CODES).optional(),
     refId: z.string().uuid().optional(),
+    sources: z.array(z.enum(FILE_SOURCE_CODES)).max(50).optional(),
+    // Stage codes belong to the owning record's domain (order status: lowercase, e.g. ready_for_pickup).
+    stages: z.array(z.string().regex(/^[a-z][a-z0-9_]{1,49}$/)).max(50).optional(),
   })
   .refine((v) => (v.refType === undefined) === (v.refId === undefined), { message: 'refType and refId go together', path: ['refId'] });
 
@@ -42,6 +45,8 @@ export async function GET(request: NextRequest) {
     purposes: csv(sp.get('purposes')),
     refType: sp.get('refType') ?? undefined,
     refId: sp.get('refId') ?? undefined,
+    sources: csv(sp.get('sources')),
+    stages: csv(sp.get('stages')),
   });
   if (!query.success) return badRequest(query.error);
 
@@ -56,6 +61,8 @@ export async function GET(request: NextRequest) {
       purposeCodes: query.data.purposes,
       refTypeCode: query.data.refType,
       refId: query.data.refId,
+      sourceCodes: query.data.sources,
+      stageCodes: query.data.stages,
     });
     return NextResponse.json({ success: true, data });
   } catch (error) {

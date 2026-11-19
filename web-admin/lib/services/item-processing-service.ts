@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { OrderService } from './order-service';
 import { ProcessingStepsService } from './processing-steps-service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
@@ -170,7 +171,7 @@ export class ItemProcessingService {
         .eq('id', orderItemId);
 
       // Log to history
-      await supabase.rpc('log_order_action', {
+      await catalogReadClient(supabase).rpc('log_order_action', {
         p_tenant_org_id: tenantId,
         p_order_id: orderId,
         p_action_type: 'ITEM_STEP',

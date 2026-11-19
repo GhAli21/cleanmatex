@@ -34,8 +34,6 @@ export interface CmxChangeDueRowProps {
    * epsilon; never a hand-written literal.
    */
   epsilon: number
-  /** Mirrors the surface's RTL flag so the label/value order flips correctly. */
-  isRTL?: boolean
   /** `lg` renders the POS-scale figure for a till-facing summary column. */
   size?: 'md' | 'lg'
   /** Escape hatch for surface-specific spacing. */
@@ -56,7 +54,6 @@ export function CmxChangeDueRow({
   amount,
   formattedAmount,
   epsilon,
-  isRTL = false,
   size = 'md',
   className,
   amountTestId,
@@ -72,7 +69,7 @@ export function CmxChangeDueRow({
       className={cn(
         'flex items-center justify-between rounded-lg bg-success-bg px-3 py-2',
         size === 'lg' ? 'text-base' : 'text-sm',
-        isRTL && 'flex-row-reverse',
+        false,
         className
       )}
     >

@@ -66,7 +66,7 @@ export function PaymentModeToggle({
       aria-label={groupLabel}
       data-testid="payment-mode-toggle"
       aria-disabled={disabled}
-      className={`inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 ${isRTL ? 'flex-row-reverse' : ''} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-xl border border-border bg-muted p-1  ${className}`}
     >
       {segments.map((segment) => {
         const selected = mode === segment.value;
@@ -85,8 +85,8 @@ export function PaymentModeToggle({
             }}
             className={`min-h-[44px] rounded-lg px-3 text-sm font-semibold ${
               selected
-                ? 'bg-white text-teal-800 shadow-sm hover:bg-white'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-card text-primary-text shadow-sm hover:bg-card'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {segment.label}

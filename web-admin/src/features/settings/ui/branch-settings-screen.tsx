@@ -99,10 +99,10 @@ export function BranchSettingsScreen() {
       {/* Branch selector */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="text-base font-semibold text-foreground">
             {t('branchSettings.title')}
           </h2>
-          <p className="text-sm text-gray-500">{t('branchSettings.description')}</p>
+          <p className="text-sm text-muted-foreground">{t('branchSettings.description')}</p>
         </div>
         {!initialLoading && (
           <CmxSelect
@@ -123,9 +123,9 @@ export function BranchSettingsScreen() {
       </div>
 
       {initialLoading ? (
-        <div className="py-12 text-center text-sm text-gray-400">{t('loading')}</div>
+        <div className="py-12 text-center text-sm text-muted-foreground">{t('loading')}</div>
       ) : !selectedBranchId ? (
-        <div className="py-12 text-center text-sm text-gray-400">
+        <div className="py-12 text-center text-sm text-muted-foreground">
           {t('branchSettings.selectBranch')}
         </div>
       ) : (
@@ -148,17 +148,17 @@ export function BranchSettingsScreen() {
           <CmxCard>
             <CmxCardHeader>
               <div className="flex items-center gap-2">
-                <GitBranch className="h-5 w-5 text-gray-500" />
+                <GitBranch className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-foreground">
                     {t('branchSettings.pricingSection')}
                     {currentBranch && (
-                      <span className="ml-2 text-sm font-normal text-gray-500">
+                      <span className="ms-2 text-sm font-normal text-muted-foreground">
                         — {currentBranch.name2 ?? currentBranch.name}
                       </span>
                     )}
                   </h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     {t('branchSettings.pricingDescription')}
                   </p>
                 </div>
@@ -166,7 +166,7 @@ export function BranchSettingsScreen() {
             </CmxCardHeader>
             <CmxCardContent>
               {modesLoading ? (
-                <div className="py-8 text-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('loading')}</div>
+                <div className="py-8 text-center text-sm text-muted-foreground">{t('loading')}</div>
               ) : (
                 // Read-only here; HQ is the only writer of the branch overrides (L18, Line-Level P7-05).
                 <dl className="space-y-5">
@@ -188,7 +188,7 @@ export function BranchSettingsScreen() {
                           : `${t('pricingMode.includedInItemPrice')} — ${t('pricingMode.includedInItemPriceDesc')}`}
                     </dd>
                   </div>
-                  <p className="border-t pt-4 text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('pricingMode.managedByPlatform')}</p>
+                  <p className="border-t pt-4 text-xs text-muted-foreground">{t('pricingMode.managedByPlatform')}</p>
                 </dl>
               )}
             </CmxCardContent>

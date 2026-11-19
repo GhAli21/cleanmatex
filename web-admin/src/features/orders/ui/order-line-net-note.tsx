@@ -15,5 +15,5 @@ export function OrderLineNetNote({ gross, net, format }: {
 }) {
   const t = useTranslations('orders.itemsList');
   if (net == null || gross == null || Number(net) >= Number(gross)) return null;
-  return <div className="text-xs text-gray-500">{t('afterDiscount', { amount: format(Number(net)) })}</div>;
+  return <div className="text-xs text-muted-foreground">{t('afterDiscount', { amount: format(Number(net)) })}</div>;
 }

@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Separates ERP reports from the general reporting workspace in browser tabs. */
@@ -17,8 +18,6 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { ErpLiteReportsScreen } from '@features/erp-lite/ui/erp-lite-reports-screen'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -83,9 +82,9 @@ export default async function ErpLiteReportsPage() {
         </div>
 
         {loadError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{loadError}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         <ErpLiteReportsScreen

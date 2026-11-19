@@ -43,6 +43,8 @@
     "check:platform-info-inventories": "tsx scripts/docs/rebuild-platform-info-inventories.ts validate && npm run check:access-contracts --workspace=web-admin",
     "check:i18n": "npm --workspace=web-admin run check:i18n && node scripts/check-i18n-guidance-drift.js",
     "check:wf-policy-issue-catalog": "node scripts/check-wf-policy-issue-catalog.js",
+    "check:s0-privilege-sources": "node scripts/db/check-s0-privilege-sources.mjs",
+    "check:s0-session-catalog-reads": "python scripts/db/scan-s0-session-catalog-reads.py",
     "check:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts check",
     "sync:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts sync",
     "rebuild:ui-access-contract": "tsx scripts/docs/rebuild-ui-access-contract.ts full",

@@ -526,7 +526,7 @@ export function CmxEditableDataTable<
 
           if (isDeleted) {
             return (
-              <div className="flex items-center gap-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 Deleted
               </div>
             )
@@ -572,7 +572,7 @@ export function CmxEditableDataTable<
                       onConfirm={() => handleDelete(rowId)}
                       trigger={
                         <CmxButton size="xs" variant="ghost" title="Delete">
-                          <Trash2 className="h-3 w-3 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]" />
+                          <Trash2 className="h-3 w-3 text-destructive" />
                         </CmxButton>
                       }
                     />
@@ -683,7 +683,7 @@ export function CmxEditableDataTable<
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
         <table className="min-w-full text-sm">
-          <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -704,7 +704,7 @@ export function CmxEditableDataTable<
               <tr>
                 <td
                   colSpan={tableColumns.length}
-                  className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+                  className="px-3 py-8 text-center text-muted-foreground"
                 >
                   <CmxSpinner />
                 </td>
@@ -742,7 +742,7 @@ export function CmxEditableDataTable<
               <tr>
                 <td
                   colSpan={tableColumns.length}
-                  className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+                  className="px-3 py-8 text-center text-muted-foreground"
                 >
                   No data to display.
                 </td>

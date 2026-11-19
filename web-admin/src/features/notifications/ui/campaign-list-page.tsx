@@ -55,15 +55,15 @@ const STATUS_FILTERS: StatusFilter[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<CampaignStatus, { color: string; Icon: typeof Send }> = {
-  DRAFT:            { color: 'text-gray-500 bg-gray-100',    Icon: Clock },
-  PENDING_APPROVAL: { color: 'text-amber-600 bg-amber-50',   Icon: Clock },
-  APPROVED:         { color: 'text-blue-600 bg-blue-50',     Icon: CheckCircle },
-  SCHEDULED:        { color: 'text-indigo-600 bg-indigo-50', Icon: Clock },
-  RUNNING:          { color: 'text-emerald-600 bg-emerald-50', Icon: Send },
-  COMPLETED:        { color: 'text-green-700 bg-green-100',  Icon: CheckCircle },
-  PAUSED:           { color: 'text-amber-700 bg-amber-100',  Icon: Pause },
-  FAILED:           { color: 'text-red-600 bg-red-50',       Icon: AlertCircle },
-  CANCELLED:        { color: 'text-gray-500 bg-gray-100',    Icon: XCircle },
+  DRAFT:            { color: 'text-muted-foreground bg-muted',    Icon: Clock },
+  PENDING_APPROVAL: { color: 'text-warning-text bg-warning-bg',   Icon: Clock },
+  APPROVED:         { color: 'text-info-text bg-info-bg',     Icon: CheckCircle },
+  SCHEDULED:        { color: 'text-info-text bg-info-bg', Icon: Clock },
+  RUNNING:          { color: 'text-success-text bg-success-bg', Icon: Send },
+  COMPLETED:        { color: 'text-success-text bg-success-bg',  Icon: CheckCircle },
+  PAUSED:           { color: 'text-warning-text bg-warning-bg',  Icon: Pause },
+  FAILED:           { color: 'text-danger-text bg-danger-bg',       Icon: AlertCircle },
+  CANCELLED:        { color: 'text-muted-foreground bg-muted',    Icon: XCircle },
 }
 
 function StatusBadge({ status, t }: { status: CampaignStatus; t: (k: string) => string }) {
@@ -90,15 +90,15 @@ const CHANNEL_LABELS: Record<string, { en: string; ar: string }> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ProgressBar({ total, sent, failed, skipped }: { total: number; sent: number; failed: number; skipped: number }) {
-  if (total === 0) return <div className="h-1.5 w-full rounded-full bg-gray-100" />
+  if (total === 0) return <div className="h-1.5 w-full rounded-full bg-muted" />
   const sentPct    = Math.min(100, (sent    / total) * 100)
   const failedPct  = Math.min(100 - sentPct, (failed  / total) * 100)
   const skippedPct = Math.min(100 - sentPct - failedPct, (skipped / total) * 100)
   return (
-    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-gray-100" title={`${sent}/${total} sent`}>
-      <div className="absolute start-0 top-0 h-full bg-emerald-500" style={{ width: `${sentPct}%` }} />
-      <div className="absolute top-0 h-full bg-red-400"     style={{ insetInlineStart: `${sentPct}%`, width: `${failedPct}%` }} />
-      <div className="absolute top-0 h-full bg-gray-300"    style={{ insetInlineStart: `${sentPct + failedPct}%`, width: `${skippedPct}%` }} />
+    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted" title={`${sent}/${total} sent`}>
+      <div className="absolute start-0 top-0 h-full bg-success" style={{ width: `${sentPct}%` }} />
+      <div className="absolute top-0 h-full bg-danger-border"     style={{ insetInlineStart: `${sentPct}%`, width: `${failedPct}%` }} />
+      <div className="absolute top-0 h-full bg-border"    style={{ insetInlineStart: `${sentPct + failedPct}%`, width: `${skippedPct}%` }} />
     </div>
   )
 }
@@ -223,7 +223,7 @@ export function CampaignListPage() {
           )}
 
           {!isLoading && campaigns.length > 0 && (
-            <div className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+            <div className="divide-y divide-border">
               {campaigns.map(c => {
                 const channelLabel = locale === 'ar'
                   ? CHANNEL_LABELS[c.channel_code]?.ar
@@ -236,11 +236,11 @@ export function CampaignListPage() {
                     <div className="min-w-0 flex-1">
                       <a
                         href={`/dashboard/marketing/campaigns/${c.id}`}
-                        className="font-medium text-[rgb(var(--cmx-foreground-rgb))] hover:underline"
+                        className="font-medium text-foreground hover:underline"
                       >
                         {displayName}
                       </a>
-                      <p className="mt-0.5 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         {channelLabel}
                         {c.total_targets > 0 && (
                           <> · {c.sent_count}/{c.total_targets} {t('campaigns.sent')}</>
@@ -293,7 +293,7 @@ export function CampaignListPage() {
           >
             {t('center.prevPage')}
           </CmxButton>
-          <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <span className="text-sm text-muted-foreground">
             {page} / {totalPages}
           </span>
           <CmxButton

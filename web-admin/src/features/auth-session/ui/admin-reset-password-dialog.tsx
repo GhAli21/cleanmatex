@@ -127,11 +127,11 @@ export function AdminResetPasswordDialog({ open, onOpenChange, userId, userLabel
               <p>{done.mode === 'set' ? t('doneSet', { count: done.revoked }) : t('doneLink', { email: userEmail ?? '' })}</p>
               {done.mode === 'set' ? (
                 <>
-                  <p className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <p className="text-muted-foreground">
                     {mustChange ? t('doneSetMustChange') : t('doneSetNoForce')}
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="rounded bg-[rgb(var(--cmx-muted-rgb,241_245_249))] px-2 py-1 font-mono text-sm" dir="ltr">
+                    <code className="rounded bg-muted px-2 py-1 font-mono text-sm" dir="ltr">
                       {password}
                     </code>
                     <CmxButton type="button" variant="secondary" size="sm" onClick={() => void handleCopy()}>
@@ -139,7 +139,7 @@ export function AdminResetPasswordDialog({ open, onOpenChange, userId, userLabel
                       {t('copy')}
                     </CmxButton>
                   </div>
-                  <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('shareHint')}</p>
+                  <p className="text-xs text-muted-foreground">{t('shareHint')}</p>
                 </>
               ) : null}
             </div>
@@ -198,7 +198,7 @@ export function AdminResetPasswordDialog({ open, onOpenChange, userId, userLabel
                     label={t('mustChange')}
                     description={t('mustChangeHint')}
                   />
-                  <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tPassword('policyHint')}</p>
+                  <p className="text-xs text-muted-foreground">{tPassword('policyHint')}</p>
                 </div>
               ) : (
                 <CmxCheckbox

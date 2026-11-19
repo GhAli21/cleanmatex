@@ -24,10 +24,10 @@ export function SetupHealthHomeCard() {
           <CmxCardTitle>{t('title')}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="space-y-1">
-          <p className={data.blockers > 0 ? 'text-lg font-semibold text-[rgb(var(--cmx-destructive-rgb,220_38_38))]' : 'text-lg font-semibold'}>
+          <p className={data.blockers > 0 ? 'text-lg font-semibold text-destructive' : 'text-lg font-semibold'}>
             {problems === 0 ? t('allGood') : t('counts', { blockers: data.blockers, warnings: data.warnings, infos: data.infos })}
           </p>
-          {data.errors > 0 && <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{t('errors', { count: data.errors })}</p>}
+          {data.errors > 0 && <p className="text-sm text-muted-foreground">{t('errors', { count: data.errors })}</p>}
         </CmxCardContent>
       </CmxCard>
     </Link>

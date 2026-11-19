@@ -10,6 +10,8 @@
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -226,8 +228,8 @@ export default function ProcessingDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-          <p className="text-gray-600">{tCommon('loading') || 'Loading...'}</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary-text mx-auto" />
+          <p className="text-muted-foreground">{tCommon('loading') || 'Loading...'}</p>
         </div>
       </div>
     );
@@ -237,14 +239,14 @@ export default function ProcessingDetailPage() {
   if (!order) {
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <CmxCard className="border border-gray-200 p-6">
+        <CmxCard className="border border-border p-6">
           <div className="flex items-start gap-4">
-            <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-6 w-6 text-danger-text flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-900 mb-1">
+              <h3 className="text-lg font-semibold text-danger-text mb-1">
                 {t('error.orderNotFound') || 'Order not found'}
               </h3>
-              <p className="text-red-700 mb-4">
+              <p className="text-danger-text mb-4">
                 {t('error.orderNotFoundDesc') || 'The order you are looking for could not be found.'}
               </p>
               <CmxButton
@@ -274,7 +276,7 @@ export default function ProcessingDetailPage() {
         />
       ) : null}
       {/* Header Section */}
-      <CmxCard className="border border-gray-200 p-6">
+      <CmxCard className="border border-border p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
             <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -292,14 +294,14 @@ export default function ProcessingDetailPage() {
                 orderNo={order.order_no}
                 returnUrl={orderDetailsReturnUrl}
                 returnLabel={t('backToProcessing') || 'Back to Processing'}
-                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="inline-flex items-center text-sm font-medium text-primary-text hover:text-primary-text/80"
               >
                 {tTable('details')} →
               </OrderDetailsLink>
             </div>
             
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
                 {t('title')}{' '}
                 <CmxCodeChip code={order.order_no} kind="order" size="md" />
               </h1>
@@ -310,7 +312,7 @@ export default function ProcessingDetailPage() {
               )}
             </div>
             
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div>
                 <span className="font-medium">{t('customer') || 'Customer'}:</span>{' '}
                 {order.customer.name}
@@ -326,16 +328,16 @@ export default function ProcessingDetailPage() {
 
       {/* Error Alert */}
       {error && (
-        <CmxCard className="border border-gray-200 p-6 bg-red-50 border-red-200">
+        <CmxCard className="border border-border p-6 bg-danger-bg border-danger-border">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-danger-text flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-red-800 font-medium">{error}</p>
+              <p className="text-danger-text font-medium">{error}</p>
               <CmxButton
                 variant="ghost"
                 size="sm"
                 onClick={loadOrder}
-                className="mt-2 text-red-700 hover:text-red-900"
+                className="mt-2 text-danger-text hover:text-danger-text/80"
               >
                 {tCommon('refresh') || 'Retry'}
               </CmxButton>
@@ -348,13 +350,13 @@ export default function ProcessingDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-foreground">
             {t('items') || 'Order Items'}
           </h2>
           
           {order.items.length === 0 ? (
-            <CmxCard className="border border-gray-200 p-8">
-              <div className="text-center py-8 text-gray-500">
+            <CmxCard className="border border-border p-8">
+              <div className="text-center py-8 text-muted-foreground">
                 {t('noItems') || 'No items found in this order'}
               </div>
             </CmxCard>
@@ -365,14 +367,14 @@ export default function ProcessingDetailPage() {
               const progressPercentage = (completedSteps / PROCESSING_STEPS.length) * 100;
 
               return (
-                <CmxCard key={item.id} className="border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <CmxCard key={item.id} className="border border-border p-6 hover:shadow-md transition-shadow">
                   <CmxCardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-1">
                           {item.product_name}
                         </h3>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           <span>
                             <span className="font-medium">{t('quantity') || 'Quantity'}:</span>{' '}
                             {item.quantity}
@@ -390,16 +392,16 @@ export default function ProcessingDetailPage() {
                   {/* Progress Bar */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-foreground">
                         {t('progress') || 'Progress'}
                       </span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         {completedSteps} / {PROCESSING_STEPS.length} {t('stepsLabel') || 'steps'}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-muted rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
                         style={{ width: `${progressPercentage}%` }}
                       />
                     </div>
@@ -407,7 +409,7 @@ export default function ProcessingDetailPage() {
 
                   {/* Step Progress Indicator */}
                   <div className="space-y-3">
-                    <p className="text-sm font-medium text-gray-700">
+                    <p className="text-sm font-medium text-foreground">
                       {t('processingSteps') || 'Processing Steps'}:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -431,13 +433,13 @@ export default function ProcessingDetailPage() {
                               relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
                               transition-all duration-200 border-2
                               ${isCompleted
-                                ? 'bg-green-50 text-green-800 border-green-300 cursor-default'
+                                ? 'bg-success-bg text-success-text border-success-border cursor-default'
                                 : isCurrent
-                                ? 'bg-blue-50 text-blue-800 border-blue-400 hover:bg-blue-100 hover:border-blue-500 shadow-sm'
-                                : 'bg-gray-50 text-gray-500 border-gray-300 cursor-not-allowed opacity-60'
+                                ? 'bg-info-bg text-info-text border-primary hover:bg-info-border/50 hover:border-primary-hover shadow-sm'
+                                : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
                               }
                               ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                              ${isCurrent && !submitting ? 'ring-2 ring-blue-200' : ''}
+                              ${isCurrent && !submitting ? 'ring-2 ring-ring' : ''}
                             `}
                             title={
                               isCompleted
@@ -449,19 +451,19 @@ export default function ProcessingDetailPage() {
                           >
                             <div className="flex-shrink-0">
                               {isCompleted ? (
-                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                <CheckCircle2 className="w-4 h-4 text-success-text" />
                               ) : (
-                                <Circle className={`w-4 h-4 ${isCurrent ? 'text-blue-600 fill-blue-600' : 'text-gray-400'}`} />
+                                <Circle className={`w-4 h-4 ${isCurrent ? 'text-primary-text fill-primary' : 'text-muted-foreground'}`} />
                               )}
                             </div>
-                            <span className="text-xs font-semibold text-gray-500 mr-1">
+                            <span className="text-xs font-semibold text-muted-foreground me-1">
                               {idx + 1}.
                             </span>
-                            <span className="flex-1 text-left">
+                            <span className="flex-1 text-start">
                               {t(step.labelKey)}
                             </span>
                             {isCurrent && !submitting && (
-                              <span className="text-xs text-blue-600 font-semibold ml-auto">
+                              <span className="text-xs text-primary-text font-semibold ms-auto">
                                 {t('clickToComplete') || 'Click'}
                               </span>
                             )}
@@ -473,10 +475,10 @@ export default function ProcessingDetailPage() {
 
                   {/* Pieces Section - Expandable */}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="mt-4 pt-4 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
-                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
                         <span>
                           {tPieces('viewPieces')}
@@ -494,6 +496,7 @@ export default function ProcessingDetailPage() {
                             <OrderPiecesManager
                               orderId={orderId}
                               itemId={item.id}
+                              fileSource={FILE_SOURCES.ORDER_PROCESSING}
                               tenantId={currentTenant.tenant_id}
                               branchId={order?.branch_id}
                               readOnly={false}
@@ -511,15 +514,16 @@ export default function ProcessingDetailPage() {
               );
             })
           )}
+          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_PROCESSING} />}
         </div>
 
         {/* Actions Panel */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-foreground">
             {t('orderActions') || 'Order Actions'}
           </h2>
           
-          <CmxCard className="border border-gray-200 p-6">
+          <CmxCard className="border border-border p-6">
             <CmxCardHeader>
               <div>
                 <CmxCardTitle>{t('completeOrder') || 'Complete Order'}</CmxCardTitle>
@@ -529,14 +533,14 @@ export default function ProcessingDetailPage() {
             <CmxCardContent>
             {/* Rack Location Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {tModal('rackLocationOrder')}
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-danger-text ms-1">*</span>
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <CmxInput
-                  className="pl-10 w-full"
+                  className="ps-10 w-full"
                   value={rackLocation}
                   onChange={(e) => {
                     setRackLocation(e.target.value);
@@ -547,9 +551,9 @@ export default function ProcessingDetailPage() {
                 />
               </div>
               {rackLocationError && (
-                <p className="mt-1 text-sm text-red-600">{rackLocationError}</p>
+                <p className="mt-1 text-sm text-danger-text">{rackLocationError}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {t('rackLocationHelp') || 'Enter the rack location where this order is stored'}
               </p>
             </div>
@@ -561,13 +565,13 @@ export default function ProcessingDetailPage() {
               onClick={handleMarkReady}
               disabled={submitting || !rackLocation.trim()}
               loading={submitting}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-success hover:bg-success/90"
             >
               {submitting ? t('processing') || 'Processing...' : t('markOrderReady') || 'Mark Order Ready'}
             </CmxButton>
 
             {/* Info Text */}
-            <p className="mt-4 text-xs text-gray-500 text-center">
+            <p className="mt-4 text-xs text-muted-foreground text-center">
               {t('markReadyInfo') || 'This will move the order to the ready status and make it available for pickup.'}
             </p>
             </CmxCardContent>

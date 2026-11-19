@@ -149,9 +149,9 @@ export function OrderPiecePreferencesSection({
 
   return (
     <section aria-label={t('sectionTitle')} className="space-y-3">
-      <h2 className="text-base font-semibold text-gray-900">{t('sectionTitle')}</h2>
+      <h2 className="text-base font-semibold text-foreground">{t('sectionTitle')}</h2>
       <EditControlNotice codes={['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE']} />
-      <p className="text-sm text-gray-600">{t('sectionHint')}</p>
+      <p className="text-sm text-muted-foreground">{t('sectionHint')}</p>
 
       <div className={`space-y-3 ${preferenceCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
         {itemGroups.map(({ item, pieces, categoryLabel }) => {
@@ -165,10 +165,10 @@ export function OrderPiecePreferencesSection({
                 else itemRefs.current.delete(item.productId);
               }}
               className={`space-y-3 scroll-mt-4 rounded-lg transition-shadow duration-300 ${
-                highlightedProductId === item.productId ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                highlightedProductId === item.productId ? 'ring-2 ring-ring ring-offset-2' : ''
               }`}
             >
-              <div className="text-sm font-medium text-gray-700">{title}</div>
+              <div className="text-sm font-medium text-foreground">{title}</div>
               {pieces.map((piece) => (
                 <PiecePreferenceCard
                   key={piece.id}

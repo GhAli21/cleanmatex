@@ -9,6 +9,8 @@
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -132,14 +134,14 @@ export default function AssemblyDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
         {error || t('assembly.task.messages.loadFailed')}
       </div>
     );
@@ -160,17 +162,17 @@ export default function AssemblyDetailPage() {
         </div>
       ) : null}
       <div className="mb-6">
-        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
           ← {t('assembly.backToAssembly')}
         </Link>
         <h1 className="text-3xl font-bold">
           {t('screens.assembly')} <CmxCodeChip code={order.order_no} kind="order" size="md" />
         </h1>
-        <p className="text-gray-600 mt-1">{order.customer.name} • {order.customer.phone}</p>
+        <p className="text-muted-foreground mt-1">{order.customer.name} • {order.customer.phone}</p>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -178,27 +180,27 @@ export default function AssemblyDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">{t('assemblyDetail.verifyItems')}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="p-3 bg-gray-50 rounded-lg">
+                <div key={item.id} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-medium">{item.product_name}</p>
-                      <p className="text-sm text-gray-600">{t('assemblyDetail.quantity')}: {item.quantity}</p>
+                      <p className="text-sm text-muted-foreground">{t('assemblyDetail.quantity')}: {item.quantity}</p>
                     </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
+                    <span className="px-3 py-1 bg-success-bg text-success-text rounded text-sm">
                       {t('assemblyDetail.ready')}
                     </span>
                   </div>
 
                   {/* Pieces Section - Expandable */}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-3 pt-3 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
-                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
                         <span>
                           {tPieces('viewPieces') || 'View Pieces'}
@@ -216,6 +218,7 @@ export default function AssemblyDetailPage() {
                             <OrderPiecesManager
                               orderId={orderId}
                               itemId={item.id}
+                              fileSource={FILE_SOURCES.ORDER_ASSEMBLY}
                               tenantId={currentTenant.tenant_id}
                               branchId={order?.branch_id}
                               readOnly={true}
@@ -232,16 +235,17 @@ export default function AssemblyDetailPage() {
             </div>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
+          <div className="bg-warning-bg border border-warning-border rounded-lg p-4">
+            <p className="text-sm text-warning-text">
               {t('assemblyDetail.hint')}
             </p>
           </div>
+          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_ASSEMBLY} />}
         </div>
 
         {/* Actions Panel */}
         <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">{t('assemblyDetail.actionsTitle')}</h3>
             
             <CmxButton

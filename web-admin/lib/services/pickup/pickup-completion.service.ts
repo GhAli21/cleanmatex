@@ -21,6 +21,7 @@ import {
   SemanticWorkflowArtifactError,
   type SemanticWorkflowCommandChannel,
 } from '@/lib/services/workflow/semantic-workflow-artifact.service';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_STATUSES } from '@/lib/constants/file-util';
 import {
   assertCompiledPickupEvidence,
   CompiledDeliveryEvidenceError,
@@ -39,6 +40,7 @@ export type PickupCompletionErrorCode =
   | 'PICKUP_NOTES_REQUIRED'
   | 'PICKUP_POLICY_UNAVAILABLE'
   | 'PICKUP_DIRECT_NOT_ALLOWED'
+  | 'PICKUP_PROOF_INVALID'
   | 'IDEMPOTENCY_CONFLICT'
   | 'IDEMPOTENCY_IN_FLIGHT';
 
@@ -76,6 +78,12 @@ export interface CompletePickupCommand {
   expectedStateVersion: number;
   idempotencyKey: string;
   handoverNotes?: string;
+  /**
+   * PICKUP_PROOF files (File Util) already uploaded for this order. They are locked as proof in
+   * the same transaction as the handover; any that is missing, of another order or purpose, not
+   * READY, or already locked fails the whole command.
+   */
+  proofFileIds?: string[];
   /** Public confirmation may only fulfil an already released pickup order. */
   requireReleasedPickup?: boolean;
   /**
@@ -352,6 +360,43 @@ function assertDirectCounterPickupAllowed(
 }
 
 /**
+ * Locks the handover photos as pickup proof, in the pickup transaction: a locked file can no
+ * longer be edited, deleted or reused. Every id must be a READY, unlocked PICKUP_PROOF file of
+ * this order and organization; otherwise nothing is committed.
+ */
+async function lockPickupProofFiles(
+  tx: PrismaTransactionClient,
+  tenantId: string,
+  orderId: string,
+  fileIds: readonly string[],
+  actorUserId: string,
+  now: Date,
+): Promise<void> {
+  const ids = [...new Set(fileIds)];
+  if (ids.length === 0) return;
+  const locked = await tx.$queryRaw<Array<{ id: string }>>`
+    UPDATE public.org_file_mst
+    SET locked_at = ${now}, locked_by = ${actorUserId},
+        updated_at = ${now}, updated_by = ${actorUserId}, updated_info = 'pickup:proof'
+    WHERE tenant_org_id = ${tenantId}::uuid
+      AND category_code = ${FILE_CATEGORIES.ORDER_FILE}
+      AND purpose_code = ${FILE_PURPOSES.ORDER_FILE.PICKUP_PROOF}
+      AND entity_id = ${orderId}::uuid
+      AND id = ANY(${ids}::uuid[])
+      AND status_code = ${FILE_STATUSES.READY}
+      AND locked_at IS NULL
+    RETURNING id
+  `;
+  if (locked.length !== ids.length) {
+    throw new PickupCompletionError(
+      'PICKUP_PROOF_INVALID',
+      'A pickup photo is missing, still uploading, or already used. Remove it and try again.',
+      409,
+    );
+  }
+}
+
+/**
  * Confirm a customer counter pickup atomically.
  *
  * A pickup release stages an order, but a staff member may also complete an
@@ -373,6 +418,7 @@ export async function completePickup(
     expectedStateVersion: params.expectedStateVersion,
     handoverNotes: params.handoverNotes?.trim(),
     requireReleasedPickup: Boolean(params.requireReleasedPickup),
+    proofFileIds: [...new Set(params.proofFileIds ?? [])].sort(),
   });
   const claim = await claimIdempotencyKey(
     params.tenantId,
@@ -465,6 +511,8 @@ export async function completePickup(
         idempotencyKey: `pickup:${params.idempotencyKey}`,
         channel: params.channel ?? 'staff_web',
       }, tx);
+
+      await lockPickupProofFiles(tx, params.tenantId, params.orderId, params.proofFileIds ?? [], params.actorUserId, now);
 
       const fulfilledReleaseIds = await fulfilPickupReleases(
         tx,

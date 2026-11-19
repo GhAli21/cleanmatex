@@ -180,8 +180,8 @@ async function getDefaultCountryCodeForCurrentTenant(): Promise<string> {
 export async function generateCustomerNumber(tenantOrgId: string): Promise<string> {
   const supabase = await createClient();
 
-  // Call the database function to generate customer number
-  const { data, error } = await supabase.rpc('generate_customer_number', {
+  // INVOKER function reads sys_customers_mst — must run as service role after lockdown.
+  const { data, error } = await catalogReadClient(supabase).rpc('generate_customer_number', {
     p_tenant_org_id: tenantOrgId,
   });
 

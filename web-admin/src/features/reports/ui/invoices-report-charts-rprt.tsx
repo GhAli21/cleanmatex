@@ -57,8 +57,8 @@ export default function InvoicesReportCharts({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Invoices by Status */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.invoicesByStatus')}
         </h3>
         <ResponsiveContainer width="100%" height={280}>
@@ -75,8 +75,8 @@ export default function InvoicesReportCharts({
       </div>
 
       {/* Aging Buckets */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.agingBuckets')}
         </h3>
         <ResponsiveContainer width="100%" height={280}>
@@ -97,8 +97,8 @@ export default function InvoicesReportCharts({
       </div>
 
       {/* Collection Trend */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5 lg:col-span-2">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.collectionTrend')}
         </h3>
         <ResponsiveContainer width="100%" height={280}>

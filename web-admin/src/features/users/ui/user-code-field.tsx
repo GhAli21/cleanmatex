@@ -84,14 +84,14 @@ export function UserCodeField({ userId }: UserCodeFieldProps) {
 
   return (
     <div>
-      <dt className="text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+      <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
         {t('userCode')}
       </dt>
-      <dd className="mt-1 flex items-center gap-2 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+      <dd className="mt-1 flex items-center gap-2 text-sm text-foreground">
         {isLoading ? (
-          <span className="h-4 w-20 animate-pulse rounded bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]" />
+          <span className="h-4 w-20 animate-pulse rounded bg-secondary" />
         ) : isError ? (
-          <span className="text-red-600">{t('userCodeLoadFailed')}</span>
+          <span className="text-danger-text">{t('userCodeLoadFailed')}</span>
         ) : (
           <span className="font-mono">{userCode}</span>
         )}
@@ -130,7 +130,7 @@ export function UserCodeField({ userId }: UserCodeFieldProps) {
               spellCheck={false}
               maxLength={30}
             />
-            <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-xs text-muted-foreground">
               {t('userCodeHelp')}
             </p>
           </div>

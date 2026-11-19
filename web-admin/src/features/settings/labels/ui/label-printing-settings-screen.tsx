@@ -93,8 +93,8 @@ export function LabelPrintingSettingsScreen() {
   return (
     <form onSubmit={onSave} className="max-w-4xl space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-[rgb(var(--cmx-primary-bg-rgb,239_246_255))] p-2">
-          <Tag className="h-6 w-6 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" aria-hidden />
+        <div className="rounded-lg bg-primary-bg p-2">
+          <Tag className="h-6 w-6 text-primary-text" aria-hidden />
         </div>
         <div>
           <h1 className="text-xl font-semibold">{t('title')}</h1>
@@ -127,7 +127,7 @@ export function LabelPrintingSettingsScreen() {
           </CmxSelectDropdownContent>
         </CmxSelectDropdown>
         <p className="text-xs text-muted-foreground">{scope === 'branch' ? t('scope.hintBranch') : t('scope.hintTenant')}</p>
-        {branches.isError ? <p className="text-xs text-[rgb(var(--cmx-warning-rgb,245_158_11))]">{t('scope.branchesFailed')}</p> : null}
+        {branches.isError ? <p className="text-xs text-warning">{t('scope.branchesFailed')}</p> : null}
       </div>
 
       {isLoading || (!values && !isError) ? (
@@ -169,7 +169,7 @@ export function LabelPrintingSettingsScreen() {
       )}
 
       {canManage && values ? (
-        <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-6 py-3">
+        <div className="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t bg-background px-6 py-3">
           {changes > 0 && (
             <span className="me-auto text-sm text-muted-foreground" aria-live="polite">
               {t('unsavedChanges', { count: changes })}

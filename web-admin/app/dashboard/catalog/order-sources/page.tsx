@@ -13,7 +13,6 @@ import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton, CmxSwitch } from '@ui/primitives';
 import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
-import { useRTL } from '@/lib/hooks/useRTL';
 
 type SourceRow = {
   order_source_code: string;
@@ -30,7 +29,6 @@ export default function OrderSourcesCatalogPage() {
   const t = useTranslations('catalog.orderSources');
   const tCommon = useTranslations('common');
   const locale = useLocale();
-  const isRTL = useRTL();
   const { token: csrfToken } = useCSRFToken();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -124,41 +122,41 @@ export default function OrderSourcesCatalogPage() {
   return (
     <RequireAnyPermission permissions={['config:preferences_manage']}>
       <div className="space-y-6 p-6">
-        <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
-            <p className="mt-1 text-sm text-gray-600">{t('subtitle')}</p>
+        <div className="flex items-center justify-between">
+          <div className="text-start">
+            <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
           </div>
-          <Link href="/dashboard/catalog/preferences" className="text-sm text-blue-600 hover:text-blue-700">
+          <Link href="/dashboard/catalog/preferences" className="text-sm text-primary-text hover:text-primary-text/80">
             {t('backToPreferences')}
           </Link>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+          <div className="rounded-lg border border-danger-border bg-danger-bg p-3 text-sm text-danger-text" role="alert">
             {error}
           </div>
         )}
 
         <CmxCard>
-          <div className={`flex flex-col gap-4 p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <p className="text-sm text-gray-600">{explicitList ? t('explicitListHelp') : t('defaultAllHelp')}</p>
+          <div className="flex flex-col gap-4 p-4 text-start">
+            <p className="text-sm text-muted-foreground">{explicitList ? t('explicitListHelp') : t('defaultAllHelp')}</p>
             {loading ? (
-              <p className="text-sm text-gray-500">{tCommon('loading')}</p>
+              <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
             ) : (
-              <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+              <ul className="divide-y divide-border rounded-lg border border-border">
                 {rows.map((r) => (
                   <li
                     key={r.order_source_code}
-                    className={`flex items-center gap-4 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="flex items-center gap-4 px-4 py-3"
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-foreground">
                         {locale === 'ar' && r.name2?.trim() ? r.name2 : r.name}
                       </div>
-                      <div className="text-xs text-gray-500">{r.order_source_code}</div>
+                      <div className="text-xs text-muted-foreground">{r.order_source_code}</div>
                       {r.requires_remote_intake_confirm && (
-                        <div className="mt-1 text-xs text-amber-800">{t('remoteIntakeFlag')}</div>
+                        <div className="mt-1 text-xs text-warning-text">{t('remoteIntakeFlag')}</div>
                       )}
                     </div>
                     <CmxSwitch checked={r.is_allowed} onCheckedChange={(v) => toggle(r.order_source_code, v)} />
@@ -166,7 +164,7 @@ export default function OrderSourcesCatalogPage() {
                 ))}
               </ul>
             )}
-            <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex flex-wrap gap-2">
               <CmxButton variant="primary" onClick={() => void save()} disabled={saving || loading}>
                 {saving ? t('saving') : t('save')}
               </CmxButton>

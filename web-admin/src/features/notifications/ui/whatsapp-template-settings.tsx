@@ -49,7 +49,7 @@ export function WhatsAppTemplateSettings({ tenantId, onSaved }: WhatsAppTemplate
       <CmxCardHeader>
         <h2 className="text-sm font-semibold">{t('title')}</h2>
         {/* Use the shared muted token so setup guidance follows the selected theme. */}
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('description')}</p>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
       </CmxCardHeader>
       <CmxCardContent className="space-y-4">
         <CmxSummaryMessage type={provider?.is_active ? 'info' : 'warning'} title={provider?.is_active ? t('twilioActive') : activeProvider ? t('otherActive', { provider: activeProvider }) : t('noProvider')} items={[]} />
@@ -118,10 +118,10 @@ export function WhatsAppTemplateEditor({ provider, events, pending, onSave }: Wh
         <div className="space-y-3">
           <h3 className="text-sm font-semibold">{t('variables')}</h3>
           {/* Shared muted guidance remains readable across Cmx themes. */}
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('variablesHint')}</p>
+          <p className="text-xs text-muted-foreground">{t('variablesHint')}</p>
           {mappings.fields.length === 0 && <p className="text-sm">{t('noVariables')}</p>}
           {/* Theme-token borders group each substitution without hardcoded theme colors. */}
-          {mappings.fields.map((row, index) => <div key={row.id} className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb))] p-3">
+          {mappings.fields.map((row, index) => <div key={row.id} className="space-y-3 rounded-lg border border-border p-3">
             <CmxFormField name={`mappings.${index}.slot`} label={t('variableName')} required>
               {({ invalid, describedBy, ...field }) => <CmxInput {...field} disabled={pending} dir="ltr" aria-invalid={invalid} aria-describedby={describedBy} />}
             </CmxFormField>

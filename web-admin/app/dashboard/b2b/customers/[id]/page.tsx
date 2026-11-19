@@ -117,8 +117,8 @@ export default function B2BCustomerViewPage() {
     return (
     <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
-        <div className="h-64 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
       </div>
     </RequireAnyPermission>
   );
@@ -127,11 +127,11 @@ export default function B2BCustomerViewPage() {
   if (error || !customer) {
     return (
       <div className="space-y-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-900 mb-2">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center">
+          <h2 className="text-xl font-semibold text-danger-text mb-2">
             {t('customerNotFound') || 'Customer Not Found'}
           </h2>
-          <p className="text-red-700 mb-6">{error || 'Customer does not exist'}</p>
+          <p className="text-danger-text mb-6">{error || 'Customer does not exist'}</p>
           <CmxButton variant="primary" asChild>
             <Link href="/dashboard/b2b/customers">{tCommon('back')} - {tB2b('customers')}</Link>
           </CmxButton>
@@ -145,16 +145,16 @@ export default function B2BCustomerViewPage() {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav className="flex items-center text-sm text-gray-500">
-        <Link href="/dashboard/b2b" className="hover:text-gray-700 transition-colors">
+      <nav className="flex items-center text-sm text-muted-foreground">
+        <Link href="/dashboard/b2b" className="hover:text-foreground transition-colors">
           B2B
         </Link>
         <span className="mx-2">/</span>
-        <Link href="/dashboard/b2b/customers" className="hover:text-gray-700 transition-colors">
+        <Link href="/dashboard/b2b/customers" className="hover:text-foreground transition-colors">
           {tB2b('customers')}
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-gray-900 font-medium">{displayName}</span>
+        <span className="text-foreground font-medium">{displayName}</span>
       </nav>
 
       {/* Header - Company-first for B2B */}
@@ -162,31 +162,31 @@ export default function B2BCustomerViewPage() {
         <CmxCardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="h-16 w-16 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 text-2xl font-bold">
+              <div className="h-16 w-16 rounded-lg bg-info-bg flex items-center justify-center text-info-text text-2xl font-bold">
                 {(customer.companyName || customer.firstName || 'C').charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   {customer.companyName || displayName}
                 </h1>
                 {customer.companyName && customer.firstName && (
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     {customer.firstName} {customer.lastName || ''}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
                   {customer.phone && (
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground">
                       {t('phone')}: <strong>{customer.phone}</strong>
                     </span>
                   )}
                   {customer.email && (
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground">
                       {t('email')}: <strong>{customer.email}</strong>
                     </span>
                   )}
                   {customer.customerNumber && (
-                    <span className="text-gray-600">
+                    <span className="text-muted-foreground">
                       Customer #: <strong>{customer.customerNumber}</strong>
                     </span>
                   )}
@@ -209,7 +209,7 @@ export default function B2BCustomerViewPage() {
         {customer.companyName2 && (
           <CmxCard>
             <CmxCardContent className="pt-4">
-              <p className="text-gray-500 text-sm">{tB2b('companyName2')}</p>
+              <p className="text-muted-foreground text-sm">{tB2b('companyName2')}</p>
               <p className="font-medium">{customer.companyName2}</p>
             </CmxCardContent>
           </CmxCard>
@@ -217,14 +217,14 @@ export default function B2BCustomerViewPage() {
         {customer.taxId != null && (
           <CmxCard>
             <CmxCardContent className="pt-4">
-              <p className="text-gray-500 text-sm">{tB2b('taxId')}</p>
+              <p className="text-muted-foreground text-sm">{tB2b('taxId')}</p>
               <p className="font-medium">{customer.taxId}</p>
             </CmxCardContent>
           </CmxCard>
         )}
         <CmxCard>
           <CmxCardContent className="pt-4">
-            <p className="text-gray-500 text-sm">{tB2b('creditLimit')}</p>
+            <p className="text-muted-foreground text-sm">{tB2b('creditLimit')}</p>
             <p className="font-medium">
               {customer.creditLimit != null
                 ? Number(customer.creditLimit).toLocaleString()
@@ -234,7 +234,7 @@ export default function B2BCustomerViewPage() {
         </CmxCard>
         <CmxCard>
           <CmxCardContent className="pt-4">
-            <p className="text-gray-500 text-sm">{tB2b('paymentTermsDays')}</p>
+            <p className="text-muted-foreground text-sm">{tB2b('paymentTermsDays')}</p>
             <p className="font-medium">{customer.paymentTermsDays ?? '—'}</p>
           </CmxCardContent>
         </CmxCard>
@@ -248,21 +248,21 @@ export default function B2BCustomerViewPage() {
         <CmxCardContent>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-foreground">
                 {formatMoneyWithCode(advanceBalance)}
               </p>
               {advanceBalance === 0 && (
-                <p className="text-sm text-gray-500 mt-2">{t('noAdvancePayments')}</p>
+                <p className="text-sm text-muted-foreground mt-2">{t('noAdvancePayments')}</p>
               )}
             </div>
             <div className="text-end">
               <Link
                 href="/dashboard/customers/account-receipt"
-                className="inline-block rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+                className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
               >
                 {t('receiveAccountPayment')}
               </Link>
-              <p className="mt-1 max-w-xs text-xs text-gray-500">{t('receiveAccountPaymentHint')}</p>
+              <p className="mt-1 max-w-xs text-xs text-muted-foreground">{t('receiveAccountPaymentHint')}</p>
             </div>
           </div>
         </CmxCardContent>
@@ -270,7 +270,7 @@ export default function B2BCustomerViewPage() {
 
       {/* Tabs */}
       <CmxCard>
-        <div className="border-b border-gray-200">
+        <div className="border-b border-border">
           <nav className="flex -mb-px overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -279,11 +279,11 @@ export default function B2BCustomerViewPage() {
                 className={`
                   px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap
                   ${activeTab === tab.id
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+                    ? 'border-primary text-primary-text'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'}
                 `}
               >
-                <span className="mr-2">{tab.icon}</span>
+                <span className="me-2">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -344,59 +344,59 @@ function B2BProfileTab({ customer }: { customer: CustomerWithTenantData }) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{tB2b('companyInfo')}</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">{tB2b('companyInfo')}</h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-gray-500">{tB2b('companyName')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.companyName || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{tB2b('companyName')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.companyName || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{tB2b('companyName2')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.companyName2 || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{tB2b('companyName2')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.companyName2 || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{tB2b('taxId')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.taxId || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{tB2b('taxId')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.taxId || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{tB2b('creditLimit')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">{tB2b('creditLimit')}</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {customer.creditLimit != null ? Number(customer.creditLimit).toLocaleString() : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{tB2b('paymentTermsDays')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.paymentTermsDays ?? '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{tB2b('paymentTermsDays')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.paymentTermsDays ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{tB2b('costCenterCode')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.costCenterCode || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{tB2b('costCenterCode')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.costCenterCode || '—'}</dd>
             </div>
           </dl>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('contactInformation') || 'Contact Person'}</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">{t('contactInformation') || 'Contact Person'}</h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-gray-500">{t('firstName')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.firstName}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{t('firstName')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.firstName}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{t('lastName')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.lastName || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{t('lastName')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.lastName || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{t('phone')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.phone || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{t('phone')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.phone || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{t('email')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.email || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{t('email')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.email || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">{t('address')}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.address || '—'}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">{t('address')}</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.address || '—'}</dd>
             </div>
           </dl>
         </div>

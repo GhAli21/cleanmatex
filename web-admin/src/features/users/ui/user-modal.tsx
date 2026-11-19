@@ -164,17 +164,17 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+      <div className="bg-card rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-foreground">
               {isEditMode ? 'Edit User' : 'Add New User'}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-muted-foreground hover:text-foreground"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -192,15 +192,15 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           {/* General Error */}
           {errors.general && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-800">{errors.general}</p>
+            <div className="rounded-md bg-danger-bg p-4">
+              <p className="text-sm text-danger-text">{errors.general}</p>
             </div>
           )}
 
           {/* Email (new users only) */}
           {!isEditMode && (
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground">
                 {t('emailLabel')} *
               </label>
               <input
@@ -211,13 +211,13 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
                   errors.email
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                    ? 'border-danger-border focus:border-destructive focus:ring-destructive'
+                    : 'border-border focus:border-ring focus:ring-ring'
                 }`}
                 placeholder="user@example.com"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                <p className="mt-1 text-sm text-danger-text">{errors.email}</p>
               )}
             </div>
           )}
@@ -225,11 +225,11 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
           {/* Email display (edit mode) */}
           {isEditMode && (
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-foreground">
                 {t('emailLabel')}
               </label>
-              <p className="mt-1 text-sm text-gray-900">{user.email}</p>
-              <p className="mt-1 text-xs text-gray-500">{t('emailReadOnly')}</p>
+              <p className="mt-1 text-sm text-foreground">{user.email}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t('emailReadOnly')}</p>
             </div>
           )}
 
@@ -237,7 +237,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
           {!isEditMode && (
             <>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground">
                   {t('passwordLabel')} *
                 </label>
                 <div className="relative mt-1">
@@ -249,22 +249,22 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className={`block w-full rounded-md shadow-sm sm:text-sm ${
                       errors.password
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                        ? 'border-danger-border focus:border-destructive focus:ring-destructive'
+                        : 'border-border focus:border-ring focus:ring-ring'
                     }`}
                     placeholder={t('passwordPlaceholder')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 end-0 pe-3 flex items-center"
                   >
                     {showPassword ? (
-                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                     ) : (
-                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
@@ -272,13 +272,13 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  <p className="mt-1 text-sm text-danger-text">{errors.password}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">{t('passwordHint')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('passwordHint')}</p>
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
                   {t('confirmPasswordLabel')}
                 </label>
                 <div className="relative mt-1">
@@ -290,22 +290,22 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className={`block w-full rounded-md shadow-sm sm:text-sm ${
                       errors.confirmPassword
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                        ? 'border-danger-border focus:border-destructive focus:ring-destructive'
+                        : 'border-border focus:border-ring focus:ring-ring'
                     }`}
                     placeholder={t('confirmPasswordPlaceholder')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 end-0 pe-3 flex items-center"
                   >
                     {showConfirmPassword ? (
-                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                     ) : (
-                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
@@ -313,7 +313,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                  <p className="mt-1 text-sm text-danger-text">{errors.confirmPassword}</p>
                 )}
               </div>
             </>
@@ -321,7 +321,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
 
           {/* Display Name */}
           <div>
-            <label htmlFor="display_name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="display_name" className="block text-sm font-medium text-foreground">
               {t('displayNameLabel')}
             </label>
             <input
@@ -332,19 +332,19 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
                 errors.display_name
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                  ? 'border-danger-border focus:border-destructive focus:ring-destructive'
+                  : 'border-border focus:border-ring focus:ring-ring'
               }`}
               placeholder="John Doe"
             />
             {errors.display_name && (
-              <p className="mt-1 text-sm text-red-600">{errors.display_name}</p>
+              <p className="mt-1 text-sm text-danger-text">{errors.display_name}</p>
             )}
           </div>
 
           {/* Role */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="role" className="block text-sm font-medium text-foreground mb-2">
               {t('roleLabel')}
             </label>
             <div className="space-y-2">
@@ -353,8 +353,8 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                   key={option.value}
                   className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
                     formData.role === option.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300'
+                      ? 'border-primary bg-info-bg'
+                      : 'border-border'
                   }`}
                 >
                   <input
@@ -363,12 +363,12 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
                     value={option.value}
                     checked={formData.role === option.value}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    className="mt-0.5 h-4 w-4 text-primary-text focus:ring-ring border-border"
                   />
-                  <span className="ml-3 rtl:ml-0 rtl:mr-3 flex flex-col">
-                    <span className="block text-sm font-medium text-gray-900">{option.label}</span>
+                  <span className="ms-3 flex flex-col">
+                    <span className="block text-sm font-medium text-foreground">{option.label}</span>
                     {option.desc && (
-                      <span className="block text-sm text-gray-500">{option.desc}</span>
+                      <span className="block text-sm text-muted-foreground">{option.desc}</span>
                     )}
                   </span>
                 </label>
@@ -378,23 +378,23 @@ export default function UserModal({ user, onClose, onSaved, accessToken, availab
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3 rtl:space-x-reverse">
+        <div className="px-6 py-4 bg-muted border-t border-border flex justify-end space-x-3">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
           >
             {tCommon('cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {loading && (
               <svg
-                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                className="animate-spin -ms-1 me-2 h-4 w-4 text-on-solid"
                 fill="none"
                 viewBox="0 0 24 24"
               >

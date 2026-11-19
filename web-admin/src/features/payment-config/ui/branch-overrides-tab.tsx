@@ -207,7 +207,7 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
       render: (row: MergedRow) => {
         if (!hasOverride(row)) return <span className="text-xs text-muted-foreground">{t('branches.fromTenant')}</span>;
         return row.is_enabled === true ? (
-          <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-600 text-white">{t('branches.enabled')}</CmxStatusBadge>
+          <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-success text-on-solid">{t('branches.enabled')}</CmxStatusBadge>
         ) : row.is_enabled === false ? (
           <CmxStatusBadge size="sm" tone="danger" appearance="solid">{t('branches.disabled')}</CmxStatusBadge>
         ) : (

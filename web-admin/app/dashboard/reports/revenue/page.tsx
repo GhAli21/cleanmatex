@@ -51,7 +51,7 @@ export default function RevenueReportPage() {
       <div className="space-y-6">
         <ReportFiltersBar basePath={BASE_PATH} />
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     );
@@ -61,7 +61,7 @@ export default function RevenueReportPage() {
     return (
       <div className="space-y-6">
         <ReportFiltersBar basePath={BASE_PATH} />
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-700">{error}</div>
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center text-danger-text">{error}</div>
       </div>
     );
   }

@@ -285,17 +285,17 @@ export const LEGACY_TO_AR_INVOICE_STATUS: Record<string, ArInvoiceStatus> = {
 };
 
 export const AR_STATUS_BADGE_TONES: Record<ArInvoiceStatus, string> = {
-  DRAFT: 'bg-gray-100 text-gray-800',
-  OPEN: 'bg-yellow-100 text-yellow-800',
-  PARTIALLY_PAID: 'bg-blue-100 text-blue-800',
-  PAID: 'bg-green-100 text-green-800',
-  OVERDUE: 'bg-red-100 text-red-800',
-  CANCELLED: 'bg-gray-100 text-gray-800',
-  VOID: 'bg-gray-200 text-gray-900',
-  PARTIALLY_REFUNDED: 'bg-fuchsia-100 text-fuchsia-800',
-  REFUNDED: 'bg-purple-100 text-purple-800',
-  WRITTEN_OFF: 'bg-slate-200 text-slate-900',
-  DISPUTED: 'bg-amber-100 text-amber-900',
+  DRAFT: 'bg-muted text-foreground',
+  OPEN: 'bg-warning-bg text-warning-text',
+  PARTIALLY_PAID: 'bg-info-bg text-info-text',
+  PAID: 'bg-success-bg text-success-text',
+  OVERDUE: 'bg-danger-bg text-danger-text',
+  CANCELLED: 'bg-muted text-foreground',
+  VOID: 'bg-muted text-foreground',
+  PARTIALLY_REFUNDED: 'bg-info-bg text-info-text',
+  REFUNDED: 'bg-info-bg text-info-text',
+  WRITTEN_OFF: 'bg-muted text-foreground',
+  DISPUTED: 'bg-warning-bg text-warning-text',
 };
 
 /**

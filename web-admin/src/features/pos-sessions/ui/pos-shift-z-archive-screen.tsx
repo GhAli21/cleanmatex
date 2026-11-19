@@ -92,11 +92,11 @@ export function PosShiftZArchiveScreen() {
         <div className="space-y-1">
           <Link
             href={`${POS_SESSIONS_PATH}/${row.posSessionId}/report`}
-            className="font-mono text-sm font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
+            className="font-mono text-sm font-medium text-primary-text hover:underline"
           >
             {row.reportNo}
           </Link>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{row.sessionNo ?? '—'}</div>
+          <div className="text-xs text-muted-foreground">{row.sessionNo ?? '—'}</div>
         </div>
       ),
     },
@@ -117,7 +117,7 @@ export function PosShiftZArchiveScreen() {
       header: tArchive('sales'),
       render: (row) =>
         row.sales.length === 0 ? (
-          <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('none')}</span>
+          <span className="text-muted-foreground">{t('none')}</span>
         ) : (
           <div className="space-y-0.5">
             {row.sales.map((s) => (
@@ -133,14 +133,14 @@ export function PosShiftZArchiveScreen() {
       header: tArchive('drawerVariance'),
       render: (row) => {
         if (row.drawerVariance.length === 0) {
-          return <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tArchive('noDrawer')}</span>;
+          return <span className="text-muted-foreground">{tArchive('noDrawer')}</span>;
         }
         return (
           <div className="space-y-1">
             {row.drawerVariance.map((v) => (
               <div
                 key={v.currencyCode}
-                className={`tabular-nums ${isOff(v.variance) ? 'font-semibold text-red-600' : ''}`}
+                className={`tabular-nums ${isOff(v.variance) ? 'font-semibold text-danger-text' : ''}`}
               >
                 {v.variance === null ? '—' : formatMoneyWithCode(v.variance, v.currencyCode)}
               </div>
@@ -196,13 +196,13 @@ export function PosShiftZArchiveScreen() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <Link href={POS_SESSIONS_PATH} className="inline-block">
-            <CmxButton variant="ghost" size="sm" className="mb-2 gap-1 rtl:flex-row-reverse">
+            <CmxButton variant="ghost" size="sm" className="mb-2 gap-1">
               <ArrowLeft className="h-4 w-4 rtl:rotate-180" aria-hidden />
               {tSessions('title')}
             </CmxButton>
           </Link>
-          <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{tArchive('title')}</h1>
-          <p className="mt-1 max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <h1 className="text-3xl font-bold text-foreground">{tArchive('title')}</h1>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             {tArchive('description')}
           </p>
         </div>
@@ -212,7 +212,7 @@ export function PosShiftZArchiveScreen() {
         </CmxButton>
       </div>
 
-      <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+      <section className="space-y-3 rounded-lg border border-border p-4">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1.5fr_1fr_1fr_auto]">
           <CmxInput
             label={tArchive('search')}
@@ -260,15 +260,15 @@ export function PosShiftZArchiveScreen() {
           </div>
         </div>
         {rangeInvalid ? (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger-text">
             {tArchive('rangeInvalid')}
           </p>
         ) : null}
       </section>
 
       {archiveQuery.isError ? (
-        <div role="alert" className="flex flex-col items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-8 text-center">
-          <p className="text-sm font-medium text-red-700">{tArchive('loadFailed')}</p>
+        <div role="alert" className="flex flex-col items-center gap-3 rounded-lg border border-danger-border bg-danger-bg p-8 text-center">
+          <p className="text-sm font-medium text-danger-text">{tArchive('loadFailed')}</p>
           <CmxButton variant="outline" size="sm" onClick={() => archiveQuery.refetch()}>
             <RefreshCw className="me-2 h-4 w-4" aria-hidden />
             {tArchive('retry')}

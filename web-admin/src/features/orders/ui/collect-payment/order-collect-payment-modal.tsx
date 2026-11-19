@@ -938,7 +938,7 @@ export function OrderCollectPaymentModal({
     referenceMissing;
 
   const requiredMark = (
-    <span className="text-red-500" aria-hidden="true">
+    <span className="text-danger-text" aria-hidden="true">
       {' '}
       *
     </span>
@@ -989,7 +989,6 @@ export function OrderCollectPaymentModal({
               !canEnablePayExtra ? tPayment('payExtraIntent.disabledNoMethods') : undefined
             }
             ariaDisabled={payExtraStripAriaDisabled}
-            isRTL={isRTL}
             extraAmountLabel={
               stripExtraAmount > SETTLEMENT_MONEY_EPSILON
                 ? formatMoneyWithCode(stripExtraAmount)
@@ -1005,10 +1004,10 @@ export function OrderCollectPaymentModal({
           />
 
           <div className="space-y-4 py-2">
-            <div className={`rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <div className={`flex items-baseline justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="rounded-xl border border-border bg-muted/70 px-4 py-3 text-start">
+              <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm text-muted-foreground">{t('outstandingLabel')}</span>
-                <span className="text-lg font-bold tabular-nums text-slate-900">
+                <span className="text-lg font-bold tabular-nums text-foreground">
                   {formatMoneyWithCode(effectiveOutstanding)}
                 </span>
               </div>
@@ -1034,7 +1033,7 @@ export function OrderCollectPaymentModal({
             ) : null}
 
             {handoverIntent ? (
-              <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className="text-xs text-muted-foreground text-start">
                 {t('handoverHint')}
               </p>
             ) : null}
@@ -1047,7 +1046,7 @@ export function OrderCollectPaymentModal({
                 info={{ ...posSessionRequired, branchId: posSessionRequired.branchId ?? branchId ?? null }}
                 idempotencyKey={idempotencyKey}
                 sourceChannel="collect_payment"
-                className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}
+                className="flex justify-end"
                 onOpened={async () => {
                   await activePosSessionQuery.refetch();
                   setPosSessionRequired(null);
@@ -1117,7 +1116,7 @@ export function OrderCollectPaymentModal({
                 </div>
 
                 <div className="space-y-2">
-                  <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="collect-amount" className="m-0">
                       {t('amount')}
                       {requiredMark}
@@ -1126,7 +1125,7 @@ export function OrderCollectPaymentModal({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-auto px-2 py-0.5 text-xs font-medium text-cyan-700"
+                      className="h-auto px-2 py-0.5 text-xs font-medium text-primary-text"
                       onClick={() => {
                         setAmountDirty(true);
                         setAmount(effectiveOutstanding);
@@ -1140,7 +1139,7 @@ export function OrderCollectPaymentModal({
                       longer enter a third decimal the server would silently round,
                       and it avoids `type="number"`'s scroll-wheel mutation of a
                       focused money field. */}
-                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex items-center gap-2">
                     <CmxMoneyField
                       id="collect-amount"
                       ref={amountFieldRef}
@@ -1175,7 +1174,7 @@ export function OrderCollectPaymentModal({
                     </CmxButton>
                   </div>
                   {amountCapHint ? (
-                    <p className="text-xs text-amber-700" role="status">
+                    <p className="text-xs text-warning-text" role="status">
                       {amountCapHint}
                     </p>
                   ) : null}
@@ -1188,7 +1187,7 @@ export function OrderCollectPaymentModal({
                         *enterable* so the existing validation can explain it —
                         silently snapping it up to `amount` would be a money value
                         rewritten behind the cashier's back (CRITICAL RULE #15). */}
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="flex items-center gap-2">
                       <CmxMoneyField
                         id="collect-tendered"
                         ref={tenderedFieldRef}
@@ -1227,10 +1226,9 @@ export function OrderCollectPaymentModal({
                       items={quickTenderItems}
                       onSelect={(item) => setCashTendered(item.tenderAmount ?? amount)}
                       disabled={submitting}
-                      isRTL={isRTL}
                     />
                     {cashTenderedRequired ? (
-                      <p role="status" className="text-xs text-amber-700">
+                      <p role="status" className="text-xs text-warning-text">
                         {tPayment('cashAmountNotPayable', { amount: formatMoneyWithCode(amount) })}
                       </p>
                     ) : null}
@@ -1238,7 +1236,7 @@ export function OrderCollectPaymentModal({
                       <p
                         id="collect-tendered-error"
                         role="alert"
-                        className="text-xs text-red-600"
+                        className="text-xs text-danger-text"
                       >
                         {t('cashTenderedBelowAmount', {
                           amount: formatMoneyWithCode(amount),
@@ -1303,7 +1301,7 @@ export function OrderCollectPaymentModal({
                 ) : null}
 
                 {referenceMissing ? (
-                  <p className="text-xs text-red-600" role="alert">
+                  <p className="text-xs text-danger-text" role="alert">
                     {t('referenceRequired')}
                   </p>
                 ) : null}
@@ -1324,7 +1322,7 @@ export function OrderCollectPaymentModal({
                   <div
                     role="status"
                     aria-live="polite"
-                    className={`rounded-lg border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs text-cyan-800 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="rounded-lg border border-info-border bg-info-bg/70 px-3 py-2 text-xs text-info-text text-start"
                   >
                     {t('pendingUntilVerified')}
                   </div>
@@ -1336,10 +1334,10 @@ export function OrderCollectPaymentModal({
                   <div
                     role="status"
                     aria-live="polite"
-                    className={`flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
+                    className="flex items-center justify-between rounded-lg bg-warning-bg px-3 py-2 text-sm"
                   >
-                    <span className="text-amber-700">{t('remainingAfterPayment')}</span>
-                    <span className="font-semibold tabular-nums text-amber-800">
+                    <span className="text-warning-text">{t('remainingAfterPayment')}</span>
+                    <span className="font-semibold tabular-nums text-warning-text">
                       {formatMoneyWithCode(remainingAfterPayment)}
                     </span>
                   </div>
@@ -1351,7 +1349,6 @@ export function OrderCollectPaymentModal({
                     amount={changeDue}
                     formattedAmount={formatMoneyWithCode(changeDue)}
                     epsilon={SETTLEMENT_MONEY_EPSILON}
-                    isRTL={isRTL}
                     size="lg"
                     amountTestId="collect-change-due"
                   />
@@ -1361,15 +1358,14 @@ export function OrderCollectPaymentModal({
                     rounding={cashChangeRounding}
                     currencyCode={currencyCode}
                     formatAmount={formatAmount}
-                    isRTL={isRTL}
                   />
                 ) : null}
 
                 {cashDrawerRequired ? (
-                  <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                    <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="space-y-2 rounded-xl border border-border bg-muted/70 p-3">
+                    <div className="flex items-center justify-between gap-2">
                       <Label className="m-0 flex items-center gap-1.5">
-                        <Banknote className="h-4 w-4 text-cyan-700" />
+                        <Banknote className="h-4 w-4 text-primary-text" />
                         {tPayment('cashDrawer.title')}
                       </Label>
                       <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
@@ -1378,7 +1374,7 @@ export function OrderCollectPaymentModal({
                           : tPayment('cashDrawer.pendingBadge')}
                       </CmxStatusBadge>
                     </div>
-                    <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <p className="text-xs text-muted-foreground text-start">
                       {tPayment('cashDrawer.subtitle')}
                     </p>
 
@@ -1418,8 +1414,8 @@ export function OrderCollectPaymentModal({
                             </CmxSelectDropdownContent>
                           </CmxSelectDropdown>
                         ) : selectedCashDrawerChoice ? (
-                          <div className={`rounded-lg border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                            <span className="font-medium text-slate-900">
+                          <div className="rounded-lg border border-info-border bg-info-bg/70 px-3 py-2 text-xs text-foreground text-start">
+                            <span className="font-medium text-foreground">
                               {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
                             </span>
                             {` • ${selectedCashDrawerChoice.session.session_no}`}
@@ -1430,13 +1426,13 @@ export function OrderCollectPaymentModal({
                           <div
                             role="alert"
                             aria-live="polite"
-                            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                            className="rounded-lg border border-warning-border bg-warning-bg px-3 py-2 text-xs text-warning-text"
                           >
                             {cashDrawerBlockingMessage}
                           </div>
                         ) : null}
 
-                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className="flex items-center gap-2">
                           <CmxButton
                             type="button"
                             variant="outline"
@@ -1504,7 +1500,7 @@ export function OrderCollectPaymentModal({
             )}
           </div>
 
-          <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+          <CmxDialogFooter className="">
             <CmxButton variant="outline" onClick={() => onOpenChange(false)}>
               {t('cancel')}
             </CmxButton>
@@ -1563,7 +1559,7 @@ export function OrderCollectPaymentModal({
             <p className="text-sm text-muted-foreground">{tPayment('cashDrawer.dialogDescription')}</p>
 
             {cashDrawerRequestError ? (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div role="alert" className="rounded-lg border border-danger-border bg-danger-bg px-3 py-2 text-sm text-danger-text">
                 {cashDrawerRequestError}
               </div>
             ) : null}
@@ -1616,7 +1612,7 @@ export function OrderCollectPaymentModal({
               />
             </div>
           </div>
-          <CmxDialogFooter className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <CmxDialogFooter className="flex gap-3">
             <CmxButton type="button" variant="outline" onClick={() => setCashDrawerDialogOpen(false)}>
               {t('cancel')}
             </CmxButton>

@@ -49,7 +49,7 @@ export function PlanLimitsSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+      <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
         Loading plan limits...
       </div>
     );
@@ -57,7 +57,7 @@ export function PlanLimitsSettings() {
 
   if (error || !metrics) {
     return (
-      <div className="flex items-center justify-center py-12 text-red-600 text-sm">
+      <div className="flex items-center justify-center py-12 text-danger-text text-sm">
         {error || 'Failed to load plan limits'}
       </div>
     );
@@ -69,8 +69,8 @@ export function PlanLimitsSettings() {
     <CmxCard>
       <CmxCardContent className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Plan Limits & Usage</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg font-semibold text-foreground">Plan Limits & Usage</h2>
+          <p className="text-sm text-muted-foreground">
             View your current plan constraints and how much you have used.
           </p>
         </div>
@@ -116,17 +116,17 @@ export function PlanLimitsSettings() {
     const { title, used, limit, percentage } = props;
     const isUnlimited = limit < 0 || !Number.isFinite(limit);
     return (
-      <div className="border border-gray-200 rounded-lg p-4">
+      <div className="border border-border rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-sm font-medium text-gray-900">{title}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-medium text-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground">
               {isUnlimited
                 ? `${used.toLocaleString()} used (Unlimited)`
                 : `${used.toLocaleString()} / ${limit.toLocaleString()} used`}
             </p>
           </div>
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-foreground">
             {percentage.toFixed(1)}%
           </p>
         </div>

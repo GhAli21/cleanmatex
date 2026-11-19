@@ -7,7 +7,6 @@
 'use client';
 
 import { memo } from 'react';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useTranslations } from 'next-intl';
 import {
@@ -74,17 +73,16 @@ function getIconComponent(iconName?: string): LucideIcon | null {
 }
 
 export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCategory, onSelectCategory, className }: CategoryTabsProps) {
-  const isRTL = useRTL();
   const getBilingual = useBilingual();
   const t = useTranslations('newOrder.serviceCategory');
 
   return (
     <div
-      className={className ?? "bg-white rounded-lg border border-gray-200 p-4"}
+      className={className ?? "bg-card rounded-lg border border-border p-4"}
       role="tablist"
       aria-label={t('title') || 'Service categories'}
     >
-      <div className={`flex flex-nowrap gap-2 overflow-x-auto pb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
         {categories.map((category, index) => {
           const IconComponent = getIconComponent(category.service_category_icon);
           const displayName = getBilingual(category.ctg_name, category.ctg_name2) || 'No Category Name';
@@ -98,13 +96,13 @@ export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCat
               aria-selected={isSelected}
               aria-controls={`category-${category.service_category_code}`}
               tabIndex={isSelected ? 0 : -1}
-              className={`min-h-[44px] px-4 py-2 rounded-lg font-medium transition-all flex items-center flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse gap-2' : 'gap-2'} ${isSelected
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`min-h-[44px] px-4 py-2 rounded-lg font-medium transition-all flex items-center flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 gap-2 ${isSelected
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'bg-muted text-foreground hover:bg-border'
                 }`}
             >
               {IconComponent && <IconComponent className="w-4 h-4" aria-hidden="true" />}
-              <span className={isRTL ? 'text-right' : 'text-left'}>{displayName}</span>
+              <span className="text-start">{displayName}</span>
             </button>
           );
         })}

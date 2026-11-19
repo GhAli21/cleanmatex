@@ -45,9 +45,9 @@ export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface px-4 py-3">
       {/* Row count & page size selector */}
-      <div className="flex items-center gap-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>
           {formatErpLiteNumber(from, locale)}–{formatErpLiteNumber(to, locale)} {tCommon('of')} {formatErpLiteNumber(total, locale)}
         </span>
@@ -60,8 +60,8 @@ export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
             disabled={isPending}
             className={`h-6 rounded px-2 text-xs transition ${
               size === pageSize
-                ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-fg-rgb))]'
-                : 'hover:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]'
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted'
             }`}
           >
             {size}
@@ -92,7 +92,7 @@ export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
           <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
         </CmxButton>
 
-        <span className="min-w-[80px] text-center text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <span className="min-w-[80px] text-center text-sm text-foreground">
           {formatErpLiteNumber(page, locale)} / {formatErpLiteNumber(totalPages, locale)}
         </span>
 

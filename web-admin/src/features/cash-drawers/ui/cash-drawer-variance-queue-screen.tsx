@@ -56,8 +56,8 @@ export function CashDrawerVarianceQueueScreen() {
   return (
     <div className="space-y-6 p-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+        <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
       </div>
 
       <div className="max-w-xs">
@@ -107,7 +107,7 @@ export function CashDrawerVarianceQueueScreen() {
                   {r.currencies.map((c) => (
                     <div key={c.currencyCode}>
                       <div className="font-semibold">{money(c.closingVariance, c.currencyCode)}</div>
-                      <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      <div className="text-xs text-muted-foreground">
                         {t('expectedCounted', {
                           expected: money(c.closingExpected, c.currencyCode),
                           counted: money(c.closingCounted, c.currencyCode),

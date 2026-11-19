@@ -102,11 +102,11 @@ export function CashTransitScreen() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="flex items-center gap-2 text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+          <h1 className="flex items-center gap-2 text-3xl font-bold text-foreground">
             <Truck className="h-7 w-7" aria-hidden />
             {t('title')}
           </h1>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
         </div>
         {canTransfer ? <CmxButton onClick={() => setSendOpen(true)}>{t('sendCash')}</CmxButton> : null}
       </div>
@@ -160,7 +160,7 @@ export function CashTransitScreen() {
               render: (r: TransitEntry) => (
                 <div>
                   <div>{r.sentByName ?? '—'}</div>
-                  <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{fmtDateTime(r.sentAt)}</div>
+                  <div className="text-xs text-muted-foreground">{fmtDateTime(r.sentAt)}</div>
                 </div>
               ),
             },

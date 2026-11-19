@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import type { OrderItemPiece } from '@/types/order';
@@ -43,7 +42,6 @@ export function PieceBaseCard({
 }: PieceBaseCardProps) {
   const t = useTranslations('orders.pieces');
   const tCodes = useTranslations('codes');
-  const isRTL = useRTL();
 
   // HFC T3.9: the full piece code is shown (no shortened UUID); the tag is a second chip while it is held.
   const pieceCode = piece.piece_code?.trim() || null;
@@ -60,26 +58,26 @@ export function PieceBaseCard({
   return (
     <CmxCard
       className={`${compact ? 'p-3 gap-2' : 'p-4 gap-3'} flex flex-col ${
-        isRejected ? 'border-l-4' : 'border'
+        isRejected ? 'border-s-4' : 'border'
       } ${className}`}
       style={{
         backgroundColor: isRejected ? `${rejectColor}15` : undefined,
         borderLeftColor: isRejected ? rejectColor : undefined,
       }}
     >
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-start justify-between gap-3`}>
-        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2.5 min-w-0 flex-1`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div
-            className={`flex-shrink-0 ${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-slate-100 rounded-md flex items-center justify-center text-slate-600`}
+            className={`flex-shrink-0 ${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-muted rounded-md flex items-center justify-center text-muted-foreground`}
           >
             <PieceIcon className={compact ? 'w-4 h-4' : 'w-5 h-5'} />
           </div>
-          <div className={`flex flex-col ${isRTL ? 'items-end' : 'items-start'} min-w-0`}>
-            <span className="font-medium text-sm text-gray-900 shrink-0">
+          <div className="flex flex-col items-start min-w-0">
+            <span className="font-medium text-sm text-foreground shrink-0">
               {t('piece')} {piece.piece_seq}
             </span>
             {(pieceCode || externalTag) && (
-              <div className={`flex flex-wrap items-center gap-1 min-w-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex flex-wrap items-center gap-1 min-w-0">
                 <CmxCodeChip code={pieceCode} kind="piece" />
                 <CmxCodeChip code={externalTag} kind="tag" label={tCodes('tag')} />
               </div>
@@ -97,7 +95,7 @@ export function PieceBaseCard({
       {detailsSlot && <div className="w-full">{detailsSlot}</div>}
 
       {statusSlot && (
-        <div className="w-full pt-2 mt-0.5 border-t border-slate-100">
+        <div className="w-full pt-2 mt-0.5 border-t border-border">
           {statusSlot}
         </div>
       )}

@@ -95,15 +95,15 @@ export function EnhancedSettingField({
       {/* Label Row */}
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-foreground">
             {label}
           </label>
           {description && (
-            <p className="mt-1 text-xs text-gray-500">{description}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-2 ms-4">
           {/* Source Badge */}
           <SourceBadge source={source} sourceName={sourceName} />
 
@@ -112,7 +112,7 @@ export function EnhancedSettingField({
             variant="ghost"
             size="sm"
             onClick={() => setShowExplain(true)}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted-foreground hover:text-foreground"
             title="Explain how this value is resolved"
           >
             <HelpCircle className="h-4 w-4" />
@@ -143,8 +143,8 @@ export function EnhancedSettingField({
 
         {/* Locked Overlay */}
         {isLocked && (
-          <div className="absolute inset-0 bg-gray-100 bg-opacity-50 cursor-not-allowed rounded flex items-center justify-center">
-            <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded shadow">
+          <div className="absolute inset-0 bg-muted/50 cursor-not-allowed rounded flex items-center justify-center">
+            <span className="text-xs text-muted-foreground bg-card px-2 py-1 rounded shadow">
               Locked by profile
             </span>
           </div>
@@ -152,7 +152,7 @@ export function EnhancedSettingField({
 
         {/* Not Overridable Notice */}
         {!isOverridable && !isLocked && (
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-xs text-muted-foreground">
             This setting cannot be overridden
           </div>
         )}

@@ -115,7 +115,7 @@ export function OrderFinancialView({ source, config = {}, className }: OrderFina
   function renderBody(view: OrderFinancialViewModel, onRetry?: () => void) {
   // A snapshot that was never written: no figures at all, never zeros (PR-09).
   if (view.header.balanceState == null && view.sourceKind === 'saved') {
-    return <p className={cn('rounded-lg border border-[rgb(var(--cmx-border-rgb))] p-4 text-sm', className)}>{t('orders.finView.banners.unavailable')}</p>;
+    return <p className={cn('rounded-lg border border-border p-4 text-sm', className)}>{t('orders.finView.banners.unavailable')}</p>;
   }
 
   if (resolved.header.layout === 'badge') {
@@ -126,7 +126,7 @@ export function OrderFinancialView({ source, config = {}, className }: OrderFina
   const warnings = resolved.showWarnings ? view.warnings : [];
 
   return (
-    <div className={cn('flex flex-col gap-4', resolved.layout === 'card' && 'rounded-xl border border-[rgb(var(--cmx-border-rgb))] bg-[rgb(var(--cmx-card-rgb))] p-4', resolved.layout === 'sheet' && 'gap-3', className)}>
+    <div className={cn('flex flex-col gap-4', resolved.layout === 'card' && 'rounded-xl border border-border bg-card p-4', resolved.layout === 'sheet' && 'gap-3', className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className={cn('min-w-0 flex-1 motion-safe:transition-opacity', edit?.status === 'pending' && 'opacity-60')}>
           {view.sourceKind === 'draft' && <CmxStatusBadge className="mb-2" size="sm" tone="info" label={t('orders.finView.draftBadge')} />}
@@ -163,7 +163,7 @@ export function OrderFinancialView({ source, config = {}, className }: OrderFina
 
       {warnings.length > 0 && (
         <CmxCollapsibleSection
-          className="rounded-lg border border-[rgb(var(--cmx-warning-border-rgb))] bg-[rgb(var(--cmx-warning-bg-rgb))]"
+          className="rounded-lg border border-warning-border bg-warning-bg"
           title={<span className="font-medium">{t('orders.finView.warnings.count', { count: warnings.length })}</span>}
         >
           <ul className="list-disc ps-4 text-sm">
@@ -193,7 +193,7 @@ function SavedOrderView({ orderId, request, badge, className, children }: {
   if (query.isError) {
     const code = query.error instanceof OrderFinApiError ? query.error.code : 'INTERNAL_ERROR';
     return (
-      <div role="alert" className={cn('flex flex-wrap items-center gap-3 rounded-lg border border-[rgb(var(--cmx-border-rgb))] p-4 text-sm', className)}>
+      <div role="alert" className={cn('flex flex-wrap items-center gap-3 rounded-lg border border-border p-4 text-sm', className)}>
         <span>{t(`orders.finView.errors.${code}`)}</span>
         <CmxButton size="sm" variant="outline" onClick={refetch}>{t('orders.finView.states.retry')}</CmxButton>
       </div>

@@ -61,7 +61,6 @@ export function ErpLiteReportsScreen({
   const tCommon = useTranslations('common')
   const locale = useLocale()
   const numberLocale = getNumberLocale(locale)
-  const isRtl = locale === 'ar'
 
   const formatter = new Intl.NumberFormat(numberLocale, {
     style: 'currency',
@@ -106,18 +105,18 @@ export function ErpLiteReportsScreen({
     },
     {
       id: 'total_debit',
-      header: () => <div className="text-right">{t('columns.debit')}</div>,
-      cell: ({ row }) => <div className="text-right">{formatMoney(row.original.total_debit)}</div>,
+      header: () => <div className="text-end">{t('columns.debit')}</div>,
+      cell: ({ row }) => <div className="text-end">{formatMoney(row.original.total_debit)}</div>,
     },
     {
       id: 'total_credit',
-      header: () => <div className="text-right">{t('columns.credit')}</div>,
-      cell: ({ row }) => <div className="text-right">{formatMoney(row.original.total_credit)}</div>,
+      header: () => <div className="text-end">{t('columns.credit')}</div>,
+      cell: ({ row }) => <div className="text-end">{formatMoney(row.original.total_credit)}</div>,
     },
     {
       id: 'balance',
-      header: () => <div className="text-right">{t('columns.balance')}</div>,
-      cell: ({ row }) => <div className="text-right">{formatMoney(row.original.balance)}</div>,
+      header: () => <div className="text-end">{t('columns.balance')}</div>,
+      cell: ({ row }) => <div className="text-end">{formatMoney(row.original.balance)}</div>,
     },
   ]
 
@@ -138,8 +137,8 @@ export function ErpLiteReportsScreen({
     },
     {
       id: 'amount',
-      header: () => <div className="text-right">{t('columns.amount')}</div>,
-      cell: ({ row }) => <div className="text-right">{formatMoney(row.original.amount)}</div>,
+      header: () => <div className="text-end">{t('columns.amount')}</div>,
+      cell: ({ row }) => <div className="text-end">{formatMoney(row.original.amount)}</div>,
     },
   ]
 
@@ -192,7 +191,7 @@ export function ErpLiteReportsScreen({
             const total = rows.reduce((sum, row) => sum + row.amount, 0)
             return (
               <CmxCard key={sectionCode}>
-                <CmxCardHeader className={isRtl ? 'text-right' : undefined}>
+                <CmxCardHeader className={undefined}>
                   <CmxCardTitle>{t(`sections.${sectionCode}`)}</CmxCardTitle>
                   <CmxCardDescription>{formatMoney(total)}</CmxCardDescription>
                 </CmxCardHeader>
@@ -224,7 +223,7 @@ export function ErpLiteReportsScreen({
             const total = rows.reduce((sum, row) => sum + row.amount, 0)
             return (
               <CmxCard key={sectionCode}>
-                <CmxCardHeader className={isRtl ? 'text-right' : undefined}>
+                <CmxCardHeader className={undefined}>
                   <CmxCardTitle>{t(`sections.${sectionCode}`)}</CmxCardTitle>
                   <CmxCardDescription>{formatMoney(total)}</CmxCardDescription>
                 </CmxCardHeader>

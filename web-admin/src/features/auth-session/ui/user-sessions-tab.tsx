@@ -12,9 +12,9 @@
 import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Laptop } from 'lucide-react'
-import { Alert, AlertDescription, CmxButton, CmxSkeleton } from '@ui/primitives'
-
+import { CmxButton, CmxSkeleton } from '@ui/primitives'
 import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { SESSION_STATES } from '@/lib/constants/auth-session'
 import type { SessionItem } from '../api/sessions-api'
@@ -66,14 +66,14 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t('title')}</h3>
         {canRevoke && revocable.length > 0 ? (
           <CmxButton variant="secondary" size="sm" onClick={() => setTarget('all')} disabled={revoke.isPending}>
             {t('signOutAll')}
           </CmxButton>
         ) : null}
       </div>
-      <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hint')}</p>
+      <p className="text-sm text-muted-foreground">{t('hint')}</p>
 
       {isLoading ? (
         <div className="space-y-2" aria-busy="true">
@@ -82,15 +82,15 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
         </div>
       ) : isError ? (
         <div className="space-y-3">
-          <Alert variant="error">
-            <AlertDescription>{t('loadFailed')}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{t('loadFailed')}</div>
+          </CmxSummaryMessage>
           <CmxButton variant="secondary" onClick={() => void refetch()} loading={isFetching}>
             {tCommon('retry')}
           </CmxButton>
         </div>
       ) : sessions.length === 0 ? (
-        <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <div className="rounded-lg border border-border p-8 text-center text-sm text-muted-foreground">
           {t('empty')}
         </div>
       ) : (
@@ -98,18 +98,18 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
           {sessions.map((session) => (
             <li
               key={session.id}
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-3"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3"
             >
-              <Laptop className="h-5 w-5 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
+              <Laptop className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <span className="text-sm font-medium text-foreground">
                     {session.deviceLabel ?? tSessions('unknownDevice')}
                   </span>
                   {session.isCurrent ? <CmxStatusBadge size="sm" tone="success">{tSessions('thisDevice')}</CmxStatusBadge> : null}
                   {session.isRememberMe ? <CmxStatusBadge size="sm" tone="neutral">{tSessions('rememberMe')}</CmxStatusBadge> : null}
                 </div>
-                <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <p className="mt-1 text-xs text-muted-foreground">
                   <span>{tSessions('ip', { ip: session.lastIp ?? session.loginIp ?? '—' })}</span>
                   <span aria-hidden> · </span>
                   <span title={formatAbsoluteTime(session.createdAt, locale)}>

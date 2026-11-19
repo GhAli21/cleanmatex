@@ -72,7 +72,7 @@ export function CmxFormSection({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
+        'overflow-hidden rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
         className
       )}
     >
@@ -97,7 +97,7 @@ export function CmxFormSection({
               <button
                 type="button"
                 onClick={() => setCollapsed((current) => !current)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] text-[rgb(var(--cmx-text-secondary-rgb,51_65_85))] transition hover:bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,59_130_246))]/30"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface-muted text-[rgb(var(--cmx-text-secondary-rgb,51_65_85))] transition hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring/30"
                 aria-expanded={!collapsed}
                 aria-label="Toggle section"
               >
@@ -112,7 +112,7 @@ export function CmxFormSection({
           ) : null}
         </div>
         {aside ? (
-          <aside className={cn('rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-4')}>
+          <aside className={cn('rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface-muted p-4')}>
             {aside}
           </aside>
         ) : null}

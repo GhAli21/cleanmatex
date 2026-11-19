@@ -19,7 +19,6 @@
 
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
-import { useRTL } from '@/lib/hooks/useRTL';
 import type { ValidatePromoCodeResult } from '@/lib/types/payment';
 import type { AppliedPromoCode } from '@features/orders/hooks/use-gift-card-and-promo';
 import { CmxButton, CmxInput } from '@ui/primitives';
@@ -83,7 +82,6 @@ export function PromoCodeDialog({
 }: PromoCodeDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
 
   return (
     <PaymentCapabilityDialog
@@ -96,16 +94,13 @@ export function PromoCodeDialog({
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
     >
       {appliedPromoCode ? (
         <div
-          className={`flex items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 ${
-            isRTL ? 'flex-row-reverse' : ''
-          }`}
+          className="flex items-center justify-between gap-2 rounded-xl border border-success-border bg-success-bg px-3 py-2"
           data-testid="promo-code-applied"
         >
-          <span className="text-sm font-medium text-green-900" dir="ltr">
+          <span className="text-sm font-medium text-success-text" dir="ltr">
             {appliedPromoCode.code} · -{currencyCode} {formatAmount(appliedPromoCode.discount)}
           </span>
           <CmxButton
@@ -120,7 +115,7 @@ export function PromoCodeDialog({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex gap-2">
             <CmxInput
               value={promoCode}
               onChange={(event) => {
@@ -161,7 +156,7 @@ export function PromoCodeDialog({
 
           {promoErrorMessage ? (
             <p
-              className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="text-xs text-danger-text text-start"
               role="alert"
               data-testid="promo-code-error"
             >

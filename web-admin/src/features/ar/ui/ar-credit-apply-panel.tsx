@@ -111,7 +111,7 @@ export function ArCreditApplyPanel() {
               onValueChange={(_, d) => setAppliedAmount(d)}
             />
             <div className="md:col-span-2">
-              <p className="mb-1 text-sm font-medium text-slate-900">{t('apply.fields.notes')}</p>
+              <p className="mb-1 text-sm font-medium text-foreground">{t('apply.fields.notes')}</p>
               <CmxTextarea placeholder={t('apply.fields.notesPlaceholder')} value={notes} onChange={(event) => setNotes(event.target.value)} />
             </div>
           </div>
@@ -119,13 +119,13 @@ export function ArCreditApplyPanel() {
           <div className="grid gap-3 md:grid-cols-2">
             <CmxInput label={t('reverse.fields.applicationId')} value={applicationId} onChange={(event) => setApplicationId(event.target.value)} />
             <div className="md:col-span-2">
-              <p className="mb-1 text-sm font-medium text-slate-900">{t('reverse.fields.reason')}</p>
+              <p className="mb-1 text-sm font-medium text-foreground">{t('reverse.fields.reason')}</p>
               <CmxTextarea placeholder={t('reverse.fields.reasonPlaceholder')} value={reversalReason} onChange={(event) => setReversalReason(event.target.value)} />
             </div>
           </div>
         )}
-        {message ? <p className="text-sm text-emerald-700 md:col-span-2">{message}</p> : null}
-        {error ? <p className="text-sm text-red-700 md:col-span-2">{error}</p> : null}
+        {message ? <p className="text-sm text-success-text md:col-span-2">{message}</p> : null}
+        {error ? <p className="text-sm text-danger-text md:col-span-2">{error}</p> : null}
         <div className="flex justify-end">
           <CmxButton onClick={onSubmit} loading={isPending}>
             {mode === 'apply' ? t('apply.submit') : t('reverse.submit')}

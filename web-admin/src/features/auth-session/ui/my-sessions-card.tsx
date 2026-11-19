@@ -10,10 +10,10 @@
 import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { Laptop } from 'lucide-react'
-import { Alert, AlertDescription, CmxButton, CmxSkeleton } from '@ui/primitives'
-
+import { CmxButton, CmxSkeleton } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
 import { CmxConfirmDialog, cmxMessage, CmxStatusBadge } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { SESSION_ERROR_CODES } from '@/lib/constants/auth-session'
 import { SessionsApiError, type SessionItem } from '../api/sessions-api'
 import { useMySessions, useRevokeMyOtherSessions, useRevokeMySession } from '../hooks/use-sessions'
@@ -66,7 +66,7 @@ export function MySessionsCard() {
         ) : null}
       </CmxCardHeader>
       <CmxCardContent className="space-y-3">
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('hint')}</p>
+        <p className="text-sm text-muted-foreground">{t('hint')}</p>
 
         {isLoading ? (
           <div className="space-y-2" aria-busy="true">
@@ -75,32 +75,32 @@ export function MySessionsCard() {
           </div>
         ) : isError ? (
           <div className="space-y-3">
-            <Alert variant="error">
-              <AlertDescription>{t('loadFailed')}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage type="error">
+              <div>{t('loadFailed')}</div>
+            </CmxSummaryMessage>
             <CmxButton variant="secondary" onClick={() => void refetch()} loading={isFetching}>
               {tCommon('retry')}
             </CmxButton>
           </div>
         ) : sessions.length === 0 ? (
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('empty')}</p>
+          <p className="text-sm text-muted-foreground">{t('empty')}</p>
         ) : (
           <ul className="space-y-2">
             {sessions.map((session) => (
               <li
                 key={session.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-3"
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3"
               >
-                <Laptop className="h-5 w-5 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
+                <Laptop className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                    <span className="text-sm font-medium text-foreground">
                       {session.deviceLabel ?? t('unknownDevice')}
                     </span>
                     {session.isCurrent ? <CmxStatusBadge size="sm" tone="success">{t('thisDevice')}</CmxStatusBadge> : null}
                     {session.isRememberMe ? <CmxStatusBadge size="sm" tone="neutral">{t('rememberMe')}</CmxStatusBadge> : null}
                   </div>
-                  <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     <span>{t('ip', { ip: session.lastIp ?? session.loginIp ?? '—' })}</span>
                     <span aria-hidden> · </span>
                     <span title={formatAbsoluteTime(session.createdAt, locale)}>

@@ -1,22 +1,11 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type { Metadata } from 'next';
 
 /** Identifies bank-reconciliation work when several finance tabs are open. */
 export const metadata: Metadata = { title: 'Bank Reconciliation' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import {
-  Alert,
-  AlertDescription,
-  CmxButton,
-  CmxCard,
-  CmxCardContent,
-  CmxCardDescription,
-  CmxCardHeader,
-  CmxCardTitle,
-  CmxInput,
-  CmxSelect,
-  CmxTextarea,
-} from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
@@ -108,21 +97,21 @@ export default async function ErpLiteBankReconPage({
         </div>
 
         {notice ? (
-          <Alert>
-            <AlertDescription>{t(`notices.${notice}`)}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="info">
+            <div>{t(`notices.${notice}`)}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{error}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {loadError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{loadError}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         <div className="grid gap-4 xl:grid-cols-3">
@@ -275,7 +264,7 @@ export default async function ErpLiteBankReconPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-bank-recon-import-rows" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-bank-recon-import-rows" className="block text-sm font-medium text-foreground">
                     {t('forms.statementImport.fields.rows')}
                   </label>
                   <CmxTextarea

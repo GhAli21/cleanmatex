@@ -60,20 +60,20 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
   return (
     <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_INVOICES_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 overflow-x-hidden p-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-amber-50 p-6 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-br from-card via-muted to-warning-bg p-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
-          <div className="flex items-center gap-3 rtl:flex-row-reverse">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
               {t('detail.title', { invoiceNo: invoice.invoice_no })}
             </h1>
             <CmxStatusBadge size="sm" tone="brand" appearance="solid" className={AR_STATUS_BADGE_TONES[invoice.status]}>
               {t(`statuses.${statusKey}`)}
             </CmxStatusBadge>
           </div>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             {invoice.customer_name ?? invoice.customer_name2 ?? tAr('detail.noCustomer')}
           </p>
-          <div className="flex flex-wrap gap-2 rtl:flex-row-reverse">
+          <div className="flex flex-wrap gap-2">
             {invoice.order_id ? (
               <CmxButton asChild size="sm" variant="outline">
                 <Link href={`/dashboard/orders/${invoice.order_id}`}>
@@ -117,20 +117,20 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
         </CmxCardHeader>
         <CmxCardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.invoiceType')}</p>
-            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.invoice_type_cd ?? '—'}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{tAr('detail.fields.invoiceType')}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{invoice.invoice_type_cd ?? '—'}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.issueDate')}</p>
-            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.issued_at ?? '—'}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{tAr('detail.fields.issueDate')}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{invoice.issued_at ?? '—'}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.approval')}</p>
-            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.approval_action_cd ?? '—'}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{tAr('detail.fields.approval')}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{invoice.approval_action_cd ?? '—'}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.paymentTerms')}</p>
-            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.payment_terms ?? '—'}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{tAr('detail.fields.paymentTerms')}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{invoice.payment_terms ?? '—'}</p>
           </div>
         </CmxCardContent>
       </CmxCard>

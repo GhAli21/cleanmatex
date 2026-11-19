@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   PLAN_FLAG_KEYS,
@@ -33,7 +34,7 @@ export async function checkPlanFlag(
   flagKey: PlanFlagKey,
   supabase?: SupabaseClient
 ): Promise<boolean> {
-  const client = supabase ?? (await createClient());
+  const client = catalogReadClient(supabase ?? (await createClient()));
   try {
     const { data, error } = await client.rpc('hq_ff_get_effective_value', {
       p_tenant_id: tenantId,

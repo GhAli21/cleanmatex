@@ -89,7 +89,7 @@ function LinkTagBody({ onOpenChange, pieceId, pieceCode, currentTag, onSaved }: 
         </CmxDialogHeader>
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">{t('current')}:</span>
+            <span className="text-muted-foreground">{t('current')}:</span>
             {currentTag ? <CmxCodeChip code={currentTag} kind="tag" /> : <span>{tCodes('noTag')}</span>}
           </div>
           <CmxScanInput

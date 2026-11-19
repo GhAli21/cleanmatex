@@ -11,7 +11,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { useRTL } from '@/lib/hooks/useRTL';
 
 /**
  *
@@ -58,22 +57,21 @@ export function OrderDetailError({
   returnLabel,
   debug,
 }: OrderDetailErrorProps) {
-  const isRTL = useRTL();
   const [showDebug, setShowDebug] = useState(false);
   const hasDebug = debug && Object.values(debug).some((v) => v != null && v !== '');
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-        <div className={`flex gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="rounded-lg border border-warning-border bg-warning-bg p-6">
+        <div className="flex gap-4">
           <div className="flex-shrink-0">
-            <AlertCircle className="h-12 w-12 text-amber-600" aria-hidden />
+            <AlertCircle className="h-12 w-12 text-warning-text" aria-hidden />
           </div>
-          <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-            <h2 className="text-lg font-semibold text-amber-900">{title}</h2>
-            <p className="mt-2 text-sm text-amber-800">{description}</p>
+          <div className="flex-1 text-start">
+            <h2 className="text-lg font-semibold text-warning-text">{title}</h2>
+            <p className="mt-2 text-sm text-warning-text">{description}</p>
             {orderId && /^[0-9a-f-]{36}$/i.test(orderId) && (
-              <p className="mt-2 text-xs text-amber-700 font-mono">
+              <p className="mt-2 text-xs text-warning-text font-mono">
                 Order ID: {orderId}
               </p>
             )}
@@ -83,7 +81,7 @@ export function OrderDetailError({
                 <button
                   type="button"
                   onClick={() => setShowDebug(!showDebug)}
-                  className={`flex items-center gap-1 text-xs font-medium text-amber-800 hover:text-amber-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="flex items-center gap-1 text-xs font-medium text-warning-text hover:text-warning-text/80"
                 >
                   {showDebug ? (
                     <>
@@ -98,40 +96,40 @@ export function OrderDetailError({
                   )}
                 </button>
                 {showDebug && (
-                  <div className="mt-2 rounded border border-amber-300 bg-amber-100/50 p-3 font-mono text-xs text-amber-900">
-                    <table className="w-full text-left">
+                  <div className="mt-2 rounded border border-warning-border bg-warning-bg/50 p-3 font-mono text-xs text-warning-text">
+                    <table className="w-full text-start">
                       <tbody>
                         {debug?.condition && (
                           <tr>
-                            <td className="py-1 pr-4 font-semibold">Condition:</td>
+                            <td className="py-1 pe-4 font-semibold">Condition:</td>
                             <td className="py-1">{debug.condition}</td>
                           </tr>
                         )}
                         {debug?.serverError && (
                           <tr>
-                            <td className="py-1 pr-4 font-semibold">Server error:</td>
+                            <td className="py-1 pe-4 font-semibold">Server error:</td>
                             <td className="py-1">{debug.serverError}</td>
                           </tr>
                         )}
                         {debug?.tenantId && (
                           <tr>
-                            <td className="py-1 pr-4 font-semibold">Tenant ID (used for query):</td>
+                            <td className="py-1 pe-4 font-semibold">Tenant ID (used for query):</td>
                             <td className="py-1 break-all">{debug.tenantId}</td>
                           </tr>
                         )}
                         {debug?.userId && (
                           <tr>
-                            <td className="py-1 pr-4 font-semibold">User ID:</td>
+                            <td className="py-1 pe-4 font-semibold">User ID:</td>
                             <td className="py-1 break-all">{debug.userId}</td>
                           </tr>
                         )}
                         <tr>
-                          <td className="py-1 pr-4 font-semibold">Order ID (queried):</td>
+                          <td className="py-1 pe-4 font-semibold">Order ID (queried):</td>
                           <td className="py-1 break-all">{orderId || '(empty)'}</td>
                         </tr>
                       </tbody>
                     </table>
-                    <p className="mt-2 text-amber-700">
+                    <p className="mt-2 text-warning-text">
                       Possible causes: order deleted, tenant mismatch (order belongs to different tenant), database connection issue, or RLS policy blocking access.
                     </p>
                   </div>
@@ -142,7 +140,7 @@ export function OrderDetailError({
             <div className="mt-6">
               <Link
                 href={returnUrl}
-                className="inline-flex items-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                className="inline-flex items-center rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground hover:bg-warning/90"
               >
                 {returnLabel ?? backToOrders}
               </Link>

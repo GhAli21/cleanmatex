@@ -53,7 +53,8 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
 
   return (
     <div
-      className="mx-auto w-full max-w-a4 bg-white text-gray-900 print:bg-white"
+      data-mode="LIGHT"
+      className="mx-auto w-full max-w-a4 bg-card text-foreground print:bg-card"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header">
@@ -114,7 +115,7 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
 
       {invoices.length === 0 ? (
         <section className="print-section">
-          <p className="text-gray-500">{tCommon('noData') ?? 'No invoices'}</p>
+          <p className="text-muted-foreground">{tCommon('noData') ?? 'No invoices'}</p>
         </section>
       ) : (
         <>
@@ -122,36 +123,36 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
             <h2>{tInvoices('title') ?? 'Invoices'}</h2>
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="py-1 text-left">{tInvoices('invoiceNo') ?? 'Invoice'}</th>
-                  <th className="py-1 text-left">{tInvoices('date') ?? 'Date'}</th>
-                  <th className="py-1 text-right">{tOrders('total') ?? 'Total'}</th>
-                  <th className="py-1 text-right">{tOrders('paidAmount') ?? 'Paid'}</th>
-                  <th className="py-1 text-right">{tB2B('balanceAmount') ?? 'Balance'}</th>
+                <tr className="border-b border-border">
+                  <th className="py-1 text-start">{tInvoices('invoiceNo') ?? 'Invoice'}</th>
+                  <th className="py-1 text-start">{tInvoices('date') ?? 'Date'}</th>
+                  <th className="py-1 text-end">{tOrders('total') ?? 'Total'}</th>
+                  <th className="py-1 text-end">{tOrders('paidAmount') ?? 'Paid'}</th>
+                  <th className="py-1 text-end">{tB2B('balanceAmount') ?? 'Balance'}</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((inv) => (
-                  <tr key={inv.id} className="border-b border-dashed border-gray-100">
+                  <tr key={inv.id} className="border-b border-dashed border-border">
                     <td className="py-1">{inv.invoiceNo ?? '—'}</td>
                     <td className="py-1">{formatDate(inv.invoiceDate, locale)}</td>
-                    <td className="py-1 text-right">{fmt(inv.total, inv.currencyCode)}</td>
-                    <td className="py-1 text-right text-green-700">{fmt(inv.paidAmount, inv.currencyCode)}</td>
-                    <td className="py-1 text-right">{fmt(inv.remaining, inv.currencyCode)}</td>
+                    <td className="py-1 text-end">{fmt(inv.total, inv.currencyCode)}</td>
+                    <td className="py-1 text-end text-success-text">{fmt(inv.paidAmount, inv.currencyCode)}</td>
+                    <td className="py-1 text-end">{fmt(inv.remaining, inv.currencyCode)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </section>
 
-          <section className="print-section border-t border-gray-200 pt-2">
+          <section className="print-section border-t border-border pt-2">
             <div className="flex justify-between print-row font-semibold">
               <span>{tB2B('totalAmount') ?? 'Total'}</span>
               <span>{fmt(statement.totalAmount)}</span>
             </div>
             <div className="flex justify-between print-row">
               <span>{tOrders('paidAmount') ?? 'Paid'}</span>
-              <span className="text-green-700">{fmt(statement.paidAmount)}</span>
+              <span className="text-success-text">{fmt(statement.paidAmount)}</span>
             </div>
             <div className="flex justify-between print-row font-semibold">
               <span>{tB2B('balanceAmount') ?? 'Balance Due'}</span>

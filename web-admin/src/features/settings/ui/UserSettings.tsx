@@ -136,8 +136,8 @@ export function UserSettings() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">User Settings</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg font-semibold text-foreground">User Settings</h2>
+          <p className="text-sm text-muted-foreground">
             Select a user to view and override user-scoped settings for that user.
           </p>
         </div>
@@ -170,11 +170,11 @@ export function UserSettings() {
       </div>
 
       {initialLoading ? (
-        <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
           Loading users...
         </div>
       ) : !selectedUserId ? (
-        <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
           No user selected.
         </div>
       ) : (

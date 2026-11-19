@@ -80,7 +80,7 @@ export function ProductSpeedPricingSection({ productId, productLabel }: { produc
         </div>
       </CmxCardHeader>
       <CmxCardContent className="space-y-4">
-        {failed ? <p role="alert" className="text-sm text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">{t('errors.INTERNAL_ERROR')}</p> : null}
+        {failed ? <p role="alert" className="text-sm text-destructive">{t('errors.INTERNAL_ERROR')}</p> : null}
 
         <ul className="divide-y divide-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
           {speedOptions.map((speed, index) => {
@@ -90,17 +90,17 @@ export function ProductSpeedPricingSection({ productId, productLabel }: { produc
               <li key={speed.value} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                 <span className="font-medium">{speed.label}</span>
                 {!answer ? (
-                  <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{resolved[index]?.isLoading ? tCommon('loading') : '—'}</span>
+                  <span className="text-muted-foreground">{resolved[index]?.isLoading ? tCommon('loading') : '—'}</span>
                 ) : answer.winner && answer.price ? (
                   <span>
                     {money(answer.price.unitPrice)}
                     {linePremium ? ` ${tProduct('plusPerLine', { amount: money(linePremium) })}` : ''}
-                    <span className="ms-2 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <span className="ms-2 text-xs text-muted-foreground">
                       {tProduct('ruleSource', { level: t(`level.${answer.winner.level}`) })}
                     </span>
                   </span>
                 ) : (
-                  <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tProduct('noRule')}</span>
+                  <span className="text-muted-foreground">{tProduct('noRule')}</span>
                 )}
               </li>
             );
@@ -109,13 +109,13 @@ export function ProductSpeedPricingSection({ productId, productLabel }: { produc
 
         <div className="space-y-2">
           <h4 className="text-sm font-medium">{tProduct('rulesTitle')}</h4>
-          {rules.isLoading ? <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p> : null}
-          {rules.data?.rows.length === 0 ? <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tProduct('empty')}</p> : null}
+          {rules.isLoading ? <p className="text-sm text-muted-foreground">{tCommon('loading')}</p> : null}
+          {rules.data?.rows.length === 0 ? <p className="text-sm text-muted-foreground">{tProduct('empty')}</p> : null}
           {rules.data?.rows.map((rule) => (
             <div key={rule.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 text-sm">
               <div className="space-y-0.5">
                 <div className="font-medium">{speedLabel(rule.serviceSpeed)} · {valueText(rule)}</div>
-                <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <div className="text-xs text-muted-foreground">
                   {rule.branchId ? branchLabel(rule.branchId) : t('scope.allBranches')} · {rule.effectiveFrom} – {rule.effectiveTo ?? t('openEnded')}
                 </div>
               </div>
@@ -127,7 +127,7 @@ export function ProductSpeedPricingSection({ productId, productLabel }: { produc
               </div>
             </div>
           ))}
-          <Link href="/dashboard/catalog/speed-pricing" className="inline-block text-sm text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline">
+          <Link href="/dashboard/catalog/speed-pricing" className="inline-block text-sm text-primary-text hover:underline">
             {tProduct('openAll')}
           </Link>
         </div>

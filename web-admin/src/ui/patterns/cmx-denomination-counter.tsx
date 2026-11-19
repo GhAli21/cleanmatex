@@ -89,7 +89,7 @@ export function CmxDenominationCounter({
 
   return (
     <div className={cn('space-y-3', className)}>
-      <p className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {quantityLabel}
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -108,8 +108,8 @@ export function CmxDenominationCounter({
           />
         ))}
       </div>
-      <div className="flex items-center justify-between rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] px-3 py-2">
-        <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{totalLabel}</span>
+      <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
+        <span className="text-sm text-muted-foreground">{totalLabel}</span>
         <span className="font-mono text-base font-bold tabular-nums">{formatTotal(totalMajor)}</span>
       </div>
     </div>

@@ -14,11 +14,11 @@ export function EditOrderContextBar({ session }: { session: OrderWorkspaceSessio
   const t = useTranslations('orders.edit');
   return (
     // Title and review messages on the start side, actions above the financial card on the end side (no empty band).
-    <div className="flex flex-col gap-3 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white px-4 py-3 text-start sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-border bg-card px-4 py-3 text-start sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 flex-1 space-y-2">
         <div>
           <p className="text-sm font-semibold">{t('pageTitle', { orderNo: session.orderNo })}</p>
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-xs text-muted-foreground">
             {t('workspace.revision', { version: session.revision })}
             {' · '}
             {t('workspace.workflowStatus')}: {session.workflowStatus ?? t('workspace.lockedField')}

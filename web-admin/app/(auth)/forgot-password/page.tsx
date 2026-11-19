@@ -50,12 +50,12 @@ function ForgotPasswordForm() {
   // Show success message after email is sent
   if (emailSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-muted px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-success-bg">
               <svg
-                className="h-6 w-6 text-green-600"
+                className="h-6 w-6 text-success-text"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -68,19 +68,19 @@ function ForgotPasswordForm() {
                 />
               </svg>
             </div>
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
               Check your email
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-muted-foreground">
               We've sent a password reset link to <strong>{email}</strong>
             </p>
           </div>
 
-          <div className="rounded-md bg-blue-50 p-4">
+          <div className="rounded-md bg-info-bg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-blue-400"
+                  className="h-5 w-5 text-primary-text"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -91,9 +91,9 @@ function ForgotPasswordForm() {
                   />
                 </svg>
               </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Next Steps</h3>
-                <div className="mt-2 text-sm text-blue-700">
+              <div className="ms-3">
+                <h3 className="text-sm font-medium text-primary-text">Next Steps</h3>
+                <div className="mt-2 text-sm text-primary-text">
                   <ol className="list-decimal list-inside space-y-1">
                     <li>Check your email inbox (and spam folder)</li>
                     <li>Click the password reset link in the email</li>
@@ -105,11 +105,11 @@ function ForgotPasswordForm() {
             </div>
           </div>
 
-          <div className="rounded-md bg-yellow-50 p-4">
+          <div className="rounded-md bg-warning-bg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-yellow-400"
+                  className="h-5 w-5 text-warning-text"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -120,13 +120,13 @@ function ForgotPasswordForm() {
                   />
                 </svg>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-800">
+              <div className="ms-3">
+                <p className="text-sm text-warning-text">
                   The reset link will expire in <strong>1 hour</strong>. If you don't see the
                   email, check your spam folder or{' '}
                   <button
                     onClick={() => setEmailSent(false)}
-                    className="font-medium underline hover:text-yellow-900"
+                    className="font-medium underline hover:text-warning-text"
                   >
                     try again
                   </button>
@@ -139,7 +139,7 @@ function ForgotPasswordForm() {
           <div className="text-center">
             <Link
               href="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-primary-text hover:text-primary-text/80"
             >
               Back to Login
             </Link>
@@ -150,14 +150,14 @@ function ForgotPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-muted px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
             Reset your password
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-muted-foreground">
             Enter your email address and we'll send you a link to reset your password
           </p>
         </div>
@@ -165,18 +165,18 @@ function ForgotPasswordForm() {
         {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {invalidLink && !errors.general && (
-            <div className="rounded-md bg-red-50 p-4" role="alert">
-              <p className="text-sm font-medium text-red-800">{tReset('linkError')}</p>
+            <div className="rounded-md bg-danger-bg p-4" role="alert">
+              <p className="text-sm font-medium text-danger-text">{tReset('linkError')}</p>
             </div>
           )}
 
           {/* General Error */}
           {errors.general && (
-            <div className="rounded-md bg-red-50 p-4">
+            <div className="rounded-md bg-danger-bg p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-red-400"
+                    className="h-5 w-5 text-danger-text"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -187,8 +187,8 @@ function ForgotPasswordForm() {
                     />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">{errors.general}</p>
+                <div className="ms-3">
+                  <p className="text-sm font-medium text-danger-text">{errors.general}</p>
                 </div>
               </div>
             </div>
@@ -196,7 +196,7 @@ function ForgotPasswordForm() {
 
           {/* Email Field */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
               Email address
             </label>
             <input
@@ -208,12 +208,12 @@ function ForgotPasswordForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={`appearance-none relative block w-full px-3 py-2 border ${
-                errors.email ? 'border-red-300' : 'border-gray-300'
-              } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                errors.email ? 'border-danger-border' : 'border-border'
+              } placeholder:text-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm`}
               placeholder="you@example.com"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              <p className="mt-1 text-sm text-danger-text">{errors.email}</p>
             )}
           </div>
 
@@ -222,12 +222,12 @@ function ForgotPasswordForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-primary py-2 px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
                   <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    className="animate-spin -ms-1 me-3 h-5 w-5 text-on-solid"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -258,7 +258,7 @@ function ForgotPasswordForm() {
           <div className="text-center">
             <Link
               href="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-primary-text hover:text-primary-text/80"
             >
               ← Back to Login
             </Link>
@@ -266,11 +266,11 @@ function ForgotPasswordForm() {
         </form>
 
         {/* Help text */}
-        <div className="rounded-md bg-gray-50 p-4">
+        <div className="rounded-md bg-muted p-4">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-5 w-5 text-muted-foreground"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -281,10 +281,10 @@ function ForgotPasswordForm() {
                 />
               </svg>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-700">
+            <div className="ms-3">
+              <p className="text-sm text-foreground">
                 Don't have an account?{' '}
-                <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                <Link href="/register" className="font-medium text-primary-text hover:text-primary-text/80">
                   Sign up
                 </Link>
               </p>

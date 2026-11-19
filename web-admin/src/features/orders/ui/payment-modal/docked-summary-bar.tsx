@@ -22,7 +22,6 @@ export interface PaymentDockedSummaryBarProps {
   changeValue: string;
   /** Hides the change cell while nothing is returned. */
   showChange?: boolean;
-  isRTL?: boolean;
   className?: string;
 }
 
@@ -39,29 +38,28 @@ export function PaymentDockedSummaryBar({
   changeLabel,
   changeValue,
   showChange = false,
-  isRTL = false,
   className = '',
 }: PaymentDockedSummaryBarProps) {
   return (
     <div
       data-testid="payment-docked-summary-bar"
-      className={`flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 ${isRTL ? 'flex-row-reverse' : ''} ${className}`}
+      className={`flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted px-4 py-2.5  ${className}`}
     >
-      <div className={`flex min-w-0 items-baseline gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="truncate text-xs font-semibold text-slate-500">{finalTotalLabel}</span>
+      <div className="flex min-w-0 items-baseline gap-2">
+        <span className="truncate text-xs font-semibold text-muted-foreground">{finalTotalLabel}</span>
         <span
           data-testid="payment-docked-final-total"
-          className="text-lg font-bold tabular-nums text-slate-900"
+          className="text-lg font-bold tabular-nums text-foreground"
         >
           {finalTotalValue}
         </span>
       </div>
       {showChange ? (
-        <div className={`flex min-w-0 items-baseline gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <span className="truncate text-xs font-semibold text-emerald-700">{changeLabel}</span>
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="truncate text-xs font-semibold text-success-text">{changeLabel}</span>
           <span
             data-testid="payment-docked-change"
-            className="text-lg font-bold tabular-nums text-emerald-600"
+            className="text-lg font-bold tabular-nums text-success-text"
           >
             {changeValue}
           </span>

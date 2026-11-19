@@ -8,6 +8,7 @@
  * with a Copy button and an activation reminder.
  */
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
@@ -26,7 +27,6 @@ import {
 import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
-import { Alert, AlertDescription } from '@ui/primitives';
 import { issueGiftCardAdmin } from '@/app/actions/marketing/gift-card-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import {
@@ -235,7 +235,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
           {/* ---------------------------------------------------------------- */}
           {generatedCode ? (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
+              <CheckCircle2 className="h-12 w-12 text-success-text" />
               <p className="text-sm text-muted-foreground">{t('fields.giftCardCode')}</p>
               <div className="flex items-center gap-2">
                 <span
@@ -254,7 +254,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
                   {copied ? tCommon('copied') : t('actions.copyCode')}
                 </CmxButton>
               </div>
-              <p className="text-xs text-amber-600 max-w-xs">
+              <p className="text-xs text-warning-text max-w-xs">
                 {t('fields.activateReminder')}
               </p>
               <CmxButton onClick={handleClose}>{tCommon('close')}</CmxButton>
@@ -265,18 +265,18 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
             /* -------------------------------------------------------------- */
             <>
               {/* Notice banner */}
-              <Alert>
+              <CmxSummaryMessage type="info">
                 <Info className="h-4 w-4" />
-                <AlertDescription>
+                <div>
                   {t('fields.generatedNotice')}
-                </AlertDescription>
-              </Alert>
+                </div>
+              </CmxSummaryMessage>
 
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
                 {serverError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{serverError}</AlertDescription>
-                  </Alert>
+                  <CmxSummaryMessage type="error">
+                    <div>{serverError}</div>
+                  </CmxSummaryMessage>
                 )}
 
                 {/* Issue type */}

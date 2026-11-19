@@ -30,7 +30,7 @@ function FieldRow({
   isRTL: boolean;
 }) {
   return (
-    <div className={`flex justify-between gap-4 py-1.5 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div className="flex justify-between gap-4 py-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium text-foreground">{children}</span>
     </div>
@@ -93,7 +93,7 @@ export function OrderReceivableCollectionPanel({
           {arInvoice ? `${arInvoice.invoiceNo} (${arInvoice.status})` : t('none')}
         </FieldRow>
         {showCollect ? (
-          <div className={`pt-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="pt-2 text-start">
             <CollectPaymentButton onCollect={() => setCollectOpen(true)} />
           </div>
         ) : null}

@@ -151,10 +151,10 @@ export function ReadyListScreen() {
         ? 'paymentStatus.partial'
         : 'paymentStatus.pending'
     const cls = status === 'PAID'
-      ? 'bg-[rgb(var(--cmx-success-rgb,22_163_74)/0.12)] text-[rgb(var(--cmx-success-rgb,22_163_74))]'
+      ? 'bg-success/12 text-success'
       : status === 'PARTIALLY_PAID'
-        ? 'bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.12)] text-[rgb(var(--cmx-warning-rgb,180_83_9))]'
-        : 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
+        ? 'bg-warning/12 text-warning'
+        : 'bg-muted text-muted-foreground'
     return (
       <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
         {t(`ready.${key}`)}
@@ -170,7 +170,7 @@ export function ReadyListScreen() {
         <h1 className="text-3xl font-bold">
           {query.desk ? t('ready.focus.counterTitle') : t('screens.ready')}
         </h1>
-        <p className="mt-1 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <p className="mt-1 text-muted-foreground">
           {query.desk ? t('ready.focus.counterDescription') : t('ready.description')}
         </p>
       </div>
@@ -245,7 +245,7 @@ export function ReadyListScreen() {
             >
               <CmxCard className="h-full p-6 transition-shadow hover:shadow-md">
                 <div className="mb-4 flex items-start justify-between gap-2">
-                  <h3 className="text-xl font-bold text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
+                  <h3 className="text-xl font-bold text-primary-text">
                     <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                   </h3>
                   <div className="flex flex-col items-end gap-1">
@@ -257,7 +257,7 @@ export function ReadyListScreen() {
                   </div>
                 </div>
 
-                <div className="space-y-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('labels.customer')}:</span>
                     <span>{order.customer.name}</span>
@@ -286,8 +286,8 @@ export function ReadyListScreen() {
                   ) : null}
                 </div>
 
-                <div className="mt-4 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-4">
-                  <span className="block w-full rounded-lg bg-[rgb(var(--cmx-success-rgb,22_163_74))] px-4 py-2 text-center text-white">
+                <div className="mt-4 border-t border-border pt-4">
+                  <span className="block w-full rounded-lg bg-success px-4 py-2 text-center text-on-solid">
                     {t('ready.actions.open')}
                   </span>
                 </div>

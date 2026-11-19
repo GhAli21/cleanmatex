@@ -323,13 +323,11 @@ export function StoredValueTenderFields({
               formattedAmount={`${formatMoney(changeDue)} ${currencyCode}`}
               // Shared settlement epsilon replaces the literal 0.001 this row used.
               epsilon={SETTLEMENT_MONEY_EPSILON}
-              isRTL={isRTL}
             />
             <CashChangeRoundingNote
               rounding={cashChangeRounding}
               currencyCode={currencyCode}
               formatAmount={formatMoney}
-              isRTL={isRTL}
             />
           </div>
         ) : null}
@@ -388,10 +386,10 @@ export function StoredValueTenderFields({
         ) : null}
 
         {cashDrawerRequired ? (
-          <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-            <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="space-y-2 rounded-xl border border-border bg-muted/70 p-3">
+            <div className="flex items-center justify-between gap-2">
               <Label className="m-0 flex items-center gap-1.5">
-                <Banknote className="h-4 w-4 text-cyan-700" />
+                <Banknote className="h-4 w-4 text-primary-text" />
                 {tPayment('cashDrawer.title')}
               </Label>
               <CmxStatusBadge size="sm" tone="neutral" className="text-xs">
@@ -433,19 +431,19 @@ export function StoredValueTenderFields({
                     </CmxSelectDropdownContent>
                   </CmxSelectDropdown>
                 ) : selectedCashDrawerChoice ? (
-                  <div className={`rounded-lg border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    <span className="font-medium text-slate-900">{getDrawerDisplayName(selectedCashDrawerChoice.drawer)}</span>
+                  <div className="rounded-lg border border-info-border bg-info-bg/70 px-3 py-2 text-xs text-foreground text-start">
+                    <span className="font-medium text-foreground">{getDrawerDisplayName(selectedCashDrawerChoice.drawer)}</span>
                     {` • ${selectedCashDrawerChoice.session.session_no}`}
                   </div>
                 ) : null}
 
                 {cashDrawerBlockingMessage ? (
-                  <div role="alert" aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  <div role="alert" aria-live="polite" className="rounded-lg border border-warning-border bg-warning-bg px-3 py-2 text-xs text-warning-text">
                     {cashDrawerBlockingMessage}
                   </div>
                 ) : null}
 
-                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="flex items-center gap-2">
                   <CmxButton type="button" variant="outline" size="sm" onClick={() => void refetchCashDrawers()} disabled={cashDrawersFetching} className="rounded-lg">
                     {cashDrawersFetching ? <Loader2 className="me-1 h-4 w-4 animate-spin" /> : <RefreshCw className="me-1 h-4 w-4" />}
                     {tPayment('cashDrawer.refresh')}
@@ -471,7 +469,7 @@ export function StoredValueTenderFields({
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">{tPayment('cashDrawer.dialogDescription')}</p>
             {cashDrawerRequestError ? (
-              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div role="alert" className="rounded-lg border border-danger-border bg-danger-bg px-3 py-2 text-sm text-danger-text">
                 {cashDrawerRequestError}
               </div>
             ) : null}
@@ -519,7 +517,7 @@ export function StoredValueTenderFields({
               />
             </div>
           </div>
-          <CmxDialogFooter className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <CmxDialogFooter className="flex gap-3">
             <CmxButton type="button" variant="outline" onClick={() => setCashDrawerDialogOpen(false)}>
               {tCommon('cancel')}
             </CmxButton>

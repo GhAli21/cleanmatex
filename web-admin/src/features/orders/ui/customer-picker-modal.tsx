@@ -350,11 +350,11 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <CmxDialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 text-start">
-          <CmxDialogTitle className="text-2xl font-semibold text-gray-900 text-start">
+        <CmxDialogHeader className="px-6 pt-6 pb-4 border-b border-border text-start">
+          <CmxDialogTitle className="text-2xl font-semibold text-foreground text-start">
             {t('title')}
           </CmxDialogTitle>
-          <CmxDialogDescription className="text-gray-500 text-sm mt-1 text-start">
+          <CmxDialogDescription className="text-muted-foreground text-sm mt-1 text-start">
             {t('description')}
           </CmxDialogDescription>
         </CmxDialogHeader>
@@ -363,17 +363,17 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         {!defaultGuestLoading && defaultGuest && (
           <div className="mx-6 mb-4">
             <div
-              className={`flex items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="flex items-center justify-between gap-3 p-4 bg-info-bg border border-info-border rounded-lg"
             >
-              <div className={`flex items-center gap-3 flex-1 min-w-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className="shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <UserCircle className="h-6 w-6 text-blue-600" aria-hidden />
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-info-bg flex items-center justify-center">
+                  <UserCircle className="h-6 w-6 text-primary-text" aria-hidden />
                 </div>
-                <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <div className="text-sm font-medium text-gray-900 truncate">
+                <div className="flex-1 min-w-0 text-start">
+                  <div className="text-sm font-medium text-foreground truncate">
                     {defaultGuest.displayName || defaultGuest.name || defaultGuest.name2 || defaultGuest.id}
                   </div>
-                  <div className="text-xs text-gray-600 truncate">
+                  <div className="text-xs text-muted-foreground truncate">
                     {defaultGuest.phone || defaultGuest.email || t('defaultGuest')}
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           <div>
             <label
               htmlFor="customer-search-input"
-              className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block text-sm font-medium text-foreground mb-2 text-start"
             >
               {t('searchLabel') || 'Search Customer'}
             </label>
@@ -411,7 +411,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 onChange={(e) => setSearch(e.target.value)}
                 dir={isRTL ? 'rtl' : 'ltr'}
                 placeholder={t('searchPlaceholder')}
-                className={`w-full text-base ${isRTL ? 'text-right' : 'text-left'}`}
+                className="w-full text-base text-start"
                 autoComplete="off"
                 aria-label={t('searchPlaceholder')}
                 aria-describedby="customer-search-hint"
@@ -421,18 +421,18 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
             </div>
             <p
               id="customer-search-hint"
-              className={`text-xs text-gray-500 mt-1.5 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="text-xs text-muted-foreground mt-1.5 text-start"
             >
               {t('searchHint')}
             </p>
           </div>
 
           {/* Advanced Search Toggle */}
-          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'}`}>
+          <div className="flex items-center gap-2 justify-start">
             <button
               type="button"
               onClick={() => setAdvancedSearchOpen((o) => !o)}
-              className={`inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="inline-flex items-center gap-1.5 text-sm text-primary-text hover:text-primary-text/80 focus:outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1 transition-colors"
               aria-expanded={advancedSearchOpen}
             >
               <svg
@@ -456,9 +456,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 handleAdvancedSearch();
               }}
             >
-              <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-start">
                 <div>
-                  <label htmlFor="search-phone" className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="search-phone" className="block text-xs font-medium text-foreground mb-1.5">
                     {tCommon('phone') || 'Phone'}
                   </label>
                   <CmxInput
@@ -472,7 +472,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </div>
                 <div>
-                  <label htmlFor="search-name" className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="search-name" className="block text-xs font-medium text-foreground mb-1.5">
                     {tCommon('name') || 'Name'}
                   </label>
                   <CmxInput
@@ -486,7 +486,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </div>
                 <div>
-                  <label htmlFor="search-email" className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="search-email" className="block text-xs font-medium text-foreground mb-1.5">
                     {tCommon('email') || 'Email'}
                   </label>
                   <CmxInput
@@ -501,18 +501,18 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 </div>
               </div>
               <label
-                className={`flex items-center gap-2 cursor-pointer select-none text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex items-center gap-2 cursor-pointer select-none text-sm"
               >
                 <input
                   type="checkbox"
                   checked={searchAllOptions}
                   onChange={(e) => setSearchAllOptions(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary-text border-border rounded focus:ring-ring"
                   aria-describedby="customer-search-hint"
                 />
-                <span className="text-gray-700">{t('searchAllOptions')}</span>
+                <span className="text-foreground">{t('searchAllOptions')}</span>
               </label>
-              <div className={`flex items-center gap-2 pt-1 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'}`}>
+              <div className="flex items-center gap-2 pt-1 justify-start">
                 <CmxButton
                   type="submit"
                   variant="primary"
@@ -529,7 +529,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         </div>
 
         {/* Divider */}
-        <div className="border-t border-gray-200" />
+        <div className="border-t border-border" />
 
         {/* Results - min-h-0 allows flex child to shrink so overflow-y-auto scrolls inside modal */}
         <div
@@ -542,9 +542,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         >
           {displayError ? (
             <div className="flex flex-col items-center justify-center py-12" role="alert">
-              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-danger-bg flex items-center justify-center mb-4">
                 <svg
-                  className="w-8 h-8 text-red-500"
+                  className="w-8 h-8 text-danger-text"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -557,14 +557,14 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </svg>
               </div>
-              <p className="text-red-600 text-sm font-medium mb-1">{t('error')}</p>
-              <p className="text-red-500 text-sm text-center max-w-sm">{displayError}</p>
+              <p className="text-danger-text text-sm font-medium mb-1">{t('error')}</p>
+              <p className="text-danger-text text-sm text-center max-w-sm">{displayError}</p>
             </div>
           ) : !canSearch ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
                 <svg
-                  className="w-10 h-10 text-gray-400"
+                  className="w-10 h-10 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -577,14 +577,14 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm text-center max-w-sm">{t('searchHint')}</p>
+              <p className="text-muted-foreground text-sm text-center max-w-sm">{t('searchHint')}</p>
             </div>
           ) : isLoading ? (
             <div className="space-y-2">
               <span className="sr-only">{tCommon('loading')}</span>
               {/* Same height as a result row, so the list does not jump when results arrive. */}
               {Array.from({ length: 5 }, (_, i) => (
-                <div key={i} data-testid="customer-skeleton-row" className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                <div key={i} data-testid="customer-skeleton-row" className="flex items-center gap-3 p-4 border border-border rounded-lg">
                   <CmxSkeleton className="h-10 w-10 shrink-0 rounded-full" />
                   <div className="flex-1 space-y-2">
                     <CmxSkeleton className="h-4 w-1/3" />
@@ -595,9 +595,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
             </div>
           ) : customers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
                 <svg
-                  className="w-10 h-10 text-gray-400"
+                  className="w-10 h-10 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -610,8 +610,8 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </svg>
               </div>
-              <p className="text-gray-700 font-medium text-sm mb-1">{t('noCustomersFound')}</p>
-              <p className="text-gray-500 text-xs mb-6 text-center max-w-sm">
+              <p className="text-foreground font-medium text-sm mb-1">{t('noCustomersFound')}</p>
+              <p className="text-muted-foreground text-xs mb-6 text-center max-w-sm">
                 {t('noCustomersFoundHint') || 'Try different search terms or create a new customer'}
               </p>
               <CmxButton
@@ -632,22 +632,22 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   role="option"
                   aria-selected={idx === focusedIndex}
                   onClick={() => handleCustomerClick(customer)}
-                  className={`w-full ${isRTL ? 'text-right' : 'text-left'} p-4 border rounded-lg transition-all ${
-                    idx === focusedIndex ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : ''
+                  className={`w-full text-start p-4 border rounded-lg transition-all ${
+                    idx === focusedIndex ? 'ring-2 ring-ring border-primary bg-info-bg' : ''
                   } ${
                     customer.source === 'current_tenant'
-                      ? 'border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300'
+                      ? 'border-border bg-card hover:bg-muted hover:border-border'
                       : customer.source === 'sys_global'
-                        ? 'border-amber-200 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-300'
-                        : 'border-violet-200 bg-violet-50/50 hover:bg-violet-50 hover:border-violet-300'
+                        ? 'border-warning-border bg-warning-bg/50 hover:bg-warning-bg hover:border-warning-border'
+                        : 'border-info-border bg-info-bg/50 hover:bg-info-bg hover:border-info-border'
                   }`}
                 >
-                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                      <UserCircle className="w-6 h-6 text-gray-500" />
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <UserCircle className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">
+                      <div className="font-medium text-foreground truncate">
                         {customer.name ||
                           customer.name2 ||
                           customer.displayName ||
@@ -656,7 +656,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                       </div>
                       {(customer.phone || customer.email) && (
                         <div
-                          className={`text-sm text-gray-600 mt-0.5 truncate ${isRTL ? 'text-right' : 'text-left'}`}
+                          className="text-sm text-muted-foreground mt-0.5 truncate text-start"
                         >
                           {customer.phone && <bdi className="tabular-nums">{customer.phone}</bdi>}
                           {customer.phone && customer.email && <span className="mx-1">•</span>}
@@ -665,12 +665,12 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                       )}
                     </div>
                     {customer.source === 'sys_global' && (
-                      <span className="shrink-0 px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                      <span className="shrink-0 px-2.5 py-1 text-xs font-medium bg-warning-bg text-warning-text rounded-full">
                         {t('global')}
                       </span>
                     )}
                     {customer.source === 'other_tenant' && (
-                      <span className="shrink-0 px-2.5 py-1 text-xs font-medium bg-violet-100 text-violet-800 rounded-full">
+                      <span className="shrink-0 px-2.5 py-1 text-xs font-medium bg-info-bg text-info-text rounded-full">
                         {t('otherTenant')}
                       </span>
                     )}
@@ -682,8 +682,8 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
-          <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="border-t border-border p-4 bg-muted">
+          <div className="flex gap-3">
             <CmxButton
               type="button"
               variant="secondary"
@@ -704,16 +704,16 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           role="alertdialog"
           aria-modal="true"
         >
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200">
-            <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="bg-card rounded-xl max-w-md w-full p-6 shadow-xl border border-border">
+            <h3 className="text-lg font-semibold mb-4 text-start">
               {t('confirmLink')}
             </h3>
-            <p className={`text-gray-600 mb-6 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="text-muted-foreground mb-6 text-sm text-start">
               {linkingCustomer.source === 'sys_global'
                 ? t('confirmLinkGlobal')
                 : t('confirmLinkOtherTenant')}
             </p>
-            <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -721,7 +721,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   setLinkingCustomer(null);
                 }}
                 disabled={linkLoading}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 text-sm font-medium"
+                className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 text-sm font-medium"
               >
                 {tCommon('cancel')}
               </button>
@@ -729,7 +729,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 type="button"
                 onClick={handleLinkCustomer}
                 disabled={linkLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 text-sm font-medium"
               >
                 {linkLoading
                   ? t('linking')

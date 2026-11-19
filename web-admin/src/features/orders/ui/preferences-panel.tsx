@@ -9,7 +9,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
 import { isSafeMdiIconClass } from '@/lib/utils/mdi-icon';
@@ -55,7 +54,6 @@ export function PreferencesPanel({
   const t = useTranslations('newOrder.preferences');
   const tPieces = useTranslations('newOrder.pieces');
   const tPalette = useTranslations('newOrder.notesPalette');
-  const isRTL = useRTL();
   const getBilingual = useBilingual();
 
   const [activeKindCode, setActiveKindCode] = useState<string | null>(null);
@@ -255,10 +253,10 @@ export function PreferencesPanel({
                   type="button"
                   onClick={() => onConditionToggle(cond.code)}
                   className={cn(
-                    'inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1',
+                    'inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                     isSelected
-                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                      : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-400 hover:bg-white'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                      : 'border-border bg-muted text-foreground hover:border-muted-foreground hover:bg-card'
                   )}
                   aria-pressed={isSelected}
                 >
@@ -267,7 +265,7 @@ export function PreferencesPanel({
                       className={cn(
                         'mdi shrink-0 text-lg leading-none',
                         cond.icon,
-                        isSelected ? 'text-white' : 'text-gray-600'
+                        isSelected ? 'text-on-solid' : 'text-muted-foreground'
                       )}
                       aria-hidden="true"
                     />
@@ -277,7 +275,7 @@ export function PreferencesPanel({
               );
             })}
             {kindPrefs.length === 0 && (
-              <p className="w-full py-6 text-center text-sm text-gray-500">
+              <p className="w-full py-6 text-center text-sm text-muted-foreground">
                 {tPalette('noItemsAvailable') || 'No items available'}
               </p>
             )}
@@ -299,17 +297,17 @@ export function PreferencesPanel({
                       type="button"
                       title={label}
                       onClick={() => onConditionToggle(color.code)}
-                      className={`h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 ${
+                      className={`h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 ${
                         isSelected
-                          ? 'scale-110 border-blue-600 ring-2 ring-blue-300'
-                          : 'border-gray-300 hover:border-gray-500'
+                          ? 'scale-110 border-primary ring-2 ring-ring'
+                          : 'border-border hover:border-muted-foreground'
                       }`}
                       style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
                       aria-label={label}
                       aria-pressed={isSelected}
                     />
                     {!color.color_hex && (
-                      <span className="line-clamp-2 text-center text-xs font-medium leading-snug text-gray-600">
+                      <span className="line-clamp-2 text-center text-xs font-medium leading-snug text-muted-foreground">
                         {label}
                       </span>
                     )}
@@ -318,7 +316,7 @@ export function PreferencesPanel({
               })}
             </div>
             {colors.length === 0 && (
-              <p className="py-4 text-center text-sm text-gray-500">
+              <p className="py-4 text-center text-sm text-muted-foreground">
                 {tPalette('colors') || 'No colors available'}
               </p>
             )}
@@ -359,14 +357,14 @@ export function PreferencesPanel({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       {/* Context header — shows piece label when selected, title when not */}
-      <div className={`flex items-center justify-between border-b border-gray-100 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className={`text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h3 className="text-base font-semibold text-foreground text-start">
           {hasPieceSelected ? pieceLabel : (t('preferences') || 'Preferences')}
         </h3>
         {hasPieceSelected && isItemLevel && (
-          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
             {t('itemLevel') || 'Item'}
           </span>
         )}
@@ -374,13 +372,13 @@ export function PreferencesPanel({
 
       {/* Dynamic Tab Bar — always visible once kinds loaded */}
       {kindsLoading ? (
-        <div className={`flex gap-2 border-b border-gray-100 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex gap-2 border-b border-border px-3 py-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-9 w-20 rounded-xl bg-gray-100 animate-pulse" />
+            <div key={i} className="h-9 w-20 rounded-xl bg-muted animate-pulse" />
           ))}
         </div>
       ) : preferenceKinds.length > 0 ? (
-        <div className={`flex gap-2 overflow-x-auto border-b border-gray-100 bg-gray-50/70 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex gap-2 overflow-x-auto border-b border-border bg-muted/70 px-3 py-2">
           {preferenceKinds.map((kind) => {
             const label = getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code;
             const isActive = kind.kind_code === activeKindCode;
@@ -397,20 +395,20 @@ export function PreferencesPanel({
               hasBg;
 
             const buttonClass = cn(
-              'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1',
+              'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               isActive
                 ? hasBg
                   ? cn(
-                      'border-transparent text-white shadow-sm',
-                      showSelectionRing && 'z-[1] ring-2 ring-blue-600 ring-offset-1'
+                      'border-transparent text-on-solid shadow-sm',
+                      showSelectionRing && 'z-[1] ring-2 ring-ring ring-offset-1'
                     )
-                  : 'border-transparent bg-blue-600 text-white shadow-sm'
+                  : 'border-transparent bg-primary text-primary-foreground shadow-sm'
                 : inactiveFullColor
-                  ? 'border-transparent text-white shadow-sm hover:brightness-110'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900'
+                  ? 'border-transparent text-on-solid shadow-sm hover:brightness-110'
+                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground hover:text-foreground'
             );
 
-            const mdiToneClass = isActive || inactiveFullColor ? 'text-white' : 'text-gray-600';
+            const mdiToneClass = isActive || inactiveFullColor ? 'text-on-solid' : 'text-muted-foreground';
 
             return (
               <button
@@ -443,17 +441,17 @@ export function PreferencesPanel({
       {/* Tab Content — placeholder when no piece selected, actual content when piece selected */}
       <div className="p-4 md:p-5">
         {!hasPieceSelected ? (
-          <div className={`flex flex-col items-center justify-center px-4 py-10 ${isRTL ? 'text-right' : 'text-center'}`}>
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-              <ShoppingCart className="h-7 w-7 text-gray-400" aria-hidden="true" />
+          <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <ShoppingCart className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
             </div>
-            <p className="mb-1 text-base font-medium text-gray-700">
+            <p className="mb-1 text-base font-medium text-foreground">
               {hasItems
                 ? (t('selectPieceHint') || 'Select a piece from the cart to apply preferences')
                 : (t('addItemFirst') || 'Add an item to get started')}
             </p>
             {hasItems && (
-              <p className="max-w-2xl text-sm text-gray-500">
+              <p className="max-w-2xl text-sm text-muted-foreground">
                 {t('selectPieceFromCart') || 'Tap an item or piece in the cart to configure conditions and notes.'}
               </p>
             )}

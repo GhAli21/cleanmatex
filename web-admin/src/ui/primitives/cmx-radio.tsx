@@ -79,19 +79,19 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
           className={cn(
             'peer shrink-0 cursor-pointer appearance-none rounded-full',
             sizeStyle.box,
-            'border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)]',
-            'bg-[rgb(var(--cmx-surface-rgb,255_255_255))]',
+            'border-2 border-foreground/70',
+            'bg-surface',
             'shadow-[inset_0_0_0_1px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.04)]',
             'transition-[background-color,border-color,box-shadow] duration-150',
-            'hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.9)]',
-            'checked:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-            'checked:bg-[rgb(var(--cmx-surface-rgb,255_255_255))]',
+            'hover:border-foreground/90',
+            'checked:border-primary',
+            'checked:bg-surface',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-            'focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)]',
-            'focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
+            'focus-visible:ring-ring/35',
+            'focus-visible:ring-offset-background',
             'disabled:cursor-not-allowed disabled:opacity-50',
             error &&
-              'border-[rgb(var(--cmx-destructive-rgb,220_38_38))] focus-visible:ring-[rgb(var(--cmx-destructive-rgb,220_38_38)/0.35)]',
+              'border-destructive focus-visible:ring-destructive/35',
             className
           )}
           {...props}
@@ -99,7 +99,7 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
         <span
           className={cn(
             'pointer-events-none absolute inset-0 m-auto rounded-full opacity-0 transition-opacity duration-150',
-            'bg-[rgb(var(--cmx-primary-rgb,14_165_233))] peer-checked:opacity-100',
+            'bg-primary peer-checked:opacity-100',
             sizeStyle.dot
           )}
           aria-hidden="true"
@@ -114,7 +114,7 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
           {description ? (
             <p
               id={descriptionId}
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-xs leading-relaxed text-muted-foreground"
             >
               {description}
             </p>
@@ -123,7 +123,7 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
             <p
               id={errorId}
               role="alert"
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+              className="text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>
@@ -145,7 +145,7 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
           className={cn(
             'cursor-pointer select-none pt-0.5 font-medium leading-snug',
             sizeStyle.label,
-            'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+            'text-foreground',
             disabled && 'cursor-not-allowed opacity-60'
           )}
         >
@@ -157,7 +157,7 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
             <span aria-hidden="true" />
             <p
               id={descriptionId}
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-xs leading-relaxed text-muted-foreground"
             >
               {description}
             </p>
@@ -170,7 +170,7 @@ export const CmxRadio = React.forwardRef<HTMLInputElement, CmxRadioProps>(
             <p
               id={errorId}
               role="alert"
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+              className="text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>

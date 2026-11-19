@@ -255,19 +255,19 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
 
         <div className="space-y-4 py-2">
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className="rounded-md border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
               {error}
             </div>
           )}
 
           {/* ── Line Role ── */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              {t('lineRole')} <span className="text-red-500">*</span>
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              {t('lineRole')} <span className="text-danger-text">*</span>
             </label>
             {filteredGroups.map((group) => (
               <div key={group.groupKey} className="mb-3">
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t(`lineRoleGroups.${group.groupKey}`)}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -278,8 +278,8 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
                       onClick={() => handleRoleChange(role)}
                       className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                         form.line_role === role
-                          ? 'border-blue-600 bg-blue-600 text-white'
-                          : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-card text-muted-foreground hover:bg-muted'
                       }`}
                     >
                       {t(`lineRoleLabels.${role}`)}
@@ -294,8 +294,8 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
             <>
               {/* ── Amount ── */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t('amount')} <span className="text-red-500">*</span>
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  {t('amount')} <span className="text-danger-text">*</span>
                 </label>
                 <CmxMoneyField
                   value={parseMoneyDraft(form.amount) || null}
@@ -309,13 +309,13 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
 
               {/* ── Payment Method ── */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t('paymentMethod')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  {t('paymentMethod')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
                 </label>
                 <select
                   value={form.payment_method_code}
                   onChange={(e) => set('payment_method_code', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="">—</option>
                   {COMMON_PAYMENT_METHODS.map((pm) => (
@@ -327,8 +327,8 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {/* ── Cash: tendered amount ── */}
               {showCash && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('tenderedAmount')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('tenderedAmount')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
                   </label>
                   <CmxMoneyField
                     value={parseMoneyDraft(form.tendered_amount) || null}
@@ -345,33 +345,33 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {showCard && (
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">{t('cardBrand')}</label>
+                    <label className="mb-1 block text-sm font-medium text-foreground">{t('cardBrand')}</label>
                     <input
                       type="text"
                       value={form.card_brand_code}
                       onChange={(e) => set('card_brand_code', e.target.value)}
                       placeholder="VISA"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">{t('cardLast4')}</label>
+                    <label className="mb-1 block text-sm font-medium text-foreground">{t('cardLast4')}</label>
                     <input
                       type="text"
                       maxLength={4}
                       value={form.card_last4}
                       onChange={(e) => set('card_last4', e.target.value)}
                       placeholder="1234"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">{t('authCode')}</label>
+                    <label className="mb-1 block text-sm font-medium text-foreground">{t('authCode')}</label>
                     <input
                       type="text"
                       value={form.auth_code}
                       onChange={(e) => set('auth_code', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -380,14 +380,14 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {/* ── Bank transfer ── */}
               {showBankRef && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('bankReference')} <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('bankReference')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.bank_reference}
                     onChange={(e) => set('bank_reference', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
@@ -396,36 +396,36 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {showCheck && (
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      {t('checkNumber')} <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      {t('checkNumber')} <span className="text-danger-text">*</span>
                     </label>
                     <input
                       type="text"
                       value={form.check_number}
                       onChange={(e) => set('check_number', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      {t('checkBank')} <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      {t('checkBank')} <span className="text-danger-text">*</span>
                     </label>
                     <input
                       type="text"
                       value={form.check_bank}
                       onChange={(e) => set('check_bank', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      {t('checkDate')} <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-foreground">
+                      {t('checkDate')} <span className="text-danger-text">*</span>
                     </label>
                     <input
                       type="date"
                       value={form.check_date}
                       onChange={(e) => set('check_date', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -434,88 +434,88 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {/* ── Role-required contextual fields ── */}
               {needsOrderId(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('orderId')} <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('orderId')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.order_id}
                     onChange={(e) => set('order_id', e.target.value)}
                     placeholder="UUID"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-md border border-border px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
 
               {needsCustomerId(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('customerId')} <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('customerId')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.customer_id}
                     onChange={(e) => set('customer_id', e.target.value)}
                     placeholder="UUID"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-md border border-border px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
 
               {needsPartyName(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('party')} <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('party')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.party_name}
                     onChange={(e) => set('party_name', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
 
               {needsExpenseCategory(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('expenseCategory')} <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('expenseCategory')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.expense_category_code}
                     onChange={(e) => set('expense_category_code', e.target.value)}
                     placeholder="e.g. RENT, UTILITIES"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
 
               {needsEmployeeId(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t('employeeId')} <span className="text-red-500">*</span>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    {t('employeeId')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
                     value={form.employee_id}
                     onChange={(e) => set('employee_id', e.target.value)}
                     placeholder="UUID"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-md border border-border px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
 
               {/* ── Description & Notes ── */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t('description')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  {t('description')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
                 </label>
                 <input
                   type="text"
                   value={form.description}
                   onChange={(e) => set('description', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
             </>

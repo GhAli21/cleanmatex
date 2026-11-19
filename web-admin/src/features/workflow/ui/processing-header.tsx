@@ -33,15 +33,15 @@ export function ProcessingHeader({ onRefresh, isRefreshing = false }: Processing
     <div className="flex items-center justify-between">
       {/* Title */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 rtl:text-right">{t('title')}</h1>
-        <p className="text-gray-600 mt-1 rtl:text-right">{t('subtitle')}</p>
+        <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
       </div>
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
         <Link
           href="/dashboard/orders/new"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover font-medium transition-colors"
         >
           {tOrders('newOrder')}
         </Link>
@@ -53,14 +53,14 @@ export function ProcessingHeader({ onRefresh, isRefreshing = false }: Processing
             "p-2 rounded-lg transition-colors",
             isRefreshing 
               ? "opacity-50 cursor-not-allowed" 
-              : "hover:bg-gray-100"
+              : "hover:bg-muted"
           )}
           title={t('refresh')}
           aria-label={t('refresh')}
         >
           <RefreshCw 
             className={cn(
-              "h-5 w-5 text-gray-600 transition-transform",
+              "h-5 w-5 text-muted-foreground transition-transform",
               isRefreshing && "animate-spin"
             )} 
           />

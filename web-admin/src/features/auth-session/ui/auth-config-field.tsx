@@ -66,12 +66,12 @@ export function AuthConfigField({ item, draft, editable, locale, onChange }: Aut
   const showControl = editable && draft.useCustom
 
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+    <div className="rounded-lg border border-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{label}</h4>
+          <h4 className="text-sm font-semibold text-foreground">{label}</h4>
           {description ? (
-            <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{description}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
           ) : null}
         </div>
         <CmxStatusBadge size="sm" tone={SOURCE_BADGE[item.source]}>
@@ -81,10 +81,10 @@ export function AuthConfigField({ item, draft, editable, locale, onChange }: Aut
         </CmxStatusBadge>
       </div>
 
-      <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] sm:grid-cols-2">
+      <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
         <div className="flex gap-1">
           <dt>{t('currentValue')}:</dt>
-          <dd className="font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{formatValue(item.effectiveValue)}</dd>
+          <dd className="font-medium text-foreground">{formatValue(item.effectiveValue)}</dd>
         </div>
         <div className="flex gap-1">
           <dt>{t('platformDefault')}:</dt>
@@ -99,13 +99,13 @@ export function AuthConfigField({ item, draft, editable, locale, onChange }: Aut
       </dl>
 
       {item.source === AUTH_CONFIG_SOURCES.PLATFORM_ENFORCED ? (
-        <p className="mt-2 text-xs text-amber-700">{t('enforcedHint')}</p>
+        <p className="mt-2 text-xs text-warning-text">{t('enforcedHint')}</p>
       ) : null}
 
       {!item.isAllowTenantChange ? (
-        <p className="mt-3 text-xs italic text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('managedHint')}</p>
+        <p className="mt-3 text-xs italic text-muted-foreground">{t('managedHint')}</p>
       ) : editable ? (
-        <div className="mt-4 space-y-3 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-3">
+        <div className="mt-4 space-y-3 border-t border-border pt-3">
           <CmxSwitch
             size="sm"
             checked={!draft.useCustom}

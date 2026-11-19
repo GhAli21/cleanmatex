@@ -79,9 +79,9 @@ export function CartQuoteTotals({ data, pending, failed, errorCode, onRetry, cur
     : [];
 
   return (
-    <div className="px-3 py-2 border-t border-gray-200 bg-white" aria-busy={pending} aria-live="polite">
+    <div className="px-3 py-2 border-t border-border bg-card" aria-busy={pending} aria-live="polite">
       {failed ? (
-        <div role="alert" className="flex items-start justify-between gap-2 text-xs text-red-700">
+        <div role="alert" className="flex items-start justify-between gap-2 text-xs text-danger-text">
           <p className="min-w-0">
             {t(`quote.errors.${errorCode && EXPLAINED_ERRORS.has(errorCode) ? errorCode : 'default'}`)}
           </p>
@@ -94,21 +94,21 @@ export function CartQuoteTotals({ data, pending, failed, errorCode, onRetry, cur
       {totals ? (
         <dl className={`space-y-0.5 text-xs ${pending || failed ? 'opacity-50' : ''}`}>
           {rows.map((row) => (
-            <div key={row.key} className="flex items-center justify-between gap-2 text-gray-600">
+            <div key={row.key} className="flex items-center justify-between gap-2 text-muted-foreground">
               <dt>{row.label}</dt>
               <dd className="tabular-nums">{row.sign ? `${row.sign} ` : ''}{fmt(row.amount)}</dd>
             </div>
           ))}
-          <div className="flex items-center justify-between gap-2 pt-1 text-sm font-bold text-gray-900">
+          <div className="flex items-center justify-between gap-2 pt-1 text-sm font-bold text-foreground">
             <dt>{t('total')}</dt>
             <dd className="tabular-nums">{fmt(totals.saleTotal)}</dd>
           </div>
         </dl>
       ) : null}
 
-      {pending ? <p className="mt-1 text-[11px] text-gray-500">{t('quote.updating')}</p> : null}
+      {pending ? <p className="mt-1 text-[11px] text-muted-foreground">{t('quote.updating')}</p> : null}
       {chargeTax && !pending && !failed ? (
-        <p className="mt-1 text-[11px] text-gray-500">{t('quote.orderChargeTaxed', { amount: fmt(chargeTax.amount) })}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{t('quote.orderChargeTaxed', { amount: fmt(chargeTax.amount) })}</p>
       ) : null}
     </div>
   );

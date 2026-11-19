@@ -30,10 +30,10 @@ export interface CmxCodeChipProps {
 }
 
 const KIND_CLASS: Record<CmxCodeChipKind, string> = {
-  order: 'border-[rgb(var(--cmx-primary-rgb,37_99_235)/0.35)] bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.06)]',
-  item: 'border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
-  piece: 'border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
-  tag: 'border-dashed border-[rgb(var(--cmx-warning-rgb,217_119_6)/0.6)] bg-[rgb(var(--cmx-warning-rgb,217_119_6)/0.06)]',
+  order: 'border-primary/35 bg-primary/6',
+  item: 'border-border bg-muted',
+  piece: 'border-border bg-muted',
+  tag: 'border-dashed border-warning/60 bg-warning/6',
 }
 
 export function CmxCodeChip({

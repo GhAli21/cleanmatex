@@ -117,10 +117,10 @@ export default function ReportFiltersBar({
   const hasFilters = searchParams.toString() !== '';
 
   return (
-    <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+    <div className="space-y-3 rounded-lg border border-border bg-card p-4">
       {/* Date Presets */}
       <div className="flex flex-wrap items-center gap-2">
-        <Calendar className="h-4 w-4 text-gray-500" />
+        <Calendar className="h-4 w-4 text-muted-foreground" />
         {DATE_PRESETS.map((preset) => (
           <button
             key={preset}
@@ -128,8 +128,8 @@ export default function ReportFiltersBar({
             disabled={isPending}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               currentPreset === preset
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-foreground hover:bg-border'
             } disabled:opacity-50`}
           >
             {t(preset)}
@@ -140,28 +140,28 @@ export default function ReportFiltersBar({
       {/* Custom Date Range + Filters */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500">{tCommon('dateFrom')}</label>
+          <label className="text-xs text-muted-foreground">{tCommon('dateFrom')}</label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-md border border-border px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
         <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500">{tCommon('dateTo')}</label>
+          <label className="text-xs text-muted-foreground">{tCommon('dateTo')}</label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-md border border-border px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
         {currentPreset === 'custom' && (
           <button
             onClick={handleCustomDateApply}
             disabled={isPending}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
           >
             {t('apply')}
           </button>
@@ -171,7 +171,7 @@ export default function ReportFiltersBar({
           <select
             value={currentStatus}
             onChange={(e) => updateParams({ status: e.target.value || null })}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-md border border-border px-3 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           >
             <option value="">{t('allStatuses')}</option>
             {statusOptions.map((s) => (
@@ -184,7 +184,7 @@ export default function ReportFiltersBar({
           <button
             onClick={handleClearFilters}
             disabled={isPending}
-            className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
           >
             <X className="h-3 w-3" />
             {tCommon('clearFilters')}

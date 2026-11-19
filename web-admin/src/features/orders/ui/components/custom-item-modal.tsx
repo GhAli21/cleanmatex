@@ -179,23 +179,21 @@ export function CustomItemModal({
     >
       <div
         ref={modalRef}
-        className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
         <div
-          className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
-            } p-6 border-b border-gray-200`}
+          className="flex items-center justify-between p-6 border-b border-border"
         >
           <h2
             id="custom-item-modal-title"
-            className={`text-2xl font-bold text-gray-900 ${isRTL ? 'text-right' : 'text-left'
-              }`}
+            className="text-2xl font-bold text-foreground text-start"
           >
             {t('title') || 'Add Custom Item'}
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             aria-label={tCommon('close')}
           >
             <X className="w-5 h-5" />
@@ -213,21 +211,19 @@ export function CustomItemModal({
                 render={({ field }) => (
                   <>
                     <label
-                      className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="block text-sm font-medium text-foreground mb-2 text-start"
                     >
                       {t('name') || 'Item Name'} *
                     </label>
                     <input
                       {...field}
                       type="text"
-                      className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'
-                        } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className={`w-full px-4 py-2 border ${errors.name ? 'border-destructive' : 'border-border'
+                        } rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start`}
                       placeholder={t('namePlaceholder') || 'Enter item name'}
                     />
                     {errors.name && (
-                      <p className="mt-1 text-sm text-red-600">
+                      <p className="mt-1 text-sm text-danger-text">
                         {errors.name.message}
                       </p>
                     )}
@@ -244,8 +240,7 @@ export function CustomItemModal({
                 render={({ field }) => (
                   <>
                     <label
-                      className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="block text-sm font-medium text-foreground mb-2 text-start"
                     >
                       {t('name2') || 'Item Name (Arabic)'}
                     </label>
@@ -253,8 +248,7 @@ export function CustomItemModal({
                       {...field}
                       type="text"
                       dir="rtl"
-                      className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start"
                       placeholder={t('name2Placeholder') || 'Enter item name in Arabic'}
                     />
                   </>
@@ -263,7 +257,7 @@ export function CustomItemModal({
             </div>
 
             {/* Price and Quantity Row */}
-            <div className={`grid grid-cols-2 gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="grid grid-cols-2 gap-4">
               {/* Price */}
               <div>
                 <Controller
@@ -272,8 +266,7 @@ export function CustomItemModal({
                   render={({ field }) => (
                     <>
                       <label
-                        className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'
-                          }`}
+                        className="block text-sm font-medium text-foreground mb-2 text-start"
                       >
                         {t('price') || 'Price'} ({currencyCode}) *
                       </label>
@@ -287,16 +280,16 @@ export function CustomItemModal({
                           field.onChange(parseFloat(e.target.value) || 0)
                         }
                         dir="ltr"
-                        className={`w-full px-4 py-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'
-                          } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center`}
+                        className={`w-full px-4 py-2 border ${errors.price ? 'border-destructive' : 'border-border'
+                          } rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-center`}
                         placeholder={`0.${'0'.repeat(Math.max(0, decimalPlaces - 1))}1`}
                       />
                       {errors.price && (
-                        <p className="mt-1 text-sm text-red-600">
+                        <p className="mt-1 text-sm text-danger-text">
                           {errors.price.message}
                         </p>
                       )}
-                      <p className="mt-1 text-xs text-gray-500">{t('priceHint')}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('priceHint')}</p>
                     </>
                   )}
                 />
@@ -310,8 +303,7 @@ export function CustomItemModal({
                   render={({ field }) => (
                     <>
                       <label
-                        className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'
-                          }`}
+                        className="block text-sm font-medium text-foreground mb-2 text-start"
                       >
                         {t('quantity') || 'Quantity'} *
                       </label>
@@ -325,12 +317,12 @@ export function CustomItemModal({
                           field.onChange(parseInt(e.target.value) || 1)
                         }
                         dir="ltr"
-                        className={`w-full px-4 py-2 border ${errors.quantity ? 'border-red-500' : 'border-gray-300'
-                          } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center`}
+                        className={`w-full px-4 py-2 border ${errors.quantity ? 'border-destructive' : 'border-border'
+                          } rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-center`}
                         placeholder="1"
                       />
                       {errors.quantity && (
-                        <p className="mt-1 text-sm text-red-600">
+                        <p className="mt-1 text-sm text-danger-text">
                           {errors.quantity.message}
                         </p>
                       )}
@@ -348,16 +340,14 @@ export function CustomItemModal({
                 render={({ field }) => (
                   <>
                     <label
-                      className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="block text-sm font-medium text-foreground mb-2 text-start"
                     >
                       {t('notes') || 'Notes'}
                     </label>
                     <textarea
                       {...field}
                       rows={3}
-                      className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start"
                       placeholder={t('notesPlaceholder') || 'Add any special instructions...'}
                       dir={isRTL ? 'rtl' : 'ltr'}
                     />
@@ -368,7 +358,7 @@ export function CustomItemModal({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+          <div className="p-6 border-t border-border bg-muted flex gap-3">
             <CmxButton
               type="button"
               variant="secondary"

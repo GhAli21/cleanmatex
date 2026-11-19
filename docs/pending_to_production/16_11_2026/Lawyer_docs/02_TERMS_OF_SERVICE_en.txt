@@ -49,7 +49,12 @@ Status: Operative draft. Publication waits for file 00.
 7.4 You will not record a consent the End Customer did not give.
 7.5 You will not put a national identity number, a health record, or a card number into a note or a name field. Counter payments stay on your payment terminal. The Service is not a place to store card numbers.
 7.6 When an End Customer asks for a copy or for erasure, you will use the export and the anonymize action. Anonymizing removes contact details and keeps orders, payments, and issued tax documents, as the anonymize specification u4-spec-2026-11-17 describes.
-7.7 You are responsible for the tax treatment of your own sales, for confirming your tax setup before you rely on tax calculations, and for the content of the prices you configure.
+7.7 You are responsible for the tax treatment of your own sales, for reviewing every tax, accounting, and finance figure the Service shows, and for the prices you configure. You review that output before you rely on it, file it, or give it to a customer or an authority.
+7.8 The tax, accounting, and finance functions in the Service were written by a software developer. They were not designed, certified, or approved by a licensed accountant, a licensed tax adviser, an audit firm, or any other authorized professional body.
+7.9 The Service is not an e-invoicing provider authorized by any government. It does not submit tax returns, and it does not register you with a tax authority. A file or a screen the Service produces is not a government e-invoice and is not a filing with a tax authority.
+7.10 If you want a change to those functions, you send us a written request with a letter from a person who is professionally authorized, in the relevant country, to give tax or accounting advice. The letter states the change and the rule it relies on.
+7.11 We will study that request. We do not promise to change the Service to match the letter. If we offer a customization, we tell you the fee for that case before any work starts. Each case is priced on its own. There is no change until we agree the scope and the fee in writing.
+7.12 Nothing in the Service is tax, accounting, audit, or legal advice.
 
 8. Messages
 8.1 Service messages and marketing messages are sent only under the order-intake rule.
@@ -58,7 +63,7 @@ Status: Operative draft. Publication waits for file 00.
 
 9. Acceptable use
 9.1 You will follow the Acceptable Use Policy version aup-2026-11-17.
-9.2 You will use the Service for a real Tenant business and for the related accounting the product supports.
+9.2 You will use the Service for a real Tenant business. Accounting and tax screens are a tool under clause 7. They are not certified accounts.
 
 10. Our intellectual property
 10.1 We own the Service, the software, the design, and the CleanMateX name and marks.
@@ -80,7 +85,7 @@ Status: Operative draft. Publication waits for file 00.
 13. Warranties
 13.1 You state that the information you give at sign-up is true and that you have the authority in clause 4.
 13.2 We state that we will perform the Service with reasonable care and skill.
-13.3 The Service is provided as a configurable tool. You check that the tax setup, the prices, and the receipts match your legal duties before you rely on them.
+13.3 The Service is provided as a configurable tool. You review the tax setup, the prices, and the receipts under clauses 7.7 to 7.12 before you rely on them.
 13.4 Except for the statements in this clause, and except for rights that the governing law does not allow us to exclude, we exclude implied warranties of fitness for a particular unstated purpose and of uninterrupted or error-free operation.
 
 14. Liability
@@ -109,10 +114,12 @@ Status: Operative draft. Publication waits for file 00.
 16.4 We and you keep issued invoices, payment records, and tax records for the period in the version register, which for this pack is 10 years from the end of the financial year of the record, unless a later published version states a period your tax adviser has set.
 16.5 Ending the contract does not remove a clause that by its nature survives, including clauses 10, 11, 14, 16.3, 16.4, 18, and 21.
 
-17. Changes to these Terms
-17.1 We may change these Terms for a future period. We will give you at least 15 days' notice by email and in the application when the change is material.
-17.2 A material change takes effect when you tick acceptance of the new version, or at the end of the notice if you continue to create new orders after we have told you that continued use is acceptance. The sign-up record stores the new version and the time.
-17.3 If you do not agree, you may end the contract under clause 16 before the new version applies. We will not charge a fee for that ending.
+17. Changes
+17.1 We may publish a later version of these Terms, of the Data Processing Agreement, of the Acceptable Use Policy, of the Privacy Policy, of the order-intake notice, and of any other document in this pack. We may add a document. We may remove a document.
+17.2 The acceptance you give by creating the Tenant covers those later versions, additions, and removals. Each of them is accepted when we publish it. We do not ask for a second acceptance, and we do not stop new orders for you to confirm the change.
+17.3 You will review the published documents periodically and follow the version that is current. The current text is the text on the public pages and in the application.
+17.4 A change to fees for a future period still follows clause 6.6. Removing a document does not cancel an invoice already issued, and it does not delete a record clause 16.4 requires us to keep.
+17.5 If you do not want to continue under a published change, you may end the contract under clause 16. We will not charge a separate fee for that ending. Any balance already due remains payable, including an invoice already issued and any fee for a period already invoiced under clause 15.3.
 
 18. Governing law and disputes
 18.1 This contract is governed by the laws of [GOVERNING_LAW_COUNTRY].

@@ -120,11 +120,11 @@ export function CashDenominationControlCard() {
             <Coins className="h-5 w-5" aria-hidden />
             {t('title')}
           </CmxCardTitle>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
           {currenciesQuery.data && currenciesQuery.data.length === 0 ? (
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('noCurrencies')}</p>
+            <p className="text-sm text-muted-foreground">{t('noCurrencies')}</p>
           ) : (
             <div className="max-w-xs">
               <CmxSelect

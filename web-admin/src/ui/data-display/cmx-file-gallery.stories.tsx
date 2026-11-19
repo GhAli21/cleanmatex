@@ -12,8 +12,8 @@ const swatch = (fill: string, text: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320"><rect width="100%" height="100%" fill="${fill}"/><text x="50%" y="50%" font-size="28" text-anchor="middle" fill="white">${text}</text></svg>`)}`
 
 const ITEMS: CmxFileItem[] = [
-  { id: '1', name: 'shirt-front.jpg', mimeType: 'image/jpeg', url: swatch('#2563eb', 'Before'), previewMode: 'IMAGE', label: 'Before processing', notes: 'Collar stain' },
-  { id: '2', name: 'shirt-after.jpg', mimeType: 'image/jpeg', url: swatch('#16a34a', 'After'), previewMode: 'IMAGE', label: 'Delivery proof', notes: 'Locked: proof of delivery (no edit/delete)', locked: true },
+  { id: '1', name: 'shirt-front.jpg', mimeType: 'image/jpeg', url: swatch('#2563eb', 'Before'), previewMode: 'IMAGE', label: 'Before processing', meta: 'Intake · New order', notes: 'Collar stain' },
+  { id: '2', name: 'shirt-after.jpg', mimeType: 'image/jpeg', url: swatch('#16a34a', 'After'), previewMode: 'IMAGE', label: 'Delivery proof', meta: 'Out for delivery · Delivery', notes: 'Locked: proof of delivery (no edit/delete)', locked: true },
   { id: '3', name: 'care-instructions.pdf', mimeType: 'application/pdf', url: '#', previewMode: 'PDF', label: 'Customer document' },
   { id: '4', name: 'sleeve-tear.mp4', mimeType: 'video/mp4', url: '#', previewMode: 'VIDEO', label: 'Item video', notes: 'Tear on left sleeve' },
   { id: '5', name: 'price-list.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', url: '#', previewMode: 'DOWNLOAD', label: 'Other' },

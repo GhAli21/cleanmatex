@@ -1,10 +1,13 @@
 {
   "title": "Files",
+  "stageFilesTitle": "All files of this order",
   "purpose": "File type",
   "notes": "Note",
   "notesPlaceholder": "Add a note (optional)",
   "filterByPurpose": "Filter by file type",
   "allPurposes": "All file types",
+  "filterByStage": "Filter by stage",
+  "allStages": "All stages",
   "dropHint": "Up to {size} per file. You can also paste a file or image.",
   "takePhoto": "Take photo",
   "pendingHint": "Files are saved when you submit.",
@@ -50,5 +53,9 @@
     "FILE_UTIL_FAILED": "Something went wrong with the file. Try again."
   },
   "orderPhotosSaved": "{count, plural, one {# photo saved to the order} other {# photos saved to the order}}",
+  "piecePhotosAdd": "Add photos",
+  "piecePhotosCount": "{count, plural, one {# photo} other {# photos}}",
+  "piecePhotosFor": "Photos of {piece} ({count})",
+  "piecePhotosTitle": "Photos of {piece}",
   "orderPhotosFailed": "{failed, plural, one {# photo could not be saved} other {# photos could not be saved}}. Open the order and add them again under Files."
 }

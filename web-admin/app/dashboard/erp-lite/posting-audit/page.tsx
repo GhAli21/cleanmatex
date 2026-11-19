@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Identifies the audit view used to review ERP posting outcomes. */
@@ -9,8 +10,6 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLitePostAuditService } from '@/lib/services/erp-lite-post-audit.service'
 import { ErpLitePostAuditScreen } from '@features/erp-lite/ui/erp-lite-post-audit-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 interface PostingAuditPageProps {
   searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
 }
@@ -57,9 +56,9 @@ export default async function ErpLitePostingAuditPage({ searchParams }: PostingA
       permissions={['erp_lite_post_audit:view']}
     >
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLitePostAuditScreen
           rows={result.rows}

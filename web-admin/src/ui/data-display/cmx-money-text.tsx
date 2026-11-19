@@ -42,11 +42,11 @@ export interface CmxMoneyTextProps {
 }
 
 const TONES: Record<CmxMoneyTextTone, string> = {
-  default: 'text-[rgb(var(--cmx-foreground-rgb))]',
-  muted: 'text-[rgb(var(--cmx-muted-foreground-rgb))]',
+  default: 'text-foreground',
+  muted: 'text-muted-foreground',
   warning: 'text-[rgb(var(--cmx-warning-dark-rgb))]',
   success: 'text-[rgb(var(--cmx-success-dark-rgb))]',
-  info: 'text-[rgb(var(--cmx-info-rgb))]',
+  info: 'text-info',
 }
 
 const SIZES = { sm: 'text-xs', md: 'text-sm', lg: 'text-lg', xl: 'text-3xl font-semibold' } as const
@@ -92,7 +92,7 @@ export function CmxMoneyText({
         {text}
       </bdi>
       {!known && amount != null && unknownCurrencyLabel && (
-        <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{unknownCurrencyLabel}</span>
+        <span className="text-xs text-muted-foreground">{unknownCurrencyLabel}</span>
       )}
     </span>
   )

@@ -63,11 +63,11 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="mb-1 block text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+            className="mb-1 block text-sm font-medium text-foreground"
           >
             {label}
             {props.required && (
-              <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+              <span className="ms-1 text-destructive">*</span>
             )}
           </label>
         )}
@@ -79,7 +79,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
             className={cn(
               'w-full appearance-none rounded-[var(--cmx-radius-md,0.375rem)] ps-3 pe-9',
               cmxFieldChrome({ error: hasError }),
-              'disabled:bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
+              'disabled:bg-muted',
               sizeClass,
               className
             )}
@@ -107,7 +107,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
 
           <div className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2">
             <svg
-              className="h-4 w-4 text-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)]"
+              className="h-4 w-4 text-foreground/70"
               fill="none"
               viewBox="0 0 20 20"
               xmlns="http://www.w3.org/2000/svg"
@@ -127,7 +127,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
         {error && (
           <p
             id={`${selectId}-error`}
-            className="mt-1 text-xs text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+            className="mt-1 text-xs text-destructive"
           >
             {error}
           </p>
@@ -136,7 +136,7 @@ export const CmxSelect = React.forwardRef<HTMLSelectElement, CmxSelectProps>(
         {helpText && !error && (
           <p
             id={`${selectId}-help`}
-            className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+            className="mt-1 text-xs text-muted-foreground"
           >
             {helpText}
           </p>

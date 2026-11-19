@@ -7,7 +7,6 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { ShoppingCart, ChevronUp } from 'lucide-react';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -71,7 +70,6 @@ export function OrderSummaryBottomSheet({
 }: OrderSummaryBottomSheetProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
   const locale = useLocale();
   const { decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
@@ -98,7 +96,7 @@ export function OrderSummaryBottomSheet({
           />
           {/* Sheet - slide up animation */}
           <div
-            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[85vh] transition-transform duration-300 ease-out"
+            className="fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-2xl shadow-2xl flex flex-col max-h-[85vh] transition-transform duration-300 ease-out"
             style={{ insetInline: 0 }}
             role="dialog"
             aria-modal="true"
@@ -111,7 +109,7 @@ export function OrderSummaryBottomSheet({
               className="flex justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
               aria-label={tCommon('close') || 'Close'}
             >
-              <div className="w-12 h-1 bg-gray-300 rounded-full" />
+              <div className="w-12 h-1 bg-border rounded-full" />
             </button>
             {/* Content */}
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
@@ -124,15 +122,15 @@ export function OrderSummaryBottomSheet({
       {/* Floating bar - visible when items exist and sheet is closed */}
       {hasItems && !isOpen && (
         <div
-          className="fixed bottom-0 inset-inline-0 z-30 bg-white border-t border-gray-200 shadow-lg safe-area-pb"
+          className="fixed bottom-0 inset-inline-0 z-30 bg-card border-t border-border shadow-lg safe-area-pb"
         >
           <div
-            className={`flex items-center justify-between gap-4 p-4 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="flex items-center justify-between gap-4 p-4"
           >
             <button
               type="button"
               onClick={isOpen ? onClose : onOpen}
-              className={`flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-border bg-card hover:bg-muted transition-colors"
               aria-label={isOpen ? (tCommon('close') || 'Close') : (t('viewCart') || 'View cart')}
             >
               <ShoppingCart className="w-5 h-5" />
@@ -143,11 +141,11 @@ export function OrderSummaryBottomSheet({
                 className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
               />
             </button>
-            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center gap-3">
               {total != null ? (
-                <div className={`text-sm ${isRTL ? 'text-left' : 'text-right'}`}>
-                  <p className="text-xs text-gray-500">{t('total')}</p>
-                  <p className="font-bold text-gray-900">
+                <div className="text-sm text-end">
+                  <p className="text-xs text-muted-foreground">{t('total')}</p>
+                  <p className="font-bold text-foreground">
                     {fmtTotal(total)}
                   </p>
                 </div>
@@ -156,7 +154,7 @@ export function OrderSummaryBottomSheet({
                 type="button"
                 onClick={onPrimaryAction}
                 disabled={primaryDisabled || loading}
-                className="min-h-[44px] px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+                className="min-h-[44px] px-6 py-3 bg-success hover:bg-success/90 disabled:bg-border disabled:cursor-not-allowed text-on-solid rounded-lg font-semibold transition-colors"
               >
                 {loading ? (t('processing') || 'Processing...') : primaryLabel}
               </button>

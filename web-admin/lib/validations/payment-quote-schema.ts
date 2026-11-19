@@ -1,6 +1,7 @@
 /** Bounded inputs for an authenticated, non-posting payment quote. */
 import { z } from 'zod';
 import { previewPaymentRequestSchema } from './new-order-payment-schemas';
+import { zUuidLike } from './uuid-like';
 
 /** Transport/work limits prevent accidental fan-out while supporting large cashier orders. */
 export const PAYMENT_QUOTE_LIMITS = {
@@ -12,9 +13,10 @@ export const PAYMENT_QUOTE_LIMITS = {
   SERVER_TIMEOUT_MS: 15_000,
 } as const;
 
+/** Branch/customer ids may be seeded non-RFC uuids that Postgres still stores as uuid. */
 const optionalContextId = z.preprocess(
-  (value) => value === '' || value == null ? undefined : value,
-  z.string().uuid().optional(),
+  (value) => (value === '' || value == null ? undefined : value),
+  zUuidLike().optional(),
 );
 
 /** Reuses the existing commercial contract; identity is always resolved server-side. */
@@ -25,7 +27,7 @@ export const paymentQuoteRequestSchema = previewPaymentRequestSchema.extend({
   branchId: optionalContextId,
   customerId: optionalContextId,
   serviceCategories: z.array(z.string().max(100)).max(1000).optional(),
-  taxProfileIds: z.array(z.string().uuid()).max(100).optional(),
+  taxProfileIds: z.array(zUuidLike()).max(100).optional(),
   promoCode: z.string().max(200).optional(),
   giftCardNumber: z.string().max(200).optional(),
 });

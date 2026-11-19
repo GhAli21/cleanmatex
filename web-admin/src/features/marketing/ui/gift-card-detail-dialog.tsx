@@ -29,7 +29,6 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 
-import { Alert, AlertDescription } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import {
   adjustGiftCard,
@@ -42,6 +41,7 @@ import type { GiftCard, GiftCardTransaction } from '@/lib/types/payment';
 import { GIFT_CARD_STATUS, type GiftCardStatus } from '@/lib/constants/gift-card';
 
 import { CmxStatusBadge } from '@ui/feedback';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 // ---------------------------------------------------------------------------
 // Status badge styling
 // ---------------------------------------------------------------------------
@@ -50,14 +50,14 @@ const STATUS_STYLE: Record<
   GiftCardStatus,
   { variant: 'brand' | 'neutral' | 'danger' | 'neutral'; className: string }
 > = {
-  [GIFT_CARD_STATUS.ACTIVE]:             { variant: 'brand',     className: 'bg-green-100 text-green-800 border-green-200' },
-  [GIFT_CARD_STATUS.PARTIALLY_REDEEMED]: { variant: 'neutral',     className: 'bg-amber-100 text-amber-800 border-amber-200' },
-  [GIFT_CARD_STATUS.GENERATED]:          { variant: 'neutral',     className: 'bg-blue-100 text-blue-800 border-blue-200' },
-  [GIFT_CARD_STATUS.DRAFT]:              { variant: 'neutral',   className: 'bg-slate-100 text-slate-700 border-slate-200' },
-  [GIFT_CARD_STATUS.FULLY_REDEEMED]:     { variant: 'neutral',   className: 'bg-gray-100 text-gray-600 border-gray-200' },
-  [GIFT_CARD_STATUS.EXPIRED]:            { variant: 'danger', className: 'bg-red-100 text-red-800 border-red-200' },
-  [GIFT_CARD_STATUS.VOIDED]:             { variant: 'danger', className: 'bg-red-100 text-red-800 border-red-200' },
-  [GIFT_CARD_STATUS.SUSPENDED]:          { variant: 'neutral',     className: 'bg-orange-100 text-orange-800 border-orange-200' },
+  [GIFT_CARD_STATUS.ACTIVE]:             { variant: 'brand',     className: 'bg-success-bg text-success-text border-success-border' },
+  [GIFT_CARD_STATUS.PARTIALLY_REDEEMED]: { variant: 'neutral',     className: 'bg-warning-bg text-warning-text border-warning-border' },
+  [GIFT_CARD_STATUS.GENERATED]:          { variant: 'neutral',     className: 'bg-info-bg text-info-text border-info-border' },
+  [GIFT_CARD_STATUS.DRAFT]:              { variant: 'neutral',   className: 'bg-muted text-foreground border-border' },
+  [GIFT_CARD_STATUS.FULLY_REDEEMED]:     { variant: 'neutral',   className: 'bg-muted text-muted-foreground border-border' },
+  [GIFT_CARD_STATUS.EXPIRED]:            { variant: 'danger', className: 'bg-danger-bg text-danger-text border-danger-border' },
+  [GIFT_CARD_STATUS.VOIDED]:             { variant: 'danger', className: 'bg-danger-bg text-danger-text border-danger-border' },
+  [GIFT_CARD_STATUS.SUSPENDED]:          { variant: 'neutral',     className: 'bg-warning-bg text-warning-text border-warning-border' },
 };
 
 // ---------------------------------------------------------------------------
@@ -204,9 +204,9 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
           </CmxDialogHeader>
 
           {serverError && (
-            <Alert variant="destructive">
-              <AlertDescription>{serverError}</AlertDescription>
-            </Alert>
+            <CmxSummaryMessage type="error">
+              <div>{serverError}</div>
+            </CmxSummaryMessage>
           )}
 
           {/* Card summary grid */}

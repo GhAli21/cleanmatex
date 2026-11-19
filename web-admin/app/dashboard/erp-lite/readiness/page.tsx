@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Signals that this route assesses readiness before ERP operations proceed. */
@@ -10,8 +11,6 @@ import { ErpLiteReadinessService } from '@/lib/services/erp-lite-readiness.servi
 import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config'
 import { ErpLiteReadinessScreen } from '@features/erp-lite/ui/erp-lite-readiness-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -53,9 +52,9 @@ export default async function ErpLiteReadinessPage() {
       permissions={['erp_lite:view']}
     >
       {loadError ? (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{loadError}</div>
+        </CmxSummaryMessage>
       ) : (
         <ErpLiteReadinessScreen
           readiness={readiness}

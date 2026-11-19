@@ -86,7 +86,7 @@ export function ServiceSpeedSelect({
         <CmxSelectDropdownTrigger
           aria-label={ariaLabel}
           dir={isRTL ? 'rtl' : 'ltr'}
-          className={cn('bg-white', size === 'line' ? 'h-6 min-h-0 px-1.5 py-0 text-[11px]' : 'h-9 text-sm')}
+          className={cn('bg-card', size === 'line' ? 'h-6 min-h-0 px-1.5 py-0 text-[11px]' : 'h-9 text-sm')}
         >
           <CmxSelectDropdownValue displayValue={isError ? t('unavailable') : display} />
         </CmxSelectDropdownTrigger>

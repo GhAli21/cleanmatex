@@ -85,7 +85,7 @@ export function EditReviewDialog({
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent className="w-full max-w-lg p-0 text-start sm:max-w-2xl">
-        <CmxDialogHeader className="border-b border-gray-100 px-4 py-3">
+        <CmxDialogHeader className="border-b border-border px-4 py-3">
           <CmxDialogTitle>{t('workspace.review')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] space-y-3 overflow-y-auto px-4 py-4">
@@ -162,11 +162,11 @@ export function EditReviewDialog({
           <div>
             <p className="mb-2 text-sm font-medium">{t('workspace.history')}</p>
             {history.length === 0 ? (
-              <p className="text-xs text-gray-500">{t('workspace.emptyHistory')}</p>
+              <p className="text-xs text-muted-foreground">{t('workspace.emptyHistory')}</p>
             ) : (
               <ul className="space-y-2">
                 {history.map((row) => (
-                  <li key={row.changeNo} className="text-xs text-gray-600">
+                  <li key={row.changeNo} className="text-xs text-muted-foreground">
                     {row.legacy ? t('workspace.legacyHistory') : t('workspace.changeNumber', { number: row.changeNo })}
                     {' · '}
                     {t('workspace.revision', { version: row.revision })}
@@ -177,7 +177,7 @@ export function EditReviewDialog({
             )}
           </div>
         </div>
-        <CmxDialogFooter className="border-t border-gray-100 px-4 py-3">
+        <CmxDialogFooter className="border-t border-border px-4 py-3">
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>{tCommon('cancel')}</CmxButton>
           {conflict ? (
             <CmxButton type="button" onClick={onReload}>{t('workspace.reload')}</CmxButton>

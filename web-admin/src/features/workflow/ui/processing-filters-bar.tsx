@@ -40,17 +40,17 @@ export function ProcessingFiltersBar({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="bg-card rounded-lg border border-border p-4">
       <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {/* Reports Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 rtl:text-right">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('reports')}
           </label>
           <select
             value={localFilters.reports || ''}
             onChange={(e) => handleFilterUpdate('reports', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
           >
             <option value="">{t('allReports')}</option>
             <option value="daily">{t('daily')}</option>
@@ -61,13 +61,13 @@ export function ProcessingFiltersBar({
 
         {/* Sections Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 rtl:text-right">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('sections')}
           </label>
           <select
             value={localFilters.sections || ''}
             onChange={(e) => handleFilterUpdate('sections', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
           >
             <option value="">{t('allSections')}</option>
             <option value="washing">{t('washing')}</option>
@@ -80,13 +80,13 @@ export function ProcessingFiltersBar({
 
         {/* Order Type Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 rtl:text-right">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('orderType')}
           </label>
           <select
             value={localFilters.orderType || ''}
             onChange={(e) => handleFilterUpdate('orderType', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
           >
             <option value="">{t('allTypes')}</option>
             <option value="normal">{t('normal')}</option>
@@ -97,20 +97,20 @@ export function ProcessingFiltersBar({
 
         {/* Date Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 rtl:text-right">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('date')}
           </label>
           <input
             type="date"
             value={localFilters.date || ''}
             onChange={(e) => handleFilterUpdate('date', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
           />
         </div>
 
         {/* Status Filter (positioned above status column in table) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 rtl:text-right">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('filterStatus')}
           </label>
           <input
@@ -118,7 +118,7 @@ export function ProcessingFiltersBar({
             placeholder={t('typeToFilter')}
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
           />
         </div>
       </div>

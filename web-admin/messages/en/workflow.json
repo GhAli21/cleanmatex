@@ -348,6 +348,10 @@
     "notesLabel": "Handover notes (optional)",
     "notesPlaceholder": "For example, collected by the customer at the branch counter",
     "notesHelp": "This note is saved with the pickup audit record.",
+    "proofPhotos": "Pickup photos (optional)",
+    "proofHelp": "Photos are locked as proof when the pickup is confirmed.",
+    "proofUploadFailed": "Pickup photos could not be uploaded. The pickup was not confirmed; try again.",
+    "proofInvalid": "A pickup photo was removed or already used. Check the photos and confirm again.",
     "success": "Customer pickup confirmed. The order is now delivered.",
     "failed": "Unable to confirm customer pickup."
   },
@@ -541,8 +545,7 @@
         "driverWarning": "This driver already has an active route. Confirm the operational schedule before continuing.",
         "selectionRequired": "Select at least one ready order first.",
         "operationFailed": "The route change could not be completed. Refresh and try again.",
-        "loadFailed": "Route planning data could not be loaded.",
-        "createFailed": "Failed to create route"
+        "loadFailed": "Route planning data could not be loaded."
       },
       "removeStopConfirm": {
         "title": "Remove this stop?",

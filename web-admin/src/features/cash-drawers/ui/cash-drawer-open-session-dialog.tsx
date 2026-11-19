@@ -181,7 +181,7 @@ export function CashDrawerOpenSessionDialog({
           <CmxDialogTitle>{t('openSessionConfirm')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-muted-foreground">
             {t('wizard.openDescription')}
           </p>
 
@@ -194,7 +194,7 @@ export function CashDrawerOpenSessionDialog({
                 onChange={() => undefined}
                 options={[{ value: lockedSessionUser.id, label: lockedSessionUser.label }]}
               />
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="text-sm text-muted-foreground">
                 {t('sessionUserLockedHint')}
               </p>
             </div>
@@ -212,7 +212,7 @@ export function CashDrawerOpenSessionDialog({
                   })),
                 ]}
               />
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="text-sm text-muted-foreground">
                 {t('sessionUserHint')}
               </p>
             </div>
@@ -226,7 +226,7 @@ export function CashDrawerOpenSessionDialog({
           />
 
           {countNow ? (
-            <div className="space-y-4 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+            <div className="space-y-4 rounded-xl border border-border p-4">
               <CashCountMethodField methods={countPolicy.methods} value={countMode} onChange={setCountMode} />
 
               {countMode === 'TOTAL_ONLY' ? (
@@ -239,9 +239,9 @@ export function CashDrawerOpenSessionDialog({
                   onChange={(event) => setTotalAmount(event.target.value)}
                 />
               ) : denominationsQuery.isLoading ? (
-                <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+                <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
               ) : denominations.length === 0 ? (
-                <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <p className="text-sm text-muted-foreground">
                   {t('wizard.noDenominationCatalog')}
                 </p>
               ) : (

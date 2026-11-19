@@ -82,7 +82,7 @@ export function ArInvoicesHubTable({
           render: (row) => (
             <Link
               href={`/dashboard/internal_fin/invoices/${row.id}`}
-              className="font-medium text-sky-700 hover:text-sky-900"
+              className="font-medium text-primary-text hover:text-primary-text/80"
             >
               {row.invoice_no}
             </Link>
@@ -154,7 +154,7 @@ export function ArInvoicesHubTable({
           key: 'actions',
           header: tCommon('actions'),
           render: (row) => (
-            <div className="flex items-center gap-2 rtl:flex-row-reverse">
+            <div className="flex items-center gap-2">
               <CmxButton asChild size="sm" variant="outline">
                 <Link href={`/dashboard/internal_fin/invoices/${row.id}`}>{tCommon('view')}</Link>
               </CmxButton>

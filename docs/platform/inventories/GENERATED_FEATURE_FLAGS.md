@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-17T06:27:46.404Z
+Generated: 2026-11-19T05:41:09.314Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
@@ -56,6 +56,7 @@ Generated: 2026-11-17T06:27:46.404Z
 | getFeatureFlags | api | app/api/feature-flags/route.ts | 23 | const flags = await Promise.race([getFeatureFlags(tenantId), timeoutPromise]) |
 | getFeatureFlags | api | app/api/navigation/route.ts | 91 | const flags = await withTimeout(getFeatureFlags(tenantId), 3000) |
 | getFeatureFlags | api | app/api/settings/tenants/[tenantId]/feature-flags/route.ts | 34 | const flags = await hqApiClient.getFeatureFlags({ |
+| getFeatureFlags | api | app/api/v1/settings/branding/route.ts | 31 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/api/hq-api-client.ts | 406 | async getFeatureFlags(options?: { authHeader?: string | null; search?: string }) { |
 | getFeatureFlags | workflow | lib/config/workflow-engine-v2.server.ts | 31 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/feature-flags.service.ts | 143 | export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> { |
@@ -67,10 +68,12 @@ Generated: 2026-11-17T06:27:46.404Z
 | getFeatureFlags | service | lib/services/feature-flags.service.ts | 356 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/order-change/order-change-legacy-writer-guard.ts | 137 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/order-change/order-change-preview-reads.ts | 107 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/org-ui-theme.service.ts | 85 | const flags = await getFeatureFlags(tenantId) |
 | getFeatureFlags | service | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/setup-health/setup-health.service.ts | 88 | getFeatureFlags(tenantOrgId), |
-| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 226 | const featureFlags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 447 | const flags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/ui-theme.service.ts | 62 | getFeatureFlags(tenantId), |
+| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 227 | const featureFlags = await getFeatureFlags(tenantId); |
+| getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 448 | const flags = await getFeatureFlags(tenantId); |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 544 | {plan.feature_flags.multi_branch && ( |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
 | multi_currency_fx | screen | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
@@ -90,6 +93,6 @@ Generated: 2026-11-17T06:27:46.404Z
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
 | pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
 | usePlanFlags | hook | src/features/orders/hooks/use-plan-flags.ts | 30 | export function usePlanFlags() { |
-| usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 108 | usePlanFlags(); |
+| usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 110 | usePlanFlags(); |
 | whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |
 | whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

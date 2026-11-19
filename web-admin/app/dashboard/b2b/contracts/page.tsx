@@ -98,8 +98,8 @@ export default function B2BContractsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
-        <div className="h-64 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
       </div>
     );
   }
@@ -125,7 +125,7 @@ export default function B2BContractsPage() {
           <CmxCardContent>
             {!contracts?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-gray-500 mb-4 max-w-md">
+                <p className="text-muted-foreground mb-4 max-w-md">
                   {contractsListEmptyHint}
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
@@ -148,16 +148,16 @@ export default function B2BContractsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 px-3">{t('contractNo') || 'Contract No'}</th>
-                      <th className="text-left py-2 px-3">{t('company')}</th>
-                      <th className="text-left py-2 px-3">{t('effectiveFrom') || 'Effective From'}</th>
-                      <th className="text-left py-2 px-3">{t('effectiveTo') || 'Effective To'}</th>
-                      <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
+                      <th className="text-start py-2 px-3">{t('contractNo') || 'Contract No'}</th>
+                      <th className="text-start py-2 px-3">{t('company')}</th>
+                      <th className="text-start py-2 px-3">{t('effectiveFrom') || 'Effective From'}</th>
+                      <th className="text-start py-2 px-3">{t('effectiveTo') || 'Effective To'}</th>
+                      <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contracts.map((c) => (
-                      <tr key={c.id} className="border-b hover:bg-gray-50">
+                      <tr key={c.id} className="border-b hover:bg-muted">
                         <td className="py-2 px-3">{c.contract_no}</td>
                         <td className="py-2 px-3">
                           {customerLabelById.get(c.customer_id) ?? '—'}

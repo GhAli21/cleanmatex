@@ -109,20 +109,20 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
       <CmxDialogContent className="w-full max-w-md mx-4">
         <CmxDialogHeader>
           <CmxDialogTitle>{t('actions.adjustStock')}</CmxDialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {item.product_name} ({item.product_code})
           </p>
         </CmxDialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="px-6 py-4 space-y-4">
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-danger-text">{error}</p>}
 
             {/* Branch dropdown — always selectable */}
             {hasBranches ? (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('filters.branch')} <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t('filters.branch')} <span className="text-danger-text">*</span>
                 </label>
                 <select
                   value={selectedBranchId}
@@ -131,7 +131,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
                     setFieldErrors((prev) => ({ ...prev, branch: undefined }));
                     setError(null);
                   }}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 >
                   <option value="">{t('filters.selectBranch') || 'Select branch...'}</option>
@@ -142,28 +142,28 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
                   ))}
                 </select>
                 {fieldErrors.branch && (
-                  <p className="mt-1 text-xs text-red-600">{fieldErrors.branch}</p>
+                  <p className="mt-1 text-xs text-danger-text">{fieldErrors.branch}</p>
                 )}
               </div>
             ) : (
               /* No branches configured */
-              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md">
-                <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2 px-3 py-2 bg-warning-bg border border-warning-border rounded-md">
+                <svg className="w-4 h-4 text-warning-text flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <p className="text-sm text-amber-700">{t('messages.noBranchConfigured')}</p>
+                <p className="text-sm text-warning-text">{t('messages.noBranchConfigured')}</p>
               </div>
             )}
 
             {/* Current quantity */}
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">{t('labels.currentQty')}</p>
-              <p className="text-2xl font-semibold">{item.qty_on_hand} <span className="text-sm font-normal text-gray-500">{item.product_unit}</span></p>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">{t('labels.currentQty')}</p>
+              <p className="text-2xl font-semibold">{item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.product_unit}</span></p>
             </div>
 
             {/* Action radio buttons */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">{t('labels.adjustmentType')}</p>
+              <p className="text-sm font-medium text-foreground mb-2">{t('labels.adjustmentType')}</p>
               <div className="flex gap-3">
                 {actions.map((a) => (
                   <label key={a.value} className="flex items-center gap-2 cursor-pointer">
@@ -173,7 +173,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
                       value={a.value}
                       checked={action === a.value}
                       onChange={() => setAction(a.value)}
-                      className="text-blue-600"
+                      className="text-primary-text"
                     />
                     <span className="text-sm">{a.label}</span>
                   </label>
@@ -182,7 +182,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.quantity')} <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-foreground mb-1">{t('labels.quantity')} <span className="text-danger-text">*</span></label>
               <CmxInput
                 type="number"
                 step="0.01"
@@ -192,11 +192,11 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
                 required
                 className="w-full"
               />
-              {fieldErrors.quantity && <p className="mt-1 text-sm text-red-600">{fieldErrors.quantity}</p>}
+              {fieldErrors.quantity && <p className="mt-1 text-sm text-danger-text">{fieldErrors.quantity}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.reason')} <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-foreground mb-1">{t('labels.reason')} <span className="text-danger-text">*</span></label>
               <CmxInput
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -204,7 +204,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
                 required
                 className="w-full"
               />
-              {fieldErrors.reason && <p className="mt-1 text-sm text-red-600">{fieldErrors.reason}</p>}
+              {fieldErrors.reason && <p className="mt-1 text-sm text-danger-text">{fieldErrors.reason}</p>}
             </div>
           </div>
 

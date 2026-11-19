@@ -160,7 +160,7 @@ export function PaymentLegDetailFields({
     <div className="space-y-3" data-disabled={disabled ? '' : undefined}>
       {disabled && disabledReason ? (
         <p
-          className={`text-xs text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}
+          className="text-xs text-warning-text text-start"
           role="status"
           data-testid="payment-leg-details-locked"
         >
@@ -169,11 +169,11 @@ export function PaymentLegDetailFields({
       ) : null}
       {option?.requires_terminal && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
             {t('splitPayment.paymentTerminal')}
             {!disabled ? (
               <>
-                <span aria-hidden="true" className="ms-1 text-rose-600">*</span>
+                <span aria-hidden="true" className="ms-1 text-danger-text">*</span>
                 <span className="sr-only">{t('workspace.requiredField')}</span>
               </>
             ) : null}
@@ -208,7 +208,7 @@ export function PaymentLegDetailFields({
             </CmxSelectDropdownContent>
           </CmxSelectDropdown>
           {!disabled && !leg.terminalId?.trim() ? (
-            <p className="mt-1 text-xs text-rose-600">
+            <p className="mt-1 text-xs text-danger-text">
               {t('splitPayment.validation.terminalRequiredField')}
             </p>
           ) : null}
@@ -218,7 +218,7 @@ export function PaymentLegDetailFields({
       {leg.method === PAYMENT_METHODS.CARD && (
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
               {t('splitPayment.cardBrand')}
             </label>
             <CmxSelectDropdown
@@ -384,27 +384,25 @@ export function PaymentLegDetailFields({
 
       {leg.method === PAYMENT_METHODS.CARD && (
         <div
-          className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 ${
-            isRTL ? 'flex-row-reverse' : ''
-          }`}
+          className="flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground"
         >
-          <ShieldCheck className="h-4 w-4 text-cyan-700" />
+          <ShieldCheck className="h-4 w-4 text-primary-text" />
           {t('security.cardPayment')}
         </div>
       )}
 
       {showCash ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className="text-slate-500">{t('rightRail.cashTendered')}</span>
-            <span className="font-mono font-semibold tabular-nums text-slate-800" dir="ltr">
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-xs">
+            <span className="text-muted-foreground">{t('rightRail.cashTendered')}</span>
+            <span className="font-mono font-semibold tabular-nums text-foreground" dir="ltr">
               {money(cashTendered)}
             </span>
           </div>
-          <div className={`flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className="text-slate-500">{t('rightRail.changeReturned')}</span>
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-xs">
+            <span className="text-muted-foreground">{t('rightRail.changeReturned')}</span>
             <span
-              className={`font-mono font-semibold tabular-nums ${cashChange > 0 ? 'text-emerald-600' : 'text-slate-800'}`}
+              className={`font-mono font-semibold tabular-nums ${cashChange > 0 ? 'text-success-text' : 'text-foreground'}`}
               dir="ltr"
               data-testid="leg-cash-change"
             >
@@ -416,7 +414,7 @@ export function PaymentLegDetailFields({
 
       {cashNotNeeded ? (
         <p
-          className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+          className="text-xs text-muted-foreground text-start"
           data-testid="leg-cash-not-needed"
         >
           {t('rightRail.cashNotNeeded')}
@@ -424,7 +422,7 @@ export function PaymentLegDetailFields({
       ) : null}
 
       {isPlainMethod ? (
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+        <div className="rounded-2xl border border-border bg-muted px-4 py-4 text-sm text-muted-foreground">
           {t('workspace.noDetailsDescription')}
         </div>
       ) : null}

@@ -60,8 +60,8 @@ export default async function ArDunningPage({ searchParams }: PageProps) {
     <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_AR_DUNNING_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
-        <p className="text-sm text-slate-600">{t('subtitle')}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

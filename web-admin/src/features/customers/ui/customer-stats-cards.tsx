@@ -6,7 +6,6 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import type { CustomerStatistics } from '@/lib/types/customer'
 
 interface CustomerStatsCardsProps {
@@ -20,7 +19,6 @@ interface CustomerStatsCardsProps {
  */
 export default function CustomerStatsCards({ stats }: CustomerStatsCardsProps) {
   const t = useTranslations('customers')
-  const isRTL = useRTL()
   
   const cards = [
     {
@@ -36,7 +34,7 @@ export default function CustomerStatsCards({ stats }: CustomerStatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: 'bg-blue-500',
+      bgColor: 'bg-primary text-primary-foreground',
     },
     {
       title: t('fullProfiles'),
@@ -52,7 +50,7 @@ export default function CustomerStatsCards({ stats }: CustomerStatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: 'bg-green-500',
+      bgColor: 'bg-success text-on-solid',
     },
     {
       title: t('stubProfiles'),
@@ -68,7 +66,7 @@ export default function CustomerStatsCards({ stats }: CustomerStatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: 'bg-yellow-500',
+      bgColor: 'bg-warning text-warning-foreground',
     },
     {
       title: t('newThisMonth'),
@@ -84,28 +82,28 @@ export default function CustomerStatsCards({ stats }: CustomerStatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: 'bg-purple-500',
+      bgColor: 'bg-primary text-primary-foreground',
     },
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
         <div
           key={card.title}
-          className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+          className="bg-card rounded-lg shadow p-6 hover:shadow-md transition-shadow"
         >
-          <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-            <div className={isRTL ? 'text-right' : 'text-left'}>
-              <p className="text-sm font-medium text-gray-600">{card.title}</p>
-              <p className="mt-2 text-3xl font-semibold text-gray-900">
+          <div className="flex items-center justify-between">
+            <div className="text-start">
+              <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
+              <p className="mt-2 text-3xl font-semibold text-foreground">
                 {card.value}
               </p>
               {card.subtitle && (
-                <p className="mt-1 text-xs text-gray-500">{card.subtitle}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{card.subtitle}</p>
               )}
             </div>
-            <div className={`p-3 rounded-lg ${card.bgColor} text-white`}>
+            <div className={`p-3 rounded-lg ${card.bgColor}`}>
               {card.icon}
             </div>
           </div>

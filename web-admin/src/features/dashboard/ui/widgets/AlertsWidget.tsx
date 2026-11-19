@@ -87,11 +87,11 @@ export function AlertsWidget() {
   const getAlertColor = (type: AlertType) => {
     switch (type) {
       case 'critical':
-        return 'text-red-600 bg-red-50'
+        return 'text-danger-text bg-danger-bg'
       case 'warning':
-        return 'text-yellow-600 bg-yellow-50'
+        return 'text-warning-text bg-warning-bg'
       case 'info':
-        return 'text-blue-600 bg-blue-50'
+        return 'text-info-text bg-info-bg'
     }
   }
 
@@ -108,11 +108,11 @@ export function AlertsWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-6 bg-muted rounded w-1/2 mb-4"></div>
         <div className="space-y-3">
-          <div className="h-16 bg-gray-200 rounded"></div>
-          <div className="h-16 bg-gray-200 rounded"></div>
+          <div className="h-16 bg-muted rounded"></div>
+          <div className="h-16 bg-muted rounded"></div>
         </div>
       </div>
     )
@@ -123,26 +123,24 @@ export function AlertsWidget() {
   const hasAlerts = alerts.length > 0
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <div
-        className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}
+        className="flex items-center justify-between mb-4"
       >
-        <h3 className="text-lg font-semibold text-gray-900">{t('alerts')}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{t('alerts')}</h3>
         <div
           className={`relative inline-flex p-2 rounded-lg ${
             criticalCount > 0
-              ? 'bg-red-50 text-red-600'
+              ? 'bg-danger-bg text-danger-text'
               : warningCount > 0
-              ? 'bg-yellow-50 text-yellow-600'
-              : 'bg-gray-50 text-gray-600'
+              ? 'bg-warning-bg text-warning-text'
+              : 'bg-muted text-muted-foreground'
           }`}
         >
           <Bell className="h-5 w-5" />
           {hasAlerts && (
             <span
-              className={`absolute -top-1 min-w-[1.25rem] px-1 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full text-center ${
-                isRTL ? '-left-1' : '-right-1'
-              }`}
+              className="absolute -top-1 min-w-[1.25rem] px-1 py-0.5 text-xs font-semibold bg-destructive text-destructive-foreground rounded-full text-center -end-1"
             >
               {alerts.length}
             </span>
@@ -153,22 +151,22 @@ export function AlertsWidget() {
       {hasAlerts ? (
         <div className="space-y-3">
           {/* Alert Summary */}
-          <div className="grid grid-cols-3 gap-2 pb-4 border-b border-gray-200">
+          <div className="grid grid-cols-3 gap-2 pb-4 border-b border-border">
             <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
-              <p className="text-xs text-gray-600">{t('critical')}</p>
+              <p className="text-2xl font-bold text-danger-text">{criticalCount}</p>
+              <p className="text-xs text-muted-foreground">{t('critical')}</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">
+              <p className="text-2xl font-bold text-warning-text">
                 {warningCount}
               </p>
-              <p className="text-xs text-gray-600">{t('warning')}</p>
+              <p className="text-xs text-muted-foreground">{t('warning')}</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-2xl font-bold text-primary-text">
                 {alerts.filter((a) => a.type === 'info').length}
               </p>
-              <p className="text-xs text-gray-600">{t('info')}</p>
+              <p className="text-xs text-muted-foreground">{t('info')}</p>
             </div>
           </div>
 
@@ -177,28 +175,28 @@ export function AlertsWidget() {
             {alerts.slice(0, 5).map((alert) => (
               <div
                 key={alert.id}
-                className={`p-3 rounded-lg ${getAlertColor(alert.type)} border border-current border-opacity-20`}
+                className={`p-3 rounded-lg ${getAlertColor(alert.type)} border border-current/20`}
               >
-                <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex-shrink-0 ${isRTL ? 'ml-3' : 'mr-3'}`}>
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 me-3">
                     {getAlertIcon(alert.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-1 break-words">
+                    <p className="text-sm font-medium text-foreground line-clamp-1 break-words">
                       {alert.title}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2 break-words">
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words">
                       {alert.message}
                     </p>
-                    <div className={`flex items-center mt-2 text-xs text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Clock className={`h-3 w-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                    <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 me-1" />
                       {formatTimestamp(alert.timestamp)}
                     </div>
                   </div>
                   {alert.actionUrl && (
                     <a
                       href={alert.actionUrl}
-                      className={`${isRTL ? 'mr-3' : 'ml-3'} text-xs font-medium underline`}
+                      className="ms-3 text-xs font-medium underline"
                     >
                       {t('view')}
                     </a>
@@ -210,10 +208,10 @@ export function AlertsWidget() {
 
           {/* View All Link */}
           {alerts.length > 5 && (
-            <div className="pt-3 border-t border-gray-200">
+            <div className="pt-3 border-t border-border">
               <a
                 href="/alerts"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-primary-text hover:text-primary-text/80 font-medium"
               >
                 {t('viewAll', { count: alerts.length })} {isRTL ? '←' : '→'}
               </a>
@@ -222,11 +220,11 @@ export function AlertsWidget() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Bell className="h-12 w-12 text-gray-400 mb-2" />
-          <p className="text-sm font-medium text-gray-900 mb-1">
+          <Bell className="h-12 w-12 text-muted-foreground mb-2" />
+          <p className="text-sm font-medium text-foreground mb-1">
             {t('noAlerts')}
           </p>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             {t('allSystemsRunning')}
           </p>
         </div>

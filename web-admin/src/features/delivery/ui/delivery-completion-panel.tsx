@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Camera, CheckCircle2, FileSignature, ShieldCheck } from 'lucide-react';
-import { Alert, CmxButton, CmxInput, CmxTextarea, Label } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxTextarea, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import {
   CmxSelectDropdown,
@@ -15,6 +15,7 @@ import {
   CmxSelectDropdownValue,
 } from '@ui/forms';
 import { useMessage } from '@ui/feedback';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { STAFF_DELIVERY_COMPLETION_ENABLED } from '@/lib/config/delivery-safety';
 import { useHasAllPermissions } from '@/lib/hooks/usePermissions';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
@@ -174,11 +175,11 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
       <CmxCard>
         <CmxCardHeader>
           <CmxCardTitle className="flex items-center gap-2 text-base">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+            <CheckCircle2 className="h-5 w-5 text-success-text" aria-hidden="true" />
             {t('title')}
           </CmxCardTitle>
         </CmxCardHeader>
-        <CmxCardContent><Alert variant="success" message={t('delivered')} /></CmxCardContent>
+        <CmxCardContent><CmxSummaryMessage type="success" message={t('delivered')} /></CmxCardContent>
       </CmxCard>
     );
   }
@@ -188,7 +189,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
       <CmxCard>
         <CmxCardHeader><CmxCardTitle className="text-base">{t('title')}</CmxCardTitle></CmxCardHeader>
         <CmxCardContent className="space-y-3">
-          <Alert variant="warning" title={t('paymentBlockedTitle')} message={t('paymentBlockedDescription')} />
+          <CmxSummaryMessage type="warning" title={t('paymentBlockedTitle')} message={t('paymentBlockedDescription')} />
           <CmxButton className="w-full" asChild>
             <Link href={`/dashboard/orders/${stop.order.id}?tab=payments-credits`}>{t('collectPayment')}</Link>
           </CmxButton>
@@ -202,7 +203,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
       <CmxCard>
         <CmxCardHeader><CmxCardTitle className="text-base">{t('title')}</CmxCardTitle></CmxCardHeader>
         <CmxCardContent className="space-y-3">
-          <Alert variant="info" title={t('holdTitle')} message={t('holdDescription')} />
+          <CmxSummaryMessage type="info" title={t('holdTitle')} message={t('holdDescription')} />
           <CmxButton className="w-full" disabled>{t('confirm')}</CmxButton>
         </CmxCardContent>
       </CmxCard>
@@ -213,7 +214,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
     return (
       <CmxCard>
         <CmxCardHeader><CmxCardTitle className="text-base">{t('title')}</CmxCardTitle></CmxCardHeader>
-        <CmxCardContent><Alert variant="warning" message={t('permissionDenied')} /></CmxCardContent>
+        <CmxCardContent><CmxSummaryMessage type="warning" message={t('permissionDenied')} /></CmxCardContent>
       </CmxCard>
     );
   }
@@ -227,7 +228,7 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
         </CmxCardTitle>
       </CmxCardHeader>
       <CmxCardContent className="space-y-4">
-        {methodsQuery.isError ? <Alert variant="error" message={t('errors.methodsLoadFailed')} /> : null}
+        {methodsQuery.isError ? <CmxSummaryMessage type="error" message={t('errors.methodsLoadFailed')} /> : null}
         <div className="space-y-1.5">
           <Label>{t('methodLabel')}</Label>
           <CmxSelectDropdown
@@ -293,9 +294,9 @@ export function DeliveryCompletionPanel({ stop, onCompleted }: DeliveryCompletio
           />
         </div>
 
-        {formError ? <Alert variant="error" message={formError} /> : null}
+        {formError ? <CmxSummaryMessage type="error" message={formError} /> : null}
         <CmxButton className="w-full" loading={isSubmitting} onClick={complete}>
-          <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
+          <CheckCircle2 className="me-2 h-4 w-4" aria-hidden="true" />
           {isSubmitting ? t('submitting') : t('confirm')}
         </CmxButton>
       </CmxCardContent>

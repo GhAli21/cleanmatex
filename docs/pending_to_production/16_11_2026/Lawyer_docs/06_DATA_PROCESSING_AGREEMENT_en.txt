@@ -41,7 +41,7 @@ This agreement prevails over the Terms on the processing of personal data, as Te
 5.2 You will give your End Customers the notice in file 17, or a notice of your own that says the same things.
 5.3 You will not instruct us to process data of a child as the contracting customer.
 5.4 You will keep your user list current and your permissions tight.
-5.5 You will configure tax and prices on your own responsibility. Those settings are your instructions.
+5.5 You will configure tax and prices on your own responsibility. Those settings are your instructions. The tax, accounting, and finance functions were written by a software developer. They were not certified by a licensed professional body or by a government. We are not an e-invoicing provider authorized by any government. You review the output. A change follows clauses 7.10 and 7.11 of the Terms.
 
 6. Subprocessors
 6.1 You authorize the subprocessors listed in Annex A for the roles described there.

@@ -63,8 +63,8 @@ export default function B2BStatementsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
-        <div className="h-64 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
       </div>
     );
   }
@@ -80,9 +80,9 @@ export default function B2BStatementsPage() {
 
         {/* Overdue (Dunning) section */}
         {overdueStatements && overdueStatements.length > 0 && (
-          <CmxCard className="border-amber-200 bg-amber-50/50">
+          <CmxCard className="border-warning-border bg-warning-bg/50">
             <CmxCardHeader>
-              <CmxCardTitle className="flex items-center gap-2 text-amber-900">
+              <CmxCardTitle className="flex items-center gap-2 text-warning-text">
                 <AlertCircle className="h-5 w-5" />
                 {t('overdueStatements') || 'Overdue Statements'}
               </CmxCardTitle>
@@ -91,18 +91,18 @@ export default function B2BStatementsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-amber-200">
-                      <th className="text-left py-2 px-3">{t('statementNo') || 'Statement No'}</th>
-                      <th className="text-left py-2 px-3">{t('dueDate') || 'Due Date'}</th>
-                      <th className="text-left py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
-                      <th className="text-left py-2 px-3">{t('daysOverdue') || 'Days Overdue'}</th>
-                      <th className="text-left py-2 px-3">{t('dunningAction') || 'Action'}</th>
-                      <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
+                    <tr className="border-b border-warning-border">
+                      <th className="text-start py-2 px-3">{t('statementNo') || 'Statement No'}</th>
+                      <th className="text-start py-2 px-3">{t('dueDate') || 'Due Date'}</th>
+                      <th className="text-start py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
+                      <th className="text-start py-2 px-3">{t('daysOverdue') || 'Days Overdue'}</th>
+                      <th className="text-start py-2 px-3">{t('dunningAction') || 'Action'}</th>
+                      <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {overdueStatements.map((s) => (
-                      <tr key={s.id} className="border-b border-amber-100 hover:bg-amber-50">
+                      <tr key={s.id} className="border-b border-warning-border hover:bg-warning-bg">
                         <td className="py-2 px-3">{s.statementNo}</td>
                         <td className="py-2 px-3">
                           {s.dueDate ? new Date(s.dueDate).toLocaleDateString() : '-'}
@@ -110,10 +110,10 @@ export default function B2BStatementsPage() {
                         <td className="py-2 px-3 font-medium">
                           {s.balanceAmount != null ? Number(s.balanceAmount).toLocaleString() : '-'}
                         </td>
-                        <td className="py-2 px-3 text-amber-700">{s.daysOverdue}</td>
+                        <td className="py-2 px-3 text-warning-text">{s.daysOverdue}</td>
                         <td className="py-2 px-3">
                           {s.dunningLevel ? (
-                            <span className="text-xs font-medium text-amber-800">
+                            <span className="text-xs font-medium text-warning-text">
                               {s.dunningLevel.days}d → {s.dunningLevel.action}
                             </span>
                           ) : (
@@ -145,7 +145,7 @@ export default function B2BStatementsPage() {
           <CmxCardContent>
             {!statements?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-gray-500 mb-4">
+                <p className="text-muted-foreground mb-4">
                   No statements yet. Generate a statement from a B2B customer detail page.
                 </p>
                 <CmxButton
@@ -160,18 +160,18 @@ export default function B2BStatementsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 px-3">{t('statementNo') || 'Statement No'}</th>
-                      <th className="text-left py-2 px-3">{t('periodFrom') || 'Period From'}</th>
-                      <th className="text-left py-2 px-3">{t('periodTo') || 'Period To'}</th>
-                      <th className="text-left py-2 px-3">{t('dueDate') || 'Due Date'}</th>
-                      <th className="text-left py-2 px-3">{t('totalAmount') || 'Total'}</th>
-                      <th className="text-left py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
-                      <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
+                      <th className="text-start py-2 px-3">{t('statementNo') || 'Statement No'}</th>
+                      <th className="text-start py-2 px-3">{t('periodFrom') || 'Period From'}</th>
+                      <th className="text-start py-2 px-3">{t('periodTo') || 'Period To'}</th>
+                      <th className="text-start py-2 px-3">{t('dueDate') || 'Due Date'}</th>
+                      <th className="text-start py-2 px-3">{t('totalAmount') || 'Total'}</th>
+                      <th className="text-start py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
+                      <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {statements.map((s) => (
-                      <tr key={s.id} className="border-b hover:bg-gray-50">
+                      <tr key={s.id} className="border-b hover:bg-muted">
                         <td className="py-2 px-3">{s.statement_no}</td>
                         <td className="py-2 px-3">
                           {s.period_from ? new Date(s.period_from).toLocaleDateString() : '-'}

@@ -1,9 +1,8 @@
 'use client'
 
 /**
- * Account → Appearance: the signed-in person's own density and text size,
- * stored on their user record so they follow them to every device. The colour
- * mode choice appears here once dark mode is offered (PR-07 task 6).
+ * Account → Appearance: the signed-in person's own light/dark mode, density
+ * and text size, stored on their user record so they follow them to every device.
  * @module features/auth-session/ui/account-appearance-screen
  */
 
@@ -12,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCSRFToken } from '@/lib/utils/csrf-token'
-import { UI_DENSITIES, UI_FONT_SCALES } from '@/lib/constants/ui-theme'
+import { UI_COLOR_MODES, UI_DENSITIES, UI_FONT_SCALES } from '@/lib/constants/ui-theme'
 import type { UiPreferencesInput } from '@/lib/validations/ui-theme'
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
@@ -55,10 +54,12 @@ export function AccountAppearanceScreen() {
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: KEY, queryFn: load })
   // Only the user's unsaved edits are state; shown values fall back to the saved ones.
-  const [draft, setDraft] = useState<{ density?: string; fontScale?: string }>({})
+  const [draft, setDraft] = useState<{ mode?: string; density?: string; fontScale?: string }>({})
+  const mode = draft.mode ?? query.data?.ui_color_mode ?? 'SYSTEM'
   // '' = follow the Organization (stored as NULL).
   const density = draft.density ?? query.data?.ui_density ?? ''
   const fontScale = draft.fontScale ?? query.data?.ui_font_scale ?? 'MD'
+  const setMode = (v: string) => setDraft((d) => ({ ...d, mode: v }))
   const setDensity = (v: string) => setDraft((d) => ({ ...d, density: v }))
   const setFontScale = (v: string) => setDraft((d) => ({ ...d, fontScale: v }))
 
@@ -68,13 +69,14 @@ export function AccountAppearanceScreen() {
       queryClient.setQueryData(KEY, saved)
       setDraft({})
       cmxMessage.success(t('saved'))
-      router.refresh() // the server re-renders <html data-density/data-font-scale>
+      router.refresh() // the server re-renders <html data-mode/data-density/data-font-scale>
     },
     onError: () => cmxMessage.error(t('saveError')),
   })
 
   const dirty =
-    query.data && (density !== (query.data.ui_density ?? '') || fontScale !== query.data.ui_font_scale)
+    query.data &&
+    (mode !== query.data.ui_color_mode || density !== (query.data.ui_density ?? '') || fontScale !== query.data.ui_font_scale)
 
   return (
     <CmxCard className="max-w-2xl">
@@ -92,6 +94,13 @@ export function AccountAppearanceScreen() {
           </div>
         ) : (
           <>
+            <Choice
+              label={t('mode')}
+              hint={t('modeHint')}
+              value={mode}
+              onChange={setMode}
+              options={UI_COLOR_MODES.map((v) => ({ value: v, label: t(`modeOptions.${v}`) }))}
+            />
             <Choice
               label={t('density')}
               hint={t('densityHint')}
@@ -112,6 +121,7 @@ export function AccountAppearanceScreen() {
                 loading={mutation.isPending}
                 onClick={() =>
                   mutation.mutate({
+                    ui_color_mode: mode as UiPreferencesInput['ui_color_mode'],
                     ui_density: (density || null) as UiPreferencesInput['ui_density'],
                     ui_font_scale: fontScale as UiPreferencesInput['ui_font_scale'],
                   })

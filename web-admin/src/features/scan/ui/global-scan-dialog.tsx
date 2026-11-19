@@ -125,25 +125,25 @@ function GlobalScanBody({
               dedupeMs={0}
             />
             {result ? (
-              <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-md border border-gray-200 p-3 text-sm">
-                <dt className="text-gray-600">{tCodes('orderNo')}</dt>
+              <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-md border border-border p-3 text-sm">
+                <dt className="text-muted-foreground">{tCodes('orderNo')}</dt>
                 <dd className="flex flex-wrap items-center gap-2">
                   <CmxCodeChip code={result.order.orderNo} kind="order" />
                   {result.order.parentOrderNo ? (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {tCodes('partOf', { orderNo: result.order.parentOrderNo })}
                     </span>
                   ) : null}
                 </dd>
                 {result.order.status ? (
                   <>
-                    <dt className="text-gray-600">{t('result.status')}</dt>
+                    <dt className="text-muted-foreground">{t('result.status')}</dt>
                     <dd>{result.order.status}</dd>
                   </>
                 ) : null}
                 {result.item?.srno ? (
                   <>
-                    <dt className="text-gray-600">{tCodes('lineCode')}</dt>
+                    <dt className="text-muted-foreground">{tCodes('lineCode')}</dt>
                     <dd className="flex flex-wrap items-center gap-2">
                       <CmxCodeChip code={result.item.srno} kind="item" />
                       {result.item.name ? <span>{result.item.name}</span> : null}
@@ -152,7 +152,7 @@ function GlobalScanBody({
                 ) : null}
                 {piece?.pieceCode ? (
                   <>
-                    <dt className="text-gray-600">{tCodes('pieceCode')}</dt>
+                    <dt className="text-muted-foreground">{tCodes('pieceCode')}</dt>
                     <dd>
                       <CmxCodeChip code={piece.pieceCode} kind="piece" />
                     </dd>
@@ -160,17 +160,17 @@ function GlobalScanBody({
                 ) : null}
                 {piece ? (
                   <>
-                    <dt className="text-gray-600">{tCodes('tag')}</dt>
+                    <dt className="text-muted-foreground">{tCodes('tag')}</dt>
                     <dd className="flex flex-wrap items-center gap-2">
                       {piece.externalTag ? <CmxCodeChip code={piece.externalTag} kind="tag" /> : <span>—</span>}
                       {result.matchedBy === 'EXTERNAL_TAG' ? (
-                        <span className="text-xs text-gray-500">{t('result.matchedByTag')}</span>
+                        <span className="text-xs text-muted-foreground">{t('result.matchedByTag')}</span>
                       ) : null}
                     </dd>
                   </>
                 ) : null}
                 {piece?.removed ? (
-                  <p className="col-span-2 text-sm text-amber-700" role="note">
+                  <p className="col-span-2 text-sm text-warning-text" role="note">
                     {t('result.removed')}
                   </p>
                 ) : null}

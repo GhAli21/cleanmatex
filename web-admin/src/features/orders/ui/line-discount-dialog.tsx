@@ -84,9 +84,9 @@ export function LineDiscountDialog({ open, onClose, productName, lineGross, curr
         </CmxDialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-            <p className="font-medium text-gray-900">{productName}</p>
-            <p className="text-gray-600">
+          <div className="rounded-lg border border-border bg-muted p-3 text-sm">
+            <p className="font-medium text-foreground">{productName}</p>
+            <p className="text-muted-foreground">
               {lineGross != null ? t('lineGross', { amount: fmt(lineGross) }) : t('waitingForPrice')}
             </p>
           </div>
@@ -102,7 +102,7 @@ export function LineDiscountDialog({ open, onClose, productName, lineGross, curr
           />
 
           <div>
-            <label htmlFor="line-discount-value" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="line-discount-value" className="mb-1 block text-sm font-medium text-foreground">
               {isPercent ? t('percentLabel') : t('amountLabel', { currency: currencyCode })}
             </label>
             <CmxMoneyField
@@ -114,11 +114,11 @@ export function LineDiscountDialog({ open, onClose, productName, lineGross, curr
               onValueChange={(_, d) => setDraft(d)}
               aria-invalid={draft !== '' && !!valueError}
             />
-            {draft !== '' && valueError ? <p className="mt-1 text-sm text-red-600">{valueError}</p> : null}
+            {draft !== '' && valueError ? <p className="mt-1 text-sm text-danger-text">{valueError}</p> : null}
           </div>
 
           <div>
-            <label htmlFor="line-discount-reason" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="line-discount-reason" className="mb-1 block text-sm font-medium text-foreground">
               {t('reasonLabel')}
             </label>
             <CmxTextarea
@@ -129,7 +129,7 @@ export function LineDiscountDialog({ open, onClose, productName, lineGross, curr
               onChange={(e) => setReason(e.target.value)}
               placeholder={t('reasonPlaceholder')}
             />
-            <p className="mt-1 text-xs text-gray-500">{t('reasonHint')}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('reasonHint')}</p>
           </div>
         </div>
 

@@ -328,4 +328,46 @@ describe('completePickup', () => {
     expect(mockExecuteAction).not.toHaveBeenCalled();
     expect(mockExecuteRaw).not.toHaveBeenCalled();
   });
+
+  describe('pickup proof photos', () => {
+    const FILE_A = '77777777-7777-7777-7777-777777777777';
+    const FILE_B = '88888888-8888-8888-8888-888888888888';
+    const readyOrderAndRelease = () => mockQueryRaw
+      .mockResolvedValueOnce([
+        { id: COMMAND.orderId, current_status: 'ready_for_pickup', payment_type_code: 'PAY_IN_ADVANCE', outstanding_amount: '0.0000' },
+      ])
+      .mockResolvedValueOnce([
+        { id: '44444444-4444-4444-4444-444444444444', release_type: 'pickup', release_status: 'released', has_release_lines: false },
+      ]);
+
+    it('locks every proof file of this order, tenant and purpose in the pickup transaction', async () => {
+      readyOrderAndRelease().mockResolvedValueOnce([{ id: FILE_A }, { id: FILE_B }]);
+
+      await completePickup({ ...COMMAND, proofFileIds: [FILE_A, FILE_B, FILE_A] });
+
+      const lockCall = mockQueryRaw.mock.calls[2];
+      const sql = (lockCall[0] as string[]).join('?');
+      expect(sql).toContain('UPDATE public.org_file_mst');
+      expect(sql).toContain('locked_at IS NULL');
+      // Values: now, actor, now, actor, tenant, category, purpose, order, ids, status.
+      expect(lockCall.slice(1)).toEqual(expect.arrayContaining([
+        COMMAND.tenantId, 'ORDER_FILE', 'PICKUP_PROOF', COMMAND.orderId, [FILE_A, FILE_B], 'READY',
+      ]));
+    });
+
+    it('fails the whole pickup when a proof file cannot be locked', async () => {
+      readyOrderAndRelease().mockResolvedValueOnce([{ id: FILE_A }]);
+
+      await expect(completePickup({ ...COMMAND, proofFileIds: [FILE_A, FILE_B] }))
+        .rejects.toMatchObject<PickupCompletionError>({ code: 'PICKUP_PROOF_INVALID', httpStatus: 409 });
+      expect(mockIdempotencyUpdateMany).not.toHaveBeenCalled();
+      expect(mockDeleteIdempotencyHash).toHaveBeenCalled();
+    });
+
+    it('does not touch files when no proof is sent', async () => {
+      readyOrderAndRelease();
+      await completePickup(COMMAND);
+      expect(mockQueryRaw).toHaveBeenCalledTimes(2);
+    });
+  });
 });

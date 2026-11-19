@@ -194,16 +194,16 @@ export default function AddressFormModal({
         />
 
         {/* Modal content - above backdrop */}
-        <div className={`relative z-10 inline-block align-bottom bg-white rounded-lg ${isRTL ? 'text-right' : 'text-left'} overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full`}>
+        <div className="relative z-10 inline-block align-bottom bg-card rounded-lg text-start overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
           {/* Header */}
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <h3 id="address-modal-title" className="text-lg font-semibold text-gray-900">
+          <div className="bg-muted px-6 py-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <h3 id="address-modal-title" className="text-lg font-semibold text-foreground">
                 {isEditMode ? t('editAddress') : t('addNewAddress')}
               </h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
@@ -225,7 +225,7 @@ export default function AddressFormModal({
                 <div>
                   <label
                     htmlFor="label"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {t('addressLabel')} *
                   </label>
@@ -237,12 +237,12 @@ export default function AddressFormModal({
                     onChange={handleChange}
                     dir={isRTL ? 'rtl' : 'ltr'}
                     placeholder={t('addressLabel')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'} ${
-                      errors.label ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
+                      errors.label ? 'border-destructive' : 'border-border'
                     }`}
                   />
                   {errors.label && (
-                    <p className={`mt-1 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>{errors.label}</p>
+                    <p className="mt-1 text-sm text-danger-text text-start">{errors.label}</p>
                   )}
                 </div>
 
@@ -250,7 +250,7 @@ export default function AddressFormModal({
                 <div>
                   <label
                     htmlFor="building_name"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {t('buildingName')}
                   </label>
@@ -262,7 +262,7 @@ export default function AddressFormModal({
                     onChange={handleChange}
                     dir={isRTL ? 'rtl' : 'ltr'}
                     placeholder={t('buildingName')}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start"
                   />
                 </div>
 
@@ -270,7 +270,7 @@ export default function AddressFormModal({
                 <div>
                   <label
                     htmlFor="street_address"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {t('streetAddress')} *
                   </label>
@@ -282,12 +282,12 @@ export default function AddressFormModal({
                     onChange={handleChange}
                     dir={isRTL ? 'rtl' : 'ltr'}
                     placeholder={t('streetAddress')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'} ${
-                      errors.street_address ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
+                      errors.street_address ? 'border-destructive' : 'border-border'
                     }`}
                   />
                   {errors.street_address && (
-                    <p className={`mt-1 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>{errors.street_address}</p>
+                    <p className="mt-1 text-sm text-danger-text text-start">{errors.street_address}</p>
                   )}
                 </div>
 
@@ -296,7 +296,7 @@ export default function AddressFormModal({
                   <div>
                     <label
                       htmlFor="area"
-                      className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="block text-sm font-medium text-foreground mb-1 text-start"
                     >
                       {tCommon('area')} *
                     </label>
@@ -308,19 +308,19 @@ export default function AddressFormModal({
                       onChange={handleChange}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       placeholder={tCommon('area')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'} ${
-                        errors.area ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
+                        errors.area ? 'border-destructive' : 'border-border'
                       }`}
                     />
                     {errors.area && (
-                      <p className={`mt-1 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>{errors.area}</p>
+                      <p className="mt-1 text-sm text-danger-text text-start">{errors.area}</p>
                     )}
                   </div>
 
                   <div>
                     <label
                       htmlFor="city"
-                      className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="block text-sm font-medium text-foreground mb-1 text-start"
                     >
                       {tCommon('city')} *
                     </label>
@@ -332,12 +332,12 @@ export default function AddressFormModal({
                       onChange={handleChange}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       placeholder={tCommon('city')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'} ${
-                        errors.city ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
+                        errors.city ? 'border-destructive' : 'border-border'
                       }`}
                     />
                     {errors.city && (
-                      <p className={`mt-1 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>{errors.city}</p>
+                      <p className="mt-1 text-sm text-danger-text text-start">{errors.city}</p>
                     )}
                   </div>
                 </div>
@@ -346,7 +346,7 @@ export default function AddressFormModal({
                 <div>
                   <label
                     htmlFor="postal_code"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {t('postalCode')}
                   </label>
@@ -358,20 +358,20 @@ export default function AddressFormModal({
                     onChange={handleChange}
                     dir="ltr"
                     placeholder="100"
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start"
                   />
                 </div>
 
                 {/* GPS Coordinates */}
-                <div className="border-t border-gray-200 pt-4">
-                  <h4 className={`text-sm font-medium text-gray-700 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3 text-start">
                     {t('gpsCoordinates')}
                   </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label
                         htmlFor="gps_latitude"
-                        className={`block text-sm font-medium text-gray-600 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                        className="block text-sm font-medium text-muted-foreground mb-1 text-start"
                       >
                         {t('latitude')}
                       </label>
@@ -383,12 +383,12 @@ export default function AddressFormModal({
                         onChange={handleChange}
                         dir="ltr"
                         placeholder="23.588660"
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.gps_latitude ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring ${
+                          errors.gps_latitude ? 'border-destructive' : 'border-border'
                         }`}
                       />
                       {errors.gps_latitude && (
-                        <p className={`mt-1 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <p className="mt-1 text-sm text-danger-text text-start">
                           {errors.gps_latitude}
                         </p>
                       )}
@@ -397,7 +397,7 @@ export default function AddressFormModal({
                     <div>
                       <label
                         htmlFor="gps_longitude"
-                        className={`block text-sm font-medium text-gray-600 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                        className="block text-sm font-medium text-muted-foreground mb-1 text-start"
                       >
                         {t('longitude')}
                       </label>
@@ -409,12 +409,12 @@ export default function AddressFormModal({
                         onChange={handleChange}
                         dir="ltr"
                         placeholder="58.382897"
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.gps_longitude ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring ${
+                          errors.gps_longitude ? 'border-destructive' : 'border-border'
                         }`}
                       />
                       {errors.gps_longitude && (
-                        <p className={`mt-1 text-sm text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <p className="mt-1 text-sm text-danger-text text-start">
                           {errors.gps_longitude}
                         </p>
                       )}
@@ -426,7 +426,7 @@ export default function AddressFormModal({
                 <div>
                   <label
                     htmlFor="delivery_instructions"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {t('deliveryInstructions')}
                   </label>
@@ -438,23 +438,23 @@ export default function AddressFormModal({
                     rows={3}
                     dir={isRTL ? 'rtl' : 'ltr'}
                     placeholder={t('deliveryInstructions')}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start"
                   />
                 </div>
 
                 {/* Default Address Toggle */}
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="flex items-center">
                   <input
                     type="checkbox"
                     id="is_default"
                     name="is_default"
                     checked={formData.is_default}
                     onChange={handleChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
                   />
                   <label
                     htmlFor="is_default"
-                    className={`${isRTL ? 'mr-2' : 'ml-2'} block text-sm text-gray-700`}
+                    className="ms-2 block text-sm text-foreground"
                   >
                     {t('setAsDefault')}
                   </label>
@@ -462,31 +462,31 @@ export default function AddressFormModal({
 
                 {/* Submit Error */}
                 {errors.submit && (
-                  <div className={`bg-red-50 border ${isRTL ? 'border-r-4 border-l-0' : 'border-l-4 border-r-0'} border-red-200 rounded-md p-3`}>
-                    <p className={`text-sm text-red-800 ${isRTL ? 'text-right' : 'text-left'}`}>{errors.submit}</p>
+                  <div className="bg-danger-bg border border-s-4 border-e-0 border-danger-border rounded-md p-3">
+                    <p className="text-sm text-danger-text text-start">{errors.submit}</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Footer */}
-            <div className={`bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center ${isRTL ? 'flex-row-reverse justify-start space-x-reverse space-x-3' : 'justify-end space-x-3'}`}>
+            <div className="bg-muted px-6 py-4 border-t border-border flex items-center justify-end space-x-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
               >
                 {tCommon('cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <span className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="flex items-center">
                     <svg
-                      className={`animate-spin h-4 w-4 text-white ${isRTL ? 'ml-2 -mr-1' : '-ml-1 mr-2'}`}
+                      className="animate-spin h-4 w-4 text-on-solid -ms-1 me-2"
                       fill="none"
                       viewBox="0 0 24 24"
                     >

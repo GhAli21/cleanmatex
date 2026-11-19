@@ -191,15 +191,15 @@ function ReadyDatePickerModalOpen({
     >
       <div
         ref={focusTrapRef}
-        className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto"
+        className="bg-card rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-4 border-b border-gray-200`}>
-          <h2 className={`text-lg font-bold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>{t('selectReadyDateTime')}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-bold text-foreground text-start">{t('selectReadyDateTime')}</h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             aria-label={tCommon('close')}
           >
             <X className="w-5 h-5" />
@@ -210,17 +210,17 @@ function ReadyDatePickerModalOpen({
         <div className="p-4 space-y-4">
           {/* Direct Date/Time Input */}
           <div className="space-y-2">
-            <label className={`block text-xs font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <label className="block text-xs font-semibold text-foreground text-start">
               {t('readyBy')} ({t('directInput') || 'Direct Input'})
             </label>
-            <div className={`grid grid-cols-2 gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <input
                   type="date"
                   value={dateInput}
                   onChange={(e) => handleDateInputChange(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-4 py-2 border ${!dateValidation.isValid ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                  className={`w-full px-4 py-2 border ${!dateValidation.isValid ? 'border-destructive' : 'border-border'} rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start`}
                 />
               </div>
               <div>
@@ -231,31 +231,31 @@ function ReadyDatePickerModalOpen({
                     setTimeInput(e.target.value);
                     setSelectedTime(e.target.value);
                   }}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start"
                 />
               </div>
             </div>
             {!dateValidation.isValid && (
-              <p className="text-xs text-red-600">{t('validation.dateMustBeFuture') || 'Date must be in the future'}</p>
+              <p className="text-xs text-danger-text">{t('validation.dateMustBeFuture') || 'Date must be in the future'}</p>
             )}
           </div>
 
           {/* Calendar */}
           <div>
-            <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-2`}>
+            <div className="flex items-center justify-between mb-2">
               <button
                 onClick={previousMonth}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-muted rounded-lg transition-colors"
                 aria-label={tCommon('previous')}
               >
                 {isRTL ? '→' : '←'}
               </button>
-              <h3 className={`font-bold text-base ${isRTL ? 'text-right' : 'text-left'}`}>
+              <h3 className="font-bold text-base text-start">
                 {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
               </h3>
               <button
                 onClick={nextMonth}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-muted rounded-lg transition-colors"
                 aria-label={tCommon('next')}
               >
                 {isRTL ? '←' : '→'}
@@ -265,7 +265,7 @@ function ReadyDatePickerModalOpen({
             {/* Day names */}
             <div className="grid grid-cols-7 gap-0.5 mb-1">
               {dayNames.map((day) => (
-                <div key={day} className="text-center text-xs font-semibold text-gray-500 py-1">
+                <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-1">
                   {day}
                 </div>
               ))}
@@ -283,12 +283,12 @@ function ReadyDatePickerModalOpen({
                     ${!day
                       ? 'invisible'
                       : day < new Date(new Date().setHours(0, 0, 0, 0))
-                        ? 'text-gray-300 cursor-not-allowed'
+                        ? 'text-muted-foreground cursor-not-allowed'
                         : day && isSameDay(day, selectedDate)
-                          ? 'bg-blue-600 text-white shadow-md'
+                          ? 'bg-primary text-primary-foreground shadow-md'
                           : isToday(day)
-                            ? 'bg-blue-100 text-blue-700 font-bold'
-                            : 'hover:bg-gray-100'
+                            ? 'bg-info-bg text-info-text font-bold'
+                            : 'hover:bg-muted'
                     }
                   `}
                 >
@@ -300,7 +300,7 @@ function ReadyDatePickerModalOpen({
 
           {/* Time Selector */}
           <div>
-            <label className={`block text-xs font-semibold text-gray-700 mb-1.5 flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <label className="block text-xs font-semibold text-foreground mb-1.5 flex items-center gap-2 text-start">
               <Clock className="w-3.5 h-3.5" />
               {t('selectTime')}
             </label>
@@ -311,7 +311,7 @@ function ReadyDatePickerModalOpen({
                 setTimeInput(e.target.value);
               }}
               dir="ltr"
-              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-sm text-start"
             >
               {timeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -322,9 +322,9 @@ function ReadyDatePickerModalOpen({
           </div>
 
           {/* Preview */}
-          <div className={`p-3 bg-blue-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
-            <p className="text-xs text-gray-600 mb-1">{t('readyBy')}:</p>
-            <p className="font-bold text-sm text-blue-700">
+          <div className="p-3 bg-info-bg rounded-lg text-start">
+            <p className="text-xs text-muted-foreground mb-1">{t('readyBy')}:</p>
+            <p className="font-bold text-sm text-primary-text">
               {selectedDate.toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US', {
                 weekday: 'short',
                 month: 'short',
@@ -338,17 +338,17 @@ function ReadyDatePickerModalOpen({
         </div>
 
         {/* Footer */}
-        <div className={`flex items-center gap-2 p-4 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex items-center gap-2 p-4 border-t border-border">
           <button
             onClick={onClose}
-            className="flex-1 h-10 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+            className="flex-1 h-10 px-4 bg-muted hover:bg-border text-foreground rounded-lg font-medium text-sm transition-colors"
           >
             {tCommon('cancel')}
           </button>
           <button
             onClick={handleApply}
             disabled={!dateValidation.isValid}
-            className="flex-1 h-10 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors shadow-lg"
+            className="flex-1 h-10 px-4 bg-success hover:bg-success/90 disabled:bg-border disabled:cursor-not-allowed text-on-solid rounded-lg font-medium text-sm transition-colors shadow-lg"
           >
             {t('apply')}
           </button>

@@ -56,7 +56,6 @@ export default function CustomerTable({
 }: CustomerTableProps) {
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
-  const isRTL = useRTL()
   const locale = useLocale()
   const allSelected =
     customers.length > 0 && selectedCustomers.length === customers.length
@@ -72,19 +71,19 @@ export default function CustomerTable({
 
   const getTypeBadge = (type: string) => {
     const badges = {
-      guest: 'bg-gray-100 text-gray-800',
-      stub: 'bg-yellow-100 text-yellow-800',
-      full: 'bg-green-100 text-green-800',
+      guest: 'bg-muted text-foreground',
+      stub: 'bg-warning-bg text-warning-text',
+      full: 'bg-success-bg text-success-text',
     }
     return badges[type as keyof typeof badges] || badges.guest
   }
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-card rounded-lg shadow">
         <div className="p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-sm text-gray-600">{t('loadingCustomers')}</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="mt-4 text-sm text-muted-foreground">{t('loadingCustomers')}</p>
         </div>
       </div>
     )
@@ -92,10 +91,10 @@ export default function CustomerTable({
 
   if (customers.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-card rounded-lg shadow">
         <div className="p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -107,8 +106,8 @@ export default function CustomerTable({
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">{t('noCustomersFound')}</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-foreground">{t('noCustomersFound')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('getStartedCreateCustomer')}
           </p>
         </div>
@@ -117,53 +116,53 @@ export default function CustomerTable({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-card rounded-lg shadow overflow-hidden">
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted">
             <tr>
               <th scope="col" className="w-12 px-6 py-3">
                 <input
                   type="checkbox"
                   checked={allSelected}
                   onChange={(e) => onSelectAll(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
                 />
               </th>
               <th
                 scope="col"
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${isRTL ? 'text-right' : 'text-left'}`}
+                className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('customerName')}
               </th>
               <th
                 scope="col"
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${isRTL ? 'text-right' : 'text-left'}`}
+                className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('contact')}
               </th>
               <th
                 scope="col"
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${isRTL ? 'text-right' : 'text-left'}`}
+                className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('type')}
               </th>
               <th
                 scope="col"
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${isRTL ? 'text-right' : 'text-left'}`}
+                className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('orders')}
               </th>
               <th
                 scope="col"
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${isRTL ? 'text-right' : 'text-left'}`}
+                className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('points')}
               </th>
               <th
                 scope="col"
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${isRTL ? 'text-right' : 'text-left'}`}
+                className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('lastOrder')}
               </th>
@@ -172,9 +171,9 @@ export default function CustomerTable({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {customers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-gray-50">
+              <tr key={customer.id} className="hover:bg-muted">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input
                     type="checkbox"
@@ -182,35 +181,35 @@ export default function CustomerTable({
                     onChange={(e) =>
                       onSelectCustomer(customer.id, e.target.checked)
                     }
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-sm font-medium text-muted-foreground">
                           {customer.firstName?.charAt(0).toUpperCase()}
                           {customer.lastName?.charAt(0).toUpperCase()}
                         </span>
                       </div>
                     </div>
-                    <div className={isRTL ? 'mr-4' : 'ml-4'}>
-                      <div className="text-sm font-medium text-gray-900">
+                    <div className="ms-4">
+                      <div className="text-sm font-medium text-foreground">
                         {customer.displayName ||
                           `${customer.firstName} ${customer.lastName || ''}`}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         {customer.customerNumber || t('noNumber')}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-foreground">
                     {customer.phone || t('noPhone')}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-muted-foreground">
                     {customer.email || t('noEmail')}
                   </div>
                 </td>
@@ -223,19 +222,19 @@ export default function CustomerTable({
                     {t(`types.${customer.type}`) || (customer.type.charAt(0).toUpperCase() + customer.type.slice(1))}
                   </span>
                 </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-start">
                   {customer.totalOrders || 0}
                 </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-start">
                   {customer.loyaltyPoints || 0}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {formatDate(customer.lastOrderAt)}
                 </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isRTL ? 'text-left' : 'text-right'}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-end">
                   <Link
                     href={`/dashboard/customers/${customer.id}`}
-                    className="text-blue-600 hover:text-blue-900"
+                    className="text-primary-text hover:text-primary-text/80"
                   >
                     {t('view')}
                   </Link>
@@ -247,26 +246,26 @@ export default function CustomerTable({
       </div>
 
       {/* Pagination */}
-      <div className={`bg-white px-4 py-3 flex items-center border-t border-gray-200 sm:px-6 ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-        <div className={`flex-1 flex sm:hidden ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+      <div className="bg-card px-4 py-3 flex items-center border-t border-border sm:px-6 justify-between">
+        <div className="flex-1 flex sm:hidden justify-between">
           <button
             onClick={() => onPageChange(pagination.page - 1)}
             disabled={pagination.page === 1}
-            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            className="relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50"
           >
             {t('previous')}
           </button>
           <button
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.totalPages}
-            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 ${isRTL ? 'mr-3' : 'ml-3'}`}
+            className="relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50 ms-3"
           >
             {t('next')}
           </button>
         </div>
-        <div className={`hidden sm:flex-1 sm:flex sm:items-center ${isRTL ? 'sm:flex-row-reverse sm:justify-between' : 'sm:justify-between'}`}>
+        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-foreground">
               {t('showing')}{' '}
               <span className="font-medium">
                 {(pagination.page - 1) * pagination.limit + 1}
@@ -289,7 +288,7 @@ export default function CustomerTable({
               <button
                 onClick={() => onPageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
-                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex items-center px-2 py-2 rounded-s-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
               >
                 <span className="sr-only">Previous</span>
                 <svg
@@ -317,7 +316,7 @@ export default function CustomerTable({
                 .map((page, index, array) => (
                   <span key={page}>
                     {index > 0 && array[index - 1] !== page - 1 && (
-                      <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                      <span className="relative inline-flex items-center px-4 py-2 border border-border bg-card text-sm font-medium text-foreground">
                         ...
                       </span>
                     )}
@@ -325,8 +324,8 @@ export default function CustomerTable({
                       onClick={() => onPageChange(page)}
                       className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                         page === pagination.page
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          ? 'z-10 bg-info-bg border-primary text-info-text'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted'
                       }`}
                     >
                       {page}
@@ -337,7 +336,7 @@ export default function CustomerTable({
               <button
                 onClick={() => onPageChange(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
-                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex items-center px-2 py-2 rounded-e-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
               >
                 <span className="sr-only">Next</span>
                 <svg

@@ -27,7 +27,7 @@ export function PayExtraWorkbenchHint({ visible, isRTL = false }: PayExtraWorkbe
       type="info"
       title={t('adjustPayments')}
       items={[t('adjustPaymentsHelp')]}
-      className={isRTL ? 'text-right' : 'text-left'}
+      className="text-start"
     />
   );
 }

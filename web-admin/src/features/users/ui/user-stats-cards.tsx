@@ -30,7 +30,7 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       value: stats.total,
       icon: (
         <svg
-          className="h-6 w-6 text-gray-400"
+          className="h-6 w-6 text-muted-foreground"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -44,8 +44,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
         </svg>
       ),
       color: 'blue',
-      bgColor: 'bg-blue-500',
-      lightBg: 'bg-blue-50',
+      bgColor: 'bg-primary',
+      lightBg: 'bg-info-bg',
     },
     {
       id: 'active',
@@ -53,7 +53,7 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       value: stats.active,
       icon: (
         <svg
-          className="h-6 w-6 text-green-400"
+          className="h-6 w-6 text-success-text"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -67,8 +67,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
         </svg>
       ),
       color: 'green',
-      bgColor: 'bg-green-500',
-      lightBg: 'bg-green-50',
+      bgColor: 'bg-success',
+      lightBg: 'bg-success-bg',
       subtext: stats.inactive > 0 ? `${stats.inactive} ${tCommon('inactive')}` : null,
     },
     {
@@ -77,7 +77,7 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       value: stats.admins,
       icon: (
         <svg
-          className="h-6 w-6 text-purple-400"
+          className="h-6 w-6 text-primary-text"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -91,8 +91,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
         </svg>
       ),
       color: 'purple',
-      bgColor: 'bg-purple-500',
-      lightBg: 'bg-purple-50',
+      bgColor: 'bg-primary',
+      lightBg: 'bg-info-bg',
       subtext: `${t('operatorsCount', { count: stats.operators })}, ${t('viewersCount', { count: stats.viewers })}`,
     },
     {
@@ -101,7 +101,7 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       value: stats.recentLogins,
       icon: (
         <svg
-          className="h-6 w-6 text-indigo-400"
+          className="h-6 w-6 text-primary-text"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -115,8 +115,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
         </svg>
       ),
       color: 'indigo',
-      bgColor: 'bg-indigo-500',
-      lightBg: 'bg-indigo-50',
+      bgColor: 'bg-primary',
+      lightBg: 'bg-info-bg',
       subtext: t('last7Days'),
     },
   ]
@@ -126,20 +126,20 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       {cards.map((card) => (
         <div
           key={card.id}
-          className="relative bg-white pt-5 px-4 pb-4 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
+          className="relative bg-card pt-5 px-4 pb-4 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
         >
           <dt>
             <div className={`absolute ${card.lightBg} rounded-md p-3`}>
               {card.icon}
             </div>
-            <p className="ml-16 rtl:ml-0 rtl:mr-16 text-sm font-medium text-gray-500 truncate">
+            <p className="ms-16 text-sm font-medium text-muted-foreground truncate">
               {card.label}
             </p>
           </dt>
-          <dd className="ml-16 rtl:ml-0 rtl:mr-16 pb-2 flex items-baseline">
-            <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
+          <dd className="ms-16 pb-2 flex items-baseline">
+            <p className="text-2xl font-semibold text-foreground">{card.value}</p>
             {card.subtext && (
-              <p className="ml-2 flex items-baseline text-xs text-gray-500">
+              <p className="ms-2 flex items-baseline text-xs text-muted-foreground">
                 {card.subtext}
               </p>
             )}
@@ -147,8 +147,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
 
           {/* Optional progress bar for active vs total */}
           {card.id === 'active' && stats.total > 0 && (
-            <div className="mt-1 ml-16 rtl:ml-0 rtl:mr-16">
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div className="mt-1 ms-16">
+              <div className="w-full bg-muted rounded-full h-1.5">
                 <div
                   className={`${card.bgColor} h-1.5 rounded-full`}
                   style={{ width: `${(stats.active / stats.total) * 100}%` }}

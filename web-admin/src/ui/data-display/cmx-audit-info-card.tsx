@@ -307,12 +307,12 @@ function renderRowValue(
       <Fragment>
         <span className="block">{actorMeta.primary}</span>
         {actorMeta.secondary ? (
-          <span className="mt-1 block text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <span className="mt-1 block text-xs text-muted-foreground">
             {actorMeta.secondary}
           </span>
         ) : null}
         {actorMeta.tertiary ? (
-          <span className="mt-1 block text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <span className="mt-1 block text-xs text-muted-foreground">
             {actorMeta.tertiary}
           </span>
         ) : null}
@@ -380,11 +380,11 @@ function AuditInfoRow({
   value: ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-secondary-bg-rgb,248_250_252))] px-3 py-2.5">
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-secondary px-3 py-2.5">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))] break-words">
+      <dd className="mt-1 text-sm text-foreground break-words">
         {value}
       </dd>
     </div>
@@ -530,7 +530,7 @@ export function CmxAuditInfoCard(props: CmxAuditInfoCardProps) {
             size="sm"
             aria-expanded={isExpanded}
             onClick={() => setIsExpanded((previous) => !previous)}
-            className="shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+            className="shrink-0 text-muted-foreground"
           >
             {isExpanded ? tCommon('auditCard.showLess') : tCommon('auditCard.showMore')}
             {isExpanded ? (

@@ -171,8 +171,8 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
     <CmxCard
       className={cn(
         'p-3 sm:p-4 transition-all hover:shadow-md',
-        piece.isRejected && 'border-l-4',
-        piece.isRejected && rejectEnabled && 'bg-red-50/50'
+        piece.isRejected && 'border-s-4',
+        piece.isRejected && rejectEnabled && 'bg-danger-bg/50'
       )}
       style={{
         borderLeftColor: piece.isRejected && rejectEnabled ? rejectColor : undefined,
@@ -184,8 +184,8 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-gray-400" />
-            <span className="font-semibold text-base text-gray-900">
+            <Package className="h-5 w-5 text-muted-foreground" />
+            <span className="font-semibold text-base text-foreground">
               {t('modal.piece')} {piece.pieceNumber}
             </span>
             {piece.piece_code && (
@@ -273,7 +273,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                 className="h-7 px-2 text-xs"
                 aria-label={t('modal.unReject')}
               >
-                <X className="h-3 w-3 mr-1" />
+                <X className="h-3 w-3 me-1" />
                 {t('modal.unReject')}
               </CmxButton>
             </div>
@@ -284,10 +284,10 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       {/* Interactive Step Timeline */}
       <div className="mb-4 pb-4 border-b">
         <div className="mb-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             {t('modal.step')} / {t('modal.lastStep') || 'Last Step'}
           </label>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             {t('modal.clickStepToChange') || 'Click on a step to change the processing stage'}
           </p>
         </div>
@@ -302,7 +302,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
         />
         {/* Display current step as text */}
         {piece.currentStep && (
-          <div className="mt-2 text-sm text-gray-600">
+          <div className="mt-2 text-sm text-muted-foreground">
             <span className="font-medium">{t('modal.currentStep') || 'Current Step'}:</span>{' '}
             <span className="capitalize">{piece.currentStep.replace('_', ' ')}</span>
           </div>
@@ -311,7 +311,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
       {/* Barcode (editable); color/brand are preference tags only */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <label className="block text-sm font-medium text-foreground mb-1.5">
           {t('modal.barcode') || 'Barcode'}
         </label>
         <CmxInput
@@ -326,10 +326,10 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Piece Status Display */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             {t('modal.pieceStatus') || 'Status'}
           </label>
-          <div className="h-10 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded flex items-center">
+          <div className="h-10 px-3 py-2 text-sm bg-muted border border-border rounded flex items-center">
             <CmxStatusBadge
               label={piece.piece_status || 'processing'}
               tone={
@@ -347,7 +347,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
         {/* Piece Stage */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             {t('modal.pieceStage') || 'Piece Stage'}
           </label>
           <CmxInput
@@ -360,7 +360,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
         {/* Rack Location */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             {t('modal.rackLocation')}
           </label>
           <CmxInput
@@ -373,7 +373,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
         {/* Notes */}
         <div className="sm:col-span-2 lg:col-span-3">
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground mb-1.5">
             {t('modal.notes')}
           </label>
           <CmxTextarea
@@ -409,7 +409,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
             className="h-8"
             aria-label={t('modal.confirmPrefs') || 'Confirm preferences'}
           >
-            <Check className="h-3.5 w-3.5 mr-1" />
+            <Check className="h-3.5 w-3.5 me-1" />
             {confirmMutation.isPending ? (t('modal.confirming') || 'Confirming...') : (t('modal.confirmPrefs') || 'Confirm')}
           </CmxButton>
         )}

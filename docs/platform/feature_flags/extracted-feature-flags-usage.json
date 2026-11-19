@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-17T05:47:05.351Z",
+  "extractedAt": "2026-11-19T05:41:04.915Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -44,6 +44,13 @@
         "path": "app/api/settings/tenants/[tenantId]/feature-flags/route.ts",
         "line": 34,
         "context": "const flags = await hqApiClient.getFeatureFlags({",
+        "surface": "api",
+        "pattern": "getFeatureFlags"
+      },
+      {
+        "path": "app/api/v1/settings/branding/route.ts",
+        "line": 31,
+        "context": "getFeatureFlags(tenantId),",
         "surface": "api",
         "pattern": "getFeatureFlags"
       },
@@ -125,6 +132,13 @@
         "pattern": "getFeatureFlags"
       },
       {
+        "path": "lib/services/org-ui-theme.service.ts",
+        "line": 85,
+        "context": "const flags = await getFeatureFlags(tenantId)",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
         "path": "lib/services/pricing-mode-resolver.service.ts",
         "line": 63,
         "context": "const flags = await getFeatureFlags(tenantId);",
@@ -139,15 +153,22 @@
         "pattern": "getFeatureFlags"
       },
       {
+        "path": "lib/services/ui-theme.service.ts",
+        "line": 62,
+        "context": "getFeatureFlags(tenantId),",
+        "surface": "service",
+        "pattern": "getFeatureFlags"
+      },
+      {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 226,
+        "line": 227,
         "context": "const featureFlags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/workflow-service-enhanced.ts",
-        "line": 447,
+        "line": 448,
         "context": "const flags = await getFeatureFlags(tenantId);",
         "surface": "service",
         "pattern": "getFeatureFlags"
@@ -445,7 +466,7 @@
       },
       {
         "path": "src/features/orders/ui/new-order-content.tsx",
-        "line": 108,
+        "line": 110,
         "context": "usePlanFlags();",
         "surface": "screen",
         "pattern": "usePlanFlags"

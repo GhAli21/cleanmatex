@@ -34,7 +34,7 @@ export function CashCountMethodField({
     )
   }
   return (
-    <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <p className="text-sm text-muted-foreground">
       {methods[0] === 'DENOMINATION' ? t('countMethodFixedDenomination') : t('countMethodFixedTotal')}
     </p>
   )

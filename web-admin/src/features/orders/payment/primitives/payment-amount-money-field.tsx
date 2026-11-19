@@ -241,12 +241,12 @@ export function PaymentAmountMoneyField({
   return (
     <div className={`space-y-2 ${className}`} data-testid={testId}>
       <div
-        className={`flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner ${
+        className={`flex items-stretch rounded-2xl border border-border bg-card shadow-inner ${
           disabled ? 'opacity-60' : ''
         }`}
       >
         <div
-          className={`flex shrink-0 items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 font-semibold text-cyan-700 ${
+          className={`flex shrink-0 items-center justify-center rounded-s-2xl border-e border-border bg-muted font-semibold text-primary-text ${
             isHero ? 'min-w-[88px] px-4 text-lg' : 'min-w-[64px] px-2.5 text-sm'
           }`}
         >
@@ -268,8 +268,8 @@ export function PaymentAmountMoneyField({
             disabled={disabled}
             className={
               isHero
-                ? 'h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0'
-                : 'h-11 border-0 bg-transparent px-0 text-lg font-semibold tabular-nums text-slate-900 shadow-none focus-visible:ring-0'
+                ? 'h-16 border-0 bg-transparent px-0 text-[2.2rem] font-bold tracking-tight text-foreground shadow-none focus-visible:ring-0'
+                : 'h-11 border-0 bg-transparent px-0 text-lg font-semibold tabular-nums text-foreground shadow-none focus-visible:ring-0'
             }
           />
         </div>
@@ -283,12 +283,12 @@ export function PaymentAmountMoneyField({
           aria-label={keypadTitle}
           disabled={disabled}
           onClick={toggleKeypad}
-          className={`flex items-center justify-center rounded-e-2xl border-s border-slate-200 transition-colors disabled:opacity-40 ${
+          className={`flex items-center justify-center rounded-e-2xl border-s border-border transition-colors disabled:opacity-40 ${
             isHero ? 'min-w-14 px-4' : 'min-w-11 px-3'
           } ${
             showKeypad
-              ? 'bg-cyan-50 text-cyan-700'
-              : 'bg-slate-50 text-slate-500 hover:text-cyan-700'
+              ? 'bg-info-bg text-info-text'
+              : 'bg-muted text-muted-foreground hover:text-info-text'
           }`}
         >
           <Keyboard className={isHero ? 'h-5 w-5' : 'h-4 w-4'} />
@@ -296,7 +296,7 @@ export function PaymentAmountMoneyField({
       </div>
 
       {showActions ? (
-        <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex flex-wrap items-center gap-2">
           {showExact && onExact && exactLabel ? (
             <CmxButton
               type="button"
@@ -310,7 +310,7 @@ export function PaymentAmountMoneyField({
               }}
               aria-label={exactAriaLabel ?? exactLabel}
               data-testid={`${testId}-exact`}
-              className="min-h-[36px] rounded-lg border-cyan-200 text-cyan-800"
+              className="min-h-[36px] rounded-lg border-info-border text-primary-text"
             >
               {exactLabel}
             </CmxButton>
@@ -327,7 +327,7 @@ export function PaymentAmountMoneyField({
                 onFillRemaining();
               }}
               data-testid={`${testId}-fill-remaining`}
-              className="min-h-[36px] rounded-lg border-cyan-200 text-cyan-800"
+              className="min-h-[36px] rounded-lg border-info-border text-primary-text"
             >
               {fillRemainingLabel}
             </CmxButton>
@@ -337,9 +337,7 @@ export function PaymentAmountMoneyField({
 
       {remainingHint ? (
         <div
-          className={`rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs text-cyan-800 ${
-            isRTL ? 'text-right' : 'text-left'
-          }`}
+          className="rounded-xl border border-info-border bg-info-bg px-3 py-2 text-xs text-info-text text-start"
           data-testid={`${testId}-remaining-hint`}
         >
           {remainingHint}

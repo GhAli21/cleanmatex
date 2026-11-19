@@ -49,7 +49,7 @@ export default function B2BStatementDetailPage() {
     return (
     <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
-        <p className="text-gray-500">{tCommon('notFound') ?? 'Not found'}</p>
+        <p className="text-muted-foreground">{tCommon('notFound') ?? 'Not found'}</p>
         <CmxButton variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
           {t('statements') ?? 'Back to Statements'}
         </CmxButton>
@@ -61,8 +61,8 @@ export default function B2BStatementDetailPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse" />
-        <div className="h-64 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+        <div className="h-64 bg-muted rounded animate-pulse" />
       </div>
     );
   }
@@ -70,7 +70,7 @@ export default function B2BStatementDetailPage() {
   if (error || !data) {
     return (
       <div className="space-y-6">
-        <p className="text-red-600">{error instanceof Error ? error.message : 'Failed to load statement'}</p>
+        <p className="text-danger-text">{error instanceof Error ? error.message : 'Failed to load statement'}</p>
         <CmxButton variant="outline" onClick={() => router.push('/dashboard/b2b/statements')}>
           {t('statements') ?? 'Back to Statements'}
         </CmxButton>
@@ -79,7 +79,7 @@ export default function B2BStatementDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 print:bg-white print:py-0">
+    <div className="min-h-screen bg-muted py-6 print:bg-card print:py-0">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -128,22 +128,22 @@ export default function B2BStatementDetailPage() {
           </CmxCardHeader>
           <CmxCardContent className="space-y-2">
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-gray-500">{t('statementNo') ?? 'Statement No'}</span>
+              <span className="text-muted-foreground">{t('statementNo') ?? 'Statement No'}</span>
               <span>{data.statement.statementNo}</span>
-              <span className="text-gray-500">{t('periodFrom') ?? 'Period From'}</span>
+              <span className="text-muted-foreground">{t('periodFrom') ?? 'Period From'}</span>
               <span>{data.statement.periodFrom ? new Date(data.statement.periodFrom).toLocaleDateString() : '—'}</span>
-              <span className="text-gray-500">{t('periodTo') ?? 'Period To'}</span>
+              <span className="text-muted-foreground">{t('periodTo') ?? 'Period To'}</span>
               <span>{data.statement.periodTo ? new Date(data.statement.periodTo).toLocaleDateString() : '—'}</span>
-              <span className="text-gray-500">{t('dueDate') ?? 'Due Date'}</span>
+              <span className="text-muted-foreground">{t('dueDate') ?? 'Due Date'}</span>
               <span>{data.statement.dueDate ? new Date(data.statement.dueDate).toLocaleDateString() : '—'}</span>
-              <span className="text-gray-500">{t('totalAmount') ?? 'Total'}</span>
+              <span className="text-muted-foreground">{t('totalAmount') ?? 'Total'}</span>
               <span>{Number(data.statement.totalAmount).toLocaleString()}</span>
-              <span className="text-gray-500">{t('balanceAmount') ?? 'Balance'}</span>
+              <span className="text-muted-foreground">{t('balanceAmount') ?? 'Balance'}</span>
               <span className="font-medium">{Number(data.statement.balanceAmount).toLocaleString()}</span>
             </div>
             <div className="pt-4">
               <CmxButton onClick={handlePrint} variant="outline">
-                <Printer className="h-4 w-4 mr-2" />
+                <Printer className="h-4 w-4 me-2" />
                 {tCommon('print') ?? 'Print'}
               </CmxButton>
             </div>

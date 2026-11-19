@@ -12,7 +12,6 @@
  */
 
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import type {
   CashDrawerOption,
   CashDrawerSessionOption,
@@ -72,7 +71,6 @@ export function CashDrawerSelectDialog({
 }: CashDrawerSelectDialogProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
 
   return (
     <PaymentCapabilityDialog
@@ -86,7 +84,6 @@ export function CashDrawerSelectDialog({
       confirmDisabled={!selectedSessionId}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
     >
       <div
         role="radiogroup"
@@ -107,30 +104,28 @@ export function CashDrawerSelectDialog({
                 actions.selectCashDrawerSession(session.id);
                 actions.persistPreferredCashDrawerId(drawer.id);
               }}
-              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-start transition-colors ${
-                isRTL ? 'flex-row-reverse text-right' : ''
-              } ${
+              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-start transition-colors  ${
                 selected
-                  ? 'border-teal-600 bg-teal-50'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
+                  ? 'border-primary bg-info-bg'
+                  : 'border-border bg-card hover:border-border'
               }`}
             >
               <span
                 aria-hidden="true"
                 className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 ${
-                  selected ? 'border-teal-600 bg-teal-600' : 'border-slate-300'
+                  selected ? 'border-primary bg-primary' : 'border-border'
                 }`}
               />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-semibold text-slate-800">
+                <span className="truncate text-sm font-semibold text-foreground">
                   {getDrawerDisplayName(drawer)} · {session.session_no}
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   {t('cashDrawer.openedAt')}: {formatOpenedAt(session.opened_at)}
                 </span>
               </span>
               {selected ? (
-                <span className="shrink-0 rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+                <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase text-primary-foreground">
                   {t('cashDrawer.selectedBadge')}
                 </span>
               ) : null}

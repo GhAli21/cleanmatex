@@ -1,11 +1,12 @@
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft } from 'lucide-react';
-import { Alert, CmxButton, CmxSpinner } from '@ui/primitives';
+import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { CmxEmptyState } from '@ui/data-display';
 import { RequireAllPermissions } from '@features/auth/ui/RequirePermission';
 import { DeliveryRouteManifest } from '@features/delivery/ui/delivery-route-manifest';
@@ -46,9 +47,9 @@ function DeliveryRoutePageContent() {
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <CmxButton variant="ghost" asChild>
-        <Link href="/dashboard/delivery"><ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />{t('manifest.backToDelivery')}</Link>
+        <Link href="/dashboard/delivery"><ArrowLeft className="me-2 h-4 w-4" aria-hidden="true" />{t('manifest.backToDelivery')}</Link>
       </CmxButton>
-      {error instanceof Error ? <Alert variant="error" message={error.message} /> : null}
+      {error instanceof Error ? <CmxSummaryMessage type="error" message={error.message} /> : null}
       {data?.data ? <DeliveryRouteManifest route={data.data} onDriverAssigned={() => void refetch()} /> : !error ? <CmxEmptyState title={t('manifest.notFound')} /> : null}
     </div>
   );

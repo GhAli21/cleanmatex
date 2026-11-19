@@ -1,5 +1,6 @@
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useState } from 'react';
@@ -12,10 +13,12 @@ import {
   useHasAllPermissions,
   useHasPermissionCode,
 } from '@/lib/hooks/usePermissions';
-import { Alert, CmxSpinner } from '@ui/primitives';
+import { CmxSpinner } from '@ui/primitives';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import { DeliveryHandoverCard } from '@features/delivery/ui/delivery-handover-card';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens';
 import {
@@ -120,8 +123,8 @@ export function DeliveryOrderDetailScreen() {
 
   if (!order || !orderId) {
     return (
-      <Alert
-        variant="error"
+      <CmxSummaryMessage
+        type="error"
         message={error || t('delivery.messages.notFound')}
       />
     );
@@ -132,7 +135,7 @@ export function DeliveryOrderDetailScreen() {
       <div>
         <Link
           href={returnUrl}
-          className="mb-2 inline-block text-blue-600 hover:underline"
+          className="mb-2 inline-block text-primary-text hover:underline"
         >
           ← {t('delivery.actions.backToDelivery')}
         </Link>
@@ -140,12 +143,12 @@ export function DeliveryOrderDetailScreen() {
           {t('screens.delivery')}{' '}
           <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-muted-foreground">
           {order.customer.name} • {order.customer.phone}
         </p>
       </div>
 
-      {error ? <Alert variant="error" message={error} /> : null}
+      {error ? <CmxSummaryMessage type="error" message={error} /> : null}
 
       {/* P6-04: the order's totals and balance from the read model. */}
       <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'totals', layout: 'card', density: 'compact', columns: 1 }} />
@@ -166,6 +169,8 @@ export function DeliveryOrderDetailScreen() {
           router.replace(returnUrl);
         }}
       />
+
+      <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_DELIVERY} />
 
       <WorkflowActionBar
         key={`delivery-actions-${actionBarKey}`}

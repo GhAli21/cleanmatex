@@ -46,11 +46,11 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] px-4 py-3">
-        <span className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <span className="text-sm font-semibold text-foreground">
           {t('title')}
           {unreadCount > 0 && (
-            <span className="ms-2 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] px-1.5 py-0.5 text-[11px] font-bold text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
+            <span className="ms-2 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary-text">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -61,7 +61,7 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
               variant="ghost"
               size="xs"
               onClick={markAllRead}
-              className="text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+              className="text-primary-text"
             >
               {t('markAllRead')}
             </CmxButton>
@@ -71,7 +71,7 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
               variant="ghost"
               size="xs"
               onClick={() => void handleClear()}
-              className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-muted-foreground"
             >
               {t('clearLog')}
             </CmxButton>
@@ -79,7 +79,7 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] px-3 py-2">
+      <div className="flex gap-1 border-b border-border px-3 py-2">
         {filters.map((f) => (
           <CmxButton
             key={f.id}
@@ -100,11 +100,11 @@ export function SessionActivityPanel({ onRequestClose: _onRequestClose }: Sessio
       <div className="max-h-[min(20rem,60vh)] overflow-y-auto">
         {entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
-            <ScrollText className="mb-3 h-8 w-8 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
-            <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <ScrollText className="mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">
               {t('empty')}
             </p>
-            <p className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="mt-1 text-xs text-muted-foreground">
               {t('emptyDesc')}
             </p>
           </div>

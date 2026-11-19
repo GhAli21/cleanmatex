@@ -280,7 +280,7 @@ export function NewVoucherClient() {
     return (
       <form onSubmit={handleHeaderSubmit} className="max-w-2xl space-y-6">
         {headerError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
             {headerError}
           </div>
         )}
@@ -293,8 +293,8 @@ export function NewVoucherClient() {
 
             {/* Voucher Type */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                {t('voucherType')} <span className="text-red-500">*</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('voucherType')} <span className="text-danger-text">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {VOUCHER_TYPE_OPTIONS.map(({ value, labelKey }) => (
@@ -304,8 +304,8 @@ export function NewVoucherClient() {
                     onClick={() => handleTypeChange(value)}
                     className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                       voucherType === value
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card text-foreground hover:bg-muted'
                     }`}
                   >
                     {t(`voucherTypeLabels.${labelKey}`)}
@@ -316,7 +316,7 @@ export function NewVoucherClient() {
 
             {/* Direction */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
                 {t('direction')}
               </label>
               <div className="flex gap-2">
@@ -327,8 +327,8 @@ export function NewVoucherClient() {
                     onClick={() => setDirection(d)}
                     className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                       direction === d
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card text-foreground hover:bg-muted'
                     }`}
                   >
                     {t(`directionLabels.${d}`)}
@@ -339,8 +339,8 @@ export function NewVoucherClient() {
 
             {/* Declared Total */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                {t('declaredTotal')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('declaredTotal')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
               </label>
               <input
                 type="number"
@@ -348,24 +348,24 @@ export function NewVoucherClient() {
                 step="0.01"
                 value={totalAmountStr}
                 onChange={(e) => { setTotalAmountStr(e.target.value); setFieldErrors((p) => ({ ...p, total_amount: undefined })); }}
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.total_amount ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.total_amount ? 'border-destructive focus:border-destructive focus:ring-destructive' : 'border-border focus:border-ring focus:ring-ring'}`}
                 placeholder="0.00"
               />
               {fieldErrors.total_amount
-                ? <p className="mt-1 text-xs text-red-600">{fieldErrors.total_amount}</p>
-                : <p className="mt-1 text-xs text-gray-400">{t('declaredTotalHint')}</p>
+                ? <p className="mt-1 text-xs text-danger-text">{fieldErrors.total_amount}</p>
+                : <p className="mt-1 text-xs text-muted-foreground">{t('declaredTotalHint')}</p>
               }
             </div>
 
             {/* Party Type */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                {t('partyType')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('partyType')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
               </label>
               <select
                 value={partyType}
                 onChange={(e) => setPartyType(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">—</option>
                 {([PARTY_TYPE.CUSTOMER, PARTY_TYPE.SUPPLIER, PARTY_TYPE.EMPLOYEE, PARTY_TYPE.OTHER] as const).map((pt) => (
@@ -376,53 +376,53 @@ export function NewVoucherClient() {
 
             {/* Party Name */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                {t('party')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('party')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
               </label>
               <input
                 type="text"
                 value={partyName}
                 onChange={(e) => { setPartyName(e.target.value); setFieldErrors((p) => ({ ...p, party_name: undefined })); }}
                 maxLength={250}
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-destructive focus:border-destructive focus:ring-destructive' : 'border-border focus:border-ring focus:ring-ring'}`}
               />
-              {fieldErrors.party_name && <p className="mt-1 text-xs text-red-600">{fieldErrors.party_name}</p>}
+              {fieldErrors.party_name && <p className="mt-1 text-xs text-danger-text">{fieldErrors.party_name}</p>}
             </div>
 
             {/* Description */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                {t('description')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('description')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
               </label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
 
             {/* Notes */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                {t('notes')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('notes')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
           </CmxCardContent>
         </CmxCard>
 
-        <p className="text-xs text-gray-400">{t('headerStep.hint')}</p>
+        <p className="text-xs text-muted-foreground">{t('headerStep.hint')}</p>
 
-        <div className="flex items-center justify-end gap-3 rtl:flex-row-reverse">
+        <div className="flex items-center justify-end gap-3">
           <Link
             href="/dashboard/internal_fin/vouchers"
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             {tCommon('cancel')}
           </Link>
@@ -442,8 +442,8 @@ export function NewVoucherClient() {
     <div className="space-y-6">
 
       {/* ── Success banner ── */}
-      <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 rtl:flex-row-reverse">
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+      <div className="flex items-center gap-3 rounded-lg border border-success-border bg-success-bg px-4 py-3 text-sm text-success-text">
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-success-text" />
         <span>{t('headerStep.created', { voucher_no: draft!.voucher_no })}</span>
       </div>
 
@@ -456,27 +456,27 @@ export function NewVoucherClient() {
         <CmxCardContent className="pb-4">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 text-sm">
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('voucherNo')}</dt>
-              <dd className="mt-0.5 font-mono font-medium text-gray-900">{draft!.voucher_no}</dd>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('voucherNo')}</dt>
+              <dd className="mt-0.5 font-mono font-medium text-foreground">{draft!.voucher_no}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('voucherType')}</dt>
-              <dd className="mt-0.5 text-gray-900">{t(`voucherTypeLabels.${draft!.voucher_type}`)}</dd>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('voucherType')}</dt>
+              <dd className="mt-0.5 text-foreground">{t(`voucherTypeLabels.${draft!.voucher_type}`)}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('direction')}</dt>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('direction')}</dt>
               <dd className="mt-0.5"><VoucherDirectionBadge direction={draft!.direction as never} /></dd>
             </div>
             {draft!.party_name && (
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('party')}</dt>
-                <dd className="mt-0.5 text-gray-900">{draft!.party_name}</dd>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('party')}</dt>
+                <dd className="mt-0.5 text-foreground">{draft!.party_name}</dd>
               </div>
             )}
             {draft!.description && (
               <div className="col-span-2 sm:col-span-4">
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('description')}</dt>
-                <dd className="mt-0.5 text-gray-700">{draft!.description}</dd>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('description')}</dt>
+                <dd className="mt-0.5 text-foreground">{draft!.description}</dd>
               </div>
             )}
           </dl>
@@ -485,13 +485,13 @@ export function NewVoucherClient() {
 
       {/* ── Lines card ── */}
       <CmxCard>
-        <CmxCardHeader className="flex flex-row items-center justify-between rtl:flex-row-reverse">
+        <CmxCardHeader className="flex flex-row items-center justify-between">
           <CmxCardTitle>{t('transactionLines')}</CmxCardTitle>
           <CmxButton
             size="sm"
             onClick={() => setAddLineOpen(true)}
             disabled={anyPending}
-            className="flex items-center gap-1.5 rtl:flex-row-reverse"
+            className="flex items-center gap-1.5"
           >
             <Plus className="h-4 w-4" />
             {t('actions.addLine')}
@@ -507,19 +507,19 @@ export function NewVoucherClient() {
 
         {/* Running total + balance status */}
         {lines.length > 0 && (
-          <div className="border-t border-gray-100 px-6 py-3">
-            <div className="flex items-center justify-between rtl:flex-row-reverse">
-              <span className="text-sm text-gray-500">
+          <div className="border-t border-border px-6 py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
                 {t('totalLines', { count: lines.length })}
               </span>
-              <span className="font-mono text-lg font-semibold text-gray-900">
+              <span className="font-mono text-lg font-semibold text-foreground">
                 {total.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
               </span>
             </div>
             {declaredTotal > 0 && (
-              <div className="mt-1.5 flex items-center justify-between rtl:flex-row-reverse">
-                <span className="text-xs text-gray-400">{t('declaredTotal')}</span>
-                <span className={`text-sm font-medium ${isBalanced ? 'text-green-700' : 'text-amber-700'}`}>
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">{t('declaredTotal')}</span>
+                <span className={`text-sm font-medium ${isBalanced ? 'text-success-text' : 'text-warning-text'}`}>
                   {declaredTotal.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
                   <span className="ms-2">
                     {isBalanced
@@ -534,20 +534,20 @@ export function NewVoucherClient() {
       </CmxCard>
 
       {/* ── Action bar ── */}
-      <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between rtl:sm:flex-row-reverse">
-        <div className="flex items-center gap-2 text-sm text-gray-500 rtl:flex-row-reverse">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           <button
             type="button"
             onClick={handleSaveAsDraft}
             disabled={anyPending}
-            className="font-medium text-gray-700 hover:text-gray-900 disabled:opacity-50"
+            className="font-medium text-foreground hover:text-foreground/80 disabled:opacity-50"
           >
             {t('actions.saveAsDraft')}
           </button>
         </div>
 
-        <div className="flex items-center gap-3 rtl:flex-row-reverse">
+        <div className="flex items-center gap-3">
           <CmxButton
             variant="outline"
             onClick={() => setCancelOpen(true)}
@@ -565,10 +565,10 @@ export function NewVoucherClient() {
       </div>
 
       {lines.length === 0 && (
-        <p className="text-center text-xs text-amber-600">{t('validation.atLeastOneLine')}</p>
+        <p className="text-center text-xs text-warning-text">{t('validation.atLeastOneLine')}</p>
       )}
       {lines.length > 0 && declaredTotal > 0 && !isBalanced && (
-        <p className="text-center text-xs text-amber-600">{t('validation.totalMismatch')}</p>
+        <p className="text-center text-xs text-warning-text">{t('validation.totalMismatch')}</p>
       )}
 
       {/* ── Dialogs ── */}

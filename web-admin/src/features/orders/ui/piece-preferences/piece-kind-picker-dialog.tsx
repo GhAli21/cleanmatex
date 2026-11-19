@@ -155,10 +155,10 @@ export function PieceKindPickerDialog({
                 type="button"
                 onClick={() => onConditionToggle(cond.code)}
                 className={cn(
-                  'inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1',
+                  'inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                   isSelected
-                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                    : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-400 hover:bg-white'
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                    : 'border-border bg-muted text-foreground hover:border-muted-foreground hover:bg-card'
                 )}
                 aria-pressed={isSelected}
               >
@@ -167,7 +167,7 @@ export function PieceKindPickerDialog({
                     className={cn(
                       'mdi shrink-0 text-lg leading-none',
                       cond.icon,
-                      isSelected ? 'text-white' : 'text-gray-600'
+                      isSelected ? 'text-on-solid' : 'text-muted-foreground'
                     )}
                     aria-hidden
                   />
@@ -177,7 +177,7 @@ export function PieceKindPickerDialog({
             );
           })}
           {prefsForKind.length === 0 && (
-            <p className="w-full py-4 text-center text-sm text-gray-500">{t('noItemsForKind')}</p>
+            <p className="w-full py-4 text-center text-sm text-muted-foreground">{t('noItemsForKind')}</p>
           )}
         </div>
       );
@@ -206,35 +206,35 @@ export function PieceKindPickerDialog({
                     onColorsChange(nextCodes, nextCfIds);
                   }}
                   className={cn(
-                    'h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1',
-                    isSelected ? 'scale-110 border-blue-600 ring-2 ring-blue-300' : 'border-gray-300 hover:border-gray-500'
+                    'h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                    isSelected ? 'scale-110 border-primary ring-2 ring-ring' : 'border-border hover:border-muted-foreground'
                   )}
                   style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
                   aria-label={label}
                   aria-pressed={isSelected}
                 />
                 {!color.color_hex && (
-                  <span className="line-clamp-2 text-center text-xs font-medium leading-snug text-gray-600">{label}</span>
+                  <span className="line-clamp-2 text-center text-xs font-medium leading-snug text-muted-foreground">{label}</span>
                 )}
               </div>
             );
           })}
-          {colors.length === 0 && <p className="py-4 text-center text-sm text-gray-500">{t('noColors')}</p>}
+          {colors.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">{t('noColors')}</p>}
         </div>
       );
       break;
     }
     case PREFERENCE_MAIN_TYPES.NOTES:
-      body = <p className="text-sm text-gray-600">{t('notesOpenToolbar')}</p>;
+      body = <p className="text-sm text-muted-foreground">{t('notesOpenToolbar')}</p>;
       break;
     default:
-      body = <p className="text-sm text-gray-500">{t('unsupportedKind')}</p>;
+      body = <p className="text-sm text-muted-foreground">{t('unsupportedKind')}</p>;
   }
 
   return (
     <CmxDialog open={open} onOpenChange={onOpenChange}>
       <CmxDialogContent className="w-full max-w-lg p-0 sm:max-w-xl">
-        <CmxDialogHeader className="border-b border-gray-100 px-4 py-3">
+        <CmxDialogHeader className="border-b border-border px-4 py-3">
           <CmxDialogTitle>{title}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="max-h-[min(70vh,520px)] overflow-y-auto px-4 py-4">{body}</div>

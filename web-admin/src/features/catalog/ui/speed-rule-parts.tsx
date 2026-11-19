@@ -52,7 +52,7 @@ export function SpeedRuleProductField({ label, value, onChange, error }: {
       <CmxButton type="button" variant="outline" className="w-full justify-start truncate" onClick={() => setOpen(true)}>
         {value?.label ?? t('choose')}
       </CmxButton>
-      {error ? <p className="text-xs text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">{error}</p> : null}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
       <CmxListOfValuesDialog
         open={open}
         onOpenChange={setOpen}
@@ -125,7 +125,7 @@ export function SpeedRuleScopeText({ rule, categoryLabel, branchLabel }: {
   return (
     <div className="space-y-0.5">
       <div className="font-medium">{main}</div>
-      <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+      <div className="text-xs text-muted-foreground">
         {t(`level.${rule.level}`)} · {rule.branchId ? branchLabel(rule.branchId) : t('scope.allBranches')}
       </div>
     </div>
@@ -150,8 +150,8 @@ export function SpeedRuleGuidanceCard({ speedLabel }: { speedLabel: (code: strin
           {GUIDANCE_SPEEDS.map((code) => (
             <div key={code} className="grid gap-x-4 sm:grid-cols-[8rem_1fr_8rem]">
               <span className="font-medium">{speedLabel(code)}</span>
-              <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t(`${code}.promise`)}</span>
-              <span className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t(`${code}.price`)}</span>
+              <span className="text-muted-foreground">{t(`${code}.promise`)}</span>
+              <span className="text-muted-foreground">{t(`${code}.price`)}</span>
             </div>
           ))}
         </div>

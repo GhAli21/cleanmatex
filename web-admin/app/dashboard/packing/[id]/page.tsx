@@ -9,6 +9,8 @@ import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -194,14 +196,14 @@ export default function PackingDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
         {t('packing.messages.notFound')}
       </div>
     );
@@ -220,24 +222,24 @@ export default function PackingDetailPage() {
         />
       ) : null}
       <div>
-        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
           ← {t('packing.actions.back')}
         </Link>
         <h1 className="text-3xl font-bold">
           {t('screens.packing')}{' '}
           <CmxCodeChip code={order.order_no} kind="order" size="md" />
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           {order.customer.name} • {order.customer.phone}
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">{error}</div>
+        <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">{error}</div>
       )}
 
       {blockers.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 rounded-lg">
+        <div className="bg-warning-bg border border-warning-border text-warning-text px-4 py-3 rounded-lg">
           <div className="font-medium mb-1">{t('packing.messages.blockersTitle')}</div>
           <ul className="list-disc list-inside text-sm space-y-1">
             {blockers.map((b, i) => (
@@ -249,15 +251,15 @@ export default function PackingDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">{t('packing.itemsTitle')}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="p-3 bg-gray-50 rounded-lg">
+                <div key={item.id} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-medium">{item.product_name}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {t('packing.quantity')}: {item.quantity}
                         {typeof item.quantity_ready === 'number' ? ` • ${t('packing.readyQty')}: ${item.quantity_ready}` : ''}
                       </p>
@@ -266,10 +268,10 @@ export default function PackingDetailPage() {
 
                   {/* Pieces Section - Expandable */}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-3 pt-3 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
-                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
                         <span>
                           {tPieces('viewPieces') || 'View Pieces'}
@@ -287,6 +289,7 @@ export default function PackingDetailPage() {
                             <OrderPiecesManager
                               orderId={orderId}
                               itemId={item.id}
+                              fileSource={FILE_SOURCES.ORDER_PACKING}
                               tenantId={currentTenant.tenant_id}
                               branchId={order?.branch_id}
                               readOnly={true}
@@ -301,28 +304,29 @@ export default function PackingDetailPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t text-sm text-gray-600">
+            <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
               {t('packing.totalQty')}: <span className="font-medium">{totalQty}</span>
             </div>
           </div>
+          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_PACKING} />}
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">{t('packing.actions.title')}</h3>
 
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('packing.rack')}</label>
+            <label className="block text-sm font-medium text-foreground mb-2">{t('packing.rack')}</label>
             <input
               value={rackLocation}
               onChange={(e) => setRackLocation(e.target.value)}
               placeholder={t('packing.rackPlaceholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-border rounded-lg"
             />
 
             <button
               onClick={saveRackLocation}
               disabled={submitting}
-              className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="mt-3 w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50"
             >
               {t('packing.actions.saveRack')}
             </button>
@@ -330,7 +334,7 @@ export default function PackingDetailPage() {
             <button
               onClick={handleCompletePacking}
               disabled={submitting}
-              className="mt-3 w-full px-4 py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:opacity-50"
+              className="mt-3 w-full px-4 py-3 bg-warning text-warning-foreground rounded-lg font-semibold hover:bg-warning/90 disabled:opacity-50"
             >
               {submitting ? t('packing.actions.processing') : t('packing.actions.complete')}
             </button>

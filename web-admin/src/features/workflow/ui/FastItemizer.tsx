@@ -146,8 +146,8 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
         {items.length === 0 ? (
-          <div className="space-y-3 rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-4">
-            <p className="text-sm text-gray-600">
+          <div className="space-y-3 rounded-md border border-dashed border-border bg-muted px-3 py-4">
+            <p className="text-sm text-muted-foreground">
               {t('preparation.detail.noItemsYet')}
             </p>
             {canUpdate ? (
@@ -188,29 +188,29 @@ export function FastItemizer({ order, returnUrl = '/dashboard/preparation' }: Fa
         <PricePreview orderId={order.id} refreshNonce={pricePreviewNonce} />
         <PrintItemLabels orderNo={order.order_no} items={items} />
         {wfContext && (
-          <div className="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-700">
+          <div className="rounded-md border border-border bg-card p-4 text-sm text-foreground">
             <div className="font-medium mb-2">{t('preparation.workflowContextTitle')}</div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-gray-500">{t('preparation.workflowFlags.assemblyEnabled')}:</span>{' '}
+                <span className="text-muted-foreground">{t('preparation.workflowFlags.assemblyEnabled')}:</span>{' '}
                 <span className="font-medium">
                   {wfContext.flags.assembly_enabled ? t('preparation.yes') : t('preparation.no')}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">{t('preparation.workflowFlags.qaEnabled')}:</span>{' '}
+                <span className="text-muted-foreground">{t('preparation.workflowFlags.qaEnabled')}:</span>{' '}
                 <span className="font-medium">
                   {wfContext.flags.qa_enabled ? t('preparation.yes') : t('preparation.no')}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">{t('preparation.workflowFlags.packingEnabled')}:</span>{' '}
+                <span className="text-muted-foreground">{t('preparation.workflowFlags.packingEnabled')}:</span>{' '}
                 <span className="font-medium">
                   {wfContext.flags.packing_enabled ? t('preparation.yes') : t('preparation.no')}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">{t('preparation.workflowMetrics.itemsCount')}:</span>{' '}
+                <span className="text-muted-foreground">{t('preparation.workflowMetrics.itemsCount')}:</span>{' '}
                 <span className="font-medium">{items.length}</span>
               </div>
             </div>

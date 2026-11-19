@@ -82,15 +82,15 @@ export function CmxHexColorField({
           disabled={disabled}
           aria-label={pickerAriaLabel}
           className={[
-            'h-11 w-11 shrink-0 cursor-pointer rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.55)]',
-            'bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-1',
+            'h-11 w-11 shrink-0 cursor-pointer rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-foreground/55',
+            'bg-surface-muted p-1',
             'disabled:opacity-50 disabled:cursor-not-allowed',
           ].join(' ')}
           title={pickerAriaLabel}
         />
 
         <div
-          className="hidden h-11 w-11 shrink-0 rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.55)] shadow-inner md:block"
+          className="hidden h-11 w-11 shrink-0 rounded-[var(--cmx-radius-md,0.875rem)] border-2 border-foreground/55 shadow-inner md:block"
           style={{ backgroundColor: normalizedValue }}
           aria-hidden="true"
         />
@@ -143,7 +143,7 @@ export function CmxHexColorField({
                 className={[
                   'h-9 w-9 rounded-full border-2 shadow-sm transition',
                   isSelected
-                    ? 'border-[rgb(var(--cmx-primary-rgb,37_99_235))] ring-2 ring-[rgb(var(--cmx-focus-ring-rgb,59_130_246))]/20'
+                    ? 'border-primary ring-2 ring-ring/20'
                     : 'border-card hover:scale-[1.03]',
                 ].join(' ')}
                 style={{ backgroundColor: normalizedPreset }}

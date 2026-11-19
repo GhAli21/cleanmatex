@@ -49,9 +49,9 @@ export function OrderIssueStatusBadge({
         }}
         aria-label={label}
         className={cn(
-          'inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white shadow-none',
+          'inline-flex shrink-0 items-center justify-center rounded-full font-bold text-on-solid shadow-none',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring',
-          hasOpen ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700',
+          hasOpen ? 'bg-destructive hover:bg-destructive/90' : 'bg-success hover:bg-success/90',
           dim,
           className
         )}

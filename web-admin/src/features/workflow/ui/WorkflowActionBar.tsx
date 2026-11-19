@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
-import { Alert, AlertDescription, CmxCard, CmxCardTitle, CmxInput, CmxSkeleton } from '@ui/primitives';
+import { CmxCard, CmxCardTitle, CmxInput, CmxSkeleton } from '@ui/primitives';
 import { CmxEmptyState } from '@ui/data-display';
 import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { CmxFieldShell, cmxFocusField } from '@ui/forms';
@@ -187,9 +187,9 @@ export function WorkflowActionBar({
   if (!enabled) {
     return (
       <>
-        <Alert variant="info" title={t('actionBarTitle')} className={className}>
-          <AlertDescription>{t('canaryOff')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="info" title={t('actionBarTitle')} className={className}>
+          <div>{t('canaryOff')}</div>
+        </CmxSummaryMessage>
         {children}
       </>
     );

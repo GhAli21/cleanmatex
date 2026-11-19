@@ -26,14 +26,6 @@ export function getCurrentLocale(): 'en' | 'ar' {
 }
 
 /**
- * Get direction-aware class names for Tailwind
- * Example: getDirClass('ml-4', 'mr-4') returns 'ml-4' for LTR, 'mr-4' for RTL
- */
-export function getDirClass(ltrClass: string, rtlClass: string): string {
-  return isRTL() ? rtlClass : ltrClass
-}
-
-/**
  * Format number for current locale
  */
 export function formatNumber(num: number, locale?: 'en' | 'ar'): string {
@@ -119,19 +111,4 @@ export function formatDateTime(
     hour: '2-digit',
     minute: '2-digit',
   }).format(dateObj)
-}
-
-/**
- * Get text alignment class based on locale
- */
-export function getTextAlign(): string {
-  return isRTL() ? 'text-right' : 'text-left'
-}
-
-/**
- * Get flex direction class for RTL
- */
-export function getFlexDir(normalDir: 'row' | 'col' = 'row'): string {
-  if (normalDir === 'col') return 'flex-col'
-  return isRTL() ? 'flex-row-reverse' : 'flex-row'
 }

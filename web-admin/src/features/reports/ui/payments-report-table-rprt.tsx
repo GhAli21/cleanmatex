@@ -16,19 +16,19 @@ interface PaymentsReportTableProps {
 
 // Canonical `org_order_payments_dtl.payment_status` lifecycle codes (ADR-002).
 const STATUS_BADGE: Record<string, string> = {
-  COMPLETED: 'bg-green-100 text-green-800',
-  CAPTURED: 'bg-green-100 text-green-800',
-  SETTLED: 'bg-green-100 text-green-800',
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  PROCESSING: 'bg-yellow-100 text-yellow-800',
-  CAPTURE_PENDING: 'bg-yellow-100 text-yellow-800',
-  AUTHORIZED: 'bg-blue-100 text-blue-800',
-  FAILED: 'bg-red-100 text-red-800',
-  CANCELLED: 'bg-red-100 text-red-800',
-  EXPIRED: 'bg-red-100 text-red-800',
-  VOIDED: 'bg-red-100 text-red-800',
-  REFUSED: 'bg-red-100 text-red-800',
-  REVERSED: 'bg-purple-100 text-purple-800',
+  COMPLETED: 'bg-success-bg text-success-text',
+  CAPTURED: 'bg-success-bg text-success-text',
+  SETTLED: 'bg-success-bg text-success-text',
+  PENDING: 'bg-warning-bg text-warning-text',
+  PROCESSING: 'bg-warning-bg text-warning-text',
+  CAPTURE_PENDING: 'bg-warning-bg text-warning-text',
+  AUTHORIZED: 'bg-info-bg text-info-text',
+  FAILED: 'bg-danger-bg text-danger-text',
+  CANCELLED: 'bg-danger-bg text-danger-text',
+  EXPIRED: 'bg-danger-bg text-danger-text',
+  VOIDED: 'bg-danger-bg text-danger-text',
+  REFUSED: 'bg-danger-bg text-danger-text',
+  REVERSED: 'bg-info-bg text-info-text',
 };
 
 /**
@@ -57,43 +57,43 @@ export default function PaymentsReportTable({
   );
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.orderNo')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.invoiceNo')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.customer')}</th>
-              <th className="px-4 py-3 text-end font-medium text-gray-600">{t('table.amount')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.method')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.status')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.date')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.orderNo')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.invoiceNo')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.customer')}</th>
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">{t('table.amount')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.method')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.status')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.date')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {payments.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-blue-600">{p.orderNo ? <CmxCodeChip code={p.orderNo} kind="order" /> : '-'}</td>
-                <td className="px-4 py-3 text-gray-700">{p.invoiceNo ?? '-'}</td>
-                <td className="px-4 py-3 text-gray-900">{p.customerName ?? '-'}</td>
-                <td className="px-4 py-3 text-end font-medium text-gray-900">
+              <tr key={p.id} className="hover:bg-muted">
+                <td className="px-4 py-3 font-medium text-primary-text">{p.orderNo ? <CmxCodeChip code={p.orderNo} kind="order" /> : '-'}</td>
+                <td className="px-4 py-3 text-foreground">{p.invoiceNo ?? '-'}</td>
+                <td className="px-4 py-3 text-foreground">{p.customerName ?? '-'}</td>
+                <td className="px-4 py-3 text-end font-medium text-foreground">
                   {p.currencyCode} {p.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
-                <td className="px-4 py-3 text-gray-700">{p.methodName ?? p.methodCode}</td>
+                <td className="px-4 py-3 text-foreground">{p.methodName ?? p.methodCode}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[p.status] ?? 'bg-muted text-foreground'}`}>
                     {p.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-muted-foreground">
                   {p.paidAt ? format(new Date(p.paidAt), 'dd MMM yyyy') : '-'}
                 </td>
               </tr>
             ))}
             {payments.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">{t('noData')}</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('noData')}</td>
               </tr>
             )}
           </tbody>
@@ -101,8 +101,8 @@ export default function PaymentsReportTable({
       </div>
 
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-          <span className="text-sm text-gray-600">
+        <div className="flex items-center justify-between border-t border-border px-4 py-3">
+          <span className="text-sm text-muted-foreground">
             {t('pagination.showing', {
               from: (pagination.page - 1) * pagination.limit + 1,
               to: Math.min(pagination.page * pagination.limit, pagination.total),
@@ -110,11 +110,11 @@ export default function PaymentsReportTable({
             })}
           </span>
           <div className="flex items-center gap-1">
-            <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30">
+            <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="px-3 py-1 text-sm font-medium text-gray-700">{pagination.page} / {pagination.totalPages}</span>
-            <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30">
+            <span className="px-3 py-1 text-sm font-medium text-foreground">{pagination.page} / {pagination.totalPages}</span>
+            <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>

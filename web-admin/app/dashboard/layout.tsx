@@ -15,7 +15,6 @@
 import { ReactNode, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { CmxSidebar, CmxTopBar } from '@ui/navigation'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { useAuth } from '@/lib/auth/auth-context'
 import { SidebarProvider, useSidebar } from '@/lib/context/sidebar-context'
 import { DashboardBrowserTitle } from '@features/dashboard/ui/dashboard-browser-title'
@@ -65,7 +64,6 @@ function DashboardContent({
   children: ReactNode
   isPrintRoute: boolean
 }) {
-  const isRTL = useRTL()
   const { isCollapsed, prefersReducedMotion } = useSidebar()
 
   if (isPrintRoute) {
@@ -73,12 +71,8 @@ function DashboardContent({
   }
 
   const paddingClass = isCollapsed
-    ? isRTL
-      ? 'lg:pr-16'
-      : 'lg:pl-16'
-    : isRTL
-      ? 'lg:pr-64'
-      : 'lg:pl-64'
+    ? 'lg:ps-16'
+    : 'lg:ps-64'
 
   const transitionClass = prefersReducedMotion ? '' : 'transition-[padding] duration-300 ease-in-out'
 
@@ -123,17 +117,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (!isLoading && !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Redirecting to login...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       {/* Server-authoritative session lifecycle: idle warning, heartbeat, cross-tab sign-out. */}
       <SessionLifecycleProvider>
         <SidebarProvider>

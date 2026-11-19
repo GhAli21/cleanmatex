@@ -23,7 +23,7 @@ export interface OrdersFinancialStatementRprtProps {
 export function OrdersFinancialStatementRprt({ source, preset = 'full' }: OrdersFinancialStatementRprtProps) {
   const t = useTranslations('orders.finView');
   return (
-    <article className="mx-auto w-full max-w-[210mm] bg-white p-6 text-black print:p-0">
+    <article className="mx-auto w-full max-w-[210mm] bg-card p-6 text-foreground print:p-0">
       <h1 className="mb-4 text-lg font-semibold">{t('title')}</h1>
       <OrderFinancialView source={source} config={{ preset, layout: 'print', columns: 1, density: 'compact', header: { showReconciliationBadge: false } }} />
     </article>

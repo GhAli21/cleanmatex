@@ -75,7 +75,7 @@ export default function ReportPrintPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function ReportPrintPage() {
   if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
-        <p className="text-gray-500">{tCommon('noData')}</p>
+        <p className="text-muted-foreground">{tCommon('noData')}</p>
       </div>
     );
   }
@@ -113,18 +113,18 @@ export default function ReportPrintPage() {
         }}
       />
 
-      <div className="min-h-screen bg-white p-8 print:p-4">
+      <div data-mode="LIGHT" className="min-h-screen bg-card p-8 print:p-4">
         {/* Print button */}
         <div className="print-hidden mb-6 flex gap-2">
           <button
             onClick={() => window.print()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary-hover"
           >
             {t('print')}
           </button>
           <button
             onClick={() => window.close()}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
           >
             {tCommon('close')}
           </button>
@@ -132,11 +132,11 @@ export default function ReportPrintPage() {
 
         {/* Report Header */}
         <div className="mb-6 border-b pb-4">
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-foreground">
             {reportTitle[reportType] ?? 'Report'}
           </h1>
-          <p className="mt-1 text-sm text-gray-500">{dateRangeLabel}</p>
-          <p className="text-xs text-gray-400">
+          <p className="mt-1 text-sm text-muted-foreground">{dateRangeLabel}</p>
+          <p className="text-xs text-muted-foreground">
             Generated: {format(new Date(), 'dd MMM yyyy HH:mm')}
           </p>
         </div>
@@ -257,9 +257,9 @@ function CustomersPrintContent({ data, t }: { data: CustomerReportData; t: Retur
 
 function KPIBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-gray-200 p-3">
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className="mt-1 text-lg font-bold text-gray-900">{value}</div>
+    <div className="rounded border border-border p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-bold text-foreground">{value}</div>
     </div>
   );
 }
@@ -272,7 +272,7 @@ function PrintTable({ headers, rows }: { headers: string[]; rows: string[][] }) 
           {headers.map((h, i) => (
             <th
               key={i}
-              className="border border-gray-300 bg-gray-100 px-2 py-1.5 text-start font-medium text-gray-700"
+              className="border border-border bg-muted px-2 py-1.5 text-start font-medium text-foreground"
             >
               {h}
             </th>
@@ -283,7 +283,7 @@ function PrintTable({ headers, rows }: { headers: string[]; rows: string[][] }) 
         {rows.map((row, rIdx) => (
           <tr key={rIdx}>
             {row.map((cell, cIdx) => (
-              <td key={cIdx} className="border border-gray-200 px-2 py-1 text-gray-700">
+              <td key={cIdx} className="border border-border px-2 py-1 text-foreground">
                 {cell}
               </td>
             ))}

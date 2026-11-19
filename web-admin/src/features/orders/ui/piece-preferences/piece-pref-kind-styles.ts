@@ -49,7 +49,7 @@ export function kindToolbarInactiveSurface(hex: string | null): { style: CSSProp
   if (!hex) {
     return {
       style: {},
-      textClass: 'border border-gray-200 bg-white text-gray-800 shadow-sm',
+      textClass: 'border border-border bg-card text-foreground shadow-sm',
     };
   }
   return {

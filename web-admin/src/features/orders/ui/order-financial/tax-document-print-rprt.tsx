@@ -66,8 +66,8 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
       : detail.status;
 
   return (
-    <div className="rounded-xl bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
-      <div className="border-b border-slate-200 pb-6">
+    <div data-mode="LIGHT" className="rounded-xl bg-card p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
+      <div className="border-b border-border pb-6">
         <div className="flex items-start justify-between gap-6">
           <div className="space-y-2">
             {detail.seller.logoUrl ? (
@@ -78,29 +78,29 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
                 className="h-10 w-auto object-contain"
               />
             ) : null}
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               {t('print.documentLabel')}
             </p>
-            <h1 className="text-3xl font-semibold text-slate-950">
+            <h1 className="text-3xl font-semibold text-foreground">
               {detail.documentNo ?? '—'}
             </h1>
-            <p className="text-sm text-slate-600">{typeLabel}</p>
+            <p className="text-sm text-muted-foreground">{typeLabel}</p>
           </div>
-          <div className="grid gap-2 text-sm text-slate-600">
+          <div className="grid gap-2 text-sm text-muted-foreground">
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">
+              <span className="min-w-28 font-medium text-foreground">
                 {t('print.fields.status')}
               </span>
               <span>{statusLabel}</span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">
+              <span className="min-w-28 font-medium text-foreground">
                 {t('print.fields.issuedAt')}
               </span>
               <span>{formatDateTime(detail.issuedAt, locale)}</span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">
+              <span className="min-w-28 font-medium text-foreground">
                 {t('sequenceNo')}
               </span>
               <span>
@@ -109,7 +109,7 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
               </span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">
+              <span className="min-w-28 font-medium text-foreground">
                 {t('print.orderRef')}
               </span>
               <span>{detail.order.orderNo ?? '—'}</span>
@@ -117,7 +117,7 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
           </div>
         </div>
         {detail.supersedesId ? (
-          <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+          <p className="mt-3 rounded-md bg-warning-bg px-3 py-2 text-xs font-medium text-warning-text">
             {t('print.supersedesNote')}
           </p>
         ) : null}
@@ -125,17 +125,17 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
 
       <div className="grid gap-6 py-6 md:grid-cols-3">
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {t('print.seller')}
           </h2>
-          <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
-            <p className="font-medium text-slate-900">
+          <div className="rounded-xl border border-border p-4 text-sm text-foreground">
+            <p className="font-medium text-foreground">
               {detail.seller.name || '—'}
             </p>
             {detail.seller.name2 ? <p>{detail.seller.name2}</p> : null}
             <p>{detail.seller.address ?? '—'}</p>
             <p className="mt-2">
-              <span className="font-medium text-slate-900">
+              <span className="font-medium text-foreground">
                 {t('print.taxRegistrationNo')}:{' '}
               </span>
               {detail.seller.taxRegistrationNo ?? '—'}
@@ -143,13 +143,13 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {t('print.customer')}
           </h2>
-          <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-700">
+          <div className="rounded-xl border border-border p-4 text-sm text-foreground">
             {detail.customer ? (
               <>
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   {detail.customer.name ?? detail.customer.name2 ?? '—'}
                 </p>
                 <p>{detail.customer.phone ?? '—'}</p>
@@ -168,7 +168,7 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
                 alt={t('print.qrHint')}
                 className="h-28 w-28"
               />
-              <p className="max-w-36 text-xs text-slate-500">
+              <p className="max-w-36 text-xs text-muted-foreground">
                 {t('print.qrHint')}
               </p>
             </>
@@ -178,10 +178,10 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
 
       {/* Line-Level §6.7: the document's own item table (copied at issue), never live order items. */}
       {detail.items.length > 0 && (
-        <div className="mb-6 overflow-x-auto rounded-xl border border-slate-200">
+        <div className="mb-6 overflow-x-auto rounded-xl border border-border">
           <table className="min-w-full text-sm">
-            <caption className="px-4 py-2 text-start font-medium text-slate-700">{t('print.itemsTitle')}</caption>
-            <thead className="bg-slate-50 text-slate-500">
+            <caption className="px-4 py-2 text-start font-medium text-foreground">{t('print.itemsTitle')}</caption>
+            <thead className="bg-muted text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 text-start">#</th>
                 <th className="px-3 py-2 text-start">{t('print.itemColumns.item')}</th>
@@ -195,9 +195,9 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
             </thead>
             <tbody>
               {detail.items.map((item) => (
-                <tr key={item.lineNo} className="border-t border-slate-200">
-                  <td className="px-3 py-2 text-slate-500">{item.lineNo}</td>
-                  <td className="px-3 py-2 text-slate-800">{(locale === 'ar' && item.productName2) || item.productName}</td>
+                <tr key={item.lineNo} className="border-t border-border">
+                  <td className="px-3 py-2 text-muted-foreground">{item.lineNo}</td>
+                  <td className="px-3 py-2 text-foreground">{(locale === 'ar' && item.productName2) || item.productName}</td>
                   <td className="px-3 py-2 text-end tabular-nums">{item.quantity}</td>
                   <td className="px-3 py-2 text-end tabular-nums">{formatCurrency(item.pricePerUnit, detail.currencyCode, locale)}</td>
                   <td className="px-3 py-2 text-end tabular-nums">{item.discountAmount ? formatCurrency(item.discountAmount, detail.currencyCode, locale) : '—'}</td>
@@ -211,53 +211,53 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200">
+      <div className="overflow-hidden rounded-xl border border-border">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-start">
                 {t('print.columns.taxType')}
               </th>
-              <th className="px-4 py-3 text-left">
+              <th className="px-4 py-3 text-start">
                 {t('print.columns.label')}
               </th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-4 py-3 text-end">
                 {t('print.columns.rate')}
               </th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-4 py-3 text-end">
                 {t('print.columns.baseAmount')}
               </th>
-              <th className="px-4 py-3 text-right">
+              <th className="px-4 py-3 text-end">
                 {t('print.columns.taxAmount')}
               </th>
             </tr>
           </thead>
           <tbody>
             {detail.lines.length === 0 ? (
-              <tr className="border-t border-slate-200">
+              <tr className="border-t border-border">
                 <td
                   colSpan={5}
-                  className="px-4 py-6 text-center text-slate-500"
+                  className="px-4 py-6 text-center text-muted-foreground"
                 >
                   {t('print.noLines')}
                 </td>
               </tr>
             ) : (
               detail.lines.map((line) => (
-                <tr key={line.id} className="border-t border-slate-200">
-                  <td className="px-4 py-3 text-slate-800">{line.taxType}</td>
-                  <td className="px-4 py-3 text-slate-800">{line.label}</td>
-                  <td className="px-4 py-3 text-right text-slate-700">
+                <tr key={line.id} className="border-t border-border">
+                  <td className="px-4 py-3 text-foreground">{line.taxType}</td>
+                  <td className="px-4 py-3 text-foreground">{line.label}</td>
+                  <td className="px-4 py-3 text-end text-foreground">
                     {line.rate != null ? `${line.rate}%` : '—'}
                   </td>
-                  <td className="px-4 py-3 text-right text-slate-700">
+                  <td className="px-4 py-3 text-end text-foreground">
                     {formatCurrency(
                       line.baseAmount,
                       detail.currencyCode,
                       locale,
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-slate-900">
+                  <td className="px-4 py-3 text-end font-medium text-foreground">
                     {formatCurrency(
                       line.taxAmount,
                       detail.currencyCode,
@@ -271,7 +271,7 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
         </table>
       </div>
 
-      <div className="mt-6 ms-auto w-full max-w-md space-y-2 rounded-xl border border-slate-200 p-4 text-sm">
+      <div className="mt-6 ms-auto w-full max-w-md space-y-2 rounded-xl border border-border p-4 text-sm">
         <div className="flex items-center justify-between">
           <span>{t('print.totals.subtotal')}</span>
           <span>{formatCurrency(subtotal, detail.currencyCode, locale)}</span>
@@ -282,7 +282,7 @@ export function TaxDocumentPrintRprt({ detail }: TaxDocumentPrintRprtProps) {
             {formatCurrency(detail.taxAmount, detail.currencyCode, locale)}
           </span>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-950">
+        <div className="flex items-center justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
           <span>{t('print.totals.total')}</span>
           <span>
             {formatCurrency(detail.totalAmount, detail.currencyCode, locale)}

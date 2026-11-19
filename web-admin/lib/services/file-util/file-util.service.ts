@@ -108,6 +108,8 @@ export interface FileView {
   refTypeCode: string | null;
   refId: string | null;
   sourceCode: string;
+  /** Workflow stage of the owning record at upload (ORDER_FILE: order status, e.g. `preparation`); null when unknown. */
+  stageCode: string | null;
   notes: string | null;
   originalName: string;
   mimeType: string;
@@ -132,6 +134,10 @@ export interface ListFilesQuery {
   purposeCodes?: string[];
   refTypeCode?: FileRefTypeCode;
   refId?: string;
+  /** Only files uploaded from these screens. */
+  sourceCodes?: string[];
+  /** Only files uploaded while the record was in these stages. */
+  stageCodes?: string[];
 }
 
 /** Editable fields of a READY file. */
@@ -153,6 +159,7 @@ const FILE_VIEW_SELECT = {
   ref_type_code: true,
   ref_id: true,
   source_code: true,
+  stage_code: true,
   notes: true,
   original_name: true,
   mime_type: true,
@@ -250,14 +257,20 @@ export function effectiveMaxSize(
   return Math.min(Number(placeBytes), Number(type.max_size_bytes ?? type.sys_file_media_kind_cd.max_size_bytes));
 }
 
-/** The owning record must exist in the caller's organization. */
-async function assertEntityOwned(tenantId: string, categoryCode: FileCategoryCode, entityId: string): Promise<void> {
+/**
+ * The owning record must exist in the caller's organization.
+ * @returns the record's current workflow stage (ORDER_FILE: order status), or null for categories without stages
+ */
+async function assertEntityOwned(tenantId: string, categoryCode: FileCategoryCode, entityId: string): Promise<{ stageCode: string | null }> {
   const where = { id: entityId, tenant_org_id: tenantId };
   let found: unknown;
   switch (categoryCode) {
-    case 'ORDER_FILE':
-      found = await prisma.org_orders_mst.findFirst({ where, select: { id: true } });
-      break;
+    case 'ORDER_FILE': {
+      const order = await prisma.org_orders_mst.findFirst({ where, select: { current_status: true, status: true } });
+      if (!order) break;
+      // current_status is what the workflow engine moves; status is the older copy kept in step with it.
+      return { stageCode: order.current_status ?? order.status ?? null };
+    }
     case 'CUSTOMER_FILE':
       found = await prisma.org_customers_mst.findFirst({ where, select: { id: true } });
       break;
@@ -269,6 +282,7 @@ async function assertEntityOwned(tenantId: string, categoryCode: FileCategoryCod
       break;
   }
   if (!found) throw new FileUtilError('ENTITY_NOT_FOUND', 'The record was not found.', 404);
+  return { stageCode: null };
 }
 
 /** A sub-record must belong to the same order (entity) and organization. */
@@ -423,7 +437,7 @@ export async function initFileUpload(cmd: InitFileUploadCommand): Promise<InitFi
     throw new FileUtilError('FILE_TOO_LARGE', `The file is larger than the ${Math.floor(rules.maxSizeBytes / 1048576)} MB limit.`, 422);
   }
 
-  await assertEntityOwned(cmd.tenantId, cmd.categoryCode, cmd.entityId);
+  const { stageCode } = await assertEntityOwned(cmd.tenantId, cmd.categoryCode, cmd.entityId);
   if (cmd.refTypeCode && cmd.refId) {
     await assertRefOwned(cmd.tenantId, cmd.entityId, cmd.refTypeCode, cmd.refId);
   }
@@ -481,6 +495,7 @@ export async function initFileUpload(cmd: InitFileUploadCommand): Promise<InitFi
         ref_type_code: cmd.refTypeCode ?? null,
         ref_id: cmd.refId ?? null,
         source_code: cmd.sourceCode,
+        stage_code: stageCode,
         notes: cmd.notes?.trim() || null,
         bucket_code: rules.bucketCode,
         object_key: objectKey,
@@ -640,6 +655,7 @@ async function viewFiles(rows: FileViewRow[]): Promise<FileView[]> {
     refTypeCode: r.ref_type_code,
     refId: r.ref_id,
     sourceCode: r.source_code,
+    stageCode: r.stage_code,
     notes: r.notes,
     originalName: r.original_name,
     mimeType: r.mime_type,
@@ -674,6 +690,8 @@ export async function listFiles(q: ListFilesQuery): Promise<FileView[]> {
       status_code: FILE_STATUSES.READY,
       ...(q.purposeCodes?.length ? { purpose_code: { in: q.purposeCodes } } : {}),
       ...(q.refTypeCode && q.refId ? { ref_type_code: q.refTypeCode, ref_id: q.refId } : {}),
+      ...(q.sourceCodes?.length ? { source_code: { in: q.sourceCodes } } : {}),
+      ...(q.stageCodes?.length ? { stage_code: { in: q.stageCodes } } : {}),
     },
     select: FILE_VIEW_SELECT,
     orderBy: [{ entity_id: 'asc' }, { purpose_code: 'asc' }, { sort_order: 'asc' }, { created_at: 'asc' }],
@@ -786,6 +804,35 @@ export interface FileCategoryConfig {
     maxSizeBytes: number;
     mimeTypes: { mimeType: string; kindCode: string; previewCode: string; extensions: string[]; maxSizeBytes: number }[];
   }[];
+  /** EN/AR names to show where a file came from (`sourceCode`, `stageCode`, `refTypeCode` of FileView). */
+  labels: {
+    sources: FileCodeLabel[];
+    /** Stages of the owning record; empty for categories without stages. */
+    stages: FileCodeLabel[];
+    refTypes: FileCodeLabel[];
+  };
+}
+
+/** One code with its English and Arabic names. */
+export interface FileCodeLabel {
+  code: string;
+  name: string;
+  name2: string | null;
+}
+
+/**
+ * Names of the owning record's stages. Codes are returned as the record stores them, so they
+ * match `org_file_mst.stage_code` exactly.
+ */
+async function stageLabels(categoryCode: FileCategoryCode): Promise<FileCodeLabel[]> {
+  if (categoryCode !== 'ORDER_FILE') return [];
+  const rows = await prisma.sys_order_status_cd.findMany({
+    where: { is_active: true },
+    orderBy: [{ display_order: 'asc' }],
+    select: { code: true, name: true, name2: true },
+  });
+  // The lookup is uppercase; orders store the status lowercase (lib/types/workflow.ts).
+  return rows.map((r) => ({ code: r.code.toLowerCase(), name: r.name, name2: r.name2 }));
 }
 
 /**
@@ -798,7 +845,20 @@ export interface FileCategoryConfig {
  * const cfg = await getCategoryConfig('ORDER_FILE'); // cfg.purposes[0].purposeCode === 'BEFORE_IMAGE'
  */
 export async function getCategoryConfig(categoryCode: FileCategoryCode): Promise<FileCategoryConfig> {
-  const category = await prisma.sys_file_category_cd.findFirst({
+  const labelsPromise = Promise.all([
+    prisma.sys_file_source_cd.findMany({
+      where: { is_active: true, rec_status: 1 },
+      orderBy: [{ rec_order: 'asc' }, { source_code: 'asc' }],
+      select: { source_code: true, name: true, name2: true },
+    }),
+    stageLabels(categoryCode),
+    prisma.sys_file_ref_type_cd.findMany({
+      where: { is_active: true, rec_status: 1 },
+      orderBy: [{ rec_order: 'asc' }, { ref_type_code: 'asc' }],
+      select: { ref_type_code: true, name: true, name2: true },
+    }),
+  ]);
+  const categoryPromise = prisma.sys_file_category_cd.findFirst({
     where: { category_code: categoryCode, is_active: true, rec_status: 1 },
     select: {
       max_size_bytes: true,
@@ -826,6 +886,8 @@ export async function getCategoryConfig(categoryCode: FileCategoryCode): Promise
       },
     },
   });
+  // Awaited together so a failed lookup never becomes an unhandled rejection.
+  const [category, [sources, stages, refTypes]] = await Promise.all([categoryPromise, labelsPromise]);
   if (!category) throw new FileUtilError('CATEGORY_UNAVAILABLE', 'This file category is not available.', 422);
 
   return {
@@ -855,5 +917,10 @@ export async function getCategoryConfig(categoryCode: FileCategoryCode): Promise
         mimeTypes,
       };
     }),
+    labels: {
+      sources: sources.map((r) => ({ code: r.source_code, name: r.name, name2: r.name2 })),
+      stages,
+      refTypes: refTypes.map((r) => ({ code: r.ref_type_code, name: r.name, name2: r.name2 })),
+    },
   };
 }

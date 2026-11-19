@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import {
@@ -71,7 +70,6 @@ export interface RackBagsModalProps {
 export function RackBagsModal({ open, onOpenChange, orderId, onSaved }: RackBagsModalProps) {
   const t = useTranslations('workflow.ready.rackBags');
   const tMessages = useTranslations('workflow.ready.messages');
-  const isRTL = useRTL();
   const { token: csrfToken } = useCSRFToken();
 
   const contextQuery = useQuery({
@@ -178,7 +176,7 @@ export function RackBagsModal({ open, onOpenChange, orderId, onSaved }: RackBags
 
           <div className="space-y-1.5">
             <Label htmlFor={`rack-bags-rack-${orderId}`}>
-              {t('rack')} <span className="text-red-500" aria-hidden="true">*</span>
+              {t('rack')} <span className="text-danger-text" aria-hidden="true">*</span>
             </Label>
             <CmxInput
               id={`rack-bags-rack-${orderId}`}
@@ -222,7 +220,6 @@ export function RackBagsModal({ open, onOpenChange, orderId, onSaved }: RackBags
               groupLabel={t('bags')}
               customLabel={t('custom')}
               disabled={saving}
-              isRTL={isRTL}
             />
           </div>
 
@@ -237,7 +234,6 @@ export function RackBagsModal({ open, onOpenChange, orderId, onSaved }: RackBags
               groupLabel={t('hanging')}
               customLabel={t('custom')}
               disabled={saving}
-              isRTL={isRTL}
             />
           </div>
         </div>

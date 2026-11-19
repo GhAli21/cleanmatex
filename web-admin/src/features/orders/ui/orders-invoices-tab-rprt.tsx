@@ -58,9 +58,9 @@ export function OrdersInvoicesTabRprt({
   if (invoices.length === 0) {
     return (
       <div
-        className={`flex flex-col items-center justify-center py-12 text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+        className="flex flex-col items-center justify-center py-12 text-muted-foreground text-start"
       >
-        <FileText className="w-12 h-12 mb-3 text-gray-300" />
+        <FileText className="w-12 h-12 mb-3 text-muted-foreground" />
         <p>{t.emptyInvoices}</p>
       </div>
     );
@@ -70,51 +70,49 @@ export function OrdersInvoicesTabRprt({
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-gray-200 bg-gray-50">
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <tr className="border-b border-border bg-muted">
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {t.invoiceId ?? 'ID'}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               {t.invoiceNo}
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               Total
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               Status
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               Created
             </th>
-            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
               Actions
             </th>
           </tr>
         </thead>
         <tbody>
           {invoices.map((inv) => (
-            <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <CmxCopyableCell value={inv.id} maxLength={8} align={isRTL ? 'right' : 'left'} />
-              <CmxCopyableCell value={inv.invoice_no ?? inv.id.slice(0, 8)} align={isRTL ? 'right' : 'left'} />
+            <tr key={inv.id} className="border-b border-border hover:bg-muted">
+              <CmxCopyableCell value={inv.id} maxLength={8} />
+              <CmxCopyableCell value={inv.invoice_no ?? inv.id.slice(0, 8)} />
               <CmxCopyableCell
                 value={formatMoneyAmountWithCode(Number(inv.total ?? 0), {
                   currencyCode: (inv.currency_code?.trim() || currencyCode) as string,
                   decimalPlaces,
                   locale: moneyLocale,
                 })}
-                align={isRTL ? 'right' : 'left'}
               />
-              <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+              <td className="px-4 py-3 text-start">
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground">
                   {inv.status ?? '—'}
                 </span>
               </td>
               <CmxCopyableCell
                 value={inv.created_at ? new Date(inv.created_at).toLocaleString() : null}
-                align={isRTL ? 'right' : 'left'}
               />
-              <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <td className="px-4 py-3 text-start">
+                <div className="flex gap-2">
                   <CmxButton
                     variant="outline"
                     size="sm"

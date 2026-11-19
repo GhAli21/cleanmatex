@@ -172,18 +172,18 @@ export default function UsersSettingsPage() {
 
   const getRoleBadge = (role: string) => {
     const colors = {
-      admin: 'bg-purple-100 text-purple-800',
-      operator: 'bg-blue-100 text-blue-800',
-      viewer: 'bg-gray-100 text-gray-800',
+      admin: 'bg-info-bg text-info-text',
+      operator: 'bg-info-bg text-info-text',
+      viewer: 'bg-muted text-foreground',
     }
     return colors[role as keyof typeof colors] || colors.viewer
   }
 
   const getStatusBadge = (status: string) => {
     const colors = {
-      active: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      inactive: 'bg-gray-100 text-gray-800',
+      active: 'bg-success-bg text-success-text',
+      pending: 'bg-warning-bg text-warning-text',
+      inactive: 'bg-muted text-foreground',
     }
     return colors[status as keyof typeof colors] || colors.inactive
   }
@@ -257,8 +257,8 @@ export default function UsersSettingsPage() {
     <div className="max-w-6xl">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">{t('teamMembers')}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t('manageTeamDesc')}</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('teamMembers')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{t('manageTeamDesc')}</p>
         </div>
         <CmxButton
           onClick={() => setShowInvite(true)}
@@ -271,7 +271,7 @@ export default function UsersSettingsPage() {
       </div>
 
       {listError && (
-        <p className="text-sm text-red-600 mb-4" role="alert">
+        <p className="text-sm text-danger-text mb-4" role="alert">
           {listError}
         </p>
       )}
@@ -282,7 +282,7 @@ export default function UsersSettingsPage() {
             <CmxDialogTitle>{t('inviteNewUser')}</CmxDialogTitle>
           </CmxDialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">{t('invitePasswordHint')}</p>
+            <p className="text-sm text-muted-foreground">{t('invitePasswordHint')}</p>
             <div>
               <Label htmlFor="invite-email">{t('email')}</Label>
               <CmxInput
@@ -337,7 +337,7 @@ export default function UsersSettingsPage() {
                 <div>
                   <Label htmlFor="edit-email">{t('email')}</Label>
                   <CmxInput id="edit-email" value={selectedMember.email} disabled className="mt-1" />
-                  <p className="text-xs text-gray-500 mt-1">{t('emailReadOnlyHint')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('emailReadOnlyHint')}</p>
                 </div>
                 <CmxSelect
                   id="edit-role"
@@ -411,7 +411,7 @@ export default function UsersSettingsPage() {
               {confirm?.kind === 'deactivate' ? t('deactivateUser') : t('activateUser')}
             </CmxDialogTitle>
           </CmxDialogHeader>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             {confirm?.kind === 'deactivate'
               ? t('confirmDeactivateMember', { email: confirm.member.email })
               : t('confirmActivateMember', { email: confirm?.member.email ?? '' })}
@@ -435,46 +435,46 @@ export default function UsersSettingsPage() {
         </CmxDialogContent>
       </CmxDialog>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
         {listLoading ? (
-          <div className="p-8 text-center text-sm text-gray-500">{tCommon('loading')}</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">{tCommon('loading')}</div>
         ) : team.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">{tCommon('noData')}</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">{tCommon('noData')}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('user')}
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('role')}
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('status')}
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('joined')}
                   </th>
-                  <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('actions')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {team.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
+                  <tr key={member.id} className="hover:bg-muted">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-medium">
+                        <div className="h-10 w-10 rounded-full bg-info-bg flex items-center justify-center">
+                          <span className="text-primary-text font-medium">
                             {member.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="ms-4">
-                          <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                          <div className="text-sm text-gray-500">{member.email}</div>
+                          <div className="text-sm font-medium text-foreground">{member.name}</div>
+                          <div className="text-sm text-muted-foreground">{member.email}</div>
                         </div>
                       </div>
                     </td>
@@ -492,7 +492,7 @@ export default function UsersSettingsPage() {
                         {member.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {new Date(member.joinedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
@@ -501,24 +501,24 @@ export default function UsersSettingsPage() {
                           type="button"
                           onClick={() => setOpenMenuId(openMenuId === member.id ? null : member.id)}
                           disabled={actionLoading === member.id}
-                          className="text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-50"
+                          className="text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
                           aria-expanded={openMenuId === member.id}
                           aria-haspopup="true"
                         >
                           {actionLoading === member.id ? (
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400" />
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-muted-foreground" />
                           ) : (
                             <MoreVertical className="h-5 w-5" />
                           )}
                         </button>
 
                         {openMenuId === member.id && (
-                          <div className="absolute end-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border border-gray-200">
+                          <div className="absolute end-0 mt-2 w-48 bg-card rounded-md shadow-lg z-20 border border-border">
                             <div className="py-1">
                               <button
                                 type="button"
                                 onClick={() => handleEdit(member)}
-                                className="w-full text-start px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                className="w-full text-start px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2"
                               >
                                 <Edit className="h-4 w-4" />
                                 {t('editUser')}
@@ -527,7 +527,7 @@ export default function UsersSettingsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleResetPassword()}
-                                className="w-full text-start px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                className="w-full text-start px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2"
                               >
                                 <Mail className="h-4 w-4" />
                                 {t('resetPassword')}
@@ -546,7 +546,7 @@ export default function UsersSettingsPage() {
                                     setConfirm({ kind: 'deactivate', member })
                                   }}
                                   disabled={isSelfMember(member)}
-                                  className="w-full text-start px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="w-full text-start px-4 py-2 text-sm text-danger-text hover:bg-danger-bg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   {t('deactivateUser')}
@@ -558,7 +558,7 @@ export default function UsersSettingsPage() {
                                     setOpenMenuId(null)
                                     setConfirm({ kind: 'activate', member })
                                   }}
-                                  className="w-full text-start px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2"
+                                  className="w-full text-start px-4 py-2 text-sm text-success-text hover:bg-success-bg flex items-center gap-2"
                                 >
                                   <CheckCircle2 className="h-4 w-4" />
                                   {t('activateUser')}
@@ -577,12 +577,12 @@ export default function UsersSettingsPage() {
         )}
       </div>
 
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+      <div className="mt-6 bg-info-bg border border-info-border rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-primary-text mb-2 flex items-center gap-2">
           <Shield className="h-4 w-4" />
           {t('rolesPermissions')}
         </h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+        <ul className="text-sm text-primary-text space-y-1">
           <li>
             • <strong>{t('roleAdmin')}:</strong> {t('roleAdminDesc')}
           </li>

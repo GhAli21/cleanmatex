@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceBaseCard } from './PieceBaseCard';
 import { CmxButton, CmxInput } from '@ui/primitives';
 import { Printer, ScanBarcode } from 'lucide-react';
@@ -33,7 +32,6 @@ export function SortingPieceCard({
   readOnly = false,
 }: SortingPieceCardProps) {
   const t = useTranslations('orders.pieces');
-  const isRTL = useRTL();
   const [barcodeValue, setBarcodeValue] = React.useState('');
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -46,19 +44,19 @@ export function SortingPieceCard({
 
   const renderDetails = () => {
     return (
-      <div className={`flex flex-col gap-3 mt-2 w-full ${isRTL ? 'items-end' : 'items-start'}`}>
-        <div className={`flex items-center w-full gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex flex-col gap-3 mt-2 w-full items-start">
+        <div className="flex items-center w-full gap-4">
           
           {/* Scanner Input field */}
           <div className="flex-1 relative">
-            <ScanBarcode className={`absolute top-2.5 ${isRTL ? 'right-3' : 'left-3'} w-4 h-4 text-slate-400`} />
+            <ScanBarcode className="absolute top-2.5 start-3 w-4 h-4 text-muted-foreground" />
             <CmxInput
               value={barcodeValue}
               onChange={(e) => setBarcodeValue(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={readOnly}
               placeholder={t('scanToAssign')}
-              className={`w-full h-10 bg-slate-50 border-slate-300 font-mono text-sm ${isRTL ? 'pr-9 text-right' : 'pl-9 text-left'}`}
+              className="w-full h-10 bg-muted border-border font-mono text-sm ps-9 text-start"
             />
           </div>
 
@@ -69,7 +67,7 @@ export function SortingPieceCard({
               className="h-10 shrink-0"
               onClick={() => onPrintTag(piece.id)}
             >
-              <Printer className="w-4 h-4 mr-2" />
+              <Printer className="w-4 h-4 me-2" />
               {t('printTag')}
             </CmxButton>
           )}
@@ -83,16 +81,16 @@ export function SortingPieceCard({
     // piece_code is always set by the DB (P3); the tag (barcode) is what staff attach.
     const hasTag = Boolean(piece.barcode);
     return (
-      <div className={`flex items-center gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="text-xs font-semibold text-slate-500 uppercase">
+      <div className="flex items-center gap-2 mt-2">
+        <span className="text-xs font-semibold text-muted-foreground uppercase">
           {t('tagAssignment')}:
         </span>
         {hasTag ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-success-bg text-success-text">
             {t('assigned')}
           </span>
         ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-warning-bg text-warning-text">
             {t('pending')}
           </span>
         )}

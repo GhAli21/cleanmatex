@@ -464,7 +464,7 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             {/* B3 — tender step, governed DIRECT_TENDER funding only */}
             {fundingCaptureEnabled &&
               (dialog === 'topUp' || dialog === 'advance') && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                <div className="rounded-xl border border-border bg-muted/50 p-3">
                   <p className="mb-2 text-sm font-medium">
                     {t('funding.tenderSectionTitle')}
                   </p>

@@ -165,7 +165,7 @@ ui_components:
   spinner: "import { CmxSpinner } from '@ui/primitives'"
   label: "import { Label } from '@ui/primitives'"
   badge: "import { CmxStatusBadge } from '@ui/feedback'  // tone: neutral|info|success|warning|danger|brand"
-  alert: "import { Alert, AlertDescription } from '@ui/primitives'"
+  alert: "import { CmxSummaryMessage } from '@ui/feedback'  // type: success|warning|info|error; title/items or message/children"
   separator: "import { Separator } from '@ui/primitives'"
   tooltip: "import { Tooltip } from '@ui/primitives'"
   card: "import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card'"

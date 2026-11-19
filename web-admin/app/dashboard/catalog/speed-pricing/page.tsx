@@ -19,7 +19,7 @@ export default async function SpeedPricingPage() {
   if (!canView) {
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{t('forbiddenTitle')}</div>
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">{t('forbiddenTitle')}</div>
       </div>
     );
   }

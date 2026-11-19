@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, Clock, Package, Link2, Copy, LayoutList } from 'lucide-react';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -140,7 +139,6 @@ export function OrderDetailClient({
   returnUrl = '/dashboard/orders',
   returnLabel,
 }: OrderDetailClientProps) {
-  const isRTL = useRTL();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tFin = useTranslations('orders.detail.financial');
@@ -245,13 +243,13 @@ export function OrderDetailClient({
   });
 
   const statusColors: Record<string, string> = {
-    intake: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-200',
-    preparation: 'bg-purple-100 text-purple-800 border-purple-200',
-    processing: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    ready: 'bg-green-100 text-green-800 border-green-200',
-    ready_for_pickup: 'bg-teal-100 text-teal-800 border-teal-200',
-    delivered: 'bg-gray-100 text-gray-800 border-gray-200',
-    cancelled: 'bg-red-100 text-red-800 border-red-200',
+    intake: 'bg-info-bg text-info-text border-info-border',
+    preparation: 'bg-info-bg text-info-text border-info-border',
+    processing: 'bg-warning-bg text-warning-text border-warning-border',
+    ready: 'bg-success-bg text-success-text border-success-border',
+    ready_for_pickup: 'bg-info-bg text-info-text border-info-border',
+    delivered: 'bg-muted text-foreground border-border',
+    cancelled: 'bg-danger-bg text-danger-text border-danger-border',
   };
 
   const customer = (order.org_customers_mst as {
@@ -304,7 +302,7 @@ export function OrderDetailClient({
           </CmxCardHeader>
           <CmxCardContent className="grid gap-3 sm:grid-cols-2">
             {masterFields.map((f) => (
-              <div key={f.label} className={isRTL ? 'text-right' : 'text-left'}>
+              <div key={f.label} className="text-start">
                 <div className="text-xs text-muted-foreground">{f.label}</div>
                 <div className="text-sm font-medium">{String(f.value)}</div>
               </div>
@@ -614,15 +612,15 @@ export function OrderDetailClient({
 
   return (
     <div className="space-y-6">
-      <div className={`flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+      <div className="flex flex-wrap items-center gap-3 justify-between">
         <Link
           href={returnUrl}
-          className={`inline-flex items-center text-sm text-muted-foreground hover:text-foreground ${isRTL ? 'flex-row-reverse' : ''}`}
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft className={`h-4 w-4 ${isRTL ? 'ms-1 rotate-180' : 'me-1'}`} />
+          <ChevronLeft className="h-4 w-4 me-1 rtl:rotate-180" />
           {returnLabel || t.backToOrders}
         </Link>
-        <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex flex-wrap items-center gap-2">
           <PrintLabelButton
             order={order as PrintLabelOrderInput}
           />
@@ -653,16 +651,16 @@ export function OrderDetailClient({
 
       <CmxCard>
         <CmxCardContent className="pt-6">
-          <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
-            <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-2 text-start">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold">
                   <CmxCodeChip code={orderNo} kind="order" size="md" className="text-2xl font-bold" />
                 </h1>
                 {parentOrderId && parentOrderNo && parentOrderNo !== orderNo && (
                   <Link
                     href={`/dashboard/orders/${parentOrderId}`}
-                    className="text-sm text-[rgb(var(--cmx-primary-text-rgb,37_99_235))] underline-offset-2 hover:underline"
+                    className="text-sm text-primary-text underline-offset-2 hover:underline"
                   >
                     {tCodes('partOf', { orderNo: parentOrderNo })}
                   </Link>
@@ -686,13 +684,13 @@ export function OrderDetailClient({
                 {tFin('header.paymentPlan')}: {String(order.payment_type_code ?? '—')}
               </p>
               {order.received_at && (
-                <p className={`flex items-center gap-1 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <p className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   {new Date(String(order.received_at)).toLocaleString(moneyLocale === 'ar' ? 'ar' : 'en')}
                 </p>
               )}
             </div>
-            <div className={isRTL ? 'text-left' : 'text-right'}>
+            <div className="text-end">
               <div className="text-xs text-muted-foreground">{tFin('card.orderTotal')}</div>
               <div className="text-3xl font-bold tabular-nums">
                 {fmtOrderMoney(displayOrderTotal)}
@@ -702,7 +700,7 @@ export function OrderDetailClient({
 
           {order.preparation_status && (
             <div className="mt-4 border-t border-border pt-4">
-              <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
                   {t.preparationStatus}: {String(order.preparation_status)}
                 </span>

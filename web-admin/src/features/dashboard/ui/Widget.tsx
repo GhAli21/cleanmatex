@@ -14,7 +14,6 @@
 
 import { ReactNode, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { useRole } from '@/lib/auth/role-context'
 import { useFeatureOptional } from '@/src/features/auth/ui/RequireFeature'
@@ -92,12 +91,12 @@ export function Widget({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow ${className}`}
+      className={`bg-card rounded-lg shadow ${className}`}
       style={{ gridColumn: `span ${colSpan}` }}
     >
       {/* Widget Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         <div className="flex items-center space-x-2">
           {titleAction}
           {onRefresh && (
@@ -105,7 +104,7 @@ export function Widget({
               type="button"
               onClick={handleRefresh}
               disabled={isRefreshing || isLoading}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+              className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
               aria-label="Refresh widget"
             >
               <RefreshCw
@@ -136,11 +135,11 @@ export function Widget({
 function SkeletonLoader() {
   return (
     <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+      <div className="h-8 bg-muted rounded w-1/4"></div>
       <div className="space-y-3">
-        <div className="h-4 bg-gray-200 rounded"></div>
-        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+        <div className="h-4 bg-muted rounded"></div>
+        <div className="h-4 bg-muted rounded w-5/6"></div>
+        <div className="h-4 bg-muted rounded w-4/6"></div>
       </div>
     </div>
   )
@@ -157,22 +156,21 @@ function ErrorState({
   onRetry?: () => void
 }) {
   const t = useTranslations('dashboard')
-  const isRTL = useRTL()
   
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
-      <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-      <h4 className="text-lg font-medium text-gray-900 mb-2">
+      <AlertCircle className="h-12 w-12 text-danger-text mb-4" />
+      <h4 className="text-lg font-medium text-foreground mb-2">
         {t('failedToLoad')}
       </h4>
-      <p className="text-sm text-gray-600 mb-4">{error}</p>
+      <p className="text-sm text-muted-foreground mb-4">{error}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
         >
-          <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+          <RefreshCw className="h-4 w-4 me-2" />
           {t('tryAgain')}
         </button>
       )}
@@ -196,10 +194,10 @@ export function WidgetEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      {Icon && <Icon className="h-16 w-16 text-gray-400 mb-4" />}
-      <h4 className="text-lg font-medium text-gray-900 mb-2">{title}</h4>
+      {Icon && <Icon className="h-16 w-16 text-muted-foreground mb-4" />}
+      <h4 className="text-lg font-medium text-foreground mb-2">{title}</h4>
       {description && (
-        <p className="text-sm text-gray-600 mb-4 max-w-sm">{description}</p>
+        <p className="text-sm text-muted-foreground mb-4 max-w-sm">{description}</p>
       )}
       {action}
     </div>
@@ -246,27 +244,27 @@ export function StatCard({
   isLoading?: boolean
 }) {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    red: 'bg-red-50 text-red-600',
-    yellow: 'bg-yellow-50 text-yellow-600',
-    gray: 'bg-gray-50 text-gray-600',
+    blue: 'bg-info-bg text-info-text',
+    green: 'bg-success-bg text-success-text',
+    red: 'bg-danger-bg text-danger-text',
+    yellow: 'bg-warning-bg text-warning-text',
+    gray: 'bg-muted text-muted-foreground',
   }
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-        <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-4 bg-muted rounded w-1/2 mb-4"></div>
+        <div className="h-8 bg-muted rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-muted rounded w-1/3"></div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-card rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-gray-600">{label}</p>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
         {Icon && (
           <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
             <Icon className="h-5 w-5" />
@@ -274,14 +272,14 @@ export function StatCard({
         )}
       </div>
       <div className="flex items-baseline">
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        <p className="text-3xl font-bold text-foreground">{value}</p>
       </div>
       {(trend !== undefined || trendLabel) && (
         <div className="mt-2 flex items-center">
           {trend !== undefined && (
             <span
               className={`text-sm font-medium ${
-                trend >= 0 ? 'text-green-600' : 'text-red-600'
+                trend >= 0 ? 'text-success-text' : 'text-danger-text'
               }`}
             >
               {trend >= 0 ? '+' : ''}
@@ -289,7 +287,7 @@ export function StatCard({
             </span>
           )}
           {trendLabel && (
-            <span className="text-sm text-gray-600 ml-2">{trendLabel}</span>
+            <span className="text-sm text-muted-foreground ms-2">{trendLabel}</span>
           )}
         </div>
       )}

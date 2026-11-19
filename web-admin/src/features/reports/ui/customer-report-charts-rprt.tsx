@@ -43,8 +43,8 @@ export default function CustomerReportCharts({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Top Customers */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.topCustomers')}
         </h3>
         <ResponsiveContainer width="100%" height={320}>
@@ -66,8 +66,8 @@ export default function CustomerReportCharts({
       </div>
 
       {/* New vs Returning */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.newVsReturning')}
         </h3>
         <ResponsiveContainer width="100%" height={320}>

@@ -6,7 +6,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { Check, X } from 'lucide-react';
 
@@ -38,18 +37,17 @@ export function EditOrderBar({
   isSaving = false,
 }: EditOrderBarProps) {
   const t = useTranslations('orders.edit');
-  const isRTL = useRTL();
 
   return (
     <div
-      className="flex items-center justify-between gap-4 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg"
+      className="flex items-center justify-between gap-4 px-4 py-2.5 bg-warning-bg border border-warning-border rounded-lg"
       role="status"
       aria-label={t('editModeLabel', { orderNo: orderNo || '' }) || `Editing Order ${orderNo}`}
     >
-      <span className="text-sm font-medium text-amber-800">
+      <span className="text-sm font-medium text-warning-text">
         {t('editModeLabel', { orderNo: orderNo || '' }) || `Editing Order ${orderNo}`}
       </span>
-      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-2">
         <CmxButton
           variant="primary"
           size="sm"

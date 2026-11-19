@@ -19,9 +19,9 @@ const TONE = { due: 'warning', dueAtCollection: 'warning', dueOnInvoice: 'warnin
 export function OrderFinBalanceBadge({ header }: { header: OrderFinHeaderView | undefined }) {
   const t = useTranslations('orders.finView');
   const money = useFinMoney({ currency: header?.currency ?? { code: null, decimalPlaces: null } });
-  if (!header) return <span className="text-[rgb(var(--cmx-muted-foreground-rgb))]">—</span>;
+  if (!header) return <span className="text-muted-foreground">—</span>;
   const state = header.header.balanceState;
-  if (!state) return <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('banners.unavailable')}</span>;
+  if (!state) return <span className="text-xs text-muted-foreground">{t('banners.unavailable')}</span>;
   return (
     <span className="inline-flex items-baseline gap-2 whitespace-nowrap">
       {money(header.header.metrics.balance, { tone: TONE[state], size: 'sm' })}

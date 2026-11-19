@@ -52,17 +52,16 @@ describe('CmxCountPicker', () => {
     expect(input.value).toBe('');
   });
 
-  it('renders RTL chip order with flex-row-reverse', () => {
+  it('leaves RTL chip order to the page dir (no hand-made flex-row-reverse)', () => {
     const { container } = render(
       <CmxCountPicker
         value={0}
         onChange={jest.fn()}
         groupLabel="Bags"
         customLabel="Custom"
-        isRTL
       />
     );
-    expect(container.querySelector('[role="group"]')).toHaveClass('flex-row-reverse');
+    expect(container.querySelector('[role="group"]')).not.toHaveClass('flex-row-reverse');
   });
 
   it('starts in custom mode when the initial value is outside the chip range', () => {

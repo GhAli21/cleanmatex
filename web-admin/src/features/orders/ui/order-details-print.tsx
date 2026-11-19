@@ -39,7 +39,8 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
 
   return (
     <div
-      className={`mx-auto ${containerWidthClass} bg-white text-gray-900 print:bg-white`}
+      data-mode="LIGHT"
+      className={`mx-auto ${containerWidthClass} bg-card text-foreground print:bg-card`}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header">
@@ -74,20 +75,20 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
         <h2>{tOrders('orderItems')}</h2>
         <table className="w-full border-collapse text-[11px]">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="py-1 text-left">{tOrders('orderItems')}</th>
+            <tr className="border-b border-border">
+              <th className="py-1 text-start">{tOrders('orderItems')}</th>
               <th className="py-1 text-center">{tWorkflowReady('quantity')}</th>
-              <th className="py-1 text-right">{tOrders('subtotal')}</th>
+              <th className="py-1 text-end">{tOrders('subtotal')}</th>
             </tr>
           </thead>
           <tbody>
             {order.items.map((item) => (
-              <tr key={item.id} className="border-b border-dashed border-gray-200">
-                <td className="py-1 pr-2">
+              <tr key={item.id} className="border-b border-dashed border-border">
+                <td className="py-1 pe-2">
                   <div className="font-medium">{item.productName}</div>
                 </td>
                 <td className="py-1 text-center">{item.quantity}</td>
-                <td className="py-1 text-right">
+                <td className="py-1 text-end">
                   {fmt(item.totalPrice)}
                 </td>
               </tr>
@@ -97,15 +98,15 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
       </section>
 
       {discountLines.length > 0 && (
-        <section className="print-section border-t border-gray-200 pt-2">
+        <section className="print-section border-t border-border pt-2">
           <div className="flex justify-between print-row">
             <span className="font-semibold">{tOrders('discount')}</span>
-            <span className="text-red-600">
+            <span className="text-danger-text">
               -{fmt(discountLines.reduce((s, l) => s + l.discount_amount, 0))}
             </span>
           </div>
           {discountLines.map((line) => (
-            <div key={line.id} className="flex justify-between text-xs text-gray-500 ps-3">
+            <div key={line.id} className="flex justify-between text-xs text-muted-foreground ps-3">
               <span>{sourceLabel(line.source_type, locale === 'ar' ? 'ar' : 'en')}</span>
               <span>-{fmt(line.discount_amount)}</span>
             </div>
@@ -122,13 +123,13 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
           <>
             <div className="flex justify-between print-row">
               <span>{tOrders('paidAmount')}</span>
-              <span className="text-green-700">
+              <span className="text-success-text">
                 {fmt(order.paymentSummary.paid)}
               </span>
             </div>
             <div className="flex justify-between print-row">
               <span>{tWorkflowReady('paymentSection.remainingDue')}</span>
-              <span className="text-orange-700">
+              <span className="text-warning-text">
                 {fmt(order.paymentSummary.remaining)}
               </span>
             </div>

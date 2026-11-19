@@ -24,7 +24,7 @@ export default async function CashControlSettingsRoutePage() {
   if (!canView) {
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {tCommon('error')}
         </div>
       </div>

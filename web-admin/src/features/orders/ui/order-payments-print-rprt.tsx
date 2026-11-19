@@ -56,7 +56,8 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
 
   return (
     <div
-      className="mx-auto w-full max-w-a4 bg-white text-gray-900 print:bg-white"
+      data-mode="LIGHT"
+      className="mx-auto w-full max-w-a4 bg-card text-foreground print:bg-card"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header">
@@ -89,22 +90,22 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
       <section className="print-section">
         <h2>{tOrders('payments') ?? 'Payments'}</h2>
         {data.payments.length === 0 ? (
-          <p className="text-gray-500 text-sm">{tCommon('noData') ?? 'No payments'}</p>
+          <p className="text-muted-foreground text-sm">{tCommon('noData') ?? 'No payments'}</p>
         ) : (
           <table className="w-full border-collapse text-[11px]">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="py-1 text-left">{tCommon('date') ?? 'Date'}</th>
-                <th className="py-1 text-right">{tOrders('amount') ?? 'Amount'}</th>
-                <th className="py-1 text-left">{tInvoices('paymentMethod') ?? 'Method'}</th>
-                <th className="py-1 text-left">{tOrders('status') ?? 'Status'}</th>
+              <tr className="border-b border-border">
+                <th className="py-1 text-start">{tCommon('date') ?? 'Date'}</th>
+                <th className="py-1 text-end">{tOrders('amount') ?? 'Amount'}</th>
+                <th className="py-1 text-start">{tInvoices('paymentMethod') ?? 'Method'}</th>
+                <th className="py-1 text-start">{tOrders('status') ?? 'Status'}</th>
               </tr>
             </thead>
             <tbody>
               {data.payments.map((p) => (
-                <tr key={p.id} className="border-b border-dashed border-gray-200">
+                <tr key={p.id} className="border-b border-dashed border-border">
                   <td className="py-1">{formatDate(p.paid_at ?? p.created_at, locale)}</td>
-                  <td className="py-1 text-right font-medium">
+                  <td className="py-1 text-end font-medium">
                     {formatMoneyAmountWithCode(Number(p.amount), {
                       currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
                       decimalPlaces,

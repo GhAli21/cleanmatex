@@ -54,7 +54,7 @@ export function ManualAllocationDrawer({
   isRTL = false,
 }: ManualAllocationDrawerProps) {
   const t = useTranslations('newOrder.payment.extraReceipt.allocation');
-  const textAlign = isRTL ? 'text-right' : 'text-left';
+  const textAlign = 'text-start';
   const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   const allocatedSum = useMemo(
@@ -100,13 +100,13 @@ export function ManualAllocationDrawer({
         </CmxDialogHeader>
 
         {loading ? (
-          <p className={`text-sm text-slate-600 ${textAlign}`}>{t('loadingBalances')}</p>
+          <p className={`text-sm text-muted-foreground ${textAlign}`}>{t('loadingBalances')}</p>
         ) : targets.length === 0 ? (
-          <p className={`text-sm text-slate-600 ${textAlign}`}>{t('noOpenBalances')}</p>
+          <p className={`text-sm text-muted-foreground ${textAlign}`}>{t('noOpenBalances')}</p>
         ) : (
           <div className="space-y-3">
             {/* QA C17-1.5: clearer type hierarchy + contrast in the manual screen. */}
-            <p className={`text-sm font-medium text-slate-700 ${textAlign}`}>
+            <p className={`text-sm font-medium text-foreground ${textAlign}`}>
               {t('manualHint', {
                 excess: `${currencyCode} ${formatAmount(excessAmount)}`,
                 remaining: `${currencyCode} ${formatAmount(remaining)}`,
@@ -116,14 +116,14 @@ export function ManualAllocationDrawer({
               {targets.map((target) => (
                 <div
                   key={target.targetId}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                  className="rounded-xl border border-border bg-card px-3 py-2.5"
                 >
-                  <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex items-start justify-between gap-2">
                     <div className={textAlign}>
-                      <p className="text-base font-semibold text-slate-900">{target.documentNo}</p>
-                      <p className="mt-0.5 text-sm text-slate-600">
+                      <p className="text-base font-semibold text-foreground">{target.documentNo}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
                         {target.targetType} · {t('outstanding')}{' '}
-                        <span className="font-semibold tabular-nums text-slate-900">
+                        <span className="font-semibold tabular-nums text-foreground">
                           {currencyCode} {formatAmount(target.outstandingAmount)}
                         </span>
                       </p>
@@ -150,13 +150,13 @@ export function ManualAllocationDrawer({
               ))}
             </div>
             {remaining > 0.001 ? (
-              <p className={`text-sm font-medium text-amber-800 ${textAlign}`}>
+              <p className={`text-sm font-medium text-warning-text ${textAlign}`}>
                 {t('manualRemaining', {
                   amount: `${currencyCode} ${formatAmount(remaining)}`,
                 })}
               </p>
             ) : isOverAllocated ? (
-              <p className={`text-sm font-medium text-rose-600 ${textAlign}`}>
+              <p className={`text-sm font-medium text-danger-text ${textAlign}`}>
                 {t('manualOverAllocated', {
                   amount: `${currencyCode} ${formatAmount(overAllocatedBy)}`,
                 })}
@@ -165,7 +165,7 @@ export function ManualAllocationDrawer({
           </div>
         )}
 
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+        <CmxDialogFooter className="">
           <CmxButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('cancel')}
           </CmxButton>

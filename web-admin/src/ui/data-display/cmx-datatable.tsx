@@ -631,7 +631,7 @@ export function CmxDataTable<TData>({
         id: AUDIT_COL_ID,
         enableSorting: false,
         header: () => (
-          <span className="inline-flex w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.04em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <span className="inline-flex w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
             {auditHeaderLabel}
           </span>
         ),
@@ -653,7 +653,7 @@ export function CmxDataTable<TData>({
                 size="sm"
                 title={actionLabel}
                 aria-label={actionLabel}
-                className="h-10 w-10 rounded-full border border-[rgb(var(--cmx-primary-rgb,37_99_235)/0.18)] bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.12)] px-0 text-[rgb(var(--cmx-primary-text-rgb,37_99_235))] shadow-sm transition-colors hover:bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.18)] hover:text-[rgb(var(--cmx-primary-text-rgb,37_99_235))]"
+                className="h-10 w-10 rounded-full border border-primary/18 bg-primary/12 px-0 text-primary-text shadow-sm transition-colors hover:bg-primary/18 hover:text-primary-text/80"
                 onClick={() => handleAuditOpen(originalRow)}
               >
                 <UserRound className="h-5 w-5" aria-hidden />
@@ -672,7 +672,7 @@ export function CmxDataTable<TData>({
       header: () => rowNumberHeader,
       cell: ({ row }) => (
         <span
-          className="tabular-nums text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+          className="tabular-nums text-muted-foreground"
           aria-label={`Row ${resolvedRowNumberOffset + row.index + 1}`}
         >
           {resolvedRowNumberOffset + row.index + 1}
@@ -750,7 +750,7 @@ export function CmxDataTable<TData>({
         <CmxCardContent className="p-0">
           <div className={scrollWrapperClass}>
             <table className={cn('min-w-full text-sm', showColumnBorders && 'border-separate border-spacing-0', tableClassName)}>
-              <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
+              <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -759,7 +759,7 @@ export function CmxDataTable<TData>({
                         scope="col"
                         className={cn(
                           'px-4 py-4 text-start text-xs font-semibold uppercase tracking-[0.02em]',
-                          headerSize === 'emphasized' && 'py-5 text-sm font-bold normal-case tracking-normal text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+                          headerSize === 'emphasized' && 'py-5 text-sm font-bold normal-case tracking-normal text-foreground',
                           showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           headerClassName,
                           header.column.id === ROW_NUM_COL_ID && 'w-14 text-end tabular-nums',
@@ -799,7 +799,7 @@ export function CmxDataTable<TData>({
                             stickyEndColumnIds.includes(tanstackColumns[cellIndex]?.id ?? '') && 'sticky end-0 z-[2] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)]',
                           )}
                         >
-                          <div className="h-3 rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] animate-pulse" />
+                          <div className="h-3 rounded-full bg-muted animate-pulse" />
                         </td>
                       ))}
                     </tr>
@@ -811,7 +811,7 @@ export function CmxDataTable<TData>({
                       className={cn(
                         'group border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                         onRowClick && 'cursor-pointer',
-                        enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
+                        enableZebraStriping && index % 2 === 1 && 'bg-muted',
                         getRowClassName?.(row.original, index),
                       )}
                       onClick={onRowClick ? () => onRowClick(row.original, index) : undefined}
@@ -854,7 +854,7 @@ export function CmxDataTable<TData>({
                   <tr>
                     <td
                       colSpan={tanstackColumns.length}
-                      className="px-4 py-12 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+                      className="px-4 py-12 text-center text-muted-foreground"
                     >
                       {emptyMessage ?? 'No data to display.'}
                     </td>
@@ -867,7 +867,7 @@ export function CmxDataTable<TData>({
 
         {showPaginationBlock && (
           <CmxCardFooter className="flex flex-col gap-3 border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            <div className="text-sm text-muted-foreground">
               {effectiveTotal > 0 ? (
                 <>
                   Showing {(effectivePageIndex * pageSize) + 1} -{' '}

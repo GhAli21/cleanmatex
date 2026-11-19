@@ -70,8 +70,9 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
     setSearch('');
   };
 
+  // No frame of its own: CmxCrudPageShell frames the filters slot.
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-8">
         {/* Search */}
         <div className="lg:col-span-2" aria-busy={opening || undefined}>
@@ -91,7 +92,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         <select
           value={currentFilters.status || ''}
           onChange={(e) => handleFilterChange('status', e.target.value)}
-          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          className="px-3 py-2 border border-border rounded-lg text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByStatus')}
         >
@@ -110,7 +111,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         <select
           value={currentFilters.preparationStatus || ''}
           onChange={(e) => handleFilterChange('preparationStatus', e.target.value)}
-          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          className="px-3 py-2 border border-border rounded-lg text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
         >
           <option value="">{t('allPrepStatuses')}</option>
@@ -123,7 +124,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         <select
           value={currentFilters.priority || ''}
           onChange={(e) => handleFilterChange('priority', e.target.value)}
-          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          className="px-3 py-2 border border-border rounded-lg text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByPriority')}
         >
@@ -137,7 +138,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         <select
           value={currentFilters.isRetail || ''}
           onChange={(e) => handleFilterChange('isRetail', e.target.value)}
-          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          className="px-3 py-2 border border-border rounded-lg text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByOrderType')}
         >
@@ -149,7 +150,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         <select
           value={currentFilters.physicalIntakeStatus || ''}
           onChange={(e) => handleFilterChange('physicalIntakeStatus', e.target.value)}
-          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          className="px-3 py-2 border border-border rounded-lg text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByIntake')}
         >
@@ -168,7 +169,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         <div className="mt-3">
           <button
             onClick={handleClearFilters}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm text-primary-text hover:text-primary-text/80"
           >
             {t('clearAllFilters')}
           </button>

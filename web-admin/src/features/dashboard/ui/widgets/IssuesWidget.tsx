@@ -63,11 +63,11 @@ export function IssuesWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-6 bg-muted rounded w-1/2 mb-4"></div>
         <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
+          <div className="h-4 bg-muted rounded"></div>
         </div>
       </div>
     )
@@ -77,16 +77,16 @@ export function IssuesWidget() {
   const hasCritical = data.critical > 0
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('issues')}</h3>
+    <div className="bg-card rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-foreground">{t('issues')}</h3>
         <div
           className={`p-2 rounded-lg ${
             hasCritical
-              ? 'bg-red-50 text-red-600'
+              ? 'bg-danger-bg text-danger-text'
               : hasIssues
-              ? 'bg-yellow-50 text-yellow-600'
-              : 'bg-green-50 text-green-600'
+              ? 'bg-warning-bg text-warning-text'
+              : 'bg-success-bg text-success-text'
           }`}
         >
           <AlertTriangle className="h-5 w-5" />
@@ -96,21 +96,21 @@ export function IssuesWidget() {
       <div className="space-y-4">
         {/* Open Issues */}
         <div>
-          <p className="text-sm text-gray-600">{t('openIssues')}</p>
+          <p className="text-sm text-muted-foreground">{t('openIssues')}</p>
           <p
             className={`text-3xl font-bold ${
               hasCritical
-                ? 'text-red-600'
+                ? 'text-danger-text'
                 : hasIssues
-                ? 'text-yellow-600'
-                : 'text-green-600'
+                ? 'text-warning-text'
+                : 'text-success-text'
             }`}
           >
             {data.open}
           </p>
           {data.critical > 0 && (
-            <div className={`flex items-center mt-2 text-red-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <AlertCircle className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+            <div className="flex items-center mt-2 text-danger-text">
+              <AlertCircle className="h-4 w-4 me-1" />
               <span className="text-sm font-medium">
                 {t('criticalCount', { count: data.critical })}
               </span>
@@ -119,17 +119,17 @@ export function IssuesWidget() {
         </div>
 
         {/* Issue Statistics */}
-        <div className="pt-4 border-t border-gray-200 grid grid-cols-2 gap-4">
+        <div className="pt-4 border-t border-border grid grid-cols-2 gap-4">
           {/* Last 7 Days */}
           <div>
-            <p className="text-xs text-gray-600 mb-1">{t('last7Days')}</p>
-            <p className="text-lg font-semibold text-gray-900">{data.last7d}</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('last7Days')}</p>
+            <p className="text-lg font-semibold text-foreground">{data.last7d}</p>
           </div>
 
           {/* Resolved */}
           <div>
-            <p className="text-xs text-gray-600 mb-1">{t('resolved')}</p>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-xs text-muted-foreground mb-1">{t('resolved')}</p>
+            <p className="text-lg font-semibold text-foreground">
               {data.resolved}
             </p>
           </div>
@@ -137,10 +137,10 @@ export function IssuesWidget() {
 
         {/* Action Link */}
         {hasIssues && (
-          <div className="pt-4 border-t border-gray-200">
+          <div className="pt-4 border-t border-border">
             <a
               href="/dashboard/issues"
-              className={`text-sm text-blue-600 hover:text-blue-700 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="text-sm text-primary-text hover:text-primary-text/80 font-medium"
             >
               {t('viewAllIssues')} {isRTL ? '←' : '→'}
             </a>

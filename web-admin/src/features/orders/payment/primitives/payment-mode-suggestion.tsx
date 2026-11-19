@@ -31,7 +31,6 @@ export interface PaymentModeSuggestionProps {
   onDismiss: () => void;
   /** Blocks accept and dismiss while submit is confirming or in flight. */
   disabled?: boolean;
-  isRTL?: boolean;
 }
 
 /**
@@ -48,18 +47,15 @@ export function PaymentModeSuggestion({
   dismissLabel,
   onDismiss,
   disabled = false,
-  isRTL = false,
 }: PaymentModeSuggestionProps) {
   return (
     <div
       role="status"
       aria-live="polite"
       data-testid="payment-mode-suggestion"
-      className={`flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900 ${
-        isRTL ? 'flex-row-reverse text-right' : ''
-      }`}
+      className="flex items-center gap-2 border-b border-warning-border bg-warning-bg px-4 py-2 text-xs text-warning-text"
     >
-      <Lightbulb className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+      <Lightbulb className="h-4 w-4 shrink-0 text-warning-text" aria-hidden="true" />
       <p className="min-w-0 flex-1">
         <span className="font-semibold">{title}</span>
         {reasons.length > 0 ? (
@@ -88,7 +84,7 @@ export function PaymentModeSuggestion({
         disabled={disabled}
         aria-label={dismissLabel}
         data-testid="payment-mode-suggestion-dismiss"
-        className="h-7 w-7 shrink-0 rounded-md p-0 text-amber-700"
+        className="h-7 w-7 shrink-0 rounded-md p-0 text-warning-text"
       >
         <span aria-hidden="true">×</span>
       </CmxButton>

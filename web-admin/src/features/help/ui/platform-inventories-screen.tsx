@@ -16,13 +16,10 @@ import {
   Shield,
 } from 'lucide-react'
 import { useDebounce } from '@/lib/hooks/useDebounce'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { HELP_PERMISSIONS } from '@features/help/access/help-access'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { CmxButton } from '@ui/primitives'
 import { CmxInput } from '@ui/primitives'
-
-import { Alert, AlertDescription } from '@ui/primitives'
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card'
 import { CmxTabsPanel } from '@ui/navigation'
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display'
@@ -36,6 +33,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays'
 import { CmxStatusBadge } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type {
   PlatformInventoryListResponse,
   PlatformInventoryRow,
@@ -94,7 +92,7 @@ function exportRowsCsv(filename: string, rows: InventoryRow[]) {
 
 function ChipList({ items }: { items: string[] }) {
   if (items.length === 0) {
-    return <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">—</span>
+    return <span className="text-xs text-muted-foreground">—</span>
   }
   return (
     <div className="flex flex-wrap gap-1">
@@ -144,21 +142,21 @@ function ContractDetailDialog({
           <CmxDialogTitle>{contract.label}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4 text-sm">
-          <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
-            <p className="font-mono text-xs text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+          <div className="rounded-lg border border-border bg-muted p-3">
+            <p className="font-mono text-xs text-foreground">
               {contract.routePattern}
             </p>
           </div>
 
           <div>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('contractDialog.pagePermissions')}
             </h4>
             <ChipList items={contract.page.permissions ?? []} />
           </div>
 
           <div>
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('contractDialog.pageFlags')}
             </h4>
             <ChipList items={contract.page.featureFlags ?? []} />
@@ -166,16 +164,16 @@ function ContractDetailDialog({
 
           {contract.actions && Object.keys(contract.actions).length > 0 ? (
             <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('contractDialog.actions')}
               </h4>
               {Object.entries(contract.actions).map(([key, action]) => (
                 <div
                   key={key}
-                  className="rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white p-3"
+                  className="rounded-md border border-border bg-card p-3"
                 >
-                  <p className="font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{action.label}</p>
-                  <p className="mt-1 font-mono text-[10px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <p className="font-medium text-foreground">{action.label}</p>
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
                     {key}
                   </p>
                   <div className="mt-2">
@@ -188,13 +186,13 @@ function ContractDetailDialog({
 
           {contract.apiDependencies && contract.apiDependencies.length > 0 ? (
             <div className="space-y-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('contractDialog.apiDependencies')}
               </h4>
               {contract.apiDependencies.map((dep) => (
                 <div
                   key={`${dep.method}-${dep.path}`}
-                  className="rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-3"
+                  className="rounded-md border border-border p-3"
                 >
                   <p className="font-medium">{dep.label}</p>
                   <p className="mt-1 font-mono text-xs">
@@ -220,7 +218,6 @@ function ContractDetailDialog({
  */
 export function PlatformInventoriesScreen() {
   const t = useTranslations('help.platformInventories')
-  const isRTL = useRTL()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -311,7 +308,7 @@ export function PlatformInventoriesScreen() {
             render: (row) => (
               <button
                 type="button"
-                className="text-left font-mono text-xs text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:underline"
+                className="text-start font-mono text-xs text-primary-text hover:underline"
                 onClick={() => setContractRoute(String(row.routePattern ?? ''))}
               >
                 {String(row.routePattern ?? '—')}
@@ -338,7 +335,7 @@ export function PlatformInventoriesScreen() {
             key: 'sourceFile',
             header: t('columns.sourceFile'),
             render: (row) => (
-              <span className="font-mono text-[10px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <span className="font-mono text-[10px] text-muted-foreground">
                 {String(row.sourceFile ?? '—')}
               </span>
             ),
@@ -452,21 +449,21 @@ export function PlatformInventoriesScreen() {
   const tabContent = (
     <div className="space-y-4">
       {activeTab === 'permissions' ? (
-        <Alert>
+        <CmxSummaryMessage type="info">
           <Info className="h-4 w-4" />
-          <AlertDescription>{t('hints.permissionsTab')}</AlertDescription>
-        </Alert>
+          <div>{t('hints.permissionsTab')}</div>
+        </CmxSummaryMessage>
       ) : null}
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{error}</div>
+        </CmxSummaryMessage>
       ) : null}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-          <Loader2 className="h-5 w-5 animate-spin text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary-text" />
           {t('loading')}
         </div>
       ) : activeTab === 'summary' && summaryKpis.length > 0 ? (
@@ -504,33 +501,33 @@ export function PlatformInventoriesScreen() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
-      <div className={`mb-6 flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link
           href="/dashboard/help"
-          className="inline-flex items-center gap-1 text-sm text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] hover:opacity-80"
+          className="inline-flex items-center gap-1 text-sm text-primary-text hover:opacity-80"
         >
-          <ArrowLeft className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} />
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           {t('backToHelp')}
         </Link>
       </div>
 
-      <div className="mb-8 overflow-hidden rounded-2xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-gradient-to-br from-[rgb(var(--cmx-primary-rgb,14_165_233))]/10 via-white to-[rgb(var(--cmx-muted-rgb,248_250_252))] p-6 shadow-sm">
-        <div className={`flex flex-wrap items-start justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-            <div className="rounded-xl bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/15 p-3">
-              <Database className="h-8 w-8 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
+      <div className="mb-8 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-muted p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="rounded-xl bg-primary/15 p-3">
+              <Database className="h-8 w-8 text-primary-text" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
-              <p className="mt-1 max-w-2xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                 {t('subtitle')}
               </p>
               {data?.meta.generatedAt ? (
-                <p className="mt-2 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <p className="mt-2 text-xs text-muted-foreground">
                   {t('generatedAt')}: {new Date(data.meta.generatedAt).toLocaleString()}
                   {data.meta.gitSha ? ` · ${data.meta.gitSha}` : ''}
                   {data.meta.driftCounts && data.meta.driftCounts.newDrift > 0 ? (
-                    <span className="ms-2 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">
+                    <span className="ms-2 text-destructive">
                       · {t('driftBanner', { count: data.meta.driftCounts.newDrift })}
                     </span>
                   ) : null}
@@ -538,10 +535,10 @@ export function PlatformInventoriesScreen() {
               ) : null}
             </div>
           </div>
-          <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/dashboard/help"
-              className="inline-flex items-center gap-1.5 rounded-md border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white px-3 py-1.5 text-xs font-medium hover:bg-[rgb(var(--cmx-muted-rgb,248_250_252))]"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
             >
               <BookOpen className="h-4 w-4" />
               {t('userGuide')}
@@ -559,10 +556,10 @@ export function PlatformInventoriesScreen() {
         </div>
 
         {routeFilter ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-[rgb(var(--cmx-primary-rgb,14_165_233))]/30 bg-white/80 px-3 py-2">
-            <FilterX className="h-4 w-4 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]" />
-            <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('routeFilter')}:</span>
-            <span className="font-mono text-xs font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]">
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-card/80 px-3 py-2">
+            <FilterX className="h-4 w-4 text-primary-text" />
+            <span className="text-xs text-muted-foreground">{t('routeFilter')}:</span>
+            <span className="font-mono text-xs font-medium text-primary-text">
               {routeFilter}
             </span>
             <CmxButton
@@ -580,10 +577,10 @@ export function PlatformInventoriesScreen() {
         ) : null}
       </div>
 
-      <CmxCard className="mb-4 border-[rgb(var(--cmx-border-rgb,226_232_240))] shadow-sm">
+      <CmxCard className="mb-4 border-border shadow-sm">
         <CmxCardContent className="pt-6">
           <div className="relative">
-            <Search className={`pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] ${isRTL ? 'right-3' : 'left-3'}`} />
+            <Search className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground start-3" />
             <CmxInput
               type="search"
               value={search}
@@ -594,7 +591,7 @@ export function PlatformInventoriesScreen() {
               }}
               placeholder={t('searchPlaceholder')}
               aria-label={t('searchPlaceholder')}
-              className={isRTL ? 'pr-10' : 'pl-10'}
+              className="ps-10"
             />
           </div>
         </CmxCardContent>

@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { logger } from '@/lib/utils/logger';
 
 const CREDIT_LIMITS_FLAG = 'credit_limits';
@@ -18,7 +19,7 @@ export async function getCreditLimitPlanCap(
   tenantId: string
 ): Promise<number | null> {
   try {
-    const supabase = await createClient();
+    const supabase = catalogReadClient(await createClient());
     const { data, error } = await supabase.rpc('hq_ff_get_effective_value', {
       p_tenant_id: tenantId,
       p_flag_key: CREDIT_LIMITS_FLAG,

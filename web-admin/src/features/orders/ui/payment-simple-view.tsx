@@ -246,18 +246,18 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
 
       {/* ---- PAY column ---- */}
       <CmxCard
-        className={`border-slate-200 bg-white shadow-sm ${hasQuickActions ? 'order-1 h-full md:order-2' : ''}`}
+        className={`border-border bg-card shadow-sm ${hasQuickActions ? 'order-1 h-full md:order-2' : ''}`}
       >
         <CmxCardContent className="space-y-5 pt-5">
           {/* Method chips */}
           <div>
             <p
-              className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="mb-2 text-xs font-semibold text-muted-foreground text-start"
             >
               {t('mode.simpleView.methodLabel')}
             </p>
             {methodsLoading ? (
-              <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex gap-2">
                 <p role="status" className="sr-only">
                   {t('messages.calculating')}
                 </p>
@@ -266,12 +266,12 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               </div>
             ) : (
               <div
-                className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex flex-wrap gap-2"
               >
                 <div
                   role="radiogroup"
                   aria-label={t('mode.simpleView.methodLabel')}
-                  className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="flex flex-wrap gap-2"
                   onKeyDown={(event) => {
                     if (
                       event.key !== 'ArrowRight' &&
@@ -356,11 +356,11 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                         onClick={() => onMethodSelect(option)}
                         className={`min-h-[48px] rounded-2xl px-4 font-semibold ${
                           isActive
-                            ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
+                            ? 'border-info-border bg-info-bg text-info-text hover:bg-info-border/50'
                             : hasLeg
-                              ? 'border-slate-300 bg-slate-50 text-slate-800 hover:border-slate-400'
-                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                        } ${isRTL ? 'flex-row-reverse' : ''}`}
+                              ? 'border-border bg-muted text-foreground hover:border-muted-foreground'
+                              : 'border-border bg-card text-foreground hover:border-border'
+                        } `}
                       >
                         {option.payment_method_code === PAYMENT_METHODS.CASH ? (
                           <Banknote className="me-2 h-4 w-4" />
@@ -381,7 +381,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                   size="lg"
                   data-testid="payment-simple-more-options"
                   onClick={onMoreOptions}
-                  className={`min-h-[48px] rounded-2xl border-dashed border-slate-300 px-4 font-semibold text-slate-600 hover:border-cyan-300 hover:text-cyan-800 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="min-h-[48px] rounded-2xl border-dashed border-border px-4 font-semibold text-muted-foreground hover:border-info-border hover:text-primary-text"
                 >
                   <EllipsisVertical className="me-2 h-4 w-4" />
                   {t('mode.simpleView.moreOptions')}
@@ -413,14 +413,14 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
               decimalPlaces={decimalPlaces}
               currencyCode={currencyCode}
               lockedReason={discountLockedReason}
-              className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+              className="space-y-3 rounded-2xl border border-border bg-muted/70 p-4"
             />
           ) : null}
 
           {/* Amount hero — shared PaymentAmountMoneyField (keypad / Exact) */}
           <div>
             <p
-              className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="mb-2 text-xs font-semibold text-muted-foreground text-start"
             >
               {t('mode.simpleView.amountLabel')}
             </p>
@@ -460,7 +460,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             />
             {!activeLeg ? (
               <p
-                className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="mt-2 text-xs text-muted-foreground text-start"
               >
                 {t('mode.simpleView.pickMethodHint')}
               </p>
@@ -469,13 +469,12 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
 
           {/* Cash denomination shortcuts only — Exact is on the amount field above. */}
           <div
-            className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="flex flex-wrap items-center gap-2"
           >
             <PaymentQuickTenderChips
               items={quickTenderItems}
               onSelect={onQuickTenderSelect}
               disabled={!activeLeg || submitBusy}
-              isRTL={isRTL}
             />
           </div>
 
@@ -502,10 +501,10 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
           {cashDrawerRequired ? (
             <div
               data-testid="payment-simple-cash-drawer"
-              className={`flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-2"
             >
-              <p className="min-w-0 truncate text-xs text-slate-600">
-                <span className="font-semibold text-slate-700">
+              <p className="min-w-0 truncate text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">
                   {t('cashDrawer.title')}
                 </span>
                 {' · '}
@@ -516,7 +515,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                 variant="ghost"
                 size="sm"
                 onClick={onManageCashDrawer}
-                className="min-h-[44px] shrink-0 rounded-lg text-cyan-700"
+                className="min-h-[44px] shrink-0 rounded-lg text-primary-text"
               >
                 {t('mode.simpleView.manage')}
               </CmxButton>
@@ -527,9 +526,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
           {remainingBalance > moneyEpsilon ? (
             <div
               data-testid="payment-simple-policy"
-              className={`flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="flex items-center justify-between gap-3 rounded-xl border border-warning-border bg-warning-bg px-3 py-2"
             >
-              <p className="min-w-0 text-xs text-amber-900">
+              <p className="min-w-0 text-xs text-warning-text">
                 <span className="font-semibold">
                   {t('mode.simpleView.remaining')}: {currencyCode}{' '}
                   {formatAmount(remainingBalance)}
@@ -542,7 +541,7 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                 variant="ghost"
                 size="sm"
                 onClick={onChangeBalancePolicy}
-                className="min-h-[44px] shrink-0 rounded-lg text-amber-800"
+                className="min-h-[44px] shrink-0 rounded-lg text-warning-text"
               >
                 {t('mode.simpleView.changePolicy')}
               </CmxButton>
@@ -553,11 +552,11 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
 
       {/* ---- RECEIPT column ---- */}
       <CmxCard
-        className={`border-slate-200 bg-white shadow-sm ${hasQuickActions ? 'order-2 h-full md:order-3' : ''}`}
+        className={`border-border bg-card shadow-sm ${hasQuickActions ? 'order-2 h-full md:order-3' : ''}`}
       >
         <CmxCardContent className="space-y-1.5 pt-5">
           <p
-            className={`mb-2 text-xs font-semibold text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="mb-2 text-xs font-semibold text-muted-foreground text-start"
           >
             {t('mode.simpleView.receiptTitle')}
           </p>
@@ -570,7 +569,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             <OrderValueBreakdownPanel
               model={orderValueBreakdown}
               labels={orderValueBreakdownLabels}
-              isRTL={isRTL}
               taxLoading={orderValueBreakdownTaxLoading}
             />
           </div>
@@ -587,7 +585,6 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             realPaymentItems={realPaymentSummaryItems}
             creditItems={storedValueSummaryItems}
             totalsLoading={totalsLoading}
-            isRTL={isRTL}
             moneyEpsilon={moneyEpsilon}
             labels={{
               totalSettledNow: t('rightRail.totalSettledNow'),
@@ -612,9 +609,9 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             />
           ) : null}
           <div
-            className={`mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-3"
           >
-            <span className="text-sm font-bold text-slate-900">
+            <span className="text-sm font-bold text-foreground">
               {t('mode.simpleView.change')}
             </span>
             {totalsLoading ? (
@@ -624,8 +621,8 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
                 data-testid="payment-simple-change"
                 className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${
                   displayChangeAmount > moneyEpsilon
-                    ? 'text-emerald-600'
-                    : 'text-slate-900'
+                    ? 'text-success-text'
+                    : 'text-foreground'
                 }`}
               >
                 {currencyCode} {formatAmount(displayChangeAmount)}
@@ -636,11 +633,10 @@ export function PaymentSimpleView(props: PaymentSimpleViewProps) {
             rounding={cashChangeRounding}
             currencyCode={currencyCode}
             formatAmount={formatAmount}
-            isRTL={isRTL}
           />
           <p
             data-testid="payment-simple-status"
-            className={`mt-1 text-sm font-medium ${settled ? 'text-emerald-700' : 'text-slate-600'} ${isRTL ? 'text-right' : 'text-left'}`}
+            className={`mt-1 text-sm font-medium ${settled ? 'text-success-text' : 'text-muted-foreground'} text-start`}
           >
             {settled ? '✓ ' : ''}
             {balanceStatusLabel}

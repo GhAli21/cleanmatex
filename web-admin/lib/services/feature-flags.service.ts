@@ -423,7 +423,8 @@ export async function compareFeatures(
   lost: FeatureFlagKey[];
   unchanged: FeatureFlagKey[];
 }> {
-  const supabase = await createClient();
+  // Plan-default RPCs are closed to the session JWT after the privilege lockdown.
+  const supabase = createAdminSupabaseClient();
   const [currentRes, targetRes] = await Promise.all([
     supabase.rpc('hq_ff_get_plan_defaults', {
       p_plan_code: currentPlanCode,

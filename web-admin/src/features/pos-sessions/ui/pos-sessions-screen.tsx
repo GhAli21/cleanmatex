@@ -397,8 +397,8 @@ export function PosSessionsScreen() {
       header: t('sessionNo'),
       render: (row) => (
         <div className="space-y-1">
-          <div className="font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{row.session_no}</div>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{row.id.slice(0, 8)}</div>
+          <div className="font-medium text-foreground">{row.session_no}</div>
+          <div className="text-xs text-muted-foreground">{row.id.slice(0, 8)}</div>
         </div>
       ),
     },
@@ -428,7 +428,7 @@ export function PosSessionsScreen() {
       render: (row) => (
         <div>
           <div>{row.business_date}</div>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{row.business_timezone}</div>
+          <div className="text-xs text-muted-foreground">{row.business_timezone}</div>
         </div>
       ),
     },
@@ -615,8 +615,8 @@ export function PosSessionsScreen() {
     <div className="space-y-6 p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
-          <p className="mt-1 max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             {t('description')}
           </p>
         </div>
@@ -653,7 +653,7 @@ export function PosSessionsScreen() {
               <>
                 {/* Vertical label/value rows: values wrap instead of truncating, and the list
                     scrolls within a capped height so new fields never grow the card. */}
-                <dl className="grid max-h-44 overflow-y-auto rounded-lg border sm:grid-cols-2 border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))]">
+                <dl className="grid max-h-44 overflow-y-auto rounded-lg border sm:grid-cols-2 border-border bg-muted">
                   <InfoRow label={t('status')}>
                     <CmxStatusBadge
                       label={lifecycle.posStatus(activeSession.status)}
@@ -692,11 +692,11 @@ export function PosSessionsScreen() {
                 </dl>
                 {canViewCashDrawer && activeSessionNeedsDrawer ? (
                   activeSession.status === POS_SESSION_STATUS.OPEN ? (
-                    <div className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+                    <div className="space-y-3 rounded-lg border border-border p-4">
                       {activeSession.cash_drawer_session_id ? (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                        <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                           <p className="font-medium">{t('drawerSessionClosedTitle')}</p>
-                          <p className="mt-1 text-amber-900">
+                          <p className="mt-1 text-warning-text">
                             {t('drawerSessionClosedDescription', {
                               drawer: activeSessionContext?.cash_drawer_name ?? t('none'),
                               sessionNo: activeSessionContext?.cash_drawer_session_no ?? t('none'),
@@ -716,7 +716,7 @@ export function PosSessionsScreen() {
                       />
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                    <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                       {t('hub.resumeBeforeDrawerLink')}
                     </div>
                   )
@@ -804,17 +804,17 @@ export function PosSessionsScreen() {
         <CmxCardHeader className="flex-row items-start justify-between gap-4">
           <div>
             <CmxCardTitle>{t('historyTitle')}</CmxCardTitle>
-            <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('historyDescription')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('historyDescription')}</p>
           </div>
           <CmxButton variant="outline" onClick={resetFilters}>
             {t('resetFilters')}
           </CmxButton>
         </CmxCardHeader>
         <CmxCardContent className="space-y-5">
-          <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+          <section className="space-y-3 rounded-lg border border-border p-4">
             <div>
               <h3 className="text-sm font-semibold">{t('filterGroups.visibility')}</h3>
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('filterGroups.visibilityDescription')}</p>
+              <p className="text-sm text-muted-foreground">{t('filterGroups.visibilityDescription')}</p>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <CmxSelect
@@ -850,7 +850,7 @@ export function PosSessionsScreen() {
             </div>
           </section>
 
-          <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+          <section className="space-y-3 rounded-lg border border-border p-4">
             <h3 className="text-sm font-semibold">{t('filterGroups.session')}</h3>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <CmxInput
@@ -882,7 +882,7 @@ export function PosSessionsScreen() {
             </div>
           </section>
 
-          <section className="space-y-3 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+          <section className="space-y-3 rounded-lg border border-border p-4">
             <h3 className="text-sm font-semibold">{t('filterGroups.lifecycle')}</h3>
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]">
             <CmxSelect
@@ -981,7 +981,7 @@ export function PosSessionsScreen() {
           </CmxDialogHeader>
           <div className="space-y-4">
             {actionDialog.action === 'force-close' ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                 <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
                 {t('forceClose')}
               </div>
@@ -1042,19 +1042,19 @@ export function PosSessionsScreen() {
           </CmxDialogHeader>
           <div className="space-y-4">
             {rowActionDialog.row && currentUserId !== null && rowActionDialog.row.user_id !== currentUserId ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                 <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
                 {t('messages.actingOnOtherUser', { operator: rowActionDialog.row.user_display_name ?? rowActionDialog.row.user_id })}
               </div>
             ) : null}
             {rowActionDialog.action === 'force-close' ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                 <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
                 {t('forceClose')}
               </div>
             ) : null}
             {linkedDrawerCloseHref(rowActionDialog.row, { whenBlocked: rowDrawerCloseNeeded }) ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning-text">
                 <ShieldAlert className="me-2 inline h-4 w-4" aria-hidden />
                 {canViewCashDrawer && canCloseCashDrawer
                   ? t('messages.drawerStillOpen')
@@ -1105,7 +1105,7 @@ export function PosSessionsScreen() {
           </CmxDialogHeader>
           {openForUserDialog.createdSessionId ? (
             <div className="space-y-4">
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <div className="rounded-lg border border-success-border bg-success-bg p-3 text-sm text-success-text">
                 {t('messages.openedForUser')}
               </div>
               <PosSessionDrawerLinker
@@ -1128,7 +1128,7 @@ export function PosSessionsScreen() {
                   onClick={() => setUserPickerOpen(true)}
                 >
                   <span className="truncate">{openForUserDialog.userLabel || t('selectUser')}</span>
-                  <Search className="ms-auto size-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
+                  <Search className="ms-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
                 </CmxButton>
               </div>
               <CmxSelect
@@ -1215,11 +1215,11 @@ export function PosSessionsScreen() {
             <CmxDialogTitle>{t('viewSummary')}</CmxDialogTitle>
           </CmxDialogHeader>
           {summaryQuery.isLoading ? (
-            <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('banner.loading')}</div>
+            <div className="py-8 text-sm text-muted-foreground">{t('banner.loading')}</div>
           ) : summaryQuery.data ? (
             <SessionSummaryTotals summary={summaryQuery.data} />
           ) : (
-            <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <div className="py-8 text-sm text-muted-foreground">
               {t('messages.loadFailed')}
             </div>
           )}
@@ -1235,7 +1235,7 @@ export function PosSessionsScreen() {
         <CmxDialogContent className="max-w-6xl">
           <CmxDialogHeader>
             <CmxDialogTitle>{t('events')}</CmxDialogTitle>
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('eventsDescription')}</p>
+            <p className="text-sm text-muted-foreground">{t('eventsDescription')}</p>
           </CmxDialogHeader>
           <CmxDataTable
             columns={eventColumns}
@@ -1274,8 +1274,8 @@ function IdentityCell({ name, id, secondary }: { name: string | null | undefined
   return (
     <div className="min-w-36 space-y-1">
       <div className="font-medium">{name ?? id ?? '-'}</div>
-      {secondary && secondary !== name ? <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{secondary}</div> : null}
-      {id ? <div className="font-mono text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{id.slice(0, 8)}</div> : null}
+      {secondary && secondary !== name ? <div className="text-xs text-muted-foreground">{secondary}</div> : null}
+      {id ? <div className="font-mono text-xs text-muted-foreground">{id.slice(0, 8)}</div> : null}
     </div>
   );
 }
@@ -1284,8 +1284,8 @@ function AuditValue({ value, actor, reason }: { value: string; actor?: string | 
   return (
     <div className="min-w-40 space-y-1">
       <div>{value}</div>
-      {actor ? <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{actor}</div> : null}
-      {reason ? <div className="max-w-48 truncate text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" title={reason}>{reason}</div> : null}
+      {actor ? <div className="text-xs text-muted-foreground">{actor}</div> : null}
+      {reason ? <div className="max-w-48 truncate text-xs text-muted-foreground" title={reason}>{reason}</div> : null}
     </div>
   );
 }
@@ -1305,7 +1305,7 @@ function LookupFilterButton({ label, value, onClick }: { label: string; value: s
       <Label>{label}</Label>
       <CmxButton className="w-full justify-start text-start font-normal" variant="outline" onClick={onClick}>
         <span className="truncate">{value}</span>
-        <Search className="ms-auto size-4 shrink-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" aria-hidden />
+        <Search className="ms-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
       </CmxButton>
     </div>
   );
@@ -1328,11 +1328,11 @@ function InfoRow({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] px-3 py-2">
-      <dt className="w-32 shrink-0 pt-0.5 text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <div className="flex items-start gap-3 border-b border-border px-3 py-2">
+      <dt className="w-32 shrink-0 pt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
-      <dd className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+      <dd className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
         {value !== undefined ? <span className="min-w-0 break-all">{value}</span> : null}
         {children}
         {copyValue ? <CopyValueButton value={copyValue} label={label} /> : null}
@@ -1364,7 +1364,7 @@ function CopyValueButton({ value, label }: { value: string; label: string }) {
       onClick={handleCopy}
       aria-label={t('copyValue', { field: label })}
       title={t('copyValue', { field: label })}
-      className="shrink-0 rounded p-1 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:bg-[rgb(var(--cmx-border-rgb,226_232_240))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] focus-visible:outline focus-visible:outline-2"
+      className="shrink-0 rounded p-1 text-muted-foreground hover:bg-border hover:text-foreground focus-visible:outline focus-visible:outline-2"
     >
       <Icon className="h-3.5 w-3.5" aria-hidden />
     </button>
@@ -1440,7 +1440,7 @@ function SessionSummaryTotals({ summary }: { summary: PosSessionSummary }) {
   }
 
   if (tiles.length === 0 && summary.ordersCreated.count === 0) {
-    return <div className="py-8 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('none')}</div>;
+    return <div className="py-8 text-sm text-muted-foreground">{t('none')}</div>;
   }
 
   return (
@@ -1466,14 +1466,14 @@ function OrdersCreatedSummary({ created }: { created: PosSessionSummary['ordersC
   const t = useTranslations('posSessions');
   const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-      <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('summary.ordersCreated')}</div>
+    <div className="rounded-lg border border-border p-4">
+      <div className="text-sm text-muted-foreground">{t('summary.ordersCreated')}</div>
       <div className="mt-2 text-2xl font-bold">{created.count}</div>
       {created.totals.length > 0 ? (
-        <div className="mt-2 space-y-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
           <div>{t('summary.ordersCreatedValue')}</div>
           {created.totals.map((row) => (
-            <div key={row.currencyCode ?? 'unknown'} className="font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <div key={row.currencyCode ?? 'unknown'} className="font-semibold text-foreground">
               {formatMoney(row.amount, row.currencyCode)}
             </div>
           ))}
@@ -1508,11 +1508,11 @@ function SummaryTile({
 }) {
   const { formatMoneyWithCode: formatMoney } = useTenantCurrency();
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
-      <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{title}</div>
+    <div className="rounded-lg border border-border p-4">
+      <div className="text-sm text-muted-foreground">{title}</div>
       <div className="mt-2 text-2xl font-bold">{formatMoney(amount, currencyCode)}</div>
       {count != null ? (
-        <div className="mt-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{count} {rowsLabel}</div>
+        <div className="mt-1 text-xs text-muted-foreground">{count} {rowsLabel}</div>
       ) : null}
     </div>
   );

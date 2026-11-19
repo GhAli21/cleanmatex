@@ -47,9 +47,9 @@ export default function RevenueBreakdownCharts({
   return (
     <div className="space-y-6">
       {/* Total Revenue */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <div className="text-sm text-gray-600">{t('totalRevenue')}</div>
-        <div className="mt-1 text-3xl font-bold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <div className="text-sm text-muted-foreground">{t('totalRevenue')}</div>
+        <div className="mt-1 text-3xl font-bold text-foreground">
           {currencyCode} {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </div>
       </div>
@@ -57,8 +57,8 @@ export default function RevenueBreakdownCharts({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* By Service Category */}
         {byServiceCategory.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900">
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
               {t('charts.byServiceCategory')}
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -85,8 +85,8 @@ export default function RevenueBreakdownCharts({
 
         {/* By Order Type */}
         {byOrderType.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900">
+          <div className="rounded-lg border border-border bg-card p-5">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
               {t('charts.byOrderType')}
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -103,8 +103,8 @@ export default function RevenueBreakdownCharts({
 
         {/* By Branch */}
         {byBranch.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-5 lg:col-span-2">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900">
+          <div className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
               {t('charts.byBranch')}
             </h3>
             <ResponsiveContainer width="100%" height={300}>

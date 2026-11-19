@@ -157,21 +157,21 @@ export function PermissionOverrideDialog({
       <CmxDialogContent className="w-full max-w-2xl">
         <CmxDialogHeader>
           <CmxDialogTitle>{t('overridePermissions')}</CmxDialogTitle>
-          <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="mt-1 text-sm text-muted-foreground">
             {userName}
           </p>
         </CmxDialogHeader>
 
         <div className="px-6 py-4 space-y-5 max-h-[60vh] overflow-y-auto">
           {/* Warning */}
-          <div className="flex items-start gap-2 rounded-md bg-yellow-50 border border-yellow-200 p-3">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-            <p className="text-xs text-yellow-800">{t('overrideWarning')}</p>
+          <div className="flex items-start gap-2 rounded-md bg-warning-bg border border-warning-border p-3">
+            <AlertTriangle className="h-4 w-4 text-warning-text mt-0.5 shrink-0" />
+            <p className="text-xs text-warning-text">{t('overrideWarning')}</p>
           </div>
 
           {/* Add Override form */}
-          <div className="border border-[rgb(var(--cmx-border-rgb,226_232_240))] rounded-md p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+          <div className="border border-border rounded-md p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">
               {t('addOverride')}
             </h3>
 
@@ -180,7 +180,7 @@ export function PermissionOverrideDialog({
               size={5}
               value={selectedPermCode}
               onChange={(e) => setSelectedPermCode(e.target.value)}
-              className="block w-full overflow-y-auto rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+              className="block w-full overflow-y-auto rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
@@ -203,9 +203,9 @@ export function PermissionOverrideDialog({
                   name="allowDeny"
                   checked={allow}
                   onChange={() => setAllow(true)}
-                  className="h-4 w-4 text-green-600"
+                  className="h-4 w-4 text-success-text"
                 />
-                <span className="text-green-700 font-medium">{t('allow')}</span>
+                <span className="text-success-text font-medium">{t('allow')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
@@ -213,9 +213,9 @@ export function PermissionOverrideDialog({
                   name="allowDeny"
                   checked={!allow}
                   onChange={() => setAllow(false)}
-                  className="h-4 w-4 text-red-600"
+                  className="h-4 w-4 text-danger-text"
                 />
-                <span className="text-red-700 font-medium">{t('deny')}</span>
+                <span className="text-danger-text font-medium">{t('deny')}</span>
               </label>
             </div>
 
@@ -249,13 +249,13 @@ export function PermissionOverrideDialog({
             {overrideScope === 'resource' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-1">
+                  <label className="block text-xs font-medium text-foreground mb-1">
                     {t('resourceType')}
                   </label>
                   <select
                     value={resourceType}
                     onChange={(e) => setResourceType(e.target.value)}
-                    className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+                    className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">{tCommon('select')}</option>
                     {RESOURCE_TYPES.map((rt) => (
@@ -266,7 +266,7 @@ export function PermissionOverrideDialog({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-1">
+                  <label className="block text-xs font-medium text-foreground mb-1">
                     {t('resourceId')}
                   </label>
                   <input
@@ -274,7 +274,7 @@ export function PermissionOverrideDialog({
                     value={resourceId}
                     onChange={(e) => setResourceId(e.target.value)}
                     placeholder="UUID"
-                    className="block w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+                    className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
               </div>
@@ -296,34 +296,34 @@ export function PermissionOverrideDialog({
           {/* Pending overrides list */}
           {pending.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+              <h3 className="text-sm font-semibold text-foreground">
                 Pending ({pending.length})
               </h3>
               {pending.map((p, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-2 rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]"
+                  className="flex items-center gap-3 p-2 rounded border border-border bg-secondary"
                 >
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
                       p.allow
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-success-bg text-success-text'
+                        : 'bg-danger-bg text-danger-text'
                     }`}
                   >
                     {p.allow ? t('allow') : t('deny')}
                   </span>
-                  <span className="text-xs font-mono text-[rgb(var(--cmx-foreground-rgb,15_23_42))] flex-1">
+                  <span className="text-xs font-mono text-foreground flex-1">
                     {p.permission_code}
                   </span>
                   {p.scope === 'resource' && (
-                    <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <span className="text-xs text-muted-foreground">
                       {p.resource_type}/{p.resource_id}
                     </span>
                   )}
                   <button
                     onClick={() => removePending(i)}
-                    className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -335,23 +335,23 @@ export function PermissionOverrideDialog({
           {/* Saved global overrides */}
           {globalOverrides.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-2">
+              <h3 className="text-sm font-semibold text-foreground mb-2">
                 {t('permissionOverrides')} — {t('scopeTenant')} ({globalOverrides.length})
               </h3>
               <div className="space-y-1">
                 {globalOverrides.map((o) => (
                   <div
                     key={o.permission_code}
-                    className="flex items-center gap-3 p-2 rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))]"
+                    className="flex items-center gap-3 p-2 rounded border border-border"
                   >
                     <span
                       className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
-                        o.allow ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        o.allow ? 'bg-success-bg text-success-text' : 'bg-danger-bg text-danger-text'
                       }`}
                     >
                       {o.allow ? t('allow') : t('deny')}
                     </span>
-                    <span className="text-xs font-mono flex-1 text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                    <span className="text-xs font-mono flex-1 text-foreground">
                       {o.permission_code}
                     </span>
                   </div>
@@ -363,26 +363,26 @@ export function PermissionOverrideDialog({
           {/* Saved resource overrides */}
           {resourceOverrides.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] mb-2">
+              <h3 className="text-sm font-semibold text-foreground mb-2">
                 {t('permissionOverrides')} — {t('scopeResource')} ({resourceOverrides.length})
               </h3>
               <div className="space-y-1">
                 {resourceOverrides.map((o, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 p-2 rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))]"
+                    className="flex items-center gap-3 p-2 rounded border border-border"
                   >
                     <span
                       className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
-                        o.allow ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        o.allow ? 'bg-success-bg text-success-text' : 'bg-danger-bg text-danger-text'
                       }`}
                     >
                       {o.allow ? t('allow') : t('deny')}
                     </span>
-                    <span className="text-xs font-mono flex-1 text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                    <span className="text-xs font-mono flex-1 text-foreground">
                       {o.permission_code}
                     </span>
-                    <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <span className="text-xs text-muted-foreground">
                       {o.resource_type}/{o.resource_id}
                     </span>
                   </div>

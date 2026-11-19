@@ -15,9 +15,9 @@ const TYPE_ICON: Record<SessionActivityEntry['type'], ElementType> = {
 }
 
 const TYPE_ICON_CLASS: Record<SessionActivityEntry['type'], string> = {
-  error: 'bg-[rgb(var(--cmx-destructive-rgb,239_68_68)_/_.1)] text-[rgb(var(--cmx-destructive-rgb,239_68_68))]',
-  warning: 'bg-[rgb(var(--cmx-warning-rgb,245_158_11)_/_.1)] text-[rgb(var(--cmx-warning-rgb,245_158_11))]',
-  info: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.1)] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
+  error: 'bg-destructive/10 text-destructive',
+  warning: 'bg-warning/10 text-warning',
+  info: 'bg-primary/10 text-primary-text',
 }
 
 function getRelativeTime(isoString: string, locale: string, justNow: string): string {
@@ -75,12 +75,12 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
   return (
     <div
       className={cn(
-        'relative flex gap-3 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] px-3 py-2.5 last:border-0',
-        !entry.read && 'bg-[rgb(var(--cmx-primary-rgb,14_165_233)_/_.04)]'
+        'relative flex gap-3 border-b border-border px-3 py-2.5 last:border-0',
+        !entry.read && 'bg-primary/4'
       )}
     >
       {!entry.read && (
-        <span className="absolute start-1 top-3.5 h-1.5 w-1.5 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233))]" />
+        <span className="absolute start-1 top-3.5 h-1.5 w-1.5 rounded-full bg-primary" />
       )}
 
       <div
@@ -102,7 +102,7 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
           <span className="sr-only">{typeLabel}</span>
           <p
             className={cn(
-              'text-xs text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+              'text-xs text-foreground',
               expanded ? '' : 'line-clamp-2',
               !entry.read ? 'font-semibold' : 'font-medium'
             )}
@@ -112,7 +112,7 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
           {entry.description && (
             <p
               className={cn(
-                'mt-0.5 text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+                'mt-0.5 text-[11px] text-muted-foreground',
                 expanded ? '' : 'line-clamp-2'
               )}
             >
@@ -122,12 +122,12 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
         </button>
 
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <span className="text-[11px] text-muted-foreground">
             {getRelativeTime(entry.createdAt, locale, t('item.justNow'))}
           </span>
           {entry.route && (
             <span
-              className="max-w-[8rem] truncate text-[11px] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="max-w-[8rem] truncate text-[11px] text-muted-foreground"
               title={entry.route}
             >
               {entry.route}
@@ -137,7 +137,7 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
             type="button"
             variant="ghost"
             size="xs"
-            className="min-h-9 min-w-9 px-1.5 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+            className="min-h-9 min-w-9 px-1.5 text-primary-text"
             aria-label={t('copyMessage')}
             onClick={() => void handleCopy()}
           >
@@ -148,7 +148,7 @@ export function SessionActivityItem({ entry, onMarkRead }: SessionActivityItemPr
               type="button"
               variant="ghost"
               size="xs"
-              className="text-[11px] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+              className="text-[11px] text-primary-text"
               onClick={() => onMarkRead(entry.id)}
             >
               {t('item.markRead')}

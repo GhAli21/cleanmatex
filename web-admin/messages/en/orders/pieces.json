@@ -1,6 +1,7 @@
 {
   "title": "Pieces",
   "piece": "Piece",
+  "pieceNumber": "Piece {number}",
   "pieces": "Pieces",
   "noPieces": "No pieces found",
   "loading": "Loading pieces...",

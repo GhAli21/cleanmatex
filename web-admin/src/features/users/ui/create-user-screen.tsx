@@ -210,29 +210,29 @@ export default function CreateUserScreen() {
   }
 
   const inputBase =
-    'mt-1 block w-full rounded-md shadow-sm sm:text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-  const inputError = 'border-red-300 focus:border-red-500 focus:ring-red-500'
+    'mt-1 block w-full rounded-md shadow-sm sm:text-sm border-border focus:border-ring focus:ring-ring'
+  const inputError = 'border-danger-border focus:border-destructive focus:ring-destructive'
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <Link
         href="/dashboard/users"
-        className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+        <ArrowLeft className="h-4 w-4 me-1" />
         {t('backToUsers')}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
+        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       {/* General Error */}
       {errors.general && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-800">{errors.general}</p>
+        <div className="rounded-md bg-danger-bg p-4">
+          <p className="text-sm text-danger-text">{errors.general}</p>
         </div>
       )}
 
@@ -252,7 +252,7 @@ export default function CreateUserScreen() {
       {lookup?.outcome === 'open' && lookup.membershipId ? (
         <Link
           href={`/dashboard/users/${lookup.membershipId}`}
-          className="inline-flex text-sm font-medium text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+          className="inline-flex text-sm font-medium text-primary-text"
         >
           {t('lookupOpenAction')}
         </Link>
@@ -263,13 +263,13 @@ export default function CreateUserScreen() {
           {/* Left column - Account + Personal */}
           <div className="space-y-6 lg:col-span-2">
             {/* Account Information */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900">{t('accountInfo')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('accountInfoDesc')}</p>
+            <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-foreground">{t('accountInfo')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('accountInfoDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    {tModal('emailLabel')} <span className="text-red-500">*</span>
+                  <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                    {tModal('emailLabel')} <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="email"
@@ -286,15 +286,15 @@ export default function CreateUserScreen() {
                     className={`${inputBase} ${errors.email ? inputError : ''}`}
                     placeholder="user@example.com"
                   />
-                  <p className="mt-1 text-xs text-gray-500">{t('emailHelper')}</p>
-                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                  <p className="mt-1 text-xs text-muted-foreground">{t('emailHelper')}</p>
+                  {errors.email && <p className="mt-1 text-sm text-danger-text">{errors.email}</p>}
                 </div>
 
                 {!reusesLogin && lookup?.outcome !== 'open' ? (
                 <>
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    {tModal('passwordLabel')} <span className="text-red-500">*</span>
+                  <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                    {tModal('passwordLabel')} <span className="text-danger-text">*</span>
                   </label>
                   <div className="relative mt-1">
                     <input
@@ -303,29 +303,29 @@ export default function CreateUserScreen() {
                       required
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className={`block w-full rounded-md shadow-sm sm:text-sm pr-10 ${
-                        errors.password ? 'border-red-300' : 'border-gray-300'
-                      } focus:border-blue-500 focus:ring-blue-500`}
+                      className={`block w-full rounded-md shadow-sm sm:text-sm pe-10 ${
+                        errors.password ? 'border-danger-border' : 'border-border'
+                      } focus:border-ring focus:ring-ring`}
                       placeholder={tModal('passwordPlaceholder')}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="absolute inset-y-0 end-0 pe-3 flex items-center"
                     >
                       {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
+                        <EyeOff className="h-5 w-5 text-muted-foreground" />
                       ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
+                        <Eye className="h-5 w-5 text-muted-foreground" />
                       )}
                     </button>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">{t('passwordHelper')}</p>
-                  {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                  <p className="mt-1 text-xs text-muted-foreground">{t('passwordHelper')}</p>
+                  {errors.password && <p className="mt-1 text-sm text-danger-text">{errors.password}</p>}
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
                     {tModal('confirmPasswordLabel')}
                   </label>
                   <div className="relative mt-1">
@@ -337,25 +337,25 @@ export default function CreateUserScreen() {
                       onChange={(e) =>
                         setFormData({ ...formData, confirmPassword: e.target.value })
                       }
-                      className={`block w-full rounded-md shadow-sm sm:text-sm pr-10 ${
-                        errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                      } focus:border-blue-500 focus:ring-blue-500`}
+                      className={`block w-full rounded-md shadow-sm sm:text-sm pe-10 ${
+                        errors.confirmPassword ? 'border-danger-border' : 'border-border'
+                      } focus:border-ring focus:ring-ring`}
                       placeholder={tModal('confirmPasswordPlaceholder')}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      className="absolute inset-y-0 end-0 pe-3 flex items-center"
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
+                        <EyeOff className="h-5 w-5 text-muted-foreground" />
                       ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
+                        <Eye className="h-5 w-5 text-muted-foreground" />
                       )}
                     </button>
                   </div>
                   {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                    <p className="mt-1 text-sm text-danger-text">{errors.confirmPassword}</p>
                   )}
                 </div>
                 </>
@@ -364,12 +364,12 @@ export default function CreateUserScreen() {
             </div>
 
             {/* Personal Information */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900">{t('personalInfo')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('personalInfoDesc')}</p>
+            <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-foreground">{t('personalInfo')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('personalInfoDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="display_name" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="display_name" className="block text-sm font-medium text-foreground">
                     {tModal('displayNameLabel')}
                   </label>
                   <input
@@ -381,15 +381,15 @@ export default function CreateUserScreen() {
                     className={`${inputBase} ${errors.display_name ? inputError : ''}`}
                     placeholder={tModal('displayNamePlaceholder')}
                   />
-                  <p className="mt-1 text-xs text-gray-500">{t('displayNameHelper')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('displayNameHelper')}</p>
                   {errors.display_name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.display_name}</p>
+                    <p className="mt-1 text-sm text-danger-text">{errors.display_name}</p>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="first_name" className="block text-sm font-medium text-foreground">
                       {t('firstName')}
                     </label>
                     <input
@@ -402,7 +402,7 @@ export default function CreateUserScreen() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="last_name" className="block text-sm font-medium text-foreground">
                       {t('lastName')}
                     </label>
                     <input
@@ -417,7 +417,7 @@ export default function CreateUserScreen() {
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="phone" className="block text-sm font-medium text-foreground">
                     {t('phone')}
                   </label>
                   <input
@@ -437,7 +437,7 @@ export default function CreateUserScreen() {
                 </div>
 
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="name" className="block text-sm font-medium text-foreground">
                     {t('fullNameEn')}
                   </label>
                   <input
@@ -448,11 +448,11 @@ export default function CreateUserScreen() {
                     className={inputBase}
                     placeholder="John Doe"
                   />
-                  <p className="mt-1 text-xs text-gray-500">{t('fullNameEnHelper')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('fullNameEnHelper')}</p>
                 </div>
 
                 <div>
-                  <label htmlFor="name2" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="name2" className="block text-sm font-medium text-foreground">
                     {t('fullNameAr')}
                   </label>
                   <input
@@ -464,11 +464,11 @@ export default function CreateUserScreen() {
                     placeholder="أحمد محمد"
                     dir="rtl"
                   />
-                  <p className="mt-1 text-xs text-gray-500">{t('fullNameArHelper')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('fullNameArHelper')}</p>
                 </div>
 
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="type" className="block text-sm font-medium text-foreground">
                     {t('userType')}
                   </label>
                   <select
@@ -486,12 +486,12 @@ export default function CreateUserScreen() {
             </div>
 
             {/* Address Information */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900">{t('addressInfo')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('addressInfoDesc')}</p>
+            <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-foreground">{t('addressInfo')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('addressInfoDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="address" className="block text-sm font-medium text-foreground">
                     {t('address')}
                   </label>
                   <input
@@ -506,7 +506,7 @@ export default function CreateUserScreen() {
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="area" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="area" className="block text-sm font-medium text-foreground">
                       {t('areaDistrict')}
                     </label>
                     <input
@@ -519,7 +519,7 @@ export default function CreateUserScreen() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="building" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="building" className="block text-sm font-medium text-foreground">
                       {t('building')}
                     </label>
                     <input
@@ -534,7 +534,7 @@ export default function CreateUserScreen() {
                 </div>
 
                 <div>
-                  <label htmlFor="floor" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="floor" className="block text-sm font-medium text-foreground">
                     {t('floor')}
                   </label>
                   <input
@@ -548,11 +548,11 @@ export default function CreateUserScreen() {
                 </div>
 
                 <div>
-                  <label htmlFor="main_branch_id" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="main_branch_id" className="block text-sm font-medium text-foreground">
                     {t('mainBranch')}
                   </label>
                   {branchesLoading ? (
-                    <div className="mt-1 text-sm text-gray-500">Loading branches...</div>
+                    <div className="mt-1 text-sm text-muted-foreground">Loading branches...</div>
                   ) : (
                     <>
                       <select
@@ -570,7 +570,7 @@ export default function CreateUserScreen() {
                           </option>
                         ))}
                       </select>
-                      <p className="mt-1 text-xs text-gray-500">{t('mainBranchHelper')}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('mainBranchHelper')}</p>
                     </>
                   )}
                 </div>
@@ -580,16 +580,16 @@ export default function CreateUserScreen() {
 
           {/* Right column - Role & Access + Actions */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900">{t('roleAccess')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('roleAccessDesc')}</p>
+            <div className="bg-card rounded-lg border border-border shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-foreground">{t('roleAccess')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('roleAccessDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="role" className="block text-sm font-medium text-foreground">
                     {tModal('roleLabel')}
                   </label>
                   {rolesLoading ? (
-                    <div className="mt-1 text-sm text-gray-500">Loading roles...</div>
+                    <div className="mt-1 text-sm text-muted-foreground">Loading roles...</div>
                   ) : (
                     <>
                       <select
@@ -607,7 +607,7 @@ export default function CreateUserScreen() {
                         ))}
                       </select>
                       {errors.role && (
-                        <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+                        <p className="mt-1 text-sm text-danger-text">{errors.role}</p>
                       )}
                     </>
                   )}
@@ -621,13 +621,13 @@ export default function CreateUserScreen() {
                       onChange={(e) =>
                         setFormData({ ...formData, is_active: e.target.checked })
                       }
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 rounded border-border text-primary-text focus:ring-ring"
                     />
                     <div>
-                      <span className="block text-sm font-medium text-gray-700">
+                      <span className="block text-sm font-medium text-foreground">
                         {t('accountActive')}
                       </span>
-                      <span className="block text-xs text-gray-500">{t('accountActiveHelper')}</span>
+                      <span className="block text-xs text-muted-foreground">{t('accountActiveHelper')}</span>
                     </div>
                   </label>
                 </div>
@@ -640,13 +640,13 @@ export default function CreateUserScreen() {
                       onChange={(e) =>
                         setFormData({ ...formData, is_user: e.target.checked })
                       }
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-1 h-4 w-4 rounded border-border text-primary-text focus:ring-ring"
                     />
                     <div>
-                      <span className="block text-sm font-medium text-gray-700">
+                      <span className="block text-sm font-medium text-foreground">
                         {t('isUserAccount')}
                       </span>
-                      <span className="block text-xs text-gray-500">{t('isUserHelper')}</span>
+                      <span className="block text-xs text-muted-foreground">{t('isUserHelper')}</span>
                     </div>
                   </label>
                 </div>
@@ -658,12 +658,12 @@ export default function CreateUserScreen() {
               <button
                 type="submit"
                 disabled={loading || lookup?.outcome === 'open'}
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
                     <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      className="animate-spin -ms-1 me-2 h-4 w-4 text-on-solid"
                       fill="none"
                       viewBox="0 0 24 24"
                     >
@@ -685,14 +685,14 @@ export default function CreateUserScreen() {
                   </>
                 ) : (
                   <>
-                    <UserPlus className="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" />
+                    <UserPlus className="h-5 w-5 me-2" />
                     {tModal('createUser')}
                   </>
                 )}
               </button>
               <Link
                 href="/dashboard/users"
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
               >
                 {tCommon('cancel')}
               </Link>

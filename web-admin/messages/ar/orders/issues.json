@@ -14,6 +14,8 @@
   "solvedWhen": "متى",
   "summaryCounts": "{open} مفتوحة · {total} إجمالي",
   "reportTitle": "الإبلاغ عن مشكلة",
+  "qaRejectTitle": "رفض في فحص الجودة",
+  "qaRejectSubmit": "رفض القطعة",
   "listTitle": "المشكلات",
   "listFailed": "فشل تحميل المشكلات",
   "addIssue": "إضافة مشكلة",

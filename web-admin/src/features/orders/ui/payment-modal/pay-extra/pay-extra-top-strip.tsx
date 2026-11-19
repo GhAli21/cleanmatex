@@ -9,7 +9,6 @@ export type PayExtraTopStripProps = {
   disabled?: boolean;
   disabledReason?: string;
   ariaDisabled?: boolean;
-  isRTL?: boolean;
   /** Formatted extra amount when > epsilon (e.g. "OMR 2.103"). */
   extraAmountLabel?: string | null;
   /** Destination label when resolved (read-only mirror). */
@@ -32,7 +31,6 @@ export function PayExtraTopStrip({
   disabled = false,
   disabledReason,
   ariaDisabled = false,
-  isRTL = false,
   extraAmountLabel,
   extraDestinationLabel,
   extraUnresolved = false,
@@ -41,16 +39,14 @@ export function PayExtraTopStrip({
   const t = useTranslations('newOrder.payment.payExtraIntent');
   const hasExtra = Boolean(extraAmountLabel);
   const stripTone = extraResolved
-    ? 'border-emerald-200 bg-emerald-50/80'
+    ? 'border-success-border bg-success-bg/80'
     : extraUnresolved
-      ? 'border-amber-200 bg-amber-50/80'
-      : 'border-slate-200 bg-slate-50/80';
+      ? 'border-warning-border bg-warning-bg/80'
+      : 'border-border bg-muted/80';
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 border-b px-4 py-2.5 ${stripTone} ${
-        isRTL ? 'flex-row-reverse' : ''
-      }`}
+      className={`flex flex-wrap items-center gap-3 border-b px-4 py-2.5 ${stripTone} `}
       data-testid="pay-extra-top-strip"
     >
       <PayExtraIntentToggle
@@ -59,14 +55,13 @@ export function PayExtraTopStrip({
         disabled={disabled}
         disabledReason={disabledReason}
         ariaDisabled={ariaDisabled}
-        isRTL={isRTL}
         compact
       />
       {hasExtra ? (
         <div
           className={`ms-auto text-xs font-medium tabular-nums ${
-            extraResolved ? 'text-emerald-800' : 'text-amber-800'
-          } ${isRTL ? 'text-left' : 'text-right'}`}
+            extraResolved ? 'text-success-text' : 'text-warning-text'
+          } text-end`}
           role="status"
           aria-live="polite"
         >

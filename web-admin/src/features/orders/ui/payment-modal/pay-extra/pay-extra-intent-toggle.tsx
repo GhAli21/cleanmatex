@@ -18,7 +18,6 @@ export type PayExtraIntentToggleProps = {
    * Uses aria-disabled so click still fires `onAttemptChange`.
    */
   ariaDisabled?: boolean;
-  isRTL?: boolean;
   /** Compact layout for the top strip. */
   compact?: boolean;
 };
@@ -32,18 +31,17 @@ export function PayExtraIntentToggle({
   disabled = false,
   disabledReason,
   ariaDisabled = false,
-  isRTL = false,
   compact = false,
 }: PayExtraIntentToggleProps) {
   const t = useTranslations('newOrder.payment.payExtraIntent');
-  const textAlign = isRTL ? 'text-right' : 'text-left';
+  const textAlign = 'text-start';
 
   return (
     <div
       className={`flex items-start gap-3 ${
         compact
           ? 'min-w-0 flex-1'
-          : 'rounded-xl border border-slate-200 bg-white px-4 py-3'
+          : 'rounded-xl border border-border bg-card px-4 py-3'
       } ${textAlign}`}
     >
       <CmxSwitch
@@ -61,13 +59,13 @@ export function PayExtraIntentToggle({
       <div className="min-w-0 flex-1 space-y-0.5">
         <Label
           htmlFor="pay-extra-intent"
-          className="cursor-pointer text-sm font-semibold text-slate-900"
+          className="cursor-pointer text-sm font-semibold text-foreground"
         >
           {t('label')}
         </Label>
-        {!compact ? <p className="text-xs text-slate-600">{t('help')}</p> : null}
+        {!compact ? <p className="text-xs text-muted-foreground">{t('help')}</p> : null}
         {disabled && disabledReason ? (
-          <p id="pay-extra-disabled-reason" className="text-xs text-amber-700">
+          <p id="pay-extra-disabled-reason" className="text-xs text-warning-text">
             {disabledReason}
           </p>
         ) : null}

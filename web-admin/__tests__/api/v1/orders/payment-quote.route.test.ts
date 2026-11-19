@@ -69,6 +69,23 @@ describe('POST payment-quote', () => {
     expect(response.status).toBe(400);
     expect(mockQuote).not.toHaveBeenCalled();
   });
+  it('accepts seeded non-RFC branch/product ids used by demo tenants', async () => {
+    const body = {
+      requestId: 'quote-seed-1',
+      branchId: '22222222-2222-2222-2222-222222222222',
+      items: [{ productId: '20000002-2222-2222-2222-222222222228', quantity: 1 }],
+    };
+    const response = await POST(request(body));
+    expect(response.status).toBe(200);
+    expect(mockQuote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branchId: body.branchId,
+        items: expect.arrayContaining([expect.objectContaining({ productId: body.items[0].productId })]),
+      }),
+      expect.anything(),
+      expect.anything(),
+    );
+  });
   it('bounds the streamed body even without Content-Length', async () => {
     const response = await POST(request({ ...input, extra: 'x'.repeat(1024 * 1024) }));
     expect(response.status).toBe(413);

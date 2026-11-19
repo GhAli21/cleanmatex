@@ -88,8 +88,8 @@ test('the app name needs white_label', () => {
 
 test('density: the user wins, NULL follows the Organization, then COMFORTABLE', () => {
   expect(resolveTheme(input({ orgTheme: orgRow })).density).toBe('COMPACT')
-  expect(resolveTheme(input({ orgTheme: orgRow, user: { ui_density: null, ui_font_scale: 'LG' } })).density).toBe('COMPACT')
-  const t = resolveTheme(input({ orgTheme: orgRow, user: { ui_density: 'COMFORTABLE', ui_font_scale: 'LG' } }))
+  expect(resolveTheme(input({ orgTheme: orgRow, user: { ui_color_mode: 'SYSTEM', ui_density: null, ui_font_scale: 'LG' } })).density).toBe('COMPACT')
+  const t = resolveTheme(input({ orgTheme: orgRow, user: { ui_color_mode: 'SYSTEM', ui_density: 'COMFORTABLE', ui_font_scale: 'LG' } }))
   expect(t.density).toBe('COMFORTABLE')
   expect(t.fontScale).toBe('LG')
 })
@@ -99,6 +99,11 @@ test('an unknown or removed HQ theme code falls back to the default theme', () =
   expect(t.themeCode).toBe('STANDARD')
 })
 
-test('the mode is always LIGHT until dark mode is offered', () => {
-  expect(resolveTheme(input({ user: { ui_density: null, ui_font_scale: 'MD' } })).mode).toBe('LIGHT')
+test("the mode is the person's choice; signed out or unknown follows the device", () => {
+  const as = (ui_color_mode: string) => resolveTheme(input({ user: { ui_color_mode, ui_density: null, ui_font_scale: 'MD' } })).mode
+  expect(as('DARK')).toBe('DARK')
+  expect(as('LIGHT')).toBe('LIGHT')
+  expect(as('SYSTEM')).toBe('SYSTEM')
+  expect(as('dark;}')).toBe('SYSTEM')
+  expect(resolveTheme(input({ user: null })).mode).toBe('SYSTEM')
 })

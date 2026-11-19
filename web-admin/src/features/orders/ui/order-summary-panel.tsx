@@ -254,12 +254,12 @@ function OrderSummaryPanelComponent({
   );
 
   return (
-    <div className="flex flex-col bg-white overflow-hidden" style={{ height: '100%', maxHeight: '100vh' }}>
+    <div className="flex flex-col bg-card overflow-hidden" style={{ height: '100%', maxHeight: '100vh' }}>
 
       {/* Customer Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
-        <div className="flex-1 min-w-0 flex items-center gap-2 bg-white border border-gray-300 rounded px-2 py-1.5">
-          <span className={`flex-1 text-sm font-medium truncate text-start ${customerName ? 'text-gray-900' : 'text-gray-400'}`}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted">
+        <div className="flex-1 min-w-0 flex items-center gap-2 bg-card border border-border rounded px-2 py-1.5">
+          <span className={`flex-1 text-sm font-medium truncate text-start ${customerName ? 'text-foreground' : 'text-muted-foreground'}`}>
             {customerName || (tNewOrder('selectCustomer') || 'Select customer')}
           </span>
           {customerName && onClearCustomer && (
@@ -296,8 +296,8 @@ function OrderSummaryPanelComponent({
       </div>
 
       {/* Order speed (§5.4): new lines follow it; "Apply to all lines" resets line overrides */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
-        <span className="shrink-0 text-sm font-medium text-gray-700">{tNewOrder('serviceSpeed.label')}</span>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted">
+        <span className="shrink-0 text-sm font-medium text-foreground">{tNewOrder('serviceSpeed.label')}</span>
         <ServiceSpeedSelect
           className="flex-1 min-w-0"
           value={serviceSpeed}
@@ -359,7 +359,7 @@ function OrderSummaryPanelComponent({
       ) : null}
 
       {/* Footer */}
-      <div className="shrink-0 border-t-2 border-gray-200 bg-white">
+      <div className="shrink-0 border-t-2 border-border bg-card">
 
         {/* Ready By Row (compact, above footer grid) */}
         <div className="px-3 pt-2 pb-1 space-y-1">
@@ -381,7 +381,7 @@ function OrderSummaryPanelComponent({
               role="button"
               tabIndex={readyByCapability.interactive ? 0 : -1}
               aria-disabled={!readyByCapability.interactive}
-              className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-white text-xs ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${readyByCapability.interactive ? 'cursor-pointer hover:border-blue-400' : 'cursor-not-allowed opacity-60'} transition-colors min-w-0`}
+              className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-card text-xs ${readyByValidation.isTooFar ? 'border-destructive' : readyByValidation.isValid && readyByAt ? 'border-info-border' : 'border-border'} ${readyByCapability.interactive ? 'cursor-pointer hover:border-primary' : 'cursor-not-allowed opacity-60'} transition-colors min-w-0`}
               onClick={() => {
                 if (!readyByCapability.interactive) return;
                 onOpenReadyByModal?.();
@@ -391,10 +391,10 @@ function OrderSummaryPanelComponent({
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenReadyByModal?.(); }
               }}
             >
-              <Calendar className="w-3 h-3 text-gray-500 shrink-0" />
+              <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
               {readyByAt ? (
                 <>
-                  <span className="flex-1 text-gray-900 min-w-0 text-start">
+                  <span className="flex-1 text-foreground min-w-0 text-start">
                     <bdi className="tabular-nums">
                       {(() => {
                         const d = new Date(readyByAt);
@@ -405,8 +405,8 @@ function OrderSummaryPanelComponent({
                       })()}
                     </bdi>
                   </span>
-                  <Clock className="w-3 h-3 text-gray-500 shrink-0" />
-                  <span className="text-gray-900 min-w-0 text-start">
+                  <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="text-foreground min-w-0 text-start">
                     <bdi className="tabular-nums">
                       {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar' : 'en-US', {
                         hour: '2-digit', minute: '2-digit', hour12: true,
@@ -415,7 +415,7 @@ function OrderSummaryPanelComponent({
                   </span>
                 </>
               ) : (
-                <span className="flex-1 text-gray-400 min-w-0 text-start">{tNewOrder('readyBy') || 'Ready by'}</span>
+                <span className="flex-1 text-muted-foreground min-w-0 text-start">{tNewOrder('readyBy') || 'Ready by'}</span>
               )}
             </div>
             <CmxButton
@@ -429,7 +429,7 @@ function OrderSummaryPanelComponent({
             </CmxButton>
           </div>
           {readyByAt && !readyByValidation.isFuture && (
-            <div role="alert" className="flex items-center gap-1.5 p-1.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+            <div role="alert" className="flex items-center gap-1.5 p-1.5 bg-danger-bg border border-danger-border rounded text-danger-text text-xs">
               <AlertCircle className="w-3 h-3 shrink-0" />
               <span>{readyByValidation.message}</span>
             </div>
@@ -437,27 +437,27 @@ function OrderSummaryPanelComponent({
         </div>
 
         {/* Footer Grid — 3 rows × 2 cols */}
-        <div className="border-t border-gray-200">
+        <div className="border-t border-border">
 
           {/* Row 1: Pieces | Bags */}
-          <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
-              <span className="text-xs font-medium text-gray-600">{tCommon('pieces') || t('pieces') || 'Pieces'}</span>
-              <bdi className="text-sm font-bold text-gray-900 tabular-nums">{totalPieces}</bdi>
+          <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted">
+              <span className="text-xs font-medium text-muted-foreground">{tCommon('pieces') || t('pieces') || 'Pieces'}</span>
+              <bdi className="text-sm font-bold text-foreground tabular-nums">{totalPieces}</bdi>
             </div>
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
-              <span className="text-xs font-medium text-gray-600">{t('bags') || 'Bags'}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted">
+              <span className="text-xs font-medium text-muted-foreground">{t('bags') || 'Bags'}</span>
               {onBagsChange ? (
                 <input
                   type="number"
                   min={0}
                   value={bags}
                   onChange={(e) => onBagsChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="w-12 text-sm font-bold text-gray-900 bg-transparent border-none outline-none p-0 text-center tabular-nums"
+                  className="w-12 text-sm font-bold text-foreground bg-transparent border-none outline-none p-0 text-center tabular-nums"
                   dir="ltr"
                 />
               ) : (
-                <bdi className="text-sm font-bold text-gray-900 tabular-nums">{bags}</bdi>
+                <bdi className="text-sm font-bold text-foreground tabular-nums">{bags}</bdi>
               )}
             </div>
           </div>
@@ -466,12 +466,12 @@ function OrderSummaryPanelComponent({
             <EditControlNotice codes={['CHANGE_ORDER_NOTES']} />
           </div>
           {/* Row 2: Notes | Save toggle */}
-          <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
-            <div className="flex items-center px-3 py-2 bg-gray-50">
-              <span className="text-xs font-medium text-gray-600">{t('notes') || 'Notes'}</span>
+          <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
+            <div className="flex items-center px-3 py-2 bg-muted">
+              <span className="text-xs font-medium text-muted-foreground">{t('notes') || 'Notes'}</span>
             </div>
-            <div className="flex items-center justify-between px-3 py-2 bg-gray-50">
-              <span className="text-xs font-medium text-gray-600">{tCommon('save') || 'Save'}</span>
+            <div className="flex items-center justify-between px-3 py-2 bg-muted">
+              <span className="text-xs font-medium text-muted-foreground">{tCommon('save') || 'Save'}</span>
               <CmxSwitch
                 size="sm"
                 checked={showNotes}
@@ -483,12 +483,12 @@ function OrderSummaryPanelComponent({
 
           {/* Notes textarea — shown when Save toggle is ON */}
           {showNotes && (
-            <div className="px-3 py-2 border-b border-gray-200 bg-white">
+            <div className="px-3 py-2 border-b border-border bg-card">
               <textarea
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}
                 rows={2}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-start"
+                className="w-full px-2 py-1.5 border border-border rounded text-xs focus:ring-2 focus:ring-ring focus:border-transparent resize-none text-start"
                 placeholder={t('addSpecialInstructions') || 'Add special instructions...'}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
@@ -496,7 +496,7 @@ function OrderSummaryPanelComponent({
           )}
 
           {/* Row 3: Quick Drop | Retail */}
-          <div className="grid grid-cols-2 divide-x divide-gray-200">
+          <div className="grid grid-cols-2 divide-x divide-border">
             <div className="flex items-center gap-2 px-3 py-2">
               <CmxButton
                 type="button"
@@ -512,7 +512,7 @@ function OrderSummaryPanelComponent({
               >
                 -
               </CmxButton>
-              <span className="text-xs font-medium text-gray-600 flex-1 text-center">
+              <span className="text-xs font-medium text-muted-foreground flex-1 text-center">
                 {t('quickDrop') || 'Quick Drop'}
               </span>
               <CmxButton
@@ -531,17 +531,17 @@ function OrderSummaryPanelComponent({
               </CmxButton>
             </div>
             <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-xs font-medium text-gray-600">{t('retail') || 'Retail'}</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('retail') || 'Retail'}</span>
               {/* Retail is auto-derived, shown as read-only indicator */}
               <div
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  isRetailOnlyOrder ? 'bg-blue-500' : 'bg-gray-300'
+                  isRetailOnlyOrder ? 'bg-primary' : 'bg-border'
                 }`}
                 role="img"
                 aria-label={isRetailOnlyOrder ? t('retailOrder') : t('notRetail')}
               >
                 <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-card shadow-sm transition-transform ${
                     isRetailOnlyOrder ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
                   }`}
                 />
@@ -552,13 +552,13 @@ function OrderSummaryPanelComponent({
 
         {showPaymentModalVersionSelector && onPaymentModalVersionChange && (
           <div className="px-3 pt-3">
-            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+            <div className="rounded-lg border border-info-border bg-info-bg p-3">
               <div className="space-y-2 text-start">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary-text">
                     {t('paymentModalVersionLabel')}
                   </p>
-                  <p className="text-xs text-sky-700/90">
+                  <p className="text-xs text-primary-text/90">
                     {t('paymentModalVersionHint')}
                   </p>
                 </div>
@@ -566,7 +566,7 @@ function OrderSummaryPanelComponent({
                   value={paymentModalVersion}
                   onValueChange={(value) => onPaymentModalVersionChange(value as PaymentModalVersion)}
                 >
-                  <CmxSelectDropdownTrigger className="h-11 bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
+                  <CmxSelectDropdownTrigger className="h-11 bg-card" dir={isRTL ? 'rtl' : 'ltr'}>
                     <CmxSelectDropdownValue
                       displayValue={paymentModalVersionLabel}
                       placeholder={paymentModalVersionLabel}
@@ -587,7 +587,7 @@ function OrderSummaryPanelComponent({
         {cartQuote ? <CartQuoteTotals {...cartQuote} currencyCode={currencyCode} /> : null}
 
         {/* Submit Button — carries no money (D33); the only total is the server one above */}
-        <div className="p-3 bg-white border-t border-gray-200">
+        <div className="p-3 bg-card border-t border-border">
           {/* Ruling 7 (PR-04): primary follows the Organization theme, no fixed green. */}
           <CmxButton
             ref={saveButtonRef}
@@ -609,15 +609,15 @@ function OrderSummaryPanelComponent({
           {/* Validation hints */}
           {isEditMode && !primaryAction ? (
             hasErrors && validationErrors.length > 0 ? (
-              <p role="alert" className="text-xs text-center text-red-600 font-medium mt-1">{validationErrors[0]}</p>
+              <p role="alert" className="text-xs text-center text-danger-text font-medium mt-1">{validationErrors[0]}</p>
             ) : isDirty && !isSaving && !loading ? (
-              <p className="text-xs text-center text-green-600 font-medium mt-1">✓ {tEdit('unsavedChanges') || 'You have unsaved changes'}</p>
+              <p className="text-xs text-center text-success-text font-medium mt-1">✓ {tEdit('unsavedChanges') || 'You have unsaved changes'}</p>
             ) : !isDirty ? (
-              <p className="text-xs text-center text-gray-500 font-medium mt-1">{tEdit('noChangesToSave') || 'No changes to save'}</p>
+              <p className="text-xs text-center text-muted-foreground font-medium mt-1">{tEdit('noChangesToSave') || 'No changes to save'}</p>
             ) : null
           ) : (
             canSubmit && readyByAt && readyByValidation.isFuture ? (
-              <p className="text-xs text-center text-green-600 font-medium mt-1">✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}</p>
+              <p className="text-xs text-center text-success-text font-medium mt-1">✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}</p>
             ) : null
           )}
         </div>

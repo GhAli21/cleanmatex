@@ -1,22 +1,11 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type { Metadata } from 'next';
 
 /** Makes purchase-order operations explicit in the browser title. */
 export const metadata: Metadata = { title: 'Purchase Orders' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import {
-  Alert,
-  AlertDescription,
-  CmxButton,
-  CmxCard,
-  CmxCardContent,
-  CmxCardDescription,
-  CmxCardHeader,
-  CmxCardTitle,
-  CmxInput,
-  CmxSelect,
-  CmxTextarea,
-} from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
@@ -93,21 +82,21 @@ export default async function ErpLitePoPage({
         </div>
 
         {notice ? (
-          <Alert>
-            <AlertDescription>{t(`notices.${notice}`)}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="info">
+            <div>{t(`notices.${notice}`)}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{error}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {loadError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{loadError}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
@@ -152,7 +141,7 @@ export default async function ErpLitePoPage({
                   options={taxOptions.tax_class_options.map((item) => ({ value: item.id, label: item.label }))}
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-po-description" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-po-description" className="block text-sm font-medium text-foreground">
                     {t('forms.po.fields.description')}
                   </label>
                   <CmxTextarea

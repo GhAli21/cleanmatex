@@ -47,10 +47,10 @@ interface WorklistCounts {
 function StatusBadge({ status }: { status: string }) {
   const style =
     status === 'PROCESSING'
-      ? { bg: 'bg-blue-100', text: 'text-blue-800' }
+      ? { bg: 'bg-info-bg', text: 'text-primary-text' }
       : status === 'AUTHORIZED' || status === 'CAPTURED'
-        ? { bg: 'bg-purple-100', text: 'text-purple-800' }
-        : { bg: 'bg-amber-100', text: 'text-amber-800' };
+        ? { bg: 'bg-info-bg', text: 'text-primary-text' }
+        : { bg: 'bg-warning-bg', text: 'text-warning-text' };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
       {status}
@@ -120,7 +120,7 @@ export function PendingPaymentsWorklistPage() {
       accessorKey: 'order_no',
       header: t('columns.order'),
       cell: ({ row }) => (
-        <Link href={`/dashboard/orders/${row.original.order_id}`} className="text-xs font-medium text-blue-700 hover:underline">
+        <Link href={`/dashboard/orders/${row.original.order_id}`} className="text-xs font-medium text-primary-text hover:underline">
           <bdi dir="ltr" className="font-mono">{row.original.order_no ?? '—'}</bdi>
         </Link>
       ),
@@ -133,7 +133,7 @@ export function PendingPaymentsWorklistPage() {
     {
       accessorKey: 'branch_name',
       header: t('columns.branch'),
-      cell: ({ row }) => <span className="text-xs text-gray-600">{row.original.branch_name ?? '—'}</span>,
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.branch_name ?? '—'}</span>,
     },
     {
       accessorKey: 'payment_method_code',
@@ -157,14 +157,14 @@ export function PendingPaymentsWorklistPage() {
     {
       accessorKey: 'reference',
       header: t('columns.reference'),
-      cell: ({ row }) => <span className="text-xs text-gray-600">{row.original.reference ?? '—'}</span>,
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.reference ?? '—'}</span>,
     },
     {
       accessorKey: 'created_at',
       header: t('columns.age'),
       cell: ({ row }) => (
         <span className="whitespace-nowrap text-xs" title={formatDate(row.original.created_at)}>
-          <span className={row.original.ageDays >= 3 ? 'font-semibold text-amber-700' : undefined}>
+          <span className={row.original.ageDays >= 3 ? 'font-semibold text-warning-text' : undefined}>
             {t('columns.ageDays', { count: row.original.ageDays })}
           </span>
         </span>
@@ -247,7 +247,7 @@ export function PendingPaymentsWorklistPage() {
   return (
     <div className="px-4 py-6">
       <div className="mb-4">
-        <h1 className="me-auto text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
+        <h1 className="me-auto text-xl font-semibold text-foreground">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
       </div>
 
@@ -255,14 +255,14 @@ export function PendingPaymentsWorklistPage() {
         <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-2xl sm:grid-cols-5">
           {(
             [
-              ['pending', counts.pending, 'text-amber-800'],
-              ['processing', counts.processing, 'text-blue-800'],
-              ['authorized', counts.authorized, 'text-purple-800'],
-              ['captured', counts.captured, 'text-purple-800'],
-              ['total', counts.total, 'text-slate-800'],
+              ['pending', counts.pending, 'text-warning-text'],
+              ['processing', counts.processing, 'text-primary-text'],
+              ['authorized', counts.authorized, 'text-primary-text'],
+              ['captured', counts.captured, 'text-primary-text'],
+              ['total', counts.total, 'text-foreground'],
             ] as const
           ).map(([key, value, colorClass]) => (
-            <div key={key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+            <div key={key} className="rounded-xl border border-border bg-muted/70 px-3 py-2">
               <div className="text-xs text-muted-foreground">{t(`counts.${key}`)}</div>
               <div className={`text-lg font-bold tabular-nums ${colorClass}`}>{value}</div>
             </div>

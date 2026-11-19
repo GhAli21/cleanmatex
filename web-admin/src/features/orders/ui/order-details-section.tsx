@@ -8,7 +8,6 @@
 import { Fragment, useMemo, useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Trash2, Minus, Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
@@ -81,7 +80,6 @@ export function OrderDetailsSection({
     usePreferenceCatalog(state.branchId);
   const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
   const totals = useOrderTotals();
-  const isRTL = useRTL();
   const tNewOrder = useTranslations('newOrder');
   const tItems = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -183,7 +181,7 @@ export function OrderDetailsSection({
 
   if (!hasItems) {
     return (
-      <div className="bg-white rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-500">
+      <div className="bg-card rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
         <p className="font-medium">
           {tItems('noItemsAdded') ||
             'No items added yet. Start from the Select Items tab.'}
@@ -199,44 +197,43 @@ export function OrderDetailsSection({
   return (
     <section
       aria-label={tNewOrder('itemsGrid.orderItems') || 'Order items details'}
-      className="bg-white rounded-lg border border-gray-200 shadow-sm"
+      className="bg-card rounded-lg border border-border shadow-sm"
     >
       <div
-        className={`px-4 py-3 border-b border-gray-200 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''
-          }`}
+        className="px-4 py-3 border-b border-border flex items-center justify-between"
       >
-        <div className={isRTL ? 'text-right' : 'text-left'}>
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+        <div className="text-start">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">
             {tItems('orderItems') || 'Order Items'}
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {trackByPiece
               ? `${totalPieces} ${tPieces('totalPieces') || 'total pieces'}`
               : `${totalQuantity} ${tItems('pieces') || 'items'}`}
           </p>
         </div>
-        <div className={isRTL ? 'text-left' : 'text-right'}>
+        <div className="text-end">
           {totals.servicePrefCharge > 0 ? (
             <div className="space-y-1">
-              <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-500">{tItems('itemsSubtotal') || 'Items'}</span>
+              <div className="flex justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">{tItems('itemsSubtotal') || 'Items'}</span>
                 <span>{fmtMoney(totals.subtotal - totals.servicePrefCharge)}</span>
               </div>
-              <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-500">{tItems('additionalServices') || 'Additional Services'}</span>
+              <div className="flex justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">{tItems('additionalServices') || 'Additional Services'}</span>
                 <span>{fmtMoney(totals.servicePrefCharge)}</span>
               </div>
-              <div className={`flex justify-between gap-4 text-sm font-bold pt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex justify-between gap-4 text-sm font-bold pt-1 border-t border-border">
                 <span>{tItems('total') || 'Total'}</span>
                 <span>{fmtMoney(totals.subtotal)}</span>
               </div>
             </div>
           ) : (
             <>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {tItems('total') || 'Total'}
               </p>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-foreground">
                 {fmtMoney(totals.subtotal)}
               </p>
             </>
@@ -256,9 +253,9 @@ export function OrderDetailsSection({
 
       <div className="overflow-x-auto max-h-[60vh]">
         <table className="min-w-full text-xs">
-          <thead className="bg-gray-50 text-gray-600">
+          <thead className="bg-muted text-muted-foreground">
             <tr
-              className={isRTL ? 'text-right' : 'text-left'}
+              className="text-start"
             >
               <th className="px-3 py-2 font-semibold">
                 {tItems('itemName') || tItems('addItem') || 'Item'}
@@ -292,18 +289,16 @@ export function OrderDetailsSection({
             {visibleItems.map((item) => (
               <Fragment key={item.productId}>
                 {/* Parent item row */}
-                <tr className="border-t border-gray-100 hover:bg-gray-50">
+                <tr className="border-t border-border hover:bg-muted">
                   <td className="px-3 py-2 align-top">
                     <div
-                      className={`text-sm font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="text-sm font-medium text-foreground text-start"
                     >
                       {item.productName || tItems('unknownProduct') || 'Item'}
                     </div>
                     {item.productName2 && (
                       <div
-                        className={`text-xs text-gray-500 ${isRTL ? 'text-right' : 'text-left'
-                          }`}
+                        className="text-xs text-muted-foreground text-start"
                       >
                         {item.productName2}
                       </div>
@@ -321,10 +316,9 @@ export function OrderDetailsSection({
                             return new Set<string>([item.productId]);
                           });
                         }}
-                        className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-gray-700 ${isRTL ? 'flex-row-reverse' : ''
-                          } ${expandedPiecesItems.has(item.productId)
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-300 bg-white hover:bg-gray-100'
+                        className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-foreground  ${expandedPiecesItems.has(item.productId)
+                            ? 'border-primary bg-info-bg text-info-text'
+                            : 'border-border bg-card hover:bg-muted'
                           }`}
                         aria-label={`${tPieces('pieces') || 'Pieces'} (${item.productName || ''
                           })`}
@@ -343,8 +337,7 @@ export function OrderDetailsSection({
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div
-                      className={`text-xs text-gray-700 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="text-xs text-foreground text-start"
                     >
                       {item.serviceCategoryCode
                         ? categoryNameMap.get(item.serviceCategoryCode) ||
@@ -354,13 +347,12 @@ export function OrderDetailsSection({
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div
-                      className={`inline-flex items-center rounded-full border border-gray-300 bg-white text-xs ${isRTL ? 'flex-row-reverse' : ''
-                        }`}
+                      className="inline-flex items-center rounded-full border border-border bg-card text-xs"
                     >
                       <button
                         type="button"
                         aria-label={tItems('decreaseQuantity') || 'Decrease'}
-                        className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-l-full disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="p-1.5 text-muted-foreground hover:bg-muted rounded-s-full disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={item.quantity <= 1}
                         onClick={() =>
                           updateItemQuantity(
@@ -377,7 +369,7 @@ export function OrderDetailsSection({
                       <button
                         type="button"
                         aria-label={tItems('increaseQuantity') || 'Increase'}
-                        className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-r-full"
+                        className="p-1.5 text-muted-foreground hover:bg-muted rounded-e-full"
                         onClick={() =>
                           updateItemQuantity(item.productId, item.quantity + 1)
                         }
@@ -388,16 +380,14 @@ export function OrderDetailsSection({
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div
-                      className={`text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="text-sm text-foreground text-start"
                     >
                       {fmtMoney(item.pricePerUnit + (item.servicePrefCharge ?? 0) / item.quantity)}
                     </div>
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div
-                      className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="text-sm font-semibold text-foreground text-start"
                     >
                       {fmtMoney(calculateItemTotal(item))}
                     </div>
@@ -410,8 +400,7 @@ export function OrderDetailsSection({
                         updateItemNotes(item.productId, event.target.value)
                       }
                       placeholder={tItems('note') || 'Add note'}
-                      className={`w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'
-                        }`}
+                      className="w-full px-2 py-1.5 border border-border rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-start"
                     />
                   </td>
                   {(hasServicePrefs || hasPackingPrefs) && (
@@ -450,7 +439,7 @@ export function OrderDetailsSection({
                                     orderItemLinePackingCharge({ ...item, pieces: updatedPieces }, packingPriceByCode)
                                   );
                                 }}
-                                className="text-[10px] text-blue-600 hover:underline"
+                                className="text-[10px] text-primary-text hover:underline"
                               >
                                 {tItems('applyToAllPieces') || 'Apply to all pieces'}
                               </button>
@@ -464,7 +453,7 @@ export function OrderDetailsSection({
                     <button
                       type="button"
                       onClick={() => removeItem(item.productId)}
-                      className="inline-flex items-center justify-center p-1.5 text-red-600 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                      className="inline-flex items-center justify-center p-1.5 text-danger-text hover:bg-danger-bg rounded-full focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1"
                       aria-label={
                         tItems('removeItem') || 'Remove item from order'
                       }
@@ -483,23 +472,23 @@ export function OrderDetailsSection({
                       <tr
                         key={piece.id}
                         onClick={() => handleSelectPiece(piece.id)}
-                        className={`border-t border-gray-100 cursor-pointer transition-colors ${
+                        className={`border-t border-border cursor-pointer transition-colors ${
                           isPieceSelected
-                            ? 'bg-blue-50 outline outline-2 outline-blue-400 outline-offset-[-2px]'
-                            : 'bg-gray-50 hover:bg-blue-50/40'
+                            ? 'bg-info-bg outline outline-2 outline-primary outline-offset-[-2px]'
+                            : 'bg-muted hover:bg-info-bg/40'
                         }`}
                       >
                         {/* Piece label */}
-                        <td className={`px-6 py-2 align-middle ${isRTL ? 'text-right' : 'text-left'}`}>
-                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <span className={`text-xs font-semibold ${isPieceSelected ? 'text-blue-700' : 'text-gray-600'}`}>
+                        <td className="px-6 py-2 align-middle text-start">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-semibold ${isPieceSelected ? 'text-primary-text' : 'text-muted-foreground'}`}>
                               {tPieces('pieceNumber', { number: piece.pieceSeq })}
                             </span>
                             {piece.color && /^#[0-9A-Fa-f]{3,8}$/.test(piece.color) && (
-                              <span className="w-3 h-3 rounded-full shrink-0 border border-gray-300" style={{ backgroundColor: piece.color }} aria-hidden />
+                              <span className="w-3 h-3 rounded-full shrink-0 border border-border" style={{ backgroundColor: piece.color }} aria-hidden />
                             )}
                             {piece.color && (
-                              <span className="text-xs text-gray-500">{piece.color}</span>
+                              <span className="text-xs text-muted-foreground">{piece.color}</span>
                             )}
                           </div>
                         </td>
@@ -508,23 +497,23 @@ export function OrderDetailsSection({
                         {/* Qty placeholder */}
                         <td className="px-3 py-2 align-middle" />
                         {/* Stain / Damage badges */}
-                        <td className={`px-3 py-2 align-middle ${isRTL ? 'text-right' : 'text-left'}`} colSpan={2}>
-                          <div className={`flex flex-wrap gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <td className="px-3 py-2 align-middle text-start" colSpan={2}>
+                          <div className="flex flex-wrap gap-1.5">
                             {piece.hasStain && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 text-[10px] font-medium">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-warning-bg text-warning-text text-[10px] font-medium">
                                 {tPieces('hasStain')}
                               </span>
                             )}
                             {piece.hasDamage && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-medium">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-danger-bg text-danger-text text-[10px] font-medium">
                                 {tPieces('hasDamage')}
                               </span>
                             )}
                             {piece.rackLocation && (
-                              <span className="text-[10px] text-gray-500">{piece.rackLocation}</span>
+                              <span className="text-[10px] text-muted-foreground">{piece.rackLocation}</span>
                             )}
                             {piece.notes && (
-                              <span className="text-[10px] text-gray-500 italic">{piece.notes}</span>
+                              <span className="text-[10px] text-muted-foreground italic">{piece.notes}</span>
                             )}
                           </div>
                         </td>
@@ -539,7 +528,7 @@ export function OrderDetailsSection({
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); handleRemovePiece(item.productId, piece.id); }}
-                            className="inline-flex items-center justify-center p-1.5 text-red-500 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                            className="inline-flex items-center justify-center p-1.5 text-danger-text hover:bg-danger-bg rounded-full focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1"
                             aria-label={tPieces('removePiece') || 'Remove piece'}
                           >
                             <Trash2 className="w-3 h-3" />
@@ -551,16 +540,15 @@ export function OrderDetailsSection({
 
                 {/* Add piece row */}
                 {trackByPiece && expandedPiecesItems.has(item.productId) && (
-                  <tr className="bg-gray-50 border-t border-gray-100">
+                  <tr className="bg-muted border-t border-border">
                     <td
-                      className="px-6 py-2 text-[11px] text-blue-700 cursor-pointer"
+                      className="px-6 py-2 text-[11px] text-primary-text cursor-pointer"
                       colSpan={hasServicePrefs || hasPackingPrefs ? 8 : 7}
                     >
                       <button
                         type="button"
                         onClick={() => handleAddPiece(item.productId)}
-                        className={`text-blue-700 hover:underline ${isRTL ? 'text-right' : 'text-left'
-                          }`}
+                        className="text-primary-text hover:underline text-start"
                       >
                         + {tPieces('addPiece')}
                       </button>
@@ -574,7 +562,7 @@ export function OrderDetailsSection({
       </div>
 
       {hiddenCount > 0 && (
-        <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
+        <div className="px-4 py-2 text-xs text-muted-foreground border-t border-border bg-muted">
           {tNewOrder('itemsGrid.more', { count: hiddenCount }) ||
             `+${hiddenCount} more items not shown for performance`}
         </div>

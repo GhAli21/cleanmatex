@@ -77,7 +77,7 @@ export function IssueTaxDocumentDialog({ open, onOpenChange, orderId }: IssueTax
           <CmxDialogDescription>{t('description')}</CmxDialogDescription>
         </CmxDialogHeader>
         <div className="space-y-3">
-          <label className="mb-1 block text-xs font-medium text-slate-600">{t('documentTypeLabel')}</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('documentTypeLabel')}</label>
           <CmxSelectDropdown value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
             <CmxSelectDropdownTrigger className="w-full text-sm">
               {documentType === 'INVOICE' ? t('documentTypeInvoice') : t('documentTypeSimplified')}

@@ -73,18 +73,18 @@ export default function CreateVoucherForm() {
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {error}
         </div>
       )}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="space-y-5">
 
           {/* Voucher Type */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('voucherType')} <span className="text-red-500">*</span>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('voucherType')} <span className="text-danger-text">*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {VOUCHER_TYPE_OPTIONS.map(({ value, labelKey }) => (
@@ -94,8 +94,8 @@ export default function CreateVoucherForm() {
                   onClick={() => handleTypeChange(value)}
                   className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                     voucherType === value
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-foreground hover:bg-muted'
                   }`}
                 >
                   {t(`voucherTypeLabels.${labelKey}`)}
@@ -106,7 +106,7 @@ export default function CreateVoucherForm() {
 
           {/* Direction */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               {t('direction')}
             </label>
             <div className="flex gap-2">
@@ -117,8 +117,8 @@ export default function CreateVoucherForm() {
                   onClick={() => setDirection(d)}
                   className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                     direction === d
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-foreground hover:bg-muted'
                   }`}
                 >
                   {t(`directionLabels.${d}`)}
@@ -129,13 +129,13 @@ export default function CreateVoucherForm() {
 
           {/* Party Type */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('partyType')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('partyType')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
             </label>
             <select
               value={partyType}
               onChange={(e) => setPartyType(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             >
               <option value="">—</option>
               {([PARTY_TYPE.CUSTOMER, PARTY_TYPE.SUPPLIER, PARTY_TYPE.EMPLOYEE, PARTY_TYPE.OTHER] as const).map((pt) => (
@@ -146,41 +146,41 @@ export default function CreateVoucherForm() {
 
           {/* Party Name */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('party')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('party')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
               value={partyName}
               onChange={(e) => setPartyName(e.target.value)}
               maxLength={250}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('description')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('description')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('notes')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('notes')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
@@ -188,20 +188,20 @@ export default function CreateVoucherForm() {
       </div>
 
       {/* Posting note */}
-      <p className="text-xs text-gray-400">{t('postingNote')}</p>
+      <p className="text-xs text-muted-foreground">{t('postingNote')}</p>
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3">
         <Link
           href="/dashboard/internal_fin/vouchers"
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
         >
           {tCommon('cancel')}
         </Link>
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
         >
           {isPending ? tCommon('loading') : tCommon('create')}
         </button>

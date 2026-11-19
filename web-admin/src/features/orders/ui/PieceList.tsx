@@ -7,13 +7,14 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { IntakePieceCard } from './pieces/IntakePieceCard';
 import { ProcessingPieceCard } from './pieces/ProcessingPieceCard';
 import { SortingPieceCard } from './pieces/SortingPieceCard';
 import { AssemblyPieceCard } from './pieces/AssemblyPieceCard';
 import { QCPieceCard } from './pieces/QCPieceCard';
 import { PiecePreferencesEditorDialog } from './piece-preferences-editor-dialog';
+import { PiecePhotosControl } from './pieces/piece-photos';
+import type { FileSourceCode } from '@/lib/constants/file-util';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives/cmx-input';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
@@ -52,6 +53,8 @@ export interface PieceListProps {
   highlightPiece?: string | null;
   /** Show the filter by piece code or tag (HFC T3.9b) once the list has `PIECE_FILTER_MIN_PIECES` pieces. Default true. */
   enableCodeFilter?: boolean;
+  /** Screen for per-piece photos (File Util, ref ORDER_PIECE); omitted = no photo button. Needs `orderId`. */
+  fileSource?: FileSourceCode;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -103,10 +106,10 @@ export function PieceList({
   mode = 'intake',
   highlightPiece = null,
   enableCodeFilter = true,
+  fileSource,
 }: PieceListProps) {
   const t = useTranslations('orders.pieces');
   const tCodes = useTranslations('codes');
-  const isRTL = useRTL();
   const [codeFilter, setCodeFilter] = React.useState('');
   const showCodeFilter = enableCodeFilter && pieces.length >= PIECE_FILTER_MIN_PIECES;
   const visiblePieces = React.useMemo(
@@ -131,6 +134,7 @@ export function PieceList({
     }
   }, [highlightedId]);
   const [prefsPieceId, setPrefsPieceId] = React.useState<string | null>(null);
+  const pieceLabel = (p: OrderItemPiece) => p.piece_code?.trim() || t('pieceNumber', { number: p.piece_seq });
 
   const totalPages = Math.ceil(visiblePieces.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
@@ -150,7 +154,7 @@ export function PieceList({
 
   if (pieces.length === 0) {
     return (
-      <div className={`text-center py-6 text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="text-center py-6 text-muted-foreground text-start">
         <p className="text-sm">
           {emptyMessage || t('noPieces')}
         </p>
@@ -178,14 +182,14 @@ export function PieceList({
             className="font-mono"
           />
           {codeFilter ? (
-            <p className="text-xs text-gray-600" aria-live="polite">
+            <p className="text-xs text-muted-foreground" aria-live="polite">
               {tCodes('filterCount', { shown: visiblePieces.length, total: pieces.length })}
             </p>
           ) : null}
         </div>
       ) : null}
       {visiblePieces.length === 0 ? (
-        <p className={`py-4 text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p className="py-4 text-sm text-muted-foreground text-start">
           {tCodes('filterNoMatch')}
         </p>
       ) : null}
@@ -261,12 +265,15 @@ export function PieceList({
               aria-current={highlighted ? 'true' : undefined}
               className={
                 highlighted
-                  ? 'rounded-lg ring-2 ring-[rgb(var(--cmx-focus-ring-rgb,37_99_235))] ring-offset-2 scroll-mt-24'
+                  ? 'rounded-lg ring-2 ring-ring ring-offset-2 scroll-mt-24'
                   : undefined
               }
             >
               {highlighted ? <span className="sr-only">{tCodes('openedFromScan')}</span> : null}
               {card}
+              {fileSource && orderId ? (
+                <PiecePhotosControl orderId={orderId} pieceId={piece.id} pieceLabel={pieceLabel(piece)} source={fileSource} />
+              ) : null}
             </div>
           );
         })}
@@ -291,26 +298,26 @@ export function PieceList({
 
       {/* Pagination */}
       {enablePagination && visiblePieces.length > pageSize && (
-        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between pt-4 border-t`}>
-          <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className="flex items-center justify-between pt-4 border-t">
+          <div className="text-sm text-muted-foreground text-start">
             {t('showing', { 
               start: startIndex + 1, 
               end: Math.min(endIndex, visiblePieces.length), 
               total: visiblePieces.length 
             })}
           </div>
-          <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2`}>
+          <div className="flex items-center gap-2">
             <CmxButton
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className={isRTL ? 'flex-row-reverse' : ''}
+              className=""
             >
-              <ChevronLeft className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+              <ChevronLeft className="h-4 w-4 me-1" />
               {t('previous')}
             </CmxButton>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted-foreground">
               {t('page', { current: currentPage, total: totalPages })}
             </span>
             <CmxButton
@@ -318,10 +325,10 @@ export function PieceList({
               size="sm"
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className={isRTL ? 'flex-row-reverse' : ''}
+              className=""
             >
               {t('next')}
-              <ChevronRight className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+              <ChevronRight className="h-4 w-4 me-1" />
             </CmxButton>
           </div>
         </div>

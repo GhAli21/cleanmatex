@@ -50,10 +50,10 @@ export default function ApiDocsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-lg text-gray-600">Loading API documentation...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="text-lg text-muted-foreground">Loading API documentation...</div>
         </div>
       </div>
     );
@@ -61,13 +61,13 @@ export default function ApiDocsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center">
-          <div className="text-red-500 text-lg mb-2">Failed to load API documentation</div>
-          <div className="text-gray-600">{error}</div>
+          <div className="text-danger-text text-lg mb-2">Failed to load API documentation</div>
+          <div className="text-muted-foreground">{error}</div>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary-hover"
           >
             Retry
           </button>
@@ -78,10 +78,10 @@ export default function ApiDocsPage() {
 
   if (!spec) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center">
-          <div className="text-lg text-red-500 mb-2">No API documentation available</div>
-          <div className="text-sm text-gray-600">The API spec could not be loaded</div>
+          <div className="text-lg text-danger-text mb-2">No API documentation available</div>
+          <div className="text-sm text-muted-foreground">The API spec could not be loaded</div>
         </div>
       </div>
     );
@@ -91,12 +91,12 @@ export default function ApiDocsPage() {
   const hasPaths = spec.paths && Object.keys(spec.paths).length > 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-card">
       {!hasPaths && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+        <div className="bg-warning-bg border-s-4 border-warning p-4 mb-4">
           <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
+            <div className="ms-3">
+              <p className="text-sm text-warning-text">
                 <strong>Note:</strong> API route scanning may have failed. This is common on Vercel due to file system limitations. 
                 The documentation structure is available, but individual endpoint details may be missing.
               </p>

@@ -38,11 +38,11 @@ export function VoucherCancelDialog({ open, onClose, onConfirm }: VoucherCancelD
           <CmxDialogTitle>{t('actions.cancel')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="p-4">
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
             {t('cancellationReason')}
           </label>
           <textarea
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}

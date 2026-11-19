@@ -57,7 +57,7 @@ export async function getTenantTheme(tenantId: string, userId: string | null = n
       },
     }),
     userId
-      ? prisma.sys_users_mst.findFirst({ where: { id: userId }, select: { ui_density: true, ui_font_scale: true } })
+      ? prisma.sys_users_mst.findFirst({ where: { id: userId }, select: { ui_color_mode: true, ui_density: true, ui_font_scale: true } })
       : null,
     getFeatureFlags(tenantId),
     // org_tenants_mst is the tenant itself: its id is the tenant id.

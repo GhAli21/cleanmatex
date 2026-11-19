@@ -120,21 +120,21 @@ export default function CategoriesPage() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
+        <div className="rounded-md border border-danger-border bg-danger-bg p-3 text-danger-text">
           {error}
         </div>
       )}
       {success && (
-        <div className="rounded-md border border-green-200 bg-green-50 p-3 text-green-700">
+        <div className="rounded-md border border-success-border bg-success-bg p-3 text-success-text">
           {success}
         </div>
       )}
 
       <CmxCard className="p-4">
         {loading ? (
-          <div className="text-gray-500">{tCommon("loading")}</div>
+          <div className="text-muted-foreground">{tCommon("loading")}</div>
         ) : categories.length === 0 ? (
-          <div className="text-gray-500">{t("noCategories")}</div>
+          <div className="text-muted-foreground">{t("noCategories")}</div>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {categories.map((ctg) => {
@@ -156,9 +156,9 @@ export default function CategoriesPage() {
                       )}
                     </div>
                     {ctg.ctg_desc && (
-                      <p className="text-sm text-gray-600">{ctg.ctg_desc}</p>
+                      <p className="text-sm text-muted-foreground">{ctg.ctg_desc}</p>
                     )}
-                    <p className="text-xs text-gray-400">{ctg.service_category_code}</p>
+                    <p className="text-xs text-muted-foreground">{ctg.service_category_code}</p>
                   </div>
 
                   <CmxSwitch

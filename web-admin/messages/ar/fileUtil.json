@@ -1,10 +1,13 @@
 {
   "title": "الملفات",
+  "stageFilesTitle": "كل ملفات هذا الطلب",
   "purpose": "نوع الملف",
   "notes": "ملاحظة",
   "notesPlaceholder": "أضف ملاحظة (اختياري)",
   "filterByPurpose": "تصفية حسب نوع الملف",
   "allPurposes": "كل أنواع الملفات",
+  "filterByStage": "تصفية حسب المرحلة",
+  "allStages": "كل المراحل",
   "dropHint": "حتى {size} لكل ملف. يمكنك أيضًا لصق ملف أو صورة.",
   "takePhoto": "التقاط صورة",
   "pendingHint": "تُحفظ الملفات عند الإرسال.",
@@ -50,5 +53,9 @@
     "FILE_UTIL_FAILED": "حدث خطأ في الملف. حاول مرة أخرى."
   },
   "orderPhotosSaved": "{count, plural, one {تم حفظ صورة واحدة في الطلب} two {تم حفظ صورتين في الطلب} few {تم حفظ # صور في الطلب} many {تم حفظ # صورة في الطلب} other {تم حفظ # صورة في الطلب}}",
+  "piecePhotosAdd": "إضافة صور",
+  "piecePhotosCount": "{count, plural, one {صورة واحدة} two {صورتان} few {# صور} many {# صورة} other {# صورة}}",
+  "piecePhotosFor": "صور {piece} ({count})",
+  "piecePhotosTitle": "صور {piece}",
   "orderPhotosFailed": "{failed, plural, one {تعذّر حفظ صورة واحدة} two {تعذّر حفظ صورتين} few {تعذّر حفظ # صور} many {تعذّر حفظ # صورة} other {تعذّر حفظ # صورة}}. افتح الطلب وأضفها مرة أخرى من قسم الملفات."
 }

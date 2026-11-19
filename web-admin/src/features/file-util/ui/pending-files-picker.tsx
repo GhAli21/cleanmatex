@@ -63,7 +63,7 @@ export function PendingFilesPicker({ category, purpose, files, onChange, disable
     <div className="space-y-2">
       {label && <p className="text-sm font-medium">{label}</p>}
       {config.isError || (config.isSuccess && !rules) ? (
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('errors.CATEGORY_UNAVAILABLE')}</p>
+        <p className="text-sm text-muted-foreground">{t('errors.CATEGORY_UNAVAILABLE')}</p>
       ) : (
         <>
           <CmxFileDropZone
@@ -88,7 +88,7 @@ export function PendingFilesPicker({ category, purpose, files, onChange, disable
           {files.map((file, index) => (
             <li key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center gap-2 text-sm">
               <span className="min-w-0 flex-1 truncate">{file.name}</span>
-              <span className="shrink-0 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{formatFileSize(file.size)}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
               <CmxButton
                 type="button"
                 size="icon"

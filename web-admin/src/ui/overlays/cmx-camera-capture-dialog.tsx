@@ -92,7 +92,7 @@ export function CmxCameraCaptureDialog({ open, onOpenChange, onCapture, title }:
           )}
           {!shot && state !== 'live' && (
             // eslint-disable-next-line no-restricted-syntax -- white status text on the always-black camera preview
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-white" role="status">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-on-solid" role="status">
               <Camera className="h-10 w-10 opacity-60" aria-hidden />
               <p className="text-sm">{state === 'error' ? t('cameraUnavailable') : t('cameraStarting')}</p>
             </div>

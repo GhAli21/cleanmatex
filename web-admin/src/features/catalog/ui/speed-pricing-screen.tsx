@@ -162,7 +162,7 @@ export function SpeedPricingScreen() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t('title')}</h1>
-          <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('subtitle')}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canBulk ? <CmxButton type="button" variant="outline" onClick={() => setBulkStatusOpen(true)}>{t('bulkStatus.open')}</CmxButton> : null}
@@ -174,7 +174,7 @@ export function SpeedPricingScreen() {
       <CmxCard>
         <CmxCardContent className="space-y-2 pt-6">
           <p className="text-sm font-medium">{t('order.title')}</p>
-          <ol className="list-inside list-decimal space-y-0.5 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] sm:columns-2">
+          <ol className="list-inside list-decimal space-y-0.5 text-sm text-muted-foreground sm:columns-2">
             {SPEED_RULE_LEVELS.map((level) => <li key={level}>{t(`level.${level}`)}</li>)}
           </ol>
         </CmxCardContent>

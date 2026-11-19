@@ -82,7 +82,7 @@ export function CustomerWhatsAppConsentEditor({ consent, canEdit, pending, onSav
     <CmxCardHeader><h2 className="text-base font-semibold">{t('title')}</h2></CmxCardHeader>
     <CmxCardContent className="space-y-4">
       {/* Shared muted guidance follows the tenant UI theme without fixed text colors. */}
-      <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('description')}</p>
+      <p className="text-sm text-muted-foreground">{t('description')}</p>
       <CmxCheckbox
         checked={optedIn}
         label={t('optIn')}
@@ -100,7 +100,7 @@ export function CustomerWhatsAppConsentEditor({ consent, canEdit, pending, onSav
 
       <div className="border-t pt-4 space-y-3">
         <h3 className="text-sm font-semibold">{t('languageTitle')}</h3>
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb))]">{t('languageDescription')}</p>
+        <p className="text-sm text-muted-foreground">{t('languageDescription')}</p>
         <CmxSelect
           label={t('languageLabel')}
           value={preferredLanguage}

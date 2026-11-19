@@ -19,6 +19,8 @@ interface RetryKey {
 /** Input collected from a staff member at physical counter handover. */
 export interface ConfirmPickupInput {
   handoverNotes?: string;
+  /** Uploaded PICKUP_PROOF file ids to lock as proof. */
+  proofFileIds?: string[];
 }
 
 /**
@@ -47,9 +49,11 @@ export function usePickupHandover(orderId: string | null | undefined) {
       throw new Error('Pickup handover is not available. Refresh and retry.');
     }
     const handoverNotes = input.handoverNotes?.trim() || undefined;
+    const proofFileIds = input.proofFileIds?.length ? [...input.proofFileIds].sort() : undefined;
     const fingerprint = JSON.stringify({
       expectedStateVersion: workflow.stateVersion,
       handoverNotes,
+      proofFileIds,
     });
     if (!retryKeyRef.current || retryKeyRef.current.fingerprint !== fingerprint) {
       retryKeyRef.current = {
@@ -62,7 +66,7 @@ export function usePickupHandover(orderId: string | null | undefined) {
     try {
       const result = await confirmPickup(
         orderId,
-        { expectedStateVersion: workflow.stateVersion, handoverNotes },
+        { expectedStateVersion: workflow.stateVersion, handoverNotes, proofFileIds },
         retryKeyRef.current.key,
         csrfToken,
       );

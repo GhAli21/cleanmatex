@@ -61,9 +61,9 @@ const TERMINAL_STATES = new Set(['COMPLETED', 'FAILED', 'CANCELLED'])
 
 function StatCard({ label, value, color = '' }: { label: string; value: number; color?: string }) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-card-rgb,255_255_255))] p-4 text-center">
+    <div className="rounded-lg border border-border bg-card p-4 text-center">
       <p className={`text-2xl font-bold ${color}`}>{value.toLocaleString()}</p>
-      <p className="mt-0.5 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
   )
 }
@@ -162,14 +162,14 @@ export function CampaignDetailPage({ id }: Props) {
         <div>
           <Link
             href="/dashboard/marketing/campaigns"
-            className="mb-1 inline-flex items-center gap-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:underline"
+            className="mb-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
             {t('campaigns.title')}
           </Link>
           <h1 className="text-xl font-semibold">{displayName}</h1>
           {displayDescription && (
-            <p className="mt-0.5 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               {displayDescription}
             </p>
           )}
@@ -255,10 +255,10 @@ export function CampaignDetailPage({ id }: Props) {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label={t('campaigns.detail.total')}   value={campaign.total_targets} />
-        <StatCard label={t('campaigns.detail.queued')}  value={campaign.queued_count}  color="text-blue-600" />
-        <StatCard label={t('campaigns.detail.sent')}    value={campaign.sent_count}    color="text-emerald-600" />
-        <StatCard label={t('campaigns.detail.skipped')} value={campaign.skip_count}    color="text-amber-600" />
-        <StatCard label={t('campaigns.detail.failed')}  value={campaign.failed_count}  color="text-red-600" />
+        <StatCard label={t('campaigns.detail.queued')}  value={campaign.queued_count}  color="text-primary-text" />
+        <StatCard label={t('campaigns.detail.sent')}    value={campaign.sent_count}    color="text-success-text" />
+        <StatCard label={t('campaigns.detail.skipped')} value={campaign.skip_count}    color="text-warning-text" />
+        <StatCard label={t('campaigns.detail.failed')}  value={campaign.failed_count}  color="text-danger-text" />
       </div>
 
       {/* Details card */}
@@ -269,23 +269,23 @@ export function CampaignDetailPage({ id }: Props) {
         <CmxCardContent>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
             <div>
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.status')}</dt>
+              <dt className="text-muted-foreground">{t('campaigns.detail.status')}</dt>
               <dd className="mt-0.5 font-medium">{t(`campaigns.status.${campaign.status}`)}</dd>
             </div>
             <div>
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.channel')}</dt>
+              <dt className="text-muted-foreground">{t('campaigns.detail.channel')}</dt>
               <dd className="mt-0.5 font-medium">{campaign.channel_code}</dd>
             </div>
             <div>
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.scheduledAt')}</dt>
+              <dt className="text-muted-foreground">{t('campaigns.detail.scheduledAt')}</dt>
               <dd className="mt-0.5">{formatDate(campaign.scheduled_at)}</dd>
             </div>
             <div>
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.startedAt')}</dt>
+              <dt className="text-muted-foreground">{t('campaigns.detail.startedAt')}</dt>
               <dd className="mt-0.5">{formatDate(campaign.started_at)}</dd>
             </div>
             <div>
-              <dt className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('campaigns.detail.completedAt')}</dt>
+              <dt className="text-muted-foreground">{t('campaigns.detail.completedAt')}</dt>
               <dd className="mt-0.5">{formatDate(campaign.completed_at)}</dd>
             </div>
           </dl>
@@ -299,20 +299,20 @@ export function CampaignDetailPage({ id }: Props) {
         <CmxCard>
           <CmxCardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertCircle className="h-4 w-4 text-danger-text" />
               <h2 className="text-sm font-medium">{t('campaigns.detail.failedSample')}</h2>
             </div>
           </CmxCardHeader>
           <CmxCardContent className="p-0">
-            <div className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+            <div className="divide-y divide-border">
               {campaign.failed_sample.map(row => (
                 <div key={row.id} className="flex items-start gap-3 px-4 py-2 text-sm">
-                  <code className="flex-1 truncate font-mono text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <code className="flex-1 truncate font-mono text-xs text-muted-foreground">
                     {row.recipient_address ?? row.id}
                   </code>
-                  <span className="shrink-0 text-xs text-red-600">{row.status}</span>
+                  <span className="shrink-0 text-xs text-danger-text">{row.status}</span>
                   {row.skip_reason && (
-                    <span className="shrink-0 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {row.skip_reason}
                     </span>
                   )}

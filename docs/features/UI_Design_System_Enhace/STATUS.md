@@ -12,8 +12,8 @@
 |---|---|---|---|
 | PR-01 | Tokens, fonts, `cn()` merge, RTL and accessibility fixes in shared components | — | **Implemented 2026-11-16 (all 7 tasks), owner QA pending** |
 | PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **Implemented 2026-11-17 (all 10 tasks), owner QA pending** (`PLAN_PR-02.md`) |
-| PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | **In progress** (`PLAN_PR-07.md`, approved 2026-11-17). Tasks 1–4 done (0752–0754 applied); Tasks 1–5 done (migrations 0752, 0753, 0754, 0757 applied); Tasks 6–9 done (resolver; layout and login brand; public readers; branding screen with saved themes); Task 10 done (user appearance page); Tasks 1–11 done (migrations 0752, 0753, 0754, 0757, 0759 applied); Task 12 HQ plan approved 2026-11-18; **HQ A1 + A2 implemented 2026-11-19** (appearance catalogs in HQ Products & Items Config; `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`); Task 13 (verification, review, docs) done 2026-11-18; owner QA and commit left in both repos (HQ package B is separate) |
-| PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | Not started |
+| PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | **In progress** (`PLAN_PR-07.md`, approved 2026-11-17). Tasks 1–4 done (0752–0754 applied); Tasks 1–5 done (migrations 0752, 0753, 0754, 0757 applied); Tasks 6–9 done (resolver; layout and login brand; public readers; branding screen with saved themes); Task 10 done (user appearance page); Tasks 1–11 done (migrations 0752, 0753, 0754, 0757, 0759 applied); Task 12 HQ plan approved 2026-11-18; **HQ A1 + A2 implemented 2026-11-19** (appearance catalogs in HQ Products & Items Config; `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`); Task 13 (verification, review, docs) done 2026-11-18; owner QA and commit left in both repos (HQ package B is separate). **Task 6 (dark mode): `PLAN_PR-07-T6.md` approved 2026-11-19 (ruling 6 = A). Tasks 1–5 and 7 done 2026-11-19 (print stays light, mode follows the person, Appearance choice, charts, paper previews, sweep); Task 6 (dark logo) blocked until File Util commits; Task 8 in progress** |
+| PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | **Implemented 2026-11-19** (`PLAN_PR-05.md`, approved with the owner amendment "decide everything"). Codemod v2 decides every case (0 left for a person); 573 files migrated; global RTL hacks and old aliases deleted; `Alert` removed; lint rules at `error` everywhere; ESLint 0 errors, typecheck clean, jest only the 7 known failures. Fresh review done and its 5 real findings fixed; build: passed (`npm run build`, Next 16 webpack, 2026-11-19). Left: owner QA (`QA_TEST_GUIDE.md` → PR-05), commit |
 | PR-04 | POS touch targets and keyboard shortcuts | PR-01 | **Implemented 2026-11-19 (all 5 tasks), owner QA pending**; build PASSED 2026-11-19 after the `next.config.ts` fix (option B), see the PR-04 result (`PLAN_PR-04.md`). Tasks 1–4: (orders list on `CmxPagination` with tabular numbers; customer picker on `CmxDialog`; summary panel: Cmx buttons and switch, touch size, logical layout; POS hotkeys `/ F2 F9 Ctrl+Enter ?` and a cheat sheet, all off while a dialog is open) |
 | PR-03 | Zod validation at boundaries | — (independent track) | Not started |
 | PR-06 | Server-component boundaries; cache only if measured | — (independent track) | Not started |
@@ -84,6 +84,32 @@
   - build: compiled, then the type-check gate failed on those same errors, because another session's uncommitted `next.config.ts` edit turned `ignoreBuildErrors` off. Rerun once that edit is settled.
   - **Build blocker FIXED 2026-11-19 (owner option B):** kept `ignoreBuildErrors: false`; fixed the 4 known type errors (`types/auth.ts` signIn returns `| undefined`; flat `CurrencyMinorUnitResult` + `rows ?? []` guard; `new Set<string>` in `api/navigation/route.ts`; `membership-lock-action.tsx` confirm returns void) and merged the two `experimental` blocks in `next.config.ts`. Typecheck: 0 errors. `npm run build`: PASSED.
 - Owner QA: `QA_TEST_GUIDE.md` → PR-04. Shortcut reference: `PR-07_FEATURE_REFERENCE.md` → POS keyboard shortcuts.
+
+## PR-05 result (2026-11-19)
+
+- **One pass, every folder.** The owner asked for every decision to be made by rule, not left to a person. `scripts/ui/codemod-classes.js` v2 applies rulings 15 (colour) and 16 (direction) of `PLAN_PR-05.md` and leaves nothing to decide by hand; v1 reported 2,373 cases and 1,290 ternaries. It changed 517 feature and page files, 53 `src/ui` files and 3 `lib` files, and a second run changes nothing.
+- **Real Arabic bugs fixed on the way:**
+  - The global `[dir="rtl"]` rules were unlayered, so they beat Tailwind. `isRTL ? 'text-right' : 'text-left'` (520 places) therefore aligned left in Arabic.
+  - `CmxCopyableCell` `align` ternaries mirrored twice (27 places + 3 files).
+  - Inputs were forced to `direction: rtl`, overriding `dir="ltr"` on money fields.
+  - `text-center` was ignored on buttons.
+  - Every `p`/`div` got `line-height: 1.8`, which beat `leading-*`.
+  - `${isRTL && …}` printed "false" into class lists.
+  - Modal backdrops were solid gray, because `bg-opacity-*` does not exist in Tailwind v4.
+  - The sidebar forced `dir="ltr"` and mirrored itself by hand.
+- **Shared parts:**
+  - `CmxCrudPageShell` is the workspace frame, used by orders, GL and customers.
+  - `CmxListWithFilters` and `Alert` were deleted.
+  - `CmxSummaryMessage` takes free content and uses the locked status tones.
+  - `DropdownMenu` and `CmxTabs` follow the page direction.
+  - The new token `on-solid` is for white text or lines on saturated fills.
+- **Guards:**
+  - ESLint class rules are errors in `src/ui`, `src/features`, `app` and `lib`.
+  - `no-raw-classes.test.ts` covers the same folders.
+  - `globals-css.test.ts` keeps the direction hacks and aliases out.
+- **Fresh review (2026-11-19):** Fresh read-only review (Review Focus 1–5) done 2026-11-19; its findings, each checked against the code: (1) delivery manifest header title and eyebrow were white/muted on `bg-foreground` (unreadable in dark mode) → `text-background`, `text-background/70`; (2) white text or icons on solid amber (about 3.2:1 light, 1.7:1 dark) → new token `--color-warning-foreground` (near-black) and a codemod rule (`text-white` on a yellow/amber/orange 400+ fill), 6 places + the customer stats icons fixed; (3) `DropdownMenuSubTrigger` chevron now `rtl:rotate-180`; (4) 20 files had hand-written `rtl:flex-row-reverse` / `rtl:space-x-reverse` from before PR-05, which put rows back in English order in Arabic → codemod rule drops them, plus 4 `dir === 'rtl' && 'flex-row-reverse'` in `CmxDataGrid` (its root already sets `dir`); (5) language switcher rows each take their own language direction (`dir="ltr"` / `dir="rtl"`) instead of a hard-coded reverse; (6) print in forced dark mode keeps brand and status tints, which was already the case before PR-05, so it is handed to PR-07 task 6. Codemod tests 82/82 with the new rules red first. The review found no broken code from the codemod, no physical classes left, and the `CmxSummaryMessage` and `CmxCrudPageShell` changes clean. 
+- **For PR-07 task 6 (dark mode for users):** the `@media print` block in `globals.css` resets only the neutral tokens with `:root, [data-mode]`. Brand tokens from `theme-style.ts` and the status `-bg`/`-text` tokens keep their dark values on paper when the screen is dark. Give print its own light values for those before dark mode is offered.
+- **Not in this package:** about 20 hardcoded English strings found during the `Alert` move (for example "Error", "Verified", the register trial messages). That needs a separate i18n sweep. There is also no `src/ui` breadcrumb component yet.
 
 ## PR-07 tasks 1–11 result (2026-11-18, final review pending)
 

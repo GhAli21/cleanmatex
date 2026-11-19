@@ -56,7 +56,7 @@ export default function QAPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
@@ -65,11 +65,11 @@ export default function QAPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{t('screens.qa')}</h1>
-        <p className="text-gray-600 mt-1">{t('qa.description')}</p>
+        <p className="text-muted-foreground mt-1">{t('qa.description')}</p>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
@@ -77,7 +77,7 @@ export default function QAPage() {
       {orders.length === 0 ? (
         <CmxCard>
           <CmxCardContent className="py-12 text-center">
-            <p className="text-gray-600 text-lg">{t('qa.empty')}</p>
+            <p className="text-muted-foreground text-lg">{t('qa.empty')}</p>
           </CmxCardContent>
         </CmxCard>
       ) : (
@@ -88,16 +88,16 @@ export default function QAPage() {
                 <div className="flex justify-between items-start mb-4">
                   <Link
                     href={`/dashboard/qa/${order.id}?returnUrl=${encodeURIComponent('/dashboard/qa')}`}
-                    className="text-xl font-bold text-blue-600 hover:underline"
+                    className="text-xl font-bold text-primary-text hover:underline"
                   >
                     {order.order_no}
                   </Link>
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                  <span className="px-2 py-1 bg-warning-bg text-warning-text rounded text-xs font-medium">
                     {order.total_items} {t('qa.items')}
                   </span>
                 </div>
 
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
+                <div className="space-y-2 text-sm text-muted-foreground mb-4">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('labels.customer')}:</span>
                     <span>{order.customer.name}</span>
@@ -108,10 +108,10 @@ export default function QAPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-200">
+                <div className="pt-4 border-t border-border">
                   <CmxButton asChild className="w-full" variant="secondary">
                     <Link href={`/dashboard/qa/${order.id}?returnUrl=${encodeURIComponent('/dashboard/qa')}`}>
-                      <CheckCircle2 className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      <CheckCircle2 className="h-4 w-4 me-2" />
                       {t('qa.actions.open')}
                     </Link>
                   </CmxButton>
@@ -126,18 +126,18 @@ export default function QAPage() {
         <div className="mt-6 flex items-center justify-between">
           <button
             type="button"
-            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+            className="px-3 py-2 rounded border border-border bg-card disabled:opacity-50"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             {t('labels.previous')}
           </button>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
           </div>
           <button
             type="button"
-            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+            className="px-3 py-2 rounded border border-border bg-card disabled:opacity-50"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
           >

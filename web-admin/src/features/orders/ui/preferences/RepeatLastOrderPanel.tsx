@@ -8,7 +8,6 @@
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { CmxButton } from '@ui/primitives';
@@ -35,7 +34,6 @@ export function RepeatLastOrderPanel({
   branchId,
 }: RepeatLastOrderPanelProps) {
   const t = useTranslations('newOrder.preferences');
-  const isRTL = useRTL();
   const [loading, setLoading] = useState(false);
   const { servicePrefs, packingPrefs } = usePreferenceCatalog(branchId);
   const { state, updateItemServicePrefs, updateItemPackingPref } = useNewOrderStateWithDispatch();
@@ -145,15 +143,15 @@ export function RepeatLastOrderPanel({
 
   return (
     <div
-      className={`rounded-lg border border-gray-200 bg-gray-50/50 p-3 ${isRTL ? 'text-right' : 'text-left'}`}
+      className="rounded-lg border border-border bg-muted/50 p-3 text-start"
     >
       <div className="flex items-center gap-2 mb-2">
-        <RotateCcw className="w-4 h-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">
+        <RotateCcw className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">
           {t('repeatLastOrder') || 'Repeat Last Order'}
         </span>
       </div>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="text-xs text-muted-foreground mb-2">
         {t('repeatLastOrderDesc') || "Copy preferences from your last order"}
       </p>
       <CmxButton

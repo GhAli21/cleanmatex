@@ -53,14 +53,14 @@ export function ErpLiteArAgingGrid({ rows, displayConfig }: ErpLiteArAgingGridPr
     },
     {
       id: 'days_overdue',
-      header: () => <div className="text-right">{t('columns.daysOverdue')}</div>,
-      cell: ({ row }) => <div className="text-right">{row.original.days_overdue}</div>,
+      header: () => <div className="text-end">{t('columns.daysOverdue')}</div>,
+      cell: ({ row }) => <div className="text-end">{row.original.days_overdue}</div>,
     },
     {
       id: 'outstanding_amount',
-      header: () => <div className="text-right">{t('columns.outstanding')}</div>,
+      header: () => <div className="text-end">{t('columns.outstanding')}</div>,
       cell: ({ row }) => (
-        <div className="text-right">
+        <div className="text-end">
           {formatErpLiteMoney(row.original.outstanding_amount, {
             ...displayConfig,
             currencyCode: row.original.currency_code || displayConfig.currencyCode,

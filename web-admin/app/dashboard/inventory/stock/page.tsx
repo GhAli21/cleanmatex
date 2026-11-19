@@ -200,16 +200,16 @@ export default function StockPage() {
 
       {/* No branches configured */}
       {!loading && !hasBranches && (
-        <CmxCard className="p-6 bg-amber-50 border-amber-200">
-          <p className="text-amber-800 text-sm">{t('messages.noBranchConfigured')}</p>
-          <p className="text-amber-600 text-xs mt-1">{t('messages.selectBranch')}</p>
+        <CmxCard className="p-6 bg-warning-bg border-warning-border">
+          <p className="text-warning-text text-sm">{t('messages.noBranchConfigured')}</p>
+          <p className="text-warning-text text-xs mt-1">{t('messages.selectBranch')}</p>
         </CmxCard>
       )}
 
       {/* Product filter banner (from Order details) */}
       {productIdFromUrl && (
-        <CmxCard className="border-indigo-100 bg-indigo-50/50 p-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-indigo-800">{t('messages.viewingProductFromOrder')}</p>
+        <CmxCard className="border-info-border bg-info-bg/50 p-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-primary-text">{t('messages.viewingProductFromOrder')}</p>
           <CmxButton
             variant="secondary"
             size="sm"
@@ -223,8 +223,8 @@ export default function StockPage() {
 
       {/* Branch context banner */}
       {branchId && hasBranches && (
-        <CmxCard className="border-blue-100 bg-blue-50/50 p-3">
-          <p className="text-sm text-blue-800">
+        <CmxCard className="border-info-border bg-info-bg/50 p-3">
+          <p className="text-sm text-primary-text">
             {t('messages.viewingBranchContext', {
               branch:
                 isRtl
@@ -253,7 +253,7 @@ export default function StockPage() {
       <CmxCard className="p-4">
         <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('filters.branch')}</label>
+            <label className="block text-sm font-medium text-foreground mb-1">{t('filters.branch')}</label>
             <CmxSelect
               value={branchId}
               onChange={(e) => {
@@ -307,43 +307,43 @@ export default function StockPage() {
 
       {/* Error */}
       {error && (
-        <CmxCard className="p-4 bg-red-50 border-red-200">
-          <p className="text-red-600 text-sm">{error}</p>
+        <CmxCard className="p-4 bg-danger-bg border-danger-border">
+          <p className="text-danger-text text-sm">{error}</p>
         </CmxCard>
       )}
 
       {/* Table */}
       <CmxCard className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">{tc('loading')}</div>
+          <div className="p-8 text-center text-muted-foreground">{tc('loading')}</div>
         ) : items.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">{t('messages.noItems')}</div>
+          <div className="p-8 text-center text-muted-foreground">{t('messages.noItems')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.itemCode')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.itemName')}</th>
+                <tr className="bg-muted text-start">
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.itemCode')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.itemName')}</th>
                   {branchId && (
-                    <th className="px-4 py-3 font-medium text-gray-600">{t('labels.sku')}</th>
+                    <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.sku')}</th>
                   )}
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.quantity')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.unit')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.quantity')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.unit')}</th>
                   {branchId && (
-                    <th className="px-4 py-3 font-medium text-gray-600">
+                    <th className="px-4 py-3 font-medium text-muted-foreground">
                       {t('labels.storageLocation')}
                     </th>
                   )}
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.unitCost')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.stockValue')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">{t('labels.status')}</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">{tc('actions')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.unitCost')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.stockValue')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.status')}</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">{tc('actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item.id} className="border-t hover:bg-gray-50">
+                  <tr key={item.id} className="border-t hover:bg-muted">
                     <td className="px-4 py-3 font-mono text-xs">{item.product_code}</td>
                     <td className="px-4 py-3">
                       {isRtl ? item.product_name2 || item.product_name : item.product_name}
@@ -357,7 +357,7 @@ export default function StockPage() {
                       item.has_branch_record === false ? (
                         <span
                           title={t('messages.notStockedAtBranch')}
-                          className="cursor-help border-b border-dashed border-gray-400"
+                          className="cursor-help border-b border-dashed border-muted-foreground"
                         >
                           0
                         </span>
@@ -367,7 +367,7 @@ export default function StockPage() {
                     </td>
                     <td className="px-4 py-3">{item.product_unit || '-'}</td>
                     {branchId && (
-                      <td className="px-4 py-3 text-gray-600">{item.storage_location || '-'}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.storage_location || '-'}</td>
                     )}
                     <td className="px-4 py-3">{item.product_cost?.toFixed(2) ?? '-'}</td>
                     <td className="px-4 py-3 font-medium">{item.stock_value.toFixed(2)}</td>
@@ -400,7 +400,7 @@ export default function StockPage() {
         {/* Pagination */}
         {!loading && items.length > 0 && (
           <div className="flex items-center justify-between p-4 border-t">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               {t('pagination.showing', { count: items.length, total: pagination.total })}
             </div>
             <div className="flex gap-2">
@@ -412,7 +412,7 @@ export default function StockPage() {
               >
                 {tc('previous')}
               </CmxButton>
-              <span className="flex items-center px-3 text-sm text-gray-600">
+              <span className="flex items-center px-3 text-sm text-muted-foreground">
                 {pagination.page} / {pagination.totalPages}
               </span>
               <CmxButton

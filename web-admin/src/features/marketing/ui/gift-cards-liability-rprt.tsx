@@ -77,7 +77,7 @@ function expiryDateClasses(isoDate: string | undefined): string {
     (new Date(isoDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
   if (daysLeft < 7) return 'text-destructive font-semibold';
-  if (daysLeft < 30) return 'text-amber-600 font-medium';
+  if (daysLeft < 30) return 'text-warning-text font-medium';
   return 'text-muted-foreground';
 }
 

@@ -8,11 +8,11 @@ interface WiringStatusBadgeProps {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  [WIRING_STATUS.NOT_WIRED]:       'bg-gray-100 text-gray-600',
-  [WIRING_STATUS.WIRED]:           'bg-green-100 text-green-800',
-  [WIRING_STATUS.PARTIALLY_WIRED]: 'bg-yellow-100 text-yellow-800',
-  [WIRING_STATUS.FAILED]:          'bg-red-100 text-red-800',
-  [WIRING_STATUS.REVERSED]:        'bg-slate-100 text-slate-700',
+  [WIRING_STATUS.NOT_WIRED]:       'bg-muted text-muted-foreground',
+  [WIRING_STATUS.WIRED]:           'bg-success-bg text-success-text',
+  [WIRING_STATUS.PARTIALLY_WIRED]: 'bg-warning-bg text-warning-text',
+  [WIRING_STATUS.FAILED]:          'bg-danger-bg text-danger-text',
+  [WIRING_STATUS.REVERSED]:        'bg-muted text-foreground',
 };
 
 /**
@@ -29,7 +29,7 @@ export function WiringStatusBadge({ status }: WiringStatusBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[status] ?? 'bg-gray-100 text-gray-600'}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[status] ?? 'bg-muted text-muted-foreground'}`}
     >
       {label}
     </span>

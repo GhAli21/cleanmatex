@@ -6,9 +6,9 @@
 
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import {
   Wrench,
   Loader2,
@@ -28,7 +28,6 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
-import { Alert, AlertDescription } from '@ui/primitives';
 
 /**
  *
@@ -101,7 +100,6 @@ export function FixOrderDataModal({
 }: FixOrderDataModalProps) {
   const t = useTranslations('orders.fixOrderDataModal');
   const tCommon = useTranslations('common');
-  const isRTL = useRTL();
 
   const [sections, setSections] = useState<Record<SectionKey, SectionState>>({
     pieces: { ...INITIAL_SECTION },
@@ -182,21 +180,21 @@ export function FixOrderDataModal({
       key={step.step_id}
       className={`rounded-lg border p-3 space-y-1.5 ${
         step.status === 'error'
-          ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30'
-          : 'border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50'
-      } ${isRTL ? 'text-right' : 'text-left'}`}
+          ? 'border-danger-border bg-danger-bg'
+          : 'border-border bg-muted'
+      } text-start`}
     >
-      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        {step.status === 'success' && <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />}
-        {step.status === 'error' && <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />}
-        {step.status === 'skipped' && <MinusCircle className="h-4 w-4 text-gray-400 shrink-0" />}
+      <div className="flex items-center gap-2">
+        {step.status === 'success' && <CheckCircle className="h-4 w-4 text-success-text shrink-0" />}
+        {step.status === 'error' && <AlertCircle className="h-4 w-4 text-danger-text shrink-0" />}
+        {step.status === 'skipped' && <MinusCircle className="h-4 w-4 text-muted-foreground shrink-0" />}
         <span
           className={`text-xs font-semibold uppercase tracking-wide ${
             step.status === 'success'
-              ? 'text-green-700 dark:text-green-400'
+              ? 'text-success-text'
               : step.status === 'error'
-                ? 'text-red-700 dark:text-red-400'
-                : 'text-gray-500'
+                ? 'text-danger-text'
+                : 'text-muted-foreground'
           }`}
         >
           {step.status === 'success' && t('stepStatusSuccess')}
@@ -205,13 +203,13 @@ export function FixOrderDataModal({
         </span>
       </div>
       {step.summary && (
-        <p className="text-sm text-gray-700 dark:text-gray-300">{step.summary}</p>
+        <p className="text-sm text-foreground">{step.summary}</p>
       )}
       {step.status === 'success' && !step.summary && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">{t('stepNoChanges')}</p>
+        <p className="text-sm text-muted-foreground">{t('stepNoChanges')}</p>
       )}
       {step.details && (
-        <div className={`pt-1 ${isRTL ? 'pr-5' : 'pl-5'} text-xs text-gray-600 dark:text-gray-400 space-y-0.5`}>
+        <div className="pt-1 ps-5 text-xs text-muted-foreground space-y-0.5">
           {step.details.items_adjusted != null && (
             <p>
               {step.details.dry_run
@@ -256,9 +254,9 @@ export function FixOrderDataModal({
         </div>
       )}
       {step.status === 'error' && step.error_message && (
-        <Alert variant="destructive" className="mt-2">
-          <AlertDescription>{step.error_message}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error" className="mt-2">
+          <div>{step.error_message}</div>
+        </CmxSummaryMessage>
       )}
     </div>
   );
@@ -285,26 +283,26 @@ export function FixOrderDataModal({
     const isDone = !!s.result;
 
     return (
-      <div className={`rounded-xl border ${isDone ? 'border-gray-300 dark:border-gray-600' : 'border-gray-200 dark:border-gray-700'} bg-white dark:bg-gray-900/30`}>
+      <div className={`rounded-xl border ${isDone ? 'border-border' : 'border-border'} bg-card`}>
         {/* Section header */}
-        <div className={`flex items-start gap-3 p-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <div className="mt-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 p-2 shrink-0">
-            <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+        <div className="flex items-start gap-3 p-4">
+          <div className="mt-0.5 rounded-lg bg-muted p-2 shrink-0">
+            <Icon className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${isRTL ? 'text-right' : ''}`}>
+            <p className="text-sm font-semibold text-foreground">
               {t(titleKey)}
             </p>
-            <p className={`text-xs text-gray-500 dark:text-gray-400 mt-0.5 ${isRTL ? 'text-right' : ''}`}>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {t(descKey)}
             </p>
           </div>
         </div>
 
-        <div className={`px-4 pb-4 space-y-3 ${isRTL ? 'text-right' : ''}`}>
+        <div className="px-4 pb-4 space-y-3">
           {/* Actions (shown when no result yet) */}
           {!isDone && (
-            <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex gap-2">
               {/* Check button */}
               <div className="flex-1 space-y-1">
                 <CmxButton
@@ -315,18 +313,18 @@ export function FixOrderDataModal({
                   className="w-full"
                 >
                   {s.checking ? (
-                    <span className={`flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
                       {t('checking')}
                     </span>
                   ) : (
-                    <span className={`flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="flex items-center gap-1.5">
                       <ChevronRight className="h-3.5 w-3.5 shrink-0" />
                       {t('checkButton')}
                     </span>
                   )}
                 </CmxButton>
-                <p className="text-xs text-gray-400 dark:text-gray-500 px-0.5">{t(checkHintKey)}</p>
+                <p className="text-xs text-muted-foreground px-0.5">{t(checkHintKey)}</p>
               </div>
 
               {/* Run button */}
@@ -338,7 +336,7 @@ export function FixOrderDataModal({
                   className="w-full"
                 >
                   {s.running ? (
-                    <span className={`flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
                       {t('running')}
                     </span>
@@ -346,25 +344,25 @@ export function FixOrderDataModal({
                     t('runButton')
                   )}
                 </CmxButton>
-                <p className="text-xs text-gray-400 dark:text-gray-500 px-0.5">{t(runHintKey)}</p>
+                <p className="text-xs text-muted-foreground px-0.5">{t(runHintKey)}</p>
               </div>
             </div>
           )}
 
           {/* Error */}
           {s.apiError && (
-            <Alert variant="destructive" className={isRTL ? 'text-right' : 'text-left'}>
+            <CmxSummaryMessage type="error" className="text-start">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{s.apiError}</AlertDescription>
-            </Alert>
+              <div>{s.apiError}</div>
+            </CmxSummaryMessage>
           )}
 
           {/* Results */}
           {s.result && (
             <div className="space-y-2">
               {s.result.dry_run && (
-                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-warning-text bg-warning-bg px-2 py-0.5 rounded">
                     {t('checkResultBadge')}
                   </span>
                 </div>
@@ -380,7 +378,7 @@ export function FixOrderDataModal({
                   className="w-full mt-1"
                 >
                   {s.running ? (
-                    <span className={`flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
                       {t('running')}
                     </span>
@@ -417,14 +415,14 @@ export function FixOrderDataModal({
       }}
     >
       <CmxDialogContent
-        className={`max-w-lg ${isRTL ? 'text-right' : 'text-left'}`}
+        className="max-w-lg text-start"
       >
-        <CmxDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-          <CmxDialogTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <CmxDialogHeader className="text-start">
+          <CmxDialogTitle className="flex items-center gap-2">
             <Wrench className="h-5 w-5 shrink-0" />
             {t('title')}
           </CmxDialogTitle>
-          <CmxDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+          <CmxDialogDescription className="text-start">
             {t('description')}
           </CmxDialogDescription>
         </CmxDialogHeader>
@@ -453,7 +451,7 @@ export function FixOrderDataModal({
           })}
         </div>
 
-        <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+        <CmxDialogFooter className="">
           {anyApplied ? (
             <>
               <CmxButton variant="outline" onClick={handleClose} disabled={anyBusy}>

@@ -13,9 +13,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { CmxCard } from "@ui/primitives/cmx-card";
 
-import { CmxButton, Alert } from "@ui/primitives";
+import { CmxButton } from "@ui/primitives";
 import { CmxTabsPanel } from "@ui/navigation";
 import { Info, HelpCircle } from "lucide-react";
 import type { Tenant } from "@/lib/types/tenant";
@@ -27,10 +28,12 @@ import { PlanLimitsSettings } from "@features/settings/ui/PlanLimitsSettings";
 import { ProfileInfoCard } from "@features/settings/ui/profile-info-card";
 
 import { CmxStatusBadge } from '@ui/feedback';
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 /**
  *
  */
 export default function AllSettingsPage() {
+  const tSettings = useTranslations("settings");
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,8 +74,8 @@ export default function AllSettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading settings...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading settings...</p>
         </div>
       </div>
     );
@@ -81,11 +84,7 @@ export default function AllSettingsPage() {
   if (error || !tenant) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert
-          variant="error"
-          title="Error Loading Settings"
-          message={error || "Unable to load tenant data"}
-        />
+        <CmxSummaryMessage type="error" title={tSettings("loadError")} message={error || undefined} />
       </div>
     );
   }
@@ -139,14 +138,14 @@ export default function AllSettingsPage() {
 
       {/* Info Banner */}
       <div className="mb-6">
-        <CmxCard className="bg-blue-50 border-blue-200">
+        <CmxCard className="bg-info-bg border-info-border">
           <div className="p-4 flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Info className="h-5 w-5 text-primary-text flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-blue-900">
+              <h3 className="text-sm font-medium text-primary-text">
                 7-Layer Settings Resolution
               </h3>
-              <p className="mt-1 text-sm text-blue-800">
+              <p className="mt-1 text-sm text-primary-text">
                 Settings are resolved through 7 layers: System Default → Profile
                 → Plan → Feature Flags → Tenant → Branch → User. Look for source
                 badges next to each setting to see where the value comes from.
@@ -154,9 +153,9 @@ export default function AllSettingsPage() {
               <CmxButton
                 variant="ghost"
                 size="sm"
-                className="mt-2 text-blue-700 hover:text-blue-900 p-0 h-auto"
+                className="mt-2 text-primary-text hover:text-primary-text/80 p-0 h-auto"
               >
-                <HelpCircle className="h-4 w-4 mr-1" />
+                <HelpCircle className="h-4 w-4 me-1" />
                 Learn more about settings resolution
               </CmxButton>
             </div>

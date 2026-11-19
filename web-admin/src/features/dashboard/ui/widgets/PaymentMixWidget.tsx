@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { CreditCard, Wallet } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
@@ -27,7 +26,6 @@ interface PaymentMixData {
 export function PaymentMixWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')
-  const isRTL = useRTL()
   const [data, setData] = useState<PaymentMixData>({
     cashPct: 0,
     onlinePct: 0,
@@ -64,9 +62,9 @@ export function PaymentMixWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
-        <div className="h-48 bg-gray-200 rounded"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-6 bg-muted rounded w-2/3 mb-4"></div>
+        <div className="h-48 bg-muted rounded"></div>
       </div>
     )
   }
@@ -98,10 +96,10 @@ export function PaymentMixWidget() {
   const hasData = chartData.length > 0 && chartData.some((item) => item.value > 0)
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('paymentMix')}</h3>
-        <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+    <div className="bg-card rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-foreground">{t('paymentMix')}</h3>
+        <div className="p-2 rounded-lg bg-info-bg text-info-text">
           <CreditCard className="h-5 w-5" />
         </div>
       </div>
@@ -135,15 +133,15 @@ export function PaymentMixWidget() {
           {/* Payment Method List */}
           <div className="space-y-2">
             {chartData.map((item) => (
-              <div key={item.name} className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div key={item.name} className="flex items-center justify-between">
+                <div className="flex items-center">
                   <div
-                    className={`w-3 h-3 rounded-full ${isRTL ? 'ml-2' : 'mr-2'}`}
+                    className="w-3 h-3 rounded-full me-2"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-sm text-gray-700 line-clamp-1 break-words">{item.name}</span>
+                  <span className="text-sm text-foreground line-clamp-1 break-words">{item.name}</span>
                 </div>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-foreground">
                   {item.value.toFixed(1)}%
                 </span>
               </div>
@@ -152,8 +150,8 @@ export function PaymentMixWidget() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Wallet className="h-12 w-12 text-gray-400 mb-2" />
-          <p className="text-sm text-gray-600">{t('noPaymentData')}</p>
+          <Wallet className="h-12 w-12 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">{t('noPaymentData')}</p>
         </div>
       )}
     </div>

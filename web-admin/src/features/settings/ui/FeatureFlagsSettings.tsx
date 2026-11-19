@@ -78,8 +78,8 @@ export function FeatureFlagsSettings() {
       <CmxCardContent className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Feature Flags</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-lg font-semibold text-foreground">Feature Flags</h2>
+            <p className="text-sm text-muted-foreground">
               View all active feature flags defined in Platform HQ that may affect this tenant.
             </p>
           </div>
@@ -93,59 +93,59 @@ export function FeatureFlagsSettings() {
           </div>
         </div>
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border text-sm">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Key</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Category</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Binding</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Key</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Name</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Category</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Binding</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
+              <tbody className="divide-y divide-border bg-card">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                       Loading feature flags...
                     </td>
                   </tr>
                 ) : filteredFlags.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
                       No feature flags found.
                     </td>
                   </tr>
                 ) : (
                   filteredFlags.map((f) => (
                     <tr key={f.flag_key}>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-gray-800">
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-foreground">
                         {f.flag_key}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-900 text-sm font-medium">
+                        <div className="text-foreground text-sm font-medium">
                           {f.name}
                         </div>
                         {f.description && (
-                          <div className="text-xs text-gray-500 mt-0.5">
+                          <div className="text-xs text-muted-foreground mt-0.5">
                             {f.description}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                         {f.category || '—'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                         {f.plan_binding_type || '—'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-xs">
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                             f.is_active
-                              ? 'bg-green-50 text-green-700 border border-green-200'
-                              : 'bg-gray-50 text-gray-500 border border-gray-200'
+                              ? 'bg-success-bg text-success-text border border-success-border'
+                              : 'bg-muted text-muted-foreground border border-border'
                           }`}
                         >
                           {f.is_active ? 'Active' : 'Inactive'}

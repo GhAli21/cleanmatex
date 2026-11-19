@@ -10,7 +10,6 @@
 
 import { memo, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
@@ -152,7 +151,6 @@ function SummaryCartItemComponent({
   onDelete,
   quote,
 }: SummaryCartItemProps) {
-  const isRTL = useRTL();
   const locale = useLocale();
   const tPieces = useTranslations('newOrder.pieces');
   const tSpeed = useTranslations('newOrder.serviceSpeed');
@@ -257,7 +255,7 @@ function SummaryCartItemComponent({
   const showPieceRows = trackByPiece && pieces.length > 0
     && (quote?.line ? quote.line.pieces.length === pieces.length : quote?.piecePriced === true);
   const pieceRows = pieces.map((piece, k) => (
-    <div key={piece.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 py-1">
+    <div key={piece.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-1">
       <dt className="min-w-16">{tPieces('pieceNumber', { number: k + 1 })}</dt>
       <dd className="flex items-center gap-2">
         {quote?.onPieceSpeedChange ? (
@@ -276,7 +274,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); quote.onEditPieceDiscount?.(piece.id); }}
-            className="shrink-0 p-0.5 text-gray-500 hover:text-green-700 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="shrink-0 p-0.5 text-muted-foreground hover:text-success-text rounded focus:outline-none focus:ring-1 focus:ring-success"
             aria-label={tLine('discountActionFor', { item: `${displayName} ${k + 1}` })}
           >
             <Percent className="w-3 h-3" />
@@ -288,11 +286,11 @@ function SummaryCartItemComponent({
   ));
 
   return (
-    <div className={`border-b border-dashed border-gray-200 last:border-b-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className="border-b border-dashed border-border last:border-b-0 text-start">
       {/* Main row */}
-      <div className={`flex items-center gap-1 px-2 py-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-1 px-2 py-1.5">
         {/* Seq / quantity */}
-        <span className="shrink-0 w-5 text-xs font-bold text-gray-700 text-center">
+        <span className="shrink-0 w-5 text-xs font-bold text-foreground text-center">
           {quantity}
         </span>
 
@@ -301,7 +299,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditPreferences(); }}
-            className="shrink-0 p-0.5 text-gray-500 hover:text-purple-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="shrink-0 p-0.5 text-muted-foreground hover:text-primary-text rounded transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             title={tPieces('editItemPreferences')}
             aria-label={tPieces('editItemPreferences')}
           >
@@ -310,11 +308,11 @@ function SummaryCartItemComponent({
         )}
 
         {/* Item name */}
-        <span className={`flex-1 min-w-0 text-sm text-gray-800 truncate ${isRTL ? 'text-right' : 'text-left'}`}>
+        <span className="flex-1 min-w-0 text-sm text-foreground truncate text-start">
           {displayName}
           {priceOverride !== null && priceOverride !== undefined && (
             <span
-              className="ms-1 text-xs text-orange-500"
+              className="ms-1 text-xs text-warning-text"
               title={`Price overridden${
                 priceOverride != null
                   ? `: ${formatMoneyAmountWithCode(priceOverride, {
@@ -331,11 +329,11 @@ function SummaryCartItemComponent({
         </span>
 
         {/* Item number badge */}
-        <span className="shrink-0 text-[10px] text-gray-400 hidden sm:inline">{itemNumber}</span>
+        <span className="shrink-0 text-[10px] text-muted-foreground hidden sm:inline">{itemNumber}</span>
 
         {/* Price */}
         <span
-          className={cn('shrink-0 text-sm font-semibold text-gray-900 tabular-nums', quote?.pending && 'opacity-50')}
+          className={cn('shrink-0 text-sm font-semibold text-foreground tabular-nums', quote?.pending && 'opacity-50')}
           aria-busy={quote?.pending || undefined}
         >
           {displayPrice}
@@ -346,7 +344,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); quote.onEditLineDiscount?.(); }}
-            className="shrink-0 p-0.5 text-gray-500 hover:text-green-700 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="shrink-0 p-0.5 text-muted-foreground hover:text-success-text rounded transition-colors focus:outline-none focus:ring-1 focus:ring-success"
             title={tLine('discountAction')}
             aria-label={tLine('discountActionFor', { item: displayName })}
           >
@@ -359,7 +357,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
-            className="shrink-0 p-0.5 text-gray-500 hover:text-gray-800 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-gray-400"
+            className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground rounded transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             aria-expanded={expanded}
             aria-label={expanded ? tLine('hide', { item: displayName }) : tLine('show', { item: displayName })}
           >
@@ -372,7 +370,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditPrice(); }}
-            className="shrink-0 p-0.5 text-gray-500 hover:text-blue-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="shrink-0 p-0.5 text-muted-foreground hover:text-primary-text rounded transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
             title="Override price"
           >
             <Pencil className="w-3 h-3" />
@@ -383,7 +381,7 @@ function SummaryCartItemComponent({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="shrink-0 p-0.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-red-400"
+          className="shrink-0 p-0.5 text-muted-foreground hover:text-danger-text hover:bg-danger-bg rounded transition-colors focus:outline-none focus:ring-1 focus:ring-destructive"
           title="Remove item"
         >
           <Trash2 className="w-3 h-3" />
@@ -391,19 +389,19 @@ function SummaryCartItemComponent({
       </div>
 
       {quote?.piecePriced && !quote.line && expanded && showPieceRows ? (
-        <dl className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600', isRTL ? 'me-8' : 'ms-8')}>
+        <dl className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground', 'ms-8')}>
           {pieceRows}
         </dl>
       ) : null}
 
       {quote?.line && expanded ? (
         <dl
-          className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600', isRTL ? 'me-8' : 'ms-8', quote.pending && 'opacity-50')}
+          className={cn('mx-2 mb-1.5 space-y-0.5 rounded-md bg-muted px-2 py-1 text-[11px] text-muted-foreground', 'ms-8', quote.pending && 'opacity-50')}
           aria-busy={quote.pending || undefined}
         >
           <div className="flex justify-between gap-2"><dt>{tLine('gross')}</dt><dd className="tabular-nums">{fmt(quote.line.grossAmount)}</dd></div>
           {quote.line.discounts.map((d, i) => (
-            <div key={i} className="flex justify-between gap-2 text-green-700">
+            <div key={i} className="flex justify-between gap-2 text-success-text">
               <dt>
                 {d.source === DISCOUNT_SOURCE_TYPE.PRICE_LIST ? tLine('priceListDiscount') : tLine('lineDiscount')}
                 {d.rate != null ? ` (${d.rate}%)` : ''}
@@ -412,7 +410,7 @@ function SummaryCartItemComponent({
             </div>
           ))}
           {quote.line.orderDiscountAllocAmount > 0 ? (
-            <div className="flex justify-between gap-2 text-green-700">
+            <div className="flex justify-between gap-2 text-success-text">
               <dt>{tLine('orderDiscountShare')}</dt>
               <dd className="tabular-nums">− {fmt(quote.line.orderDiscountAllocAmount)}</dd>
             </div>
@@ -420,12 +418,12 @@ function SummaryCartItemComponent({
           <div className="flex justify-between gap-2"><dt>{tLine('net')}</dt><dd className="tabular-nums">{fmt(quote.line.netAmount)}</dd></div>
           <div className="flex justify-between gap-2"><dt>{tLine('tax')}</dt><dd className="tabular-nums">{fmt(quote.line.taxAmount)}</dd></div>
           {showPieceRows ? pieceRows : null}
-          <div className="flex justify-between gap-2 font-semibold text-gray-800"><dt>{tLine('lineTotal')}</dt><dd className="tabular-nums">{fmt(quote.line.lineTotalAmount)}</dd></div>
+          <div className="flex justify-between gap-2 font-semibold text-foreground"><dt>{tLine('lineTotal')}</dt><dd className="tabular-nums">{fmt(quote.line.lineTotalAmount)}</dd></div>
         </dl>
       ) : null}
 
       {quote && (premium > 0 || quote.onLineSpeedChange) ? (
-        <div className={`flex items-center gap-2 px-2 pb-1.5 ${isRTL ? 'pe-8 flex-row-reverse' : 'ps-8'}`}>
+        <div className="flex items-center gap-2 px-2 pb-1.5 ps-8">
           {quote.onLineSpeedChange ? (
             <ServiceSpeedSelect
               size="line"
@@ -440,7 +438,7 @@ function SummaryCartItemComponent({
             />
           ) : null}
           {premium > 0 && effectiveSpeed ? (
-            <span className={cn('text-[11px] text-orange-700', quote.pending && 'opacity-50')}>
+            <span className={cn('text-[11px] text-warning-text', quote.pending && 'opacity-50')}>
               {tSpeed('premiumIncluded', { speed: speedLabel(effectiveSpeed), amount: fmt(premium) })}
             </span>
           ) : null}
@@ -448,17 +446,17 @@ function SummaryCartItemComponent({
       ) : null}
 
       {piecePreferenceRows.some((r) => r.labels.length > 0) && (
-        <div className={`px-2 pb-1.5 space-y-1.5 ${isRTL ? 'pe-8' : 'ps-8'}`}>
+        <div className="px-2 pb-1.5 space-y-1.5 ps-8">
           {piecePreferenceRows.map((row, i) =>
             row.labels.length === 0 ? null : (
               <div
                 key={i}
-                className={cn('flex flex-wrap gap-1', isRTL ? 'flex-row-reverse justify-end' : '')}
+                className={cn('flex flex-wrap gap-1', '')}
               >
                 {row.labels.map((label, j) => (
                   <span
                     key={`${i}-${j}`}
-                    className="inline-flex max-w-full rounded-md border border-teal-200/90 bg-teal-50/90 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-teal-900"
+                    className="inline-flex max-w-full rounded-md border border-info-border/90 bg-info-bg/90 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-info-text"
                   >
                     {label}
                   </span>

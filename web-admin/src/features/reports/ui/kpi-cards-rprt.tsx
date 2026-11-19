@@ -31,15 +31,15 @@ export default function KPICards({ cards }: KPICardsProps) {
         return (
           <div
             key={index}
-            className="rounded-lg border border-gray-200 bg-white p-5"
+            className="rounded-lg border border-border bg-card p-5"
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600">{card.label}</span>
+              <span className="text-sm font-medium text-muted-foreground">{card.label}</span>
               <div className={`rounded-lg p-2 ${card.bgColor}`}>
                 <Icon className={`h-5 w-5 ${card.color}`} />
               </div>
             </div>
-            <div className="mt-2 text-2xl font-bold text-gray-900">
+            <div className="mt-2 text-2xl font-bold text-foreground">
               {typeof card.value === 'number'
                 ? card.value.toLocaleString()
                 : card.value}
@@ -48,7 +48,7 @@ export default function KPICards({ cards }: KPICardsProps) {
               <div className="mt-1 flex items-center gap-1">
                 <span
                   className={`text-xs font-medium ${
-                    card.trend.isPositive ? 'text-green-600' : 'text-red-600'
+                    card.trend.isPositive ? 'text-success-text' : 'text-danger-text'
                   }`}
                 >
                   {card.trend.isPositive ? '+' : ''}{card.trend.value}%

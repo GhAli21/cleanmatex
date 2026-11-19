@@ -222,16 +222,16 @@ function OrderEditStatusSection({
   return (
     <CmxCard className="mb-6">
       <CmxCardHeader className="pb-3">
-        <CmxCardTitle className={isRTL ? 'text-right' : 'text-left'}>{t.editStatusTitle}</CmxCardTitle>
+        <CmxCardTitle className="text-start">{t.editStatusTitle}</CmxCardTitle>
       </CmxCardHeader>
       <CmxCardContent>
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => (
             <div key={row.label} className="rounded-md border border-border bg-muted/20 px-3 py-2.5">
-              <dt className={`text-xs font-medium text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+              <dt className="text-xs font-medium text-muted-foreground text-start">
                 {row.label}
               </dt>
-              <dd className={`mt-1 break-words font-mono text-sm text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+              <dd className="mt-1 break-words font-mono text-sm text-foreground text-start">
                 {row.value}
               </dd>
             </div>
@@ -254,32 +254,32 @@ function FieldChangesSection({
   return (
     <div>
       <SectionHeader icon={<Pencil className="w-3.5 h-3.5" />} label={t.fieldChanges} count={fields.length} color="blue" />
-      <div className="overflow-x-auto rounded-lg border border-gray-100 mt-2">
+      <div className="overflow-x-auto rounded-lg border border-border mt-2">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50/80 border-b border-gray-100">
-              <th className={`px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide ${isRTL ? 'text-right' : 'text-left'}`}>{t.fieldName}</th>
-              <th className={`px-3 py-2 text-xs font-semibold text-red-400 uppercase tracking-wide ${isRTL ? 'text-right' : 'text-left'}`}>{t.oldValue}</th>
+            <tr className="bg-muted/80 border-b border-border">
+              <th className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-start">{t.fieldName}</th>
+              <th className="px-3 py-2 text-xs font-semibold text-danger-text uppercase tracking-wide text-start">{t.oldValue}</th>
               <th className="w-6" />
-              <th className={`px-3 py-2 text-xs font-semibold text-green-600 uppercase tracking-wide ${isRTL ? 'text-right' : 'text-left'}`}>{t.newValue}</th>
+              <th className="px-3 py-2 text-xs font-semibold text-success-text uppercase tracking-wide text-start">{t.newValue}</th>
             </tr>
           </thead>
           <tbody>
             {fields.map((fc, idx) => (
-              <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
-                <td className={`px-3 py-2.5 font-medium text-gray-700 text-xs ${isRTL ? 'text-right' : 'text-left'}`}>
+              <tr key={idx} className="border-b border-border last:border-0 hover:bg-muted/60 transition-colors">
+                <td className="px-3 py-2.5 font-medium text-foreground text-xs text-start">
                   {fc.displayName ?? fc.field}
                 </td>
-                <td className={`px-3 py-2.5 text-red-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="bg-red-50 rounded px-1.5 py-0.5 line-through text-xs font-mono">
+                <td className="px-3 py-2.5 text-danger-text text-start">
+                  <span className="bg-danger-bg rounded px-1.5 py-0.5 line-through text-xs font-mono">
                     {formatVal(fc.oldValue, DATE_FIELDS.has(fc.field))}
                   </span>
                 </td>
                 <td className="px-1 py-2.5 text-center">
-                  <ArrowRight className="w-3 h-3 text-gray-300 mx-auto" />
+                  <ArrowRight className="w-3 h-3 text-muted-foreground mx-auto" />
                 </td>
-                <td className={`px-3 py-2.5 text-green-700 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <span className="bg-green-50 rounded px-1.5 py-0.5 font-semibold text-xs font-mono">
+                <td className="px-3 py-2.5 text-success-text text-start">
+                  <span className="bg-success-bg rounded px-1.5 py-0.5 font-semibold text-xs font-mono">
                     {formatVal(fc.newValue, DATE_FIELDS.has(fc.field))}
                   </span>
                 </td>
@@ -328,20 +328,20 @@ function ItemSubDetail({
   if (!rows.length) return null;
 
   return (
-    <div className={`mt-1.5 ml-8 space-y-0.5 ${isRTL ? 'mr-8 ml-0' : ''}`}>
+    <div className="mt-1.5 ms-8 space-y-0.5">
       {rows.map(({ label, old: oldV, new: newV }, i) => (
-        <div key={i} className={`flex items-center gap-2 text-xs text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <span className="font-medium text-gray-400 w-20 flex-shrink-0">{label}</span>
+        <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-muted-foreground w-20 flex-shrink-0">{label}</span>
           {item.changeType === 'modified' ? (
             <>
-              <span className="text-red-400 line-through font-mono">{formatVal(oldV, false)}</span>
-              <ArrowRight className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
-              <span className="text-green-600 font-semibold font-mono">{formatVal(newV, false)}</span>
+              <span className="text-danger-text line-through font-mono">{formatVal(oldV, false)}</span>
+              <ArrowRight className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-success-text font-semibold font-mono">{formatVal(newV, false)}</span>
             </>
           ) : item.changeType === 'added' ? (
-            <span className="text-green-600 font-semibold font-mono">{formatVal(newV, false)}</span>
+            <span className="text-success-text font-semibold font-mono">{formatVal(newV, false)}</span>
           ) : (
-            <span className="text-red-400 line-through font-mono">{formatVal(oldV, false)}</span>
+            <span className="text-danger-text line-through font-mono">{formatVal(oldV, false)}</span>
           )}
         </div>
       ))}
@@ -371,21 +371,21 @@ function ItemChangesSection({
           <div
             key={idx}
             className={`rounded-lg border ${
-              type === 'added'    ? 'bg-green-50/60 border-green-200'
-              : type === 'removed' ? 'bg-red-50/60 border-red-200'
-              : 'bg-amber-50/60 border-amber-200'
+              type === 'added'    ? 'bg-success-bg/60 border-success-border'
+              : type === 'removed' ? 'bg-danger-bg/60 border-danger-border'
+              : 'bg-warning-bg/60 border-warning-border'
             } px-3 py-2`}
           >
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {type === 'added'    ? <Plus className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
-              : type === 'removed' ? <Minus className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-              : <Pencil className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+            <div className="flex items-center gap-2">
+              {type === 'added'    ? <Plus className="w-3.5 h-3.5 text-success-text flex-shrink-0" />
+              : type === 'removed' ? <Minus className="w-3.5 h-3.5 text-danger-text flex-shrink-0" />
+              : <Pencil className="w-3.5 h-3.5 text-warning-text flex-shrink-0" />}
               <span className={`text-xs font-bold uppercase tracking-wide flex-shrink-0 ${
-                type === 'added' ? 'text-green-700' : type === 'removed' ? 'text-red-600' : 'text-amber-700'
+                type === 'added' ? 'text-success-text' : type === 'removed' ? 'text-danger-text' : 'text-warning-text'
               }`}>
                 {type === 'added' ? t.itemAdded : type === 'removed' ? t.itemRemoved : t.itemModified}
               </span>
-              <span className="font-semibold text-gray-800 text-sm">{item.productName}</span>
+              <span className="font-semibold text-foreground text-sm">{item.productName}</span>
             </div>
             <ItemSubDetail item={item} fmtMoney={fmtMoney} t={t} isRTL={isRTL} />
           </div>
@@ -420,30 +420,30 @@ function PreferenceChangesSection({
           <div
             key={`${pref.changeType}-${newCode ?? oldCode}-${idx}`}
             className={`rounded-lg border ${
-              pref.changeType === 'added'    ? 'bg-green-50/60 border-green-200'
-              : pref.changeType === 'removed' ? 'bg-red-50/60 border-red-200'
-              : 'bg-amber-50/60 border-amber-200'
+              pref.changeType === 'added'    ? 'bg-success-bg/60 border-success-border'
+              : pref.changeType === 'removed' ? 'bg-danger-bg/60 border-danger-border'
+              : 'bg-warning-bg/60 border-warning-border'
             } px-3 py-2`}
           >
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {pref.changeType === 'added'    ? <Plus className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
-              : pref.changeType === 'removed' ? <Minus className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-              : <Pencil className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+            <div className="flex items-center gap-2">
+              {pref.changeType === 'added'    ? <Plus className="w-3.5 h-3.5 text-success-text flex-shrink-0" />
+              : pref.changeType === 'removed' ? <Minus className="w-3.5 h-3.5 text-danger-text flex-shrink-0" />
+              : <Pencil className="w-3.5 h-3.5 text-warning-text flex-shrink-0" />}
               <span className={`text-xs font-bold uppercase tracking-wide flex-shrink-0 ${
-                pref.changeType === 'added' ? 'text-green-700' : pref.changeType === 'removed' ? 'text-red-600' : 'text-amber-700'
+                pref.changeType === 'added' ? 'text-success-text' : pref.changeType === 'removed' ? 'text-danger-text' : 'text-warning-text'
               }`}>
                 {pref.changeType === 'added' ? t.preferenceAdded : pref.changeType === 'removed' ? t.preferenceRemoved : t.preferenceModified}
               </span>
-              <span className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
+              <span className="font-semibold text-foreground text-sm uppercase tracking-wide">
                 {pref.prefsLevel}
               </span>
               {pref.productName ? (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {pref.pieceSeq != null ? `${pref.productName} #${pref.pieceSeq}` : pref.productName}
                 </span>
               ) : null}
             </div>
-            <div className={`mt-1.5 ml-8 space-y-0.5 text-xs text-gray-500 ${isRTL ? 'mr-8 ml-0' : ''}`}>
+            <div className="mt-1.5 ms-8 space-y-0.5 text-xs text-muted-foreground">
               {([
                 { label: t.preferenceLevel, old: pref.prefsLevel, next: pref.prefsLevel },
                 { label: t.preferenceKind, old: pref.oldPreferenceSysKind, next: pref.newPreferenceSysKind },
@@ -455,18 +455,18 @@ function PreferenceChangesSection({
                   next: pref.newExtraPrice != null ? fmtMoney(Number(pref.newExtraPrice)) : null,
                 },
               ] as Array<{ label: string; old: unknown; next: unknown }>).map((row, rowIdx) => (
-                <div key={rowIdx} className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="font-medium text-gray-400 w-28 flex-shrink-0">{row.label}</span>
+                <div key={rowIdx} className="flex items-center gap-2">
+                  <span className="font-medium text-muted-foreground w-28 flex-shrink-0">{row.label}</span>
                   {pref.changeType === 'modified' ? (
                     <>
-                      <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
-                      <ArrowRight className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
-                      <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                      <span className="text-danger-text line-through font-mono">{formatVal(row.old)}</span>
+                      <ArrowRight className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-success-text font-semibold font-mono">{formatVal(row.next)}</span>
                     </>
                   ) : pref.changeType === 'added' ? (
-                    <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                    <span className="text-success-text font-semibold font-mono">{formatVal(row.next)}</span>
                   ) : (
-                    <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
+                    <span className="text-danger-text line-through font-mono">{formatVal(row.old)}</span>
                   )}
                 </div>
               ))}
@@ -520,38 +520,38 @@ function PieceChangesSection({
           <div
             key={`${piece.changeType}-${piece.productName}-${piece.pieceSeq}-${idx}`}
             className={`rounded-lg border ${
-              piece.changeType === 'added'    ? 'bg-green-50/60 border-green-200'
-              : piece.changeType === 'removed' ? 'bg-red-50/60 border-red-200'
-              : 'bg-amber-50/60 border-amber-200'
+              piece.changeType === 'added'    ? 'bg-success-bg/60 border-success-border'
+              : piece.changeType === 'removed' ? 'bg-danger-bg/60 border-danger-border'
+              : 'bg-warning-bg/60 border-warning-border'
             } px-3 py-2`}
           >
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {piece.changeType === 'added'    ? <Plus className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
-              : piece.changeType === 'removed' ? <Minus className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-              : <Pencil className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+            <div className="flex items-center gap-2">
+              {piece.changeType === 'added'    ? <Plus className="w-3.5 h-3.5 text-success-text flex-shrink-0" />
+              : piece.changeType === 'removed' ? <Minus className="w-3.5 h-3.5 text-danger-text flex-shrink-0" />
+              : <Pencil className="w-3.5 h-3.5 text-warning-text flex-shrink-0" />}
               <span className={`text-xs font-bold uppercase tracking-wide flex-shrink-0 ${
-                piece.changeType === 'added' ? 'text-green-700' : piece.changeType === 'removed' ? 'text-red-600' : 'text-amber-700'
+                piece.changeType === 'added' ? 'text-success-text' : piece.changeType === 'removed' ? 'text-danger-text' : 'text-warning-text'
               }`}>
                 {piece.changeType === 'added' ? t.pieceAdded : piece.changeType === 'removed' ? t.pieceRemoved : t.pieceModified}
               </span>
-              <span className="font-semibold text-gray-800 text-sm">
+              <span className="font-semibold text-foreground text-sm">
                 {piece.productName ?? t.itemChanges} #{piece.pieceSeq}
               </span>
             </div>
-            <div className={`mt-1.5 ml-8 space-y-0.5 ${isRTL ? 'mr-8 ml-0' : ''}`}>
+            <div className="mt-1.5 ms-8 space-y-0.5">
               {rowsFor(piece).map((row, rowIdx) => (
-                <div key={rowIdx} className={`flex items-center gap-2 text-xs text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="font-medium text-gray-400 w-20 flex-shrink-0">{row.label}</span>
+                <div key={rowIdx} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-medium text-muted-foreground w-20 flex-shrink-0">{row.label}</span>
                   {piece.changeType === 'modified' ? (
                     <>
-                      <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
-                      <ArrowRight className="w-2.5 h-2.5 text-gray-300 flex-shrink-0" />
-                      <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                      <span className="text-danger-text line-through font-mono">{formatVal(row.old)}</span>
+                      <ArrowRight className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-success-text font-semibold font-mono">{formatVal(row.next)}</span>
                     </>
                   ) : piece.changeType === 'added' ? (
-                    <span className="text-green-600 font-semibold font-mono">{formatVal(row.next)}</span>
+                    <span className="text-success-text font-semibold font-mono">{formatVal(row.next)}</span>
                   ) : (
-                    <span className="text-red-400 line-through font-mono">{formatVal(row.old)}</span>
+                    <span className="text-danger-text line-through font-mono">{formatVal(row.old)}</span>
                   )}
                 </div>
               ))}
@@ -577,19 +577,19 @@ function PricingChangesSection({
       <SectionHeader icon={<DollarSign className="w-3.5 h-3.5" />} label={t.pricingChanges} color="orange" />
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {([
-          { label: t.oldSubtotal, value: pricing.oldSubtotal, cls: 'text-red-500 line-through', bg: 'bg-red-50 border-red-100' },
-          { label: t.newSubtotal, value: pricing.newSubtotal, cls: 'text-green-700 font-bold',  bg: 'bg-green-50 border-green-100' },
-          { label: t.oldTotal,    value: pricing.oldTotal,    cls: 'text-red-500 line-through', bg: 'bg-red-50 border-red-100' },
-          { label: t.newTotal,    value: pricing.newTotal,    cls: 'text-green-700 font-bold',  bg: 'bg-green-50 border-green-100' },
+          { label: t.oldSubtotal, value: pricing.oldSubtotal, cls: 'text-danger-text line-through', bg: 'bg-danger-bg border-danger-border' },
+          { label: t.newSubtotal, value: pricing.newSubtotal, cls: 'text-success-text font-bold',  bg: 'bg-success-bg border-success-border' },
+          { label: t.oldTotal,    value: pricing.oldTotal,    cls: 'text-danger-text line-through', bg: 'bg-danger-bg border-danger-border' },
+          { label: t.newTotal,    value: pricing.newTotal,    cls: 'text-success-text font-bold',  bg: 'bg-success-bg border-success-border' },
         ] as Array<{ label: string; value: number; cls: string; bg: string }>).map(({ label, value, cls, bg }) => (
           <div key={label} className={`rounded-lg border px-3 py-2 ${bg}`}>
-            <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+            <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
             <p className={`text-sm font-mono ${cls}`}>{fmtMoney(Number(value))}</p>
           </div>
         ))}
       </div>
       <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-        isIncrease ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+        isIncrease ? 'bg-warning-bg text-warning-text' : 'bg-success-bg text-success-text'
       }`}>
         {isIncrease ? <AlertTriangle className="w-3 h-3" /> : <ArrowRight className="w-3 h-3 rotate-180" />}
         {t.difference}: {isIncrease ? '+' : ''}{fmtMoney(Number(diff))} ({pricing.percentageChange.toFixed(1)}%)
@@ -607,21 +607,21 @@ function SectionHeader({ icon, label, count, color }: {
   color: 'blue' | 'purple' | 'orange' | 'gray';
 }) {
   const colorMap = {
-    blue:   'text-blue-600 bg-blue-50 border-blue-100',
-    purple: 'text-purple-600 bg-purple-50 border-purple-100',
-    orange: 'text-orange-600 bg-orange-50 border-orange-100',
-    gray:   'text-gray-600 bg-gray-50 border-gray-100',
+    blue:   'text-info-text bg-info-bg border-info-border',
+    purple: 'text-info-text bg-info-bg border-info-border',
+    orange: 'text-warning-text bg-warning-bg border-warning-border',
+    gray:   'text-muted-foreground bg-muted border-border',
   };
   return (
     <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 border text-xs font-semibold ${colorMap[color]}`}>
       {icon}
       {label}
       {count != null && (
-        <span className={`ml-0.5 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold ${
-          color === 'blue' ? 'bg-blue-200 text-blue-800'
-          : color === 'purple' ? 'bg-purple-200 text-purple-800'
-          : color === 'orange' ? 'bg-orange-200 text-orange-800'
-          : 'bg-gray-200 text-gray-700'
+        <span className={`ms-0.5 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold ${
+          color === 'blue' ? 'bg-info-bg text-info-text'
+          : color === 'purple' ? 'bg-info-bg text-info-text'
+          : color === 'orange' ? 'bg-warning-bg text-warning-text'
+          : 'bg-muted text-foreground'
         }`}>{count}</span>
       )}
     </div>
@@ -642,37 +642,37 @@ function ChangePills({ entry, t }: { entry: OrderEditHistoryEntry; t: EditHistor
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {fieldCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-info-bg text-info-text text-[10px] font-semibold px-2 py-0.5">
           <Pencil className="w-2.5 h-2.5" />{fieldCount}
         </span>
       )}
       {addedCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-success-bg text-success-text text-[10px] font-semibold px-2 py-0.5">
           <Plus className="w-2.5 h-2.5" />{addedCount}
         </span>
       )}
       {removedCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-danger-bg text-danger-text text-[10px] font-semibold px-2 py-0.5">
           <Minus className="w-2.5 h-2.5" />{removedCount}
         </span>
       )}
       {modifiedCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-bg text-warning-text text-[10px] font-semibold px-2 py-0.5">
           <Wrench className="w-2.5 h-2.5" />{modifiedCount}
         </span>
       )}
       {pieceCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-info-bg text-info-text text-[10px] font-semibold px-2 py-0.5">
           <Layers className="w-2.5 h-2.5" />{pieceCount}
         </span>
       )}
       {prefCount > 0 && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-info-bg text-info-text text-[10px] font-semibold px-2 py-0.5">
           <Tags className="w-2.5 h-2.5" />{prefCount}
         </span>
       )}
       {hasPricing && (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-semibold px-2 py-0.5">
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-bg text-warning-text text-[10px] font-semibold px-2 py-0.5">
           <DollarSign className="w-2.5 h-2.5" />
         </span>
       )}
@@ -703,52 +703,52 @@ function EditEntryRow({
   const hasAnyChanges     = hasFieldChanges || hasItemChanges || hasPricingChanges || hasPrefChanges || hasPieceChanges;
 
   return (
-    <div className={`relative flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div className="relative flex gap-3">
       {/* Timeline line + dot */}
-      <div className={`flex flex-col items-center flex-shrink-0 ${isRTL ? 'items-center' : ''}`}>
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-blue-100 flex-shrink-0 z-10">
+      <div className="flex flex-col items-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shadow-sm ring-2 ring-ring flex-shrink-0 z-10">
           {entry.editNumber}
         </div>
-        {!isLast && <div className="w-0.5 flex-1 bg-gray-200 mt-1" />}
+        {!isLast && <div className="w-0.5 flex-1 bg-muted mt-1" />}
       </div>
 
       {/* Card */}
       <div className="flex-1 mb-4 min-w-0">
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           {/* Header */}
           <button
             onClick={() => hasAnyChanges && setExpanded((v) => !v)}
-            className={`w-full text-left p-4 hover:bg-gray-50/70 transition-colors ${!hasAnyChanges ? 'cursor-default' : 'cursor-pointer'}`}
+            className={`w-full text-start p-4 hover:bg-muted/70 transition-colors ${!hasAnyChanges ? 'cursor-default' : 'cursor-pointer'}`}
           >
-            <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0 text-start">
                 {/* Top row: editor + payment badge */}
-                <div className={`flex items-center flex-wrap gap-2 mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="font-semibold text-gray-900 text-sm">
+                <div className="flex items-center flex-wrap gap-2 mb-1">
+                  <span className="font-semibold text-foreground text-sm">
                     {entry.editedByName ?? entry.editedBy.slice(0, 12)}
                   </span>
                   {entry.paymentAdjusted && (
                     <CmxStatusBadge size="sm"
                       tone="neutral" appearance="outline"
-                      className={`text-xs ${entry.paymentAdjustmentType === 'REFUND' ? 'border-green-400 text-green-700 bg-green-50' : 'border-orange-400 text-orange-700 bg-orange-50'}`}
+                      className={`text-xs ${entry.paymentAdjustmentType === 'REFUND' ? 'border-success text-success-text bg-success-bg' : 'border-warning text-warning-text bg-warning-bg'}`}
                     >
-                      <CreditCard className="w-3 h-3 mr-1" />
+                      <CreditCard className="w-3 h-3 me-1" />
                       {entry.paymentAdjustmentType === 'REFUND' ? t.refund : t.charge}
                       {entry.paymentAdjustmentAmount != null && (
-                        <span className="ml-1 font-mono">{fmtMoney(Math.abs(entry.paymentAdjustmentAmount))}</span>
+                        <span className="ms-1 font-mono">{fmtMoney(Math.abs(entry.paymentAdjustmentAmount))}</span>
                       )}
                     </CmxStatusBadge>
                   )}
                 </div>
 
                 {/* Summary line */}
-                <p className="text-sm text-gray-600 leading-snug mb-2">{entry.changeSummary}</p>
+                <p className="text-sm text-muted-foreground leading-snug mb-2">{entry.changeSummary}</p>
 
                 {/* Change pills */}
                 {hasAnyChanges && <ChangePills entry={entry} t={t} />}
 
                 {/* Meta row */}
-                <div className={`flex items-center gap-3 text-xs text-gray-400 mt-2 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {new Date(entry.editedAt).toLocaleString()}
@@ -768,7 +768,7 @@ function EditEntryRow({
 
               {/* Expand toggle */}
               {hasAnyChanges && (
-                <div className={`flex-shrink-0 flex items-center gap-1 text-xs text-blue-600 px-2 py-1 rounded-md hover:bg-blue-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="flex-shrink-0 flex items-center gap-1 text-xs text-primary-text px-2 py-1 rounded-md hover:bg-info-bg transition-colors">
                   {expanded
                     ? <><ChevronDown className="w-4 h-4" /><span className="hidden sm:inline">{t.hideDetails}</span></>
                     : <><ChevronRight className="w-4 h-4" /><span className="hidden sm:inline">{t.viewDetails}</span></>
@@ -780,7 +780,7 @@ function EditEntryRow({
 
           {/* Expanded details */}
           {expanded && hasAnyChanges && (
-            <div className="border-t border-gray-100 bg-gray-50/40 px-4 py-4 space-y-4">
+            <div className="border-t border-border bg-muted/40 px-4 py-4 space-y-4">
               {hasFieldChanges   && <FieldChangesSection   fields={entry.changes.fields}         t={t} isRTL={isRTL} />}
               {hasItemChanges    && <ItemChangesSection    items={entry.changes.items}  fmtMoney={fmtMoney} t={t} isRTL={isRTL} />}
               {hasPieceChanges   && <PieceChangesSection   pieces={entry.changes.pieces} t={t} isRTL={isRTL} />}
@@ -826,10 +826,10 @@ export function OrdersEditHistoryTabRprt({
       <div>
         <OrderEditStatusSection status={editStatus} t={t} locale={locale} isRTL={isRTL} />
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <History className="w-7 h-7 text-gray-300" />
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
+            <History className="w-7 h-7 text-muted-foreground" />
           </div>
-          <p className="text-sm text-gray-400">{t.emptyEditHistory}</p>
+          <p className="text-sm text-muted-foreground">{t.emptyEditHistory}</p>
         </div>
       </div>
     );
@@ -845,17 +845,17 @@ export function OrdersEditHistoryTabRprt({
     <div>
       <OrderEditStatusSection status={editStatus} t={t} locale={locale} isRTL={isRTL} />
       {/* Stats bar */}
-      <div className={`flex items-center gap-3 mb-6 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <div className="flex items-center gap-2">
-          <History className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-semibold text-gray-700">{t.editHistoryTitle}</span>
+          <History className="w-4 h-4 text-primary-text" />
+          <span className="text-sm font-semibold text-foreground">{t.editHistoryTitle}</span>
           <CmxStatusBadge size="sm" tone="neutral" className="text-xs font-bold">{entries.length}</CmxStatusBadge>
         </div>
-        <div className={`flex items-center gap-2 border-l border-gray-200 pl-3 flex-wrap ${isRTL ? 'border-l-0 border-r pl-0 pr-3' : ''}`}>
-          {totalFields  > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 font-medium"><Pencil className="w-3 h-3" />{totalFields} field{totalFields > 1 ? 's' : ''}</span>}
-          {totalAdded   > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-green-700 bg-green-50 rounded-full px-2 py-0.5 font-medium"><Plus className="w-3 h-3" />{totalAdded} added</span>}
-          {totalRemoved > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-red-600 bg-red-50 rounded-full px-2 py-0.5 font-medium"><Minus className="w-3 h-3" />{totalRemoved} removed</span>}
-          {totalMod     > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 rounded-full px-2 py-0.5 font-medium"><Wrench className="w-3 h-3" />{totalMod} modified</span>}
+        <div className="flex items-center gap-2 border-s border-border ps-3 flex-wrap">
+          {totalFields  > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-info-text bg-info-bg rounded-full px-2 py-0.5 font-medium"><Pencil className="w-3 h-3" />{totalFields} field{totalFields > 1 ? 's' : ''}</span>}
+          {totalAdded   > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-success-text bg-success-bg rounded-full px-2 py-0.5 font-medium"><Plus className="w-3 h-3" />{totalAdded} added</span>}
+          {totalRemoved > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-danger-text bg-danger-bg rounded-full px-2 py-0.5 font-medium"><Minus className="w-3 h-3" />{totalRemoved} removed</span>}
+          {totalMod     > 0 && <span className="inline-flex items-center gap-1 text-[11px] text-warning-text bg-warning-bg rounded-full px-2 py-0.5 font-medium"><Wrench className="w-3 h-3" />{totalMod} modified</span>}
         </div>
       </div>
 

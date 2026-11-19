@@ -60,14 +60,14 @@ export function ProcessingStatsCards({ stats }: ProcessingStatsCardsProps) {
       {statItems.map((item) => (
         <div
           key={item.label}
-          className={`bg-white rounded-lg border p-4 ${
-            item.highlight ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+          className={`bg-card rounded-lg border p-4 ${
+            item.highlight ? 'border-warning-border bg-warning-bg' : 'border-border'
           }`}
         >
-          <div className="text-sm text-gray-600 mb-1">{item.label}</div>
+          <div className="text-sm text-muted-foreground mb-1">{item.label}</div>
           <div
             className={`text-2xl font-bold ${
-              item.highlight ? 'text-orange-600' : 'text-gray-900'
+              item.highlight ? 'text-warning-text' : 'text-foreground'
             }`}
           >
             {item.format(item.value)}

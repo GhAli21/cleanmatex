@@ -59,7 +59,8 @@ export function OrderHistoryPrintRprt({ data }: OrderHistoryPrintRprtProps) {
 
   return (
     <div
-      className="mx-auto w-full max-w-a4 bg-white text-gray-900 print:bg-white"
+      data-mode="LIGHT"
+      className="mx-auto w-full max-w-a4 bg-card text-foreground print:bg-card"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header">
@@ -89,20 +90,20 @@ export function OrderHistoryPrintRprt({ data }: OrderHistoryPrintRprtProps) {
       <section className="print-section">
         <h2>{tOrders('orderHistory') ?? 'Order History'}</h2>
         {data.history.length === 0 ? (
-          <p className="text-gray-500 text-sm">{tCommon('noData') ?? 'No history'}</p>
+          <p className="text-muted-foreground text-sm">{tCommon('noData') ?? 'No history'}</p>
         ) : (
           <div className="space-y-2">
             {data.history.map((entry, idx) => (
               <div
                 key={entry.id ?? idx}
-                className="border-b border-dashed border-gray-200 pb-2 text-sm"
+                className="border-b border-dashed border-border pb-2 text-sm"
               >
                 <div className="flex justify-between print-row">
                   <span className="font-medium">{entry.action_type}</span>
-                  <span className="text-gray-600">{formatDate(entry.done_at ?? entry.created_at ?? undefined, locale)}</span>
+                  <span className="text-muted-foreground">{formatDate(entry.done_at ?? entry.created_at ?? undefined, locale)}</span>
                 </div>
                 {(entry.from_value != null || entry.to_value != null) && (
-                  <div className="mt-0.5 text-xs text-gray-600">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {entry.from_value != null && <span>{tCommon('from') ?? 'From'}: {String(entry.from_value)}</span>}
                     {entry.from_value != null && entry.to_value != null && ' → '}
                     {entry.to_value != null && <span>{tCommon('to') ?? 'To'}: {String(entry.to_value)}</span>}

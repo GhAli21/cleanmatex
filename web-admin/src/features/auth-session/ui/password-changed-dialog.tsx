@@ -31,9 +31,9 @@ export function PasswordChangedDialog({ open, revokedOtherSessions, onSignOutNow
         <CmxDialogHeader>
           <CmxDialogTitle>{t('title')}</CmxDialogTitle>
         </CmxDialogHeader>
-        <div className="space-y-2 px-1 py-2 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <div className="space-y-2 px-1 py-2 text-sm text-foreground">
           <p>{t('body', { count: revokedOtherSessions })}</p>
-          <p className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('question')}</p>
+          <p className="text-muted-foreground">{t('question')}</p>
         </div>
         <CmxDialogFooter>
           <CmxButton type="button" variant="secondary" onClick={onLater}>

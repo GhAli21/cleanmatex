@@ -87,7 +87,7 @@ export function ExtraReceiptHandlingCard({
   }
 
   const formattedExcess = `${currencyCode} ${formatAmount(excessAmount)}`;
-  const textAlign = isRTL ? 'text-right' : 'text-left';
+  const textAlign = 'text-start';
 
   const options: Array<{
     mode: ExtraReceiptHandlingMode;
@@ -159,7 +159,7 @@ export function ExtraReceiptHandlingCard({
   const body = (
     <>
       {!hasLinkedCustomer ? (
-        <p className={`text-xs text-amber-900/70 ${textAlign}`}>{t('walkInHint')}</p>
+        <p className={`text-xs text-warning-text/70 ${textAlign}`}>{t('walkInHint')}</p>
       ) : null}
       {options.map((option) => {
         const selected = selectedMode === option.mode;
@@ -182,12 +182,12 @@ export function ExtraReceiptHandlingCard({
             }}
             className={`h-auto w-full flex-col items-start gap-1 rounded-xl border px-3 py-3 ${
               selected
-                ? 'border-cyan-400 bg-cyan-50'
-                : 'border-slate-200 bg-white hover:border-cyan-200'
-            } ${isRTL ? 'items-end text-right' : 'text-left'}`}
+                ? 'border-primary bg-info-bg'
+                : 'border-border bg-card hover:border-info-border'
+            } text-start`}
           >
-            <span className="text-sm font-semibold text-slate-900">{option.label}</span>
-            <span className="text-xs font-normal text-slate-600">{option.description}</span>
+            <span className="text-sm font-semibold text-foreground">{option.label}</span>
+            <span className="text-xs font-normal text-muted-foreground">{option.description}</span>
           </CmxButton>
         );
       })}
@@ -199,12 +199,12 @@ export function ExtraReceiptHandlingCard({
   }
 
   return (
-    <CmxCard className="border-amber-200 bg-amber-50/60">
+    <CmxCard className="border-warning-border bg-warning-bg/60">
       <CmxCardHeader className="pb-2">
-        <CmxCardTitle className={`text-base text-amber-950 ${textAlign}`}>
+        <CmxCardTitle className={`text-base text-warning-text ${textAlign}`}>
           {t('title')}
         </CmxCardTitle>
-        <p className={`text-sm text-amber-900/80 ${textAlign}`}>
+        <p className={`text-sm text-warning-text/80 ${textAlign}`}>
           {t('unallocatedAmount', { amount: formattedExcess })}
         </p>
       </CmxCardHeader>

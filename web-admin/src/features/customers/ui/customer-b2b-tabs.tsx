@@ -34,18 +34,18 @@ export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabPro
   });
 
   if (isLoading) {
-    return <div className="h-32 bg-gray-100 rounded animate-pulse" />;
+    return <div className="h-32 bg-muted rounded animate-pulse" />;
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted-foreground">
         {t('addContact')} — {t('primaryContact')} for billing and statements.
       </p>
       {!contacts?.length ? (
-        <div className="py-8 text-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">{t('noCustomers') || 'No contacts yet'}</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="py-8 text-center bg-muted rounded-lg">
+          <p className="text-muted-foreground">{t('noCustomers') || 'No contacts yet'}</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Add contacts via API or B2B contacts management.
           </p>
         </div>
@@ -54,14 +54,14 @@ export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabPro
           {contacts.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+              className="flex items-center justify-between p-3 border rounded-lg bg-muted"
             >
               <div>
                 <p className="font-medium">{c.contactName || c.contactName2 || '—'}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {c.email || c.phone || '—'}
                   {c.isPrimary && (
-                    <span className="ml-2 text-purple-600">({t('primaryContact')})</span>
+                    <span className="ms-2 text-primary-text">({t('primaryContact')})</span>
                   )}
                 </p>
               </div>
@@ -92,15 +92,15 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
   });
 
   if (isLoading) {
-    return <div className="h-32 bg-gray-100 rounded animate-pulse" />;
+    return <div className="h-32 bg-muted rounded animate-pulse" />;
   }
 
   return (
     <div className="space-y-4">
       {!contracts?.length ? (
-        <div className="py-8 text-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">{t('customerContractsEmptyTitle')}</p>
-          <p className="text-sm text-gray-400 mt-1">{t('customerContractsEmptyHint')}</p>
+        <div className="py-8 text-center bg-muted rounded-lg">
+          <p className="text-muted-foreground">{t('customerContractsEmptyTitle')}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('customerContractsEmptyHint')}</p>
           <CmxButton
             variant="outline"
             className="mt-4"
@@ -114,11 +114,11 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
           {contracts.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+              className="flex items-center justify-between p-3 border rounded-lg bg-muted"
             >
               <div>
                 <p className="font-medium">{c.contractNo}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {c.effectiveFrom ?? '—'} — {c.effectiveTo ?? '—'}
                 </p>
               </div>
@@ -156,15 +156,15 @@ export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabP
   });
 
   if (isLoading) {
-    return <div className="h-32 bg-gray-100 rounded animate-pulse" />;
+    return <div className="h-32 bg-muted rounded animate-pulse" />;
   }
 
   return (
     <div className="space-y-4">
       {!statements?.length ? (
-        <div className="py-8 text-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">{t('customerStatementsEmptyTitle')}</p>
-          <p className="text-sm text-gray-400 mt-1">{t('customerStatementsEmptyHint')}</p>
+        <div className="py-8 text-center bg-muted rounded-lg">
+          <p className="text-muted-foreground">{t('customerStatementsEmptyTitle')}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('customerStatementsEmptyHint')}</p>
           <CmxButton
             variant="outline"
             className="mt-4"
@@ -178,11 +178,11 @@ export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabP
           {statements.map((s) => (
             <div
               key={s.id}
-              className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+              className="flex items-center justify-between p-3 border rounded-lg bg-muted"
             >
               <div>
                 <p className="font-medium">{s.statementNo}</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {s.periodFrom ?? '—'} — {s.periodTo ?? '—'} · {s.statusCd}
                 </p>
                 <p className="text-sm font-medium mt-1">

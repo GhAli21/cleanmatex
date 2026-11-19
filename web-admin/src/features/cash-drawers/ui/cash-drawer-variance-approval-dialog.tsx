@@ -84,14 +84,14 @@ export function CashDrawerVarianceApprovalDialog({
       <CmxDialogContent className="max-w-md">
         <CmxDialogHeader>
           <CmxDialogTitle className="flex items-center gap-2">
-            <ShieldAlert className={`h-4 w-4 ${rejecting ? 'text-red-600' : 'text-amber-600'}`} aria-hidden />
+            <ShieldAlert className={`h-4 w-4 ${rejecting ? 'text-danger-text' : 'text-warning-text'}`} aria-hidden />
             {rejecting ? t('varianceRejectTitle') : t('varianceApprovalTitle')}
           </CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4">
           <div
             className={`rounded-lg border p-3 text-sm ${
-              rejecting ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'
+              rejecting ? 'border-danger-border bg-danger-bg text-danger-text' : 'border-warning-border bg-warning-bg text-warning-text'
             }`}
           >
             {rejecting ? t('varianceRejectWarning') : t('varianceApprovalWarning')}

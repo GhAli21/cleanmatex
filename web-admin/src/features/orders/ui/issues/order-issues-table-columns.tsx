@@ -117,7 +117,7 @@ export function buildOrderIssueTableColumns(
         }
         return (
           <span
-            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-on-solid"
             style={{ backgroundColor: row.priority_color }}
           >
             {label}

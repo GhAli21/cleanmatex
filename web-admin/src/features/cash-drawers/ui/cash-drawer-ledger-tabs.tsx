@@ -333,7 +333,7 @@ export function CashDrawerCountsTab({
             <CmxDialogTitle>{t('tabs.counts.record')}</CmxDialogTitle>
           </CmxDialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-sm text-muted-foreground">
               {currentSessionId ? t('tabs.counts.dialogDescriptionSession') : t('tabs.counts.dialogDescriptionNoSession')}
             </p>
             <CmxSelect
@@ -355,9 +355,9 @@ export function CashDrawerCountsTab({
                 onChange={(event) => setTotalAmount(event.target.value)}
               />
             ) : denominationsQuery.isLoading ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+              <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
             ) : denominations.length === 0 ? (
-              <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('wizard.noDenominationCatalog')}</p>
+              <p className="text-sm text-muted-foreground">{t('wizard.noDenominationCatalog')}</p>
             ) : (
               <CmxDenominationCounter
                 denominations={denominations.map((d) => ({ id: d.id, label: d.name, valueMinor: d.denominationMinor }))}

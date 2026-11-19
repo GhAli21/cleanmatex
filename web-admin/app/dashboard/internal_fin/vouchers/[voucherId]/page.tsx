@@ -40,7 +40,7 @@ export default async function VoucherDetailPage({ params }: PageProps) {
     return (
     <RequireAnyPermission permissions={FEATURE_INTERNAL_FIN_VOUCHERS_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {tCommon('error')}
         </div>
       </div>
@@ -57,7 +57,7 @@ export default async function VoucherDetailPage({ params }: PageProps) {
     }
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {msg}
         </div>
       </div>
@@ -100,8 +100,8 @@ export default async function VoucherDetailPage({ params }: PageProps) {
           >
             {t('backToVouchers')}
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-gray-900">{voucher.voucher_no}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('voucherDetail')}</p>
+          <h1 className="mt-2 text-2xl font-semibold text-foreground">{voucher.voucher_no}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('voucherDetail')}</p>
         </div>
       </div>
 

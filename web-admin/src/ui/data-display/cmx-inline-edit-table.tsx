@@ -111,7 +111,7 @@ export function CmxInlineEditTable<TData>({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-[var(--cmx-radius-md,0.375rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-sm',
+        'overflow-hidden rounded-[var(--cmx-radius-md,0.375rem)] border border-border bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-sm',
         className
       )}
     >
@@ -126,7 +126,7 @@ export function CmxInlineEditTable<TData>({
             <caption
               className={cn(
                 showCaption
-                  ? 'px-3 py-2 text-start text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
+                  ? 'px-3 py-2 text-start text-xs text-muted-foreground'
                   : 'sr-only'
               )}
             >
@@ -142,7 +142,7 @@ export function CmxInlineEditTable<TData>({
                   style={col.width ? { width: col.width } : undefined}
                   className={cn(
                     cellPad,
-                    'whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.04em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+                    'whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground',
                     alignClass[col.align ?? 'start'],
                     col.hideOnMobile && 'hidden sm:table-cell'
                   )}
@@ -179,7 +179,7 @@ export function CmxInlineEditTable<TData>({
                       'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                       zebra &&
                         index % 2 === 1 &&
-                        'bg-[rgb(var(--cmx-muted-rgb,241_245_249)/0.4)]',
+                        'bg-muted/40',
                       getRowClassName?.(row, index)
                     )}
                   >

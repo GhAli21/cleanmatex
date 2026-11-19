@@ -9,7 +9,6 @@ interface CashChangeRoundingNoteProps {
   rounding: CashChangeRounding | null;
   currencyCode: string;
   formatAmount: (n: number) => string;
-  isRTL?: boolean;
 }
 
 /**
@@ -18,13 +17,13 @@ interface CashChangeRoundingNoteProps {
  * Rendered at the moment the adjustment happens so it is never a silent money change.
  * @param props component props
  */
-export function CashChangeRoundingNote({ rounding, currencyCode, formatAmount, isRTL = false }: CashChangeRoundingNoteProps) {
+export function CashChangeRoundingNote({ rounding, currencyCode, formatAmount }: CashChangeRoundingNoteProps) {
   const t = useTranslations('newOrder.payment');
   if (!rounding) return null;
   return (
     <p
       data-testid="payment-change-rounding-note"
-      className={`mt-0.5 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+      className="mt-0.5 text-xs text-muted-foreground text-start"
     >
       {t('rightRail.changeRounded', {
         exact: `${currencyCode} ${formatAmount(rounding.exactChange)}`,

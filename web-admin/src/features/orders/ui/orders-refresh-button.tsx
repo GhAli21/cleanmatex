@@ -28,7 +28,7 @@ export function OrdersRefreshButton() {
       disabled={isPending}
       loading={isPending}
     >
-      <RefreshCw className={`h-4 w-4 ltr:mr-2 rtl:ml-2 ${isPending ? 'animate-spin' : ''}`} />
+      <RefreshCw className={`h-4 w-4 me-2 ${isPending ? 'animate-spin' : ''}`} />
       {tCommon('refresh')}
     </CmxButton>
   );

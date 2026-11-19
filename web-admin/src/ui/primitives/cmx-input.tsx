@@ -15,7 +15,7 @@ import { CmxButton } from './cmx-button'
 
 const inputBaseClasses = cn(
   'flex h-10 w-full rounded-[var(--cmx-radius-md,0.375rem)] px-3 py-1 text-sm outline-none ring-0',
-  'placeholder:text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]'
+  'placeholder:text-muted-foreground'
 )
 
 export interface CmxInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -103,18 +103,18 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-1 block text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+            className="mb-1 block text-sm font-medium text-foreground"
           >
             {label}
             {props.required && (
-              <span className="ms-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+              <span className="ms-1 text-destructive">*</span>
             )}
           </label>
         )}
 
         <div className="relative">
           {leftIcon && (
-            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-muted-foreground">
               {leftIcon}
             </div>
           )}
@@ -138,7 +138,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="!h-9 !w-9 !border-0 !px-0 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+                className="!h-9 !w-9 !border-0 !px-0 text-muted-foreground hover:text-foreground"
                 disabled={disabled || passwordRevealLocked}
                 aria-pressed={revealed}
                 aria-label={revealed ? hidePasswordLabel : showPasswordLabel}
@@ -154,7 +154,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
           ) : trailing ? (
             <div className="absolute inset-y-0 end-0 flex items-center pe-1">{trailing}</div>
           ) : rightIcon ? (
-            <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3 text-muted-foreground">
               {rightIcon}
             </div>
           ) : null}
@@ -163,7 +163,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
         {error && (
           <p
             id={`${inputId}-error`}
-            className="mt-1 text-sm text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+            className="mt-1 text-sm text-destructive"
           >
             {error}
           </p>
@@ -172,7 +172,7 @@ export const CmxInput = React.forwardRef<HTMLInputElement, CmxInputProps>(
         {helpText && !error && (
           <p
             id={`${inputId}-help`}
-            className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+            className="mt-1 text-sm text-muted-foreground"
           >
             {helpText}
           </p>

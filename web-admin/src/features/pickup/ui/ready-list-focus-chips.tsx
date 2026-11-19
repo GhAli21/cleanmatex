@@ -69,7 +69,7 @@ export function ReadyListFocusChips({ query, onChange }: ReadyListFocusChipsProp
         <h2 id="ready-list-focus" className="text-sm font-semibold">
           {t('title')}
         </h2>
-        <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <p className="text-xs text-muted-foreground">
           {t('description')}
         </p>
       </div>

@@ -168,14 +168,14 @@ export function PosSessionDrawerLinker({
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-4">
+    <div className="space-y-3 rounded-xl border border-border bg-muted p-4">
       <div className="flex items-start gap-3">
-        <div className="rounded-full bg-white p-2 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))] shadow-sm">
+        <div className="rounded-full bg-card p-2 text-primary-text shadow-sm">
           <WalletCards className="h-4 w-4" aria-hidden />
         </div>
         <div>
-          <div className="font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('hub.linkDrawerTitle')}</div>
-          <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="font-semibold text-foreground">{t('hub.linkDrawerTitle')}</div>
+          <p className="mt-1 text-sm text-muted-foreground">
             {t('hub.linkDrawerDescription')}
           </p>
         </div>
@@ -300,7 +300,7 @@ export function PosSessionDrawerLinker({
 
 function DrawerLinkNotice({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-4 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+    <div className="rounded-xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
       {children}
     </div>
   );

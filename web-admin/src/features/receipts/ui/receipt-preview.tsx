@@ -75,26 +75,26 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'delivered':
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+        return <CheckCircle2 className="h-4 w-4 text-success-text" />;
       case 'sent':
-        return <Clock className="h-4 w-4 text-blue-600" />;
+        return <Clock className="h-4 w-4 text-primary-text" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-600" />;
+        return <XCircle className="h-4 w-4 text-danger-text" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'delivered':
-        return 'text-green-600 bg-green-50';
+        return 'text-success-text bg-success-bg';
       case 'sent':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-info-text bg-info-bg';
       case 'failed':
-        return 'text-red-600 bg-red-50';
+        return 'text-danger-text bg-danger-bg';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-muted-foreground bg-muted';
     }
   };
 
@@ -113,7 +113,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
             <select
               value={receiptType}
               onChange={(e) => setReceiptType(e.target.value)}
-              className="w-full h-9 rounded-md border border-gray-300 px-3 text-sm"
+              className="w-full h-9 rounded-md border border-border px-3 text-sm"
             >
               {RECEIPT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -142,7 +142,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
                         );
                       }
                     }}
-                    className="rounded border-gray-300"
+                    className="rounded border-border"
                   />
                   <span className="text-sm">{channel.label}</span>
                 </label>
@@ -155,7 +155,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as 'en' | 'ar')}
-              className="w-full h-9 rounded-md border border-gray-300 px-3 text-sm"
+              className="w-full h-9 rounded-md border border-border px-3 text-sm"
             >
               <option value="en">English</option>
               <option value="ar">Arabic</option>
@@ -163,7 +163,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
           </div>
 
           <CmxButton onClick={handleSend} loading={isSending} disabled={isSending} className="w-full">
-            <Send className="h-4 w-4 mr-2" />
+            <Send className="h-4 w-4 me-2" />
             Send Receipt
           </CmxButton>
         </CmxCardContent>
@@ -179,7 +179,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
               {receipts.map((receipt) => (
                 <div
                   key={receipt.id}
-                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                  className="flex items-center justify-between p-3 border border-border rounded-lg"
                 >
                   <div className="flex items-center gap-3">
                     {getStatusIcon(receipt.deliveryStatusCode)}
@@ -187,7 +187,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
                       <div className="font-medium text-sm">
                         {receipt.receiptTypeCode} via {receipt.deliveryChannelCode}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {receipt.sentAt
                           ? `Sent: ${new Date(receipt.sentAt).toLocaleString()}`
                           : 'Not sent'}

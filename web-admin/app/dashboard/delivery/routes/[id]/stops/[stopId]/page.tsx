@@ -1,11 +1,12 @@
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft } from 'lucide-react';
-import { Alert, CmxButton, CmxSpinner } from '@ui/primitives';
+import { CmxButton, CmxSpinner } from '@ui/primitives';
 import { CmxEmptyState } from '@ui/data-display';
 import { RequireAllPermissions } from '@features/auth/ui/RequirePermission';
 import { DeliveryStopDetail } from '@features/delivery/ui/delivery-stop-detail';
@@ -45,9 +46,9 @@ function DeliveryStopPageContent() {
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-6">
       <CmxButton variant="ghost" asChild>
-        <Link href={`/dashboard/delivery/routes/${params.id}`}><ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />{t('stopDetail.backToRoute')}</Link>
+        <Link href={`/dashboard/delivery/routes/${params.id}`}><ArrowLeft className="me-2 h-4 w-4" aria-hidden="true" />{t('stopDetail.backToRoute')}</Link>
       </CmxButton>
-      {error instanceof Error ? <Alert variant="error" message={error.message} /> : null}
+      {error instanceof Error ? <CmxSummaryMessage type="error" message={error.message} /> : null}
       {data?.data ? <DeliveryStopDetail stop={data.data} onCompleted={() => { void refetch(); }} /> : !error ? <CmxEmptyState title={t('stopDetail.notFound')} /> : null}
     </div>
   );

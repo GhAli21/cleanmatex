@@ -31,7 +31,6 @@ function formatAmount(amount: { toString(): string }, locale: string) {
 export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanelProps) {
   const t = useTranslations('finance.vouchers.linkedEffects');
   const locale = useLocale();
-  const textAlign = locale === 'ar' ? 'right' : 'left';
 
   const hasAny =
     effects.orderPayments.length > 0 ||
@@ -59,21 +58,21 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardContent className="p-0">
             <VoucherDetailDataTable
               columns={[
-                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} /> },
                 { key: 'order_id', header: t('orderRef'), sortable: false, render: (row) => (
                   <VoucherDetailCopyValue
                     value={row.order_id}
                     displayValue={row.order_no ?? undefined}
                     maxLength={row.order_no ? undefined : 12}
-                    align={textAlign}
+                   
                     href={row.order_id ? VOUCHER_RELATED_HREFS.order(row.order_id) : null}
                     linkLabel={t('viewOrder')}
                   />
                 ) },
                 { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
-                { key: 'payment_method_code', header: t('methodOrType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.payment_method_code} align={textAlign} /> },
-                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
-                { key: 'payment_status', header: t('paymentStatus'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.payment_status} align={textAlign} /> },
+                { key: 'payment_method_code', header: t('methodOrType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.payment_method_code} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} /> },
+                { key: 'payment_status', header: t('paymentStatus'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.payment_status} /> },
               ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['orderPayments'][number]>[]}
               data={effects.orderPayments}
               emptyStateTitle={t('noEffects')}
@@ -90,13 +89,13 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardContent className="p-0">
             <VoucherDetailDataTable
               columns={[
-                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} /> },
                 { key: 'session_id', header: t('sessionId'), sortable: false, render: (row) => (
                   <VoucherDetailCopyValue
                     value={row.session_id}
                     displayValue={row.session_no ?? undefined}
                     maxLength={row.session_no ? undefined : 12}
-                    align={textAlign}
+                   
                     href={row.session_id && row.cash_drawer_id
                       ? VOUCHER_RELATED_HREFS.cashDrawerSession(row.cash_drawer_id, row.session_id)
                       : null}
@@ -104,8 +103,8 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
                   />
                 ) },
                 { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
-                { key: 'movement_type', header: t('movementType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.movement_type} align={textAlign} /> },
-                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
+                { key: 'movement_type', header: t('movementType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.movement_type} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} /> },
               ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['cashDrawerMovements'][number]>[]}
               data={effects.cashDrawerMovements}
               emptyStateTitle={t('noEffects')}
@@ -122,20 +121,20 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardContent className="p-0">
             <VoucherDetailDataTable
               columns={[
-                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} /> },
                 { key: 'order_id', header: t('orderRef'), sortable: false, render: (row) => (
                   <VoucherDetailCopyValue
                     value={row.order_id}
                     displayValue={row.order_no ?? undefined}
                     maxLength={row.order_no ? undefined : 12}
-                    align={textAlign}
+                   
                     href={row.order_id ? VOUCHER_RELATED_HREFS.order(row.order_id) : null}
                     linkLabel={t('viewOrder')}
                   />
                 ) },
                 { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
-                { key: 'credit_type', header: t('methodOrType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.credit_type} align={textAlign} /> },
-                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
+                { key: 'credit_type', header: t('methodOrType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.credit_type} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} /> },
               ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['creditApplications'][number]>[]}
               data={effects.creditApplications}
               emptyStateTitle={t('noEffects')}
@@ -152,18 +151,18 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardContent className="p-0">
             <VoucherDetailDataTable
               columns={[
-                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} /> },
                 { key: 'funding_type', header: t('methodOrType'), sortable: false, render: (row) => (
                   <VoucherDetailCopyValue
                     value={row.funding_type}
-                    align={textAlign}
+                   
                     href={VOUCHER_RELATED_HREFS.storedValue}
                     linkLabel={t('viewStoredValue')}
                   />
                 ) },
                 { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
-                { key: 'status', header: t('paymentStatus'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.status} align={textAlign} /> },
-                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
+                { key: 'status', header: t('paymentStatus'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.status} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} /> },
               ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['fundingTenders'][number]>[]}
               data={effects.fundingTenders}
               emptyStateTitle={t('noEffects')}

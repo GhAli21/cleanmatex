@@ -19,7 +19,7 @@ export const CmxTextarea = React.forwardRef<HTMLTextAreaElement, CmxTextareaProp
         ref={ref}
         className={cn(
           'flex min-h-[88px] w-full rounded-[var(--cmx-radius-md,0.375rem)] px-3 py-2 text-sm outline-none ring-0',
-          'placeholder:text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]',
+          'placeholder:text-muted-foreground',
           cmxFieldChrome(),
           className
         )}

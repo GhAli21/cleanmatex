@@ -80,7 +80,7 @@ export function VoidOrderChargeDialog({
           <CmxDialogDescription>{t('description')}</CmxDialogDescription>
         </CmxDialogHeader>
         <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-900">{chargeLabel}</p>
+          <p className="text-sm font-medium text-foreground">{chargeLabel}</p>
           <CmxTextarea
             value={reason}
             placeholder={t('reasonPlaceholder')}

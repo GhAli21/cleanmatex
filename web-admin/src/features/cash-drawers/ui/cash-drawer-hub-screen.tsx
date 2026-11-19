@@ -162,11 +162,11 @@ export function CashDrawerHubScreen() {
       header: t('columns.drawer'),
       render: (row: CashDrawerOverviewRow) => (
         <div className="space-y-1">
-          <div className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+          <div className="text-sm font-semibold text-foreground">
             {row.drawerName}
           </div>
           {row.drawerName2 ? (
-            <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <div className="text-xs text-muted-foreground">
               {row.drawerName2}
             </div>
           ) : null}
@@ -210,7 +210,7 @@ export function CashDrawerHubScreen() {
             <CmxStatusBadge size="sm" tone="neutral">{t('openingCountRequired')}</CmxStatusBadge>
           ) : null}
           {!row.requiresSession && !row.openingCountRequired ? (
-            <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">—</span>
+            <span className="text-xs text-muted-foreground">—</span>
           ) : null}
         </div>
       ),
@@ -221,7 +221,7 @@ export function CashDrawerHubScreen() {
       render: (row: CashDrawerOverviewRow) => (
         <div className="space-y-1">
           <CashDrawerStatusBadge status={row.operationalStatus} />
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="text-xs text-muted-foreground">
             {statusText(row.operationalStatus)}
           </div>
         </div>
@@ -233,7 +233,7 @@ export function CashDrawerHubScreen() {
       render: (row: CashDrawerOverviewRow) => {
         const indicator = buildDrawerSessionIndicator(row.currentSession, row.latestSession)
         if (!indicator) {
-          return <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">—</span>
+          return <span className="text-xs text-muted-foreground">—</span>
         }
 
         return (
@@ -348,10 +348,10 @@ export function CashDrawerHubScreen() {
   return (
     <div className="space-y-6 p-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <h1 className="text-3xl font-bold text-foreground">
           {t('title')}
         </h1>
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <p className="text-sm text-muted-foreground">
           {t('description')}
         </p>
       </div>
@@ -362,7 +362,7 @@ export function CashDrawerHubScreen() {
             <Layers3 className="h-4 w-4" aria-hidden />
             <CmxCardTitle>{t('hub.masterTitle')}</CmxCardTitle>
           </div>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-muted-foreground">
             {t('hub.masterDescription')}
           </p>
         </CmxCardHeader>
@@ -412,7 +412,7 @@ export function CashDrawerHubScreen() {
                 <WalletCards className="h-4 w-4" aria-hidden />
                 <CmxCardTitle>{t('hub.detailTitle')}</CmxCardTitle>
               </div>
-              <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {selectedDrawer
                   ? t('hub.detailDescriptionSelected', { drawer: selectedDrawer.drawerName })
                   : t('hub.detailDescription')}

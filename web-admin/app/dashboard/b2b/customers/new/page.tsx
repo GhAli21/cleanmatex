@@ -131,9 +131,9 @@ export default function B2BCustomerCreatePage() {
   };
 
   const inputClass = (dir?: 'ltr' | 'rtl') =>
-    `block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${dir === 'rtl' ? 'text-right' : isRTL ? 'text-right' : 'text-left'}`;
-  const labelClass = `block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`;
-  const flexRow = `flex ${isRTL ? 'flex-row-reverse' : ''}`;
+    `block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed ${dir === 'rtl' ? 'text-end' : 'text-start'}`;
+  const labelClass = `block text-sm font-medium text-foreground mb-1 text-start`;
+  const flexRow = `flex `;
 
   return (
     <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_NEW_ACCESS.page.permissions ?? []}>
@@ -149,7 +149,7 @@ export default function B2BCustomerCreatePage() {
           </CmxButton>
           <div>
             <h1 className="text-2xl font-semibold">{tB2b('createB2BCustomer') || 'Create B2B Customer'}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {tB2b('createB2BCustomerSubtitle') || 'Add a new business customer with company details and credit terms'}
             </p>
           </div>
@@ -163,8 +163,8 @@ export default function B2BCustomerCreatePage() {
         <CmxCardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className={`rounded-md p-4 ${isRTL ? 'border-r-4 border-l-0' : 'border-l-4 border-r-0'} border-red-400 bg-red-50`}>
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="rounded-md p-4 border-s-4 border-e-0 border-destructive bg-danger-bg">
+                <p className="text-sm text-danger-text">{error}</p>
               </div>
             )}
 
@@ -182,19 +182,19 @@ export default function B2BCustomerCreatePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Contact person */}
               <div className="space-y-4">
-                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">{t('contactInformation') || 'Contact'}</h3>
+                <h3 className="text-sm font-medium text-foreground border-b pb-2">{t('contactInformation') || 'Contact'}</h3>
                 <div>
                   <label htmlFor="displayName" className={labelClass}>{t('displayName')}</label>
                   <input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={tB2b('companyName')} disabled={loading} />
-                  <p className="text-xs text-gray-500 mt-1">{t('displayNameHelper') || 'Defaults to company name if empty'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('displayNameHelper') || 'Defaults to company name if empty'}</p>
                 </div>
                 <div>
-                  <label htmlFor="phone" className={labelClass}>{t('phoneNumber')} <span className="text-red-500">*</span></label>
+                  <label htmlFor="phone" className={labelClass}>{t('phoneNumber')} <span className="text-danger-text">*</span></label>
                   <div className={flexRow}>
-                    <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} disabled={loading} className={`inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-700 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${isRTL ? 'rounded-r-md border-r border-l-0' : 'rounded-l-md border-l border-r-0'}`}>
+                    <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} disabled={loading} className="inline-flex items-center px-3 py-2 border border-border bg-muted text-foreground text-sm focus:outline-none focus:ring-ring focus:border-ring disabled:opacity-50 rounded-s-md border-s border-e-0">
                       {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
                     </select>
-                    <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className={`flex-1 ${inputClass('ltr')} ${isRTL ? 'rounded-l-md' : 'rounded-r-md'}`} placeholder="90123456" required disabled={loading} />
+                    <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className={`flex-1 ${inputClass('ltr')} rounded-e-md`} placeholder="90123456" required disabled={loading} />
                   </div>
                 </div>
                 <div>
@@ -205,9 +205,9 @@ export default function B2BCustomerCreatePage() {
 
               {/* Company details */}
               <div className="space-y-4">
-                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">{tB2b('companyInfo') || 'Company Info'}</h3>
+                <h3 className="text-sm font-medium text-foreground border-b pb-2">{tB2b('companyInfo') || 'Company Info'}</h3>
                 <div>
-                  <label htmlFor="companyName" className={labelClass}>{tB2b('companyName')} <span className="text-red-500">*</span></label>
+                  <label htmlFor="companyName" className={labelClass}>{tB2b('companyName')} <span className="text-danger-text">*</span></label>
                   <input id="companyName" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={tB2b('companyName')} required disabled={loading} />
                 </div>
                 <div>
@@ -227,7 +227,7 @@ export default function B2BCustomerCreatePage() {
 
             {/* Credit & payment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-              <h3 className="text-sm font-medium text-gray-900 md:col-span-2">{tB2b('creditLimit')} & {tB2b('paymentTermsDays')}</h3>
+              <h3 className="text-sm font-medium text-foreground md:col-span-2">{tB2b('creditLimit')} & {tB2b('paymentTermsDays')}</h3>
               <div>
                 <label htmlFor="creditLimit" className={labelClass}>{tB2b('creditLimit')}</label>
                 <input id="creditLimit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} min={0} step={0.01} dir="ltr" className={inputClass()} placeholder="0" disabled={loading} />
@@ -240,7 +240,7 @@ export default function B2BCustomerCreatePage() {
 
             {/* Address (optional) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-              <h3 className="text-sm font-medium text-gray-900 md:col-span-2">{t('address') || 'Address'}</h3>
+              <h3 className="text-sm font-medium text-foreground md:col-span-2">{t('address') || 'Address'}</h3>
               <div className="md:col-span-2">
                 <label htmlFor="address" className={labelClass}>{t('address')}</label>
                 <input id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={t('address')} disabled={loading} />
@@ -259,7 +259,7 @@ export default function B2BCustomerCreatePage() {
               </div>
             </div>
 
-            <div className={`pt-6 flex items-center ${isRTL ? 'flex-row-reverse justify-start gap-3' : 'justify-end gap-3'}`}>
+            <div className="pt-6 flex items-center justify-end gap-3">
               <CmxButton type="button" variant="outline" disabled={loading} asChild>
                 <Link href="/dashboard/b2b/customers">{tCommon('cancel')}</Link>
               </CmxButton>

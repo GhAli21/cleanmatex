@@ -439,7 +439,7 @@ export function OutboxMonitorPage() {
     <div className="space-y-6 px-4 py-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('title')}</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

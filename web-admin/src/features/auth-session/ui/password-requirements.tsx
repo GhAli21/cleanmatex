@@ -22,10 +22,10 @@ type PasswordRequirementsProps = PasswordRuleInput & {
 }
 
 const STATE_CLASS: Record<PasswordRuleState, string> = {
-  met: 'text-[rgb(var(--cmx-success-rgb,22_163_74))]',
-  unmet: 'text-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
-  pending: 'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-  skipped: 'text-[rgb(var(--cmx-warning-rgb,180_83_9))]',
+  met: 'text-success',
+  unmet: 'text-destructive',
+  pending: 'text-muted-foreground',
+  skipped: 'text-warning',
 }
 
 /**
@@ -36,8 +36,8 @@ export function PasswordRequirements({ onSkipBreach, disabled, ...props }: Passw
   const rules = evaluatePasswordRules(props)
 
   return (
-    <div className="rounded-[var(--cmx-radius-md,0.375rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252)/0.45)] p-3">
-      <p className="mb-2 text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">{t('requirements.title')}</p>
+    <div className="rounded-[var(--cmx-radius-md,0.375rem)] border border-border bg-muted/45 p-3">
+      <p className="mb-2 text-sm font-medium text-foreground">{t('requirements.title')}</p>
       <ul className="space-y-1.5" aria-live="polite">
         {rules.map((rule) => {
           const why = unmetExplanation(rule.id, rule.state, t)
@@ -50,7 +50,7 @@ export function PasswordRequirements({ onSkipBreach, disabled, ...props }: Passw
               ) : null}
               <RuleMark state={rule.state} />
               <span className="min-w-0">
-                <span className={rule.state === 'unmet' ? STATE_CLASS.unmet : 'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]'}>
+                <span className={rule.state === 'unmet' ? STATE_CLASS.unmet : 'text-foreground'}>
                   {t(`requirements.${rule.id}`)}
                   <span className="sr-only"> — {t(`requirements.${rule.state}`)}</span>
                 </span>
@@ -59,7 +59,7 @@ export function PasswordRequirements({ onSkipBreach, disabled, ...props }: Passw
                 ) : why ? (
                   <span className={`mt-0.5 block text-xs leading-snug ${STATE_CLASS.unmet}`}>{why}</span>
                 ) : rule.state === 'pending' && (rule.id === 'breached' || rule.id === 'reused') ? (
-                  <span className="mt-0.5 block text-xs leading-snug text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                  <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
                     {t('requirements.checkedOnSave')}
                   </span>
                 ) : null}

@@ -101,7 +101,7 @@ beforeEach(() => {
     sys_file_mime_types_cd: { extensions: ['jpg', 'jpeg', 'jfif'], max_size_bytes: null, sys_file_media_kind_cd: { max_size_bytes: BigInt(10485760) } },
   });
   m.bucketFind.mockResolvedValue({ storage_bucket_id: 'tenants-cmx-files', is_public: false });
-  m.orderFindFirst.mockResolvedValue({ id: ORDER });
+  m.orderFindFirst.mockResolvedValue({ current_status: 'preparation', status: 'preparation' });
   m.fileCount.mockResolvedValue(0);
   m.canStoreBytes.mockResolvedValue({ canProceed: true, current: 0, limit: 100 });
   m.signedUpload.mockImplementation(async (path: string) => ({ data: { path, token: 't', signedUrl: `https://up/${path}` }, error: null }));
@@ -121,6 +121,19 @@ describe('initFileUpload', () => {
     expect(result.upload.signedUrl).toContain(data.object_key);
     expect(result.thumbUpload).toBeNull();
     expect(m.executeRaw).toHaveBeenCalled(); // advisory lock taken before counting
+  });
+
+  it('records the order stage at upload, read by id and tenant', async () => {
+    m.orderFindFirst.mockResolvedValue({ current_status: 'ready_for_pickup', status: 'ready' });
+    await initFileUpload({ ...BASE, sourceCode: 'ORDER_READY' });
+    expect(m.orderFindFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: ORDER, tenant_org_id: T1 } }));
+    expect(m.fileCreate.mock.calls[0][0].data).toMatchObject({ stage_code: 'ready_for_pickup', source_code: 'ORDER_READY' });
+  });
+
+  it('falls back to status when current_status is empty', async () => {
+    m.orderFindFirst.mockResolvedValue({ current_status: null, status: 'intake' });
+    await initFileUpload(BASE);
+    expect(m.fileCreate.mock.calls[0][0].data.stage_code).toBe('intake');
   });
 
   it('refuses another tenant\'s order', async () => {

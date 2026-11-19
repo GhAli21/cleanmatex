@@ -123,13 +123,12 @@ export function B2BAccountBillingDialog({
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
       maxWidthClassName="max-w-lg"
     >
       <div className="flex flex-col gap-3">
         <div>
           <label
-            className={`mb-1 block text-sm font-medium text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="mb-1 block text-sm font-medium text-foreground text-start"
           >
             {t('b2b.contract')}
           </label>
@@ -178,27 +177,27 @@ export function B2BAccountBillingDialog({
         {creditLimit && creditLimit.creditLimit > 0 ? (
           <div
             className={`rounded-xl border p-3 ${
-              creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'
+              creditLimit.wouldExceed ? 'border-warning-border bg-warning-bg' : 'border-success-border bg-success-bg'
             }`}
             data-testid="b2b-credit-limit"
             data-would-exceed={creditLimit.wouldExceed}
           >
-            <p className={`flex items-center gap-2 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <CircleAlert className="h-4 w-4 text-amber-600" />
+            <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <CircleAlert className="h-4 w-4 text-warning-text" />
               {t('b2b.creditLimit')}
             </p>
-            <p className="mt-1 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-muted-foreground">
               {t('b2b.creditUsed')}: {currencyCode} {formatAmount(creditLimit.currentBalance)} •{' '}
               {t('b2b.creditAvailable')}: {currencyCode} {formatAmount(creditLimit.available)}
               {creditLimit.wouldExceed && (creditLimit.exceedsBy ?? 0) > 0 ? (
-                <span className="font-semibold text-amber-800" data-testid="b2b-credit-exceeds-by">
+                <span className="font-semibold text-warning-text" data-testid="b2b-credit-exceeds-by">
                   {' '}
                   • {t('b2b.creditExceedsBy')}: {currencyCode} {formatAmount(creditLimit.exceedsBy ?? 0)}
                 </span>
               ) : null}
             </p>
             {creditLimit.wouldExceed ? (
-              <p className="mt-2 text-xs font-medium text-amber-800" data-testid="b2b-credit-exceeded">
+              <p className="mt-2 text-xs font-medium text-warning-text" data-testid="b2b-credit-exceeded">
                 {t('b2b.creditExceeded')}
               </p>
             ) : null}

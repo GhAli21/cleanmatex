@@ -87,11 +87,11 @@ export function SessionActivityTrigger() {
         title={t('title')}
         aria-label={badgeLabel}
         aria-expanded={open}
-        className="relative rounded-md p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233))]"
+        className="relative rounded-md p-2 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <ScrollText className="h-6 w-6" />
         {unreadCount > 0 && (
-          <span className="absolute end-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-500 px-0.5 text-[10px] font-bold text-white ring-2 ring-white">
+          <span className="absolute end-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-warning px-0.5 text-[10px] font-bold text-warning-foreground ring-2 ring-card">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -102,7 +102,7 @@ export function SessionActivityTrigger() {
           ref={panelRef}
           role="dialog"
           aria-label={t('title')}
-          className="absolute end-0 z-50 mt-2 w-80 rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-white shadow-lg"
+          className="absolute end-0 z-50 mt-2 w-80 rounded-lg border border-border bg-card shadow-lg"
         >
           <SessionActivityPanel onRequestClose={() => setOpen(false)} />
         </div>

@@ -84,7 +84,7 @@ export function CashDrawerPolicyTab({ drawerId }: { drawerId: string }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+      <p className="text-sm text-muted-foreground">{t('description')}</p>
       {!canManage ? <p role="note" className="text-xs font-medium">{t('viewOnly')}</p> : null}
 
       {BOOLEAN_FIELDS.map((field) => (

@@ -12,7 +12,9 @@ import {
   DEFAULT_UI_FONT_SCALE,
   DEFAULT_UI_RADIUS,
   DEFAULT_UI_THEME_CODE,
+  UI_COLOR_MODES,
   UI_THEME_SEEDS,
+  type UiColorMode,
   type UiDensity,
   type UiFontScale,
 } from '@/lib/constants/ui-theme'
@@ -46,7 +48,7 @@ export interface ResolveThemeInput {
   /** Plan flag `white_label`: the app name applies. */
   whiteLabel: boolean
   /** The signed-in person's preferences, or null when signed out. */
-  user: { ui_density: string | null; ui_font_scale: string } | null
+  user: { ui_color_mode: string; ui_density: string | null; ui_font_scale: string } | null
   /** `org_tenants_mst.logo_url` (File Util's published MAIN logo), or null. */
   logoUrl: string | null
 }
@@ -66,9 +68,11 @@ export function resolveTheme(input: ResolveThemeInput): ResolvedTheme {
   const radius = input.radii.find((r) => r.code === radiusCode) ?? input.radii.find((r) => r.is_default)
   const fontCode = (custom && org?.ui_font_pair_code) || hq?.ui_font_pair_code
   const font = input.fonts.find((f) => f.code === fontCode) ?? input.fonts.find((f) => f.is_default)
+  const mode = input.user?.ui_color_mode
 
   return {
-    mode: 'LIGHT',
+    // Checked, because it is written into <html data-mode>; anything else follows the device.
+    mode: UI_COLOR_MODES.includes(mode as UiColorMode) ? (mode as UiColorMode) : 'SYSTEM',
     density: (input.user?.ui_density ?? org?.default_ui_density ?? DEFAULT_UI_DENSITY) as UiDensity,
     fontScale: (input.user?.ui_font_scale ?? DEFAULT_UI_FONT_SCALE) as UiFontScale,
     themeCode: hq?.code ?? DEFAULT_UI_THEME_CODE,

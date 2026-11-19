@@ -10,6 +10,8 @@ import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primit
 import { CmxStatusBadge } from '@ui/feedback';
 import type { DeliveryStopView } from '@/lib/services/delivery/delivery-route-query.service';
 import { DeliveryCompletionPanel } from './delivery-completion-panel';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { DeliveryProofAuditCard } from './delivery-proof-audit-card';
 
 interface DeliveryStopDetailProps {
@@ -69,7 +71,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
                 <p className="text-sm text-muted-foreground">{t('stopDetail.items', { count: stop.order.totalItems })}</p>
               </div>
             </div>
-            <div className="rounded-lg bg-slate-50 p-4">
+            <div className="rounded-lg bg-muted p-4">
               <p className="flex items-start gap-2 text-sm font-medium">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary-text" aria-hidden="true" />
                 {stop.address}
@@ -77,7 +79,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
               {stop.notes ? <p className="mt-2 text-sm text-muted-foreground">{stop.notes}</p> : null}
               <CmxButton className="mt-3" size="sm" variant="outline" asChild>
                 <Link href={mapHref(stop)} target="_blank" rel="noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
+                  <ExternalLink className="me-2 h-4 w-4" aria-hidden="true" />
                   {t('manifest.openNavigation')}
                 </Link>
               </CmxButton>
@@ -86,6 +88,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
         </CmxCard>
 
         <DeliveryProofAuditCard orderId={stop.order.id} />
+        <OrderStageFiles orderId={stop.order.id} source={FILE_SOURCES.ORDER_DELIVERY} />
       </div>
 
       <aside className="space-y-5">
@@ -97,7 +100,7 @@ export function DeliveryStopDetail({ stop, onCompleted }: DeliveryStopDetailProp
             </CmxCardTitle>
           </CmxCardHeader>
           <CmxCardContent className="space-y-3">
-            <p className={hasBalance ? 'font-semibold text-amber-700' : 'font-semibold text-emerald-700'}>
+            <p className={hasBalance ? 'font-semibold text-warning-text' : 'font-semibold text-success-text'}>
               {hasBalance
                 ? t('completion.balanceDue', { amount: `${stop.order.outstandingAmount.toFixed(3)} ${stop.order.currencyCode ?? ''}`.trim() })
                 : t('completion.paymentClear')}

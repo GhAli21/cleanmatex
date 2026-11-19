@@ -106,19 +106,19 @@ export function ProcessingModalFilters({
     <div className="space-y-3">
       {/* Main Filter Bar */}
       <div
-        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-gray-50 rounded-lg border"
+        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-muted rounded-lg border"
         role="search"
         aria-label="Filter items and pieces"
       >
         {/* Search Input */}
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <CmxInput
             type="text"
             placeholder={t('searchPlaceholder') || tCommon('search') || 'Search items...'}
             value={localFilters.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="pl-9 pr-9 h-10"
+            className="ps-9 pe-9 h-10"
             aria-label={t('searchLabel') || 'Search items'}
           />
           {localFilters.search && (
@@ -126,7 +126,7 @@ export function ProcessingModalFilters({
               variant="ghost"
               size="sm"
               onClick={() => handleFilterChange('search', '')}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+              className="absolute end-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
               aria-label={tCommon('clear') || 'Clear search'}
             >
               <X className="h-4 w-4" />
@@ -203,7 +203,7 @@ export function ProcessingModalFilters({
               className="h-10"
               aria-label={tCommon('clearFilters') || 'Clear all filters'}
             >
-              <X className="h-4 w-4 mr-1" />
+              <X className="h-4 w-4 me-1" />
               {tCommon('clearFilters') || 'Clear'}
             </CmxButton>
           )}
@@ -213,27 +213,27 @@ export function ProcessingModalFilters({
       {/* Active Filters Summary */}
       {hasActiveFilters && (
         <div className="flex items-center gap-2 flex-wrap text-sm">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <span className="text-gray-600 font-medium">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground font-medium">
             {t('activeFilters') || 'Active filters:'}
           </span>
           {localFilters.search && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+            <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs">
               {t('search') || 'Search'}: {localFilters.search}
             </span>
           )}
           {localFilters.step !== 'all' && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+            <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs">
               {t('step') || 'Step'}: {t(`steps.${localFilters.step}`)}
             </span>
           )}
           {localFilters.status !== 'all' && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+            <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs">
               {t('status') || 'Status'}: {localFilters.status === 'ready' ? t('ready') : t('notReady')}
             </span>
           )}
           {localFilters.showRejectedOnTop && (
-            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
+            <span className="px-2 py-1 bg-danger-bg text-danger-text rounded text-xs">
               {t('rejected') || 'Rejected'}
             </span>
           )}

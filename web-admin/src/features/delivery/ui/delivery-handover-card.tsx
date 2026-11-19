@@ -164,8 +164,8 @@ export function DeliveryHandoverCard({
           if (!submitting) setDialogOpen(open);
         }}
       >
-        <CmxDialogContent className={isRtl ? 'text-right' : 'text-left'}>
-          <CmxDialogHeader className={isRtl ? 'text-right' : 'text-left'}>
+        <CmxDialogContent className="text-start">
+          <CmxDialogHeader className="text-start">
             <CmxDialogTitle>{t('dialogTitle')}</CmxDialogTitle>
             <CmxDialogDescription>
               {t('dialogDescription', { orderNo, customerName })}
@@ -186,7 +186,7 @@ export function DeliveryHandoverCard({
             <p className="text-xs text-muted-foreground">{t('notesHelp')}</p>
           </div>
 
-          <CmxDialogFooter className={isRtl ? 'flex-row-reverse' : ''}>
+          <CmxDialogFooter className="">
             <CmxButton
               type="button"
               variant="outline"

@@ -59,8 +59,8 @@ export default function OrdersReportCharts({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Revenue Trend */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.revenueTrend')}
         </h3>
         <ResponsiveContainer width="100%" height={280}>
@@ -83,8 +83,8 @@ export default function OrdersReportCharts({
       </div>
 
       {/* Orders by Status */}
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
           {t('charts.ordersByStatus')}
         </h3>
         <ResponsiveContainer width="100%" height={280}>
@@ -104,8 +104,8 @@ export default function OrdersReportCharts({
 
       {/* Orders by Type */}
       {ordersByType.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-5 lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold text-gray-900">
+        <div className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
             {t('charts.ordersByType')}
           </h3>
           <ResponsiveContainer width="100%" height={280}>

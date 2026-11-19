@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { Truck, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
@@ -26,7 +25,6 @@ interface DeliveryData {
 export function DeliveryRateWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')
-  const isRTL = useRTL()
   const [data, setData] = useState<DeliveryData>({
     successRate: 0,
     totalDeliveries: 0,
@@ -62,21 +60,21 @@ export function DeliveryRateWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-6 bg-muted rounded w-2/3 mb-4"></div>
         <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-8 bg-muted rounded"></div>
+          <div className="h-4 bg-muted rounded w-3/4"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('deliveryRate')}</h3>
-        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+    <div className="bg-card rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-foreground">{t('deliveryRate')}</h3>
+        <div className="p-2 rounded-lg bg-info-bg text-info-text">
           <Truck className="h-5 w-5" />
         </div>
       </div>
@@ -84,51 +82,51 @@ export function DeliveryRateWidget() {
       <div className="space-y-4">
         {/* Success Rate */}
         <div>
-          <p className="text-sm text-gray-600">{t('successRate')}</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-sm text-muted-foreground">{t('successRate')}</p>
+          <p className="text-2xl font-bold text-foreground">
             {data.successRate.toFixed(1)}%
           </p>
-          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+          <div className="mt-2 w-full bg-muted rounded-full h-2">
             <div
-              className="h-2 rounded-full bg-green-500"
+              className="h-2 rounded-full bg-success"
               style={{ width: `${Math.min(data.successRate, 100)}%` }}
             />
           </div>
         </div>
 
         {/* Delivery Stats */}
-        <div className="pt-4 border-t border-gray-200 grid grid-cols-3 gap-4">
+        <div className="pt-4 border-t border-border grid grid-cols-3 gap-4">
           {/* Total */}
           <div className="text-center">
             <div className="flex justify-center mb-1">
-              <Truck className="h-4 w-4 text-gray-400" />
+              <Truck className="h-4 w-4 text-muted-foreground" />
             </div>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-foreground">
               {data.totalDeliveries}
             </p>
-            <p className="text-xs text-gray-600">{t('total')}</p>
+            <p className="text-xs text-muted-foreground">{t('total')}</p>
           </div>
 
           {/* Pending */}
           <div className="text-center">
             <div className="flex justify-center mb-1">
-              <AlertCircle className="h-4 w-4 text-yellow-500" />
+              <AlertCircle className="h-4 w-4 text-warning-text" />
             </div>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-foreground">
               {data.pendingDeliveries}
             </p>
-            <p className="text-xs text-gray-600">{t('pending')}</p>
+            <p className="text-xs text-muted-foreground">{t('pending')}</p>
           </div>
 
           {/* Failed */}
           <div className="text-center">
             <div className="flex justify-center mb-1">
-              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertCircle className="h-4 w-4 text-danger-text" />
             </div>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-foreground">
               {data.failedDeliveries}
             </p>
-            <p className="text-xs text-gray-600">{t('failed')}</p>
+            <p className="text-xs text-muted-foreground">{t('failed')}</p>
           </div>
         </div>
       </div>

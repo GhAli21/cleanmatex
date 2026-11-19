@@ -180,7 +180,7 @@ export function PaymentTransitionDialog({
           </CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <div className="rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
             {t(`transition.${actionKey}Description`)}
           </div>
           {requiresReason ? (
@@ -193,7 +193,7 @@ export function PaymentTransitionDialog({
           ) : null}
           {requiresFallback ? (
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 {t('transition.fallbackClassificationLabel')}
               </label>
               <CmxSelectDropdown value={fallbackClassification} onValueChange={setFallbackClassification}>
@@ -213,8 +213,8 @@ export function PaymentTransitionDialog({
             </div>
           ) : null}
           {placementRequired ? (
-            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs text-amber-900">{t('transition.placement.explain')}</p>
+            <div className="space-y-2 rounded-lg border border-warning-border bg-warning-bg p-3">
+              <p className="text-xs text-warning-text">{t('transition.placement.explain')}</p>
               <CashPlacementPicker
                 branchId={branchId}
                 currencyCode={currencyCode}

@@ -129,11 +129,11 @@ export function B2bCreateContractDialog({
             <CmxDialogTitle>{t('createContract')}</CmxDialogTitle>
           </CmxDialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-gray-600">{t('createContractDescription')}</p>
+            <p className="text-sm text-muted-foreground">{t('createContractDescription')}</p>
             {customersLoading ? (
-              <div className="h-10 bg-gray-100 rounded animate-pulse" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
             ) : customerOptions.length === 0 ? (
-              <p className="text-sm text-amber-700">{t('noCustomers')}</p>
+              <p className="text-sm text-warning-text">{t('noCustomers')}</p>
             ) : (
               <CmxSelect
                 label={t('selectB2bCustomer')}

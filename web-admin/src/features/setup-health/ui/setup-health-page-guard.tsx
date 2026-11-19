@@ -39,7 +39,7 @@ export function SetupHealthPageGuard({ permissions, children }: SetupHealthPageG
   if (!allowed) {
     return (
       <CmxEmptyState
-        icon={<Lock className="mx-auto h-8 w-8 text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]" aria-hidden="true" />}
+        icon={<Lock className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden="true" />}
         title={t('title')}
         description={t('description')}
       />

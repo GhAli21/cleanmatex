@@ -46,7 +46,7 @@ export function CmxStatement({ draft, print, density = 'comfortable', className,
       className={cn(
         'flex flex-col',
         density === 'compact' ? 'gap-2 text-sm' : 'gap-4',
-        draft && 'rounded-lg border border-dashed border-[rgb(var(--cmx-border-rgb))] p-3',
+        draft && 'rounded-lg border border-dashed border-border p-3',
         print && 'text-foreground print:text-foreground',
         className,
       )}
@@ -75,13 +75,13 @@ export function CmxStatementGroup({ title, footer, children, className }: CmxSta
   return (
     <div role="group" aria-labelledby={title ? headingId : undefined} className={cn('flex flex-col', className)}>
       {title && (
-        <h3 id={headingId} className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb))]">
+        <h3 id={headingId} className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {title}
         </h3>
       )}
       <div className="flex flex-col">{children}</div>
       {footer && (
-        <div className={cn('mt-1 flex min-h-11 items-center gap-2 border-t border-[rgb(var(--cmx-border-rgb))] px-2 pt-2 ps-8', footer.emphasis && 'font-semibold')}>
+        <div className={cn('mt-1 flex min-h-11 items-center gap-2 border-t border-border px-2 pt-2 ps-8', footer.emphasis && 'font-semibold')}>
           <span className="flex-1 text-start">{footer.label}</span>
           <span className="text-end">{footer.amount}</span>
         </div>
@@ -119,7 +119,7 @@ export interface CmxStatementRowProps {
 export function CmxStatementRow({ title, count, chips, amount, mode, open, onOpenChange, status, marker, children, className }: CmxStatementRowProps) {
   const heading = (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span>{title}{count != null && <span className="text-[rgb(var(--cmx-muted-foreground-rgb))]"> ({count})</span>}</span>
+      <span>{title}{count != null && <span className="text-muted-foreground"> ({count})</span>}</span>
       {marker}
       {chips}
     </span>
@@ -171,12 +171,12 @@ export interface CmxStatementLineProps {
  */
 export function CmxStatementLine({ label, meta, chip, amount, note, struck, muted, className }: CmxStatementLineProps) {
   return (
-    <li className={cn('flex min-h-9 items-start gap-2 py-1 text-sm', (struck || muted) && 'text-[rgb(var(--cmx-muted-foreground-rgb))]', className)}>
+    <li className={cn('flex min-h-9 items-start gap-2 py-1 text-sm', (struck || muted) && 'text-muted-foreground', className)}>
       <span className="min-w-0 flex-1 text-start">
         <span className={cn(struck && 'line-through')}>{label}</span>
-        {meta && <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]"> · {meta}</span>}
+        {meta && <span className="text-xs text-muted-foreground"> · {meta}</span>}
         {chip && <span className="ms-2 inline-flex align-middle">{chip}</span>}
-        {note && <span className="block text-xs text-[rgb(var(--cmx-muted-foreground-rgb))]">{note}</span>}
+        {note && <span className="block text-xs text-muted-foreground">{note}</span>}
       </span>
       {amount != null && <span className="shrink-0 text-end">{amount}</span>}
     </li>
@@ -206,7 +206,7 @@ export function CmxStatementLineList({ children, cap, showAllLabel, showLessLabe
         <button
           type="button"
           onClick={() => setAll((v) => !v)}
-          className="mt-1 min-h-9 self-start rounded px-1 text-xs font-medium text-[rgb(var(--cmx-primary-text-rgb))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb))]"
+          className="mt-1 min-h-9 self-start rounded px-1 text-xs font-medium text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {all ? showLessLabel : showAllLabel(items.length)}
         </button>

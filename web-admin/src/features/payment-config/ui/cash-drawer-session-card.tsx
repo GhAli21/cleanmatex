@@ -48,7 +48,7 @@ export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDr
 
         <div className="py-2 space-y-1">
           <div className="flex items-center gap-2 mb-3">
-            <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-green-600 text-white">{t('cashDrawers.sessionOpen')}</CmxStatusBadge>
+            <CmxStatusBadge size="sm" tone="brand" appearance="solid" className="bg-success text-on-solid">{t('cashDrawers.sessionOpen')}</CmxStatusBadge>
             <span className="text-xs text-muted-foreground">{session.session_no}</span>
           </div>
 

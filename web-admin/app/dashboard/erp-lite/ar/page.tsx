@@ -1,3 +1,4 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import type { Metadata } from 'next'
 
 /** Names the accounts-receivable workspace for reliable browser-tab context. */
@@ -15,8 +16,6 @@ import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-
 import { ErpLiteArAgingGrid } from '@features/erp-lite/ui/erp-lite-ar-aging-grid'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { CmxKpiStatCard } from '@ui/data-display'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 /**
  *
  */
@@ -58,9 +57,9 @@ export default async function ErpLiteArPage() {
         </div>
 
         {loadError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{loadError}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
@@ -30,7 +29,6 @@ interface OrderTaxDocumentPanelProps {
 export function OrderTaxDocumentPanel({ viewModel }: OrderTaxDocumentPanelProps) {
   const t = useTranslations('orders.detail.financial');
   const tTax = useTranslations('taxDocuments');
-  const isRTL = useRTL();
   const { taxDocument, currencyCode, orderId } = viewModel;
   const canIssue = useHasPermission('tax_document', 'issue');
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
@@ -48,7 +46,7 @@ export function OrderTaxDocumentPanel({ viewModel }: OrderTaxDocumentPanelProps)
       </CmxCardHeader>
       <CmxCardContent className="space-y-3 text-sm">
         {!hasDocument ? (
-          <p className={`text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p className="text-muted-foreground text-start">
             {t('taxDocumentNotAvailable')}
           </p>
         ) : (
@@ -58,7 +56,7 @@ export function OrderTaxDocumentPanel({ viewModel }: OrderTaxDocumentPanelProps)
             orderId={orderId}
           />
         )}
-        <p className={`text-xs text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p className="text-xs text-muted-foreground text-start">
           {t.rich('taxDocumentHint', {
             vouchers: (chunks) => (
               <Link

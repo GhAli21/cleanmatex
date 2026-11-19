@@ -198,33 +198,33 @@ export function AssemblyTaskModal({
             </CmxCardHeader>
             <CmxCardContent className="space-y-6">
               {isError ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
                   {(error as Error)?.message || t('messages.loadFailed')}
                 </div>
               ) : null}
 
               <div className="grid grid-cols-3 gap-4">
-                <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950/40">
+                <div className="rounded-lg bg-info-bg p-4">
                   <div className="text-sm text-muted-foreground">
                     {t('metrics.totalItems')}
                   </div>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-primary-text">
                     {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : totalItems}
                   </div>
                 </div>
-                <div className="rounded-lg bg-green-50 p-4 dark:bg-green-950/40">
+                <div className="rounded-lg bg-success-bg p-4">
                   <div className="text-sm text-muted-foreground">
                     {t('metrics.scanned')}
                   </div>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-2xl font-bold text-success-text">
                     {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : scannedItems}
                   </div>
                 </div>
-                <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950/40">
+                <div className="rounded-lg bg-danger-bg p-4">
                   <div className="text-sm text-muted-foreground">
                     {t('metrics.exceptions')}
                   </div>
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-2xl font-bold text-danger-text">
                     {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : exceptionItems}
                   </div>
                 </div>

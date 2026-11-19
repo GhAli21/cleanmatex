@@ -40,19 +40,19 @@ export default function DashboardContent() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-2">
           {t('welcome')}, {user?.user_metadata?.display_name || user?.email}!
         </h2>
         {currentTenant && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-md">
-            <h3 className="text-sm font-medium text-blue-900 mb-1">
+          <div className="mt-4 p-4 bg-info-bg rounded-md">
+            <h3 className="text-sm font-medium text-primary-text mb-1">
               {tLayout('currentTenant')}
             </h3>
-            <p className="text-lg font-semibold text-blue-600 line-clamp-1 break-words">
+            <p className="text-lg font-semibold text-primary-text line-clamp-1 break-words">
               {currentTenant.tenant_name}
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-primary-text">
               {tLayout('role')}: {currentTenant.user_role}
             </p>
           </div>
@@ -68,26 +68,26 @@ export default function DashboardContent() {
       {/* KPI Row 1: Core Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <OrdersTodayWidget />
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">
+        <div className="bg-card rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('activeCustomers')}
           </h3>
-          <p className="text-3xl font-bold text-gray-900">0</p>
-          <p className="mt-2 text-sm text-gray-600">{t('totalActiveCustomers')}</p>
+          <p className="text-3xl font-bold text-foreground">0</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('totalActiveCustomers')}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">
+        <div className="bg-card rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('pendingDeliveries')}
           </h3>
-          <p className="text-3xl font-bold text-gray-900">0</p>
-          <p className="mt-2 text-sm text-gray-600">{t('readyForDelivery')}</p>
+          <p className="text-3xl font-bold text-foreground">0</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('readyForDelivery')}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">
+        <div className="bg-card rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('todayRevenue')}
           </h3>
-          <p className="text-3xl font-bold text-gray-900">{formatMoneyWithCode(0)}</p>
-          <p className="mt-2 text-sm text-gray-600">{t('revenue')}</p>
+          <p className="text-3xl font-bold text-foreground">{formatMoneyWithCode(0)}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('revenue')}</p>
         </div>
       </div>
 
@@ -116,8 +116,8 @@ export default function DashboardContent() {
       {/* KPI Row 5: Top Services (Full Width) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TopServicesWidget />
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-card rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
             {t('recentOrders')}
           </h2>
           <RecentOrdersList />
@@ -125,14 +125,14 @@ export default function DashboardContent() {
       </div>
 
       {/* Getting Started Guide - Only show if no data */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-card rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           {t('gettingStarted')}
         </h2>
         <ul className="space-y-3">
-          <li className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <li className="flex items-start">
             <svg
-              className={`h-6 w-6 text-green-500 ${isRTL ? 'ml-2' : 'mr-2'}`}
+              className="h-6 w-6 text-success-text me-2"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -144,13 +144,13 @@ export default function DashboardContent() {
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <span className="text-gray-700">
+            <span className="text-foreground">
               {t('authActive')}
             </span>
           </li>
-          <li className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <li className="flex items-start">
             <svg
-              className={`h-6 w-6 text-gray-400 ${isRTL ? 'ml-2' : 'mr-2'}`}
+              className="h-6 w-6 text-muted-foreground me-2"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -164,14 +164,14 @@ export default function DashboardContent() {
             </svg>
             <Link
               href="/dashboard/customers"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-primary-text hover:text-primary-text/80 font-medium"
             >
               {t('addFirstCustomer')} {isRTL ? '←' : '→'}
             </Link>
           </li>
-          <li className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <li className="flex items-start">
             <svg
-              className={`h-6 w-6 text-gray-400 ${isRTL ? 'ml-2' : 'mr-2'}`}
+              className="h-6 w-6 text-muted-foreground me-2"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -185,14 +185,14 @@ export default function DashboardContent() {
             </svg>
             <Link
               href="/dashboard/orders/new"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-primary-text hover:text-primary-text/80 font-medium"
             >
               {t('createFirstOrder')} {isRTL ? '←' : '→'}
             </Link>
           </li>
-          <li className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <li className="flex items-start">
             <svg
-              className={`h-6 w-6 text-gray-400 ${isRTL ? 'ml-2' : 'mr-2'}`}
+              className="h-6 w-6 text-muted-foreground me-2"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -206,7 +206,7 @@ export default function DashboardContent() {
             </svg>
             <a
               href="/dashboard/settings"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-primary-text hover:text-primary-text/80 font-medium"
             >
               {t('configureServices')} {isRTL ? '←' : '→'}
             </a>

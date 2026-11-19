@@ -137,7 +137,7 @@ function CapabilityActionButton({
     evaluated.required && requiredBadgeLabel ? (
       <span
         data-testid={`capability-action-required-${slot.key}`}
-        className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
+        className="rounded-full bg-warning-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning-text"
       >
         {requiredBadgeLabel}
       </span>
@@ -146,9 +146,7 @@ function CapabilityActionButton({
     isApplied && !isActive && appliedBadgeLabel ? (
       <span
         data-testid={`capability-action-applied-${slot.key}`}
-        className={`inline-flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-800 ${
-          isRTL ? 'flex-row-reverse' : ''
-        }`}
+        className="inline-flex items-center gap-0.5 rounded-full bg-info-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-info-text"
       >
         <Check className="h-3 w-3" aria-hidden />
         {appliedBadgeLabel}
@@ -157,12 +155,12 @@ function CapabilityActionButton({
 
   if (variant === 'tile') {
     const tileStateClass = isActive
-      ? 'border-teal-500 bg-teal-50 text-teal-950 ring-2 ring-teal-200 hover:bg-teal-100'
+      ? 'border-primary bg-info-bg text-info-text ring-2 ring-ring hover:bg-info-border/50'
       : isApplied
-        ? 'border-teal-300 bg-teal-50/70 text-teal-900 hover:border-teal-400 hover:bg-teal-50'
+        ? 'border-info-border bg-info-bg/70 text-info-text hover:border-primary hover:bg-info-bg'
         : evaluated.required
-          ? 'border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
-          : 'border-slate-200 bg-white text-slate-800 hover:border-teal-300 hover:bg-teal-50/60';
+          ? 'border-info-border bg-info-bg text-info-text hover:bg-info-border/50'
+          : 'border-border bg-card text-foreground hover:border-info-border hover:bg-info-bg/60';
 
     return (
       <CmxButton
@@ -186,7 +184,7 @@ function CapabilityActionButton({
         {icon ? (
           <span
             className={`flex h-8 w-8 items-center justify-center [&_svg]:h-5 [&_svg]:w-5 ${
-              isActive || isApplied ? 'text-teal-700' : 'text-teal-700'
+              isActive || isApplied ? 'text-primary-text' : 'text-primary-text'
             }`}
             aria-hidden
           >
@@ -201,9 +199,9 @@ function CapabilityActionButton({
   }
 
   const chipStateClass = isActive
-    ? 'border-teal-500 bg-teal-50 text-teal-900 ring-1 ring-teal-200'
+    ? 'border-primary bg-info-bg text-info-text ring-1 ring-ring'
     : isApplied
-      ? 'border-teal-300 bg-teal-50/60 text-teal-900'
+      ? 'border-info-border bg-info-bg/60 text-info-text'
       : '';
 
     return (
@@ -222,7 +220,7 @@ function CapabilityActionButton({
       data-active={isActive ? 'true' : undefined}
       data-applied={isApplied ? 'true' : undefined}
       data-reason={reason}
-      className={`${isRTL ? 'flex-row-reverse' : ''} ${chipStateClass}`}
+      className={` ${chipStateClass}`}
     >
       {icon ? <span className="shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5" aria-hidden>{icon}</span> : null}
       <span className="min-w-0">{label}</span>
@@ -277,7 +275,7 @@ export function CapabilityViewRenderer({
       ? 'grid grid-cols-2 gap-2 md:flex md:flex-col'
       : actionLayout === 'stack'
         ? 'flex flex-col gap-2'
-        : `flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`;
+        : `flex flex-wrap gap-2 `;
 
   return (
     <div className={className} data-testid="capability-view">
@@ -326,7 +324,6 @@ export function CapabilityViewRenderer({
               message={guard.message}
               actionLabel={guard.actionLabel}
               onAction={guard.onAction}
-              isRTL={isRTL}
             />
           ))}
         </div>

@@ -42,7 +42,7 @@ export function CmxKpiStatCard({
       <CmxCardContent>
         <div className="text-2xl font-bold">{value}</div>
         {(subtitle || trend) && (
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <p className="text-xs text-muted-foreground">
             {trend && (
               <span className={trend.direction === 'up' ? 'text-success-text' : 'text-danger-text'}>
                 {trend.direction === 'up' ? '↑' : '↓'} {Math.abs(trend.value)}%

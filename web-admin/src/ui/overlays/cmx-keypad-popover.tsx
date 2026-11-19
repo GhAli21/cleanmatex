@@ -257,7 +257,7 @@ export function CmxKeypadPopover<T extends CmxKeypadKey = CmxKeypadKey>({
   };
 
   const chromeBtnClass =
-    'grid h-7 w-7 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:border-border hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus-visible:ring-2 focus-visible:ring-ring';
+    'grid h-7 w-7 place-items-center rounded-lg border border-border bg-card text-muted-foreground hover:border-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus-visible:ring-2 focus-visible:ring-ring';
 
   React.useEffect(() => {
     onKeyPressRef.current = onKeyPress;

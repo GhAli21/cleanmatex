@@ -103,7 +103,8 @@ export function OrderReceiptPrint({
 
   return (
     <div
-      className={`mx-auto ${containerWidthClass} bg-white text-gray-900 print:bg-white`}
+      data-mode="LIGHT"
+      className={`mx-auto ${containerWidthClass} bg-card text-foreground print:bg-card`}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header text-center">
@@ -150,18 +151,18 @@ export function OrderReceiptPrint({
         </div>
       </section>
 
-      <section className="print-section border-t border-b border-gray-200 py-2">
+      <section className="print-section border-t border-b border-border py-2">
         <h2>{tWorkflowReady('itemsTitle')}</h2>
         <div className="space-y-1">
           {order.items.map((item) => (
             <div key={item.id} className="flex justify-between">
               <div className="flex-1">
                 <div className="font-medium">{item.productName}</div>
-                <div className="text-[11px] text-gray-500">
+                <div className="text-[11px] text-muted-foreground">
                   {tWorkflowReady('quantity')}: {item.quantity}
                 </div>
               </div>
-              <div className="text-right text-[11px]">
+              <div className="text-end text-[11px]">
                 {fmt(item.totalPrice)}
               </div>
             </div>
@@ -170,15 +171,15 @@ export function OrderReceiptPrint({
       </section>
 
       {discountLines.length > 0 && (
-        <section className="print-section border-t border-gray-200 pt-2">
+        <section className="print-section border-t border-border pt-2">
           <div className="flex justify-between print-row">
             <span className="font-semibold">{tOrderDetail('discount')}</span>
-            <span className="text-red-600">
+            <span className="text-danger-text">
               -{fmt(discountLines.reduce((s, l) => s + l.discount_amount, 0))}
             </span>
           </div>
           {discountLines.map((line) => (
-            <div key={line.id} className="flex justify-between text-xs text-gray-500 ps-3">
+            <div key={line.id} className="flex justify-between text-xs text-muted-foreground ps-3">
               <span>{sourceLabel(line.source_type, locale === 'ar' ? 'ar' : 'en')}</span>
               <span>-{fmt(line.discount_amount)}</span>
             </div>
@@ -195,13 +196,13 @@ export function OrderReceiptPrint({
           <>
             <div className="flex justify-between print-row">
               <span>{tOrders('paidAmount')}</span>
-              <span className="text-green-700">
+              <span className="text-success-text">
                 {fmt(order.paymentSummary.paid)}
               </span>
             </div>
             <div className="flex justify-between print-row">
               <span>{tWorkflowReady('paymentSection.remainingDue')}</span>
-              <span className="text-orange-700">
+              <span className="text-warning-text">
                 {fmt(order.paymentSummary.remaining)}
               </span>
             </div>
@@ -225,13 +226,13 @@ export function OrderReceiptPrint({
                   <span>{money(Number(p.amount))}</span>
                 </div>
                 {tendered > Number(p.amount) && (
-                  <div className="flex justify-between text-xs text-gray-500 ps-3">
+                  <div className="flex justify-between text-xs text-muted-foreground ps-3">
                     <span>{tPaymentsDetail('tenderedAmount')}</span>
                     <span>{money(tendered)}</span>
                   </div>
                 )}
                 {change > 0 && (
-                  <div className="flex justify-between text-xs text-gray-500 ps-3">
+                  <div className="flex justify-between text-xs text-muted-foreground ps-3">
                     <span>{tPaymentsDetail('changeReturned')}</span>
                     <span>{money(change)}</span>
                   </div>
@@ -243,7 +244,7 @@ export function OrderReceiptPrint({
             const money = (n: number) =>
               formatMoneyAmountWithCode(n, { currencyCode: row.currencyCode, decimalPlaces, locale: moneyLocale });
             return (
-              <div key={row.currencyCode} className="mt-1 space-y-0.5 border-t border-dashed border-gray-300 pt-1 text-xs">
+              <div key={row.currencyCode} className="mt-1 space-y-0.5 border-t border-dashed border-border pt-1 text-xs">
                 <div className="flex justify-between">
                   <span>{tPaymentsDetail('exactChange')}</span>
                   <span>{money(row.exactChange)}</span>
@@ -264,7 +265,7 @@ export function OrderReceiptPrint({
 
       {publicTrackingUrl ? (
         <section
-          className="print-section flex flex-col items-center gap-1 border-t border-gray-200 pt-2 text-center"
+          className="print-section flex flex-col items-center gap-1 border-t border-border pt-2 text-center"
           data-testid="receipt-public-tracking-qr"
         >
           <CmxBarcode
@@ -274,7 +275,7 @@ export function OrderReceiptPrint({
             size={layout === 'thermal' ? 88 : 112}
             className="block [&_svg]:h-auto [&_svg]:max-w-full"
           />
-          <p className="text-[11px] text-gray-600">{tLabels('template.customerTrackingQr')}</p>
+          <p className="text-[11px] text-muted-foreground">{tLabels('template.customerTrackingQr')}</p>
         </section>
       ) : null}
 

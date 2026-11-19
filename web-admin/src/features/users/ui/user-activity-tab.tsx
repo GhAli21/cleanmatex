@@ -29,19 +29,19 @@ interface AuditEntry {
 
 // Color categories for permission prefixes
 const CATEGORY_COLORS: Record<string, string> = {
-  orders: 'bg-blue-100 text-blue-700',
-  customers: 'bg-purple-100 text-purple-700',
-  inventory: 'bg-orange-100 text-orange-700',
-  users: 'bg-pink-100 text-pink-700',
-  settings: 'bg-gray-100 text-gray-700',
-  reports: 'bg-green-100 text-green-700',
-  workflow: 'bg-yellow-100 text-yellow-700',
-  branches: 'bg-indigo-100 text-indigo-700',
-  billing: 'bg-red-100 text-red-700',
+  orders: 'bg-info-bg text-info-text',
+  customers: 'bg-info-bg text-info-text',
+  inventory: 'bg-warning-bg text-warning-text',
+  users: 'bg-info-bg text-info-text',
+  settings: 'bg-muted text-foreground',
+  reports: 'bg-success-bg text-success-text',
+  workflow: 'bg-warning-bg text-warning-text',
+  branches: 'bg-info-bg text-info-text',
+  billing: 'bg-danger-bg text-danger-text',
 }
 
 function getPermColor(resource: string): string {
-  return CATEGORY_COLORS[resource] ?? 'bg-slate-100 text-slate-700'
+  return CATEGORY_COLORS[resource] ?? 'bg-muted text-foreground'
 }
 
 interface UserAuditLogTableProps {
@@ -78,14 +78,14 @@ function UserAuditLogTable({ userId, tenantId, formatDate }: UserAuditLogTablePr
   if (load.state === 'loading') {
     return (
       <div className="flex items-center justify-center h-24" aria-busy="true">
-        <div className="animate-spin h-6 w-6 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
+        <div className="animate-spin h-6 w-6 rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
   }
 
   if (load.state === 'error') {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+      <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text" role="alert">
         {t('activityLoadFailed')}
       </div>
     )
@@ -93,19 +93,19 @@ function UserAuditLogTable({ userId, tenantId, formatDate }: UserAuditLogTablePr
 
   if (load.rows.length === 0) {
     return (
-      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('activityEmpty')}</p>
+      <div className="rounded-lg border border-border p-8 text-center">
+        <p className="text-sm text-muted-foreground">{t('activityEmpty')}</p>
       </div>
     )
   }
 
   const headerClass =
-    'px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider'
+    'px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider'
 
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-x-auto">
-      <table className="min-w-full divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
-        <thead className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+    <div className="rounded-lg border border-border overflow-x-auto">
+      <table className="min-w-full divide-y divide-border">
+        <thead className="bg-secondary">
           <tr>
             <th className={headerClass}>{t('activityColumns.event')}</th>
             <th className={headerClass}>{t('activityColumns.device')}</th>
@@ -113,28 +113,28 @@ function UserAuditLogTable({ userId, tenantId, formatDate }: UserAuditLogTablePr
             <th className={headerClass}>{t('activityColumns.date')}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+        <tbody className="divide-y divide-border">
           {load.rows.map((entry) => {
             const label = (locale === 'ar' && entry.action_label2) || entry.action_label || entry.action
             const flagged = entry.outcome && entry.outcome !== 'SUCCESS' ? entry.outcome : null
             return (
-              <tr key={entry.id} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
-                <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+              <tr key={entry.id} className="hover:bg-secondary">
+                <td className="px-4 py-3 text-sm text-foreground">
                   <span>{label}</span>
                   {entry.action && entry.action !== label ? (
-                    <span className="ms-2 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{entry.action}</span>
+                    <span className="ms-2 text-xs text-muted-foreground">{entry.action}</span>
                   ) : null}
                   {flagged ? (
-                    <span className="ms-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">{t(`activityOutcome.${flagged}`)}</span>
+                    <span className="ms-2 rounded bg-danger-bg px-1.5 py-0.5 text-xs text-danger-text">{t(`activityOutcome.${flagged}`)}</span>
                   ) : null}
                 </td>
-                <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   {entry.entity_type ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <td className="px-4 py-3 text-xs font-mono text-muted-foreground">
                   {entry.ip_address ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                <td className="px-4 py-3 text-sm text-muted-foreground">
                   {formatDate(entry.created_at)}
                 </td>
               </tr>
@@ -182,21 +182,21 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
       {/* Section 1: Effective Permissions */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+          <h3 className="text-sm font-semibold text-foreground">
             {t('effectivePermissions')} ({permissions.length})
           </h3>
-          <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] border border-[rgb(var(--cmx-border-rgb,226_232_240))] rounded px-2 py-0.5">
+          <span className="text-xs text-muted-foreground bg-secondary border border-border rounded px-2 py-0.5">
             {t('computedFromRoles')}
           </span>
         </div>
 
         {permsLoading ? (
           <div className="flex items-center justify-center h-24">
-            <div className="animate-spin h-6 w-6 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
+            <div className="animate-spin h-6 w-6 rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : permissions.length === 0 ? (
-          <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="rounded-lg border border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">
               {t('noEffectivePermissions')}
             </p>
           </div>
@@ -207,10 +207,10 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
               .map(([resource, perms]) => (
                 <div
                   key={resource}
-                  className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden"
+                  className="rounded-lg border border-border overflow-hidden"
                 >
-                  <div className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] px-3 py-1.5 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  <div className="bg-secondary px-3 py-1.5 border-b border-border">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
                       {resource}
                     </h4>
                   </div>
@@ -234,8 +234,8 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
       {/* Section 2: Audit Log — keyed child remounts on user/tenant so fetch has no sync setState in effect */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Activity className="h-4 w-4 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
-          <h3 className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+          <Activity className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">
             {t('activityRecent', { count: 20 })}
           </h3>
         </div>

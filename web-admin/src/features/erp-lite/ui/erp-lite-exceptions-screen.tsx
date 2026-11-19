@@ -18,12 +18,12 @@ interface ErpLiteExceptionsScreenProps {
 
 function ExcStatusBadge({ status }: { status: ErpLiteOpenExceptionRow['status_code'] }) {
   const palette: Record<string, string> = {
-    NEW: 'bg-red-500/10 text-red-700',
-    OPEN: 'bg-orange-500/10 text-orange-700',
-    RETRY_PENDING: 'bg-blue-500/10 text-blue-700',
-    RETRIED: 'bg-blue-500/10 text-blue-700',
-    REPOST_PENDING: 'bg-purple-500/10 text-purple-700',
-    REPOSTED: 'bg-purple-500/10 text-purple-700',
+    NEW: 'bg-destructive/10 text-danger-text',
+    OPEN: 'bg-warning/10 text-warning-text',
+    RETRY_PENDING: 'bg-primary/10 text-primary-text',
+    RETRIED: 'bg-primary/10 text-primary-text',
+    REPOST_PENDING: 'bg-primary/10 text-primary-text',
+    REPOSTED: 'bg-primary/10 text-primary-text',
   }
   return (
     <span

@@ -100,10 +100,10 @@ export default function StockHistoryModal({ item, onClose, branchId, branches = 
       <CmxDialogContent className="w-full max-w-3xl mx-4">
         <CmxDialogHeader>
           <CmxDialogTitle>{t('actions.history')}</CmxDialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {item.product_name} ({item.product_code})
             {branchId && branches.length > 0 && (
-              <span className="ml-2 text-blue-600">
+              <span className="ms-2 text-primary-text">
                 — {getBranchName(branchId)}
               </span>
             )}
@@ -112,24 +112,24 @@ export default function StockHistoryModal({ item, onClose, branchId, branches = 
 
         <div className="px-6 py-4">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">{tc('loading')}</div>
+            <div className="p-8 text-center text-muted-foreground">{tc('loading')}</div>
           ) : transactions.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">{t('messages.noTransactions')}</div>
+            <div className="p-8 text-center text-muted-foreground">{t('messages.noTransactions')}</div>
           ) : (
             <div className="overflow-x-auto" role="region" aria-label={t('labels.historyTable')}>
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.date')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('filters.branch')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.type')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.quantity')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.before')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.after')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.performedBy')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.reference')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.source')}</th>
-                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.reason')}</th>
+                  <tr className="bg-muted text-start">
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.date')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('filters.branch')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.type')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.quantity')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.before')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.after')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.performedBy')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.reference')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.source')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-muted-foreground">{t('labels.reason')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -138,36 +138,36 @@ export default function StockHistoryModal({ item, onClose, branchId, branches = 
                       <td className="px-3 py-2 text-xs">
                         {new Date(tx.transaction_date).toLocaleDateString()}
                       </td>
-                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                      <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                         {getBranchName(tx.branch_id)}
                       </td>
                       <td className="px-3 py-2">{getTypeBadge(tx.transaction_type)}</td>
                       <td className="px-3 py-2 font-mono">
-                        <span className={tx.quantity > 0 ? 'text-green-600' : 'text-red-600'}>
+                        <span className={tx.quantity > 0 ? 'text-success-text' : 'text-danger-text'}>
                           {tx.quantity > 0 ? '+' : ''}{tx.quantity}
                         </span>
                       </td>
                       <td className="px-3 py-2">{tx.qty_before ?? '-'}</td>
                       <td className="px-3 py-2 font-medium">{tx.qty_after ?? '-'}</td>
-                      <td className="px-3 py-2 text-gray-500 truncate max-w-[120px]">
+                      <td className="px-3 py-2 text-muted-foreground truncate max-w-[120px]">
                         {tx.created_by ?? tx.processed_by ?? '-'}
                       </td>
                       <td className="px-3 py-2">
                         {tx.reference_type === REFERENCE_TYPES.ORDER && tx.reference_id ? (
                           <Link
                             href={`/dashboard/orders/${tx.reference_id}`}
-                            className="text-blue-600 hover:underline truncate max-w-[100px] block"
+                            className="text-primary-text hover:underline truncate max-w-[100px] block"
                           >
                             {tx.reference_no ?? tx.reference_id}
                           </Link>
                         ) : (
-                          <span className="text-gray-500 truncate max-w-[100px] block">
+                          <span className="text-muted-foreground truncate max-w-[100px] block">
                             {tx.reference_no ?? '-'}
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-gray-500">{getSourceLabel(tx.reference_type, t)}</td>
-                      <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate">{tx.reason || '-'}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{getSourceLabel(tx.reference_type, t)}</td>
+                      <td className="px-3 py-2 text-muted-foreground max-w-[200px] truncate">{tx.reason || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -186,7 +186,7 @@ export default function StockHistoryModal({ item, onClose, branchId, branches = 
               >
                 {tc('previous')}
               </CmxButton>
-              <span className="text-sm text-gray-600">{page} / {totalPages}</span>
+              <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
               <CmxButton
                 variant="secondary"
                 size="sm"

@@ -128,6 +128,49 @@ In the tenant app, as a counter user with an open POS session, unless a row says
 | L1 | All Orders, more than one page | Click Next, a page number, Previous | The URL `?page=` changes and other filters in the URL stay. There is no rows-per-page box. |
 | L2 | All Orders, Arabic | Look at phone, items and total | Numbers line up in columns and do not reorder; the stats cards line up too. |
 
+## PR-05 — Colour tokens, logical direction, workspace shell (implemented 2026-11-19)
+
+Every feature and page changed its classes in one pass, so check broadly. For each row, check **EN and AR** (switch language) and **light and dark** (in the browser console run `document.documentElement.dataset.mode = 'DARK'`, back with `'LIGHT'`). Dark mode is not offered to users yet. In Arabic, "mirrored" means the layout is the left-right mirror of English: nothing sits on the same side as in English unless it is a number or a code.
+
+| # | Where | Do | Expected |
+|---|---|---|---|
+| D1 | Dashboard, any page (AR) | Look at the sidebar and the content | The sidebar is on the right with its border on the left (towards the content), the content is padded from the right, and nav rows read right to left. Collapse and expand: the width changes and nothing jumps sides. Mobile width: the menu slides in from the right. |
+| D2 | Dashboard top bar and any dropdown menu (AR) | Open the user menu and a table's row menu; use the arrow keys | Menus align to the right edge; Up and Down move through items; sub-menus open to the left. |
+| D3 | Any page with tabs (AR), e.g. Settings | Focus a tab, press Left and Right | The arrows move in the reading direction (Left = next in Arabic). |
+| D4 | All Orders `/dashboard/orders` (AR and EN) | Look at the header, cards, filters and table | Title and actions in one row (actions at the end), the KPI cards, then one framed filter bar, then the table. Text columns align at the start (right in Arabic); numbers stay readable left to right. |
+| D5 | Customers `/dashboard/customers` | Same as D4; click Export CSV | Same frame. Export shows a spinner in the button while it runs. |
+| D6 | ERP Lite → General Ledger | Same as D4 | "ERP-Lite" above the title, then title, KPI strip, framed filters, table. |
+| D7 | Order details → Payments / Invoices / Receipts tabs, AR invoice detail, voucher detail and linked effects (AR) | Look at ID and code cells | They align at the start (right in Arabic). Before PR-05 they were left-aligned in Arabic. |
+| D8 | Any form with labels and inputs (AR) | Look at labels, inputs, error text | All right-aligned; money and phone inputs that are left to right stay left to right. Buttons with centred text stay centred. |
+| D9 | Any modal (customer create, user create, …) | Open it | The page behind is dimmed (dark, see-through), not covered by solid gray. |
+| D10 | Banners: wrong password at login, settings load error, subscription warnings | Trigger one | Coloured banner with icon: red for errors, amber for warnings, blue for info, green for success. Readable in dark mode. |
+| D11 | Links in tables (e.g. order number), light and dark | Hover | The link colour changes on hover (it did not before for many links). |
+| D12 | Status chips and badges (orders, invoices, vouchers) in dark mode | Look | Every chip has readable text on its tint; nothing is white on white or black on black. |
+| D13 | Catalog → product form → unit | Open the unit list in AR and EN | "Per Item" / "لكل عنصر" comes from translations like the other units. |
+| D14 | Payment view (New Order → pay) in AR | Look at the summary bar, quick tender chips, change row | Order mirrors English; amounts stay left to right. |
+| D15 | Language switcher (top bar), in EN and in AR | Open it | "English" row: label left, tick right. "العربية" row: label right, tick left. Same in both page languages. |
+| D16 | Amber buttons and icons: Packing → an order (warning button), order details error page, Customers stats cards, stain toggles on New Order; light and dark | Look | Text and icons on amber are dark and readable, not white. |
+| D17 | AR: voucher detail and new voucher, AR invoice detail, AR aging and balances tables, any data grid toolbar | Look at icon + text rows and toolbars | They read right to left like the rest of the page; an icon that sits before its text in English sits before it (on the right) in Arabic. |
+
+## PR-07 task 6 — Dark mode for users (in progress 2026-11-19)
+
+Set the mode on **Account → Appearance → "Light or dark"** (no console trick needed any more). Check **EN and AR** for the walk rows (M5–M9).
+
+| # | Where | Do | Expected |
+|---|---|---|---|
+| M1 | Account → Appearance | Change "Light or dark" to Dark, Save | Save is enabled only after a change. After saving, the page turns dark without a manual reload; reload keeps it dark. |
+| M2 | Same, choose "Same as this device" | Switch the computer's own light/dark setting | The app follows the device without saving again (may need a reload in some browsers). |
+| M3 | Sign out (in Dark) | Look at the login page | It follows the device setting, not the last person's choice. |
+| M4 | Two people on one device: A = Dark, B = Light | A signs out, B signs in | B sees Light from the first page. Then A signs in again and sees Dark. |
+| M5 | Dashboard, sidebar, top bar, any dropdown and dialog, toasts (`cmxMessage`) | Look in Dark | Text readable everywhere; cards and dialogs separated by borders; nothing white on white or black on black. |
+| M6 | Orders list, order details (all tabs), New Order and the payment view, POS | Look in Dark | Same as M5; amounts, chips and badges readable; amber buttons have dark text. |
+| M7 | Reports with charts (Orders, Payments, Invoices, Revenue, Customers) and the dashboard "Top services" and "Payment mix" widgets | Hover a bar or line | Tooltip box is dark with readable text; grid lines and axis labels are visible but quiet. |
+| M8 | Customers, Catalog, Settings (Branding, Users, Roles), ERP Lite pages, File attachments panel | Look in Dark | Same as M5. Inputs, selects and date pickers are dark with light text. |
+| M9 | Login, register, forgot password | Look in Dark (device set to dark, signed out) | Same as M5. |
+| M10 | Order → Tax documents → Print; order receipt / details print; AR invoice and statement print; cash drawer session print; POS shift report; Reports → Print; Cash variance print — all with the screen in **Dark** | Open the print page | The paper is white with dark text on screen; the area around it may be dark. |
+| M11 | Same pages, Dark, and a non-STANDARD theme in use | Press Print (or print preview) | Paper is white: no dark backgrounds, no dark brand or status tints; the main logo is shown. |
+| M12 | Settings → Branding with a **dark logo** uploaded (after Task 6) | Look at the sidebar in Dark, then in Light | Dark: the dark logo. Light and paper: the main logo. |
+
 ## Financial_Expert_Tester Results
 
 **Round 1 — 2026-11-19.** Tester: Financial_Expert_Tester (Grok Bot). Environment: remote only — tenant https://cmx.cleanmatex.com (Demo Laundry, admin; viewer for read-only checks) and HQ https://hqsaas.cleanmatex.com (SUPER_ADMIN, Incognito). Times are Asia/Muscat (UTC+4). Credentials: see the credentials file, none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\shots\` (names in Evidence).

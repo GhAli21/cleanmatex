@@ -267,7 +267,7 @@ export function useCmxAuditColumn<TData>(options: {
       enableSorting: false,
       enableColumnFilter: false,
       header: () => (
-        <span className="inline-flex w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.04em] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <span className="inline-flex w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
           {auditHeaderLabel}
         </span>
       ),
@@ -283,7 +283,7 @@ export function useCmxAuditColumn<TData>(options: {
               size="sm"
               title={actionLabel}
               aria-label={actionLabel}
-              className="h-10 w-10 rounded-full border border-[rgb(var(--cmx-primary-rgb,37_99_235)/0.18)] bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.12)] px-0 text-[rgb(var(--cmx-primary-text-rgb,37_99_235))] shadow-sm transition-colors hover:bg-[rgb(var(--cmx-primary-rgb,37_99_235)/0.18)] hover:text-[rgb(var(--cmx-primary-text-rgb,37_99_235))]"
+              className="h-10 w-10 rounded-full border border-primary/18 bg-primary/12 px-0 text-primary-text shadow-sm transition-colors hover:bg-primary/18 hover:text-primary-text/80"
               onClick={() => handleAuditOpen(originalRow)}
             >
               <UserRound className="h-5 w-5" aria-hidden />

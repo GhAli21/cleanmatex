@@ -61,7 +61,7 @@ export const CmxTabsPanel: React.FC<CmxTabsPanelProps> = ({
         className="w-full"
       >
         {/* Scroll container: tabs scroll horizontally on small screens */}
-        <div className="overflow-x-auto border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
+        <div className="overflow-x-auto border-b border-border">
           <CmxTabsList
             className={cn(
               'w-max min-w-full justify-start rounded-none border-b-0',
@@ -74,11 +74,11 @@ export const CmxTabsPanel: React.FC<CmxTabsPanelProps> = ({
                 value={tab.id}
                 disabled={tab.disabled}
                 className={cn(
-                  'rounded-none border-b-2 border-transparent data-[state=active]:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+                  'rounded-none border-b-2 border-transparent data-[state=active]:border-primary',
                   'data-[state=active]:bg-transparent data-[state=active]:shadow-none',
-                  'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-                  'data-[state=active]:text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
-                  'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] hover:border-[rgb(var(--cmx-border-rgb,226_232_240))]',
+                  'text-muted-foreground',
+                  'data-[state=active]:text-primary-text',
+                  'hover:text-foreground hover:border-border',
                   'px-1 py-4 mx-1 whitespace-nowrap'
                 )}
               >

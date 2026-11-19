@@ -45,11 +45,11 @@ function chipLabel(
 
 function chipFallbackClass(kind: string): string | undefined {
   if (kind === 'condition_stain' || kind === 'condition_damag' || kind === 'condition_special') {
-    return 'border-rose-200 bg-rose-50 text-rose-900';
+    return 'border-danger-border bg-danger-bg text-danger-text';
   }
-  if (kind === 'service_prefs') return 'border-blue-200 bg-blue-50 text-blue-900';
-  if (kind === 'packing_prefs') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
-  if (kind === 'color') return 'border-violet-200 bg-violet-50 text-violet-900';
+  if (kind === 'service_prefs') return 'border-info-border bg-info-bg text-info-text';
+  if (kind === 'packing_prefs') return 'border-success-border bg-success-bg text-success-text';
+  if (kind === 'color') return 'border-info-border bg-info-bg text-info-text';
   return undefined;
 }
 
@@ -243,14 +243,14 @@ export function PiecePreferenceCard({
 
   return (
     <div
-      className="rounded-xl border border-slate-300/80 bg-white p-3 shadow-sm ring-1 ring-slate-200/60"
+      className="rounded-xl border border-border/80 bg-card p-3 shadow-sm ring-1 ring-border/60"
       aria-label={t('cardAriaLabel', { item: itemTitle, piece: piece.pieceSeq })}
     >
       <div
-        className={`flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}
+        className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
       >
-        <div className="min-w-0 flex-1 rounded-lg border border-slate-300/70 bg-gradient-to-b from-slate-200/90 to-slate-100/95 px-3 py-2 shadow-sm">
-          <h3 className="text-sm font-semibold leading-snug text-slate-900">{pieceHeading}</h3>
+        <div className="min-w-0 flex-1 rounded-lg border border-border/70 bg-gradient-to-b from-muted/90 to-muted/95 px-3 py-2 shadow-sm">
+          <h3 className="text-sm font-semibold leading-snug text-foreground">{pieceHeading}</h3>
         </div>
         {targetsForCopy.length > 0 && (
           <CmxButton
@@ -270,19 +270,19 @@ export function PiecePreferenceCard({
 
       <div
         className={cn(
-          'mt-3 rounded-xl border border-slate-200 bg-slate-100/95 p-1.5 shadow-inner',
+          'mt-3 rounded-xl border border-border bg-muted/95 p-1.5 shadow-inner',
           isRTL && 'rtl'
         )}
         role="toolbar"
         aria-label={t('kindToolbarAria')}
       >
         {kindsLoading ? (
-          <span className="block px-2 py-2 text-sm text-gray-500">{t('loadingKinds')}</span>
+          <span className="block px-2 py-2 text-sm text-muted-foreground">{t('loadingKinds')}</span>
         ) : (
           <div
             className={cn(
               'flex flex-wrap gap-x-2 gap-y-2',
-              isRTL ? 'flex-row-reverse justify-end' : ''
+              ''
             )}
           >
             {kindsForBar.map((kind) => {
@@ -292,7 +292,7 @@ export function PiecePreferenceCard({
               const inactiveSurf = kindToolbarInactiveSurface(hex);
               const inactiveClass = tw
                 ? cn(
-                    'border border-gray-200 bg-white text-gray-800 shadow-sm hover:brightness-[0.98]',
+                    'border border-border bg-card text-foreground shadow-sm hover:brightness-[0.98]',
                     tw
                   )
                 : cn(
@@ -313,8 +313,8 @@ export function PiecePreferenceCard({
                   }}
                   className={cn(
                     'rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
-                    isActive ? 'bg-blue-600 text-white shadow-md' : inactiveClass
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                    isActive ? 'bg-primary text-primary-foreground shadow-md' : inactiveClass
                   )}
                   style={
                     isActive || tw
@@ -334,12 +334,12 @@ export function PiecePreferenceCard({
       </div>
 
       {notesToolbarActive && (
-        <div className={cn('mt-2 space-y-1.5', isRTL && 'text-right')}>
+        <div className={cn('mt-2 space-y-1.5')}>
           <label
             htmlFor={`piece-pref-notes-${piece.id}`}
             className={cn(
-              'block text-xs font-bold uppercase tracking-wide text-slate-600',
-              isRTL ? 'text-right' : 'text-left'
+              'block text-xs font-bold uppercase tracking-wide text-muted-foreground',
+              'text-start'
             )}
           >
             {t('notesFieldLabel')}
@@ -360,8 +360,8 @@ export function PiecePreferenceCard({
           />
           <p
             className={cn(
-              'text-[11px] leading-snug text-slate-500',
-              isRTL ? 'text-right' : 'text-left'
+              'text-[11px] leading-snug text-muted-foreground',
+              'text-start'
             )}
           >
             {t('notesFieldHint')}
@@ -372,22 +372,22 @@ export function PiecePreferenceCard({
       {preferences.length > 0 && (
         <>
           <div
-            className="my-3 border-t border-slate-200 pt-3"
+            className="my-3 border-t border-border pt-3"
             role="separator"
             aria-hidden
           />
-          <div className={cn('flex flex-col gap-y-3 sm:flex-row sm:flex-wrap sm:gap-x-6', isRTL && 'sm:flex-row-reverse')}>
+          <div className={cn('flex flex-col gap-y-3 sm:flex-row sm:flex-wrap sm:gap-x-6')}>
             {groupedPreferences.map((group) => (
               <div key={group.kindCode} className="flex flex-col gap-1.5">
                 <p
                   className={cn(
-                    'text-xs font-bold uppercase tracking-wide text-slate-600',
-                    isRTL ? 'text-right' : 'text-left'
+                    'text-xs font-bold uppercase tracking-wide text-muted-foreground',
+                    'text-start'
                   )}
                 >
                   {group.sectionLabel}
                 </p>
-                <div className={cn('flex flex-wrap gap-2', isRTL ? 'flex-row-reverse' : '')}>
+                <div className={cn('flex flex-wrap gap-2', '')}>
                   {group.prefs.map((pref) => {
                     const pres = chipPresentation(pref.preference_sys_kind);
                     const catalogHex =

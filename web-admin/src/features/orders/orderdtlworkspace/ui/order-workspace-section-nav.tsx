@@ -33,7 +33,7 @@ export function OrderWorkspaceSectionNav({ activeSection, onChange, labels, coun
 
   return (
     <nav aria-label="Order workspace sections" className="-mx-1 overflow-x-auto px-1 pb-1">
-      <div className="flex min-w-max gap-1 rounded-lg bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-1" role="tablist">
+      <div className="flex min-w-max gap-1 rounded-lg bg-muted p-1" role="tablist">
         {sections.map((section) => {
           const Icon = sectionIcons[section]
           const selected = activeSection === section
@@ -51,7 +51,7 @@ export function OrderWorkspaceSectionNav({ activeSection, onChange, labels, coun
             >
               <Icon aria-hidden="true" className="h-4 w-4" />
               <span>{labels[section]}</span>
-              {typeof count === 'number' ? <span className="rounded-full bg-[rgb(var(--cmx-background-rgb,255_255_255))] px-1.5 text-[10px]">{count}</span> : null}
+              {typeof count === 'number' ? <span className="rounded-full bg-background px-1.5 text-[10px]">{count}</span> : null}
             </CmxButton>
           )
         })}

@@ -15,7 +15,6 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { StartOrderEditButton } from '@features/orders/order-change/start-order-edit-button';
@@ -47,7 +46,6 @@ export function OrderActions({ order }: OrderActionsProps) {
   const refreshMoney = useOrderMoneyRefresh();
   const t = useTranslations('orders.actions');
   const tEngine = useTranslations('workflow.engine');
-  const isRTL = useRTL();
   const canTransition = useHasPermissionCode('orders:transition');
   const canUpdate = useHasPermissionCode('orders:update');
   const [showFixOrderDataModal, setShowFixOrderDataModal] = useState(false);
@@ -87,10 +85,10 @@ export function OrderActions({ order }: OrderActionsProps) {
             <CmxButton
               onClick={() => setShowReturnDialog(true)}
               variant="outline"
-              className={`w-full border-amber-300 text-amber-700 hover:bg-amber-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="w-full border-warning-border text-warning-text hover:bg-warning-bg"
               size="lg"
             >
-              <RotateCcw className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              <RotateCcw className="w-4 h-4 me-2" />
               {t('buttons.customerReturn')}
             </CmxButton>
           )}
@@ -100,10 +98,10 @@ export function OrderActions({ order }: OrderActionsProps) {
             <CmxButton
               onClick={() => setShowCancelDialog(true)}
               variant="outline"
-              className={`w-full border-red-300 text-red-700 hover:bg-red-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="w-full border-danger-border text-danger-text hover:bg-danger-bg"
               size="lg"
             >
-              <XCircle className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              <XCircle className="w-4 h-4 me-2" />
               {t('buttons.cancelOrder')}
             </CmxButton>
           )}
@@ -116,7 +114,7 @@ export function OrderActions({ order }: OrderActionsProps) {
             orderId={order.id}
             label={t('buttons.editOrder')}
             size="lg"
-            className={`w-full border-blue-300 text-blue-700 hover:bg-blue-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="w-full border-info-border text-primary-text hover:bg-info-bg"
           />
         )}
 
@@ -124,10 +122,10 @@ export function OrderActions({ order }: OrderActionsProps) {
           <CmxButton
             variant="outline"
             onClick={() => setShowFixOrderDataModal(true)}
-            className={`w-full border-gray-300 text-gray-700 hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="w-full border-border text-foreground hover:bg-muted"
             size="lg"
           >
-            <Wrench className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            <Wrench className="w-4 h-4 me-2" />
             {t('buttons.fixOrderData')}
           </CmxButton>
         ) : null}

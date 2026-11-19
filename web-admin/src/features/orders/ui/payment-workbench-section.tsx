@@ -82,13 +82,13 @@ export function PaymentWorkbenchSection({
           <div
             className={cn(
               'flex items-start justify-between gap-3',
-              isRTL ? 'flex-row-reverse text-right' : 'text-left'
+              'text-start'
             )}
           >
             <div className="min-w-0 flex-1">
-              <CmxCardTitle className={cn('text-base text-slate-900', titleClassName)}>{title}</CmxCardTitle>
+              <CmxCardTitle className={cn('text-base text-foreground', titleClassName)}>{title}</CmxCardTitle>
               {description ? (
-                <p className={cn('mt-1 text-sm text-slate-600', isRTL ? 'text-right' : 'text-left')}>
+                <p className={cn('mt-1 text-sm text-muted-foreground', 'text-start')}>
                   {description}
                 </p>
               ) : null}
@@ -96,7 +96,7 @@ export function PaymentWorkbenchSection({
             <div
               className={cn(
                 'flex shrink-0 items-center gap-2',
-                isRTL ? 'flex-row-reverse' : ''
+                ''
               )}
             >
               {headerAside}
@@ -110,7 +110,7 @@ export function PaymentWorkbenchSection({
                   aria-label={toggleLabel}
                   title={toggleLabel}
                   onClick={() => onToggle(sectionId)}
-                  className="h-9 w-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  className="h-9 w-9 rounded-xl border border-border bg-card text-muted-foreground hover:bg-muted"
                 >
                   <ChevronDown
                     className={cn('h-4 w-4 transition-transform duration-200', !expanded && '-rotate-90')}

@@ -53,9 +53,9 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-3xl font-bold">{t('title')}</h1>
-          <p className="mt-1 text-gray-600">{t('description')}</p>
+          <p className="mt-1 text-muted-foreground">{t('description')}</p>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {result.error}
         </div>
       </div>
@@ -69,7 +69,7 @@ export default async function BillingRefundsPage({ searchParams }: PageProps) {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold">{t('title')}</h1>
-        <p className="mt-1 text-gray-600">{t('description')}</p>
+        <p className="mt-1 text-muted-foreground">{t('description')}</p>
       </div>
 
       <RefundsListClient

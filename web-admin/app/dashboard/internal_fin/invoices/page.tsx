@@ -96,12 +96,12 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
   return (
     <RequireAnyPermission permissions={BILLING_INTERNAL_FIN_INVOICES_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50 p-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-br from-card via-muted to-info-bg p-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
-          <p className="max-w-3xl text-sm text-slate-600">{tHub('subtitle')}</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">{t('title')}</h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">{tHub('subtitle')}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 rtl:flex-row-reverse">
+        <div className="flex flex-wrap items-center gap-2">
           <CmxButton asChild variant="outline">
             <Link href={`/api/v1/ar/invoices/export?${exportParams.toString()}`}>{tHub('actions.export')}</Link>
           </CmxButton>

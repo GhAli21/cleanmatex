@@ -242,19 +242,19 @@ function FinalOrderTotalPanel({
   isRTL: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-4 shadow-sm">
+    <div className="rounded-2xl border border-info-border bg-info-bg/60 p-4 shadow-sm">
       <p
-        className={`text-xs font-semibold ${isRTL ? '' : 'uppercase tracking-[0.14em]'} text-cyan-700 ${isRTL ? 'text-right' : 'text-left'}`}
+        className={`text-xs font-semibold ${isRTL ? '' : 'uppercase tracking-[0.14em]'} text-primary-text text-start`}
       >
         {title}
       </p>
       <p
-        className={`mt-3 text-2xl font-bold tabular-nums text-slate-950 ${isRTL ? 'text-right' : 'text-left'}`}
+        className="mt-3 text-2xl font-bold tabular-nums text-foreground text-start"
       >
         {value}
       </p>
       <p
-        className={`mt-2 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+        className="mt-2 text-xs text-muted-foreground text-start"
       >
         {help}
       </p>
@@ -282,7 +282,7 @@ function B2BContractsSelect({
   return (
     <div>
       <label
-        className={`block text-sm font-medium text-slate-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+        className="block text-sm font-medium text-foreground mb-1 text-start"
       >
         {t('b2b.contract')}
       </label>
@@ -1029,46 +1029,46 @@ export function PaymentFullView({
     switch (id) {
       case PAYMENT_METHODS.PAY_ON_COLLECTION:
         return {
-          iconWrap: 'bg-teal-100 text-teal-700 border-teal-200',
-          selected: 'border-teal-500 bg-teal-50 text-slate-900 shadow-sm',
+          iconWrap: 'bg-info-bg text-info-text border-info-border',
+          selected: 'border-primary bg-info-bg text-foreground shadow-sm',
         };
       case PAYMENT_METHODS.CASH:
         return {
-          iconWrap: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+          iconWrap: 'bg-success-bg text-success-text border-success-border',
           selected:
-            'border-emerald-500 bg-emerald-50/70 text-slate-900 shadow-sm',
+            'border-success bg-success-bg/70 text-foreground shadow-sm',
         };
       case PAYMENT_METHODS.CARD:
         return {
-          iconWrap: 'bg-blue-100 text-blue-700 border-blue-200',
-          selected: 'border-sky-500 bg-sky-50 text-slate-900 shadow-sm',
+          iconWrap: 'bg-info-bg text-info-text border-info-border',
+          selected: 'border-primary bg-info-bg text-foreground shadow-sm',
         };
       case PAYMENT_METHODS.CHECK:
         return {
-          iconWrap: 'bg-amber-100 text-amber-700 border-amber-200',
-          selected: 'border-amber-500 bg-amber-50/70 text-slate-900 shadow-sm',
+          iconWrap: 'bg-warning-bg text-warning-text border-warning-border',
+          selected: 'border-warning bg-warning-bg/70 text-foreground shadow-sm',
         };
       case PAYMENT_METHODS.BANK_TRANSFER:
         return {
-          iconWrap: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+          iconWrap: 'bg-info-bg text-info-text border-info-border',
           selected:
-            'border-indigo-500 bg-indigo-50/70 text-slate-900 shadow-sm',
+            'border-primary bg-info-bg/70 text-foreground shadow-sm',
         };
       case PAYMENT_METHODS.MOBILE_PAYMENT:
         return {
-          iconWrap: 'bg-violet-100 text-violet-700 border-violet-200',
+          iconWrap: 'bg-info-bg text-info-text border-info-border',
           selected:
-            'border-violet-500 bg-violet-50/70 text-slate-900 shadow-sm',
+            'border-primary bg-info-bg/70 text-foreground shadow-sm',
         };
       case PAYMENT_METHODS.INVOICE:
         return {
-          iconWrap: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-          selected: 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm',
+          iconWrap: 'bg-info-bg text-info-text border-info-border',
+          selected: 'border-primary bg-info-bg/70 text-foreground shadow-sm',
         };
       default:
         return {
-          iconWrap: 'bg-slate-100 text-slate-700 border-slate-200',
-          selected: 'border-slate-400 bg-slate-50 text-slate-900 shadow-sm',
+          iconWrap: 'bg-muted text-foreground border-border',
+          selected: 'border-muted-foreground bg-muted text-foreground shadow-sm',
         };
     }
   };
@@ -2612,16 +2612,16 @@ export function PaymentFullView({
       >
         <CmxDialogContent
           data-testid="payment-modal-v4"
-          className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-2xl border border-slate-200/80 p-0 shadow-2xl"
+          className="mx-4 h-[94vh] w-[calc(100vw-2rem)] max-w-[1900px] overflow-hidden rounded-2xl border border-border/80 p-0 shadow-2xl"
           bodyPadding="none"
         >
           <div
             ref={focusTrapRef}
-            className="relative flex h-full flex-col bg-[rgb(var(--cmx-background-rgb,255_255_255))]"
+            className="relative flex h-full flex-col bg-background"
           >
-            <CmxDialogHeader className="flex items-center justify-between border-b bg-white">
+            <CmxDialogHeader className="flex items-center justify-between border-b bg-card">
               <div
-                className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex items-center gap-3"
               >
                 <CmxDialogTitle>{t('title')}</CmxDialogTitle>
                 {serviceSpeed !== SERVICE_SPEEDS.STANDARD && (
@@ -2634,7 +2634,7 @@ export function PaymentFullView({
                 </CmxStatusBadge>
               </div>
               <div
-                className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex items-center gap-2"
               >
                 <OrderDraftFinancialSummaryButton draft={financialSummaryDraft} disabled={paymentInteractionLocked} />
                 <PaymentModeToggle
@@ -2677,7 +2677,6 @@ export function PaymentFullView({
                       : undefined
               }
               ariaDisabled={payExtraStripAriaDisabled}
-              isRTL={isRTL}
               extraAmountLabel={
                 stripExtraAmount > moneyEpsilon
                   ? `${currencyCode} ${formatAmount(stripExtraAmount)}`
@@ -2730,7 +2729,6 @@ export function PaymentFullView({
                 dismissLabel={t('mode.suggestDismiss')}
                 onDismiss={() => setSuggestionDismissed(true)}
                 disabled={paymentInteractionLocked}
-                isRTL={isRTL}
               />
             ) : null}
 
@@ -2879,7 +2877,7 @@ export function PaymentFullView({
             >
               <div className="relative flex min-h-0 flex-1 flex-col">
                 <div
-                  className={`flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4${
+                  className={`flex-1 overflow-auto bg-background p-4${
                     paymentInteractionLocked ? ' pointer-events-none' : ''
                   }`}
                   inert={
@@ -2987,10 +2985,10 @@ export function PaymentFullView({
                       onChangeBalancePolicy={handleSimpleChangePolicy}
                       quickActions={
                         simpleQuickActionsPlan.length > 0 ? (
-                          <CmxCard className="h-full border-slate-200 bg-white shadow-sm md:sticky md:top-0">
+                          <CmxCard className="h-full border-border bg-card shadow-sm md:sticky md:top-0">
                             <CmxCardContent className="flex h-full flex-col gap-2.5 pt-4 pb-4">
                               <p
-                                className={`text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-start"
                               >
                                 {t('mode.simpleView.quickActionsTitle')}
                               </p>
@@ -3080,16 +3078,16 @@ export function PaymentFullView({
                       {/* Phase 6: on md–xl the tools column scrolls internally so the
                     workbench (keypad, chips, CTA) stays above the fold. */}
                       <aside className="min-w-0 md:sticky md:top-0 md:max-h-[calc(94vh-16rem)] md:self-start md:overflow-y-auto xl:static xl:max-h-none xl:overflow-visible">
-                        <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
-                          <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                        <CmxCard className="overflow-hidden border-info-border bg-card/95 shadow-sm">
+                          <CmxCardHeader className="border-b border-info-border pb-3">
                             <CmxCardTitle
-                              className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                              className="flex items-center gap-2 text-base font-semibold text-primary-text"
                             >
-                              <CreditCard className="h-4 w-4 text-cyan-700" />
+                              <CreditCard className="h-4 w-4 text-primary-text" />
                               {t('sections.paymentTools')}
                             </CmxCardTitle>
                             <p
-                              className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                              className="mt-1 text-xs text-muted-foreground text-start"
                             >
                               {t('sections.paymentToolsHelp')}
                             </p>
@@ -3121,13 +3119,13 @@ export function PaymentFullView({
                             />
                             <div className="space-y-3">
                               <div>
-                                <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                                  <CmxCardHeader className="border-b border-slate-100 pb-3">
+                                <CmxCard className="overflow-hidden border-border bg-card/95 shadow-sm">
+                                  <CmxCardHeader className="border-b border-border pb-3">
                                     <CmxCardTitle
-                                      className={`flex items-center gap-2 text-xs font-semibold ${labelCaseWide} text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                      className={`flex items-center gap-2 text-xs font-semibold ${labelCaseWide} text-muted-foreground `}
                                     >
                                       {t('methods.title')}
-                                      <Info className="h-3.5 w-3.5 text-slate-400" />
+                                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
                                     </CmxCardTitle>
                                   </CmxCardHeader>
                                   <CmxCardContent className="space-y-3">
@@ -3142,7 +3140,7 @@ export function PaymentFullView({
                                     ) : checkoutOptionsIsError ? (
                                       <CmxEmptyState
                                         icon={
-                                          <CircleAlert className="h-8 w-8 text-rose-500" />
+                                          <CircleAlert className="h-8 w-8 text-danger-text" />
                                         }
                                         title={t('methods.loadFailedTitle')}
                                         description={t(
@@ -3166,7 +3164,7 @@ export function PaymentFullView({
                                     ) : realPaymentOptions.length === 0 ? (
                                       <CmxEmptyState
                                         icon={
-                                          <CreditCard className="h-8 w-8 text-slate-400" />
+                                          <CreditCard className="h-8 w-8 text-muted-foreground" />
                                         }
                                         title={t('methods.noMethods')}
                                         description={t(
@@ -3229,12 +3227,12 @@ export function PaymentFullView({
                                               isActive
                                                 ? tone.selected
                                                 : hasLeg
-                                                  ? 'border-slate-300 bg-slate-50 text-slate-900 hover:border-slate-400'
-                                                  : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
-                                            } ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                  ? 'border-border bg-muted text-foreground hover:border-muted-foreground'
+                                                  : 'border-border bg-card text-foreground hover:border-border'
+                                            } `}
                                           >
                                             <span
-                                              className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                                              className="flex w-full items-start gap-3 text-start"
                                             >
                                               <span
                                                 className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${tone.iconWrap}`}
@@ -3245,14 +3243,14 @@ export function PaymentFullView({
                                               </span>
                                               <span className="flex min-w-0 flex-1 flex-col">
                                                 <span className="flex items-start justify-between gap-2">
-                                                  <span className="text-[15px] font-semibold leading-5 text-slate-900">
+                                                  <span className="text-[15px] font-semibold leading-5 text-foreground">
                                                     {optionLabel}
                                                   </span>
                                                   {option.payment_method_code ===
                                                     defaultPaymentMethod && (
                                                     <CmxStatusBadge size="sm"
                                                       tone="neutral"
-                                                      className="rounded-full bg-teal-600 px-2.5 py-1 text-[11px] font-semibold text-white"
+                                                      className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
                                                     >
                                                       {t(
                                                         'methods.defaultBadge',
@@ -3260,7 +3258,7 @@ export function PaymentFullView({
                                                     </CmxStatusBadge>
                                                   )}
                                                 </span>
-                                                <span className="mt-1 text-sm text-slate-600">
+                                                <span className="mt-1 text-sm text-muted-foreground">
                                                   {description ||
                                                     (option.requires_cash_drawer
                                                       ? t(
@@ -3270,7 +3268,7 @@ export function PaymentFullView({
                                                           'methods.touchHintImmediate',
                                                         ))}
                                                 </span>
-                                                <span className="mt-1 text-xs font-medium text-slate-500">
+                                                <span className="mt-1 text-xs font-medium text-muted-foreground">
                                                   {getMethodHint(option)}
                                                 </span>
                                               </span>
@@ -3283,10 +3281,10 @@ export function PaymentFullView({
                                 </CmxCard>
                               </div>
 
-                              <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                                <CmxCardHeader className="border-b border-slate-100 pb-2">
+                              <CmxCard className="overflow-hidden border-border bg-card/95 shadow-sm">
+                                <CmxCardHeader className="border-b border-border pb-2">
                                   <CmxCardTitle
-                                    className={`text-xs font-semibold ${labelCaseWide} text-slate-500 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                    className={`text-xs font-semibold ${labelCaseWide} text-muted-foreground flex items-center gap-2 `}
                                   >
                                     <Wallet className="h-4 w-4" />
                                     {t('customerCredits.title')}
@@ -3294,7 +3292,7 @@ export function PaymentFullView({
                                 </CmxCardHeader>
                                 <CmxCardContent className="space-y-2">
                                   {customerCreditOptions.length === 0 ? (
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-xs text-muted-foreground">
                                       {t('customerCredits.empty')}
                                     </p>
                                   ) : (
@@ -3392,11 +3390,11 @@ export function PaymentFullView({
                                         >
                                           {isLiveBalanceOption && (
                                             <div
-                                              className={`flex items-center justify-between gap-2 px-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                              className="flex items-center justify-between gap-2 px-1"
                                             >
                                               <CmxStatusBadge size="sm"
                                                 tone="neutral"
-                                                className="rounded-full bg-cyan-50 text-cyan-700"
+                                                className="rounded-full bg-info-bg text-info-text"
                                               >
                                                 {t('customerCredits.liveBadge')}
                                               </CmxStatusBadge>
@@ -3411,7 +3409,7 @@ export function PaymentFullView({
                                                 aria-label={t(
                                                   'customerCredits.refreshBalance',
                                                 )}
-                                                className="h-8 rounded-xl px-2 text-slate-500"
+                                                className="h-8 rounded-xl px-2 text-muted-foreground"
                                               >
                                                 {storedValueFetching ? (
                                                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -3433,16 +3431,16 @@ export function PaymentFullView({
                                             }
                                             className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
                                               isActive
-                                                ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm'
+                                                ? 'border-primary bg-info-bg/70 text-foreground shadow-sm'
                                                 : hasLeg
-                                                  ? 'border-slate-300 bg-slate-50 text-slate-900 hover:border-slate-400'
-                                                  : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
-                                            } ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                  ? 'border-border bg-muted text-foreground hover:border-muted-foreground'
+                                                  : 'border-border bg-card text-foreground hover:border-border'
+                                            } ${disabled ? 'opacity-75' : ''} `}
                                           >
                                             <span
-                                              className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                                              className="flex w-full items-start gap-3 text-start"
                                             >
-                                              <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
+                                              <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-info-border bg-info-bg text-info-text">
                                                 <Wallet className="h-5 w-5" />
                                               </span>
                                               <span className="flex min-w-0 flex-1 flex-col">
@@ -3461,8 +3459,8 @@ export function PaymentFullView({
                                                       (isLoyaltyOption &&
                                                         !loyaltyHasAvailableBalance &&
                                                         loyaltyBalanceLoaded)
-                                                        ? 'text-amber-700'
-                                                        : 'text-slate-500'
+                                                        ? 'text-warning-text'
+                                                        : 'text-muted-foreground'
                                                     }`}
                                                   >
                                                     {balanceLabel}
@@ -3471,7 +3469,7 @@ export function PaymentFullView({
                                                 {isLiveBalanceOption &&
                                                   hasLeg &&
                                                   !walletLegExceedsLiveBalance && (
-                                                    <span className="mt-1 text-xs font-medium text-cyan-700">
+                                                    <span className="mt-1 text-xs font-medium text-primary-text">
                                                       {t(
                                                         'customerCredits.applied',
                                                       )}
@@ -3479,7 +3477,7 @@ export function PaymentFullView({
                                                   )}
                                                 {isWalletOption &&
                                                   walletLegExceedsLiveBalance && (
-                                                    <span className="mt-1 text-xs font-medium text-rose-600">
+                                                    <span className="mt-1 text-xs font-medium text-danger-text">
                                                       {t(
                                                         'customerCredits.walletBalanceExceeded',
                                                         {
@@ -3502,27 +3500,27 @@ export function PaymentFullView({
                               <CmxCard
                                 ref={legsCardRef}
                                 data-testid="payment-legs-panel"
-                                className="overflow-hidden border-slate-200 bg-white/95 shadow-sm"
+                                className="overflow-hidden border-border bg-card/95 shadow-sm"
                               >
-                                <CmxCardHeader className="border-b border-slate-100 pb-2">
+                                <CmxCardHeader className="border-b border-border pb-2">
                                   <div
-                                    className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                    className="flex items-center justify-between gap-3"
                                   >
                                     <CmxCardTitle
-                                      className={`text-xs font-semibold ${labelCaseWide} text-slate-500`}
+                                      className={`text-xs font-semibold ${labelCaseWide} text-muted-foreground`}
                                     >
                                       {t('splitPayment.title')}
                                       {editableLegEntries.length > 0 && (
                                         <CmxStatusBadge size="sm"
                                           tone="neutral"
-                                          className="ms-2 rounded-full bg-slate-100 text-slate-600"
+                                          className="ms-2 rounded-full bg-muted text-muted-foreground"
                                         >
                                           {editableLegEntries.length}
                                         </CmxStatusBadge>
                                       )}
                                     </CmxCardTitle>
                                     {editableLegEntries.length > 0 && (
-                                      <span className="text-xs font-semibold text-cyan-700">
+                                      <span className="text-xs font-semibold text-primary-text">
                                         {t('splitPayment.settledTotal')}:{' '}
                                         {currencyCode}{' '}
                                         {formatAmount(splitSidebarSettledTotal)}
@@ -3532,7 +3530,7 @@ export function PaymentFullView({
                                 </CmxCardHeader>
                                 <CmxCardContent className="space-y-2">
                                   {editableLegEntries.length === 0 ? (
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-xs text-muted-foreground">
                                       {t('workspace.addSplitHint')}
                                     </p>
                                   ) : (
@@ -3567,8 +3565,8 @@ export function PaymentFullView({
                                           }
                                           className={`flex items-stretch gap-2 rounded-2xl border transition ${
                                             activeLegIndex === index
-                                              ? 'border-cyan-500 bg-cyan-50/70 shadow-sm'
-                                              : 'border-slate-200 bg-white hover:border-slate-300'
+                                              ? 'border-primary bg-info-bg/70 shadow-sm'
+                                              : 'border-border bg-card hover:border-border'
                                           }`}
                                         >
                                           <CmxButton
@@ -3580,12 +3578,12 @@ export function PaymentFullView({
                                             }}
                                             className={`h-auto min-h-0 flex-1 justify-between rounded-2xl border-0 px-3 py-3 text-sm shadow-none ${
                                               activeLegIndex === index
-                                                ? 'text-cyan-900 hover:bg-transparent'
-                                                : 'text-slate-700 hover:bg-slate-50'
+                                                ? 'text-primary-text hover:bg-transparent'
+                                                : 'text-foreground hover:bg-muted'
                                             }`}
                                           >
                                             <span className="flex items-center gap-2">
-                                              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-500">
+                                              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-xs font-bold text-muted-foreground">
                                                 {index + 1}
                                               </span>
                                               <span
@@ -3602,7 +3600,7 @@ export function PaymentFullView({
                                                 {currencyCode}{' '}
                                                 {formatAmount(leg.amount || 0)}
                                               </span>
-                                              <EllipsisVertical className="h-4 w-4 text-slate-300" />
+                                              <EllipsisVertical className="h-4 w-4 text-muted-foreground" />
                                             </span>
                                           </CmxButton>
                                           <CmxButton
@@ -3617,7 +3615,7 @@ export function PaymentFullView({
                                             onClick={() =>
                                               fillLegRemaining(index)
                                             }
-                                            className="my-2 me-2 min-h-[44px] shrink-0 rounded-xl border-cyan-200 px-2.5 text-cyan-700"
+                                            className="my-2 me-2 min-h-[44px] shrink-0 rounded-xl border-info-border px-2.5 text-primary-text"
                                           >
                                             {t('splitPayment.fillRemaining')}
                                           </CmxButton>
@@ -3644,10 +3642,10 @@ export function PaymentFullView({
                                     <CmxSelectDropdownTrigger
                                       dir={isRTL ? 'rtl' : 'ltr'}
                                       aria-label={t('splitPayment.addMethod')}
-                                      className="min-h-[44px] w-full justify-center rounded-2xl border-dashed border-slate-300 bg-white text-slate-600 hover:border-cyan-400 hover:text-cyan-700"
+                                      className="min-h-[44px] w-full justify-center rounded-2xl border-dashed border-border bg-card text-muted-foreground hover:border-primary hover:text-primary-text"
                                     >
                                       <span
-                                        className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                        className="flex items-center gap-2"
                                       >
                                         <Plus className="h-4 w-4" />
                                         {t('splitPayment.addMethod')}
@@ -3679,9 +3677,9 @@ export function PaymentFullView({
                                       onClick={() =>
                                         removeLegAt(activeLegIndex)
                                       }
-                                      className="w-full justify-center text-rose-600"
+                                      className="w-full justify-center text-danger-text"
                                     >
-                                      <Trash2 className="mr-1 h-4 w-4" />
+                                      <Trash2 className="me-1 h-4 w-4" />
                                       {t('splitPayment.remove')}
                                     </CmxButton>
                                   )}
@@ -3693,25 +3691,25 @@ export function PaymentFullView({
                       </aside>
 
                       <section className="min-w-0">
-                        <CmxCard className="overflow-hidden border-cyan-100 bg-white/95 shadow-sm">
-                          <CmxCardHeader className="border-b border-cyan-100 pb-3">
+                        <CmxCard className="overflow-hidden border-info-border bg-card/95 shadow-sm">
+                          <CmxCardHeader className="border-b border-info-border pb-3">
                             <div
-                              className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                              className="flex items-start justify-between gap-3"
                             >
                               <div>
                                 <CmxCardTitle
-                                  className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                  className="flex items-center gap-2 text-base font-semibold text-primary-text"
                                 >
-                                  <Maximize2 className="h-4 w-4 text-cyan-700" />
+                                  <Maximize2 className="h-4 w-4 text-primary-text" />
                                   {t('sections.paymentWorkbench')}
                                 </CmxCardTitle>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                   {t('sections.paymentWorkbenchHelp')}
                                 </p>
                               </div>
                               <CmxStatusBadge size="sm"
                                 tone="neutral"
-                                className="rounded-full bg-cyan-50 px-3 py-1 text-cyan-700"
+                                className="rounded-full bg-info-bg px-3 py-1 text-info-text"
                               >
                                 {visiblePaymentSectionIds.size}
                               </CmxStatusBadge>
@@ -3731,9 +3729,9 @@ export function PaymentFullView({
                                   PAYMENT_MODAL_SECTION_IDS.BALANCE_SNAPSHOT,
                                 )}
                                 onToggle={toggleSection}
-                                cardClassName="border-cyan-100 bg-white"
-                                headerClassName="border-cyan-100"
-                                titleClassName="text-sm text-cyan-900"
+                                cardClassName="border-info-border bg-card"
+                                headerClassName="border-info-border"
+                                titleClassName="text-sm text-primary-text"
                                 isRTL={isRTL}
                                 expandLabel={
                                   workbenchSectionToggleLabels.expandLabel
@@ -3748,10 +3746,10 @@ export function PaymentFullView({
                                     tone="neutral"
                                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                       unresolvedOverpaymentAmount > moneyEpsilon
-                                        ? 'bg-rose-50 text-rose-700'
+                                        ? 'bg-danger-bg text-danger-text'
                                         : remainingBalance > moneyEpsilon
-                                          ? 'bg-amber-50 text-amber-700'
-                                          : 'bg-emerald-50 text-emerald-700'
+                                          ? 'bg-warning-bg text-warning-text'
+                                          : 'bg-success-bg text-success-text'
                                     }`}
                                   >
                                     {allocationStatusLabel}
@@ -3762,51 +3760,51 @@ export function PaymentFullView({
                                 {/* Finding 1.1: one hero metric (Remaining) + compact companions.
                           The right-rail Balance Result stays the source of truth. */}
                                 <div
-                                  className={`flex flex-wrap items-end justify-between gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                  className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 rounded-2xl border border-border bg-card px-4 py-3"
                                 >
                                   <div
                                     data-testid="payment-balance-remaining"
                                     className={
-                                      isRTL ? 'text-right' : 'text-left'
+                                      'text-start'
                                     }
                                   >
-                                    <p className="text-xs font-semibold text-slate-500">
+                                    <p className="text-xs font-semibold text-muted-foreground">
                                       {t('workspace.remaining')}
                                     </p>
                                     <p
-                                      className={`mt-1 text-3xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${remainingBalance > moneyEpsilon ? 'text-amber-600' : 'text-emerald-600'}`}
+                                      className={`mt-1 text-3xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${remainingBalance > moneyEpsilon ? 'text-warning-text' : 'text-success-text'}`}
                                     >
                                       {currencyCode}{' '}
                                       {formatAmount(remainingBalance)}
                                     </p>
                                   </div>
                                   <div
-                                    className={`flex flex-wrap items-end gap-x-6 gap-y-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                    className="flex flex-wrap items-end gap-x-6 gap-y-2"
                                   >
                                     <div
                                       data-testid="payment-balance-total-due"
                                       className={
-                                        isRTL ? 'text-right' : 'text-left'
+                                        'text-start'
                                       }
                                     >
-                                      <p className="text-xs font-semibold text-slate-500">
+                                      <p className="text-xs font-semibold text-muted-foreground">
                                         {t('workspace.totalDue')}
                                       </p>
-                                      <p className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
+                                      <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                                         {currencyCode} {formatAmount(saleTotal)}
                                       </p>
                                     </div>
                                     <div
                                       data-testid="payment-balance-change"
                                       className={
-                                        isRTL ? 'text-right' : 'text-left'
+                                        'text-start'
                                       }
                                     >
-                                      <p className="text-xs font-semibold text-slate-500">
+                                      <p className="text-xs font-semibold text-muted-foreground">
                                         {t('workspace.change')}
                                       </p>
                                       <p
-                                        className={`mt-1 text-sm font-semibold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-emerald-600' : 'text-slate-900'}`}
+                                        className={`mt-1 text-sm font-semibold tabular-nums ${displayChangeAmount > moneyEpsilon ? 'text-success-text' : 'text-foreground'}`}
                                       >
                                         {currencyCode}{' '}
                                         {formatAmount(displayChangeAmount)}
@@ -3815,7 +3813,6 @@ export function PaymentFullView({
                                         rounding={cashChangeRounding}
                                         currencyCode={currencyCode}
                                         formatAmount={formatAmount}
-                                        isRTL={isRTL}
                                       />
                                     </div>
                                     {unresolvedOverpaymentAmount >
@@ -3823,13 +3820,13 @@ export function PaymentFullView({
                                       <div
                                         data-testid="payment-balance-overpaid"
                                         className={
-                                          isRTL ? 'text-right' : 'text-left'
+                                          'text-start'
                                         }
                                       >
-                                        <p className="text-xs font-semibold text-rose-600">
+                                        <p className="text-xs font-semibold text-danger-text">
                                           {t('rightRail.overpaidAmount')}
                                         </p>
-                                        <p className="mt-1 text-sm font-semibold tabular-nums text-rose-600">
+                                        <p className="mt-1 text-sm font-semibold tabular-nums text-danger-text">
                                           {currencyCode}{' '}
                                           {formatAmount(
                                             unresolvedOverpaymentAmount,
@@ -3908,10 +3905,10 @@ export function PaymentFullView({
                               {showDeferredExplanation ? (
                                 <CmxCard>
                                   <CmxCardContent className="pt-5">
-                                    <p className="text-lg font-semibold text-slate-900">
+                                    <p className="text-lg font-semibold text-foreground">
                                       {t('workspace.noImmediateTitle')}
                                     </p>
-                                    <p className="mt-2 text-sm text-slate-600">
+                                    <p className="mt-2 text-sm text-muted-foreground">
                                       {t('workspace.noImmediateDescription')}
                                     </p>
                                   </CmxCardContent>
@@ -3931,9 +3928,9 @@ export function PaymentFullView({
                                         PAYMENT_MODAL_SECTION_IDS.AMOUNT_EDITOR,
                                       )}
                                       onToggle={toggleSection}
-                                      cardClassName="border-slate-200 bg-white"
-                                      headerClassName="border-slate-100"
-                                      titleClassName="text-sm text-slate-700"
+                                      cardClassName="border-border bg-card"
+                                      headerClassName="border-border"
+                                      titleClassName="text-sm text-foreground"
                                       isRTL={isRTL}
                                       expandLabel={
                                         workbenchSectionToggleLabels.expandLabel
@@ -3950,7 +3947,7 @@ export function PaymentFullView({
                                             size="sm"
                                             data-testid="payment-cycle-active-leg"
                                             onClick={cycleActiveLeg}
-                                            className="rounded-xl border-slate-200 text-slate-700"
+                                            className="rounded-xl border-border text-foreground"
                                           >
                                             <ArrowRightLeft className="me-1 h-4 w-4" />
                                             {t('splitPayment.switchLeg')}
@@ -4048,8 +4045,8 @@ export function PaymentFullView({
                                           <div
                                             className={`rounded-xl border px-3 py-2 text-xs ${
                                               walletLegExceedsLiveBalance
-                                                ? 'border-rose-200 bg-rose-50 text-rose-700'
-                                                : 'border-cyan-200 bg-cyan-50 text-cyan-800'
+                                                ? 'border-danger-border bg-danger-bg text-danger-text'
+                                                : 'border-info-border bg-info-bg text-info-text'
                                             }`}
                                           >
                                             {walletLegExceedsLiveBalance
@@ -4068,7 +4065,7 @@ export function PaymentFullView({
                                         )}
                                         {activeLeg?.method ===
                                           'LOYALTY_POINTS' && (
-                                          <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs text-cyan-800">
+                                          <div className="rounded-xl border border-info-border bg-info-bg px-3 py-2 text-xs text-info-text">
                                             {t('customerCredits.available', {
                                               amount: remainingLoyaltyDisplay,
                                             })}
@@ -4076,7 +4073,7 @@ export function PaymentFullView({
                                         )}
                                         {activeLeg?.method ===
                                         PAYMENT_METHODS.CASH ? (
-                                          <div className="grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 sm:grid-cols-3">
+                                          <div className="grid gap-2 rounded-xl border border-success-border bg-success-bg px-3 py-2 text-xs text-success-text sm:grid-cols-3">
                                             <span>
                                               <span data-testid="payment-active-applied-amount">
                                                 {t('rightRail.appliedAmount')}:{' '}
@@ -4123,7 +4120,6 @@ export function PaymentFullView({
                                           items={quickTenderChipItems}
                                           onSelect={handleQuickTenderSelect}
                                           disabled={!activeLeg || submitBusy}
-                                          isRTL={isRTL}
                                         />
                                         <CmxKeypad
                                           keys={KEYPAD_PAYMENT_4COL}
@@ -4165,8 +4161,8 @@ export function PaymentFullView({
                                       PAYMENT_MODAL_SECTION_IDS.PAYMENT_WORKSPACE,
                                     )}
                                     onToggle={toggleSection}
-                                    cardClassName="min-h-[360px] border-cyan-100 bg-white"
-                                    headerClassName="border-cyan-100"
+                                    cardClassName="min-h-[360px] border-info-border bg-card"
+                                    headerClassName="border-info-border"
                                     isRTL={isRTL}
                                     expandLabel={
                                       workbenchSectionToggleLabels.expandLabel
@@ -4176,9 +4172,9 @@ export function PaymentFullView({
                                     }
                                     title={
                                       <span
-                                        className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                        className="flex items-center gap-2"
                                       >
-                                        <Maximize2 className="h-4 w-4 text-cyan-700" />
+                                        <Maximize2 className="h-4 w-4 text-primary-text" />
                                         {t('sections.sectionC')} ·{' '}
                                         {t('workspace.activeTitle')}
                                       </span>
@@ -4190,7 +4186,7 @@ export function PaymentFullView({
                                       activeLeg ? (
                                         <CmxStatusBadge size="sm"
                                           tone="neutral"
-                                          className="rounded-full bg-cyan-100 px-3 py-1 text-cyan-700"
+                                          className="rounded-full bg-info-bg px-3 py-1 text-info-text"
                                         >
                                           {getCheckoutOptionDisplayName(
                                             activeLegOption,
@@ -4209,24 +4205,24 @@ export function PaymentFullView({
                                     {activeLeg ? (
                                       <>
                                         <div
-                                          className={`flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                          className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
                                         >
                                           <p
-                                            className={`text-xs font-semibold text-slate-500 ${!isRTL ? 'uppercase tracking-[0.14em]' : ''}`}
+                                            className={`text-xs font-semibold text-muted-foreground ${!isRTL ? 'uppercase tracking-[0.14em]' : ''}`}
                                           >
                                             {t('workspace.afterThisPayment')}
                                           </p>
                                           <p
-                                            className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${remainingBalance > moneyEpsilon ? 'text-amber-600' : 'text-emerald-600'}`}
+                                            className={`text-2xl font-bold tabular-nums transition-colors duration-300 motion-reduce:transition-none ${remainingBalance > moneyEpsilon ? 'text-warning-text' : 'text-success-text'}`}
                                           >
                                             {currencyCode}{' '}
                                             {formatAmount(remainingBalance)}
                                           </p>
                                         </div>
 
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                        <div className="rounded-2xl border border-border bg-card p-4">
                                           <p
-                                            className={`mb-3 text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                            className="mb-3 text-sm font-semibold text-foreground text-start"
                                           >
                                             {t('workspace.detailsTitle')}
                                           </p>
@@ -4235,11 +4231,11 @@ export function PaymentFullView({
                                             {creditMethodCodes.includes(
                                               activeLeg.method,
                                             ) && (
-                                              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-3 py-3 text-sm text-cyan-900">
+                                              <div className="rounded-2xl border border-info-border bg-info-bg px-3 py-3 text-sm text-info-text">
                                                 {activeLeg.method ===
                                                 'CREDIT_NOTE' ? (
                                                   <div
-                                                    className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                    className="flex items-center justify-between gap-3"
                                                   >
                                                     <span>
                                                       {activeLeg.creditReferenceId
@@ -4329,25 +4325,25 @@ export function PaymentFullView({
                                         </div>
                                       </>
                                     ) : (
-                                      <div className="grid min-h-[240px] place-items-center rounded-2xl border border-dashed border-cyan-200 bg-white/70 p-6 text-center">
+                                      <div className="grid min-h-[240px] place-items-center rounded-2xl border border-dashed border-info-border bg-card/70 p-6 text-center">
                                         <div className="max-w-md">
-                                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
+                                          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-info-bg text-info-text">
                                             <CreditCard className="h-6 w-6" />
                                           </div>
-                                          <p className="mt-4 text-lg font-semibold text-slate-900">
+                                          <p className="mt-4 text-lg font-semibold text-foreground">
                                             {t('workspace.helperTitle')}
                                           </p>
-                                          <p className="mt-2 text-sm text-slate-600">
+                                          <p className="mt-2 text-sm text-muted-foreground">
                                             {t('workspace.helperDescription')}
                                           </p>
-                                          <div className="mt-4 grid gap-2 text-xs text-slate-500 sm:grid-cols-3">
-                                            <span className="rounded-full bg-slate-100 px-3 py-2">
+                                          <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                                            <span className="rounded-full bg-muted px-3 py-2">
                                               {t('workspace.helperMethod')}
                                             </span>
-                                            <span className="rounded-full bg-slate-100 px-3 py-2">
+                                            <span className="rounded-full bg-muted px-3 py-2">
                                               {t('workspace.helperAmount')}
                                             </span>
-                                            <span className="rounded-full bg-slate-100 px-3 py-2">
+                                            <span className="rounded-full bg-muted px-3 py-2">
                                               {t('workspace.helperCredits')}
                                             </span>
                                           </div>
@@ -4371,8 +4367,8 @@ export function PaymentFullView({
                                     PAYMENT_MODAL_SECTION_IDS.DISCOUNTS_CREDITS,
                                   )}
                                   onToggle={toggleSection}
-                                  cardClassName="border-purple-100 bg-white/95"
-                                  headerClassName="border-purple-100"
+                                  cardClassName="border-info-border bg-card/95"
+                                  headerClassName="border-info-border"
                                   isRTL={isRTL}
                                   expandLabel={
                                     workbenchSectionToggleLabels.expandLabel
@@ -4388,7 +4384,7 @@ export function PaymentFullView({
                                     appliedBadgeCount > 0 ? (
                                       <CmxStatusBadge size="sm"
                                         tone="neutral"
-                                        className="rounded-full bg-purple-100 px-3 py-1 text-purple-700"
+                                        className="rounded-full bg-info-bg px-3 py-1 text-info-text"
                                       >
                                         {appliedBadgeCount}
                                       </CmxStatusBadge>
@@ -4412,21 +4408,21 @@ export function PaymentFullView({
                                           percentDiscountInputRef
                                         }
                                         lockedReason={discountLockedReason}
-                                        className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                                        className="space-y-3 rounded-2xl border border-border bg-muted/70 p-4"
                                       />
 
                                       {!NEW_ORDER_PROMO_GIFT_DISABLED ? (
-                                        <div className="space-y-4 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+                                        <div className="space-y-4 rounded-2xl border border-info-border bg-info-bg/50 p-4">
                                           <div>
                                             <p
-                                              className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                              className="text-sm font-semibold text-foreground text-start"
                                             >
                                               {t(
                                                 'rightRail.creditsAndStoredValue',
                                               )}
                                             </p>
                                             <p
-                                              className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                              className="mt-1 text-xs text-muted-foreground text-start"
                                             >
                                               {t(
                                                 'rightRail.creditsAndStoredValueHelp',
@@ -4437,7 +4433,7 @@ export function PaymentFullView({
                                           {!appliedPromoCode ? (
                                             <div className="space-y-2">
                                               <div
-                                                className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                className="flex gap-2"
                                               >
                                                 <Controller
                                                   name="promoCode"
@@ -4494,15 +4490,15 @@ export function PaymentFullView({
                                               </div>
                                               {promoErrorMessage ? (
                                                 <p
-                                                  className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}
+                                                  className="text-xs text-danger-text text-start"
                                                 >
                                                   {promoErrorMessage}
                                                 </p>
                                               ) : null}
                                             </div>
                                           ) : (
-                                            <div className="flex items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2">
-                                              <span className="text-sm font-medium text-green-900">
+                                            <div className="flex items-center justify-between gap-2 rounded-xl border border-success-border bg-success-bg px-3 py-2">
+                                              <span className="text-sm font-medium text-success-text">
                                                 {appliedPromoCode.code} -
                                                 {currencyCode}{' '}
                                                 {formatAmount(
@@ -4523,7 +4519,7 @@ export function PaymentFullView({
                                           {appliedPromoCode && promoNotice ? (
                                             <p
                                               role="status"
-                                              className={`rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                              className="rounded-lg border border-warning-border bg-warning-bg px-3 py-2 text-xs text-warning-text text-start"
                                             >
                                               {t('promoCode.notAppliedRuleWins', {
                                                 code: promoNotice.promoCode,
@@ -4535,10 +4531,10 @@ export function PaymentFullView({
                                           {!appliedGiftCard ? (
                                             <div
                                               ref={giftCardDetailsRef}
-                                              className="space-y-3 rounded-xl border border-purple-200 bg-white p-3"
+                                              className="space-y-3 rounded-xl border border-info-border bg-card p-3"
                                             >
                                               <div
-                                                className={`grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] ${isRTL ? 'sm:[direction:rtl]' : ''}`}
+                                                className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
                                               >
                                                 <Controller
                                                   name="giftCardNumber"
@@ -4596,7 +4592,7 @@ export function PaymentFullView({
                                               {giftCardResult &&
                                               !giftCardResult.isValid ? (
                                                 <p
-                                                  className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}
+                                                  className="text-xs text-danger-text text-start"
                                                 >
                                                   {resolveGiftCardError(
                                                     giftCardResult,
@@ -4605,14 +4601,14 @@ export function PaymentFullView({
                                               ) : null}
                                               {showGiftCardWorkspace ? (
                                                 <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
-                                                  <div className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-2">
+                                                  <div className="rounded-xl border border-info-border bg-info-bg px-3 py-2">
                                                     <p
-                                                      className={`text-xs font-semibold ${labelCase} text-purple-500`}
+                                                      className={`text-xs font-semibold ${labelCase} text-primary-text`}
                                                     >
                                                       {t('giftCard.cardCode')}
                                                     </p>
                                                     <p
-                                                      className="mt-1 break-all text-sm font-semibold text-slate-900"
+                                                      className="mt-1 break-all text-sm font-semibold text-foreground"
                                                       dir="ltr"
                                                     >
                                                       {giftCardDetails?.number ||
@@ -4638,7 +4634,7 @@ export function PaymentFullView({
                                                         />
                                                       </div>
                                                     ) : (
-                                                      <p className="mt-2 text-xs text-amber-700">
+                                                      <p className="mt-2 text-xs text-warning-text">
                                                         {t(
                                                           'giftCard.pinPendingError',
                                                         )}
@@ -4648,7 +4644,7 @@ export function PaymentFullView({
                                                   <div className="space-y-3">
                                                     {pinRequired ? (
                                                       <div
-                                                        className={`grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto] ${isRTL ? 'sm:[direction:rtl]' : ''}`}
+                                                        className="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
                                                       >
                                                         <CmxInput
                                                           ref={pinInputRef}
@@ -4666,7 +4662,7 @@ export function PaymentFullView({
                                                             pinFieldError ??
                                                             undefined
                                                           }
-                                                          className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-rose-400' : ''}`}
+                                                          className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-destructive' : ''}`}
                                                           onChange={(event) => {
                                                             setGiftCardPin(
                                                               event.target
@@ -4871,7 +4867,7 @@ export function PaymentFullView({
                                                           testId="advanced-gift-card-amount"
                                                         />
                                                         <div
-                                                          className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                          className="flex gap-2"
                                                         >
                                                           <CmxButton
                                                             type="button"
@@ -4910,8 +4906,8 @@ export function PaymentFullView({
                                               ) : null}
                                             </div>
                                           ) : (
-                                            <div className="flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2">
-                                              <span className="text-sm font-medium text-purple-900">
+                                            <div className="flex items-center justify-between gap-2 rounded-xl border border-info-border bg-info-bg px-3 py-2">
+                                              <span className="text-sm font-medium text-primary-text">
                                                 {appliedGiftCard.number} -
                                                 {currencyCode}{' '}
                                                 {formatAmount(
@@ -4933,9 +4929,9 @@ export function PaymentFullView({
                                     </div>
 
                                     {PAYMENT_MODAL_V04_SHOW_LIVE_EFFECT ? (
-                                      <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+                                      <div className="space-y-3 rounded-2xl border border-info-border bg-info-bg/60 p-4">
                                         <p
-                                          className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                          className="text-sm font-semibold text-foreground text-start"
                                         >
                                           {t('rightRail.liveEffect')}
                                         </p>
@@ -4980,8 +4976,8 @@ export function PaymentFullView({
                                     PAYMENT_MODAL_SECTION_IDS.CASH_DRAWER,
                                   )}
                                   onToggle={toggleSection}
-                                  cardClassName="border-cyan-200 bg-white/95"
-                                  headerClassName="border-cyan-100"
+                                  cardClassName="border-info-border bg-card/95"
+                                  headerClassName="border-info-border"
                                   isRTL={isRTL}
                                   expandLabel={
                                     workbenchSectionToggleLabels.expandLabel
@@ -4991,9 +4987,9 @@ export function PaymentFullView({
                                   }
                                   title={
                                     <span
-                                      className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                      className="flex items-center gap-2"
                                     >
-                                      <Banknote className="h-4 w-4 text-cyan-700" />
+                                      <Banknote className="h-4 w-4 text-primary-text" />
                                       {t('sections.sectionF')} ·{' '}
                                       {t('sections.cashDrawer')}
                                     </span>
@@ -5004,8 +5000,8 @@ export function PaymentFullView({
                                       tone="neutral"
                                       className={`rounded-full px-3 py-1 ${
                                         selectedCashDrawerChoice
-                                          ? 'bg-cyan-100 text-cyan-700'
-                                          : 'bg-amber-100 text-amber-700'
+                                          ? 'bg-info-bg text-info-text'
+                                          : 'bg-warning-bg text-warning-text'
                                       }`}
                                     >
                                       {selectedCashDrawerChoice
@@ -5023,18 +5019,18 @@ export function PaymentFullView({
                                   ) : (
                                     <>
                                       {cashDrawerRequestError ? (
-                                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                                        <div className="rounded-xl border border-danger-border bg-danger-bg px-3 py-2 text-xs text-danger-text">
                                           {cashDrawerRequestError}
                                         </div>
                                       ) : null}
 
                                       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
-                                        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                        <div className="space-y-3 rounded-2xl border border-border bg-muted/70 p-4">
                                           {cashDrawerSessionChoices.length >
                                           1 ? (
                                             <div className="space-y-2">
                                               <label
-                                                className={`block text-xs font-semibold ${labelCase} text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                                className={`block text-xs font-semibold ${labelCase} text-muted-foreground text-start`}
                                               >
                                                 {t('cashDrawer.selectLabel')}
                                               </label>
@@ -5095,34 +5091,32 @@ export function PaymentFullView({
                                           ) : null}
 
                                           {selectedCashDrawerChoice ? (
-                                            <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-3">
+                                            <div className="rounded-2xl border border-info-border bg-info-bg/80 p-3">
                                               <div
-                                                className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                className="flex items-center justify-between gap-2"
                                               >
                                                 <div
                                                   className={
-                                                    isRTL
-                                                      ? 'text-right'
-                                                      : 'text-left'
+                                                    'text-start'
                                                   }
                                                 >
-                                                  <p className="text-sm font-semibold text-slate-900">
+                                                  <p className="text-sm font-semibold text-foreground">
                                                     {getDrawerDisplayName(
                                                       selectedCashDrawerChoice.drawer,
                                                     )}
                                                   </p>
-                                                  <p className="text-xs text-slate-500">
+                                                  <p className="text-xs text-muted-foreground">
                                                     {
                                                       selectedCashDrawerChoice
                                                         .session.session_no
                                                     }
                                                   </p>
                                                 </div>
-                                                <Banknote className="h-4 w-4 text-cyan-700" />
+                                                <Banknote className="h-4 w-4 text-primary-text" />
                                               </div>
-                                              <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                                              <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                                 <div>
-                                                  <p className="font-medium text-slate-500">
+                                                  <p className="font-medium text-muted-foreground">
                                                     {t('cashDrawer.openedAt')}
                                                   </p>
                                                   <p>
@@ -5133,7 +5127,7 @@ export function PaymentFullView({
                                                   </p>
                                                 </div>
                                                 <div>
-                                                  <p className="font-medium text-slate-500">
+                                                  <p className="font-medium text-muted-foreground">
                                                     {t(
                                                       'cashDrawer.openingBalance',
                                                     )}
@@ -5147,8 +5141,8 @@ export function PaymentFullView({
                                               className={`rounded-2xl border px-3 py-3 text-xs ${
                                                 cashDrawerSessionChoices.length ===
                                                 0
-                                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                                  : 'border-slate-200 bg-slate-50 text-slate-600'
+                                                  ? 'border-warning-border bg-warning-bg text-warning-text'
+                                                  : 'border-border bg-muted text-muted-foreground'
                                               }`}
                                             >
                                               {cashDrawerSessionChoices.length ===
@@ -5163,7 +5157,7 @@ export function PaymentFullView({
                                           )}
 
                                           <div
-                                            className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                            className="flex items-center gap-2"
                                           >
                                             <CmxButton
                                               type="button"
@@ -5199,9 +5193,9 @@ export function PaymentFullView({
                                           </div>
                                         </div>
 
-                                        <div className="space-y-3 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+                                        <div className="space-y-3 rounded-2xl border border-info-border bg-info-bg/60 p-4">
                                           <p
-                                            className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                            className="text-sm font-semibold text-foreground text-start"
                                           >
                                             {t('rightRail.cashDrawerImpact')}
                                           </p>
@@ -5237,8 +5231,8 @@ export function PaymentFullView({
                                   PAYMENT_MODAL_SECTION_IDS.FINANCIAL_INSPECTOR,
                                 )}
                                 onToggle={toggleSection}
-                                cardClassName="border-slate-200 bg-white/95"
-                                headerClassName="border-slate-100"
+                                cardClassName="border-border bg-card/95"
+                                headerClassName="border-border"
                                 isRTL={isRTL}
                                 expandLabel={
                                   workbenchSectionToggleLabels.expandLabel
@@ -5253,7 +5247,7 @@ export function PaymentFullView({
                                 headerAside={
                                   <CmxStatusBadge size="sm"
                                     tone="neutral"
-                                    className="rounded-full bg-slate-100 px-3 py-1 text-slate-600"
+                                    className="rounded-full bg-muted px-3 py-1 text-muted-foreground"
                                   >
                                     {inspectorTabIds.length}
                                   </CmxStatusBadge>
@@ -5269,7 +5263,6 @@ export function PaymentFullView({
                                         content: (
                                           <OrderValueBreakdownPanel
                                             model={orderValueBreakdownModel}
-                                            isRTL={isRTL}
                                             taxLoading={
                                               totalsLoading ||
                                               (items.length > 0 &&
@@ -5309,7 +5302,7 @@ export function PaymentFullView({
                                                 displayTaxBreakdown.length ===
                                                 0 ? (
                                                   <p
-                                                    className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                                    className="text-xs text-muted-foreground text-start"
                                                   >
                                                     {t('tax.noProfiles')}
                                                   </p>
@@ -5322,16 +5315,16 @@ export function PaymentFullView({
                                                             entry.profileId ??
                                                             `${entry.taxType}-${index}`
                                                           }
-                                                          className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                                                          className="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted px-3 py-2"
                                                         >
                                                           <div className="min-w-0 flex-1">
-                                                            <p className="truncate text-xs font-medium text-slate-700">
+                                                            <p className="truncate text-xs font-medium text-foreground">
                                                               {isRTL
                                                                 ? entry.label2 ||
                                                                   entry.label
                                                                 : entry.label}
                                                             </p>
-                                                            <p className="text-xs text-slate-500">
+                                                            <p className="text-xs text-muted-foreground">
                                                               {t('tax.rate')}:{' '}
                                                               {entry.rate.toFixed(
                                                                 2,
@@ -5339,7 +5332,7 @@ export function PaymentFullView({
                                                               %
                                                             </p>
                                                           </div>
-                                                          <span className="text-sm font-semibold tabular-nums text-slate-900">
+                                                          <span className="text-sm font-semibold tabular-nums text-foreground">
                                                             {currencyCode}{' '}
                                                             {formatAmount(
                                                               entry.taxAmount,
@@ -5461,15 +5454,15 @@ export function PaymentFullView({
                                                     0 ? (
                                                     <div
                                                       ref={creditLimitCardRef}
-                                                      className={`rounded-xl border p-3 ${b2bCreditLimitInfo.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}
+                                                      className={`rounded-xl border p-3 ${b2bCreditLimitInfo.wouldExceed ? 'border-warning-border bg-warning-bg' : 'border-success-border bg-success-bg'}`}
                                                     >
                                                       <p
-                                                        className={`flex items-center gap-2 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                                        className="flex items-center gap-2 text-sm font-medium text-foreground"
                                                       >
-                                                        <CircleAlert className="h-4 w-4 text-amber-600" />
+                                                        <CircleAlert className="h-4 w-4 text-warning-text" />
                                                         {t('b2b.creditLimit')}
                                                       </p>
-                                                      <p className="mt-1 text-xs text-slate-600">
+                                                      <p className="mt-1 text-xs text-muted-foreground">
                                                         {t('b2b.creditUsed')}:{' '}
                                                         {currencyCode}{' '}
                                                         {formatAmount(
@@ -5486,7 +5479,7 @@ export function PaymentFullView({
                                                         {b2bCreditLimitInfo.wouldExceed &&
                                                         b2bCreditLimitInfo.exceedsBy >
                                                           0 ? (
-                                                          <span className="font-semibold text-amber-800">
+                                                          <span className="font-semibold text-warning-text">
                                                             {' '}
                                                             •{' '}
                                                             {t(
@@ -5500,7 +5493,7 @@ export function PaymentFullView({
                                                         ) : null}
                                                       </p>
                                                       {b2bCreditLimitInfo.wouldExceed ? (
-                                                        <p className="mt-2 text-xs font-medium text-amber-800">
+                                                        <p className="mt-2 text-xs font-medium text-warning-text">
                                                           {t(
                                                             'b2b.creditExceeded',
                                                           )}
@@ -5559,8 +5552,8 @@ export function PaymentFullView({
                                     PAYMENT_MODAL_SECTION_IDS.BALANCE_POLICY,
                                   )}
                                   onToggle={toggleSection}
-                                  cardClassName="border-slate-200 bg-white/95"
-                                  headerClassName="border-slate-100"
+                                  cardClassName="border-border bg-card/95"
+                                  headerClassName="border-border"
                                   isRTL={isRTL}
                                   expandLabel={
                                     workbenchSectionToggleLabels.expandLabel
@@ -5570,11 +5563,11 @@ export function PaymentFullView({
                                   }
                                   title={
                                     <span
-                                      className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                      className="flex items-center gap-2"
                                     >
                                       {t('sections.sectionD')} ·{' '}
                                       {t('rightRail.balancePolicy')}
-                                      <Info className="h-4 w-4 text-slate-400" />
+                                      <Info className="h-4 w-4 text-muted-foreground" />
                                     </span>
                                   }
                                   description={t('rightRail.balancePolicyHelp')}
@@ -5619,18 +5612,18 @@ export function PaymentFullView({
                                           option.policy,
                                         )
                                       }
-                                      className={`h-auto w-full justify-start rounded-2xl border px-4 py-3 text-left ${
+                                      className={`h-auto w-full justify-start rounded-2xl border px-4 py-3 text-start ${
                                         effectiveOutstandingPolicy ===
                                         option.policy
-                                          ? 'border-teal-500 bg-teal-50 text-slate-900 shadow-sm'
-                                          : 'border-slate-200 bg-white text-slate-700'
-                                      } ${isRTL ? 'text-right' : ''}`}
+                                          ? 'border-primary bg-info-bg text-foreground shadow-sm'
+                                          : 'border-border bg-card text-foreground'
+                                      } `}
                                     >
                                       <div className="space-y-1">
                                         <p className="text-sm font-semibold">
                                           {option.title}
                                         </p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs text-muted-foreground">
                                           {option.description}
                                         </p>
                                       </div>
@@ -5652,17 +5645,15 @@ export function PaymentFullView({
                           aria-label={tCommon('close')}
                           data-testid="payment-rail-backdrop"
                           onClick={() => setRailOpen(false)}
-                          className="fixed inset-0 z-40 bg-slate-900/40 xl:hidden"
+                          className="fixed inset-0 z-40 bg-foreground/40 xl:hidden"
                         />
                       ) : null}
                       <aside
                         data-testid="payment-receipt-rail"
-                        className={`fixed inset-y-0 end-0 z-50 w-[min(92vw,380px)] overflow-y-auto bg-slate-50 p-3 shadow-2xl transition-transform duration-300 motion-reduce:transition-none xl:static xl:z-auto xl:w-auto xl:min-w-0 xl:translate-x-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none ${
+                        className={`fixed inset-y-0 end-0 z-50 w-[min(92vw,380px)] overflow-y-auto bg-muted p-3 shadow-2xl transition-transform duration-300 motion-reduce:transition-none xl:static xl:z-auto xl:w-auto xl:min-w-0 xl:translate-x-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none ${
                           railOpen
                             ? 'translate-x-0'
-                            : isRTL
-                              ? '-translate-x-full'
-                              : 'translate-x-full'
+                            : 'ltr:translate-x-full rtl:-translate-x-full'
                         } ${
                           PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
                             ? 'xl:sticky xl:top-0 xl:z-10 xl:flex xl:max-h-[calc(94vh-11rem)] xl:flex-col xl:self-start'
@@ -5670,7 +5661,7 @@ export function PaymentFullView({
                         }`}
                       >
                         <div
-                          className={`mb-2 flex justify-end xl:hidden ${isRTL ? 'flex-row-reverse' : ''}`}
+                          className="mb-2 flex justify-end xl:hidden"
                         >
                           <CmxButton
                             type="button"
@@ -5678,27 +5669,27 @@ export function PaymentFullView({
                             size="sm"
                             onClick={() => setRailOpen(false)}
                             aria-label={tCommon('close')}
-                            className="min-h-[44px] rounded-xl text-slate-600"
+                            className="min-h-[44px] rounded-xl text-muted-foreground"
                           >
                             <X className="h-4 w-4" />
                           </CmxButton>
                         </div>
                         <CmxCard
-                          className={`overflow-hidden border-cyan-100 bg-white/95 shadow-sm ${
+                          className={`overflow-hidden border-info-border bg-card/95 shadow-sm ${
                             PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
                               ? 'flex min-h-0 flex-1 flex-col'
                               : ''
                           }`}
                         >
-                          <CmxCardHeader className="shrink-0 border-b border-cyan-100 pb-3">
+                          <CmxCardHeader className="shrink-0 border-b border-info-border pb-3">
                             <CmxCardTitle
-                              className={`flex items-center gap-2 text-base font-semibold text-cyan-900 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                              className="flex items-center gap-2 text-base font-semibold text-primary-text"
                             >
-                              <UserRound className="h-4 w-4 text-cyan-700" />
+                              <UserRound className="h-4 w-4 text-primary-text" />
                               {t('sections.receiptBrain')}
                             </CmxCardTitle>
                             <p
-                              className={`mt-1 text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                              className="mt-1 text-xs text-muted-foreground text-start"
                             >
                               {t('sections.receiptBrainHelp')}
                             </p>
@@ -5717,31 +5708,31 @@ export function PaymentFullView({
                                   : 'space-y-3'
                               }
                             >
-                              <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                              <CmxCard className="overflow-hidden border-border bg-card/95 shadow-sm">
                                 <CmxCardContent className="pt-5">
                                   <div
-                                    className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                                    className="flex items-start gap-3"
                                   >
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-info-bg text-info-text">
                                       <UserRound className="h-6 w-6" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <div
-                                        className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                        className="flex items-center gap-2"
                                       >
-                                        <p className="truncate text-lg font-semibold text-slate-900">
+                                        <p className="truncate text-lg font-semibold text-foreground">
                                           {customerHeaderName}
                                         </p>
                                         {customerType === 'b2b' ? (
                                           <CmxStatusBadge size="sm"
                                             tone="neutral"
-                                            className="rounded-full bg-slate-100 text-slate-700"
+                                            className="rounded-full bg-muted text-foreground"
                                           >
                                             B2B
                                           </CmxStatusBadge>
                                         ) : null}
                                       </div>
-                                      <p className="mt-1 truncate text-sm text-slate-500">
+                                      <p className="mt-1 truncate text-sm text-muted-foreground">
                                         {customerHeaderMeta}
                                       </p>
                                     </div>
@@ -5750,12 +5741,12 @@ export function PaymentFullView({
                               </CmxCard>
 
                               <div>
-                                <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm backdrop-blur">
-                                  <CmxCardHeader className="border-b border-slate-100 pb-3">
+                                <CmxCard className="overflow-hidden border-border bg-card/95 shadow-sm backdrop-blur">
+                                  <CmxCardHeader className="border-b border-border pb-3">
                                     <div
-                                      className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                      className="flex items-center justify-between gap-3"
                                     >
-                                      <CmxCardTitle className="text-sm text-slate-900">
+                                      <CmxCardTitle className="text-sm text-foreground">
                                         {t('rightRail.balanceResult')}
                                       </CmxCardTitle>
                                       <CmxStatusBadge size="sm"
@@ -5763,14 +5754,14 @@ export function PaymentFullView({
                                         className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${
                                           rightRailState.balanceStatus ===
                                           RIGHT_RAIL_BALANCE_STATUS.BLOCKED
-                                            ? 'bg-rose-100 text-rose-700'
+                                            ? 'bg-danger-bg text-danger-text'
                                             : rightRailState.balanceStatus ===
                                                 RIGHT_RAIL_BALANCE_STATUS.OVERPAID
-                                              ? 'bg-amber-100 text-amber-700'
+                                              ? 'bg-warning-bg text-warning-text'
                                               : rightRailState.balanceStatus ===
                                                   RIGHT_RAIL_BALANCE_STATUS.FULLY_SETTLED
-                                                ? 'bg-emerald-100 text-emerald-700'
-                                                : 'bg-cyan-100 text-cyan-700'
+                                                ? 'bg-success-bg text-success-text'
+                                                : 'bg-info-bg text-info-text'
                                         }`}
                                       >
                                         {balanceStatusLabel}
@@ -5801,7 +5792,6 @@ export function PaymentFullView({
                                           rounding={cashChangeRounding}
                                           currencyCode={currencyCode}
                                           formatAmount={formatAmount}
-                                          isRTL={isRTL}
                                         />
                                       </>
                                     ) : null}
@@ -5828,10 +5818,10 @@ export function PaymentFullView({
                               </div>
 
                               {requiredActionCopy ? (
-                                <CmxCard className="overflow-hidden border-rose-200 bg-rose-50/80 shadow-sm">
-                                  <CmxCardHeader className="border-b border-rose-100 pb-3">
+                                <CmxCard className="overflow-hidden border-danger-border bg-danger-bg/80 shadow-sm">
+                                  <CmxCardHeader className="border-b border-danger-border pb-3">
                                     <CmxCardTitle
-                                      className={`flex items-center gap-2 text-sm text-rose-900 ${isRTL ? 'flex-row-reverse' : ''}`}
+                                      className="flex items-center gap-2 text-sm text-danger-text"
                                     >
                                       <CircleAlert className="h-4 w-4" />
                                       {requiredActionCopy.title}
@@ -5839,7 +5829,7 @@ export function PaymentFullView({
                                   </CmxCardHeader>
                                   <CmxCardContent className="space-y-3 pt-4">
                                     <p
-                                      className={`text-sm font-medium text-rose-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                                      className="text-sm font-medium text-danger-text text-start"
                                     >
                                       {requiredActionCopy.message}
                                     </p>
@@ -5848,7 +5838,7 @@ export function PaymentFullView({
                                       size="sm"
                                       variant="outline"
                                       onClick={handleRequiredAction}
-                                      className="w-full rounded-xl border-rose-200 bg-white text-rose-800 hover:bg-rose-100"
+                                      className="w-full rounded-xl border-danger-border bg-card text-danger-text hover:bg-danger-border/50"
                                     >
                                       {requiredActionCopy.actionLabel ??
                                         t('workspace.fixAction')}
@@ -5857,16 +5847,16 @@ export function PaymentFullView({
                                 </CmxCard>
                               ) : null}
 
-                              <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                                <CmxCardHeader className="border-b border-slate-100 pb-3">
-                                  <CmxCardTitle className="text-sm text-slate-900">
+                              <CmxCard className="overflow-hidden border-border bg-card/95 shadow-sm">
+                                <CmxCardHeader className="border-b border-border pb-3">
+                                  <CmxCardTitle className="text-sm text-foreground">
                                     {t('rightRail.settlementNow')}
                                   </CmxCardTitle>
                                 </CmxCardHeader>
                                 <CmxCardContent className="space-y-4 pt-4">
                                   <div className="space-y-2">
                                     <p
-                                      className={`text-[11px] font-semibold ${labelCase} text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                      className={`text-[11px] font-semibold ${labelCase} text-muted-foreground text-start`}
                                     >
                                       {t('rightRail.realPaymentsReceived')}
                                     </p>
@@ -5880,7 +5870,7 @@ export function PaymentFullView({
                                       ))
                                     ) : (
                                       <p
-                                        className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                        className="text-xs text-muted-foreground text-start"
                                       >
                                         {t('rightRail.noneApplied')}
                                       </p>
@@ -5888,7 +5878,7 @@ export function PaymentFullView({
                                   </div>
                                   <div className="space-y-2">
                                     <p
-                                      className={`text-[11px] font-semibold ${labelCase} text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                      className={`text-[11px] font-semibold ${labelCase} text-muted-foreground text-start`}
                                     >
                                       {t('rightRail.creditsApplied')}
                                     </p>
@@ -5911,13 +5901,13 @@ export function PaymentFullView({
                                       </>
                                     ) : (
                                       <p
-                                        className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                                        className="text-xs text-muted-foreground text-start"
                                       >
                                         {t('rightRail.noneApplied')}
                                       </p>
                                     )}
                                   </div>
-                                  <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
+                                  <div className="rounded-xl border border-info-border bg-info-bg px-3 py-2">
                                     <SummaryRow
                                       label={t('rightRail.totalSettledNow')}
                                       value={`${currencyCode} ${formatAmount(amountAppliedToOrder)}`}
@@ -5927,9 +5917,9 @@ export function PaymentFullView({
                                 </CmxCardContent>
                               </CmxCard>
 
-                              <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
-                                <CmxCardHeader className="border-b border-slate-100 pb-3">
-                                  <CmxCardTitle className="text-sm text-slate-900">
+                              <CmxCard className="overflow-hidden border-border bg-card/95 shadow-sm">
+                                <CmxCardHeader className="border-b border-border pb-3">
+                                  <CmxCardTitle className="text-sm text-foreground">
                                     {t('sections.shortcuts')}
                                   </CmxCardTitle>
                                 </CmxCardHeader>
@@ -6014,7 +6004,7 @@ export function PaymentFullView({
                               </CmxCard>
                             </div>
                             {PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL ? (
-                              <div className="hidden shrink-0 border-t border-slate-200 pt-3 xl:block">
+                              <div className="hidden shrink-0 border-t border-border pt-3 xl:block">
                                 <FinalOrderTotalPanel
                                   value={
                                     orderValueBreakdownModel.totalRow.value
@@ -6034,13 +6024,13 @@ export function PaymentFullView({
                 {methodsSurfaceLoading || previewFailed ? (
                   <div
                     data-testid="payment-surface-loading"
-                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[rgb(var(--cmx-background-rgb,248_250_252))]/90 px-6"
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/90 px-6"
                     role="status"
                     aria-live="polite"
                   >
                     {previewFailed ? (
                       <CmxEmptyState
-                        icon={<CircleAlert className="h-8 w-8 text-rose-500" />}
+                        icon={<CircleAlert className="h-8 w-8 text-danger-text" />}
                         title={t('messages.loadFailedTitle')}
                         description={quote.errorCode === 'PAYMENT_CURRENCY_CHANGED' ? t('messages.currencyChanged') : quote.errorCode === 'GIFT_CARD_INVALID' ? t('messages.giftCardInvalid') : quote.errorCode === 'PAYMENT_CONTEXT_UNAVAILABLE' ? t('messages.sessionUnavailable') : quote.errorCode === 'PAYMENT_QUOTE_TIMEOUT' ? t('messages.loadTimedOut') : t('messages.loadFailedDescription')}
                         action={
@@ -6065,10 +6055,10 @@ export function PaymentFullView({
                       <>
                         <CmxSpinner
                           size="lg"
-                          className="text-teal-700"
+                          className="text-primary-text"
                           aria-hidden
                         />
-                        <p className="text-sm font-medium text-slate-700">
+                        <p className="text-sm font-medium text-foreground">
                           {t('messages.preparing')}
                         </p>
                       </>
@@ -6078,7 +6068,7 @@ export function PaymentFullView({
                 {loading && !paymentSurfaceLocked ? (
                   <div
                     data-testid="payment-submitting-lock"
-                    className="absolute inset-0 z-20 cursor-wait bg-[rgb(var(--cmx-background-rgb,248_250_252))]/45"
+                    className="absolute inset-0 z-20 cursor-wait bg-background/45"
                     role="status"
                     aria-live="polite"
                     aria-label={t('messages.processing')}
@@ -6086,11 +6076,11 @@ export function PaymentFullView({
                 ) : null}
               </div>
 
-              <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
+              <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-border bg-card">
                 {/* Phase 6 docked bar: Final Total + Change stay visible beside
                     the CTA below xl (the rail is a slide-over there). */}
                 <div
-                  className={`flex w-full items-stretch gap-2 xl:hidden ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className="flex w-full items-stretch gap-2 xl:hidden"
                 >
                   <PaymentDockedSummaryBar
                     finalTotalLabel={t('orderValue.finalTotal')}
@@ -6098,7 +6088,6 @@ export function PaymentFullView({
                     changeLabel={t('mode.simpleView.change')}
                     changeValue={`${currencyCode} ${formatAmount(displayChangeAmount)}`}
                     showChange={displayChangeAmount > moneyEpsilon}
-                    isRTL={isRTL}
                     className="min-w-0 flex-1"
                   />
                   {mode === PAYMENT_MODAL_MODE.FULL ? (
@@ -6111,7 +6100,7 @@ export function PaymentFullView({
                       disabled={
                         paymentSurfaceLocked || paymentInteractionLocked
                       }
-                      className="min-h-[44px] shrink-0 rounded-xl border-slate-300 text-slate-700"
+                      className="min-h-[44px] shrink-0 rounded-xl border-border text-foreground"
                     >
                       {t('sections.receiptBrain')}
                     </CmxButton>
@@ -6130,7 +6119,6 @@ export function PaymentFullView({
                         ? handleServerGuardAction
                         : undefined
                     }
-                    isRTL={isRTL}
                   />
                 ) : b2bCreditClientGuard ? (
                   <PaymentSubmitGuard
@@ -6142,7 +6130,6 @@ export function PaymentFullView({
                         ? undefined
                         : () => setB2bDialogOpen(true)
                     }
-                    isRTL={isRTL}
                   />
                 ) : null}
                 {validationItems.length > 0 ? (
@@ -6154,16 +6141,14 @@ export function PaymentFullView({
                   />
                 ) : null}
                 <div
-                  className={`flex w-full flex-col gap-3 ${
-                    isRTL ? 'md:flex-row-reverse' : 'md:flex-row'
-                  }`}
+                  className="flex w-full flex-col gap-3 md:flex-row"
                 >
                   <CmxButton
                     type="button"
                     variant="outline"
                     onClick={closeWithGuard}
                     disabled={paymentInteractionLocked}
-                    className="flex-1 rounded-2xl border-slate-300"
+                    className="flex-1 rounded-2xl border-border"
                   >
                     {tCommon('cancel')}
                   </CmxButton>
@@ -6199,8 +6184,8 @@ export function PaymentFullView({
                     }
                     className={`flex-1 rounded-2xl font-bold shadow-sm ${
                       submitHasBlockingIssues
-                        ? 'cursor-not-allowed bg-slate-300 text-slate-500 opacity-60 hover:bg-slate-300'
-                        : 'bg-gradient-to-r from-teal-600 to-cyan-700'
+                        ? 'cursor-not-allowed bg-border text-muted-foreground opacity-60 hover:bg-border'
+                        : 'bg-gradient-to-r from-primary to-primary-hover'
                     }`}
                     size="lg"
                   >
@@ -6208,7 +6193,7 @@ export function PaymentFullView({
                   </CmxButton>
                 </div>
                 <p
-                  className={`w-full text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="w-full text-xs text-muted-foreground text-start"
                 >
                   {t('messages.paymentMethodNote', {
                     method: summaryMethodLabel,
@@ -6229,19 +6214,19 @@ export function PaymentFullView({
             <CmxDialogTitle>{t('cashDrawer.dialogTitle')}</CmxDialogTitle>
           </CmxDialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               {t('cashDrawer.dialogDescription')}
             </p>
 
             {cashDrawerRequestError && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              <div className="rounded-xl border border-danger-border bg-danger-bg px-3 py-2 text-sm text-danger-text">
                 {cashDrawerRequestError}
               </div>
             )}
 
             <div className="space-y-2">
               <label
-                className={`block text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground text-start"
               >
                 {t('cashDrawer.drawerLabel')}
               </label>
@@ -6280,7 +6265,7 @@ export function PaymentFullView({
 
             <div className="space-y-2">
               <label
-                className={`block text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground text-start"
               >
                 {t('cashDrawer.openingBalanceLabel')}
               </label>
@@ -6298,7 +6283,7 @@ export function PaymentFullView({
             </div>
           </div>
           <CmxDialogFooter
-            className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="flex gap-3"
           >
             <CmxButton
               type="button"
@@ -6343,11 +6328,11 @@ export function PaymentFullView({
           </CmxDialogHeader>
           <div className="space-y-4">
             <p
-              className={`text-sm text-slate-600 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="text-sm text-muted-foreground text-start"
             >
               {t('submitConfirm.description')}
             </p>
-            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+            <div className="rounded-2xl border border-info-border bg-info-bg/60 p-4">
               <div className="space-y-2">
                 <SummaryRow
                   label={t('rightRail.orderTotal')}
@@ -6384,7 +6369,6 @@ export function PaymentFullView({
                       rounding={cashChangeRounding}
                       currencyCode={currencyCode}
                       formatAmount={formatAmount}
-                      isRTL={isRTL}
                     />
                   </>
                 ) : null}
@@ -6419,7 +6403,7 @@ export function PaymentFullView({
               </div>
             </div>
             {remainingBalance > moneyEpsilon ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 space-y-1">
+              <div className="rounded-xl border border-warning-border bg-warning-bg px-3 py-2 text-sm text-warning-text space-y-1">
                 <p>
                   {t('submitConfirm.remainingNotice', {
                     amount: `${currencyCode} ${formatAmount(remainingBalance)}`,
@@ -6437,7 +6421,7 @@ export function PaymentFullView({
             ) : null}
           </div>
           <CmxDialogFooter
-            className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="flex gap-3"
           >
             <CmxButton
               type="button"

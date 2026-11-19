@@ -136,11 +136,11 @@ export default function CustomerDetailPage() {
   // Get customer type badge
   const getTypeBadge = (type: string) => {
     const badges = {
-      guest: { color: 'bg-gray-100 text-gray-800', label: t('types.guest') },
-      stub: { color: 'bg-blue-100 text-blue-800', label: t('types.stub') },
-      full: { color: 'bg-green-100 text-green-800', label: t('types.full') },
-      walk_in: { color: 'bg-blue-100 text-blue-800', label: t('types.walk_in') },
-      b2b: { color: 'bg-purple-100 text-purple-800', label: t('types.b2b') },
+      guest: { color: 'bg-muted text-foreground', label: t('types.guest') },
+      stub: { color: 'bg-info-bg text-info-text', label: t('types.stub') },
+      full: { color: 'bg-success-bg text-success-text', label: t('types.full') },
+      walk_in: { color: 'bg-info-bg text-info-text', label: t('types.walk_in') },
+      b2b: { color: 'bg-info-bg text-info-text', label: t('types.b2b') },
     }
     return badges[type as keyof typeof badges] || badges.guest
   }
@@ -148,15 +148,15 @@ export default function CustomerDetailPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-muted p-6">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="h-32 bg-gray-200 rounded mb-4"></div>
+            <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
+            <div className="bg-card rounded-lg shadow p-6">
+              <div className="h-32 bg-muted rounded mb-4"></div>
               <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
               </div>
             </div>
           </div>
@@ -168,11 +168,11 @@ export default function CustomerDetailPage() {
   // Error state
   if (error || !customer) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-muted p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="bg-danger-bg border border-danger-border rounded-lg p-6 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-red-500 mb-4"
+              className="mx-auto h-12 w-12 text-danger-text mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -184,13 +184,13 @@ export default function CustomerDetailPage() {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <h2 className="text-xl font-semibold text-red-900 mb-2">
+            <h2 className="text-xl font-semibold text-danger-text mb-2">
               Customer Not Found
             </h2>
-            <p className="text-red-700 mb-6">{error || 'Customer does not exist'}</p>
+            <p className="text-danger-text mb-6">{error || 'Customer does not exist'}</p>
             <Link
               href="/dashboard/customers"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover"
             >
               Back to Customers
             </Link>
@@ -203,13 +203,13 @@ export default function CustomerDetailPage() {
   const typeBadge = getTypeBadge(customer.type)
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-muted p-6">
       <div className="max-w-7xl mx-auto">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center text-sm text-gray-500">
+        <nav className="mb-6 flex items-center text-sm text-muted-foreground">
           <Link
             href="/dashboard/customers"
-            className="hover:text-gray-700 transition-colors"
+            className="hover:text-foreground transition-colors"
           >
             Customers
           </Link>
@@ -226,18 +226,18 @@ export default function CustomerDetailPage() {
               d="M9 5l7 7-7 7"
             />
           </svg>
-          <span className="text-gray-900 font-medium">
+          <span className="text-foreground font-medium">
             {customer.firstName} {customer.lastName}
           </span>
         </nav>
 
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-card rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-4">
               {/* Avatar */}
               <div className="flex-shrink-0">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary/70 to-primary flex items-center justify-center text-primary-foreground text-2xl font-bold">
                   {customer.firstName?.charAt(0).toUpperCase() || 'C'}
                   {customer.lastName?.charAt(0).toUpperCase() || ''}
                 </div>
@@ -246,7 +246,7 @@ export default function CustomerDetailPage() {
               {/* Customer Info */}
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-2xl font-bold text-gray-900">
+                  <h1 className="text-2xl font-bold text-foreground">
                     {customer.firstName} {customer.lastName}
                   </h1>
                   <span
@@ -259,20 +259,20 @@ export default function CustomerDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   {customer.customerNumber && (
                     <div>
-                      <span className="text-gray-500">Customer #:</span>
-                      <span className="ml-2 font-medium text-gray-900">
+                      <span className="text-muted-foreground">Customer #:</span>
+                      <span className="ms-2 font-medium text-foreground">
                         {customer.customerNumber}
                       </span>
                     </div>
                   )}
                   {customer.phone && (
                     <div>
-                      <span className="text-gray-500">Phone:</span>
-                      <span className="ml-2 font-medium text-gray-900">
+                      <span className="text-muted-foreground">Phone:</span>
+                      <span className="ms-2 font-medium text-foreground">
                         {customer.phone}
                       </span>
                       {customer.phoneVerified && (
-                        <span className="ml-1 text-green-600" title="Verified">
+                        <span className="ms-1 text-success-text" title="Verified">
                           ✓
                         </span>
                       )}
@@ -280,8 +280,8 @@ export default function CustomerDetailPage() {
                   )}
                   {customer.email && (
                     <div>
-                      <span className="text-gray-500">Email:</span>
-                      <span className="ml-2 font-medium text-gray-900">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="ms-2 font-medium text-foreground">
                         {customer.email}
                       </span>
                     </div>
@@ -294,14 +294,14 @@ export default function CustomerDetailPage() {
             <div className="flex items-center space-x-2">
               {customer.type === 'stub' && (
                 <button
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                  className="px-4 py-2 bg-success text-on-solid rounded-md hover:bg-success/90 text-sm font-medium"
                   onClick={() => setShowUpgradeModal(true)}
                 >
                   Upgrade to Full
                 </button>
               )}
               <button
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700"
+                className="px-4 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-foreground"
                 onClick={() => setShowEditModal(true)}
               >
                 Edit
@@ -334,34 +334,34 @@ export default function CustomerDetailPage() {
         )}
 
         {/* Advance balance (canonical stored-value ledger) */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('advanceBalance')}</h2>
+        <div className="bg-card rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">{t('advanceBalance')}</h2>
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm text-gray-500 mb-1">{t('advanceBalance')}</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-muted-foreground mb-1">{t('advanceBalance')}</p>
+              <p className="text-2xl font-bold text-foreground">
                 {formatMoneyWithCode(advanceBalance)}
               </p>
               {advanceBalance === 0 && (
-                <p className="text-sm text-gray-500 mt-2">{t('noAdvancePayments')}</p>
+                <p className="text-sm text-muted-foreground mt-2">{t('noAdvancePayments')}</p>
               )}
             </div>
             <div className="text-end">
               <Link
                 href="/dashboard/customers/account-receipt"
-                className="inline-block rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                className="inline-block rounded-md bg-success px-4 py-2 text-sm font-medium text-on-solid hover:bg-success/90"
               >
                 {t('receiveAccountPayment')}
               </Link>
-              <p className="mt-1 max-w-xs text-xs text-gray-500">{t('receiveAccountPaymentHint')}</p>
+              <p className="mt-1 max-w-xs text-xs text-muted-foreground">{t('receiveAccountPaymentHint')}</p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-card rounded-lg shadow-sm">
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-border">
             <nav className="flex -mb-px">
               {tabs.map((tab) => (
                 <button
@@ -371,12 +371,12 @@ export default function CustomerDetailPage() {
                     px-6 py-4 text-sm font-medium border-b-2 transition-colors
                     ${
                       activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-primary text-primary-text'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                     }
                   `}
                 >
-                  <span className="mr-2">{tab.icon}</span>
+                  <span className="me-2">{tab.icon}</span>
                   {tab.label}
                 </button>
               ))}
@@ -474,29 +474,29 @@ function ProfileTab({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Personal Information */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             Personal Information
           </h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-gray-500">First Name</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.firstName}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">First Name</dt>
+              <dd className="mt-1 text-sm text-foreground">{customer.firstName}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Last Name</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">Last Name</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {customer.lastName || '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Phone</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {customer.phone || '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Email</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">Email</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {customer.email || '—'}
               </dd>
             </div>
@@ -506,33 +506,33 @@ function ProfileTab({
         {/* B2B Company Info */}
         {customer.type === 'b2b' && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Company Information
             </h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Company Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Company Name</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   {customer.companyName || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Tax ID</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Tax ID</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   {customer.taxId || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Credit Limit</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Credit Limit</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   {customer.creditLimit != null
                     ? Number(customer.creditLimit).toLocaleString()
                     : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Payment Terms (Days)</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Payment Terms (Days)</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   {customer.paymentTermsDays ?? '—'}
                 </dd>
               </div>
@@ -543,31 +543,31 @@ function ProfileTab({
         {/* Preferences (Full Profile Only) */}
         {customer.type === 'full' && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Preferences
             </h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Language</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Language</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   English
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Folding</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Folding</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   {customer.preferences?.folding || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Fragrance</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Fragrance</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   {customer.preferences?.fragrance || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Starch Level</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-sm font-medium text-muted-foreground">Starch Level</dt>
+                <dd className="mt-1 text-sm text-foreground">
                   —
                 </dd>
               </div>
@@ -577,31 +577,31 @@ function ProfileTab({
 
         {/* Account Information */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             Account Information
           </h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-gray-500">Customer Type</dt>
-              <dd className="mt-1 text-sm text-gray-900 capitalize">
+              <dt className="text-sm font-medium text-muted-foreground">Customer Type</dt>
+              <dd className="mt-1 text-sm text-foreground capitalize">
                 {customer.type}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Status</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">Status</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {customer.profileStatus === 3 ? 'Active' : `Status ${customer.profileStatus}`}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Phone Verified</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">Phone Verified</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {customer.phoneVerified ? 'Yes ✓' : 'No'}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Member Since</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">Member Since</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {new Date(customer.createdAt).toLocaleDateString()}
               </dd>
             </div>

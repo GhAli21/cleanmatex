@@ -14,7 +14,7 @@ export interface CmxPermissionsInspectorTriggerProps {
  * Shield button that opens the global permissions inspector.
  */
 export function CmxPermissionsInspectorTrigger({
-  className = 'rounded-md p-2 text-gray-400 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500',
+  className = 'rounded-md p-2 text-muted-foreground hover:text-primary-text focus:outline-none focus:ring-2 focus:ring-ring',
   title = 'Open permissions inspector',
   options,
 }: CmxPermissionsInspectorTriggerProps) {

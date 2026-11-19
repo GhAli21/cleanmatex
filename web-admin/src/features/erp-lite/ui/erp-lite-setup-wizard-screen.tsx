@@ -81,7 +81,7 @@ export function ErpLiteSetupWizardScreen() {
                   className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted"
                 >
                   {isDone ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden />
+                    <CheckCircle2 className="h-4 w-4 text-success-text" aria-hidden />
                   ) : (
                     <Circle className="h-4 w-4 text-muted-foreground" aria-hidden />
                   )}

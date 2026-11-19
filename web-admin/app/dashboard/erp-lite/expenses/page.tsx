@@ -1,22 +1,11 @@
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type { Metadata } from 'next';
 
 /** Distinguishes expense operations from the broader finance workspace. */
 export const metadata: Metadata = { title: 'Expenses' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import {
-  Alert,
-  AlertDescription,
-  CmxButton,
-  CmxCard,
-  CmxCardContent,
-  CmxCardDescription,
-  CmxCardHeader,
-  CmxCardTitle,
-  CmxInput,
-  CmxSelect,
-  CmxTextarea,
-} from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
@@ -117,21 +106,21 @@ export default async function ErpLiteExpensesPage({
         </div>
 
         {notice ? (
-          <Alert>
-            <AlertDescription>{t(`notices.${notice}`)}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="info">
+            <div>{t(`notices.${notice}`)}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{error}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         {loadError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{loadError}</AlertDescription>
-          </Alert>
+          <CmxSummaryMessage type="error">
+            <div>{loadError}</div>
+          </CmxSummaryMessage>
         ) : null}
 
         <div className="grid gap-4 xl:grid-cols-3">
@@ -208,7 +197,7 @@ export default async function ErpLiteExpensesPage({
                   label={t('forms.expense.fields.payee')}
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-expense-description" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-expense-description" className="block text-sm font-medium text-foreground">
                     {t('forms.expense.fields.description')}
                   </label>
                   <CmxTextarea
@@ -334,7 +323,7 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-cash-txn-description" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-cash-txn-description" className="block text-sm font-medium text-foreground">
                     {t('forms.cashTxn.fields.description')}
                   </label>
                   <CmxTextarea
@@ -379,7 +368,7 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-approval-action-note" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-approval-action-note" className="block text-sm font-medium text-foreground">
                     {t('forms.approval.fields.note')}
                   </label>
                   <CmxTextarea
@@ -426,7 +415,7 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-cash-recon-note" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-cash-recon-note" className="block text-sm font-medium text-foreground">
                     {t('forms.cashRecon.fields.note')}
                   </label>
                   <CmxTextarea
@@ -473,7 +462,7 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-cash-recon-ex-note" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="erp-cash-recon-ex-note" className="block text-sm font-medium text-foreground">
                     {t('forms.cashReconException.fields.note')}
                   </label>
                   <CmxTextarea
@@ -562,7 +551,7 @@ export default async function ErpLiteExpensesPage({
                       </div>
                       <div className="mt-3 text-sm font-semibold">
                         {t('lists.cashboxes.currentBalance')}:
-                        <span className="ml-2">
+                        <span className="ms-2">
                           {formatErpLiteMoney(item.current_balance, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })}
                         </span>
                       </div>
@@ -633,7 +622,7 @@ export default async function ErpLiteExpensesPage({
                             {item.cashbox_name} · {item.txn_date}
                           </div>
                         </div>
-                        <div className="text-right text-sm font-semibold">
+                        <div className="text-end text-sm font-semibold">
                           {formatErpLiteMoney(item.amount_total, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })}
                         </div>
                       </div>

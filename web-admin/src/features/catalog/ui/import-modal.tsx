@@ -65,7 +65,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
         </div>
 
         {error && (
-          <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>
+          <div className="mb-3 rounded-md border border-danger-border bg-danger-bg p-3 text-danger-text">{error}</div>
         )}
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -80,9 +80,9 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                   {t('advancedTemplate')}
                 </CmxButton>
               </div>
-              <div className="mt-2 text-xs text-gray-600">
+              <div className="mt-2 text-xs text-muted-foreground">
                 <div className="mb-1 font-medium">CSV</div>
-                <pre className="overflow-auto rounded bg-gray-50 p-2 text-xs">
+                <pre className="overflow-auto rounded bg-muted p-2 text-xs">
                   {template === 'basic' ? sampleBasic : sampleAdvanced}
                 </pre>
                 {template === 'advanced' ? <p className="mt-1">{t('importAdvancedHint')}</p> : null}
@@ -104,9 +104,9 @@ export default function ImportModal({ onClose }: ImportModalProps) {
           <div className="mt-4">
             <h3 className="mb-2 text-lg font-medium">{t('validationErrors')}</h3>
             {result.errors.length === 0 ? (
-              <div className="rounded-md border border-green-200 bg-green-50 p-3 text-green-700">{t('importSuccess')}</div>
+              <div className="rounded-md border border-success-border bg-success-bg p-3 text-success-text">{t('importSuccess')}</div>
             ) : (
-              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-yellow-800">
+              <div className="rounded-md border border-warning-border bg-warning-bg p-3 text-warning-text">
                 {result.errors.slice(0, 50).map((er, idx) => (
                   <div key={idx} className="text-xs">Row {er.row} • {er.field}: {er.code && t.has(`importErrors.${er.code}`) ? t(`importErrors.${er.code}` as never) : er.message}</div>
                 ))}

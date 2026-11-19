@@ -188,7 +188,7 @@ function WorkboardOrderReference({ order, returnUrl }: WorkboardOrderReferencePr
         orderNo={orderNo}
         returnUrl={returnUrl}
         returnLabel={t('returnToWorkboard')}
-        className="min-w-0 truncate font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,37_99_235))]"
+        className="min-w-0 truncate font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         title={t('orderDetailsLinkTitle', { orderNo })}
         ariaLabel={t('orderDetailsLinkTitle', { orderNo })}
       >
@@ -322,7 +322,7 @@ export function WorkboardScreen() {
             order={row}
             returnUrl={workboardReturnUrl}
           />
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="text-xs text-muted-foreground">
             {row.customerPhone ?? t('noPhone')}
           </div>
         </div>
@@ -335,7 +335,7 @@ export function WorkboardScreen() {
       render: (row) => (
         <div className="space-y-1">
           <div className="font-medium">{row.customerName}</div>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="text-xs text-muted-foreground">
             {row.branchName ?? t('noBranch')}
           </div>
         </div>
@@ -360,7 +360,7 @@ export function WorkboardScreen() {
             size="sm"
             tone={ownerBadgeVariant(row.ownerScreenKey)}
           />
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="text-xs text-muted-foreground">
             {t(`owners.${row.ownerScreenKey}`)}
           </div>
         </div>
@@ -372,7 +372,7 @@ export function WorkboardScreen() {
       sortable: true,
       render: (row) => (
         <div className="text-sm">
-          <div className={isOverdue(row) ? 'font-semibold text-[rgb(var(--cmx-destructive-rgb,220_38_38))]' : 'font-medium'}>
+          <div className={isOverdue(row) ? 'font-semibold text-destructive' : 'font-medium'}>
             {formatAge(row.ageMinutes, t)}
           </div>
         </div>
@@ -384,7 +384,7 @@ export function WorkboardScreen() {
       sortable: true,
       render: (row) => (
         <div className="text-sm">
-          <div className={isOverdue(row) ? 'font-semibold text-[rgb(var(--cmx-destructive-rgb,220_38_38))]' : 'font-medium'}>
+          <div className={isOverdue(row) ? 'font-semibold text-destructive' : 'font-medium'}>
             {row.readyByAt ? formatDateTime(row.readyByAt, locale) : t('noDueDate')}
           </div>
         </div>
@@ -403,7 +403,7 @@ export function WorkboardScreen() {
               tone="neutral" appearance="outline"
             />
           )
-          : <span className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('noPriority')}</span>
+          : <span className="text-sm text-muted-foreground">{t('noPriority')}</span>
       ),
     },
     {
@@ -413,7 +413,7 @@ export function WorkboardScreen() {
       render: (row) => (
         <div className="space-y-1 text-sm">
           <div>{row.assigneeName ?? t('unassigned')}</div>
-          <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <div className="text-xs text-muted-foreground">
             {t(`owners.${row.ownerScreenKey}`)}
           </div>
         </div>
@@ -464,10 +464,10 @@ export function WorkboardScreen() {
       <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <ClipboardList className="h-8 w-8 text-[rgb(var(--cmx-primary-text-rgb,37_99_235))]" aria-hidden />
+            <ClipboardList className="h-8 w-8 text-primary-text" aria-hidden />
             <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
           </div>
-          <p className="mt-1 max-w-3xl text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t('description')}</p>
         </div>
         <CmxButton type="button" variant="outline" loading={isFetching} onClick={() => void handleRefresh()}>
           <RefreshCw className="me-2 h-4 w-4" aria-hidden />

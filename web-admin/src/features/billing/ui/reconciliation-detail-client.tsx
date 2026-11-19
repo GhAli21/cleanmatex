@@ -131,62 +131,62 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
         </CmxStatusBadge>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-white p-6 text-sm md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-card p-6 text-sm md:grid-cols-4">
         <div>
-          <p className="text-gray-500">{t('period')}</p>
+          <p className="text-muted-foreground">{t('period')}</p>
           <p className="font-medium">{fmtPeriod(locale, run.period_from, run.period_to)}</p>
         </div>
         <div>
-          <p className="text-gray-500">{t('currency')}</p>
+          <p className="text-muted-foreground">{t('currency')}</p>
           <p className="font-medium">{run.currency_code}</p>
         </div>
         <div>
-          <p className="text-gray-500">{t('ranAt')}</p>
+          <p className="text-muted-foreground">{t('ranAt')}</p>
           <p className="font-medium">{fmtDate(locale, run.completed_at ?? run.started_at)}</p>
         </div>
         <div>
-          <p className="text-gray-500">{t('ranBy')}</p>
+          <p className="text-muted-foreground">{t('ranBy')}</p>
           <p className="font-medium">{run.triggered_by ?? EM_DASH}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-white p-6 text-sm md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-card p-6 text-sm md:grid-cols-4">
         <div>
-          <p className="text-gray-500">{t('totalChecked')}</p>
+          <p className="text-muted-foreground">{t('totalChecked')}</p>
           <p className="font-medium tabular-nums">{run.total_checked ?? EM_DASH}</p>
         </div>
         <div>
-          <p className="text-gray-500">{t('passedChecks')}</p>
-          <p className="font-medium tabular-nums text-green-700">{run.passed_checks ?? EM_DASH}</p>
+          <p className="text-muted-foreground">{t('passedChecks')}</p>
+          <p className="font-medium tabular-nums text-success-text">{run.passed_checks ?? EM_DASH}</p>
         </div>
         <div>
-          <p className="text-gray-500">{t('failedChecks')}</p>
-          <p className="font-medium tabular-nums text-red-700">{run.failed_checks ?? EM_DASH}</p>
+          <p className="text-muted-foreground">{t('failedChecks')}</p>
+          <p className="font-medium tabular-nums text-danger-text">{run.failed_checks ?? EM_DASH}</p>
         </div>
         <div>
-          <p className="text-gray-500">{t('warningChecks')}</p>
-          <p className="font-medium tabular-nums text-yellow-700">{run.warning_checks ?? EM_DASH}</p>
+          <p className="text-muted-foreground">{t('warningChecks')}</p>
+          <p className="font-medium tabular-nums text-warning-text">{run.warning_checks ?? EM_DASH}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
-          <p className="text-3xl font-bold text-red-700">{blockers}</p>
-          <p className="mt-1 text-sm font-medium text-red-700">{t('blockers')}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-center">
+          <p className="text-3xl font-bold text-danger-text">{blockers}</p>
+          <p className="mt-1 text-sm font-medium text-danger-text">{t('blockers')}</p>
         </div>
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center">
-          <p className="text-3xl font-bold text-yellow-700">{warnings}</p>
-          <p className="mt-1 text-sm font-medium text-yellow-700">{t('warnings')}</p>
+        <div className="rounded-lg border border-warning-border bg-warning-bg p-4 text-center">
+          <p className="text-3xl font-bold text-warning-text">{warnings}</p>
+          <p className="mt-1 text-sm font-medium text-warning-text">{t('warnings')}</p>
         </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
-          <p className="text-3xl font-bold text-blue-700">{infoCount}</p>
-          <p className="mt-1 text-sm font-medium text-blue-700">{t('info')}</p>
+        <div className="rounded-lg border border-info-border bg-info-bg p-4 text-center">
+          <p className="text-3xl font-bold text-primary-text">{infoCount}</p>
+          <p className="mt-1 text-sm font-medium text-primary-text">{t('info')}</p>
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{t('issues.title')}</h2>
+      <div className="rounded-lg border border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">{t('issues.title')}</h2>
           {run.issues.length > 0 && (
             <CmxButton asChild variant="outline" size="sm">
               <a
@@ -204,50 +204,50 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="w-full divide-y divide-border text-sm">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.severity')}</th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.checkName')}</th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.affectedEntity')}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.expected')}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.actual')}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.delta')}</th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.message')}</th>
-                  <th className="px-4 py-3 text-left rtl:text-right text-xs font-medium uppercase tracking-wider text-gray-500">{t('issues.status')}</th>
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.severity')}</th>
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.checkName')}</th>
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.affectedEntity')}</th>
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.expected')}</th>
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.actual')}</th>
+                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.delta')}</th>
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.message')}</th>
+                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.status')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="divide-y divide-border bg-card">
                 {run.issues.map((issue) => (
-                  <tr key={issue.id} className="hover:bg-gray-50">
+                  <tr key={issue.id} className="hover:bg-muted">
                     <td className="whitespace-nowrap px-4 py-3">
                       <CmxStatusBadge size="sm" tone={severityBadgeVariant(issue.severity)}>
                         {t(`issues.severityLabels.${issue.severity}` as Parameters<typeof t>[0])}
                       </CmxStatusBadge>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-foreground">
                       {/* The check_name string round-trips to the DB and to translation keys
                           under `billing.reconciliation.checks.<NAME>` so the operator sees a
                           human label when one is registered, falling back to the raw code. */}
                       {labelForCheck(issue.check_name)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
                       {issue.affected_entity_type
                         ? `${issue.affected_entity_type}: ${issue.affected_entity_id ?? EM_DASH}`
                         : EM_DASH}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left font-mono text-xs">
+                    <td className="whitespace-nowrap px-4 py-3 text-end font-mono text-xs">
                       {issue.expected_value != null ? issue.expected_value.toFixed(4) : EM_DASH}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right rtl:text-left font-mono text-xs">
+                    <td className="whitespace-nowrap px-4 py-3 text-end font-mono text-xs">
                       {issue.actual_value != null ? issue.actual_value.toFixed(4) : EM_DASH}
                     </td>
-                    <td className={`whitespace-nowrap px-4 py-3 text-right rtl:text-left font-mono text-xs font-semibold ${
-                      issue.delta < 0 ? 'text-red-700' : issue.delta > 0 ? 'text-orange-700' : 'text-gray-500'
+                    <td className={`whitespace-nowrap px-4 py-3 text-end font-mono text-xs font-semibold ${
+                      issue.delta < 0 ? 'text-danger-text' : issue.delta > 0 ? 'text-warning-text' : 'text-muted-foreground'
                     }`}>
                       {issue.delta != null ? issue.delta.toFixed(4) : EM_DASH}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td className="px-4 py-3 text-foreground">
                       <span className="block max-w-xs truncate" title={issue.message}>
                         {issue.message}
                       </span>

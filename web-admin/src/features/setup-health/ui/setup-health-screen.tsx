@@ -26,7 +26,7 @@ export function SetupHealthScreen() {
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{t('subtitle')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
       <CmxButton variant="outline" size="sm" onClick={() => refetch()} loading={isFetching}>
         {tCommon('refresh')}
@@ -95,10 +95,10 @@ function SetupHealthRow({ item, isAr }: { item: SetupHealthItem; isAr: boolean }
           <SetupHealthStatusBadge status={item.status} />
           {failing && <SetupHealthSeverityBadge severity={item.severity} />}
           {failing && item.issueCount > 0 && (
-            <span className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{t('issueCount', { count: item.issueCount })}</span>
+            <span className="text-xs text-muted-foreground">{t('issueCount', { count: item.issueCount })}</span>
           )}
         </div>
-        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{isAr ? item.description2 : item.description}</p>
+        <p className="text-sm text-muted-foreground">{isAr ? item.description2 : item.description}</p>
       </div>
       {failing && (
         <div className="shrink-0">
@@ -107,7 +107,7 @@ function SetupHealthRow({ item, isAr }: { item: SetupHealthItem; isAr: boolean }
               <Link href={item.fixRoute}>{t('fix')}</Link>
             </CmxButton>
           ) : (
-            <p className="max-w-xs text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">{t('contactSupport')}</p>
+            <p className="max-w-xs text-sm text-muted-foreground">{t('contactSupport')}</p>
           )}
         </div>
       )}

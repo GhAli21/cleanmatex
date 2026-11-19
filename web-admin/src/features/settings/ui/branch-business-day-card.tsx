@@ -101,10 +101,10 @@ export function BranchBusinessDayCard({ branchId }: { branchId: string }) {
     <CmxCard>
       <CmxCardHeader>
         <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-gray-500" aria-hidden />
+          <Clock className="h-5 w-5 text-muted-foreground" aria-hidden />
           <div>
-            <h3 className="text-base font-semibold text-gray-900">{t('branchSettings.businessDay.title')}</h3>
-            <p className="mt-0.5 text-sm text-gray-500">{t('branchSettings.businessDay.description')}</p>
+            <h3 className="text-base font-semibold text-foreground">{t('branchSettings.businessDay.title')}</h3>
+            <p className="mt-0.5 text-sm text-muted-foreground">{t('branchSettings.businessDay.description')}</p>
           </div>
         </div>
       </CmxCardHeader>
@@ -118,7 +118,7 @@ export function BranchBusinessDayCard({ branchId }: { branchId: string }) {
         ) : null}
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700" htmlFor="branch-timezone">
+          <label className="block text-sm font-medium text-foreground" htmlFor="branch-timezone">
             {t('branchSettings.businessDay.label')}
           </label>
           <CmxSelect
@@ -132,10 +132,10 @@ export function BranchBusinessDayCard({ branchId }: { branchId: string }) {
             options={options}
           />
           {effective ? (
-            <p className="text-xs text-blue-600">{t('branchSettings.businessDay.inEffect', { zone: effective })}</p>
+            <p className="text-xs text-primary-text">{t('branchSettings.businessDay.inEffect', { zone: effective })}</p>
           ) : null}
           {!canEdit ? (
-            <p className="text-xs text-gray-500">{t('branchSettings.businessDay.noPermission')}</p>
+            <p className="text-xs text-muted-foreground">{t('branchSettings.businessDay.noPermission')}</p>
           ) : null}
         </div>
 

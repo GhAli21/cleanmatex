@@ -231,7 +231,7 @@ export function CashDrawerCloseWizard({
         </CmxDialogHeader>
 
         {resumeClosing && resumeQuery.isLoading ? (
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+          <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
         ) : resumeClosing && resumeQuery.isError ? (
           <CmxSummaryMessage
             type="error"
@@ -240,7 +240,7 @@ export function CashDrawerCloseWizard({
           />
         ) : !showingDisposition ? (
           <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-sm text-muted-foreground">
               {cutMissing ? t('wizard.closingCutMissing') : t('closeSessionDesc')}
             </p>
 
@@ -252,7 +252,7 @@ export function CashDrawerCloseWizard({
             />
 
             {countNow ? (
-              <div className="space-y-4 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+              <div className="space-y-4 rounded-xl border border-border p-4">
                 <CashCountMethodField methods={countPolicy.methods} value={countMode} onChange={setCountMode} />
                 {countMode === 'TOTAL_ONLY' ? (
                   <CmxInput
@@ -264,9 +264,9 @@ export function CashDrawerCloseWizard({
                     onChange={(event) => setTotalAmount(event.target.value)}
                   />
                 ) : denominationsQuery.isLoading ? (
-                  <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+                  <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
                 ) : (denominationsQuery.data ?? []).length === 0 ? (
-                  <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('wizard.noDenominationCatalog')}</p>
+                  <p className="text-sm text-muted-foreground">{t('wizard.noDenominationCatalog')}</p>
                 ) : (
                   <CmxDenominationCounter
                     denominations={(denominationsQuery.data ?? []).map((d) => ({ id: d.id, label: d.name, valueMinor: d.denominationMinor }))}

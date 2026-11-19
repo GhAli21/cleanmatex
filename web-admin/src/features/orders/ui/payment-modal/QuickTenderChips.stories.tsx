@@ -12,12 +12,10 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     disabled: { control: 'boolean' },
-    isRTL: { control: 'boolean' },
   },
   args: {
     onSelect: () => {},
     disabled: false,
-    isRTL: false,
     items: [
       { id: 'exact', kind: 'exact', label: 'Exact' },
       { id: 'tender-40', kind: 'tender', tenderAmount: 40, label: '40.000' },
@@ -49,14 +47,15 @@ export const Disabled: Story = {
   },
 }
 
-/** RTL (Arabic) — row reverses; labels stay tabular. */
+/** RTL (Arabic): the page dir mirrors the row; labels stay tabular. */
 export const RTL: Story = {
   args: {
-    isRTL: true,
     items: [
       { id: 'exact', kind: 'exact', label: 'المتبقي بالضبط' },
       { id: 'tender-40', kind: 'tender', tenderAmount: 40, label: '40.000' },
       { id: 'tender-50', kind: 'tender', tenderAmount: 50, label: '50.000' },
     ],
   },
+  // Direction comes from the page's dir, as in the app.
+  decorators: [(Story) => <div dir="rtl"><Story /></div>],
 }

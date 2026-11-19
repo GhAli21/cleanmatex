@@ -137,7 +137,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
           {description ? (
             <p
               id={descriptionId}
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-xs leading-relaxed text-muted-foreground"
             >
               {description}
             </p>
@@ -146,7 +146,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
             <p
               id={errorId}
               role="alert"
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+              className="text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>
@@ -168,7 +168,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
           className={cn(
             'cursor-pointer select-none pt-0.5 font-medium leading-snug',
             sizeStyle.label,
-            'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+            'text-foreground',
             disabled && 'cursor-not-allowed opacity-60'
           )}
         >
@@ -180,7 +180,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
             <span aria-hidden="true" />
             <p
               id={descriptionId}
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-xs leading-relaxed text-muted-foreground"
             >
               {description}
             </p>
@@ -193,7 +193,7 @@ export const CmxCheckbox = React.forwardRef<HTMLInputElement, CmxCheckboxProps>(
             <p
               id={errorId}
               role="alert"
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+              className="text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>

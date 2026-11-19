@@ -6,9 +6,10 @@
 
 'use client';
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CmxButton, CmxInput, CmxSelect, Alert } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
 import {
   CmxCard,
   CmxCardHeader,
@@ -204,12 +205,12 @@ export default function TenantRegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">Create Your Account</h1>
+          <p className="mt-2 text-muted-foreground">
             Start your 14-day free trial. No credit card required.
           </p>
         </div>
@@ -222,8 +223,8 @@ export default function TenantRegisterPage() {
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
                     step >= s
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-400'
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-muted-foreground'
                   }`}
                 >
                   {s}
@@ -231,14 +232,14 @@ export default function TenantRegisterPage() {
                 {s < 3 && (
                   <div
                     className={`flex-1 h-1 mx-2 ${
-                      step > s ? 'bg-blue-600' : 'bg-gray-300'
+                      step > s ? 'bg-primary' : 'bg-border'
                     }`}
                   />
                 )}
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-sm text-gray-600">
+          <div className="flex justify-between mt-2 text-sm text-muted-foreground">
             <span>Business Info</span>
             <span>Preferences</span>
             <span>Admin Account</span>
@@ -247,7 +248,7 @@ export default function TenantRegisterPage() {
 
         {/* Error Alert */}
         {error && (
-          <Alert variant="error" message={error} onClose={() => setError('')} className="mb-6" />
+          <CmxSummaryMessage type="error" message={error} onDismiss={() => setError('')} className="mb-6" />
         )}
 
         {/* Form Card */}
@@ -275,7 +276,7 @@ export default function TenantRegisterPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Business Name <span className="text-danger-text">*</span></label>
                 <CmxInput
                   value={formData.businessName}
                   onChange={(e) => handleBusinessNameChange(e.target.value)}
@@ -283,11 +284,11 @@ export default function TenantRegisterPage() {
                   required
                   className="w-full"
                 />
-                {errors.businessName && <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>}
+                {errors.businessName && <p className="mt-1 text-sm text-danger-text">{errors.businessName}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business Name (Arabic)</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Business Name (Arabic)</label>
                 <CmxInput
                   value={formData.businessNameAr || ''}
                   onChange={(e) =>
@@ -296,11 +297,11 @@ export default function TenantRegisterPage() {
                   placeholder="e.g., مغسلة فريش كلين"
                   className="w-full"
                 />
-                <p className="mt-1 text-xs text-gray-500">Optional: Arabic name for bilingual support</p>
+                <p className="mt-1 text-xs text-muted-foreground">Optional: Arabic name for bilingual support</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL Identifier) <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Slug (URL Identifier) <span className="text-danger-text">*</span></label>
                 <div className="relative">
                   <CmxInput
                     value={formData.slug}
@@ -311,24 +312,24 @@ export default function TenantRegisterPage() {
                     onBlur={() => checkSlugAvailability(formData.slug)}
                     placeholder="e.g., fresh-clean"
                     required
-                    className="w-full pr-20"
+                    className="w-full pe-20"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                  <div className="absolute end-3 top-1/2 -translate-y-1/2 text-sm">
                     {slugChecking ? (
-                      <span className="text-gray-400">Checking...</span>
+                      <span className="text-muted-foreground">Checking...</span>
                     ) : slugAvailable === true ? (
-                      <span className="text-green-500">✓</span>
+                      <span className="text-success-text">✓</span>
                     ) : slugAvailable === false ? (
-                      <span className="text-red-500">✗</span>
+                      <span className="text-danger-text">✗</span>
                     ) : null}
                   </div>
                 </div>
-                {errors.slug && <p className="mt-1 text-sm text-red-600">{errors.slug}</p>}
-                <p className="mt-1 text-xs text-gray-500">Will be used in your URL: app.cleanmatex.com/fresh-clean</p>
+                {errors.slug && <p className="mt-1 text-sm text-danger-text">{errors.slug}</p>}
+                <p className="mt-1 text-xs text-muted-foreground">Will be used in your URL: app.cleanmatex.com/fresh-clean</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business Email <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Business Email <span className="text-danger-text">*</span></label>
                 <CmxInput
                   type="email"
                   value={formData.email}
@@ -339,11 +340,11 @@ export default function TenantRegisterPage() {
                   required
                   className="w-full"
                 />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                {errors.email && <p className="mt-1 text-sm text-danger-text">{errors.email}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Phone Number <span className="text-danger-text">*</span></label>
                 <CmxInput
                   type="tel"
                   value={formData.phone}
@@ -354,7 +355,7 @@ export default function TenantRegisterPage() {
                   required
                   className="w-full"
                 />
-                {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+                {errors.phone && <p className="mt-1 text-sm text-danger-text">{errors.phone}</p>}
               </div>
             </div>
           )}
@@ -363,7 +364,7 @@ export default function TenantRegisterPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Country <span className="text-danger-text">*</span></label>
                 <CmxSelect
                   value={formData.country}
                   onChange={(e) =>
@@ -375,7 +376,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Currency <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Currency <span className="text-danger-text">*</span></label>
                 <CmxSelect
                   value={formData.currency}
                   onChange={(e) =>
@@ -384,11 +385,11 @@ export default function TenantRegisterPage() {
                   options={CURRENCIES}
                   required
                 />
-                <p className="mt-1 text-xs text-gray-500">Used for invoices and pricing</p>
+                <p className="mt-1 text-xs text-muted-foreground">Used for invoices and pricing</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Timezone <span className="text-danger-text">*</span></label>
                 <CmxSelect
                   value={formData.timezone}
                   onChange={(e) =>
@@ -397,11 +398,11 @@ export default function TenantRegisterPage() {
                   options={TIMEZONES}
                   required
                 />
-                <p className="mt-1 text-xs text-gray-500">For scheduling and timestamps</p>
+                <p className="mt-1 text-xs text-muted-foreground">For scheduling and timestamps</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Default Language <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Default Language <span className="text-danger-text">*</span></label>
                 <CmxSelect
                   value={formData.language}
                   onChange={(e) =>
@@ -418,7 +419,7 @@ export default function TenantRegisterPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Admin Email <span className="text-danger-text">*</span></label>
                 <CmxInput
                   type="email"
                   value={formData.adminUser.email}
@@ -432,12 +433,12 @@ export default function TenantRegisterPage() {
                   required
                   className="w-full"
                 />
-                {errors.adminEmail && <p className="mt-1 text-sm text-red-600">{errors.adminEmail}</p>}
-                <p className="mt-1 text-xs text-gray-500">You'll use this email to log in</p>
+                {errors.adminEmail && <p className="mt-1 text-sm text-danger-text">{errors.adminEmail}</p>}
+                <p className="mt-1 text-xs text-muted-foreground">You'll use this email to log in</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Password <span className="text-danger-text">*</span></label>
                 <CmxInput
                   type="password"
                   value={formData.adminUser.password}
@@ -450,12 +451,12 @@ export default function TenantRegisterPage() {
                   required
                   className="w-full"
                 />
-                {errors.adminPassword && <p className="mt-1 text-sm text-red-600">{errors.adminPassword}</p>}
-                <p className="mt-1 text-xs text-gray-500">Min 8 characters with uppercase, number, and special character</p>
+                {errors.adminPassword && <p className="mt-1 text-sm text-danger-text">{errors.adminPassword}</p>}
+                <p className="mt-1 text-xs text-muted-foreground">Min 8 characters with uppercase, number, and special character</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-1">Display Name <span className="text-danger-text">*</span></label>
                 <CmxInput
                   value={formData.adminUser.displayName}
                   onChange={(e) =>
@@ -468,18 +469,18 @@ export default function TenantRegisterPage() {
                   required
                   className="w-full"
                 />
-                {errors.adminDisplayName && <p className="mt-1 text-sm text-red-600">{errors.adminDisplayName}</p>}
+                {errors.adminDisplayName && <p className="mt-1 text-sm text-danger-text">{errors.adminDisplayName}</p>}
               </div>
 
-              <Alert
-                variant="info"
+              <CmxSummaryMessage
+                type="info"
                 message="Your 14-day free trial starts immediately. No credit card required."
               />
             </div>
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+          <div className="flex justify-between mt-8 pt-6 border-t border-border">
             <CmxButton
               variant="outline"
               onClick={handleBack}
@@ -500,9 +501,9 @@ export default function TenantRegisterPage() {
         </CmxCard>
 
         {/* Login Link */}
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+          <a href="/login" className="text-primary-text hover:text-primary-text/80 font-medium">
             Sign in
           </a>
         </p>

@@ -62,7 +62,7 @@ export default function EditProductPage() {
   if (loading) {
     return (
       <CatalogSectionGate>
-        <CmxCard className="p-4 text-gray-500">{tCommon('loading')}</CmxCard>
+        <CmxCard className="p-4 text-muted-foreground">{tCommon('loading')}</CmxCard>
       </CatalogSectionGate>
     )
   }
@@ -70,7 +70,7 @@ export default function EditProductPage() {
   if (error) {
     return (
       <CatalogSectionGate>
-        <CmxCard className="p-4 text-red-700">{error}</CmxCard>
+        <CmxCard className="p-4 text-danger-text">{error}</CmxCard>
       </CatalogSectionGate>
     )
   }

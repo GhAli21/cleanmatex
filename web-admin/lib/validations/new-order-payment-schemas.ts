@@ -22,6 +22,7 @@ import {
   SETTLEMENT_MONEY_EPSILON,
 } from '@/lib/constants/settlement-catalog';
 import { validateCheckDueDate } from '@/lib/utils/check-date';
+import { POSTGRES_UUID_LIKE, zUuidLike } from '@/lib/validations/uuid-like';
 
 export const OUTSTANDING_POLICIES = {
   NONE: 'NONE',
@@ -43,19 +44,23 @@ export const outstandingPolicySchema = z.enum([
 
 /**
  * Coerces optional UUID JSON fields to undefined when absent, blank, non-string,
- * or not a valid UUID (avoids Zod "Invalid uuid" / "Invalid input" on unused promo/gift fields).
+ * or not Postgres-uuid-shaped (avoids Zod reject on unused promo/gift/preference ids,
+ * including seeded non-RFC demo rows).
  */
-const OPTIONAL_FIELD_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 function optionalUuidJsonPreprocess(val: unknown): unknown {
   if (val === '' || val == null) return undefined;
   if (typeof val !== 'string') return undefined;
   const trimmed = val.trim();
   if (trimmed === '') return undefined;
-  if (!OPTIONAL_FIELD_UUID_RE.test(trimmed)) return undefined;
+  if (!POSTGRES_UUID_LIKE.test(trimmed)) return undefined;
   return trimmed;
 }
+
+/** Optional catalog FK that may be null, omitted, or `''` from the cart. */
+const optionalPreferenceCfIdSchema = z.preprocess(
+  optionalUuidJsonPreprocess,
+  zUuidLike().optional().nullable(),
+);
 
 const canonicalPaymentMethodCodeSchema = z.enum([
   PAYMENT_METHODS.CASH,
@@ -378,9 +383,9 @@ export const newOrderPaymentPayloadSchema = z
     /** B2B: When true, admin overrides credit limit (warn mode). Passed to create-with-payment. */
     creditLimitOverride: z.boolean().optional(),
     /** OPEN cash-drawer session chosen for any cash-taking legs in this checkout. */
-    cashDrawerSessionId: z.string().uuid().optional(),
+    cashDrawerSessionId: zUuidLike().optional(),
     /** Selected tax profile IDs shown in the payment modal tax panel. */
-    taxProfileIds: z.array(z.string().uuid()).optional(),
+    taxProfileIds: z.array(zUuidLike()).optional(),
     /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal amountToCharge. */
     paymentLegs: z.array(paymentLegSchema).optional(),
     /** Explicit checkout excess routing — required when server detects unresolved excess. */
@@ -453,8 +458,8 @@ export const lineDiscountSchema = z
 export const previewPaymentRequestSchema = z.object({
   items: z.array(
     z.object({
-      /** Absent only for a custom item (`customItem`). */
-      productId: z.string().uuid().optional(),
+      /** Absent only for a custom item (`customItem`). Seeded demo product ids may be non-RFC. */
+      productId: zUuidLike().optional(),
       /** A line with no catalog product (P5-03e). */
       customItem: customItemSchema.nullable().optional(),
       quantity: z.number().positive(),
@@ -488,7 +493,7 @@ export const previewPaymentRequestSchema = z.object({
     preference_code: z.string(),
     source: z.string(),
     extra_price: z.number().nonnegative(),
-    preferenceCfId: z.string().uuid().optional().nullable(),
+    preferenceCfId: optionalPreferenceCfIdSchema,
   })).optional(),
   branchId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
@@ -503,13 +508,12 @@ export const previewPaymentRequestSchema = z.object({
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
   serviceCategories: z.array(z.string()).optional(),
-  taxProfileIds: z.array(z.string().uuid()).optional(),
+  taxProfileIds: z.array(zUuidLike()).optional(),
   promoCode: z.string().optional(),
   giftCardNumber: z.string().optional(),
   giftCardAmount: z.number().min(0).optional(),
-  giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+  giftCardId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
 });
-
 /**
  *
  */
@@ -547,11 +551,11 @@ export const createWithPaymentRequestSchema = z.object({
   /** Preserves the chosen sales or integration channel through the payment-create boundary. */
   orderSourceCode: z.enum(ORDER_SOURCE_CODES).default(NEW_ORDER_DEFAULT_SOURCE_CODE),
   /** Canonical tax profile selection used by web-admin and external clients. */
-  taxProfileIds: z.array(z.string().uuid()).optional(),
+  taxProfileIds: z.array(zUuidLike()).optional(),
   items: z.array(
     z.object({
-      /** Absent only for a custom item (`customItem`). */
-      productId: z.string().uuid().optional(),
+      /** Absent only for a custom item (`customItem`). Seeded demo product ids may be non-RFC. */
+      productId: zUuidLike().optional(),
       /** A line with no catalog product (P5-03e); its name is stored as the line name. */
       customItem: customItemSchema.nullable().optional(),
       productName: z.string().nullable().optional(),
@@ -573,7 +577,7 @@ export const createWithPaymentRequestSchema = z.object({
         pieceSeq: z.number().positive(),
         color: z.string().optional(),
         colorCodes: z.array(z.string()).optional(),
-        colorCfIds: z.array(z.union([z.string().uuid(), z.null()])).optional(),
+        colorCfIds: z.array(z.union([zUuidLike(), z.null()])).optional(),
         brand: z.string().optional(),
         hasStain: z.boolean().optional(),
         hasDamage: z.boolean().optional(),
@@ -585,25 +589,25 @@ export const createWithPaymentRequestSchema = z.object({
           preference_code: z.string(),
           source: z.string(),
           extra_price: z.number().nonnegative(),
-          preferenceCfId: z.string().uuid().optional().nullable(),
+          preferenceCfId: optionalPreferenceCfIdSchema,
         })).optional(),
         packingPrefCode: z.string().optional(),
-        packingCfId: z.string().uuid().optional().nullable(),
+        packingCfId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional().nullable()),
       })).optional(),
       servicePrefs: z.array(z.object({
         preference_code: z.string(),
         source: z.string(),
         extra_price: z.number().nonnegative(),
-        preferenceCfId: z.string().uuid().optional().nullable(),
+        preferenceCfId: optionalPreferenceCfIdSchema,
       })).optional(),
       packingPrefCode: z.string().optional(),
       packingPrefIsOverride: z.boolean().optional(),
       packingPrefSource: z.string().optional(),
-      packingCfId: z.string().uuid().optional().nullable(),
+      packingCfId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional().nullable()),
       /** Item-level unit price override captured for pricing audit and server total validation. */
       priceOverride: z.number().min(0).nullable().optional(),
       overrideReason: z.string().max(500).nullable().optional(),
-      overrideBy: z.string().uuid().nullable().optional(),
+      overrideBy: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().nullable().optional()),
       servicePrefCharge: z.number().min(0).optional(),
       packingPrefCharge: z.number().min(0).optional(),
       /** This line's own speed (§5.4); absent or null follows the order speed. */
@@ -622,7 +626,7 @@ export const createWithPaymentRequestSchema = z.object({
     preference_code: z.string(),
     source: z.string(),
     extra_price: z.number().nonnegative(),
-    preferenceCfId: z.string().uuid().optional().nullable(),
+    preferenceCfId: optionalPreferenceCfIdSchema,
   })).optional(),
   isQuickDrop: z.boolean().optional(),
   quickDropQuantity: z.number().positive().optional(),
@@ -635,17 +639,17 @@ export const createWithPaymentRequestSchema = z.object({
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
   promoCode: z.string().optional(),
-  promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+  promoCodeId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
   promoDiscount: z.number().min(0).optional(),
   giftCardNumber: z.string().optional(),
   giftCardAmount: z.number().min(0).optional(),
-  giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+  giftCardId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
   checkNumber: z.string().optional(),
   checkBank: z.string().optional(),
   checkDate: z.string().optional(),
   branchId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
-    z.string().optional() // z.string().uuid().optional()
+    z.string().optional() // zUuidLike().optional()
   ).optional(),
   /** Customer snapshot at order time (order-level, not customer master) */
   customerMobile: z.string().max(50).optional(),
@@ -654,7 +658,7 @@ export const createWithPaymentRequestSchema = z.object({
   isDefaultCustomer: z.boolean().optional(),
   customerDetails: z.record(z.string(), z.unknown()).optional(),
   /** B2B: Contract, cost center, PO */
-  b2bContractId: z.string().uuid().optional(),
+  b2bContractId: zUuidLike().optional(),
   costCenterCode: z.string().max(50).optional(),
   poNumber: z.string().max(100).optional(),
   /** B2B: When true, admin overrides credit limit (warn mode). Recorded on order for audit. */
@@ -662,9 +666,9 @@ export const createWithPaymentRequestSchema = z.object({
   /** Client-generated UUID for idempotent retry — server returns existing order if key is seen again. */
   idempotencyKey: z.string().max(100).optional(),
   /** Cash drawer session ID — required when a CASH payment method has requiresCashDrawer=true. */
-  cashDrawerSessionId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+  cashDrawerSessionId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
   /** Optional POS operational session lineage. Required only for POS-aware runtime flows. */
-  posSessionId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+  posSessionId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.saleTotal. Must be <= saleTotal. */
   amountToCharge: z.number().min(0).optional(),
@@ -776,19 +780,16 @@ export type CreateInvoiceInputValidated = z.infer<typeof createInvoiceInputSchem
 // processPayment action input (for new-order flow: orderId, amount, method)
 // ---------------------------------------------------------------------------
 
-const uuidRegex =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 export const processPaymentActionInputSchema = z
   .object({
-    orderId: z.string().uuid().optional(),
+    orderId: zUuidLike().optional(),
     invoiceId: z
       .string()
       .optional()
-      .refine((v) => v === undefined || v === '' || uuidRegex.test(v), {
+      .refine((v) => v === undefined || v === '' || POSTGRES_UUID_LIKE.test(v), {
         message: 'Invalid UUID',
       }),
-    customerId: z.string().uuid().optional(),
+    customerId: zUuidLike().optional(),
     paymentKind: z.enum(['invoice', 'deposit', 'advance', 'pos']).optional(),
     paymentMethod: paymentMethodCodeSchema,
     amount: z.number().positive(),
@@ -797,10 +798,10 @@ export const processPaymentActionInputSchema = z
     checkDate: z.date().optional(),
     manualDiscount: z.number().min(0).optional(),
     promoCode: z.string().optional(),
-    promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+    promoCodeId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
     giftCardNumber: z.string().optional(),
     giftCardAmount: z.number().min(0).optional(),
-    giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
+    giftCardId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional()).optional(),
     notes: z.string().optional(),
     // Amount breakdown (new-order flow)
     subtotal: z.number().min(0).optional(),
@@ -824,8 +825,8 @@ export const processPaymentActionInputSchema = z
   .refine(
     (data) =>
       data.paymentKind !== 'invoice' ||
-      (typeof data.invoiceId === 'string' && data.invoiceId.length > 0 && uuidRegex.test(data.invoiceId)) ||
-      (typeof data.orderId === 'string' && data.orderId.length > 0 && uuidRegex.test(data.orderId)),
+      (typeof data.invoiceId === 'string' && data.invoiceId.length > 0 && POSTGRES_UUID_LIKE.test(data.invoiceId)) ||
+      (typeof data.orderId === 'string' && data.orderId.length > 0 && POSTGRES_UUID_LIKE.test(data.orderId)),
     {
       message:
         'Either an invoice or an order is required for invoice payment (order allows creating the invoice).',

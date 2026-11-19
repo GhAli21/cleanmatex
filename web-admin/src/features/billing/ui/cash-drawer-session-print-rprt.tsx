@@ -102,12 +102,12 @@ export function CashDrawerSessionPrintRprt({
 
   const varianceColor =
     totals.variance === null
-      ? 'text-gray-500'
+      ? 'text-muted-foreground'
       : totals.variance === 0
-        ? 'text-green-700'
+        ? 'text-success-text'
         : totals.variance > 0
-          ? 'text-blue-700'
-          : 'text-red-700';
+          ? 'text-primary-text'
+          : 'text-danger-text';
 
   const printStyles = `
     @page { size: A4; margin: 12mm; }
@@ -121,7 +121,7 @@ export function CashDrawerSessionPrintRprt({
 
   return (
     <div
-      className="min-h-screen bg-gray-100 py-6 print:bg-white print:py-0"
+      className="min-h-screen bg-muted py-6 print:bg-card print:py-0"
       dir={dir}
     >
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
@@ -130,25 +130,25 @@ export function CashDrawerSessionPrintRprt({
       <div className="print-hidden mb-4 flex items-center justify-between px-4">
         <div>
           <h1 className="text-lg font-semibold">{t('title')}</h1>
-          <p className="text-sm text-gray-500">{session.session_no} · A4</p>
+          <p className="text-sm text-muted-foreground">{session.session_no} · A4</p>
         </div>
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
         >
           {t('printButton')}
         </button>
       </div>
 
       {/* Print document */}
-      <div className="mx-auto w-full max-w-[210mm] bg-white px-8 py-6 shadow print:shadow-none">
+      <div data-mode="LIGHT" className="mx-auto w-full max-w-[210mm] bg-card px-8 py-6 shadow print:shadow-none">
         {/* Header */}
         <div
-          className={`mb-6 border-b border-gray-300 pb-4 ${isRTL ? 'text-right' : 'text-left'}`}
+          className="mb-6 border-b border-border pb-4 text-start"
         >
-          <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
-          <p className="mt-1 text-sm text-gray-500">{session.session_no}</p>
+          <h2 className="text-2xl font-bold text-foreground">{t('title')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{session.session_no}</p>
         </div>
 
         {/* Session info grid */}
@@ -192,9 +192,9 @@ export function CashDrawerSessionPrintRprt({
         </div>
 
         {/* Financial summary */}
-        <div className="mb-6 rounded-lg border border-gray-200 p-4">
+        <div className="mb-6 rounded-lg border border-border p-4">
           <h3
-            className={`mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground text-start"
           >
             {t('financialSummary')}
           </h3>
@@ -208,20 +208,20 @@ export function CashDrawerSessionPrintRprt({
               label={t('cashInMovements')}
               value={fmt(totals.totalCashIn)}
               isRTL={isRTL}
-              valueClass="text-green-700"
+              valueClass="text-success-text"
             />
             <SummaryRow
               label={t('cashOutMovements')}
               value={`−${fmt(totals.totalCashOut)}`}
               isRTL={isRTL}
-              valueClass="text-red-600"
+              valueClass="text-danger-text"
             />
             <SummaryRow
               label={t('paymentsReceived')}
               value={fmt(totals.totalPayments)}
               isRTL={isRTL}
             />
-            <div className="border-t border-gray-200 pt-2">
+            <div className="border-t border-border pt-2">
               <SummaryRow
                 label={t('expectedBalance')}
                 value={fmt(totals.expectedBalance)}
@@ -267,10 +267,10 @@ export function CashDrawerSessionPrintRprt({
               return (
                 <div
                   key={b.currencyCode}
-                  className="rounded-lg border border-gray-200 p-4"
+                  className="rounded-lg border border-border p-4"
                 >
                   <h3
-                    className={`mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground text-start"
                   >
                     {tClosure('balanceTitle', { currency: b.currencyCode })}
                   </h3>
@@ -298,13 +298,13 @@ export function CashDrawerSessionPrintRprt({
                       label={tClosure('financeIn')}
                       value={bfmt(b.finIn)}
                       isRTL={isRTL}
-                      valueClass="text-green-700"
+                      valueClass="text-success-text"
                     />
                     <SummaryRow
                       label={tClosure('financeOut')}
                       value={`−${bfmt(b.finOut)}`}
                       isRTL={isRTL}
-                      valueClass="text-red-600"
+                      valueClass="text-danger-text"
                     />
                     {Number(b.changeRounding) !== 0 ? (
                       <SummaryRow
@@ -317,16 +317,16 @@ export function CashDrawerSessionPrintRprt({
                       label={tClosure('custodyIn')}
                       value={bfmt(b.trxIn)}
                       isRTL={isRTL}
-                      valueClass="text-green-700"
+                      valueClass="text-success-text"
                     />
                     <SummaryRow
                       label={tClosure('custodyOut')}
                       value={`−${bfmt(b.trxOut)}`}
                       isRTL={isRTL}
-                      valueClass="text-red-600"
+                      valueClass="text-danger-text"
                     />
                     {b.closingExpected !== null ? (
-                      <div className="border-t border-gray-200 pt-2">
+                      <div className="border-t border-border pt-2">
                         <SummaryRow
                           label={tClosure('closingExpected')}
                           value={bfmt(b.closingExpected)}
@@ -361,7 +361,7 @@ export function CashDrawerSessionPrintRprt({
                   {counts.length > 0 ? (
                     <table className="mt-3 w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200">
+                        <tr className="border-b border-border">
                           <Th isRTL={isRTL}>{t('time')}</Th>
                           <Th isRTL={isRTL}>{t('type')}</Th>
                           <Th isRTL={isRTL} right>
@@ -375,7 +375,7 @@ export function CashDrawerSessionPrintRprt({
                       <tbody>
                         {counts.map((c) => (
                           <Fragment key={c.countId}>
-                            <tr className="border-b border-gray-100">
+                            <tr className="border-b border-border">
                               <Td isRTL={isRTL}>
                                 {formatDate(c.countedAt, locale)}
                               </Td>
@@ -392,13 +392,13 @@ export function CashDrawerSessionPrintRprt({
                               </Td>
                             </tr>
                             {c.denominations.length > 0 ? (
-                              <tr className="border-b border-gray-100">
+                              <tr className="border-b border-border">
                                 <td colSpan={4} className="px-2 py-2">
                                   <div className="flex flex-wrap gap-2">
                                     {c.denominations.map((d) => (
                                       <span
                                         key={`${c.countId}-${d.denominationId}`}
-                                        className="rounded border border-gray-200 px-2 py-1 text-xs"
+                                        className="rounded border border-border px-2 py-1 text-xs"
                                       >
                                         {locale === 'ar' && d.name2
                                           ? d.name2
@@ -429,16 +429,16 @@ export function CashDrawerSessionPrintRprt({
         {/* Movements */}
         <div className="mb-6">
           <h3
-            className={`mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground text-start"
           >
             {t('movementsTitle', { count: movements.length })}
           </h3>
           {movements.length === 0 ? (
-            <p className="text-sm text-gray-400">{t('noMovements')}</p>
+            <p className="text-sm text-muted-foreground">{t('noMovements')}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-border">
                   <Th isRTL={isRTL}>{t('time')}</Th>
                   <Th isRTL={isRTL}>{t('type')}</Th>
                   <Th isRTL={isRTL}>{t('direction')}</Th>
@@ -450,15 +450,15 @@ export function CashDrawerSessionPrintRprt({
               </thead>
               <tbody>
                 {movements.map((m) => (
-                  <tr key={m.id} className="border-b border-gray-100">
+                  <tr key={m.id} className="border-b border-border">
                     <Td isRTL={isRTL}>{formatDate(m.performed_at, locale)}</Td>
                     <Td isRTL={isRTL}>{m.movement_type}</Td>
                     <Td isRTL={isRTL}>
                       <span
                         className={
                           m.direction === 'IN'
-                            ? 'text-green-700'
-                            : 'text-red-600'
+                            ? 'text-success-text'
+                            : 'text-danger-text'
                         }
                       >
                         {m.direction === 'IN'
@@ -482,16 +482,16 @@ export function CashDrawerSessionPrintRprt({
         {/* Payments by method */}
         <div className="mb-6">
           <h3
-            className={`mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}
+            className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground text-start"
           >
             {t('paymentsTitle', { count: payments.length })}
           </h3>
           {payments.length === 0 ? (
-            <p className="text-sm text-gray-400">{t('noPayments')}</p>
+            <p className="text-sm text-muted-foreground">{t('noPayments')}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-border">
                   <Th isRTL={isRTL}>{t('time')}</Th>
                   <Th isRTL={isRTL}>{t('method')}</Th>
                   <Th isRTL={isRTL}>{t('status')}</Th>
@@ -502,7 +502,7 @@ export function CashDrawerSessionPrintRprt({
               </thead>
               <tbody>
                 {payments.map((p) => (
-                  <tr key={p.id} className="border-b border-gray-100">
+                  <tr key={p.id} className="border-b border-border">
                     <Td isRTL={isRTL}>{formatDate(p.created_at, locale)}</Td>
                     <Td isRTL={isRTL}>{p.payment_method_code}</Td>
                     <Td isRTL={isRTL}>{p.payment_status ?? '—'}</Td>
@@ -513,14 +513,14 @@ export function CashDrawerSessionPrintRprt({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-gray-300">
+                <tr className="border-t-2 border-border">
                   <td
                     colSpan={3}
-                    className={`py-2 text-sm font-semibold ${isRTL ? 'text-right pr-2' : 'text-left'}`}
+                    className="py-2 text-sm font-semibold text-start"
                   >
                     {t('total')}
                   </td>
-                  <td className="py-2 text-right text-sm font-bold tabular-nums">
+                  <td className="py-2 text-end text-sm font-bold tabular-nums">
                     {fmt(totals.totalPayments)}
                   </td>
                 </tr>
@@ -530,7 +530,7 @@ export function CashDrawerSessionPrintRprt({
         </div>
 
         {/* Footer */}
-        <div className="mt-8 border-t border-dashed border-gray-300 pt-4 text-center text-xs text-gray-400">
+        <div className="mt-8 border-t border-dashed border-border pt-4 text-center text-xs text-muted-foreground">
           {t('generatedOn', {
             date: formatDate(new Date().toISOString(), locale),
           })}
@@ -552,9 +552,9 @@ function InfoRow({
   isRTL: boolean;
 }) {
   return (
-    <div className={isRTL ? 'text-right' : 'text-left'}>
-      <span className="text-gray-500">{label}: </span>
-      <span className="font-medium text-gray-900">{value}</span>
+    <div className="text-start">
+      <span className="text-muted-foreground">{label}: </span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   );
 }
@@ -564,7 +564,7 @@ function SummaryRow({
   value,
   isRTL,
   bold = false,
-  valueClass = 'text-gray-900',
+  valueClass = 'text-foreground',
 }: {
   label: string;
   value: string;
@@ -573,8 +573,8 @@ function SummaryRow({
   valueClass?: string;
 }) {
   return (
-    <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-      <span className="text-gray-600">{label}</span>
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}</span>
       <span
         className={`tabular-nums ${bold ? 'font-bold' : 'font-medium'} ${valueClass}`}
       >
@@ -595,7 +595,7 @@ function Th({
 }) {
   return (
     <th
-      className={`py-2 text-xs font-semibold uppercase tracking-wider text-gray-500 ${right ? 'text-right' : isRTL ? 'text-right' : 'text-left'}`}
+      className={`py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${right ? 'text-end' : 'text-start'}`}
     >
       {children}
     </th>
@@ -613,7 +613,7 @@ function Td({
 }) {
   return (
     <td
-      className={`py-2 text-gray-800 ${right ? 'text-right tabular-nums' : isRTL ? 'text-right' : 'text-left'}`}
+      className={`py-2 text-foreground ${right ? 'text-end tabular-nums' : 'text-start'}`}
     >
       {children}
     </td>

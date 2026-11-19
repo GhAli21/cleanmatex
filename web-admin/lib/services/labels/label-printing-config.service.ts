@@ -6,10 +6,12 @@
  * - Effective values: fn_label_printing_resolve(tenant, branch) = branch -> tenant -> system per column;
  *   the receipt barcode is also capped by the human_codes_scan_labels flag inside the function.
  *
- * Labels are available to every tenant (no label_printing flag). All queries are tenant scoped; pass the
- * request's Supabase client (RLS + the resolver's tenant guard apply).
+ * Labels are available to every tenant (no label_printing flag). Org overrides stay on the
+ * request session client (RLS). Platform defaults (`sys_label_printing_cf`) use catalogReadClient
+ * after S0. Resolve uses allowlisted `fn_label_printing_resolve` on the session client.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import {
   LABEL_PRINTING_FIELDS,
   LABEL_TYPES,
@@ -137,7 +139,8 @@ export const LabelPrintingConfigService = {
 
   /** Active platform defaults, in display order. */
   async getSystemDefaults(supabase: SupabaseClient): Promise<LabelPrintingValues[]> {
-    const { data, error } = await supabase
+    // sys_* is closed to the user JWT after S0 — service-role catalog client only for this read.
+    const { data, error } = await catalogReadClient(supabase)
       .from(SYS_TABLE)
       .select(VALUE_COLUMNS)
       .eq('is_active', true)

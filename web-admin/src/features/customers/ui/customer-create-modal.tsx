@@ -152,17 +152,17 @@ export default function CustomerCreateModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
+      <div className="bg-card rounded-lg shadow-xl max-w-md w-full mx-4">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-            <h3 className="text-lg font-medium text-gray-900">
+        <div className="px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-foreground">
               {t('quickAddCustomer')}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-muted-foreground hover:text-foreground"
             >
               <svg
                 className="h-6 w-6"
@@ -179,7 +179,7 @@ export default function CustomerCreateModal({
               </svg>
             </button>
           </div>
-          <p className={`mt-1 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p className="mt-1 text-sm text-muted-foreground text-start">
             {t('createQuickProfile')}
           </p>
         </div>
@@ -188,11 +188,11 @@ export default function CustomerCreateModal({
         <form onSubmit={handleSubmit} className="px-6 py-4">
           {/* Error Message */}
           {error && (
-            <div className={`mb-4 bg-red-50 ${isRTL ? 'border-r-4 border-l-0' : 'border-l-4 border-r-0'} border-red-400 p-4`}>
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="mb-4 bg-danger-bg border-s-4 border-e-0 border-destructive p-4">
+              <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-red-400"
+                    className="h-5 w-5 text-danger-text"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -203,8 +203,8 @@ export default function CustomerCreateModal({
                     />
                   </svg>
                 </div>
-                <div className={isRTL ? 'mr-3' : 'ml-3'}>
-                  <p className="text-sm text-red-800">{error}</p>
+                <div className="ms-3">
+                  <p className="text-sm text-danger-text">{error}</p>
                 </div>
               </div>
             </div>
@@ -212,7 +212,7 @@ export default function CustomerCreateModal({
 
           {/* Customer Type Selection */}
           <div className="mb-4">
-            <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <label className="block text-sm font-medium text-foreground mb-2 text-start">
               {t('customerType')}
             </label>
             <div className={`grid gap-3 ${hasB2B ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -221,8 +221,8 @@ export default function CustomerCreateModal({
                 onClick={() => { setCustomerType('guest'); setCategoryId(''); }}
                 className={`px-4 py-2 text-sm font-medium rounded-md ${
                   customerType === 'guest'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-border'
                 }`}
               >
                 {t('types.guest')}
@@ -232,8 +232,8 @@ export default function CustomerCreateModal({
                 onClick={() => { setCustomerType('stub'); setCategoryId(''); }}
                 className={`px-4 py-2 text-sm font-medium rounded-md ${
                   customerType === 'stub'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-border'
                 }`}
               >
                 {t('stubRecommended')}
@@ -244,15 +244,15 @@ export default function CustomerCreateModal({
                   onClick={() => { setCustomerType('b2b'); setCategoryId(''); }}
                   className={`px-4 py-2 text-sm font-medium rounded-md ${
                     customerType === 'b2b'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground hover:bg-border'
                   }`}
                 >
                   {t('types.b2b')}
                 </button>
               )}
             </div>
-            <p className={`mt-1 text-xs text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="mt-1 text-xs text-muted-foreground text-start">
               {customerType === 'guest'
                 ? t('quickCheckout')
                 : customerType === 'b2b'
@@ -265,9 +265,9 @@ export default function CustomerCreateModal({
           <div className="mb-4">
             <label
               htmlFor="firstName"
-              className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block text-sm font-medium text-foreground mb-1 text-start"
             >
-              {t('firstName')} <span className="text-red-500">*</span>
+              {t('firstName')} <span className="text-danger-text">*</span>
             </label>
             <input
               type="text"
@@ -275,7 +275,7 @@ export default function CustomerCreateModal({
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
               placeholder={t('firstName')}
               required
             />
@@ -285,7 +285,7 @@ export default function CustomerCreateModal({
           <div className="mb-4">
             <label
               htmlFor="lastName"
-              className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block text-sm font-medium text-foreground mb-1 text-start"
             >
               {t('lastName')}
             </label>
@@ -295,7 +295,7 @@ export default function CustomerCreateModal({
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
-              className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
               placeholder={t('lastName')}
             />
           </div>
@@ -305,12 +305,12 @@ export default function CustomerCreateModal({
             <div className="mb-4">
               <label
                 htmlFor="phone"
-                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground mb-1 text-start"
               >
-                {t('phoneNumber')} <span className="text-red-500">*</span>
+                {t('phoneNumber')} <span className="text-danger-text">*</span>
               </label>
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`inline-flex items-center px-3 ${isRTL ? 'rounded-r-md border-r border-l-0' : 'rounded-l-md border-l border-r-0'} border border-gray-300 bg-gray-50 text-gray-500 text-sm`}>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-s-md border-s border-e-0 border border-border bg-muted text-muted-foreground text-sm">
                   +968
                 </span>
                 <input
@@ -319,7 +319,7 @@ export default function CustomerCreateModal({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
-                  className={`flex-1 block w-full px-3 py-2 border border-gray-300 ${isRTL ? 'rounded-l-md' : 'rounded-r-md'} shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                  className="flex-1 block w-full px-3 py-2 border border-border rounded-e-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm"
                   placeholder="90123456"
                   required
                 />
@@ -332,7 +332,7 @@ export default function CustomerCreateModal({
             <div className="mb-4">
               <label
                 htmlFor="email"
-                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground mb-1 text-start"
               >
                 {t('emailOptional')}
               </label>
@@ -342,7 +342,7 @@ export default function CustomerCreateModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 dir="ltr"
-                className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
                 placeholder="customer@example.com"
               />
             </div>
@@ -353,16 +353,16 @@ export default function CustomerCreateModal({
             <div className="mb-4">
               <label
                 htmlFor="categoryId"
-                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground mb-1 text-start"
               >
-                B2B Category <span className="text-red-500">*</span>
+                B2B Category <span className="text-danger-text">*</span>
               </label>
               <select
                 id="categoryId"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 required
-                className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
               >
                 <option value="">Select category</option>
                 {b2bCategories.map((c) => (
@@ -379,7 +379,7 @@ export default function CustomerCreateModal({
             <div className="mb-4">
               <label
                 htmlFor="categoryIdIndividual"
-                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground mb-1 text-start"
               >
                 Customer Category
               </label>
@@ -387,7 +387,7 @@ export default function CustomerCreateModal({
                 id="categoryIdIndividual"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
               >
                 <option value="">Select category (optional)</option>
                 {individualCategories.map((c) => (
@@ -405,9 +405,9 @@ export default function CustomerCreateModal({
               <div className="mb-4">
                 <label
                   htmlFor="companyName"
-                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block text-sm font-medium text-foreground mb-1 text-start"
                 >
-                  {tB2b('companyName')} <span className="text-red-500">*</span>
+                  {tB2b('companyName')} <span className="text-danger-text">*</span>
                 </label>
                 <input
                   type="text"
@@ -415,7 +415,7 @@ export default function CustomerCreateModal({
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   dir={isRTL ? 'rtl' : 'ltr'}
-                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
                   placeholder={tB2b('companyName')}
                   required
                 />
@@ -423,7 +423,7 @@ export default function CustomerCreateModal({
               <div className="mb-4">
                 <label
                   htmlFor="companyName2"
-                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block text-sm font-medium text-foreground mb-1 text-start"
                 >
                   {tB2b('companyName')} (AR)
                 </label>
@@ -433,14 +433,14 @@ export default function CustomerCreateModal({
                   value={companyName2}
                   onChange={(e) => setCompanyName2(e.target.value)}
                   dir="rtl"
-                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-right`}
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-end"
                   placeholder={tB2b('companyName')}
                 />
               </div>
               <div className="mb-4">
                 <label
                   htmlFor="taxId"
-                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block text-sm font-medium text-foreground mb-1 text-start"
                 >
                   {tB2b('taxId')}
                 </label>
@@ -450,7 +450,7 @@ export default function CustomerCreateModal({
                   value={taxId}
                   onChange={(e) => setTaxId(e.target.value)}
                   dir="ltr"
-                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
                   placeholder={tB2b('taxId')}
                 />
               </div>
@@ -458,7 +458,7 @@ export default function CustomerCreateModal({
                 <div>
                   <label
                     htmlFor="creditLimit"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {tB2b('creditLimit')}
                   </label>
@@ -470,14 +470,14 @@ export default function CustomerCreateModal({
                     min="0"
                     step="0.01"
                     dir="ltr"
-                    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
                     placeholder="0"
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="paymentTermsDays"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {tB2b('paymentTermsDays')}
                   </label>
@@ -488,7 +488,7 @@ export default function CustomerCreateModal({
                     onChange={(e) => setPaymentTermsDays(e.target.value)}
                     min="0"
                     dir="ltr"
-                    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm text-start"
                     placeholder="30"
                   />
                 </div>
@@ -497,24 +497,24 @@ export default function CustomerCreateModal({
           )}
 
           {/* Actions */}
-          <div className={`mt-6 flex items-center ${isRTL ? 'flex-row-reverse justify-start space-x-reverse space-x-3' : 'justify-end space-x-3'}`}>
+          <div className="mt-6 flex items-center justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
             >
               {tCommon('cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <svg
-                    className={`animate-spin h-4 w-4 text-white ${isRTL ? 'ml-2 -mr-1' : '-ml-1 mr-2'}`}
+                    className="animate-spin h-4 w-4 text-on-solid -ms-1 me-2"
                     fill="none"
                     viewBox="0 0 24 24"
                   >

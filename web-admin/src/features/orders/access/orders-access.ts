@@ -955,6 +955,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,},
     apiDependencies: [
       {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
         label: '[Id] Proof',
         method: 'GET',
         path: '/api/v1/delivery/orders/[id]/proof',
@@ -1885,6 +1962,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
         label: '[Id] Batch Update',
         method: 'POST',
         path: '/api/v1/orders/[id]/batch-update',
@@ -2202,6 +2356,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     apiDependencies: [
       {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
         label: '[Id] Pieces',
         method: 'GET',
         path: '/api/v1/orders/[id]/items/[id]/pieces',
@@ -2399,6 +2630,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     apiDependencies: [
       {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
         label: 'Assembly Tasks',
         method: 'POST',
         path: '/api/v1/assembly/tasks',
@@ -2548,6 +2856,95 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Quality Check Details',
     page: {},
     apiDependencies: [
+      {
+        label: 'Lookups Issue Types',
+        method: 'GET',
+        path: '/api/v1/lookups/issue-types',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'Lookups Priorities',
+        method: 'GET',
+        path: '/api/v1/lookups/priorities',
+        notes: ['Auth-only route inferred from code; no requirePermission found in local API inventory.'],
+      },
+      {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
       {
         label: '[Id] Batch Update',
         method: 'POST',
@@ -2761,6 +3158,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     label: 'Packing Details',
     page: {},
     apiDependencies: [
+      {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
       {
         label: '[Id] Pieces',
         method: 'GET',
@@ -4108,6 +4582,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     },
     apiDependencies: [
       {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order stage Files panel (OrderStageFiles). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
         label: 'Order Financial View',
         method: 'GET',
         path: '/api/v1/orders/[id]/financial-view',
@@ -4231,6 +4782,61 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     apiDependencies: [
+      {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
       {
         label: 'Order Financial View',
         method: 'GET',
@@ -4370,6 +4976,61 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
     },
     apiDependencies: [
+      {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Order Files (FileAttachments / OrderStageFiles / piece photos). File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
       {
         label: 'Delivery proof and handover audit',
         method: 'GET',

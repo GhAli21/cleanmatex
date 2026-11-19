@@ -71,13 +71,13 @@ export default function UserTable({
     switch (role) {
       case 'admin':
       case 'tenant_admin':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-info-bg text-info-text'
       case 'operator':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-info-bg text-info-text'
       case 'viewer':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-foreground'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-foreground'
     }
   }
 
@@ -143,10 +143,10 @@ export default function UserTable({
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-8">
+      <div className="bg-card shadow rounded-lg p-8">
         <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="ml-3 rtl:ml-0 rtl:mr-3">{tCommon('loading')}</span>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <span className="ms-3">{tCommon('loading')}</span>
         </div>
       </div>
     )
@@ -154,68 +154,68 @@ export default function UserTable({
 
   if (users.length === 0) {
     return (
-      <div className="bg-white shadow rounded-lg p-8 text-center">
-        <p className="text-gray-500">{t('noUsers')}</p>
+      <div className="bg-card shadow rounded-lg p-8 text-center">
+        <p className="text-muted-foreground">{t('noUsers')}</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="bg-card shadow rounded-lg overflow-hidden">
+      <table className="min-w-full divide-y divide-border">
+        <thead className="bg-muted">
           <tr>
-            <th className="px-6 py-3 text-left">
+            <th className="px-6 py-3 text-start">
               <input
                 type="checkbox"
                 checked={selectedUsers.length === users.length && users.length > 0}
                 onChange={handleSelectAll}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
               />
             </th>
-            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tSettings('user')}
             </th>
-            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tSettings('role')}
             </th>
-            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tCommon('status')}
             </th>
-            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {t('lastLogin')}
             </th>
-            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tCommon('actions')}
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-card divide-y divide-border">
           {users.map((user) => (
-            <tr key={user.user_id} className="hover:bg-gray-50">
+            <tr key={user.user_id} className="hover:bg-muted">
               <td className="px-6 py-4 whitespace-nowrap">
                 <input
                   type="checkbox"
                   checked={selectedUsers.includes(user.user_id)}
                   onChange={() => handleToggleSelect(user.user_id)}
                   disabled={user.user_id === currentUser?.id}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                  className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded disabled:opacity-50"
                 />
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">
-                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-600 font-medium">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-muted-foreground font-medium">
                         {(user.display_name || user.email).charAt(0).toUpperCase()}
                       </span>
                     </div>
                   </div>
-                  <div className="ml-4 rtl:ml-0 rtl:mr-4">
-                    <div className="text-sm font-medium text-gray-900">
+                  <div className="ms-4">
+                    <div className="text-sm font-medium text-foreground">
                       {user.display_name || t('noName')}
                     </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
                   </div>
                 </div>
               </td>
@@ -232,31 +232,31 @@ export default function UserTable({
                 <span
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     user.is_active
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-success-bg text-success-text'
+                      : 'bg-danger-bg text-danger-text'
                   }`}
                 >
                   {user.is_active ? tCommon('active') : tCommon('inactive')}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                 {formatDate(user.last_login_at)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 {actionLoading === user.user_id ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
                 ) : (
-                  <div className="flex space-x-2 rtl:space-x-reverse">
+                  <div className="flex space-x-2">
                     {/* View Details link */}
                     <Link
                       href={`/dashboard/users/${user.user_id}`}
-                      className="text-indigo-600 hover:text-indigo-900"
+                      className="text-primary-text hover:text-primary-text/80"
                     >
                       {t('details')}
                     </Link>
                     <button
                       onClick={() => onEditUser(user)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-primary-text hover:text-primary-text/80"
                       disabled={user.user_id === currentUser?.id}
                     >
                       {tCommon('edit')}
@@ -264,7 +264,7 @@ export default function UserTable({
                     {user.is_active ? (
                       <button
                         onClick={() => handleDeactivate(user)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-danger-text hover:text-danger-text/80"
                         disabled={user.user_id === currentUser?.id}
                       >
                         {t('deactivate')}
@@ -272,7 +272,7 @@ export default function UserTable({
                     ) : (
                       <button
                         onClick={() => handleActivate(user)}
-                        className="text-green-600 hover:text-green-900"
+                        className="text-success-text hover:text-success-text/80"
                       >
                         {t('activate')}
                       </button>
@@ -287,26 +287,26 @@ export default function UserTable({
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div className="bg-card px-4 py-3 flex items-center justify-between border-t border-border sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => onPageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              className="relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50"
             >
               {tCommon('previous')}
             </button>
             <button
               onClick={() => onPageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.totalPages}
-              className="ml-3 rtl:ml-0 rtl:mr-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              className="ms-3 relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50"
             >
               {tCommon('next')}
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-foreground">
                 {tPagination('showing', {
                   from: (pagination.page - 1) * pagination.limit + 1,
                   to: Math.min(pagination.page * pagination.limit, pagination.total),
@@ -319,7 +319,7 @@ export default function UserTable({
                 <button
                   onClick={() => onPageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md rtl:rounded-l-none rtl:rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-s-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
                 >
                   {tCommon('previous')}
                 </button>
@@ -329,8 +329,8 @@ export default function UserTable({
                     onClick={() => onPageChange(page)}
                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                       page === pagination.page
-                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        ? 'z-10 bg-info-bg border-primary text-info-text'
+                        : 'bg-card border-border text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     {page}
@@ -339,7 +339,7 @@ export default function UserTable({
                 <button
                   onClick={() => onPageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md rtl:rounded-r-none rtl:rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-e-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
                 >
                   {tCommon('next')}
                 </button>

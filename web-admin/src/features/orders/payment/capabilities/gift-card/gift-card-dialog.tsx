@@ -172,17 +172,14 @@ export function GiftCardDialog({
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
       maxWidthClassName="max-w-lg"
     >
       {appliedGiftCard ? (
         <div
-          className={`flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 ${
-            isRTL ? 'flex-row-reverse' : ''
-          }`}
+          className="flex items-center justify-between gap-2 rounded-xl border border-info-border bg-info-bg px-3 py-2"
           data-testid="gift-card-applied"
         >
-          <span className="text-sm font-medium text-purple-900" dir="ltr">
+          <span className="text-sm font-medium text-primary-text" dir="ltr">
             {appliedGiftCard.number} · {currencyCode} {formatAmount(appliedGiftCard.amount)}
           </span>
           <CmxButton
@@ -197,7 +194,7 @@ export function GiftCardDialog({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className={`grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] ${isRTL ? 'sm:[direction:rtl]' : ''}`}>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <CmxInput
               value={giftCardNumber}
               onChange={(event) => onGiftCardNumberChange(event.target.value.toUpperCase())}
@@ -234,7 +231,7 @@ export function GiftCardDialog({
 
           {giftCardResult && !giftCardResult.isValid ? (
             <p
-              className={`text-xs text-rose-600 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="text-xs text-danger-text text-start"
               role="alert"
               data-testid="gift-card-error"
             >
@@ -243,12 +240,12 @@ export function GiftCardDialog({
           ) : null}
 
           {showWorkspace ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-purple-200 bg-white p-3" data-testid="gift-card-workspace">
-              <div className="rounded-xl border border-purple-100 bg-purple-50 px-3 py-2">
-                <p className={`text-xs font-semibold uppercase tracking-wide text-purple-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className="flex flex-col gap-3 rounded-xl border border-info-border bg-card p-3" data-testid="gift-card-workspace">
+              <div className="rounded-xl border border-info-border bg-info-bg px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary-text text-start">
                   {t('giftCard.cardCode')}
                 </p>
-                <p className="mt-1 break-all text-sm font-semibold text-slate-900" dir="ltr">
+                <p className="mt-1 break-all text-sm font-semibold text-foreground" dir="ltr">
                   {giftCardDetails?.number || giftCardNumber}
                 </p>
                 {giftCardDetails ? (
@@ -264,12 +261,12 @@ export function GiftCardDialog({
                     />
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs text-amber-700">{t('giftCard.pinPendingError')}</p>
+                  <p className="mt-2 text-xs text-warning-text">{t('giftCard.pinPendingError')}</p>
                 )}
               </div>
 
               {pinRequired ? (
-                <div className={`grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto] ${isRTL ? 'sm:[direction:rtl]' : ''}`}>
+                <div className="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                   <CmxInput
                     ref={pinInputRef}
                     label={t('giftCard.pinLabel')}
@@ -277,7 +274,7 @@ export function GiftCardDialog({
                     type={pinVisible ? 'text' : 'password'}
                     dir="ltr"
                     error={pinFieldError ?? undefined}
-                    className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-rose-400' : ''}`}
+                    className={`min-w-0 ${pinRequired && !giftCardPin.trim() ? 'ring-1 ring-destructive' : ''}`}
                     onChange={(event) => {
                       actions.setGiftCardPin(event.target.value);
                       actions.setGiftCardPinError(null);
@@ -309,9 +306,7 @@ export function GiftCardDialog({
               {giftCardDetails ? (
                 <div className="flex flex-col gap-2">
                   <p
-                    className={`text-xs font-semibold text-slate-500 ${
-                      isRTL ? 'text-right' : 'text-left'
-                    }`}
+                    className="text-xs font-semibold text-muted-foreground text-start"
                   >
                     {t('giftCard.applyAmount')}
                   </p>
@@ -369,7 +364,7 @@ export function GiftCardDialog({
                     placeholder={t('giftCard.amountPlaceholder')}
                     testId="gift-card-amount"
                   />
-                  <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className="flex gap-2">
                     <CmxButton
                       type="button"
                       size="sm"

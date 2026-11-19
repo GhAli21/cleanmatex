@@ -27,7 +27,6 @@ export interface PaymentSubmitGuardProps {
   /** Optional resolved label for a corrective action button. */
   actionLabel?: string;
   onAction?: () => void;
-  isRTL?: boolean;
   /** Optional leading icon override (defaults to an alert circle). */
   icon?: ReactNode;
 }
@@ -43,7 +42,6 @@ export function PaymentSubmitGuard({
   message,
   actionLabel,
   onAction,
-  isRTL = false,
   icon,
 }: PaymentSubmitGuardProps) {
   return (
@@ -52,14 +50,12 @@ export function PaymentSubmitGuard({
       aria-live="polite"
       data-testid="payment-submit-guard"
       data-reason={reason}
-      className={`flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900 ${
-        isRTL ? 'flex-row-reverse text-right' : 'text-left'
-      }`}
+      className="flex items-start gap-2 rounded-lg border border-danger-border bg-danger-bg px-3 py-2 text-xs text-danger-text text-start"
     >
-      <span className="mt-0.5 shrink-0 text-rose-600" aria-hidden="true">
+      <span className="mt-0.5 shrink-0 text-danger-text" aria-hidden="true">
         {icon ?? <CircleAlert className="h-4 w-4" />}
       </span>
-      <div className={`flex min-w-0 flex-1 flex-col gap-1 ${isRTL ? 'items-end' : 'items-start'}`}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1 items-start">
         <p className="min-w-0">{message}</p>
         {onAction && actionLabel ? (
           <CmxButton

@@ -134,13 +134,13 @@ export function SettingsTable({
       <CmxCardContent className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             {description && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {description}
               </p>
             )}
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Scope: {context.scope}
               {context.branchId ? ` · Branch ${context.branchId}` : ''}
               {context.userId ? ` · User ${context.userId}` : ''}
@@ -156,29 +156,29 @@ export function SettingsTable({
           </div>
         </div>
 
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border text-sm">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Code</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Scope</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Effective Value</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Source</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-700">Actions</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Code</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Name</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Scope</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Effective Value</th>
+                  <th className="px-4 py-2 text-start font-medium text-foreground">Source</th>
+                  <th className="px-4 py-2 text-end font-medium text-foreground">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
+              <tbody className="divide-y divide-border bg-card">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                       Loading settings...
                     </td>
                   </tr>
                 ) : filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                       No settings found.
                     </td>
                   </tr>
@@ -190,47 +190,47 @@ export function SettingsTable({
 
                     return (
                       <tr key={definition.setting_code}>
-                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-gray-800">
+                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-foreground">
                           {definition.setting_code}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-gray-900 text-sm font-medium">
+                          <div className="text-foreground text-sm font-medium">
                             {definition.setting_name}
                           </div>
                           {definition.setting_description && (
-                            <div className="text-xs text-gray-500 mt-0.5">
+                            <div className="text-xs text-muted-foreground mt-0.5">
                               {definition.setting_description}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                           {definition.stng_scope}
                         </td>
                         <td className="px-4 py-3 min-w-[180px]">
                           {isEditing ? (
                             renderEditor(definition.stng_data_type, draftValue, setDraftValue)
                           ) : (
-                            <div className="text-sm text-gray-900 break-words">
+                            <div className="text-sm text-foreground break-words">
                               {renderValue(resolved?.stngValue)}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                           {resolved ? (
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                 isOverridden
-                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                  : 'bg-gray-50 text-gray-700 border border-gray-200'
+                                  ? 'bg-info-bg text-info-text border border-info-border'
+                                  : 'bg-muted text-foreground border border-border'
                               }`}
                             >
                               {resolved.stngSourceLayer}
                             </span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right text-xs">
+                        <td className="px-4 py-3 whitespace-nowrap text-end text-xs">
                           <div className="inline-flex items-center gap-2">
                             {canEdit && (
                               <>
@@ -276,7 +276,7 @@ export function SettingsTable({
                               </CmxButton>
                             )}
                             {isLockedByEditPolicy && (
-                              <span className="text-xs text-amber-600" title="This setting can only be set once and is now locked">
+                              <span className="text-xs text-warning-text" title="This setting can only be set once and is now locked">
                                 Locked
                               </span>
                             )}

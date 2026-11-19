@@ -183,15 +183,15 @@ export function getPasswordStrengthLabel(score: number): {
   switch (score) {
     case 0:
     case 1:
-      return { label: 'Weak', color: 'text-red-500' }
+      return { label: 'Weak', color: 'text-danger-text' }
     case 2:
-      return { label: 'Fair', color: 'text-orange-500' }
+      return { label: 'Fair', color: 'text-warning-text' }
     case 3:
-      return { label: 'Good', color: 'text-yellow-500' }
+      return { label: 'Good', color: 'text-warning-text' }
     case 4:
-      return { label: 'Strong', color: 'text-green-500' }
+      return { label: 'Strong', color: 'text-success-text' }
     default:
-      return { label: 'Unknown', color: 'text-gray-500' }
+      return { label: 'Unknown', color: 'text-muted-foreground' }
   }
 }
 

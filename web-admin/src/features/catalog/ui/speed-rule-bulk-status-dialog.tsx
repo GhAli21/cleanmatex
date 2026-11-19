@@ -78,7 +78,7 @@ export function SpeedRuleBulkStatusDialog({ speedOptions, categoryOptions, onClo
         </CmxDialogHeader>
 
         <div className="space-y-4">
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
           {error ? <CmxSummaryMessage type="error" title={tRules('errors.title')} items={[error]} onDismiss={() => setError(null)} /> : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -99,20 +99,20 @@ export function SpeedRuleBulkStatusDialog({ speedOptions, categoryOptions, onClo
 
           <div role="status" className="space-y-1 text-sm">
             {preview.isFetching ? <p>{tCommon('loading')}</p> : null}
-            {preview.isError ? <p className="text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">{errorText(preview.error)}</p> : null}
+            {preview.isError ? <p className="text-destructive">{errorText(preview.error)}</p> : null}
             {preview.data && !preview.isFetching ? (
               <>
                 <p className="font-medium">{t(action === 'retire' ? 'previewRetire' : 'previewRestore', { count: matched })}</p>
                 {action === 'retire' && matched > 0 ? (
-                  <p className={preview.data.generalRules === 0 ? 'text-[rgb(var(--cmx-destructive-rgb,220_38_38))]' : 'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'}>
+                  <p className={preview.data.generalRules === 0 ? 'text-destructive' : 'text-muted-foreground'}>
                     {preview.data.generalRules === 0 ? t('noGeneralRule') : t('hasGeneralRule')}
                   </p>
                 ) : null}
-                {action === 'restore' && matched > 0 ? <p className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('restoreNote')}</p> : null}
+                {action === 'restore' && matched > 0 ? <p className="text-muted-foreground">{t('restoreNote')}</p> : null}
               </>
             ) : null}
           </div>
-          <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tRules('newOrdersOnly')}</p>
+          <p className="text-xs text-muted-foreground">{tRules('newOrdersOnly')}</p>
         </div>
 
         <CmxDialogFooter>

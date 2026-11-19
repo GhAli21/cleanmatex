@@ -9,7 +9,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useLocale } from '@/lib/hooks/useLocale';
 import {
   mapReadyOrderFromStateResponse,
   type ReadyOrder,
@@ -38,7 +37,6 @@ export default function ReadyPrintPage() {
   const searchParams = useSearchParams();
   const tCommon = useTranslations('common');
   const tWorkflow = useTranslations('workflow.ready');
-  const locale = useLocale();
 
   const rawLayout = (searchParams.get('layout') as PrintLayout) || 'thermal';
   const type = (params?.type as PrintType) || 'receipt';
@@ -197,7 +195,7 @@ export default function ReadyPrintPage() {
   }, [params?.id, type, sortParam, tWorkflow]);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 print:bg-white print:py-0">
+    <div className="min-h-screen bg-muted py-6 print:bg-card print:py-0">
       {/* Customizable print styles: edit variables below to change header, footer, fonts, spacing */}
       <style 
          
@@ -304,7 +302,7 @@ export default function ReadyPrintPage() {
                       ? (tWorkflow('actions.printOrderHistoryA4Rprt') ?? 'Order History (A4)')
                       : tWorkflow('itemsTitle')}
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             {layout === 'thermal' ? '80mm receipt layout' : 'A4 layout'} •{' '}
             {tCommon('print')}
           </p>
@@ -313,7 +311,7 @@ export default function ReadyPrintPage() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
           >
             {tCommon('print')}
           </button>
@@ -321,13 +319,13 @@ export default function ReadyPrintPage() {
       </div>
 
       {loading && (
-        <div className="flex h-40 items-center justify-center text-gray-500">
+        <div className="flex h-40 items-center justify-center text-muted-foreground">
           {tCommon('loading')}
         </div>
       )}
 
       {!loading && error && (
-        <div className="mx-auto max-w-lg rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mx-auto max-w-lg rounded-md border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
           {error}
         </div>
       )}

@@ -159,11 +159,10 @@ export function CustomerCreditDialog({
       onConfirm={() => onOpenChange(false)}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
       maxWidthClassName="max-w-lg"
     >
       {creditOptions.length === 0 ? (
-        <p className="text-xs text-slate-500" data-testid="customer-credit-empty">
+        <p className="text-xs text-muted-foreground" data-testid="customer-credit-empty">
           {t('customerCredits.empty')}
         </p>
       ) : (
@@ -226,11 +225,9 @@ export function CustomerCreditDialog({
               <div key={option.id} className="space-y-2">
                 {isLiveBalanceOption ? (
                   <div
-                    className={`flex items-center justify-between gap-2 px-1 ${
-                      isRTL ? 'flex-row-reverse' : ''
-                    }`}
+                    className="flex items-center justify-between gap-2 px-1"
                   >
-                    <CmxStatusBadge size="sm" tone="neutral" className="rounded-full bg-cyan-50 text-cyan-700">
+                    <CmxStatusBadge size="sm" tone="neutral" className="rounded-full bg-info-bg text-info-text">
                       {t('customerCredits.liveBadge')}
                     </CmxStatusBadge>
                     <CmxButton
@@ -242,7 +239,7 @@ export function CustomerCreditDialog({
                       onClick={() => refetchStoredValueSummary()}
                       disabled={storedValueFetching}
                       aria-label={t('customerCredits.refreshBalance')}
-                      className="h-8 rounded-xl px-2 text-slate-500"
+                      className="h-8 rounded-xl px-2 text-muted-foreground"
                       data-testid="customer-credit-refresh"
                     >
                       {storedValueFetching ? (
@@ -270,16 +267,14 @@ export function CustomerCreditDialog({
                   }}
                   className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${
                     selected
-                      ? 'border-cyan-500 bg-cyan-50/70 text-slate-900 shadow-sm ring-1 ring-cyan-200'
-                      : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'
-                  } ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                      ? 'border-primary bg-info-bg/70 text-foreground shadow-sm ring-1 ring-ring'
+                      : 'border-border bg-card text-foreground hover:border-border'
+                  } ${disabled ? 'opacity-75' : ''} `}
                 >
                   <span
-                    className={`flex w-full items-start gap-3 ${
-                      isRTL ? 'flex-row-reverse text-right' : 'text-left'
-                    }`}
+                    className="flex w-full items-start gap-3 text-start"
                   >
-                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
+                    <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-info-border bg-info-bg text-info-text">
                       <Wallet className="h-5 w-5" />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
@@ -291,27 +286,27 @@ export function CustomerCreditDialog({
                           className={`mt-1 text-xs font-medium ${
                             (isWalletOption && !walletHasAvailableBalance && walletBalanceLoaded)
                             || (isLoyaltyOption && !loyaltyHasAvailableBalance && loyaltyBalanceLoaded)
-                              ? 'text-amber-700'
-                              : 'text-slate-500'
+                              ? 'text-warning-text'
+                              : 'text-muted-foreground'
                           }`}
                         >
                           {balanceLabel}
                         </span>
                       )}
                       {(isWalletOption || isLoyaltyOption) && selected && !walletLegExceedsLiveBalance ? (
-                        <span className="mt-1 text-xs font-medium text-cyan-700">
+                        <span className="mt-1 text-xs font-medium text-primary-text">
                           {t('customerCredits.applied')}
                         </span>
                       ) : null}
                       {isWalletOption && walletLegExceedsLiveBalance ? (
-                        <span className="mt-1 text-xs font-medium text-rose-600">
+                        <span className="mt-1 text-xs font-medium text-danger-text">
                           {t('customerCredits.walletBalanceExceeded', {
                             amount: liveWalletBalanceDisplay,
                           })}
                         </span>
                       ) : null}
                       {isCreditNoteOption && creditNoteReady ? (
-                        <span className="mt-1 text-xs font-medium text-cyan-700">
+                        <span className="mt-1 text-xs font-medium text-primary-text">
                           {t('customerCredits.creditNoteSelected', {
                             id: selectedLeg?.creditReferenceId ?? '',
                           })}
@@ -323,7 +318,7 @@ export function CustomerCreditDialog({
 
                 {showAmountEditor && selectedLeg ? (
                   <div
-                    className="rounded-2xl border border-cyan-100 bg-slate-50/80 p-3"
+                    className="rounded-2xl border border-info-border bg-muted/80 p-3"
                     data-testid={`customer-credit-amount-${option.payment_method_code.toLowerCase()}`}
                   >
                     <PaymentAmountMoneyField

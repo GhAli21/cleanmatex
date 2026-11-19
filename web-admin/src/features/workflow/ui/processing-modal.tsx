@@ -862,7 +862,7 @@ export function ProcessingModal({
                 <div className="flex-1">
                   <CmxDialogTitle
                     id="processing-modal-title"
-                    className="text-xl sm:text-2xl font-bold text-gray-900 mb-2"
+                    className="text-xl sm:text-2xl font-bold text-foreground mb-2"
                   >
                     {order
                       ? `${t('title')} - ${order.order_no}`
@@ -872,7 +872,7 @@ export function ProcessingModal({
                     {t('modalDescription') || 'Manage and update processing details for order items and pieces'}
                   </p>
                   {order && (
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       {customerData && (
                         <div className="flex items-center gap-1.5">
                           <User className="h-4 w-4" />
@@ -939,17 +939,17 @@ export function ProcessingModal({
           {!isLoading && orderError && (
             <div className="flex-1 flex items-center justify-center p-6">
               <div className="text-center space-y-4 max-w-md">
-                <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+                <AlertCircle className="h-16 w-16 text-danger-text mx-auto" />
                 <div>
-                  <h3 className="text-lg font-semibold text-red-900 mb-2">
+                  <h3 className="text-lg font-semibold text-danger-text mb-2">
                     {t('error.loadingFailed') || 'Failed to Load Order'}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-1">
+                  <p className="text-sm text-muted-foreground mb-1">
                     {orderError instanceof Error
                       ? orderError.message
                       : 'An unknown error occurred'}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Order ID: {orderId || 'Unknown'}
                   </p>
                 </div>
@@ -966,7 +966,7 @@ export function ProcessingModal({
                     }}
                     className="w-full sm:w-auto"
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RefreshCw className="me-2 h-4 w-4" />
                     {t('retry') || 'Retry'}
                   </CmxButton>
                 </div>
@@ -992,11 +992,11 @@ export function ProcessingModal({
                 <div className="space-y-3">
                   {filteredAndSortedItems.length === 0 ? (
                     <div className="text-center py-12 px-4">
-                      <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                      <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         {t('noItems') || 'No Items Found'}
                       </h3>
-                      <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                         {t('noItemsDesc') || 'This order has no items to process. Please check the order details or contact support.'}
                       </p>
                     </div>
@@ -1032,8 +1032,8 @@ export function ProcessingModal({
                       ))}
                       {/* Show loading indicator for pieces if still loading */}
                       {isPiecesLoading && trackByPiece && (
-                        <div className="flex items-center justify-center py-4 text-sm text-gray-500">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin me-2" />
                           <span>Loading pieces...</span>
                         </div>
                       )}
@@ -1056,7 +1056,7 @@ export function ProcessingModal({
               <CmxDialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-6 pt-4">
                 {/* Rack Location Input */}
                 <div className="flex-1 space-y-2">
-                  <Label htmlFor="rack-location" className="block text-sm font-medium text-gray-700">
+                  <Label htmlFor="rack-location" className="block text-sm font-medium text-foreground">
                     {t('rackLocationOrder')}
                   </Label>
                   <CmxInput
@@ -1076,10 +1076,10 @@ export function ProcessingModal({
                     aria-label={`${t('update')} (Ctrl+S)`}
                   >
                     {updateMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                     )}
                     {t('update')}
-                    <span className="ml-2 text-xs opacity-70 hidden sm:inline">
+                    <span className="ms-2 text-xs opacity-70 hidden sm:inline">
                       (Ctrl+S)
                     </span>
                   </CmxButton>

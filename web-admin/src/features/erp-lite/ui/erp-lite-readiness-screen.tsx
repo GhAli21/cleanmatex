@@ -1,13 +1,12 @@
 'use client'
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { useTranslations } from 'next-intl'
 import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
 import type { ErpLiteTenantReadiness, ErpLiteMissingUsageRow } from '@/lib/types/erp-lite-ops'
 import type { ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
 import { CmxKpiStatCard } from '@ui/data-display'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives'
-import { Alert, AlertDescription } from '@ui/primitives'
-
 interface ErpLiteReadinessScreenProps {
   readiness: ErpLiteTenantReadiness | null
   missingUsage: ErpLiteMissingUsageRow[]
@@ -17,7 +16,7 @@ interface ErpLiteReadinessScreenProps {
 function ReadinessBadge({ status }: { status: ErpLiteTenantReadiness['readiness_status'] }) {
   if (status === 'READY') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-3 py-1 text-sm font-medium text-green-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-3 py-1 text-sm font-medium text-success-text">
         <CheckCircle2 className="h-4 w-4" />
         READY
       </span>
@@ -25,14 +24,14 @@ function ReadinessBadge({ status }: { status: ErpLiteTenantReadiness['readiness_
   }
   if (status === 'WARNING') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-3 py-1 text-sm font-medium text-warning-text">
         <AlertTriangle className="h-4 w-4" />
         WARNING
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-3 py-1 text-sm font-medium text-red-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-sm font-medium text-danger-text">
       <XCircle className="h-4 w-4" />
       NOT READY
     </span>
@@ -41,11 +40,11 @@ function ReadinessBadge({ status }: { status: ErpLiteTenantReadiness['readiness_
 
 function MappingIssueBadge({ issue }: { issue: ErpLiteMissingUsageRow['mapping_issue'] }) {
   const palette: Record<string, string> = {
-    MISSING: 'bg-red-500/10 text-red-700',
-    ACCOUNT_INACTIVE: 'bg-amber-500/10 text-amber-700',
-    ACCOUNT_NOT_POSTABLE: 'bg-amber-500/10 text-amber-700',
-    TYPE_MISMATCH: 'bg-orange-500/10 text-orange-700',
-    OK: 'bg-green-500/10 text-green-700',
+    MISSING: 'bg-destructive/10 text-danger-text',
+    ACCOUNT_INACTIVE: 'bg-warning/10 text-warning-text',
+    ACCOUNT_NOT_POSTABLE: 'bg-warning/10 text-warning-text',
+    TYPE_MISMATCH: 'bg-warning/10 text-warning-text',
+    OK: 'bg-success/10 text-success-text',
   }
   return (
     <span
@@ -71,9 +70,9 @@ export function ErpLiteReadinessScreen({
 
   if (!readiness) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>{tCommon('loadError')}</AlertDescription>
-      </Alert>
+      <CmxSummaryMessage type="error">
+        <div>{tCommon('loadError')}</div>
+      </CmxSummaryMessage>
     )
   }
 
@@ -114,9 +113,9 @@ export function ErpLiteReadinessScreen({
 
       {/* Gov assignment */}
       {!readiness.has_gov_assignment && (
-        <Alert variant="destructive">
-          <AlertDescription>{t('alerts.noGovAssignment')}</AlertDescription>
-        </Alert>
+        <CmxSummaryMessage type="error">
+          <div>{t('alerts.noGovAssignment')}</div>
+        </CmxSummaryMessage>
       )}
 
       {/* Template status */}

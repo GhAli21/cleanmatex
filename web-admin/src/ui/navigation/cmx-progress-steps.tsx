@@ -62,9 +62,9 @@ export const CmxProgressSteps: React.FC<CmxProgressStepsProps> = ({
                 <div
                   className={cn(
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-medium transition-colors',
-                    isCompleted && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-fg-rgb))]',
-                    isCurrent && 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-card text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]',
-                    isUpcoming && 'border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-card text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
+                    isCompleted && 'border-primary bg-primary text-primary-foreground',
+                    isCurrent && 'border-primary bg-card text-primary-text',
+                    isUpcoming && 'border-border bg-card text-muted-foreground'
                   )}
                 >
                   {isCompleted ? (
@@ -91,15 +91,15 @@ export const CmxProgressSteps: React.FC<CmxProgressStepsProps> = ({
                   <div
                     className={cn(
                       'text-sm font-medium',
-                      isCurrent && 'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
-                      isCompleted && 'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
-                      isUpcoming && 'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]'
+                      isCurrent && 'text-foreground',
+                      isCompleted && 'text-foreground',
+                      isUpcoming && 'text-muted-foreground'
                     )}
                   >
                     {step.title}
                   </div>
                   {step.description && (
-                    <div className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <div className="text-xs text-muted-foreground">
                       {step.description}
                     </div>
                   )}
@@ -111,7 +111,7 @@ export const CmxProgressSteps: React.FC<CmxProgressStepsProps> = ({
                 <div
                   className={cn(
                     'mx-2 h-0.5 flex-1 transition-colors',
-                    isCompleted ? 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]' : 'bg-[rgb(var(--cmx-border-rgb,226_232_240))]'
+                    isCompleted ? 'bg-primary' : 'bg-border'
                   )}
                   aria-hidden="true"
                 />

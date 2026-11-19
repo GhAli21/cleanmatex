@@ -122,7 +122,7 @@ export function CashTransitSendDialog({
           <CmxDialogTitle>{t('title')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('description')}</p>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
 
           <CmxSelect
             label={t('from')}

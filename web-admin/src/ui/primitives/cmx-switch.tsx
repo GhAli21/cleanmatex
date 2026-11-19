@@ -103,16 +103,16 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
           'peer inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors',
           sizeStyle.track,
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-          'focus-visible:ring-[rgb(var(--cmx-focus-ring-rgb,14_165_233)/0.35)]',
-          'focus-visible:ring-offset-[rgb(var(--cmx-background-rgb,255_255_255))]',
+          'focus-visible:ring-ring/35',
+          'focus-visible:ring-offset-background',
           'disabled:cursor-not-allowed disabled:opacity-50',
           softLocked && 'cursor-not-allowed opacity-60',
           checked
-            ? 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] bg-[rgb(var(--cmx-primary-rgb,14_165_233))]'
-            : 'border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.7)] bg-[rgb(var(--cmx-muted-rgb,241_245_249))] hover:border-[rgb(var(--cmx-foreground-rgb,15_23_42)/0.9)]',
+            ? 'border-primary bg-primary'
+            : 'border-foreground/70 bg-muted hover:border-foreground/90',
           error &&
             !checked &&
-            'border-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+            'border-destructive',
           className
         )}
         onClick={() => {
@@ -140,7 +140,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
           {description ? (
             <p
               id={descriptionId}
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-xs leading-relaxed text-muted-foreground"
             >
               {description}
             </p>
@@ -149,7 +149,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
             <p
               id={errorId}
               role="alert"
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+              className="text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>
@@ -171,7 +171,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
           className={cn(
             'cursor-pointer select-none pt-0.5 font-medium leading-snug',
             sizeStyle.label,
-            'text-[rgb(var(--cmx-foreground-rgb,15_23_42))]',
+            'text-foreground',
             (disabled || softLocked) && 'cursor-not-allowed opacity-60'
           )}
         >
@@ -183,7 +183,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
             <span aria-hidden="true" />
             <p
               id={descriptionId}
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]"
+              className="text-xs leading-relaxed text-muted-foreground"
             >
               {description}
             </p>
@@ -196,7 +196,7 @@ export const CmxSwitch = React.forwardRef<HTMLButtonElement, CmxSwitchProps>(
             <p
               id={errorId}
               role="alert"
-              className="text-xs leading-relaxed text-[rgb(var(--cmx-destructive-rgb,220_38_38))]"
+              className="text-xs leading-relaxed text-destructive"
             >
               {error}
             </p>

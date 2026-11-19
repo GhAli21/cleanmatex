@@ -206,7 +206,7 @@ export function PromoListScreen() {
                   onClick={() => handleToggleEnabled(row)}
                 >
                   {row.is_enabled ? (
-                    <ToggleRight className="h-4 w-4 text-green-600" />
+                    <ToggleRight className="h-4 w-4 text-success-text" />
                   ) : (
                     <ToggleLeft className="h-4 w-4 text-muted-foreground" />
                   )}

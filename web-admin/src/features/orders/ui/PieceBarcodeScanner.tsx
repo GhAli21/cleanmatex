@@ -85,8 +85,8 @@ export function PieceBarcodeScanner({
   return (
     <div className="space-y-3 rounded-lg border p-4 text-start">
       <div className="flex items-center gap-2">
-        <Scan className="h-5 w-5 text-gray-500" aria-hidden="true" />
-        <h4 className="text-sm font-semibold text-gray-700">{t('barcodeScanner')}</h4>
+        <Scan className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+        <h4 className="text-sm font-semibold text-foreground">{t('barcodeScanner')}</h4>
       </div>
 
       <CmxScanInput

@@ -126,9 +126,9 @@ export function BulkImportModal({
 
         <div className="space-y-4">
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-info-bg border border-info-border rounded-lg p-4">
             <h3 className="font-medium mb-2">Import Instructions</h3>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
+            <ol className="list-decimal list-inside space-y-1 text-sm text-foreground">
               <li>Download the CSV template</li>
               <li>Fill in product codes/IDs, prices, discounts, and quantity ranges</li>
               <li>Upload the completed CSV file</li>
@@ -137,13 +137,13 @@ export function BulkImportModal({
           </div>
 
           {/* Template Download */}
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
             <div>
               <p className="font-medium">CSV Template</p>
-              <p className="text-sm text-gray-500">Download template with required columns</p>
+              <p className="text-sm text-muted-foreground">Download template with required columns</p>
             </div>
             <CmxButton variant="outline" onClick={downloadTemplate}>
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 me-2" />
               Download Template
             </CmxButton>
           </div>
@@ -155,10 +155,10 @@ export function BulkImportModal({
               type="file"
               accept=".csv"
               onChange={handleFileSelect}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-border rounded-lg"
             />
             {file && (
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
               </p>
             )}
@@ -168,13 +168,13 @@ export function BulkImportModal({
           {preview && (
             <div>
               <h3 className="font-medium mb-2">Preview ({preview.totalRows} rows)</h3>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-h-60 overflow-y-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-muted">
                       <tr>
                         {preview.headers.map((header: string, i: number) => (
-                          <th key={i} className="px-3 py-2 text-left border-b">
+                          <th key={i} className="px-3 py-2 text-start border-b">
                             {header}
                           </th>
                         ))}
@@ -205,7 +205,7 @@ export function BulkImportModal({
               onClick={handleUpload}
               disabled={!file || uploading}
             >
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-4 h-4 me-2" />
               {uploading ? 'Uploading...' : 'Import'}
             </CmxButton>
           </CmxDialogFooter>

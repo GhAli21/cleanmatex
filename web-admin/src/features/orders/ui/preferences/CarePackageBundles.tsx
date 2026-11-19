@@ -7,7 +7,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { usePreferenceBundles } from '../../hooks/use-preference-bundles';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
@@ -33,7 +32,6 @@ export function CarePackageBundles({
   branchId,
 }: CarePackageBundlesProps) {
   const t = useTranslations('newOrder.preferences');
-  const isRTL = useRTL();
   const { bundles, hasBundles, isLoading } = usePreferenceBundles();
   const { servicePrefs } = usePreferenceCatalog(branchId);
   const { state, updateItemServicePrefs } = useNewOrderStateWithDispatch();
@@ -74,18 +72,18 @@ export function CarePackageBundles({
 
   return (
     <div
-      className={`rounded-lg border border-gray-200 bg-gray-50/50 p-3 ${isRTL ? 'text-right' : 'text-left'}`}
+      className="rounded-lg border border-border bg-muted/50 p-3 text-start"
     >
       <div className="flex items-center gap-2 mb-2">
-        <Package className="w-4 h-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">
+        <Package className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">
           {t('carePackages') || 'Care Packages'}
         </span>
       </div>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="text-xs text-muted-foreground mb-2">
         {t('carePackagesDesc') || 'Apply a bundle of preferences to all items'}
       </p>
-      <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex flex-wrap gap-2">
         {bundles.map((bundle) => (
           <CmxButton
             key={bundle.id}

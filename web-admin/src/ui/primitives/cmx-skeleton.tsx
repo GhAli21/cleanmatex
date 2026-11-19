@@ -14,7 +14,7 @@ export function CmxSkeleton({ className }: CmxSkeletonProps) {
   return (
     <div
       className={cn(
-        'animate-pulse rounded-md bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
+        'animate-pulse rounded-md bg-muted',
         className
       )}
     />

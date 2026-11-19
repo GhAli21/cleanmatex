@@ -191,18 +191,18 @@ export function CustomerCreateModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-card rounded-lg shadow-xl max-w-md w-full mx-4">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-            <h3 className="text-lg font-medium text-gray-900">
+        <div className="px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-foreground">
               {t('quickAddCustomer') || 'Create New Customer'}
             </h3>
             <button
               onClick={handleClose}
               disabled={loading}
-              className="text-gray-400 hover:text-gray-500 disabled:opacity-50"
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50"
             >
               <svg
                 className="h-6 w-6"
@@ -219,7 +219,7 @@ export function CustomerCreateModal({
               </svg>
             </button>
           </div>
-          <p className={`mt-1 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p className="mt-1 text-sm text-muted-foreground text-start">
             {t('createQuickProfile') || 'Create a quick customer profile for this order'}
           </p>
         </div>
@@ -228,11 +228,11 @@ export function CustomerCreateModal({
         <form onSubmit={handleSubmit} className="px-6 py-4">
           {/* Error Message */}
           {error && (
-            <div className={`mb-4 bg-red-50 ${isRTL ? 'border-r-4 border-l-0' : 'border-l-4 border-r-0'} border-red-400 p-4`}>
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="mb-4 bg-danger-bg border-s-4 border-e-0 border-destructive p-4">
+              <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-red-400"
+                    className="h-5 w-5 text-danger-text"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -243,8 +243,8 @@ export function CustomerCreateModal({
                     />
                   </svg>
                 </div>
-                <div className={isRTL ? 'mr-3' : 'ml-3'}>
-                  <p className="text-sm text-red-800">{error}</p>
+                <div className="ms-3">
+                  <p className="text-sm text-danger-text">{error}</p>
                 </div>
               </div>
             </div>
@@ -252,7 +252,7 @@ export function CustomerCreateModal({
 
           {/* Customer Type Selection */}
           <div className="mb-4">
-            <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <label className="block text-sm font-medium text-foreground mb-2 text-start">
               {t('customerType') || 'Customer Type'}
             </label>
             <div className={`grid gap-3 ${hasB2B ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -262,8 +262,8 @@ export function CustomerCreateModal({
                 disabled={loading}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
                   customerType === 'guest'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-border'
                 }`}
               >
                 {t('types.guest') || 'Guest'}
@@ -274,8 +274,8 @@ export function CustomerCreateModal({
                 disabled={loading}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
                   customerType === 'stub'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-border'
                 }`}
               >
                 {t('stubRecommended') || 'Stub (Recommended)'}
@@ -287,15 +287,15 @@ export function CustomerCreateModal({
                   disabled={loading}
                   className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
                     customerType === 'b2b'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground hover:bg-border'
                   }`}
                 >
                   {tB2b('customer') || 'B2B'}
                 </button>
               )}
             </div>
-            <p className={`mt-1 text-xs text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className="mt-1 text-xs text-muted-foreground text-start">
               {customerType === 'guest'
                 ? t('quickCheckout') || 'Quick checkout without phone'
                 : t('orderTracking') || 'Allows order tracking via phone'}
@@ -306,9 +306,9 @@ export function CustomerCreateModal({
           <div className="mb-4">
             <label
               htmlFor="create-customer-firstName"
-              className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block text-sm font-medium text-foreground mb-1 text-start"
             >
-              {t('firstName') || 'First Name'} <span className="text-red-500">*</span>
+              {t('firstName') || 'First Name'} <span className="text-danger-text">*</span>
             </label>
             <input
               type="text"
@@ -317,7 +317,7 @@ export function CustomerCreateModal({
               onChange={(e) => setFirstName(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
               disabled={loading}
-              className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
               placeholder={t('firstName') || 'First Name'}
               required
             />
@@ -327,7 +327,7 @@ export function CustomerCreateModal({
           <div className="mb-4">
             <label
               htmlFor="create-customer-lastName"
-              className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block text-sm font-medium text-foreground mb-1 text-start"
             >
               {t('lastName') || 'Last Name'}
             </label>
@@ -338,7 +338,7 @@ export function CustomerCreateModal({
               onChange={(e) => setLastName(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
               disabled={loading}
-              className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+              className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
               placeholder={t('lastName') || 'Last Name'}
             />
           </div>
@@ -348,16 +348,16 @@ export function CustomerCreateModal({
             <div className="mb-4">
               <label
                 htmlFor="create-customer-phone"
-                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground mb-1 text-start"
               >
-                {t('phoneNumber') || 'Phone Number'} <span className="text-red-500">*</span>
+                {t('phoneNumber') || 'Phone Number'} <span className="text-danger-text">*</span>
               </label>
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className="flex">
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
                   disabled={loading}
-                  className={`inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-700 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${isRTL ? 'rounded-r-md border-r border-l-0' : 'rounded-l-md border-l border-r-0'}`}
+                  className="inline-flex items-center px-3 py-2 border border-border bg-muted text-foreground text-sm focus:outline-none focus:ring-ring focus:border-ring disabled:opacity-50 rounded-s-md border-s border-e-0"
                 >
                   {COUNTRY_CODES.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -372,7 +372,7 @@ export function CustomerCreateModal({
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
                   disabled={loading}
-                  className={`flex-1 block w-full px-3 py-2 border border-gray-300 ${isRTL ? 'rounded-l-md' : 'rounded-r-md'} shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed`}
+                  className="flex-1 block w-full px-3 py-2 border border-border rounded-e-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed"
                   placeholder="90123456"
                   required
                 />
@@ -385,7 +385,7 @@ export function CustomerCreateModal({
             <div className="mb-4">
               <label
                 htmlFor="create-customer-email"
-                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block text-sm font-medium text-foreground mb-1 text-start"
               >
                 {customerType === 'b2b' ? (t('email') || 'Email') : (t('emailOptional') || 'Email (Optional)')}
               </label>
@@ -396,7 +396,7 @@ export function CustomerCreateModal({
                 onChange={(e) => setEmail(e.target.value)}
                 dir="ltr"
                 disabled={loading}
-                className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                 placeholder="customer@example.com"
               />
             </div>
@@ -408,9 +408,9 @@ export function CustomerCreateModal({
               <div className="mb-4">
                 <label
                   htmlFor="create-customer-companyName"
-                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block text-sm font-medium text-foreground mb-1 text-start"
                 >
-                  {tB2b('companyName') || 'Company Name'} <span className="text-red-500">*</span>
+                  {tB2b('companyName') || 'Company Name'} <span className="text-danger-text">*</span>
                 </label>
                 <input
                   type="text"
@@ -419,14 +419,14 @@ export function CustomerCreateModal({
                   onChange={(e) => setCompanyName(e.target.value)}
                   dir={isRTL ? 'rtl' : 'ltr'}
                   disabled={loading}
-                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                   placeholder={tB2b('companyName') || 'Company Name'}
                 />
               </div>
               <div className="mb-4">
                 <label
                   htmlFor="create-customer-companyName2"
-                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block text-sm font-medium text-foreground mb-1 text-start"
                 >
                   {tB2b('companyName2') || 'Company Name (Arabic)'}
                 </label>
@@ -437,14 +437,14 @@ export function CustomerCreateModal({
                   onChange={(e) => setCompanyName2(e.target.value)}
                   dir="rtl"
                   disabled={loading}
-                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed text-right`}
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-end"
                   placeholder={tB2b('companyName2') || 'Company Name (Arabic)'}
                 />
               </div>
               <div className="mb-4">
                 <label
                   htmlFor="create-customer-taxId"
-                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block text-sm font-medium text-foreground mb-1 text-start"
                 >
                   {tB2b('taxId') || 'Tax ID'}
                 </label>
@@ -455,7 +455,7 @@ export function CustomerCreateModal({
                   onChange={(e) => setTaxId(e.target.value)}
                   dir="ltr"
                   disabled={loading}
-                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                   placeholder={tB2b('taxId') || 'Tax ID'}
                 />
               </div>
@@ -463,7 +463,7 @@ export function CustomerCreateModal({
                 <div>
                   <label
                     htmlFor="create-customer-creditLimit"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {tB2b('creditLimit') || 'Credit Limit'}
                   </label>
@@ -476,14 +476,14 @@ export function CustomerCreateModal({
                     disabled={loading}
                     min={0}
                     step={0.01}
-                    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                     placeholder="0"
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="create-customer-paymentTermsDays"
-                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block text-sm font-medium text-foreground mb-1 text-start"
                   >
                     {tB2b('paymentTermsDays') || 'Payment Terms (Days)'}
                   </label>
@@ -495,7 +495,7 @@ export function CustomerCreateModal({
                     dir="ltr"
                     disabled={loading}
                     min={0}
-                    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                     placeholder="30"
                   />
                 </div>
@@ -504,24 +504,24 @@ export function CustomerCreateModal({
           )}
 
           {/* Actions */}
-          <div className={`mt-6 flex items-center ${isRTL ? 'flex-row-reverse justify-start space-x-reverse space-x-3' : 'justify-end space-x-3'}`}>
+          <div className="mt-6 flex items-center justify-end space-x-3">
             <button
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {tCommon('cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
                   <svg
-                    className={`animate-spin h-4 w-4 text-white ${isRTL ? 'ml-2 -mr-1' : '-ml-1 mr-2'}`}
+                    className="animate-spin h-4 w-4 text-on-solid -ms-1 me-2"
                     fill="none"
                     viewBox="0 0 24 24"
                   >

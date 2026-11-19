@@ -251,8 +251,8 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <ExportDropdown
           onExportCSV={handleExportCSV}
@@ -264,7 +264,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-border">
         <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Report tabs">
           {REPORT_TABS.map((tab) => {
             const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/');
@@ -275,8 +275,8 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
                 href={tab.path}
                 className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    ? 'border-primary text-primary-text'
+                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
                 }`}
               >
                 <Icon className="h-4 w-4" />

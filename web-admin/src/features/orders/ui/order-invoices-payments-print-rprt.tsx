@@ -66,7 +66,8 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
 
   return (
     <div
-      className="mx-auto w-full max-w-a4 bg-white text-gray-900 print:bg-white"
+      data-mode="LIGHT"
+      className="mx-auto w-full max-w-a4 bg-card text-foreground print:bg-card"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header">
@@ -95,11 +96,11 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
 
       {data.invoices.length === 0 ? (
         <section className="print-section">
-          <p className="text-gray-500">{tCommon('noData') ?? 'No invoices'}</p>
+          <p className="text-muted-foreground">{tCommon('noData') ?? 'No invoices'}</p>
         </section>
       ) : (
         data.invoices.map((inv) => (
-          <section key={inv.id} className="print-section border-t border-gray-200 pt-2">
+          <section key={inv.id} className="print-section border-t border-border pt-2">
             <h2 className="font-semibold">
               {tInvoices('invoiceNo') ?? 'Invoice'}: {inv.invoice_no}
             </h2>
@@ -121,7 +122,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
 
               {/* Auto discount rule line — shown when a rule discount was applied */}
               {Number(inv.auto_rule_discount ?? 0) > 0 && (
-                <div className="flex justify-between print-row text-blue-700">
+                <div className="flex justify-between print-row text-primary-text">
                   <span>{'Discount'}</span>
                   <span>
                     {`−${formatMoneyAmountWithCode(Number(inv.auto_rule_discount), {
@@ -135,7 +136,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
 
               {/* Promo code discount line */}
               {Number(inv.promo_discount_amount ?? 0) > 0 && (
-                <div className="flex justify-between print-row text-blue-700">
+                <div className="flex justify-between print-row text-primary-text">
                   <span>
                     {`Promo${inv.promo_code ? ` (${inv.promo_code})` : ''}`}
                   </span>
@@ -152,10 +153,10 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
               {/* Gift card settlement — shown after invoice total, not in discounts section */}
               {Number(inv.gift_card_applied_amount ?? 0) > 0 && (
                 <>
-                  <div className="flex justify-between print-row text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-0.5 mt-0.5">
+                  <div className="flex justify-between print-row text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t border-border pt-0.5 mt-0.5">
                     <span>{'Settlements'}</span>
                   </div>
-                  <div className="flex justify-between print-row text-purple-700">
+                  <div className="flex justify-between print-row text-primary-text">
                     <span>
                       {`Gift Card Settlement${inv.gift_card_last4 ? ` (···${inv.gift_card_last4})` : ''}`}
                     </span>
@@ -171,7 +172,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
               )}
 
               {/* Total Charged — always shown */}
-              <div className="flex justify-between print-row font-semibold border-t border-gray-200 pt-0.5 mt-0.5">
+              <div className="flex justify-between print-row font-semibold border-t border-border pt-0.5 mt-0.5">
                 <span>{'Total Charged'}</span>
                 <span>
                   {formatMoneyAmountWithCode(Number(inv.paid_amount ?? 0), {
@@ -184,7 +185,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
 
               <div className="flex justify-between print-row">
                 <span>{tOrders('paidAmount') ?? 'Paid'}</span>
-                <span className="text-green-700">
+                <span className="text-success-text">
                   {formatMoneyAmountWithCode(Number(inv.paid_amount ?? 0), {
                     currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
                     decimalPlaces,
@@ -199,22 +200,22 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
             </div>
             {inv.payments && inv.payments.length > 0 && (
               <div className="mt-2">
-                <h3 className="text-xs font-semibold text-gray-600 mb-1">
+                <h3 className="text-xs font-semibold text-muted-foreground mb-1">
                   {tInvoices('payments') ?? 'Payments'}
                 </h3>
                 <table className="w-full border-collapse text-[11px]">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="py-0.5 text-left">{tCommon('date') ?? 'Date'}</th>
-                      <th className="py-0.5 text-right">{tOrders('amount') ?? 'Amount'}</th>
-                      <th className="py-0.5 text-left">{tInvoices('paymentMethod') ?? 'Method'}</th>
+                    <tr className="border-b border-border">
+                      <th className="py-0.5 text-start">{tCommon('date') ?? 'Date'}</th>
+                      <th className="py-0.5 text-end">{tOrders('amount') ?? 'Amount'}</th>
+                      <th className="py-0.5 text-start">{tInvoices('paymentMethod') ?? 'Method'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {inv.payments.map((p) => (
-                      <tr key={p.id} className="border-b border-dashed border-gray-100">
+                      <tr key={p.id} className="border-b border-dashed border-border">
                         <td className="py-0.5">{p.paid_at ? formatDate(p.paid_at, locale) : '—'}</td>
-                        <td className="py-0.5 text-right">
+                        <td className="py-0.5 text-end">
                           {formatMoneyAmountWithCode(Number(p.amount), {
                             currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
                             decimalPlaces,

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { OrderFinancialView as OrderFinancialViewModel } from '@/lib/types/order-fin-view';
 import { OrderFinancialView } from '@/src/features/orders/order-fin-view/ui/order-financial-view';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
@@ -101,7 +100,6 @@ interface ConfirmReceivedResponse {
  * @param root0.confirmPath
  */
 export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialViewPath }: PublicOrderTrackingPageProps) {
-    const isRTL = useRTL();
     const locale = useLocale();
     const { currencyCode: ctxCurrencyCode, decimalPlaces: ctxDecimalPlaces } = useTenantCurrency();
     const moneyLocale = locale === 'ar' ? 'ar' : 'en';
@@ -192,10 +190,10 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="min-h-screen flex items-center justify-center bg-muted">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
-                    <p className="text-sm text-slate-600">{tCommon('loading')}</p>
+                    <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                    <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
                 </div>
             </div>
         );
@@ -203,12 +201,12 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
 
     if (loadError || !order) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-                <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
-                    <h1 className="text-lg font-semibold text-slate-900 mb-2">
+            <div className="min-h-screen flex items-center justify-center bg-muted px-4">
+                <div className="max-w-md w-full bg-card rounded-xl shadow-sm border border-border p-6 text-center">
+                    <h1 className="text-lg font-semibold text-foreground mb-2">
                         {t('title')}
                     </h1>
-                    <p className="text-sm text-slate-600 mb-4">
+                    <p className="text-sm text-muted-foreground mb-4">
                         {loadError || t('errors.notFound')}
                     </p>
                 </div>
@@ -324,55 +322,51 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 px-4 py-6">
+        <div className="min-h-screen bg-muted px-4 py-6">
             <div className="max-w-2xl mx-auto space-y-4">
                 {/* Header */}
                 <header className="space-y-2">
                     <p
-                        className={`text-xs uppercase tracking-wide text-blue-600 ${isRTL ? 'text-right' : 'text-left'
-                            }`}
+                        className="text-xs uppercase tracking-wide text-primary-text text-start"
                     >
                         {t('brandSubtitle')}
                     </p>
                     <h1
-                        className={`text-2xl font-bold text-slate-900 ${isRTL ? 'text-right' : 'text-left'
-                            }`}
+                        className="text-2xl font-bold text-foreground text-start"
                     >
                         {t('title')}
                     </h1>
                     <p
-                        className={`text-sm text-slate-600 ${isRTL ? 'text-right' : 'text-left'
-                            }`}
+                        className="text-sm text-muted-foreground text-start"
                     >
                         {t('description')}
                     </p>
                 </header>
 
                 {/* Order summary card */}
-                <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                <section className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-3">
                     <div
-                        className={`flex items-start justify-between ${isRTL ? 'flex-row-reverse' : ''
-                            }`}
+                        className="flex items-start justify-between"
                     >
-                        <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <p className="text-xs text-slate-500">
+                        <div className="text-start">
+                            <p className="text-xs text-muted-foreground">
                                 {t('orderNumberLabel')}
                             </p>
-                            <p className="text-xl font-semibold text-slate-900">
+                            <p className="text-xl font-semibold text-foreground">
                                 {order.orderNo}
                             </p>
                             {formattedReceivedAt && (
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-muted-foreground">
                                     {t('receivedAtLabel')}: {formattedReceivedAt}
                                 </p>
                             )}
                         </div>
-                        <div className={isRTL ? 'text-left' : 'text-right'}>
-                            <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1 border border-blue-100">
+                        <div className="text-end">
+                            <span className="inline-flex items-center rounded-full bg-info-bg text-info-text text-xs font-medium px-3 py-1 border border-info-border">
                                 {statusLabel}
                             </span>
                             {formattedReadyBy && (
-                                <p className="mt-2 text-xs text-slate-500">
+                                <p className="mt-2 text-xs text-muted-foreground">
                                     {t('readyByLabel')}: {formattedReadyBy}
                                 </p>
                             )}
@@ -380,20 +374,20 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                        <div className="bg-slate-50 rounded-lg px-3 py-2">
-                            <p className="text-xs text-slate-500">
+                        <div className="bg-muted rounded-lg px-3 py-2">
+                            <p className="text-xs text-muted-foreground">
                                 {t('totalAmountLabel')}
                             </p>
-                            <p className="text-sm font-semibold text-slate-900">
+                            <p className="text-sm font-semibold text-foreground">
                                 {fmt(order.totals.total ?? 0)}
                             </p>
-                            <p className="text-xs text-emerald-700 mt-1">{paymentLabel}</p>
+                            <p className="text-xs text-success-text mt-1">{paymentLabel}</p>
                         </div>
-                        <div className="bg-slate-50 rounded-lg px-3 py-2">
-                            <p className="text-xs text-slate-500">
+                        <div className="bg-muted rounded-lg px-3 py-2">
+                            <p className="text-xs text-muted-foreground">
                                 {t('itemsCountLabel')}
                             </p>
-                            <p className="text-sm font-semibold text-slate-900">
+                            <p className="text-sm font-semibold text-foreground">
                                 {order.items.reduce((sum, item) => sum + (item.quantity || 0), 0)}
                             </p>
                         </div>
@@ -404,22 +398,22 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                     )}
 
                     {isAvailableForPickup && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                            <p className="text-xs font-medium text-emerald-900">
+                        <div className="rounded-lg border border-success-border bg-success-bg px-3 py-2">
+                            <p className="text-xs font-medium text-success-text">
                                 {t('pickupAvailability.title')}
                             </p>
-                            <p className="mt-1 text-xs text-emerald-800">
+                            <p className="mt-1 text-xs text-success-text">
                                 {t('pickupAvailability.description')}
                             </p>
                         </div>
                     )}
 
                     {showPayOnCollectionNotice && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                            <p className="text-xs font-medium text-amber-900">
+                        <div className="rounded-lg border border-warning-border bg-warning-bg px-3 py-2">
+                            <p className="text-xs font-medium text-warning-text">
                                 {t('paymentNotice.title')}
                             </p>
-                            <p className="mt-1 text-xs text-amber-800">
+                            <p className="mt-1 text-xs text-warning-text">
                                 {t('paymentNotice.description', {
                                     status: statusLabel,
                                     amount: fmt(remainingCollectionAmount),
@@ -434,17 +428,17 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                                 type="button"
                                 onClick={handleConfirmReceived}
                                 disabled={isConfirmReceivedDisabled}
-                                className="inline-flex justify-center items-center rounded-full bg-blue-600 text-white text-sm font-medium px-4 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="inline-flex justify-center items-center rounded-full bg-primary text-primary-foreground text-sm font-medium px-4 py-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {confirmButtonLabel}
                             </button>
                             {confirmSuccess && (
-                                <p className="text-xs text-emerald-700">
+                                <p className="text-xs text-success-text">
                                     {confirmSuccess}
                                 </p>
                             )}
                             {actionError && (
-                                <p className="text-xs text-red-600">
+                                <p className="text-xs text-danger-text">
                                     {actionError}
                                 </p>
                             )}
@@ -454,26 +448,23 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
 
                 {/* Customer info */}
                 {order.customer && (
-                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+                    <section className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-2">
                         <h2
-                            className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'
-                                }`}
+                            className="text-sm font-semibold text-foreground text-start"
                         >
                             {t('customerSection.title')}
                         </h2>
                         <div className="space-y-1">
                             {order.customer.name && (
                                 <p
-                                    className={`text-sm text-slate-900 ${isRTL ? 'text-right' : 'text-left'
-                                        }`}
+                                    className="text-sm text-foreground text-start"
                                 >
                                     {order.customer.name}
                                 </p>
                             )}
                             {order.customer.phone && (
                                 <p
-                                    className={`text-xs text-slate-600 ${isRTL ? 'text-right' : 'text-left'
-                                        }`}
+                                    className="text-xs text-muted-foreground text-start"
                                 >
                                     {order.customer.phone}
                                 </p>
@@ -483,44 +474,41 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                 )}
 
                 {/* Items list */}
-                <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+                <section className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-2">
                     <h2
-                        className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'
-                            }`}
+                        className="text-sm font-semibold text-foreground text-start"
                     >
                         {t('itemsSection.title')}
                     </h2>
                     {order.items.length === 0 ? (
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                             {t('itemsSection.empty')}
                         </p>
                     ) : (
-                        <ul className="divide-y divide-slate-100">
+                        <ul className="divide-y divide-border">
                             {order.items.map((item) => (
                                 <li key={item.id} className="py-2 flex items-center justify-between">
                                     <div
-                                        className={`flex flex-col ${isRTL ? 'items-end text-right' : 'items-start text-left'
-                                            }`}
+                                        className="flex flex-col items-start text-start"
                                     >
-                                        <span className="text-sm font-medium text-slate-900">
+                                        <span className="text-sm font-medium text-foreground">
                                             {item.name || t('itemsSection.unnamedItem')}
                                         </span>
                                         {item.name2 && (
-                                            <span className="text-xs text-slate-500">
+                                            <span className="text-xs text-muted-foreground">
                                                 {item.name2}
                                             </span>
                                         )}
                                     </div>
                                     <div
-                                        className={`flex flex-col items-end ${isRTL ? 'text-left' : 'text-right'
-                                            }`}
+                                        className="flex flex-col items-end text-end"
                                     >
-                                        <span className="text-xs text-slate-500">
+                                        <span className="text-xs text-muted-foreground">
                                             {t('itemsSection.quantityLabel', {
                                                 quantity: item.quantity,
                                             })}
                                         </span>
-                                        <span className="text-xs font-medium text-slate-900">
+                                        <span className="text-xs font-medium text-foreground">
                                             {fmt(item.lineTotalAmount ?? item.totalPrice)}
                                         </span>
                                     </div>
@@ -532,25 +520,23 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
 
                 {/* Timeline */}
                 {timeline.length > 0 && (
-                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                    <section className="bg-card rounded-xl shadow-sm border border-border p-4 space-y-3">
                         <h2
-                            className={`text-sm font-semibold text-slate-900 ${isRTL ? 'text-right' : 'text-left'
-                                }`}
+                            className="text-sm font-semibold text-foreground text-start"
                         >
                             {t('timelineSection.title')}
                         </h2>
-                        <ol className="space-y-2 text-xs text-slate-600">
+                        <ol className="space-y-2 text-xs text-muted-foreground">
                             {timeline.map((entry) => (
                                 <li key={entry.id} className="flex items-start gap-2">
-                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary" />
                                     <div
-                                        className={`flex-1 ${isRTL ? 'text-right' : 'text-left'
-                                            }`}
+                                        className="flex-1 text-start"
                                     >
-                                        <p className="font-medium text-slate-800">
+                                        <p className="font-medium text-foreground">
                                             {entry.type}
                                         </p>
-                                        <p className="text-slate-500">
+                                        <p className="text-muted-foreground">
                                             {new Date(entry.doneAt).toLocaleString()}
                                         </p>
                                     </div>
@@ -562,16 +548,14 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
 
                 {/* Notes */}
                 {order.customerNotes && (
-                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <section className="bg-card rounded-xl shadow-sm border border-border p-4">
                         <h2
-                            className={`text-sm font-semibold text-slate-900 mb-1 ${isRTL ? 'text-right' : 'text-left'
-                                }`}
+                            className="text-sm font-semibold text-foreground mb-1 text-start"
                         >
                             {t('notesSection.title')}
                         </h2>
                         <p
-                            className={`text-xs text-slate-600 whitespace-pre-line ${isRTL ? 'text-right' : 'text-left'
-                                }`}
+                            className="text-xs text-muted-foreground whitespace-pre-line text-start"
                         >
                             {order.customerNotes}
                         </p>
@@ -579,7 +563,7 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                 )}
 
                 <footer className="pt-2 pb-4">
-                    <p className="text-[11px] text-slate-400 text-center">
+                    <p className="text-[11px] text-muted-foreground text-center">
                         {t('footer')}
                     </p>
                 </footer>

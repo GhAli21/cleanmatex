@@ -8,7 +8,7 @@ Status: Decided. Use this wording. Do not shorten it in a way that drops the DPA
 
 1. WHEN THE CHECKBOX APPEARS
 On the screen that creates a new Organization (the Tenant sign-up).
-Also on any later screen where a new authorized person re-accepts a new version of the Terms or the DPA.
+There is no later screen that asks for a second acceptance. Clause 17 of the Terms covers a later version, a document we add, and a document we remove.
 The checkbox is unchecked when the screen loads.
 The submit control does not create an Organization while the box is unchecked.
 The links open the matching language of the pages in a form the person can read before ticking.
@@ -16,7 +16,7 @@ The links open the matching language of the pages in a form the person can read 
 2. CHECKBOX WORDING
 Label, next to the checkbox:
 
-I have authority to bind this organization. I agree to the Terms of Service (tos-2026-11-17), the Data Processing Agreement (dpa-2026-11-17), and the Acceptable Use Policy (aup-2026-11-17), and I acknowledge the Privacy Policy (privacy-2026-11-17).
+I have authority to bind this organization. I agree to the Terms of Service (tos-2026-11-17), the Data Processing Agreement (dpa-2026-11-17), and the Acceptable Use Policy (aup-2026-11-17), and I acknowledge the Privacy Policy (privacy-2026-11-17). I agree that a later published version of these documents, and a document later added or removed, is accepted when it is published. I will review the published documents periodically.
 
 Link targets:
 Terms of Service -> the Terms page
@@ -71,10 +71,10 @@ Do not store a copy of the whole Terms in the row. The version code points to th
 Keep the row for the life of the Organization and for 5 years after it ends.
 
 5. LATER VERSIONS
-When a version code changes, the next admin login shows the new text and a new unchecked box.
-Continuing to use the Service after that screen requires a new row.
-Existing rows stay.
-Access to historical orders does not require re-acceptance if the Owner decides a maintenance window must stay open, but creating new orders can be held until the new tick is stored. The pilot default is: hold new orders until the new tick is stored; keep read access to existing records.
+Creating the Tenant is the only acceptance. A later published version, a document added to the pack, and a document removed from the pack are accepted when published, under clause 17 of the Terms.
+The Tenant reviews the published documents periodically and follows the current text.
+The Service does not show a second acceptance box and does not hold new orders for a new tick.
+The original acceptance row stays. It is not rewritten when a later version is published.
 
 6. MARKETING LEADS
 The early-access and contact forms are not this checkbox.

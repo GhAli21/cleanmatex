@@ -34,11 +34,11 @@ export function PosShortcutsDialog({ open, onOpenChange }: PosShortcutsDialogPro
           <CmxDialogTitle className="text-start">{t('title')}</CmxDialogTitle>
           <CmxDialogDescription className="text-start">{t('onlyNewOrder')}</CmxDialogDescription>
         </CmxDialogHeader>
-        <ul className="divide-y divide-gray-200">
+        <ul className="divide-y divide-border">
           {POS_HOTKEYS.map((row) => (
             <li key={row.labelKey} className="flex items-center justify-between gap-4 py-2">
-              <span className="text-sm text-gray-700">{t(row.labelKey)}</span>
-              <kbd dir="ltr" className="shrink-0 rounded border border-gray-300 bg-gray-50 px-2 py-0.5 font-mono text-xs text-gray-800">
+              <span className="text-sm text-foreground">{t(row.labelKey)}</span>
+              <kbd dir="ltr" className="shrink-0 rounded border border-border bg-muted px-2 py-0.5 font-mono text-xs text-foreground">
                 {row.keys}
               </kbd>
             </li>

@@ -108,22 +108,22 @@ const CATEGORY_CARD_STYLES: Record<
   }
 > = {
   washing: {
-    base: 'border-sky-300 bg-sky-100',
-    hover: 'hover:border-sky-400 hover:bg-sky-200',
-    icon: 'bg-sky-200 text-sky-800',
-    selected: 'border-sky-600 bg-sky-200',
+    base: 'border-info-border bg-info-bg',
+    hover: 'hover:border-primary hover:bg-info-border/50',
+    icon: 'bg-info-bg text-info-text',
+    selected: 'border-primary bg-info-bg',
   },
   processing: {
-    base: 'border-amber-300 bg-amber-100',
-    hover: 'hover:border-amber-400 hover:bg-amber-200',
-    icon: 'bg-amber-200 text-amber-800',
-    selected: 'border-amber-600 bg-amber-200',
+    base: 'border-warning-border bg-warning-bg',
+    hover: 'hover:border-warning hover:bg-warning-border/50',
+    icon: 'bg-warning-bg text-warning-text',
+    selected: 'border-warning bg-warning-bg',
   },
   finishing: {
-    base: 'border-emerald-300 bg-emerald-100',
-    hover: 'hover:border-emerald-400 hover:bg-emerald-200',
-    icon: 'bg-emerald-200 text-emerald-800',
-    selected: 'border-emerald-600 bg-emerald-200',
+    base: 'border-success-border bg-success-bg',
+    hover: 'hover:border-success hover:bg-success-border/50',
+    icon: 'bg-success-bg text-success-text',
+    selected: 'border-success bg-success-bg',
   },
 };
 
@@ -214,12 +214,12 @@ export function ServicePreferenceSelector({
 
   return (
     <div className="space-y-4">
-      <span className="block text-sm font-semibold text-gray-700">
+      <span className="block text-sm font-semibold text-foreground">
         {t('servicePrefs') || 'Service preferences'}
       </span>
       {groupedPrefs.map(({ category, prefs }) => (
         <section key={category} className="space-y-2">
-          <span className="block text-sm font-semibold uppercase tracking-wide text-gray-600">
+          <span className="block text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             {t(`category${category.charAt(0).toUpperCase() + category.slice(1)}`) ||
               category}
           </span>
@@ -254,13 +254,13 @@ export function ServicePreferenceSelector({
                       </span>
                     )}
                     <div className="min-w-0 flex-1 space-y-1">
-                      <span className="block text-sm font-medium leading-5 text-gray-900">
+                      <span className="block text-sm font-medium leading-5 text-foreground">
                         {label}
                       </span>
                       <div className="flex flex-wrap gap-1.5 text-sm">
                         {extraPrice > 0 && (
                           <span
-                            className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600"
+                            className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground"
                             lang={locale === 'ar' ? 'ar' : 'en'}
                           >
                             +{formatMoneyWithCode(extraPrice)}
@@ -268,7 +268,7 @@ export function ServicePreferenceSelector({
                         )}
                         {extraMins > 0 && (
                           <span
-                            className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700"
+                            className="rounded-full bg-warning-bg px-2 py-0.5 text-warning-text"
                             title={
                               t('extraTimeTooltip') ||
                               'Adds time to ready-by estimate'
@@ -279,7 +279,7 @@ export function ServicePreferenceSelector({
                         )}
                         {ecoScore > 0 && (
                           <span
-                            className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700"
+                            className="rounded-full bg-success-bg px-2 py-0.5 text-success-text"
                             title={t('ecoPoints') || 'Eco-friendly'}
                           >
                             🌱 +{ecoScore}

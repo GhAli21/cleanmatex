@@ -64,7 +64,6 @@ export interface PaymentCapabilityDialogProps {
   /** Resolved error-fallback message + close label for the boundary. */
   errorFallbackMessage: string;
   errorCloseLabel: string;
-  isRTL?: boolean;
   /** Width class for the dialog content (defaults to a small focused dialog). */
   maxWidthClassName?: string;
   children: ReactNode;
@@ -91,7 +90,6 @@ export function PaymentCapabilityDialog({
   confirmDisabled = false,
   errorFallbackMessage,
   errorCloseLabel,
-  isRTL = false,
   maxWidthClassName = 'max-w-md',
   children,
 }: PaymentCapabilityDialogProps) {
@@ -161,20 +159,20 @@ export function PaymentCapabilityDialog({
         >
           <CmxDialogHeader>
             <CmxDialogTitle
-              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+              className="flex items-center gap-2 text-start"
             >
               <span className="min-w-0">{title}</span>
               {required && requiredLabel ? (
                 <span
                   data-testid="payment-capability-required-badge"
-                  className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
+                  className="rounded-full bg-warning-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning-text"
                 >
                   {requiredLabel}
                 </span>
               ) : null}
             </CmxDialogTitle>
             {description ? (
-              <p className={`text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className="text-xs text-muted-foreground text-start">
                 {description}
               </p>
             ) : null}
@@ -183,7 +181,7 @@ export function PaymentCapabilityDialog({
           <div className="min-w-0 py-1">{children}</div>
 
           {onCancel || onConfirm ? (
-            <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+            <CmxDialogFooter className="">
               {onCancel && cancelLabel ? (
                 <CmxButton type="button" variant="outline" size="sm" onClick={onCancel}>
                   {cancelLabel}

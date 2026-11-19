@@ -47,14 +47,7 @@ const ORDER_STATE_SELECT = `
     name,
     name2,
     phone,
-    email,
-    sys_customers_mst(
-      id,
-      name,
-      name2,
-      phone,
-      email
-    )
+    email
   )
 `.replace(/\s+/g, ' ').trim();
 

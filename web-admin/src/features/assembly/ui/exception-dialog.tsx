@@ -132,7 +132,7 @@ export function ExceptionDialog({
       <CmxCard className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
         <CmxCardHeader className="flex flex-row items-center justify-between">
           <CmxCardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <AlertTriangle className="h-5 w-5 text-warning-text" />
             {t('title')}
           </CmxCardTitle>
           <CmxButton

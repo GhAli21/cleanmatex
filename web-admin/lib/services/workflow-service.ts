@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { catalogReadClient } from '@/lib/supabase/catalog-read';
 import { listWorkflowScreenKeysForStatus } from '@/lib/services/workflow-profile.service';
 import { listAvailableActions } from '@/lib/services/workflow/workflow-engine.service';
 import { logger } from '@/lib/utils/logger';
@@ -405,10 +406,9 @@ export class WorkflowService {
           status,
           ready_by,
           customer:org_customers_mst!inner(
-            customer:sys_customers_mst!inner(
-              first_name,
-              last_name
-            )
+            name,
+            name2,
+            phone
           ),
           branch:org_branches_mst(
             branch_name
@@ -434,9 +434,7 @@ export class WorkflowService {
         return {
           id: order.id,
           order_no: order.order_no,
-          customer_name: `${order.customer?.customer?.first_name || ''} ${
-            order.customer?.customer?.last_name || ''
-          }`.trim(),
+          customer_name: String(order.customer?.name || order.customer?.name2 || '').trim(),
           status: order.status,
           ready_by: order.ready_by,
           hours_overdue: Math.round(hoursOverdue * 10) / 10,
@@ -604,13 +602,28 @@ export class WorkflowService {
 
       const { data } = await supabase
         .from('org_tenant_workflow_templates_cf')
-        .select('*, template:sys_workflow_template_cd(*)')
+        .select('*')
         .eq('tenant_org_id', tenantId)
         .eq('is_default', true)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      return data || null;
+      if (!data) {
+        return null;
+      }
+
+      const templateId = (data as { template_id?: string | null }).template_id;
+      if (!templateId) {
+        return { ...data, template: null };
+      }
+
+      const { data: template } = await catalogReadClient(supabase)
+        .from('sys_workflow_template_cd')
+        .select('*')
+        .eq('template_id', templateId)
+        .maybeSingle();
+
+      return { ...data, template: template ?? null };
     } catch (error) {
       console.error('WorkflowService.getWorkflowTemplate error:', error);
       return null;

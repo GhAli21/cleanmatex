@@ -63,23 +63,23 @@ export function DriverUtilizationWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
+      <div className="bg-card rounded-lg shadow p-6 animate-pulse">
+        <div className="h-6 bg-muted rounded w-2/3 mb-4"></div>
         <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded"></div>
+          <div className="h-4 bg-muted rounded"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">
+    <div className="bg-card rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-foreground">
           {t('driverUtilization')}
         </h3>
-        <div className="p-2 rounded-lg bg-orange-50 text-orange-600">
+        <div className="p-2 rounded-lg bg-warning-bg text-warning-text">
           <Truck className="h-5 w-5" />
         </div>
       </div>
@@ -87,18 +87,18 @@ export function DriverUtilizationWidget() {
       <div className="space-y-4">
         {/* Utilization Rate */}
         <div>
-          <p className="text-sm text-gray-600">{t('utilizationRate')}</p>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-sm text-muted-foreground">{t('utilizationRate')}</p>
+          <p className="text-2xl font-bold text-foreground">
             {data.activePct.toFixed(1)}%
           </p>
-          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+          <div className="mt-2 w-full bg-muted rounded-full h-2">
             <div
               className={`h-2 rounded-full ${
                 data.activePct >= 80
-                  ? 'bg-green-500'
+                  ? 'bg-success'
                   : data.activePct >= 50
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
+                  ? 'bg-warning'
+                  : 'bg-destructive'
               }`}
               style={{ width: `${Math.min(data.activePct, 100)}%` }}
             />
@@ -106,35 +106,35 @@ export function DriverUtilizationWidget() {
         </div>
 
         {/* Driver Stats */}
-        <div className="pt-4 border-t border-gray-200 grid grid-cols-2 gap-4">
+        <div className="pt-4 border-t border-border grid grid-cols-2 gap-4">
           {/* Active Drivers */}
           <div>
-            <div className={`flex items-center mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <Users className={`h-4 w-4 text-gray-400 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-              <p className="text-xs text-gray-600">{t('activeNow')}</p>
+            <div className="flex items-center mb-1">
+              <Users className="h-4 w-4 text-muted-foreground me-1" />
+              <p className="text-xs text-muted-foreground">{t('activeNow')}</p>
             </div>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-foreground">
               {data.activeDrivers} / {data.totalDrivers}
             </p>
           </div>
 
           {/* Avg Deliveries */}
           <div>
-            <div className={`flex items-center mb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <TrendingUp className={`h-4 w-4 text-gray-400 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-              <p className="text-xs text-gray-600">{t('avgDeliveries')}</p>
+            <div className="flex items-center mb-1">
+              <TrendingUp className="h-4 w-4 text-muted-foreground me-1" />
+              <p className="text-xs text-muted-foreground">{t('avgDeliveries')}</p>
             </div>
-            <p className="text-lg font-semibold text-gray-900">
+            <p className="text-lg font-semibold text-foreground">
               {data.avgDeliveriesPerDriver.toFixed(1)}
             </p>
           </div>
         </div>
 
         {/* Action Link */}
-        <div className="pt-4 border-t border-gray-200">
+        <div className="pt-4 border-t border-border">
           <a
             href="/drivers"
-            className={`text-sm text-blue-600 hover:text-blue-700 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}
+            className="text-sm text-primary-text hover:text-primary-text/80 font-medium"
           >
             {t('manageDrivers')} {isRTL ? '←' : '→'}
           </a>

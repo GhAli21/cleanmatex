@@ -54,7 +54,7 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
       accessorKey: 'voucher_no',
       header: t('voucherNo'),
       cell: ({ getValue }) => (
-        <span className="font-mono text-sm font-medium text-blue-700">{getValue() as string}</span>
+        <span className="font-mono text-sm font-medium text-primary-text">{getValue() as string}</span>
       ),
       meta: { isCopyable: true },
     },
@@ -82,7 +82,7 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
       header: t('voucherType'),
       cell: ({ getValue }) => {
         const val = getValue() as string;
-        return <span className="text-gray-700">{voucherTypeLabels[val] ?? val}</span>;
+        return <span className="text-foreground">{voucherTypeLabels[val] ?? val}</span>;
       },
     },
     {
@@ -96,17 +96,17 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
       accessorKey: 'party_name',
       header: t('party'),
       cell: ({ getValue }) => (
-        <span className="text-gray-700">{(getValue() as string | null) ?? '—'}</span>
+        <span className="text-foreground">{(getValue() as string | null) ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'total_amount',
       header: t('totalAmount'),
       cell: ({ row }) => (
-        <span className="font-mono font-medium tabular-nums text-gray-900">
+        <span className="font-mono font-medium tabular-nums text-foreground">
           {row.original.total_amount.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
           {row.original.currency_code && (
-            <span className="ms-1 text-xs text-gray-400">{row.original.currency_code}</span>
+            <span className="ms-1 text-xs text-muted-foreground">{row.original.currency_code}</span>
           )}
         </span>
       ),
@@ -117,7 +117,7 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
       accessorKey: 'voucher_date',
       header: t('voucherDate'),
       cell: ({ row }) => (
-        <span className="text-gray-600">
+        <span className="text-muted-foreground">
           {row.original.voucher_date ??
             new Date(row.original.created_at).toLocaleDateString(isRtl ? 'ar' : 'en')}
         </span>
@@ -185,11 +185,11 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
         />
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
-            <span className="text-sm text-gray-600">
+          <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <span className="text-sm text-muted-foreground">
               {tCommon('pagination', { page, totalPages })}
             </span>
-            <div className="flex gap-2 rtl:flex-row-reverse">
+            <div className="flex gap-2">
               <CmxButton
                 variant="outline"
                 size="sm"

@@ -36,59 +36,59 @@ export function ArCustomerStatementPrintRprt({ statement }: ArCustomerStatementP
   const locale = useLocale();
 
   return (
-    <div className="rounded-xl bg-white p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
-      <div className="border-b border-slate-200 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{t('documentLabel')}</p>
+    <div data-mode="LIGHT" className="rounded-xl bg-card p-8 shadow-sm print:rounded-none print:p-0 print:shadow-none">
+      <div className="border-b border-border pb-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('documentLabel')}</p>
         <div className="mt-2 flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-semibold text-slate-950">
+            <h1 className="text-3xl font-semibold text-foreground">
               {statement.customer_name ?? statement.customer_name2 ?? statement.customer_id}
             </h1>
-            <p className="mt-2 text-sm text-slate-600">{statement.customer_id}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{statement.customer_id}</p>
           </div>
-          <div className="grid gap-2 text-sm text-slate-600">
+          <div className="grid gap-2 text-sm text-muted-foreground">
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('fields.period')}</span>
+              <span className="min-w-28 font-medium text-foreground">{t('fields.period')}</span>
               <span>
                 {statement.period_start ? formatDate(statement.period_start, locale) : '—'} -{' '}
                 {statement.period_end ? formatDate(statement.period_end, locale) : '—'}
               </span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('fields.opening')}</span>
+              <span className="min-w-28 font-medium text-foreground">{t('fields.opening')}</span>
               <span>{formatCurrency(statement.opening_balance, statement.currency_code, locale)}</span>
             </div>
             <div className="flex gap-3">
-              <span className="min-w-28 font-medium text-slate-900">{t('fields.closing')}</span>
+              <span className="min-w-28 font-medium text-foreground">{t('fields.closing')}</span>
               <span>{formatCurrency(statement.closing_balance, statement.currency_code, locale)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
+      <div className="mt-6 overflow-hidden rounded-xl border border-border">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 text-left">{t('columns.date')}</th>
-              <th className="px-4 py-3 text-left">{t('columns.kind')}</th>
-              <th className="px-4 py-3 text-left">{t('columns.reference')}</th>
-              <th className="px-4 py-3 text-left">{t('columns.description')}</th>
-              <th className="px-4 py-3 text-right">{t('columns.debit')}</th>
-              <th className="px-4 py-3 text-right">{t('columns.credit')}</th>
-              <th className="px-4 py-3 text-right">{t('columns.balance')}</th>
+              <th className="px-4 py-3 text-start">{t('columns.date')}</th>
+              <th className="px-4 py-3 text-start">{t('columns.kind')}</th>
+              <th className="px-4 py-3 text-start">{t('columns.reference')}</th>
+              <th className="px-4 py-3 text-start">{t('columns.description')}</th>
+              <th className="px-4 py-3 text-end">{t('columns.debit')}</th>
+              <th className="px-4 py-3 text-end">{t('columns.credit')}</th>
+              <th className="px-4 py-3 text-end">{t('columns.balance')}</th>
             </tr>
           </thead>
           <tbody>
             {statement.lines.map((line, index) => (
-              <tr key={`${line.event_at}-${index}`} className="border-t border-slate-200">
+              <tr key={`${line.event_at}-${index}`} className="border-t border-border">
                 <td className="px-4 py-3">{formatDate(line.event_at, locale)}</td>
                 <td className="px-4 py-3">{line.kind}</td>
                 <td className="px-4 py-3">{line.ref_no ?? '—'}</td>
                 <td className="px-4 py-3">{line.description ?? '—'}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(line.debit_amount, line.currency_code, locale)}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(line.credit_amount, line.currency_code, locale)}</td>
-                <td className="px-4 py-3 text-right font-medium">{formatCurrency(line.running_balance, line.currency_code, locale)}</td>
+                <td className="px-4 py-3 text-end">{formatCurrency(line.debit_amount, line.currency_code, locale)}</td>
+                <td className="px-4 py-3 text-end">{formatCurrency(line.credit_amount, line.currency_code, locale)}</td>
+                <td className="px-4 py-3 text-end font-medium">{formatCurrency(line.running_balance, line.currency_code, locale)}</td>
               </tr>
             ))}
           </tbody>

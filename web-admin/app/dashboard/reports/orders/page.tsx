@@ -70,7 +70,7 @@ export default function OrdersReportPage() {
           statusOptions={ORDER_STATUSES}
         />
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </div>
     );
@@ -84,7 +84,7 @@ export default function OrdersReportPage() {
           showStatusFilter
           statusOptions={ORDER_STATUSES}
         />
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-700">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center text-danger-text">
           {error}
         </div>
       </div>
@@ -98,29 +98,29 @@ export default function OrdersReportPage() {
       label: t('totalRevenue'),
       value: `${data.kpis.currencyCode} ${data.kpis.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-success-text',
+      bgColor: 'bg-success-bg',
     },
     {
       label: t('totalOrders'),
       value: data.kpis.totalOrders,
       icon: Package,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-primary-text',
+      bgColor: 'bg-info-bg',
     },
     {
       label: t('avgOrderValue'),
       value: `${data.kpis.currencyCode} ${data.kpis.avgOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
       icon: TrendingUp,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-primary-text',
+      bgColor: 'bg-info-bg',
     },
     {
       label: t('activeCustomers'),
       value: data.kpis.activeCustomers,
       icon: Users,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-warning-text',
+      bgColor: 'bg-warning-bg',
     },
   ];
 

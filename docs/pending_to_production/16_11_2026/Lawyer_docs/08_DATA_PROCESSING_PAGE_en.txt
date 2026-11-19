@@ -54,7 +54,7 @@ We give existing Tenants 15 days' notice before a new provider starts to process
 
 8. How long
 A working customer file lasts until the Tenant exports and anonymizes it, or until the Tenant account ends and the deletion window in the agreement passes.
-Orders, payments, and issued tax documents are kept for 10 years from the end of the financial year of the record, so the Tenant can keep its books.
+Orders, payments, and issued tax documents are kept for 10 years from the end of the financial year of the record, so the Tenant can keep its books. The Service is not an e-invoicing provider authorized by any government. Tax and finance screens were written by a software developer. The Tenant reviews them.
 After anonymization, the working screens no longer show the phone number, email, or address. The money record remains. An issued tax document stays as it was issued.
 
 9. Rights

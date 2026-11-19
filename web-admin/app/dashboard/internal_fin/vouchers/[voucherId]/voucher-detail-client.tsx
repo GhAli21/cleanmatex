@@ -243,7 +243,7 @@ export function VoucherDetailClient({
         <CmxCard className="min-w-0">
           <CmxCardHeader className="flex flex-row items-center justify-between">
             <CmxCardTitle>{t('voucherSummary')}</CmxCardTitle>
-            <div className="flex items-center gap-2 rtl:flex-row-reverse">
+            <div className="flex items-center gap-2">
               {canPost && (
                 <CmxButton onClick={() => setPostPreviewOpen(true)} disabled={isPending}>
                   {t('actions.post')}
@@ -322,72 +322,72 @@ export function VoucherDetailClient({
             )}
 
             {/* ── Amount block ── */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('totalAmount')}</p>
+            <div className="rounded-lg border border-border bg-muted p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('totalAmount')}</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 text-sm">
                 {/* DRAFT: show live lines total; POSTED+: show persisted total */}
                 {voucher.voucher_status === VOUCHER_STATUS.DRAFT ? (
                   <div className="col-span-2 sm:col-span-4">
-                    <dt className="text-xs font-medium text-gray-500">{t('linesTotal')}</dt>
-                    <dd className="mt-0.5 font-mono text-xl font-bold text-gray-900">
+                    <dt className="text-xs font-medium text-muted-foreground">{t('linesTotal')}</dt>
+                    <dd className="mt-0.5 font-mono text-xl font-bold text-foreground">
                       {voucher.lines.reduce((s, l) => s + l.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      {voucher.currency_code && <span className="ms-1.5 text-sm font-normal text-gray-500">{voucher.currency_code}</span>}
+                      {voucher.currency_code && <span className="ms-1.5 text-sm font-normal text-muted-foreground">{voucher.currency_code}</span>}
                     </dd>
                   </div>
                 ) : (
                   <>
                     <div>
-                      <dt className="text-xs font-medium text-gray-500">{t('totalAmount')}</dt>
-                      <dd className="mt-0.5 font-mono text-xl font-bold text-gray-900">
+                      <dt className="text-xs font-medium text-muted-foreground">{t('totalAmount')}</dt>
+                      <dd className="mt-0.5 font-mono text-xl font-bold text-foreground">
                         {voucher.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        {voucher.currency_code && <span className="ms-1.5 text-sm font-normal text-gray-500">{voucher.currency_code}</span>}
+                        {voucher.currency_code && <span className="ms-1.5 text-sm font-normal text-muted-foreground">{voucher.currency_code}</span>}
                       </dd>
                     </div>
                     {voucher.paid_amount != null && (
                       <div>
-                        <dt className="text-xs font-medium text-gray-500">{t('paidAmount')}</dt>
-                        <dd className="mt-0.5 font-mono font-semibold text-green-700">
+                        <dt className="text-xs font-medium text-muted-foreground">{t('paidAmount')}</dt>
+                        <dd className="mt-0.5 font-mono font-semibold text-success-text">
                           {voucher.paid_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
                       </div>
                     )}
                     {voucher.outstanding_amount != null && (
                       <div>
-                        <dt className="text-xs font-medium text-gray-500">{t('outstandingAmount')}</dt>
-                        <dd className={`mt-0.5 font-mono font-semibold ${voucher.outstanding_amount > 0 ? 'text-amber-700' : 'text-gray-700'}`}>
+                        <dt className="text-xs font-medium text-muted-foreground">{t('outstandingAmount')}</dt>
+                        <dd className={`mt-0.5 font-mono font-semibold ${voucher.outstanding_amount > 0 ? 'text-warning-text' : 'text-foreground'}`}>
                           {voucher.outstanding_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
-                        <p className="mt-0.5 text-[11px] leading-snug text-gray-500">{t('outstandingAmountHint')}</p>
+                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t('outstandingAmountHint')}</p>
                       </div>
                     )}
                     {orderOutstandingAmount != null && (
                       <div>
-                        <dt className="text-xs font-medium text-gray-500">{t('orderOutstandingAmount')}</dt>
-                        <dd className={`mt-0.5 font-mono font-semibold ${orderOutstandingAmount > 0 ? 'text-amber-700' : 'text-gray-700'}`}>
+                        <dt className="text-xs font-medium text-muted-foreground">{t('orderOutstandingAmount')}</dt>
+                        <dd className={`mt-0.5 font-mono font-semibold ${orderOutstandingAmount > 0 ? 'text-warning-text' : 'text-foreground'}`}>
                           {orderOutstandingAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
                       </div>
                     )}
                     {voucher.refunded_amount != null && voucher.refunded_amount > 0 && (
                       <div>
-                        <dt className="text-xs font-medium text-gray-500">{t('refundedAmount')}</dt>
-                        <dd className="mt-0.5 font-mono font-semibold text-red-600">
+                        <dt className="text-xs font-medium text-muted-foreground">{t('refundedAmount')}</dt>
+                        <dd className="mt-0.5 font-mono font-semibold text-danger-text">
                           {voucher.refunded_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
                       </div>
                     )}
                     {voucher.discount_amount != null && voucher.discount_amount > 0 && (
                       <div>
-                        <dt className="text-xs font-medium text-gray-500">{t('discountAmount')}</dt>
-                        <dd className="mt-0.5 font-mono text-gray-700">
+                        <dt className="text-xs font-medium text-muted-foreground">{t('discountAmount')}</dt>
+                        <dd className="mt-0.5 font-mono text-foreground">
                           {voucher.discount_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
                       </div>
                     )}
                     {voucher.tax_amount != null && voucher.tax_amount > 0 && (
                       <div>
-                        <dt className="text-xs font-medium text-gray-500">{t('taxAmount')}</dt>
-                        <dd className="mt-0.5 font-mono text-gray-700">
+                        <dt className="text-xs font-medium text-muted-foreground">{t('taxAmount')}</dt>
+                        <dd className="mt-0.5 font-mono text-foreground">
                           {voucher.tax_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </dd>
                       </div>
@@ -491,7 +491,7 @@ export function VoucherDetailClient({
             </div>
 
             {voucher.voucher_status === VOUCHER_STATUS.POSTED && (
-              <p className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700">
+              <p className="rounded-md bg-info-bg px-4 py-3 text-sm text-info-text">
                 {t('postingNote')}
               </p>
             )}
@@ -500,14 +500,14 @@ export function VoucherDetailClient({
 
         {/* Lines card */}
         <CmxCard className="min-w-0">
-          <CmxCardHeader className="flex flex-row items-center justify-between rtl:flex-row-reverse">
+          <CmxCardHeader className="flex flex-row items-center justify-between">
             <CmxCardTitle>{t('transactionLines')}</CmxCardTitle>
             {canAddLine && (
               <CmxButton
                 size="sm"
                 onClick={() => setAddLineOpen(true)}
                 disabled={isPending}
-                className="flex items-center gap-1.5 rtl:flex-row-reverse"
+                className="flex items-center gap-1.5"
               >
                 <Plus className="h-4 w-4" />
                 {t('actions.addLine')}
@@ -531,7 +531,7 @@ export function VoucherDetailClient({
           || voucher.voucher_status === VOUCHER_STATUS.REVERSED
           || voucher.voucher_status === VOUCHER_STATUS.PARTIALLY_REVERSED) && linkedEffects && (
           <div className="min-w-0">
-            <h2 className="mb-3 text-base font-semibold text-gray-800">
+            <h2 className="mb-3 text-base font-semibold text-foreground">
               {t('linkedEffects.title')}
             </h2>
             <VoucherLinkedEffectsPanel effects={linkedEffects} />

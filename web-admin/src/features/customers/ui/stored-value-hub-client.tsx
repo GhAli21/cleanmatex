@@ -115,7 +115,7 @@ export function StoredValueHubClient() {
             render: (row: StoredValueSummaryRow) => (
               <Link
                 href={`/dashboard/customers/${row.customerId}`}
-                className="inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs font-medium text-primary-text hover:bg-info-bg"
               >
                 <Wallet className="h-3 w-3" />
                 {tCommon('view')}

@@ -184,8 +184,9 @@ export class WorkflowServiceEnhanced {
     // NEW CODE PATH: Application Layer Validation
     // ============================================
 
-    // 1. Get screen contract from DB (simple config)
-    const { data: contract, error: contractError } = await supabase.rpc(
+    // 1. Get screen contract from DB (simple config).
+    // cmx_ord_* EXECUTE is revoked from authenticated after S0 — catalog/service role only.
+    const { data: contract, error: contractError } = await catalogReadClient(supabase).rpc(
       'cmx_ord_screen_pre_conditions',
       { p_screen: screen }
     );
@@ -304,7 +305,7 @@ export class WorkflowServiceEnhanced {
 
     // Use dedicated RPCs for canceling and returning (they set cancelled_at, returned_at, etc.)
     if (screen === 'canceling') {
-      const { data: result, error } = await supabase.rpc('cmx_ord_canceling_transition', {
+      const { data: result, error } = await catalogReadClient(supabase).rpc('cmx_ord_canceling_transition', {
         p_tenant_org_id: tenantId,
         p_order_id: orderId,
         p_user_id: userId,
@@ -346,7 +347,7 @@ export class WorkflowServiceEnhanced {
     }
 
     if (screen === 'returning') {
-      const { data: result, error } = await supabase.rpc('cmx_ord_returning_transition', {
+      const { data: result, error } = await catalogReadClient(supabase).rpc('cmx_ord_returning_transition', {
         p_tenant_org_id: tenantId,
         p_order_id: orderId,
         p_user_id: userId,
@@ -374,7 +375,7 @@ export class WorkflowServiceEnhanced {
       return returnPayload as TransitionResult;
     }
 
-    const { data: result, error } = await supabase.rpc('cmx_ord_execute_transition', {
+    const { data: result, error } = await catalogReadClient(supabase).rpc('cmx_ord_execute_transition', {
       p_tenant_org_id: tenantId,
       p_order_id: orderId,
       p_screen: screen,
@@ -579,7 +580,7 @@ export class WorkflowServiceEnhanced {
     const blockers: string[] = [];
 
     // Get workflow flags
-    const { data: flagsRpc } = await supabase.rpc('cmx_ord_order_workflow_flags', {
+    const { data: flagsRpc } = await catalogReadClient(supabase).rpc('cmx_ord_order_workflow_flags', {
       p_tenant_org_id: tenantId,
       p_order_id: orderId,
     });

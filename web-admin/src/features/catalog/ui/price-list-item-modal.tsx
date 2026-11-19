@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
 import { CmxButton, CmxInput } from '@ui/primitives'
@@ -46,7 +45,6 @@ export function PriceListItemModal({
   onSuccess,
 }: PriceListItemModalProps) {
   const t = useTranslations('catalog')
-  const isRTL = useRTL()
   const { currencyCode, decimalPlaces } = useTenantCurrency()
   const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces
   const isEditMode = !!item
@@ -216,7 +214,7 @@ export function PriceListItemModal({
                 required
               />
               {productSearch && !productId && products.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {products.map((product) => (
                     <button
                       key={product.id}
@@ -226,14 +224,14 @@ export function PriceListItemModal({
                         setProductSearch(product.product_name || product.product_code || '')
                         setProducts([])
                       }}
-                      className={`w-full px-4 py-2 text-left hover:bg-gray-100 ${isRTL ? 'text-right' : 'text-left'}`}
+                      className="w-full px-4 py-2 text-start hover:bg-muted text-start"
                     >
                       <div className="font-medium">{product.product_name || product.product_code}</div>
                       {product.product_name2 && (
-                        <div className="text-xs text-gray-500">{product.product_name2}</div>
+                        <div className="text-xs text-muted-foreground">{product.product_name2}</div>
                       )}
                       {product.product_code && (
-                        <div className="text-xs text-gray-400">Code: {product.product_code}</div>
+                        <div className="text-xs text-muted-foreground">Code: {product.product_code}</div>
                       )}
                     </button>
                   ))}
@@ -241,10 +239,10 @@ export function PriceListItemModal({
               )}
             </div>
             {errors.productId && (
-              <p className="mt-1 text-sm text-red-600">{errors.productId}</p>
+              <p className="mt-1 text-sm text-danger-text">{errors.productId}</p>
             )}
             {selectedProduct && (
-              <p className="mt-1 text-sm text-green-600">
+              <p className="mt-1 text-sm text-success-text">
                 Selected: {selectedProduct.product_name || selectedProduct.product_code}
               </p>
             )}
@@ -264,7 +262,7 @@ export function PriceListItemModal({
               required
             />
             {errors.price && (
-              <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+              <p className="mt-1 text-sm text-danger-text">{errors.price}</p>
             )}
           </div>
 
@@ -282,7 +280,7 @@ export function PriceListItemModal({
               onChange={(e) => setDiscountPercent(e.target.value)}
             />
             {errors.discountPercent && (
-              <p className="mt-1 text-sm text-red-600">{errors.discountPercent}</p>
+              <p className="mt-1 text-sm text-danger-text">{errors.discountPercent}</p>
             )}
           </div>
 
@@ -300,7 +298,7 @@ export function PriceListItemModal({
                 required
               />
               {errors.minQuantity && (
-                <p className="mt-1 text-sm text-red-600">{errors.minQuantity}</p>
+                <p className="mt-1 text-sm text-danger-text">{errors.minQuantity}</p>
               )}
             </div>
             <div>
@@ -315,7 +313,7 @@ export function PriceListItemModal({
                 placeholder="Unlimited"
               />
               {errors.maxQuantity && (
-                <p className="mt-1 text-sm text-red-600">{errors.maxQuantity}</p>
+                <p className="mt-1 text-sm text-danger-text">{errors.maxQuantity}</p>
               )}
             </div>
           </div>

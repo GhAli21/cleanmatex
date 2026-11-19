@@ -47,10 +47,10 @@ export const CmxProgressBar: React.FC<CmxProgressBarProps> = ({
   }
 
   const variantClasses: Record<string, string> = {
-    default: 'bg-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-    success: 'bg-[rgb(var(--cmx-success-rgb,34_197_94))]',
-    warning: 'bg-[rgb(var(--cmx-warning-rgb,234_179_8))]',
-    danger: 'bg-[rgb(var(--cmx-destructive-rgb,220_38_38))]',
+    default: 'bg-primary',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    danger: 'bg-destructive',
   };
 
   return (
@@ -58,12 +58,12 @@ export const CmxProgressBar: React.FC<CmxProgressBarProps> = ({
       {(label || showPercentage) && (
         <div className="flex justify-between items-center mb-1">
           {label && (
-            <span className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <span className="text-sm font-medium text-foreground">
               {label}
             </span>
           )}
           {showPercentage && (
-            <span className="text-sm font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <span className="text-sm font-medium text-muted-foreground">
               {percentage.toFixed(0)}%
             </span>
           )}
@@ -72,7 +72,7 @@ export const CmxProgressBar: React.FC<CmxProgressBarProps> = ({
       <div
         className={cn(
           'w-full rounded-full overflow-hidden',
-          'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
+          'bg-muted',
           sizeClasses[size]
         )}
       >

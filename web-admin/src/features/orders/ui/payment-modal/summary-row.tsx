@@ -30,12 +30,12 @@ export function SummaryRow({
   negative,
 }: SummaryRowProps) {
   return (
-    <div className={`flex justify-between items-center gap-2 ${bold ? 'font-bold border-t border-slate-100 pt-1.5 mt-1' : ''}`}>
-      <span className={`text-sm ${bold ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
+    <div className={`flex justify-between items-center gap-2 ${bold ? 'font-bold border-t border-border pt-1.5 mt-1' : ''}`}>
+      <span className={`text-sm ${bold ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
       {loading ? (
         <CmxSkeleton className="h-4 w-20" />
       ) : (
-        <span className={`text-sm tabular-nums ${bold ? 'text-slate-900' : negative ? 'text-rose-700' : 'text-slate-900'} font-medium`}>
+        <span className={`text-sm tabular-nums ${bold ? 'text-foreground' : negative ? 'text-danger-text' : 'text-foreground'} font-medium`}>
           {value}
         </span>
       )}

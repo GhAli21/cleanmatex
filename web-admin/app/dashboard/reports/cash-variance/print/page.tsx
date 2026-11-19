@@ -61,34 +61,34 @@ function CashVarianceReportPrintContent() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 print:bg-white print:py-0">
+    <div className="min-h-screen bg-muted py-6 print:bg-card print:py-0">
       <div className="mx-auto mb-4 flex max-w-5xl items-center justify-between px-4 print:hidden">
         <h1 className="text-lg font-semibold">{t('title')}</h1>
         <button
           type="button"
           onClick={() => window.print()}
           disabled={!reportQuery.data}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
         >
           {tCommon('print')}
         </button>
       </div>
 
       {!valid ? (
-        <div className="mx-auto max-w-lg rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mx-auto max-w-lg rounded-md border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
           {t('rangeInvalid')}
         </div>
       ) : null}
       {valid && reportQuery.isLoading ? (
-        <div className="flex h-40 items-center justify-center text-gray-500">{tCommon('loading')}</div>
+        <div className="flex h-40 items-center justify-center text-muted-foreground">{tCommon('loading')}</div>
       ) : null}
       {valid && reportQuery.isError ? (
-        <div className="mx-auto max-w-lg rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mx-auto max-w-lg rounded-md border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
           {t('loadFailed')}
         </div>
       ) : null}
       {valid && reportQuery.data ? (
-        <div className="print-document px-4">
+        <div data-mode="LIGHT" className="print-document px-4">
           <CashDrawerVarianceByCashierRprt
             rows={reportQuery.data.rows}
             dateFrom={dateFrom}

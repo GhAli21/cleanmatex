@@ -49,14 +49,14 @@ export default function AuthContextViewer() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Auth Context (useAuth Hook)</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Auth Context (useAuth Hook)</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Live data from the application&apos;s auth context provider
           </p>
         </div>
         <button
           onClick={() => window.location.reload()}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover transition-colors"
         >
           <RefreshCw className="h-4 w-4" />
           Reload Page
@@ -65,34 +65,34 @@ export default function AuthContextViewer() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+        <div className="bg-info-bg rounded-lg border border-info-border p-4">
           <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
             <div>
-              <h3 className="font-semibold text-blue-900">Loading Auth Context</h3>
-              <p className="text-sm text-blue-700 mt-1">Auth context is initializing...</p>
+              <h3 className="font-semibold text-primary-text">Loading Auth Context</h3>
+              <p className="text-sm text-primary-text mt-1">Auth context is initializing...</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Authentication Status */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Shield className="h-5 w-5 text-purple-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary-text" />
           Authentication Status
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Is Authenticated</label>
+            <label className="text-sm font-medium text-foreground">Is Authenticated</label>
             <div className="mt-1">
               {isAuthenticated ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-success-bg text-success-text">
                   <CheckCircle className="h-4 w-4" />
                   Yes
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-danger-bg text-danger-text">
                   <XCircle className="h-4 w-4" />
                   No
                 </span>
@@ -100,15 +100,15 @@ export default function AuthContextViewer() {
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Is Loading</label>
+            <label className="text-sm font-medium text-foreground">Is Loading</label>
             <div className="mt-1">
               {isLoading ? (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-warning-bg text-warning-text">
                   <Clock className="h-4 w-4" />
                   Loading...
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-success-bg text-success-text">
                   <CheckCircle className="h-4 w-4" />
                   Ready
                 </span>
@@ -119,144 +119,144 @@ export default function AuthContextViewer() {
       </div>
 
       {/* User State */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <User className="h-5 w-5 text-purple-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <User className="h-5 w-5 text-primary-text" />
           User State
         </h3>
         {user ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700">Email</label>
-                <p className="text-sm text-gray-900 mt-1">{user.email || 'N/A'}</p>
+                <label className="text-sm font-medium text-foreground">Email</label>
+                <p className="text-sm text-foreground mt-1">{user.email || 'N/A'}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Phone</label>
-                <p className="text-sm text-gray-900 mt-1">{user.phone || 'N/A'}</p>
+                <label className="text-sm font-medium text-foreground">Phone</label>
+                <p className="text-sm text-foreground mt-1">{user.phone || 'N/A'}</p>
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm font-medium text-gray-700">User ID</label>
-                <p className="text-xs text-gray-900 mt-1 font-mono break-all">{user.id}</p>
+                <label className="text-sm font-medium text-foreground">User ID</label>
+                <p className="text-xs text-foreground mt-1 font-mono break-all">{user.id}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Created At</label>
-                <p className="text-sm text-gray-900 mt-1">
+                <label className="text-sm font-medium text-foreground">Created At</label>
+                <p className="text-sm text-foreground mt-1">
                   {user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Last Sign In</label>
-                <p className="text-sm text-gray-900 mt-1">
+                <label className="text-sm font-medium text-foreground">Last Sign In</label>
+                <p className="text-sm text-foreground mt-1">
                   {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'N/A'}
                 </p>
               </div>
             </div>
             <details className="mt-4">
-              <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+              <summary className="text-sm font-medium text-foreground cursor-pointer hover:text-foreground/80">
                 Show Full User Object
               </summary>
-              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto mt-2">
+              <pre className="text-xs bg-muted p-3 rounded border border-border overflow-x-auto mt-2">
                 {JSON.stringify(user, null, 2)}
               </pre>
             </details>
           </div>
         ) : (
           <div className="text-center py-4">
-            <XCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">No user logged in</p>
+            <XCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No user logged in</p>
           </div>
         )}
       </div>
 
       {/* Session State */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Clock className="h-5 w-5 text-purple-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Clock className="h-5 w-5 text-primary-text" />
           Session State
         </h3>
         {session ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700">Access Token</label>
-                <p className="text-xs text-gray-900 mt-1 font-mono break-all">
+                <label className="text-sm font-medium text-foreground">Access Token</label>
+                <p className="text-xs text-foreground mt-1 font-mono break-all">
                   {session.access_token ? `${session.access_token.substring(0, 40)}...` : 'N/A'}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Refresh Token</label>
-                <p className="text-xs text-gray-900 mt-1 font-mono break-all">
+                <label className="text-sm font-medium text-foreground">Refresh Token</label>
+                <p className="text-xs text-foreground mt-1 font-mono break-all">
                   {session.refresh_token ? `${session.refresh_token.substring(0, 40)}...` : 'N/A'}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Expires At</label>
-                <p className="text-sm text-gray-900 mt-1">
+                <label className="text-sm font-medium text-foreground">Expires At</label>
+                <p className="text-sm text-foreground mt-1">
                   {session.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : 'N/A'}
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Time Remaining</label>
-                <p className="text-sm font-semibold text-purple-600 mt-1">{getTimeRemaining()}</p>
+                <label className="text-sm font-medium text-foreground">Time Remaining</label>
+                <p className="text-sm font-semibold text-primary-text mt-1">{getTimeRemaining()}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Expires In (seconds)</label>
-                <p className="text-sm text-gray-900 mt-1">{session.expires_in || 'N/A'}</p>
+                <label className="text-sm font-medium text-foreground">Expires In (seconds)</label>
+                <p className="text-sm text-foreground mt-1">{session.expires_in || 'N/A'}</p>
               </div>
             </div>
             <details className="mt-4">
-              <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+              <summary className="text-sm font-medium text-foreground cursor-pointer hover:text-foreground/80">
                 Show Full Session Object
               </summary>
-              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto mt-2">
+              <pre className="text-xs bg-muted p-3 rounded border border-border overflow-x-auto mt-2">
                 {JSON.stringify(session, null, 2)}
               </pre>
             </details>
           </div>
         ) : (
           <div className="text-center py-4">
-            <XCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">No active session</p>
+            <XCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No active session</p>
           </div>
         )}
       </div>
 
       {/* Current Tenant State */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-purple-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-primary-text" />
           Current Tenant State
         </h3>
         {currentTenant ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700">Tenant Name</label>
-                <p className="text-sm text-gray-900 mt-1 font-semibold">{currentTenant.tenant_name}</p>
+                <label className="text-sm font-medium text-foreground">Tenant Name</label>
+                <p className="text-sm text-foreground mt-1 font-semibold">{currentTenant.tenant_name}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Tenant Slug</label>
-                <p className="text-sm text-gray-900 mt-1 font-mono">{currentTenant.tenant_slug}</p>
+                <label className="text-sm font-medium text-foreground">Tenant Slug</label>
+                <p className="text-sm text-foreground mt-1 font-mono">{currentTenant.tenant_slug}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">User Role</label>
-                <p className="text-sm text-gray-900 mt-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                <label className="text-sm font-medium text-foreground">User Role</label>
+                <p className="text-sm text-foreground mt-1">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-bg text-info-text">
                     {currentTenant.user_role}
                   </span>
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Is Active</label>
-                <p className="text-sm text-gray-900 mt-1">
+                <label className="text-sm font-medium text-foreground">Is Active</label>
+                <p className="text-sm text-foreground mt-1">
                   {currentTenant.is_active ? (
-                    <span className="text-green-600 flex items-center gap-1">
+                    <span className="text-success-text flex items-center gap-1">
                       <CheckCircle className="h-4 w-4" />
                       Active
                     </span>
                   ) : (
-                    <span className="text-red-600 flex items-center gap-1">
+                    <span className="text-danger-text flex items-center gap-1">
                       <XCircle className="h-4 w-4" />
                       Inactive
                     </span>
@@ -264,37 +264,37 @@ export default function AuthContextViewer() {
                 </p>
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm font-medium text-gray-700">Tenant ID</label>
-                <p className="text-xs text-gray-900 mt-1 font-mono break-all">{currentTenant.tenant_id}</p>
+                <label className="text-sm font-medium text-foreground">Tenant ID</label>
+                <p className="text-xs text-foreground mt-1 font-mono break-all">{currentTenant.tenant_id}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Last Login At</label>
-                <p className="text-sm text-gray-900 mt-1">
+                <label className="text-sm font-medium text-foreground">Last Login At</label>
+                <p className="text-sm text-foreground mt-1">
                   {currentTenant.last_login_at ? new Date(currentTenant.last_login_at).toLocaleString() : 'N/A'}
                 </p>
               </div>
             </div>
             <details className="mt-4">
-              <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+              <summary className="text-sm font-medium text-foreground cursor-pointer hover:text-foreground/80">
                 Show Full Tenant Object
               </summary>
-              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto mt-2">
+              <pre className="text-xs bg-muted p-3 rounded border border-border overflow-x-auto mt-2">
                 {JSON.stringify(currentTenant, null, 2)}
               </pre>
             </details>
           </div>
         ) : (
           <div className="text-center py-4">
-            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">No tenant context set</p>
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No tenant context set</p>
           </div>
         )}
       </div>
 
       {/* Available Tenants State */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-purple-600" />
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-primary-text" />
           Available Tenants ({availableTenants.length})
         </h3>
         {availableTenants.length > 0 ? (
@@ -302,32 +302,32 @@ export default function AuthContextViewer() {
             {availableTenants.map((tenant, index) => (
               <div
                 key={tenant.tenant_id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border border-border rounded-lg p-4 hover:bg-muted transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-gray-900">{tenant.tenant_name}</span>
+                      <span className="font-semibold text-foreground">{tenant.tenant_name}</span>
                       {currentTenant?.tenant_id === tenant.tenant_id && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-info-bg text-info-text">
                           Current
                         </span>
                       )}
                       {tenant.is_active ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-success-text" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-danger-text" />
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 font-mono mb-1">{tenant.tenant_id}</p>
-                    <p className="text-xs text-gray-600">Slug: {tenant.tenant_slug}</p>
+                    <p className="text-xs text-muted-foreground font-mono mb-1">{tenant.tenant_id}</p>
+                    <p className="text-xs text-muted-foreground">Slug: {tenant.tenant_slug}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <div className="text-end">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-bg text-info-text">
                       {tenant.user_role}
                     </span>
                     {tenant.last_login_at && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Last: {new Date(tenant.last_login_at).toLocaleDateString()}
                       </p>
                     )}
@@ -338,22 +338,22 @@ export default function AuthContextViewer() {
           </div>
         ) : (
           <div className="text-center py-4">
-            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">No tenants available</p>
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No tenants available</p>
           </div>
         )}
       </div>
 
       {/* Available Methods */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Zap className="h-5 w-5 text-purple-600" />
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Zap className="h-5 w-5 text-primary-text" />
             Available Methods
           </h3>
           <button
             onClick={() => setShowMethods(!showMethods)}
-            className="text-sm text-purple-600 hover:text-purple-700"
+            className="text-sm text-primary-text hover:text-primary-text/80"
           >
             {showMethods ? 'Hide' : 'Show'}
           </button>
@@ -370,8 +370,8 @@ export default function AuthContextViewer() {
                 'refreshTenants()',
                 'updateProfile(displayName, preferences)',
               ].map((method) => (
-                <div key={method} className="border border-gray-200 rounded p-3 bg-gray-50">
-                  <code className="text-xs text-purple-600 font-mono">{method}</code>
+                <div key={method} className="border border-border rounded p-3 bg-muted">
+                  <code className="text-xs text-primary-text font-mono">{method}</code>
                 </div>
               ))}
             </div>
@@ -380,15 +380,15 @@ export default function AuthContextViewer() {
       </div>
 
       {/* Usage Example */}
-      <div className="bg-purple-50 rounded-lg border border-purple-200 p-6">
-        <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center gap-2">
+      <div className="bg-info-bg rounded-lg border border-info-border p-6">
+        <h3 className="text-lg font-semibold text-primary-text mb-3 flex items-center gap-2">
           <Code className="h-5 w-5" />
           Usage in Components
         </h3>
         <div className="space-y-3">
           <div>
-            <p className="text-sm font-medium text-purple-800 mb-2">Import and use the hook:</p>
-            <pre className="text-xs bg-white p-3 rounded border border-purple-200 overflow-x-auto">
+            <p className="text-sm font-medium text-primary-text mb-2">Import and use the hook:</p>
+            <pre className="text-xs bg-card p-3 rounded border border-info-border overflow-x-auto">
 {`import { useAuth } from '@/lib/auth/auth-context';
 
 function MyComponent() {
@@ -421,10 +421,10 @@ function MyComponent() {
       </div>
 
       {/* Context Provider Info */}
-      <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-3">Auth Context Provider Info</h3>
-        <div className="space-y-2 text-sm text-blue-800">
-          <p>📁 <strong>Location:</strong> <code className="text-xs bg-blue-100 px-1 py-0.5 rounded">lib/auth/auth-context.tsx</code></p>
+      <div className="bg-info-bg rounded-lg border border-info-border p-6">
+        <h3 className="text-lg font-semibold text-primary-text mb-3">Auth Context Provider Info</h3>
+        <div className="space-y-2 text-sm text-primary-text">
+          <p>📁 <strong>Location:</strong> <code className="text-xs bg-info-bg px-1 py-0.5 rounded">lib/auth/auth-context.tsx</code></p>
           <p>🎯 <strong>Purpose:</strong> Manages authentication state and operations across the application</p>
           <p>🔄 <strong>Features:</strong> Multi-tenant support, tenant switching, auto token refresh</p>
           <p>🔐 <strong>Security:</strong> Account locking, login attempt tracking, session management</p>

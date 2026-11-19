@@ -72,14 +72,14 @@ export function WorkflowStatsWidget() {
 
   if (loading && !isRefreshing) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Workflow Statistics
           </h3>
         </div>
         <div className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-2 text-gray-500">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-5 w-5 animate-spin" />
             <span className="text-sm">Loading...</span>
           </div>
@@ -90,19 +90,19 @@ export function WorkflowStatsWidget() {
 
   if (error || !stats) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Workflow Statistics
           </h3>
           <button
             onClick={handleRefresh}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <RefreshCw className="h-5 w-5" />
           </button>
         </div>
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+        <div className="rounded-lg bg-danger-bg p-4 text-sm text-danger-text">
           {error || 'No data available'}
         </div>
       </div>
@@ -146,16 +146,16 @@ export function WorkflowStatsWidget() {
     .join(', ');
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="rounded-lg border border-border bg-card shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900">
+      <div className="flex items-center justify-between border-b border-border p-6">
+        <h3 className="text-lg font-semibold text-foreground">
           Workflow Statistics
         </h3>
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh"
         >
           <RefreshCw
@@ -168,50 +168,50 @@ export function WorkflowStatsWidget() {
       <div className="p-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="rounded-lg bg-blue-50 p-4">
+          <div className="rounded-lg bg-info-bg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Package className="h-4 w-4 text-blue-600" />
-              <span className="text-xs font-medium text-blue-600 uppercase">
+              <Package className="h-4 w-4 text-primary-text" />
+              <span className="text-xs font-medium text-primary-text uppercase">
                 Total
               </span>
             </div>
-            <div className="text-2xl font-bold text-blue-900">
+            <div className="text-2xl font-bold text-primary-text">
               {stats.totalOrders}
             </div>
           </div>
 
-          <div className="rounded-lg bg-purple-50 p-4">
+          <div className="rounded-lg bg-info-bg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-purple-600" />
-              <span className="text-xs font-medium text-purple-600 uppercase">
+              <Clock className="h-4 w-4 text-primary-text" />
+              <span className="text-xs font-medium text-primary-text uppercase">
                 In Progress
               </span>
             </div>
-            <div className="text-2xl font-bold text-purple-900">
+            <div className="text-2xl font-bold text-primary-text">
               {stats.inProgress}
             </div>
           </div>
 
-          <div className="rounded-lg bg-green-50 p-4">
+          <div className="rounded-lg bg-success-bg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-xs font-medium text-green-600 uppercase">
+              <CheckCircle className="h-4 w-4 text-success-text" />
+              <span className="text-xs font-medium text-success-text uppercase">
                 Ready
               </span>
             </div>
-            <div className="text-2xl font-bold text-green-900">
+            <div className="text-2xl font-bold text-success-text">
               {stats.ready}
             </div>
           </div>
 
-          <div className="rounded-lg bg-red-50 p-4">
+          <div className="rounded-lg bg-danger-bg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <span className="text-xs font-medium text-red-600 uppercase">
+              <AlertCircle className="h-4 w-4 text-danger-text" />
+              <span className="text-xs font-medium text-danger-text uppercase">
                 Overdue
               </span>
             </div>
-            <div className="text-2xl font-bold text-red-900">
+            <div className="text-2xl font-bold text-danger-text">
               {stats.overdue}
             </div>
           </div>
@@ -228,11 +228,11 @@ export function WorkflowStatsWidget() {
               }}
             >
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-32 h-32 rounded-full bg-white flex flex-col items-center justify-center">
-                  <div className="text-3xl font-bold text-gray-900">
+                <div className="w-32 h-32 rounded-full bg-card flex flex-col items-center justify-center">
+                  <div className="text-3xl font-bold text-foreground">
                     {stats.totalOrders}
                   </div>
-                  <div className="text-xs text-gray-500">Orders</div>
+                  <div className="text-xs text-muted-foreground">Orders</div>
                 </div>
               </div>
             </div>
@@ -249,11 +249,11 @@ export function WorkflowStatsWidget() {
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: item.color }}
                 />
-                <span className="text-gray-700 flex-1">{item.label}</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-foreground flex-1">{item.label}</span>
+                <span className="font-semibold text-foreground">
                   {item.value}
                 </span>
-                <span className="text-gray-500 text-xs">
+                <span className="text-muted-foreground text-xs">
                   ({item.percentage}%)
                 </span>
               </div>
@@ -262,21 +262,21 @@ export function WorkflowStatsWidget() {
         </div>
 
         {/* Performance Metrics */}
-        <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
+        <div className="mt-6 pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div>
-              <div className="text-xs text-gray-500 mb-1">SLA Compliance</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-xs text-muted-foreground mb-1">SLA Compliance</div>
+              <div className="text-2xl font-bold text-foreground">
                 {stats.slaCompliance.toFixed(1)}%
               </div>
             </div>
             <div
               className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
                 stats.slaCompliance >= 95
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-success-bg text-success-text'
                   : stats.slaCompliance >= 85
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-red-100 text-red-700'
+                  ? 'bg-warning-bg text-warning-text'
+                  : 'bg-danger-bg text-danger-text'
               }`}
             >
               {stats.slaCompliance >= 95 ? (
@@ -298,16 +298,16 @@ export function WorkflowStatsWidget() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div>
-              <div className="text-xs text-gray-500 mb-1">
+              <div className="text-xs text-muted-foreground mb-1">
                 Avg Completion Time
               </div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-foreground">
                 {stats.avgCompletionHours.toFixed(1)}h
               </div>
             </div>
-            <Clock className="h-8 w-8 text-gray-400" />
+            <Clock className="h-8 w-8 text-muted-foreground" />
           </div>
         </div>
       </div>

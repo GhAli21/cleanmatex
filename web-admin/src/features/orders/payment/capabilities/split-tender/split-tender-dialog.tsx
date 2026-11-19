@@ -323,13 +323,12 @@ export function SplitTenderDialog({
       confirmDisabled={!canDismiss}
       errorFallbackMessage={t('capabilities.dialog.errorFallback')}
       errorCloseLabel={tCommon('close')}
-      isRTL={isRTL}
       maxWidthClassName="max-w-lg"
     >
       <div className="flex flex-col gap-3">
-        <div className={`flex items-baseline justify-between text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="flex items-baseline justify-between text-xs text-muted-foreground">
           <span>{t('splitPayment.settledTotal')}</span>
-          <span className="font-mono font-semibold tabular-nums text-slate-800">
+          <span className="font-mono font-semibold tabular-nums text-foreground">
             {currencyCode} {formatAmount(amountDue)}
           </span>
         </div>
@@ -339,9 +338,7 @@ export function SplitTenderDialog({
           <div className="flex flex-col gap-2">
             {editableLegs.length > 0 ? (
               <p
-                className={`text-[11px] font-semibold uppercase tracking-wide text-slate-500 ${
-                  isRTL ? 'text-right' : 'text-left'
-                }`}
+                className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-start"
                 data-testid="split-tender-editable-heading"
               >
                 {t('splitPayment.editableSection')}
@@ -363,11 +360,11 @@ export function SplitTenderDialog({
                     data-testid={`split-tender-editable-leg-${index}`}
                     className={`flex flex-col gap-2 rounded-xl border p-2 ${
                       isActiveEditor
-                        ? 'border-cyan-300 bg-cyan-50/40'
-                        : 'border-slate-200 bg-white'
+                        ? 'border-info-border bg-info-bg/40'
+                        : 'border-border bg-card'
                     }`}
                   >
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="flex items-center gap-2">
                       <CmxSelectDropdown
                         value={legKey}
                         onValueChange={(key) => {
@@ -416,7 +413,7 @@ export function SplitTenderDialog({
                         aria-label={t('splitPayment.remove')}
                         data-testid={`split-tender-remove-${index}`}
                       >
-                        <Trash2 className="h-4 w-4 text-slate-500" />
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
                       </CmxButton>
                     </div>
 
@@ -498,18 +495,18 @@ export function SplitTenderDialog({
               data-testid="split-tender-readonly-section"
             >
               <div
-                className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className="flex items-center gap-2"
                 role="separator"
                 aria-label={t('splitPayment.appliedCreditsSection')}
               >
-                <div className="h-px flex-1 bg-violet-200" />
-                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-violet-700">
+                <div className="h-px flex-1 bg-info-bg" />
+                <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-primary-text">
                   {t('splitPayment.appliedCreditsSection')}
                 </span>
-                <div className="h-px flex-1 bg-violet-200" />
+                <div className="h-px flex-1 bg-info-bg" />
               </div>
               <p
-                className={`text-xs text-violet-700/80 ${isRTL ? 'text-right' : 'text-left'}`}
+                className="text-xs text-primary-text/80 text-start"
               >
                 {t('splitPayment.appliedCreditsHint')}
               </p>
@@ -521,31 +518,25 @@ export function SplitTenderDialog({
                     <li
                       key={leg.legRef ?? `${leg.method}-${index}`}
                       data-testid={`split-tender-readonly-leg-${index}`}
-                      className={`flex items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2.5 ${
-                        isRTL ? 'flex-row-reverse' : ''
-                      }`}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-info-border bg-info-bg/70 px-3 py-2.5"
                     >
                       <div
-                        className={`min-w-0 flex flex-1 flex-col gap-0.5 ${
-                          isRTL ? 'items-end text-right' : 'items-start text-left'
-                        }`}
+                        className="min-w-0 flex flex-1 flex-col gap-0.5 items-start text-start"
                       >
                         <div
-                          className={`flex flex-wrap items-center gap-2 ${
-                            isRTL ? 'flex-row-reverse' : ''
-                          }`}
+                          className="flex flex-wrap items-center gap-2"
                         >
-                          <span className="text-sm font-semibold text-violet-950">
+                          <span className="text-sm font-semibold text-primary-text">
                             {label}
                           </span>
                           <CmxStatusBadge size="sm"
                             tone="neutral"
-                            className="rounded-full bg-violet-100 text-[10px] font-semibold uppercase tracking-wide text-violet-800"
+                            className="rounded-full bg-info-bg text-[10px] font-semibold uppercase tracking-wide text-info-text"
                           >
                             {t('splitPayment.readOnlyBadge')}
                           </CmxStatusBadge>
                         </div>
-                        <span className="font-mono text-sm font-semibold tabular-nums text-violet-900">
+                        <span className="font-mono text-sm font-semibold tabular-nums text-primary-text">
                           {currencyCode} {formatAmount(leg.amount ?? 0)}
                         </span>
                       </div>
@@ -557,7 +548,7 @@ export function SplitTenderDialog({
                         onClick={() => actions.removeLegAt(index)}
                         aria-label={t('splitPayment.remove')}
                         data-testid={`split-tender-remove-${index}`}
-                        className="shrink-0 text-violet-700 hover:bg-violet-100 hover:text-violet-900"
+                        className="shrink-0 text-primary-text hover:bg-info-border/50 hover:text-primary-text/80"
                       >
                         <Trash2 className="h-4 w-4" />
                       </CmxButton>
@@ -605,25 +596,23 @@ export function SplitTenderDialog({
         </CmxSelectDropdown>
 
         <div
-          className={`flex items-baseline justify-between border-t border-dashed border-slate-200 pt-2 text-xs ${
-            isRTL ? 'flex-row-reverse' : ''
-          }`}
+          className="flex items-baseline justify-between border-t border-dashed border-border pt-2 text-xs"
           data-testid="split-tender-balance"
           data-balance-state={balanceState}
         >
-          <span className="text-slate-500">
+          <span className="text-muted-foreground">
             {t('splitPayment.legSum')}{' '}
-            <span className="font-mono font-semibold tabular-nums text-slate-800">
+            <span className="font-mono font-semibold tabular-nums text-foreground">
               {formatAmount(legsTotal)}
             </span>
           </span>
           <span
             className={`font-semibold ${
               balanceState === 'allocated'
-                ? 'text-emerald-700'
+                ? 'text-success-text'
                 : balanceState === 'outstanding'
-                  ? 'text-amber-700'
-                  : 'text-rose-700'
+                  ? 'text-warning-text'
+                  : 'text-danger-text'
             }`}
           >
             {balanceLabel}

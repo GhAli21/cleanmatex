@@ -50,10 +50,11 @@ export function CmxLanguageSwitcher() {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className={`absolute end-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-20`}>
+          <div className="absolute end-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-20">
             <div className="py-1">
               <button
                 onClick={() => switchLanguage('en')}
+                dir="ltr"
                 className={`w-full text-start px-4 py-2 text-sm hover:bg-muted flex items-center justify-between ${
                   locale === 'en' ? 'bg-info-bg text-info-text' : 'text-muted-foreground'
                 }`}
@@ -63,7 +64,8 @@ export function CmxLanguageSwitcher() {
               </button>
               <button
                 onClick={() => switchLanguage('ar')}
-                className={`w-full text-end px-4 py-2 text-sm hover:bg-muted flex items-center justify-between flex-row-reverse ${
+                dir="rtl"
+                className={`w-full text-start px-4 py-2 text-sm hover:bg-muted flex items-center justify-between ${
                   locale === 'ar' ? 'bg-info-bg text-info-text' : 'text-muted-foreground'
                 }`}
               >

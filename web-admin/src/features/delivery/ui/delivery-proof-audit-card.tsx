@@ -29,7 +29,7 @@ function EvidenceLink({
   return (
     <CmxButton asChild size="sm" variant="outline">
       <Link href={evidence.url} target="_blank" rel="noreferrer">
-        <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
+        <ExternalLink className="me-2 h-4 w-4" aria-hidden="true" />
         {children}
       </Link>
     </CmxButton>
@@ -82,17 +82,17 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-muted p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('workflowOutcome')}</p>
                 <p className="mt-1 font-semibold">{audit.order.workflowOutcome ?? t('unknown')}</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-muted p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('payment.balance')}</p>
                 <p className="mt-1 font-semibold">
                   {audit.order.outstandingAmount.toFixed(3)} {audit.order.currencyCode ?? ''}
                 </p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-3">
+              <div className="rounded-lg bg-muted p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('handoverCount')}</p>
                 <p className="mt-1 font-semibold">{audit.entries.length}</p>
               </div>
@@ -132,7 +132,7 @@ export function DeliveryProofAuditCard({ orderId }: DeliveryProofAuditCardProps)
                   {entry.signature ? <EvidenceLink evidence={entry.signature}>{t('openSignature')}</EvidenceLink> : null}
                   {entry.photos.map((photo, index) => (
                     <EvidenceLink key={`${entry.podId}-${index}`} evidence={photo}>
-                      <ImageIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+                      <ImageIcon className="me-2 h-4 w-4" aria-hidden="true" />
                       {t('openPhoto', { count: index + 1 })}
                     </EvidenceLink>
                   ))}

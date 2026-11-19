@@ -9,6 +9,8 @@ import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-fin
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -115,14 +117,14 @@ export default function ReadyDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
         {t('ready.messages.notFound')}
       </div>
     );
@@ -131,40 +133,40 @@ export default function ReadyDetailPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
-        <Link href={returnUrl} className="text-blue-600 hover:underline mb-2 inline-block">
+        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
           &laquo; {t('ready.actions.backToReady')}
         </Link>
         <h1 className="text-3xl font-bold">
           {t('screens.ready')}{' '}
           <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           {order.customer.name} &nbsp;&bull;&nbsp; {order.customer.phone}
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">{t('ready.itemsTitle')}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="p-3 bg-gray-50 rounded-lg">
+                <div key={item.id} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-medium">{item.productName}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {t('ready.quantity')}: {item.quantity}
                       </p>
                     </div>
                     <div className="text-end">
-                      <span className="font-bold text-blue-600">
+                      <span className="font-bold text-primary-text">
                         {formatMoneyWithCode(item.totalPrice)}
                       </span>
                       <OrderLineNetNote gross={item.totalPrice} net={item.netAmount} format={formatMoneyWithCode} />
@@ -173,10 +175,10 @@ export default function ReadyDetailPage() {
 
                   {/* Pieces Section - Expandable */}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-3 pt-3 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
-                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
                         <span>
                           {tPieces('viewPieces') || 'View Pieces'}
@@ -194,6 +196,7 @@ export default function ReadyDetailPage() {
                             <OrderPiecesManager
                               orderId={orderId}
                               itemId={item.id}
+                              fileSource={FILE_SOURCES.ORDER_READY}
                               tenantId={currentTenant.tenant_id}
                               branchId={order?.branchId}
                               readOnly={true}
@@ -210,23 +213,24 @@ export default function ReadyDetailPage() {
             </div>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-success-bg border border-success-border rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-700">{t('ready.totalAmount')}:</span>
-              <span className="font-bold text-2xl text-green-600">
+              <span className="font-medium text-foreground">{t('ready.totalAmount')}:</span>
+              <span className="font-bold text-2xl text-success-text">
                 {formatMoneyWithCode(order.total)}
               </span>
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-info-bg border border-info-border rounded-lg p-4">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-medium text-gray-700">{t('ready.rack')}:</span>
-              <span className="font-bold text-xl text-blue-600">
+              <span className="font-medium text-foreground">{t('ready.rack')}:</span>
+              <span className="font-bold text-xl text-primary-text">
                 {order.rackLocation?.trim() || '—'}
               </span>
             </div>
           </div>
+          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_READY} />}
         </div>
 
         <div className="space-y-4">
@@ -288,7 +292,7 @@ export default function ReadyDetailPage() {
             </>
           ) : null}
           {/* Payment section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-3">{t('ready.paymentSection.title')}</h3>
             {order.paymentSummary && (
               <div className="space-y-2 mb-4">
@@ -301,13 +305,13 @@ export default function ReadyDetailPage() {
                         order.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
                       if (isPoc) {
                         return (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="mt-3 pt-3 border-t border-border">
                             <CollectPaymentButton
                               onCollect={() => {
                                 setCollectIntent('payment');
                                 setCollectOpen(true);
                               }}
-                              className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                              className="w-full bg-success text-on-solid hover:bg-success/90"
                             />
                           </div>
                         );
@@ -318,14 +322,14 @@ export default function ReadyDetailPage() {
                       // record-payment form wrote the deprecated
                       // legacy payments ledger (ADR-002) and was removed.
                       return (
-                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                        <div className="mt-3 pt-3 border-t border-border space-y-2">
                           <Link
                             href="/dashboard/customers/account-receipt"
-                            className="block w-full rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-emerald-700"
+                            className="block w-full rounded-lg bg-success px-4 py-2 text-center text-sm font-semibold text-on-solid hover:bg-success/90"
                           >
                             {t('ready.paymentSection.receiveAccountPayment')}
                           </Link>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {t('ready.paymentSection.receiveAccountPaymentHint')}
                           </p>
                         </div>
@@ -333,7 +337,7 @@ export default function ReadyDetailPage() {
                     })()}
                   </>
                 ) : (
-                  <p className="text-sm font-medium text-green-700">{t('ready.paymentSection.paidInFull')}</p>
+                  <p className="text-sm font-medium text-success-text">{t('ready.paymentSection.paidInFull')}</p>
                 )}
               </div>
             )}
@@ -342,58 +346,58 @@ export default function ReadyDetailPage() {
               <button
                 type="button"
                 onClick={() => openPrintPreview('receipt', 'thermal')}
-                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
               >
                 {t('ready.actions.printReceiptThermal')}
               </button>
               <button
                 type="button"
                 onClick={() => openPrintPreview('receipt', 'a4')}
-                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
               >
                 {t('ready.actions.printReceiptA4')}
               </button>
               <button
                 type="button"
                 onClick={() => openPrintPreview('order-details', 'thermal')}
-                className="w-full rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90"
               >
                 {t('ready.actions.printOrderDetailsThermal')}
               </button>
               <button
                 type="button"
                 onClick={() => openPrintPreview('order-details', 'a4')}
-                className="w-full rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90"
               >
                 {t('ready.actions.printOrderDetailsA4')}
               </button>
-              <div className="pt-2 mt-2 border-t border-gray-200">
-                <p className="text-xs font-medium text-gray-500 mb-2">{t('ready.actions.reportsA4Rprt') ?? 'A4 Reports'}</p>
+              <div className="pt-2 mt-2 border-t border-border">
+                <p className="text-xs font-medium text-muted-foreground mb-2">{t('ready.actions.reportsA4Rprt') ?? 'A4 Reports'}</p>
                 <button
                   type="button"
                   onClick={() => openPrintPreview('invoices-payments-rprt', 'a4')}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 mb-2"
+                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
                 >
                   {t('ready.actions.printInvoicesPaymentsA4Rprt')}
                 </button>
                 <button
                   type="button"
                   onClick={() => openPrintPreview('payments-rprt', 'a4', 'desc')}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 mb-2"
+                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
                 >
                   {t('ready.actions.printPaymentsA4DescRprt')}
                 </button>
                 <button
                   type="button"
                   onClick={() => openPrintPreview('payments-rprt', 'a4', 'asc')}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 mb-2"
+                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
                 >
                   {t('ready.actions.printPaymentsA4AscRprt')}
                 </button>
                 <button
                   type="button"
                   onClick={() => openPrintPreview('history-rprt', 'a4')}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
                 >
                   {t('ready.actions.printOrderHistoryA4Rprt')}
                 </button>
@@ -404,7 +408,7 @@ export default function ReadyDetailPage() {
       </div>
       {printConfig && orderId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-          <div className="relative h-[90vh] w-full max-w-4xl rounded-lg bg-white shadow-xl">
+          <div className="relative h-[90vh] w-full max-w-4xl rounded-lg bg-card shadow-xl">
             <div className="flex items-center justify-between border-b px-4 py-2">
               <div>
                 <h2 className="text-sm font-semibold">
@@ -420,14 +424,14 @@ export default function ReadyDetailPage() {
                             ? t('ready.actions.printOrderHistoryA4Rprt')
                             : t('ready.itemsTitle')}
                 </h2>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {printConfig.layout === 'thermal' ? '80mm' : 'A4'} Ã¢â‚¬Â¢ {order.orderNo}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setPrintConfig(null)}
-                className="rounded-full p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label={t('ready.actions.backToReady')}
               >
                 <span className="text-lg leading-none">&times;</span>

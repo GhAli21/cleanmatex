@@ -158,9 +158,40 @@ HQ app → **HQ Admin Console → Operations → Job Manager** (`/ops/jobs`), as
 | H7 | Stop the worker for 15+ minutes (owner, Render) | Row shows "Worker not reporting"; Run now still queues and runs when the worker is back. |
 | H8 | Arabic UI | Badge "عامل المنصة", pick list and texts in Arabic, RTL. |
 
+## I. Stage of each file + Files panel on stage screens (`0770` applied 2026-11-19)
+
+Tenant app, user with `orders:transition` or `orders:update`. Use one order and move it through the workflow.
+
+| # | Where / do | Expect |
+|---|---|---|
+| I1 | **Preparation** → open an order → **Files** panel at the bottom (collapsed) → open it → upload a photo | Panel is closed by default (no file request until opened). After upload the tile shows the purpose, then a grey line **"Preparation · Preparation"** (stage · screen). |
+| I2 | Move the order on, then do the same on **Processing**, **Assembly**, **QA**, **Packing** and **Ready** detail pages | Each panel shows all files of the order. Each new tile shows its own stage and screen, e.g. "Quality Check · Quality check", "Ready for pickup · Ready for pickup", "Packing · Packing". |
+| I3 | Order detail → **Files** tab | All files from I1–I2. A **Filter by stage** list appears (only when files come from 2+ stages), in workflow order. Pick "Processing" → only files uploaded while the order was in processing. "All stages" → all again. |
+| I4 | Filter by a stage, delete the last file of that stage | The list does not go empty: the filter resets to all stages. |
+| I5 | Report an issue with a photo (order detail → Issues) | Tile line ends with the sub-record: "<stage> · Order issue · Order issue". |
+| I6 | Old files (uploaded before 0770) | No stage on the line, only the screen (e.g. "Order details"). Nothing breaks. |
+| I7 | User with only `orders:read` opens a stage screen panel | Files visible, no drop zone, no edit/delete. |
+| I8 | Arabic UI | Stage and screen names in Arabic ("تحضير · التجهيز"), filter "تصفية حسب المرحلة", RTL. |
+| I9 | API (optional): `GET /api/v1/file-util?category=ORDER_FILE&entityIds=<order id>&stages=qa` and `&sources=ORDER_PACKING` | Only the matching files. `&sources=NOPE` → 400. |
+
+## J. Transaction files: QA reject, piece photos, pickup proof, delivery (`0771` applied 2026-11-19)
+
+| # | Where / do | Expect |
+|---|---|---|
+| J1 | **QA** detail → on an item press **Reject** | Dialog "Reject in quality check": type, priority, reason (min 3 chars), photos. Red button "Reject item". |
+| J2 | Fill reason, add 2 photos → **Reject item** | Order goes back to processing; toast "photos saved". Order detail → Issues: the new issue with the 2 photos. Files tab: tiles "Quality check · Quality check · Order issue", purpose "Quality check". |
+| J3 | **Processing** (or Assembly, QA, Packing, Ready, order detail items, Preparation itemizer) → expand an item's pieces → under a piece press **Add photos** → upload 1 photo → close | Dialog title "Photos of <piece code>". The button then shows **1 photo**. Order Files tab: the tile line ends with "Order piece". |
+| J4 | User with only `orders:read` | Piece buttons show counts; the dialog has no drop zone. User without `orders:read`: no piece photo buttons. |
+| J5 | **Ready** detail → pickup handover → dialog: add 2 **Pickup photos** → confirm | Order picked up. Files tab: 2 tiles "Pickup proof", **locked** (no edit/delete). |
+| J6 | Same, but go offline after picking photos → confirm | Error "Pickup photos could not be uploaded…"; order NOT picked up. Back online → confirm again: photos already sent are not uploaded twice. |
+| J7 | Upload pickup photos (confirm fails), delete one of them in the Files tab (other browser tab), then confirm | "A pickup photo was removed or already used…"; nothing changes; confirm again uploads fresh copies and works. |
+| J8 | **Delivery** → open an order (delivery detail) and a route stop | A collapsed **Files** panel on both; uploads tagged "Out for delivery · Delivery". Driver without `orders:read`: no panel, no error. |
+| J9 | Arabic | All new texts in Arabic, RTL; Arabic plural forms on the piece photo count. |
+
 ## G. Not testable yet
 
 - Storage purge of deleted files runs in the HQ `platform-workers` job `file-util-purge` — needs that worker deployed.
+- Phase 8 (2026-11-19) added docs only (ADR, developer guide, feature reference); nothing new to test. All File Util migrations are applied; §A–§F and §H are the full owner QA.
 
 ## Financial_Expert_Tester Results
 

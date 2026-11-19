@@ -199,10 +199,10 @@ function NotificationSettingsContent() {
                 <CmxCardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                      <p className="text-sm font-medium text-foreground">
                         {isAr ? CHANNEL_LABELS[ch].ar : CHANNEL_LABELS[ch].en}
                       </p>
-                      <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      <p className="text-xs text-muted-foreground">
                         {t('settings.enableChannel')}
                       </p>
                     </div>
@@ -213,8 +213,8 @@ function NotificationSettingsContent() {
                     />
                   </div>
                   {ch !== 'IN_APP' && (
-                    <div className="mt-3 flex items-center justify-between gap-4 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] pt-3">
-                      <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                    <div className="mt-3 flex items-center justify-between gap-4 border-t border-border pt-3">
+                      <p className="text-xs text-muted-foreground">
                         {t('settings.marketingConsent')}
                       </p>
                       <CmxSwitch
@@ -241,7 +241,7 @@ function NotificationSettingsContent() {
               <CmxCard key={ch}>
                 <CmxCardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                    <p className="text-sm font-semibold text-foreground">
                       {isAr ? CHANNEL_LABELS[ch].ar : CHANNEL_LABELS[ch].en}
                     </p>
                     <CmxSwitch
@@ -268,7 +268,7 @@ function NotificationSettingsContent() {
                 {isEnabled && (
                   <CmxCardContent className="pt-0 pb-4 space-y-3">
                     <div className="flex items-center justify-between gap-4">
-                      <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      <p className="text-xs text-muted-foreground">
                         {t('settings.quietHours')}
                       </p>
                       <CmxSwitch
@@ -285,7 +285,7 @@ function NotificationSettingsContent() {
                             type="time"
                             defaultValue={setting?.quiet_hours_start ?? '22:00'}
                             onBlur={(e) => void updateChannelSetting(ch, 'quiet_hours_start', e.target.value)}
-                            className="mt-1 w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] px-2 py-1 text-sm"
+                            className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
                           />
                         </div>
                         <div>
@@ -294,7 +294,7 @@ function NotificationSettingsContent() {
                             type="time"
                             defaultValue={setting?.quiet_hours_end ?? '08:00'}
                             onBlur={(e) => void updateChannelSetting(ch, 'quiet_hours_end', e.target.value)}
-                            className="mt-1 w-full rounded border border-[rgb(var(--cmx-border-rgb,226_232_240))] px-2 py-1 text-sm"
+                            className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
                           />
                         </div>
                       </div>
@@ -312,7 +312,7 @@ function NotificationSettingsContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <h1 className="mb-6 text-xl font-semibold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+      <h1 className="mb-6 text-xl font-semibold text-foreground">
         {t('settings.title')}
       </h1>
       {/* Remount after auth so admins land on tenant Channel Settings, not My Preferences. */}

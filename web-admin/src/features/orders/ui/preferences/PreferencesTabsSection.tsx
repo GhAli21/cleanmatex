@@ -8,7 +8,6 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
@@ -51,7 +50,6 @@ export function PreferencesTabsSection({
   const t = useTranslations('newOrder.preferences');
   const tPieces = useTranslations('newOrder.pieces');
   const tItems = useTranslations('newOrder.itemsGrid');
-  const isRTL = useRTL();
   const getBilingual = useBilingual();
   const {
     state,
@@ -78,9 +76,9 @@ export function PreferencesTabsSection({
   if (!hasAnyPrefs) return null;
 
   return (
-    <div className="border-b border-gray-100">
+    <div className="border-b border-border">
       <div
-        className={`flex gap-1 p-2 bg-gray-50 rounded-t-lg border-b border-gray-200 overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+        className="flex gap-1 p-2 bg-muted rounded-t-lg border-b border-border overflow-x-auto"
         role="tablist"
         aria-label={t('preferences') || 'Preferences'}
       >
@@ -94,9 +92,9 @@ export function PreferencesTabsSection({
             onClick={() => setActivePrefTab('quick')}
             className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
               activePrefTab === 'quick'
-                ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            } ${isRTL ? 'flex-row-reverse' : ''}`}
+                ? 'bg-card text-primary-text shadow-sm border border-border'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            } `}
           >
             <Zap className="w-4 h-4" />
             {t('quickApply') || 'Quick Apply'}
@@ -112,9 +110,9 @@ export function PreferencesTabsSection({
             onClick={() => setActivePrefTab('service')}
             className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
               activePrefTab === 'service'
-                ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            } ${isRTL ? 'flex-row-reverse' : ''}`}
+                ? 'bg-card text-primary-text shadow-sm border border-border'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            } `}
           >
             <Settings2 className="w-4 h-4" />
             {t('servicePrefs') || 'Service Preferences'}
@@ -122,7 +120,7 @@ export function PreferencesTabsSection({
         )}
       </div>
 
-      <div className="p-4 bg-white">
+      <div className="p-4 bg-card">
         {activePrefTab === 'quick' && hasQuickApply && (
           <div
             id="prefs-quick-panel"
@@ -149,7 +147,7 @@ export function PreferencesTabsSection({
             aria-labelledby="prefs-service-tab"
             className="space-y-4"
           >
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {t('servicePrefsDesc') ||
                 'Configure service and packing preferences per item. Use the Preferences button in the top bar for whole-order preferences.'}
             </p>
@@ -158,16 +156,16 @@ export function PreferencesTabsSection({
               {state.items.map((item) => (
                 <div
                   key={item.productId}
-                  className="rounded-lg border border-gray-200 p-3 bg-gray-50/50"
+                  className="rounded-lg border border-border p-3 bg-muted/50"
                 >
                   <div
-                    className={`font-medium text-sm text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}
+                    className="font-medium text-sm text-foreground mb-2 text-start"
                   >
                     {getBilingual(item.productName, item.productName2) ||
                       tItems('unknownProduct') ||
                       'Item'}
                     {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
-                      <span className="text-gray-500 font-normal ms-1">
+                      <span className="text-muted-foreground font-normal ms-1">
                         ({item.pieces?.length} {tPieces('pieces')})
                       </span>
                     )}
@@ -177,7 +175,7 @@ export function PreferencesTabsSection({
                       so an operator can add a whole-item preference in addition to per-piece ones. */}
                   <div>
                     {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
-                      <span className="text-xs font-medium text-gray-600 mb-1 block">
+                      <span className="text-xs font-medium text-muted-foreground mb-1 block">
                         {tItems('wholeItem') || 'Whole item'}
                       </span>
                     )}

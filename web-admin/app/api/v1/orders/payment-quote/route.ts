@@ -61,6 +61,13 @@ export async function POST(request: NextRequest) {
     sessionTenantId = auth.tenantId;
     const parsed = paymentQuoteRequestSchema.safeParse(await readBoundedJson(request, PAYMENT_QUOTE_LIMITS.MAX_BODY_BYTES));
     if (!parsed.success) {
+      // Paths only — never echo posted money or identifiers into the client envelope.
+      logger.warn('Payment quote input rejected', {
+        feature: 'payment_quote',
+        action: 'validate',
+        requestId,
+        issuePaths: parsed.error.issues.map((issue) => issue.path.join('.') || '(root)'),
+      });
       return NextResponse.json({ success: false, errorCode: 'INVALID_QUOTE_INPUT', error: 'Invalid payment quote input.' }, { status: 400, headers: headers() });
     }
     const data = await timing.measure('quote', () => withinDeadline(async () => {

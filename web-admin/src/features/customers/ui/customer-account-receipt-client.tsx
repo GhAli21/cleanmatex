@@ -191,7 +191,7 @@ export function CustomerAccountReceiptClient() {
       </div>
 
       {!currencyCode ? (
-        <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p role="alert" className="rounded-lg border border-warning-border bg-warning-bg px-3 py-2 text-sm text-warning-text">
           {t('currencyMissing')}
         </p>
       ) : null}
@@ -202,7 +202,7 @@ export function CustomerAccountReceiptClient() {
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
           {customer ? (
-            <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="font-medium">{customer.name}</p>
                 {customer.phone ? (
@@ -235,7 +235,7 @@ export function CustomerAccountReceiptClient() {
 
           {customer && currencyCode && receiptAmount > 0 ? (
             <>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+              <div className="rounded-xl border border-border bg-muted/50 p-3">
                 <p className="mb-2 text-sm font-medium">{t('tenderTitle')}</p>
                 <StoredValueTenderFields
                   key={tenderKey}
@@ -254,7 +254,7 @@ export function CustomerAccountReceiptClient() {
                 <p className="text-xs text-muted-foreground">
                   {tender ? t('allocateHint') : t('tenderRequired')}
                 </p>
-                <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="flex flex-wrap gap-2">
                   <CmxButton variant="outline" disabled={!tender} onClick={allocation.handleOpenAutoAllocate}>
                     {t('autoAllocate')}
                   </CmxButton>
@@ -263,7 +263,7 @@ export function CustomerAccountReceiptClient() {
                   </CmxButton>
                 </div>
                 {allocation.allocationPreviewId ? (
-                  <p className="text-sm text-green-700">{t('allocationConfirmed')}</p>
+                  <p className="text-sm text-success-text">{t('allocationConfirmed')}</p>
                 ) : null}
               </div>
 

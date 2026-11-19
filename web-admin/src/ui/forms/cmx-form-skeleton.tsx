@@ -36,7 +36,7 @@ export function CmxFormSkeleton({
       {Array.from({ length: sections }).map((_, sectionIndex) => (
         <div
           key={`section-${sectionIndex}`}
-          className="rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-5 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]"
+          className="rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface p-5 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]"
         >
           <CmxSkeleton className="h-5 w-40 rounded-full" />
           <CmxSkeleton className="mt-3 h-4 w-72 max-w-full rounded-full" />
@@ -53,7 +53,7 @@ export function CmxFormSkeleton({
       ))}
       <div
         className={[
-          'flex flex-col gap-3 rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
+          'flex flex-col gap-3 rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface p-4 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
           stickyActions ? 'sticky bottom-0' : '',
         ].join(' ')}
       >

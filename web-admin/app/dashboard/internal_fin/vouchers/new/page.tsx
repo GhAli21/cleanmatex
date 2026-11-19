@@ -29,7 +29,7 @@ export default async function CreateVoucherPage() {
     return (
     <RequireAnyPermission permissions={FEATURE_INTERNAL_FIN_VOUCHERS_NEW_ACCESS.page.permissions ?? []}>
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           {tCommon('error')}
         </div>
       </div>
@@ -41,7 +41,7 @@ export default async function CreateVoucherPage() {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-3xl font-bold">{t('newVoucher')}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t('headerStep.hint')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('headerStep.hint')}</p>
       </div>
       <NewVoucherClient />
     </div>

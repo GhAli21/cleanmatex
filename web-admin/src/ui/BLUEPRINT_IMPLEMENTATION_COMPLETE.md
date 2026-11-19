@@ -54,8 +54,7 @@ React Hook Form + Zod integration:
 - `CmxConfirmDialog` - Confirmation dialog
 
 ### ✅ Layer 7: Patterns (`src/ui/patterns/`)
-- `CmxListWithFilters` - List view with title, subtitle, filters, table
-- `CmxCrudPageShell` - CRUD page shell (list/detail mode)
+- `CmxCrudPageShell` - workspace frame: breadcrumb, title + actions, KPI strip, filters, content (PR-05; replaced `CmxListWithFilters`)
 
 ## File Structure
 
@@ -95,7 +94,6 @@ src/ui/
 │   ├── cmx-confirm-dialog.tsx
 │   └── index.ts
 ├── patterns/              # Page templates
-│   ├── cmx-list-with-filters.tsx
 │   ├── cmx-crud-page-shell.tsx
 │   └── index.ts
 ├── components/            # Legacy (backward compatibility)
@@ -185,17 +183,19 @@ import { CmxDataTable } from '@ui/data-display'
 
 ### List Pattern
 ```tsx
-import { CmxListWithFilters } from '@ui/patterns'
+import { CmxCrudPageShell } from '@ui/patterns'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton } from '@ui/primitives'
 
-<CmxListWithFilters
-  title="Orders"
-  subtitle="Manage customer orders"
-  toolbar={<CmxButton>+ New Order</CmxButton>}
+<CmxCrudPageShell
+  title={t('title')}
+  subtitle={t('subtitle')}
+  actions={<CmxButton>{t('newOrder')}</CmxButton>}
+  kpis={<OrderStatsCards stats={stats} />}
   filters={<OrderFilters />}
-  table={<CmxDataTable {...props} />}
-/>
+>
+  <CmxDataTable {...props} />
+</CmxCrudPageShell>
 ```
 
 ### Feedback

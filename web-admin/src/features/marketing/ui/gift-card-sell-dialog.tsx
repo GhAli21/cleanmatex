@@ -12,6 +12,7 @@
  * Requires: gift_cards:sell permission (enforced server-side).
  */
 
+import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
@@ -30,7 +31,6 @@ import {
 import { CmxButton, CmxMoneyFieldController, CmxSelect } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
-import { Alert, AlertDescription } from '@ui/primitives';
 import { sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-actions';
 import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-required-action';
 import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
@@ -291,7 +291,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
           {/* ---------------------------------------------------------------- */}
           {generatedCode ? (
             <div className="flex flex-col items-center gap-4 py-6">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
+              <CheckCircle2 className="h-12 w-12 text-success-text" />
               <p className="text-sm text-muted-foreground">{t('fields.giftCardCode')}</p>
               <div className="flex items-center gap-2">
                 <span
@@ -318,9 +318,9 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
             /* -------------------------------------------------------------- */
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
               {serverError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{serverError}</AlertDescription>
-                </Alert>
+                <CmxSummaryMessage type="error">
+                  <div>{serverError}</div>
+                </CmxSummaryMessage>
               )}
 
               {/* Card Name EN */}
@@ -375,7 +375,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
               </div>
 
               {/* Tender step — always required: every sale is a voucher (CLF W5) */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+              <div className="rounded-xl border border-border bg-muted/50 p-3">
                 <p className="mb-2 text-sm font-medium">{t('fields.tenderSectionTitle')}</p>
                 {faceAmount == null ? (
                   <p className="text-sm text-muted-foreground">{t('fields.amountRequiredBeforeTender')}</p>

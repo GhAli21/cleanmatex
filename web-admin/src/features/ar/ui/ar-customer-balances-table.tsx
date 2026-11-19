@@ -107,7 +107,7 @@ export function ArCustomerBalancesTable({
           key: 'actions',
           header: tCommon('actions'),
           render: (row) => (
-            <div className="flex items-center gap-2 rtl:flex-row-reverse">
+            <div className="flex items-center gap-2">
               <CmxButton asChild size="sm" variant="outline">
                 <Link href={`/dashboard/internal_fin/ar/ledger?customerId=${row.customer_id}`}>
                   {t('actions.ledger')}

@@ -53,7 +53,7 @@ function mapHref(address: string, latitude: number | null, longitude: number | n
 /** Definition-list row for the secondary "Route details" section. */
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-secondary-bg-rgb,248_250_252))] px-3 py-2.5">
+    <div className="rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-secondary px-3 py-2.5">
       <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="mt-1 text-sm font-medium text-foreground">{value}</dd>
     </div>
@@ -132,14 +132,14 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
   return (
     <div className="space-y-5">
       <CmxCard className="overflow-hidden">
-        <CmxCardHeader className="bg-slate-950 text-white">
+        <CmxCardHeader className="bg-foreground text-background">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm text-slate-300">
+              <div className="flex items-center gap-2 text-sm text-background/70">
                 <Truck className="h-4 w-4" aria-hidden="true" />
                 {t('manifest.eyebrow')}
               </div>
-              <CmxCardTitle className="text-xl text-white">{route.routeNumber}</CmxCardTitle>
+              <CmxCardTitle className="text-xl text-background">{route.routeNumber}</CmxCardTitle>
             </div>
             <CmxStatusBadge
               label={t(`routeStatus.${route.statusCode}`, { default: route.statusCode })}
@@ -158,7 +158,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
               <div className="mt-1 space-y-0.5">
                 <p className="text-sm font-medium">{driver.name}</p>
                 {driver.phone ? (
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-1.5 text-sm text-background/70">
                     <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <a href={`tel:${driver.phone}`} className="hover:underline">{driver.phone}</a>
                   </p>
@@ -203,7 +203,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
             <DetailRow label={t('routes.fields.updatedAt')} value={route.updatedAt ? formatDateTime(route.updatedAt, locale) : '—'} />
           </dl>
           {route.notes ? (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+            <div className="mt-4 rounded-lg border border-warning-border bg-warning-bg px-3 py-2.5 text-sm text-warning-text">
               <span className="font-medium">{t('routes.fields.notes')}:</span> {route.notes}
             </div>
           ) : null}
@@ -217,11 +217,11 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
         </div>
         <div className="grid gap-3">
           {route.stops.map((stop) => (
-            <CmxCard key={stop.id} className="border-l-4 border-l-sky-500">
+            <CmxCard key={stop.id} className="border-s-4 border-s-primary">
               <CmxCardContent className="flex flex-col gap-4 pt-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-bold text-sky-800">
+                    <span className="rounded-full bg-info-bg px-2 py-1 text-xs font-bold text-info-text">
                       {t('manifest.stopNumber', { sequence: stop.sequence })}
                     </span>
                     <CmxStatusBadge
@@ -231,7 +231,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
                     />
                     <CmxCodeChip code={stop.order.orderNo} kind="order" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-background/70">
                     {stop.contactName ?? stop.order.customerName ?? t('fallbacks.unknownCustomer')}
                     {stop.contactPhone || stop.order.customerPhone ? ` · ${stop.contactPhone ?? stop.order.customerPhone}` : ''}
                   </p>
@@ -243,7 +243,7 @@ export function DeliveryRouteManifest({ route, onDriverAssigned }: DeliveryRoute
                 <div className="flex flex-wrap gap-2">
                   <CmxButton variant="outline" asChild>
                     <Link href={mapHref(stop.address, stop.latitude, stop.longitude)} target="_blank" rel="noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
+                      <ExternalLink className="me-2 h-4 w-4" aria-hidden="true" />
                       {t('manifest.openNavigation')}
                     </Link>
                   </CmxButton>

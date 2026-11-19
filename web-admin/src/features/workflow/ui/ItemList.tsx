@@ -1,5 +1,6 @@
 "use client";
 
+import { FILE_SOURCES } from '@/lib/constants/file-util';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -92,7 +93,7 @@ export function ItemList({
     <div className="space-y-3">
       {!trackByPiece && items.length > 0 && (
         <p
-          className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"
+          className="text-sm text-warning-text bg-warning-bg border border-warning-border rounded-md px-3 py-2"
           role="status"
         >
           {tOrdPieces('pieceTrackingDisabled')}
@@ -107,29 +108,29 @@ export function ItemList({
         const expanded = expandedItemIds.has(item.id);
 
         return (
-          <div key={item.id} className="border border-gray-200 rounded-lg p-3 bg-white">
+          <div key={item.id} className="border border-border rounded-lg p-3 bg-card">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-gray-900 break-words">{name}</div>
-                <div className="text-xs text-gray-600 mt-0.5">
+                <div className="text-sm font-medium text-foreground break-words">{name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
                   {item.quantity} × {formatMoneyWithCode(Number(item.price_per_unit))}
                 </div>
                 <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <div className="text-sm font-semibold text-gray-900 tabular-nums">
+                <div className="text-sm font-semibold text-foreground tabular-nums">
                   {formatMoneyWithCode(Number(item.total_price))}
                 </div>
               </div>
             </div>
 
             {trackByPiece && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="mt-3 pt-3 border-t border-border">
                 <CmxButton
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-between px-1 font-medium text-gray-700"
+                  className="w-full justify-between px-1 font-medium text-foreground"
                   onClick={() => toggleItemExpansion(item.id)}
                   aria-expanded={expanded}
                 >
@@ -147,6 +148,7 @@ export function ItemList({
                       <OrderPiecesManager
                         orderId={orderId}
                         itemId={item.id}
+                        fileSource={FILE_SOURCES.ORDER_PREPARATION}
                         tenantId={tenantOrgId}
                         branchId={branchId}
                         readOnly={false}

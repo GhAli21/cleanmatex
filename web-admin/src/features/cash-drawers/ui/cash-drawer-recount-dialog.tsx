@@ -146,10 +146,10 @@ export function CashDrawerRecountDialog({
         </CmxDialogHeader>
 
         {recountable.length === 0 ? (
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('recount.nothingToRecount')}</p>
+          <p className="text-sm text-muted-foreground">{t('recount.nothingToRecount')}</p>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('recount.description')}</p>
+            <p className="text-sm text-muted-foreground">{t('recount.description')}</p>
 
             {recountable.length > 1 ? (
               <CmxSelect
@@ -180,7 +180,7 @@ export function CashDrawerRecountDialog({
               </div>
             ) : null}
 
-            <div className="space-y-4 rounded-xl border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4">
+            <div className="space-y-4 rounded-xl border border-border p-4">
               <CashCountMethodField methods={countPolicy.methods} value={countMode} onChange={setCountMode} />
               {countMode === 'TOTAL_ONLY' ? (
                 <CmxInput
@@ -192,9 +192,9 @@ export function CashDrawerRecountDialog({
                   onChange={(event) => setTotalAmount(event.target.value)}
                 />
               ) : denominationsQuery.isLoading ? (
-                <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{tCommon('loading')}</p>
+                <p className="text-sm text-muted-foreground">{tCommon('loading')}</p>
               ) : (denominationsQuery.data ?? []).length === 0 ? (
-                <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{t('wizard.noDenominationCatalog')}</p>
+                <p className="text-sm text-muted-foreground">{t('wizard.noDenominationCatalog')}</p>
               ) : (
                 <CmxDenominationCounter
                   denominations={(denominationsQuery.data ?? []).map((d) => ({ id: d.id, label: d.name, valueMinor: d.denominationMinor }))}
@@ -233,8 +233,8 @@ export function CashDrawerRecountDialog({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{label}</div>
+    <div className="rounded-lg border border-border bg-muted p-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-1 text-sm font-bold">{value}</div>
     </div>
   )

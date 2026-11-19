@@ -70,7 +70,7 @@ export function CmxFileViewerDialog({ items, index, onIndexChange }: CmxFileView
               </CmxDialogDescription>
             </CmxDialogHeader>
 
-            <div className="flex max-h-[70vh] min-h-[40vh] items-center justify-center overflow-auto rounded-[var(--cmx-radius-md,0.375rem)] bg-[rgb(var(--cmx-muted-rgb,241_245_249))]">
+            <div className="flex max-h-[70vh] min-h-[40vh] items-center justify-center overflow-auto rounded-[var(--cmx-radius-md,0.375rem)] bg-muted">
               {item.previewMode === 'IMAGE' && (
                 <img
                   src={item.url}

@@ -162,10 +162,10 @@ export default function EditItemModal({
 
   const productFields = (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">{t('messages.productMasterDescription')}</p>
+      <p className="text-xs text-muted-foreground">{t('messages.productMasterDescription')}</p>
       <div>
-        <Label className="block text-sm font-medium text-gray-700 mb-1">
-          {t('labels.itemName')} (EN) <span className="text-red-500">*</span>
+        <Label className="block text-sm font-medium text-foreground mb-1">
+          {t('labels.itemName')} (EN) <span className="text-danger-text">*</span>
         </Label>
         <CmxInput
           value={productName}
@@ -174,7 +174,7 @@ export default function EditItemModal({
         />
       </div>
       <div>
-        <Label className="block text-sm font-medium text-gray-700 mb-1">
+        <Label className="block text-sm font-medium text-foreground mb-1">
           {t('labels.itemName')} (AR)
         </Label>
         <CmxInput
@@ -185,7 +185,7 @@ export default function EditItemModal({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">
+          <Label className="block text-sm font-medium text-foreground mb-1">
             {t('labels.unit')}
           </Label>
           <CmxSelect
@@ -195,7 +195,7 @@ export default function EditItemModal({
           />
         </div>
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">
+          <Label className="block text-sm font-medium text-foreground mb-1">
             {t('labels.unitCost')}
           </Label>
           <CmxInput
@@ -208,7 +208,7 @@ export default function EditItemModal({
         </div>
       </div>
       <div>
-        <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.sellPrice')}</Label>
+        <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.sellPrice')}</Label>
         <CmxInput
           type="number"
           step="0.01"
@@ -221,7 +221,7 @@ export default function EditItemModal({
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.reorderPoint')}</Label>
+              <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.reorderPoint')}</Label>
               <CmxInput
                 type="number"
                 step="0.01"
@@ -231,12 +231,12 @@ export default function EditItemModal({
               />
             </div>
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.sku')}</Label>
+              <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.sku')}</Label>
               <CmxInput value={skuValue} onChange={(e) => setSkuValue(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.storageLocation')}</Label>
+            <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.storageLocation')}</Label>
             <CmxInput value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} />
           </div>
         </>
@@ -246,34 +246,34 @@ export default function EditItemModal({
 
   const branchFields = (
     <div className="space-y-4">
-      <p className="text-xs text-gray-500">{t('messages.branchStockDescription')}</p>
+      <p className="text-xs text-muted-foreground">{t('messages.branchStockDescription')}</p>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.sku')}</Label>
+          <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.sku')}</Label>
           <CmxInput value={skuValue} onChange={(e) => setSkuValue(e.target.value)} placeholder="-" />
         </div>
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.storageLocation')}</Label>
+          <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.storageLocation')}</Label>
           <CmxInput value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} placeholder="-" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.reorderPoint')}</Label>
+          <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.reorderPoint')}</Label>
           <CmxInput type="number" step="0.01" min="0" value={reorderPoint} onChange={(e) => setReorderPoint(e.target.value)} />
         </div>
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.minStockLevel')}</Label>
+          <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.minStockLevel')}</Label>
           <CmxInput type="number" step="0.01" min="0" value={minStockLevel} onChange={(e) => setMinStockLevel(e.target.value)} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.maxStockLevel')}</Label>
+          <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.maxStockLevel')}</Label>
           <CmxInput type="number" step="0.01" min="0" value={maxStockLevel} onChange={(e) => setMaxStockLevel(e.target.value)} placeholder="-" />
         </div>
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.lastPurchaseCost')}</Label>
+          <Label className="block text-sm font-medium text-foreground mb-1">{t('labels.lastPurchaseCost')}</Label>
           <CmxInput type="number" step="0.01" min="0" value={lastPurchaseCost} onChange={(e) => setLastPurchaseCost(e.target.value)} placeholder="-" />
         </div>
       </div>
@@ -289,7 +289,7 @@ export default function EditItemModal({
           <CmxDialogTitle className="flex items-center gap-2">
             {t('actions.editItem')} — {item.product_code}
             {branchId && branchName && (
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+              <span className="rounded-full bg-info-bg px-2 py-0.5 text-xs font-medium text-info-text">
                 {branchName}
               </span>
             )}
@@ -299,7 +299,7 @@ export default function EditItemModal({
         <form onSubmit={handleSubmit}>
           <div className="px-0 py-4">
             {error && (
-              <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              <div className="mb-4 rounded-lg bg-danger-bg p-3 text-sm text-danger-text">
                 {error}
               </div>
             )}

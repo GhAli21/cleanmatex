@@ -208,13 +208,13 @@ export function CashDrawerSessionDetailScreen({
             </CmxButton>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+            <h1 className="text-3xl font-bold text-foreground">
               {detail.drawer.drawerName}
             </h1>
             <CashDrawerTypeBadge drawerType={detail.drawer.drawerType} />
             <CashDrawerStatusBadge status={detail.session.status} />
           </div>
-          <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          <p className="text-sm text-muted-foreground">
             {t('sessionDetailDescription', { sessionNo: detail.session.sessionNo })}
           </p>
         </div>
@@ -242,7 +242,7 @@ export function CashDrawerSessionDetailScreen({
       </div>
 
       {varianceApproval.pending ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-border bg-warning-bg p-4 text-sm text-warning-text">
           <div className="flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
             <span>{t('varianceApprovalPendingBanner')}</span>
@@ -267,7 +267,7 @@ export function CashDrawerSessionDetailScreen({
           </div>
         </div>
       ) : varianceApproval.rejected ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
           <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden />
           <span>
             {t('varianceRejectedBanner', {
@@ -276,11 +276,11 @@ export function CashDrawerSessionDetailScreen({
             })}
           </span>
           {varianceApproval.rejectionReason ? (
-            <span className="italic text-red-800">— {varianceApproval.rejectionReason}</span>
+            <span className="italic text-danger-text">— {varianceApproval.rejectionReason}</span>
           ) : null}
         </div>
       ) : varianceApproval.approved ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-success-border bg-success-bg p-4 text-sm text-success-text">
           <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
           <span>
             {t('varianceApprovedBanner', {
@@ -289,7 +289,7 @@ export function CashDrawerSessionDetailScreen({
             })}
           </span>
           {varianceApproval.reason ? (
-            <span className="italic text-emerald-800">— {varianceApproval.reason}</span>
+            <span className="italic text-success-text">— {varianceApproval.reason}</span>
           ) : null}
         </div>
       ) : null}

@@ -71,7 +71,7 @@ export function UserDetailScreen() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-12 w-12 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
+        <div className="animate-spin h-12 w-12 rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
   }
@@ -82,14 +82,14 @@ export function UserDetailScreen() {
       <div className="space-y-4">
         <button
           onClick={() => router.push('/dashboard/users')}
-          className="inline-flex items-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 me-1" />
           {t('backToUsers')}
         </button>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
-          <p className="text-red-800">{error}</p>
+        <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center">
+          <AlertCircle className="h-12 w-12 text-danger-text mx-auto mb-3" />
+          <p className="text-danger-text">{error}</p>
         </div>
       </div>
     )
@@ -101,13 +101,13 @@ export function UserDetailScreen() {
       <div className="space-y-4">
         <button
           onClick={() => router.push('/dashboard/users')}
-          className="inline-flex items-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 me-1" />
           {t('backToUsers')}
         </button>
-        <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
-          <p className="text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+        <div className="rounded-lg border border-border p-8 text-center">
+          <p className="text-muted-foreground">
             {t('userNotFound')}
           </p>
         </div>
@@ -122,33 +122,33 @@ export function UserDetailScreen() {
       {/* Back button */}
       <button
         onClick={() => router.push('/dashboard/users')}
-        className="inline-flex items-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))]"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 me-1" />
         {t('backToUsers')}
       </button>
 
       {/* User header */}
-      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] bg-[rgb(var(--cmx-background-rgb,255_255_255))] p-6">
+      <div className="rounded-lg border border-border bg-background p-6">
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-            <span className="text-blue-700 font-bold text-2xl">{initials}</span>
+          <div className="h-16 w-16 rounded-full bg-info-bg flex items-center justify-center shrink-0">
+            <span className="text-primary-text font-bold text-2xl">{initials}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-[rgb(var(--cmx-foreground-rgb,15_23_42))] truncate">
+            <h1 className="text-xl font-bold text-foreground truncate">
               {user.display_name || user.email}
             </h1>
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <p className="text-sm text-muted-foreground">
               {user.email}
             </p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+              <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-info-bg text-info-text">
                 {user.role}
               </span>
               <span
                 className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                  user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  user.is_active ? 'bg-success-bg text-success-text' : 'bg-danger-bg text-danger-text'
                 }`}
               >
                 {user.is_active ? tCommon('active') : tCommon('inactive')}
@@ -168,8 +168,8 @@ export function UserDetailScreen() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
-        <nav className="-mb-px flex space-x-8 rtl:space-x-reverse">
+      <div className="border-b border-border">
+        <nav className="-mb-px flex space-x-8">
           {(
             [
               { key: 'profile', label: t('profileTab') },
@@ -183,8 +183,8 @@ export function UserDetailScreen() {
               onClick={() => setActiveTab(key)}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === key
-                  ? 'border-[rgb(var(--cmx-primary-rgb,14_165_233))] text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]'
-                  : 'border-transparent text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] hover:border-[rgb(var(--cmx-border-rgb,226_232_240))]'
+                  ? 'border-primary text-primary-text'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
               {label}

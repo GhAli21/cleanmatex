@@ -42,47 +42,47 @@ export default function CustomerReportTable({
   );
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.customer')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.phone')}</th>
-              <th className="px-4 py-3 text-end font-medium text-gray-600">{t('table.totalOrders')}</th>
-              <th className="px-4 py-3 text-end font-medium text-gray-600">{t('table.totalRevenue')}</th>
-              <th className="px-4 py-3 text-end font-medium text-gray-600">{t('table.avgOrderValue')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.lastOrder')}</th>
-              <th className="px-4 py-3 text-start font-medium text-gray-600">{t('table.firstOrder')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.customer')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.phone')}</th>
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">{t('table.totalOrders')}</th>
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">{t('table.totalRevenue')}</th>
+              <th className="px-4 py-3 text-end font-medium text-muted-foreground">{t('table.avgOrderValue')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.lastOrder')}</th>
+              <th className="px-4 py-3 text-start font-medium text-muted-foreground">{t('table.firstOrder')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {customers.map((cust) => (
               <tr
                 key={cust.id}
-                className="cursor-pointer hover:bg-gray-50"
+                className="cursor-pointer hover:bg-muted"
                 onClick={() => router.push(`/dashboard/customers/${cust.id}`)}
               >
-                <td className="px-4 py-3 font-medium text-gray-900">{cust.name}</td>
-                <td className="px-4 py-3 text-gray-700">{cust.phone ?? '-'}</td>
-                <td className="px-4 py-3 text-end text-gray-700">{cust.totalOrders}</td>
-                <td className="px-4 py-3 text-end font-medium text-gray-900">
+                <td className="px-4 py-3 font-medium text-foreground">{cust.name}</td>
+                <td className="px-4 py-3 text-foreground">{cust.phone ?? '-'}</td>
+                <td className="px-4 py-3 text-end text-foreground">{cust.totalOrders}</td>
+                <td className="px-4 py-3 text-end font-medium text-foreground">
                   {currencyCode} {cust.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
-                <td className="px-4 py-3 text-end text-gray-700">
+                <td className="px-4 py-3 text-end text-foreground">
                   {currencyCode} {cust.avgOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-muted-foreground">
                   {cust.lastOrderDate ? format(new Date(cust.lastOrderDate), 'dd MMM yyyy') : '-'}
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-muted-foreground">
                   {cust.firstOrderDate ? format(new Date(cust.firstOrderDate), 'dd MMM yyyy') : '-'}
                 </td>
               </tr>
             ))}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">{t('noData')}</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('noData')}</td>
               </tr>
             )}
           </tbody>
@@ -90,8 +90,8 @@ export default function CustomerReportTable({
       </div>
 
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-          <span className="text-sm text-gray-600">
+        <div className="flex items-center justify-between border-t border-border px-4 py-3">
+          <span className="text-sm text-muted-foreground">
             {t('pagination.showing', {
               from: (pagination.page - 1) * pagination.limit + 1,
               to: Math.min(pagination.page * pagination.limit, pagination.total),
@@ -99,11 +99,11 @@ export default function CustomerReportTable({
             })}
           </span>
           <div className="flex items-center gap-1">
-            <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30">
+            <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="px-3 py-1 text-sm font-medium text-gray-700">{pagination.page} / {pagination.totalPages}</span>
-            <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30">
+            <span className="px-3 py-1 text-sm font-medium text-foreground">{pagination.page} / {pagination.totalPages}</span>
+            <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>

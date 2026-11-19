@@ -168,15 +168,15 @@ function CmxListOfValuesDialogContent<TOption>({
             role="listbox"
             aria-label={labels.optionsLabel}
             aria-busy={isLoading}
-            className="min-h-0 max-h-[45vh] overflow-y-auto rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-1"
+            className="min-h-0 max-h-[45vh] overflow-y-auto rounded-[var(--cmx-radius-md,0.875rem)] border border-border p-1"
           >
             {isLoading ? (
-              <div className="flex min-h-32 items-center justify-center gap-2 p-4 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" role="status">
+              <div className="flex min-h-32 items-center justify-center gap-2 p-4 text-sm text-muted-foreground" role="status">
                 <CmxSpinner size="sm" aria-hidden="true" />
                 <span>{labels.loadingLabel}</span>
               </div>
             ) : matchingOptions.length === 0 ? (
-              <p className="p-4 text-center text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              <p className="p-4 text-center text-sm text-muted-foreground">
                 {labels.emptyLabel}
               </p>
             ) : (
@@ -197,17 +197,17 @@ function CmxListOfValuesDialogContent<TOption>({
                     onClick={() => setDraftSelectedId(optionId)}
                     className={cn(
                       'mb-1 flex h-auto min-h-11 w-full items-start justify-between gap-3 px-3 py-2.5 text-start last:mb-0',
-                      selected && 'bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))]',
+                      selected && 'bg-secondary',
                     )}
                   >
                     <span className="min-w-0 flex-1">
                       {renderOption ? renderOption(option, selected) : (
                         <span className="block min-w-0">
-                          <span className="block truncate text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                          <span className="block truncate text-sm font-medium text-foreground">
                             {getOptionLabel(option)}
                           </span>
                           {description ? (
-                            <span className="mt-0.5 block truncate text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                               {description}
                             </span>
                           ) : null}
@@ -216,7 +216,7 @@ function CmxListOfValuesDialogContent<TOption>({
                     </span>
                     {selected ? (
                       <Check
-                        className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--cmx-primary-text-rgb,14_165_233))]"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-primary-text"
                         aria-hidden="true"
                       />
                     ) : null}

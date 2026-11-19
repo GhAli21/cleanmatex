@@ -52,41 +52,41 @@ export default function ExportDropdown({
       <button
         onClick={() => setOpen(!open)}
         disabled={isExporting}
-        className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
       >
         <Download className="h-4 w-4" />
         {isExporting ? t('export.downloading') : t('exportReport')}
       </button>
 
       {open && (
-        <div className="absolute end-0 z-10 mt-1 w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute end-0 z-10 mt-1 w-44 rounded-lg border border-border bg-card py-1 shadow-lg">
           <button
             onClick={() => handleAction(onExportCSV)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
           >
-            <Table className="h-4 w-4 text-green-600" />
+            <Table className="h-4 w-4 text-success-text" />
             {t('exportCSV')}
           </button>
           <button
             onClick={() => handleAction(onExportExcel)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
           >
-            <Table className="h-4 w-4 text-blue-600" />
+            <Table className="h-4 w-4 text-primary-text" />
             {t('exportExcel')}
           </button>
           <button
             onClick={() => handleAction(onExportPDF)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
           >
-            <FileText className="h-4 w-4 text-red-600" />
+            <FileText className="h-4 w-4 text-danger-text" />
             {t('exportPDF')}
           </button>
-          <hr className="my-1 border-gray-100" />
+          <hr className="my-1 border-border" />
           <button
             onClick={() => handleAction(onPrint)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
           >
-            <Printer className="h-4 w-4 text-gray-600" />
+            <Printer className="h-4 w-4 text-muted-foreground" />
             {t('print')}
           </button>
         </div>

@@ -81,7 +81,7 @@ export function SplitConfirmationDialog({
       <CmxDialogContent className="max-w-md">
         <CmxDialogHeader>
           <CmxDialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            <AlertTriangle className="h-5 w-5 text-warning-text" />
             {t('title')}
           </CmxDialogTitle>
           <CmxDialogDescription>
@@ -93,7 +93,7 @@ export function SplitConfirmationDialog({
           {/* Reason Input */}
           <div>
             <Label htmlFor="split-reason" className="text-sm font-medium">
-              {t('reason')} <span className="text-red-500">*</span>
+              {t('reason')} <span className="text-danger-text">*</span>
             </Label>
             <CmxTextarea
               id="split-reason"
@@ -105,14 +105,14 @@ export function SplitConfirmationDialog({
               disabled={isLoading}
             />
             {error && (
-              <p className="text-sm text-red-600 mt-1">{error}</p>
+              <p className="text-sm text-danger-text mt-1">{error}</p>
             )}
           </div>
 
           {/* Preview */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-            <p className="font-medium text-blue-900">What will happen:</p>
-            <ul className="mt-2 space-y-1 text-blue-800">
+          <div className="p-3 bg-info-bg border border-info-border rounded-lg text-sm">
+            <p className="font-medium text-primary-text">What will happen:</p>
+            <ul className="mt-2 space-y-1 text-primary-text">
               <li>• A new sub-order will be created</li>
               <li>• {pieceCount} piece{pieceCount !== 1 ? 's' : ''} will be moved to the new order</li>
               <li>• Original order will keep remaining pieces</li>
@@ -134,7 +134,7 @@ export function SplitConfirmationDialog({
             onClick={handleConfirm}
             disabled={isLoading || !reason.trim()}
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
             {t('confirm')}
           </CmxButton>
         </CmxDialogFooter>
