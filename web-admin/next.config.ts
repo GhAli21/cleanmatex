@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
   // Explicitly set workspace root to platform-web to avoid lockfile detection warnings
 
   //outputFileTracingRoot: require("path").join(__dirname),
-  outputFileTracingRoot: path.join(__dirname),
+  // Repo root: npm workspaces hoist `next` into <root>/node_modules, so tracing must start there.
+  outputFileTracingRoot: path.join(__dirname, ".."),
 
   async redirects() {
     return [
@@ -49,7 +50,7 @@ const nextConfig: NextConfig = {
   // Turbopack root must match outputFileTracingRoot
   // Both point to web-admin directory to avoid workspace detection issues
   turbopack: {
-    root: path.join(__dirname), // => F:\jhapp\cleanmatex\web-admin (same as outputFileTracingRoot)
+    root: path.join(__dirname, ".."), // same as outputFileTracingRoot (repo root)
   },
 
   // The production builder is 2 cores / 8 GB. A custom webpack() function

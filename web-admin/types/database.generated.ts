@@ -16074,6 +16074,9 @@ isOneToOne: false
 "fn_ntf_worker_mark_uncertain":
 { Args: { "p_claim_token": string,"p_error_message": string,"p_outbox_id": string,"p_tenant_org_id": string }; Returns: boolean
                            },
+"fn_ntf_worker_reconcile_claim":
+{ Args: { "p_claim_token": string,"p_error_message"?: string,"p_outbox_id": string,"p_provider_code"?: string,"p_provider_event_key"?: string,"p_provider_message_id"?: string,"p_provider_status_raw"?: string,"p_receipt_kind"?: string,"p_status": string,"p_tenant_org_id": string }; Returns: boolean
+                           },
 "fn_ops_config_apps_valid":
 { Args: { "p_apps": Json }; Returns: boolean
                            },
