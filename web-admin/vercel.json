@@ -1,7 +1,7 @@
 {
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install --legacy-peer-deps",
+  "installCommand": "cd .. && npm ci --legacy-peer-deps --workspace=web-admin",
   "framework": "nextjs",
   "outputDirectory": ".next"
 }

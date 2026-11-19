@@ -21,7 +21,7 @@ These are the shapes to build. A wider acceptance row, a consent-history scan on
 | Published text | `sys_cmx_terms_docs_mst` plus immutable `sys_cmx_terms_docs_dtl`. Each catalog row carries `mandatory_level` and the handling columns below. Screens obey those columns. A version is current only when both locales exist and neither body contains `[` or `]`. A trigger rejects updates of `body` and `body_sha256`. |
 | Public read | Two HQ routes, no session, service-role read. `GET .../public/{docCode}/{locale}` is the current pointer: `Cache-Control: public, max-age=60, stale-while-revalidate=300`, `ETag` = `body_sha256`. `GET .../public/{docCode}/{versionCode}/{locale}` is immutable: `max-age=31536000, immutable`. 404 when that locale is not published. No `anon` SELECT. Marketing and the Tenant app fetch on the server and keep no second copy of the body. |
 | Acceptance | One event in `org_legal_accept_mst`, one line per document whose row has `record_version = true`. One current pointer `org_legal_accept_cur`, primary key `tenant_org_id`, with `accepted_versions` (jsonb, `doc_code` to `version_code`). Adding a document later adds a catalog row and a line. It does not add a column. |
-| Re-accept | Order create reads `org_legal_accept_cur` by primary key and compares it with the cached catalog rows where `blocks_new_orders = true`. Missing or older returns 409. Reads of old orders stay open. The banner uses the same read. |
+| Re-accept | When at least one `blocks_new_orders` document has a current version, order create reads `org_legal_accept_cur` by primary key and compares it with those current codes, read from the catalog, not from the public page cache. A missing or older code returns 409. While no blocking document is current, existing Tenants keep creating orders. Reads of old orders stay open. The banner uses the same read. |
 | Consent | `org_cust_consent_cur` is the hot row: unique `(tenant_org_id, customer_id, channel_code, purpose_code)`. `org_cust_consent_dtl` is append-only proof. Dispatch and the intake screen read the current row only. A save updates the current row and inserts history only when a value or `notice_version` changed. |
 | Marketing vs staff | Walk-in consent never writes `org_ntf_user_prefs_dtl`. Every send to a customer calls one gate: `assertCustomerMayReceive(tenant, customer, channel, purpose)`. Missing marketing consent is deny. WhatsApp service sends only when the current value is granted. SMS and email service send unless the current value is exactly refused. Staff campaigns keep the user-prefs table. |
 | Anonymize | One database function, one transaction, this `tenant_org_id` only. `org_customers_mst.customer_id` points at global `sys_customers_mst`. If any other Tenant row still points at that global id, set this row's `customer_id` to null and do not touch the global row. If no other row points at it, clear the global contact fields in the same transaction. Never `DELETE` the global row: the FK is `ON DELETE CASCADE` into Tenant customers. |
@@ -31,7 +31,7 @@ These are the shapes to build. A wider acceptance row, a consent-history scan on
 
 | Item | Result |
 |---|---|
-| B4 | Terms, Privacy, and the data-processing page on the marketing site and in the Tenant app, English and Arabic. One unchecked sign-up box. The server stores the version codes, the body hashes, and the UTC time. |
+| B4 | Terms, Privacy, and the data-processing page on the marketing site and in the Tenant app, English and Arabic. The Create tenant button is the acceptance. The server stores every blocking document's version, hash, and the UTC time. |
 | N4 | Order intake records WhatsApp opt-in, SMS and email refusal, and a separate marketing opt-in, without wiping a choice already stored. |
 | U4 | An authorized user can export a customer, then anonymize that person in one transaction. Orders, amounts, payments, and issued tax documents stay. |
 
@@ -43,7 +43,7 @@ Cookie notice, acceptable use, the sign-up sentence, the intake notice, and the 
 2. A version becomes current only when both `en` and `ar` rows exist and neither body contains `[` or `]`.
 3. The marketing site and the Tenant app render the current row for the requested locale. They do not fall back to the other language. They do not keep a second copy of the legal body.
 4. Sign-up stores the acceptance event, its lines, and the current pointer in the same transaction as the Tenant. If any insert fails, the Tenant is not created.
-5. Creating an order on the server checks `org_legal_accept_cur`. A hidden client check is not enough.
+5. Creating an order on the server checks `org_legal_accept_cur` once a blocking document is current. A hidden client check is not enough. The check lives in the shared order-create service, so every entry point uses it.
 6. Every `org_*` read and write filters `tenant_org_id` in that statement.
 7. Anonymize changes one Tenant's customer. It does not change another Tenant, a shared global person, a money total, or an issued tax document.
 8. `anon` and `authenticated` cannot insert, update, or select the document tables. Public reading is the API in the chosen design.
@@ -99,8 +99,8 @@ This is the shape used by Stripe, Atlassian, Slack, and Twilio. One signup act b
 
 | What they do | Where it shows | How this plan does it |
 |---|---|---|
-| Stripe Services Agreement and Atlassian Customer Agreement: the person clicking says they have authority to bind the business. Stripe also requires that representative to be an executive, senior manager, or someone with real control. Shopify is stricter and closer to this product: before signup the merchant must accept the Terms, and those Terms incorporate the Acceptable Use Policy, the Privacy Policy, and the Data Processing Addendum. Only the Store Owner is the contracting party. If the person signs up for an employer, the employer is the Store Owner, the person must use the employer email, and the person warrants authority to bind that employer. The Store Owner is responsible for the actions of everyone else on the account. The sale to an end customer is between the merchant and that customer. Shopify is not the seller. | One unchecked checkbox at signup, accepted only by the Store Owner role | One checkbox. It accepts Terms, the DPA, and Acceptable Use, and acknowledges Privacy. The first user is `tenant_admin`, which migration `0035` describes as the Tenant owner. Only that role may accept or re-accept for the Tenant. The mid-level `admin` role cannot bind the organization. The Tenant remains responsible for its staff and for the relationship with its own customers. |
-| Stripe incorporates the DPA into the services agreement. Atlassian incorporates the privacy policy and the acceptable use policy. | The same checkbox, with each document still stored as its own line, version, and hash | `blocks_signup` documents share one checkbox. Each still gets an acceptance line. |
+| Shopify is stricter and closer to this product: before signup the merchant must accept the Terms, and those Terms incorporate the Acceptable Use Policy, the Privacy Policy, and the Data Processing Addendum. Only the Store Owner is the contracting party. | The Create tenant button, pressed by the Store Owner | Pressing Create tenant accepts every current document with `blocks_signup = true`: Terms, the DPA, and Acceptable Use, and it acknowledges Privacy. The sentence beside the button is the `SIGNUP` text. The first user is `tenant_admin`. Only that role may accept or re-accept. The mid-level `admin` role cannot bind the organization. |
+| Stripe incorporates the DPA into the services agreement. Atlassian incorporates the privacy policy and the acceptable use policy. | The same Create tenant press, one line per document | `blocks_signup` documents are recorded together. Each still gets its own version and hash. |
 | Slack splits Customer Terms from User Terms. The Primary Owner represents the customer. A member does not sign the customer contract, and an admin does not sign it instead of a member. Twilio makes the customer responsible for its users' compliance. | No per-user signature on the organization contract | Staff are bound because the Tenant accepted. This pack has no `FOR_USER` act. A later staff notice, if added, is `SELF` only. |
 | Slack and Twilio publish a privacy notice and a DPA page. The DPA is also the processor contract. A cookie notice is a disclosure. | Public legal pages, no second signature | `is_public` rows. Privacy is acknowledged once at signup. The data-processing page and the cookie notice have no acceptor. |
 | Twilio Messaging Policy: consent is freely given by the recipient for that sender and that subject. Consent on behalf of a third party is not valid. The customer must keep proof of who consented, when, and by which method. Staff may record a choice the customer made at the counter. | Order intake | The end customer is `SELF`. Staff store `RECORDED`, plus the staff user id and the method (`COUNTER_TABLET` or `VERBAL_RECORDED_BY_STAFF`). `RECORDED` is evidence of the customer's act. It is not the Tenant consenting in the customer's place. |
@@ -141,9 +141,25 @@ Seed rules:
 | Terms, DPA, Acceptable Use, Privacy | `TENANT` | `TENANT_OWNER` only, `FOR_TENANT` |
 | Intake notice, counter notice | `END_CUSTOMER` | `END_CUSTOMER` as `SELF`; `TENANT_OWNER`, `TENANT_ADMIN`, and `TENANT_USER` as `RECORDED` |
 
-No current document binds a staff user personally. The sign-up sentence has no rules of its own. The person who ticks it must pass the rules of every `blocks_signup` document. The data-processing page and the cookie notice have no rules.
+No current document binds a staff user personally. The sign-up sentence is the text beside the Create tenant button. Pressing that button must pass the rules of every `blocks_signup` document. The data-processing page and the cookie notice have no rules.
 
-Every stored act writes `subject_party`, `acceptor_scope`, and `representation`. The server rejects the write when no active rule matches. A hidden button is not the control.
+Every stored act writes `subject_party`, `acceptor_scope`, and `representation`. The server rejects the write when no active rule matches. A hidden button is not the control. The client never supplies `accepted_versions`. The server copies that object from the lines it just inserted.
+
+## Release rules
+
+These rules stop the build from shipping a legal gate that breaks signup, a cache that delays a block, or a column the database does not have.
+
+1. **Before the pack is current, nothing new is required.** If every `blocks_signup` and `blocks_new_orders` row has a null `current_version_code`, signup stays as it is today and order create does not return 409. Once those rows are current, the Create tenant button records them.
+2. **Fail closed once publishing starts.** If any `blocks_signup` document is current, every `blocks_signup` document must be current in both locales. Signup stores all of them or creates no Tenant. The same rule applies to `blocks_new_orders` on the order path.
+3. **The order gate does not use the public HTTP cache.** It reads the current codes from `sys_cmx_terms_docs_mst` through the catalog reader, plus one primary-key read of `org_legal_accept_cur`. The 60-second cache is only for public pages. Setting a version current is visible to the next order create.
+4. **A new blocking document blocks old Tenants.** A current code that is absent from `accepted_versions` is not accepted. The Store Owner confirms with a later button. Existing orders stay readable.
+5. **One screen, one body.** A partial unique index allows only one active row for each non-null `present_in`.
+6. **`NOT_APPLICABLE` never sends.** The send gate treats it as do-not-send. It must not fall through the SMS and email rule that allows a send when the value is merely not `false`.
+7. **Anonymize locks the customer row** with `FOR UPDATE` inside the one function. A second concurrent call waits, then returns the idempotent success.
+8. **`is_anonymized` does not exist yet.** The migration adds `is_anonymized boolean not null default false` on `org_customers_mst`. The invoice snapshot columns ship in the same release as the print change. A reprint after anonymize uses the snapshot.
+9. **Catalog tables stay closed.** `anon` and `authenticated` have no privileges on `sys_cmx_terms_docs_mst`, `sys_cmx_terms_docs_dtl`, or `sys_cmx_doc_acpt_rule`. Application reads of those tables use the catalog reader. Every new `org_*` table has RLS, and every statement still filters `tenant_org_id`.
+10. **Placeholder check.** Publish rejects an unfilled token shaped like `[LEGAL_ENTITY_NAME]`. A bracket that is not that kind of token does not block a finished sentence.
+11. **Early-access leads.** The existing lead submission stores the privacy version, the hash, and the time on that same record. It does not create a Tenant and it does not write `org_legal_accept_mst`.
 
 The counsel memo, the README, the subprocessors register, and the anonymize spec are not catalog rows. A later pilot order form would be one `CONDITIONAL` row with `present_in = INVOICE`. The anonymize confirm text stays in Tenant i18n, version constant `u4-spec-2026-11-17`.
 
@@ -171,9 +187,11 @@ One new migration in `cleanmatex/supabase/migrations/`. List the folder and take
 
 **Invoice snapshot** — add `buyer_name` and `buyer_name2` (TEXT, nullable) on `org_invoice_mst`. Print reads the snapshot when it is set, otherwise the live customer. New issues write the snapshot at issue time.
 
-Grants: `anon` and `authenticated` have no privileges on the `sys_cmx_terms_docs_*` tables. Comment every new object and add `COMMENT ON`.
+Grants: `anon` and `authenticated` have no privileges on `sys_cmx_terms_docs_mst`, `sys_cmx_terms_docs_dtl`, or `sys_cmx_doc_acpt_rule`. Comment every new object and add `COMMENT ON`. RLS is on for `org_legal_accept_mst`, `org_legal_accept_dtl`, `org_legal_accept_cur`, `org_cust_consent_cur`, and `org_cust_consent_dtl`.
 
-Seed the nine `doc_code` values and both locales from `Lawyer_docs` only after the brackets are gone. Until then the migration may create the tables and leave `current_version_code` null. A null current version means the public routes show "not published", not a draft.
+**Customer flag** — add `is_anonymized boolean not null default false` on `org_customers_mst`.
+
+Seed the nine `doc_code` values and both locales from `Lawyer_docs` only after the brackets are gone. Until then the migration creates the tables, the allow-list, and the handling flags, and leaves `current_version_code` null. A null current version means the public routes show "not published", signup is unchanged, and order create is unchanged.
 
 **Step 1 close:** write the Progress Log row for Step 1. Do not start Step 2 in the same edit that forgets this row.
 
@@ -215,9 +233,9 @@ Setting a version current changes the pointer. The immutable URL does not need t
 
 **Tenant app.** The same public rows are available before an account exists. Signed-in footer links come from the same list. Fetch on the server.
 
-**Sign-up.** `web-admin/app/register/tenant/page.tsx`. One checkbox, unchecked on load. The label and helper come from the row with `present_in = SIGNUP` for the screen locale. Submit stays disabled until it is checked. `POST /api/v1/tenants/register` creates the Tenant and the first user as `tenant_admin` in the same transaction, then checks that this user matches `TENANT_OWNER` + `FOR_TENANT` for every `blocks_signup` document. It writes one acceptance line per row with `record_version = true`, and writes `org_legal_accept_cur`. It rolls back if a required current version cannot be read, the allow-list does not match, or a row cannot be inserted. `checkbox_was_preselected` is stored as false. A later re-accept uses the same allow-list, so only `tenant_admin` can clear the block.
+**Sign-up.** `web-admin/app/register/tenant/page.tsx`. The Create tenant button is the acceptance. The sentence beside it comes from the current `SIGNUP` row for the screen locale, with links to each `blocks_signup` document. There is no second checkbox. `POST /api/v1/tenants/register` creates the Tenant and the first user as `tenant_admin` in the same transaction. `acceptance_method` is `CREATE_TENANT`. The server checks that this user matches `TENANT_OWNER` + `FOR_TENANT`, then writes one line for every current `blocks_signup` document and one line for the `SIGNUP` sentence, then writes `org_legal_accept_cur`. Terms, the DPA, and Acceptable Use are stored as `ACCEPT`. Privacy is stored as `ACKNOWLEDGE`. It rolls back if a required current version cannot be read, the allow-list does not match, or a row cannot be inserted. `checkbox_was_preselected` is stored as false. A later re-accept uses the same allow-list, so only `tenant_admin` can clear the block.
 
-**Re-accept.** The server loads the cached catalog rows with `blocks_new_orders = true` and compares each `current_version_code` with `org_legal_accept_cur.accepted_versions`. Any miss shows an unchecked box on the next admin session. The order-create API returns 409 until the pointer is updated. Reading existing orders stays allowed. The Tenant lookup is the primary key. There is no history scan on the order path.
+**Re-accept.** When any `blocks_new_orders` document is current, the shared order-create service reads those current codes from the catalog and compares them with `org_legal_accept_cur.accepted_versions`. Any miss asks the `tenant_admin` to confirm with a button. That press records the new versions. The order-create service returns 409 until the pointer is updated. Reading existing orders stays allowed. The Tenant lookup is the primary key. There is no history scan and no use of the public page cache. While no blocking document is current, order create is unchanged.
 
 Cookie page states that non-essential analytics are off. Do not load an analytics script.
 
@@ -234,6 +252,7 @@ Load the current row with `present_in = ORDER_INTAKE` and the current row with `
 - No mobile: hide WhatsApp and SMS, store `NOT_APPLICABLE`, do not send.
 - No email: hide email, store `NOT_APPLICABLE`, do not send.
 - Channel off for the Tenant: hide that marketing box.
+- `NOT_APPLICABLE` is do-not-send. It is not a grant and it is not the SMS or email "not refused" state.
 
 On save, the server checks `sys_cmx_doc_acpt_rule` for the intake document. Customer self is `END_CUSTOMER` + `SELF`. Staff recording a choice the customer made is `RECORDED` and requires `TENANT_OWNER`, `TENANT_ADMIN`, or `TENANT_USER`. `b2b_customer` cannot record it. Upsert the current rows that changed and append one history row for each change, including a notice-version change. One transaction. Store the scope and the representation on the current row and the history row. Map exactly as file 15:
 
@@ -257,7 +276,7 @@ Withdrawal from the profile updates the current row and appends history. The nex
 
 Screen: `web-admin/app/dashboard/customers/[id]/page.tsx`.
 
-Permission `customers:anonymize` on the page, the export route, and the anonymize route. One constant. Access contract actions for export and anonymize. API: permission check, CSRF, tenant predicate, rate limit on anonymize. The write is one SQL function so the browser does not walk tables.
+Permission `customers:anonymize` on the page, the export route, and the anonymize route. One constant. Access contract actions for export and anonymize. API: permission check, CSRF, tenant predicate, rate limit on anonymize. The write is one SQL function. It locks the customer row `FOR UPDATE`. The browser does not walk tables. The print path that prefers `buyer_name` ships in the same release.
 
 1. **Export** returns only this `tenant_org_id`: identity, addresses, communication choices, consent history, order totals, payments, invoices. No password, card, or session token. No other Tenant. No global-person row that another Tenant still links.
 2. **Anonymize** uses the confirm text for `u4-spec-2026-11-17`. Second confirm required. The dialog states that orders, payments, and issued tax documents stay.
@@ -282,7 +301,7 @@ One transaction, this Tenant only:
 - i18n chrome in both apps and both languages. Legal bodies stay in the document table. Run `npm run check:i18n` where message files change.
 - Cmx components, `cmxMessage`, visible labels, keyboard access, and RTL on the Arabic preview and the intake block.
 - Proof of cost: order create reads one current-acceptance row by primary key. A send reads one consent row by unique key. Public current responses are cacheable for 60 seconds. Immutable version responses are cacheable for a year. Anonymize is one function call.
-- Tests: sign-up with the box off creates no Tenant; sign-up with the box on stores the event, the lines, the pointer, and `FOR_TENANT`; a cashier cannot clear a re-accept block; `b2b_customer` cannot record end-customer consent; an existing current consent row is not cleared by a later order; WhatsApp left off does not send; marketing off does not send; anonymize cases in file 16 section 11; a second Tenant is unchanged; a shared `sys_customers_mst` row is not edited; an unshared global row is cleared and not deleted; an issued invoice keeps its snapshot and its totals; a body update is rejected; set-current fails with one locale; public GET does not return a draft.
+- Tests: a register request after the pack is current that is not the Create tenant action creates no Tenant; sign-up before any current version still creates a Tenant and writes no acceptance; pressing Create tenant after the pack is current stores one line per `blocks_signup` document, the `SIGNUP` line, the pointer, and `CREATE_TENANT`; the `admin` role cannot clear a re-accept block; `b2b_customer` cannot record end-customer consent; an existing current consent row is not cleared by a later order; `NOT_APPLICABLE` does not send; WhatsApp left off does not send; marketing off does not send; anonymize cases in file 16 section 11; a second concurrent anonymize returns success without a second write; a second Tenant is unchanged; a shared `sys_customers_mst` row is not edited; an unshared global row is cleared and not deleted; an issued invoice keeps its snapshot and its totals; a body update is rejected; set-current fails with one locale; public GET does not return a draft; order create does not read the public page cache.
 - `npm run build` in `web-admin`, `platform-web`, `platform-api`, and `marketing-web` for the apps this step touched.
 
 **Step 6 close:** update the Progress Log, then the register rows 3.2, 3.6, and 3.7 only with the evidence above.
@@ -291,7 +310,7 @@ One transaction, this Tenant only:
 
 | Step | Status | Evidence |
 |---|---|---|
-| Review 17 Nov 2026 | Done | Gaps closed. Chosen design recorded. |
+| Review 19 Nov 2026 | Done | Release rules added. Unpublished pack does not block. Order gate bypasses the public cache. `is_anonymized` is a new column. |
 | 1 Database | Not started | |
 | 2 HQ screens and API | Not started | |
 | 3 Public pages and sign-up | Not started | |
@@ -312,7 +331,7 @@ One transaction, this Tenant only:
 - Progress Log rows 1 through 6 are filled with evidence.
 - `/developer-portal/legal-docs/` can insert an immutable version and cannot edit a published body.
 - The public pages render the current locale from the cached read API.
-- Sign-up stores one acceptance event or creates no Tenant.
+- Sign-up stores one acceptance event for every blocking document, or creates no Tenant.
 - Intake writes the current consent row without wiping an earlier grant.
 - Anonymize strips contact fields, keeps money figures, and refuses the cases in Step 5.
 
