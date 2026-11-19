@@ -272,7 +272,7 @@ export function PieceList({
               {highlighted ? <span className="sr-only">{tCodes('openedFromScan')}</span> : null}
               {card}
               {fileSource && orderId ? (
-                <PiecePhotosControl orderId={orderId} pieceId={piece.id} pieceLabel={pieceLabel(piece)} source={fileSource} />
+                <PiecePhotosControl orderId={orderId} refId={piece.id} label={pieceLabel(piece)} source={fileSource} />
               ) : null}
             </div>
           );

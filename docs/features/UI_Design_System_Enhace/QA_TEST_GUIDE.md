@@ -151,6 +151,7 @@ Every feature and page changed its classes in one pass, so check broadly. For ea
 | D15 | Language switcher (top bar), in EN and in AR | Open it | "English" row: label left, tick right. "العربية" row: label right, tick left. Same in both page languages. |
 | D16 | Amber buttons and icons: Packing → an order (warning button), order details error page, Customers stats cards, stain toggles on New Order; light and dark | Look | Text and icons on amber are dark and readable, not white. |
 | D17 | AR: voucher detail and new voucher, AR invoice detail, AR aging and balances tables, any data grid toolbar | Look at icon + text rows and toolbars | They read right to left like the rest of the page; an icon that sits before its text in English sits before it (on the right) in Arabic. |
+| D18 | Desktop (wide window), EN and AR; then a phone-width window | Look at the sidebar; on phone width open and close it with the menu button. Then New Order → pay on a wide screen | Desktop: the sidebar is visible on the left (EN) / right (AR), collapse works. Phone: hidden until the menu button, slides in from the start side. Wide payment view: the receipt rail is visible beside the form. |
 
 ## PR-07 task 6 — Dark mode for users (in progress 2026-11-19)
 

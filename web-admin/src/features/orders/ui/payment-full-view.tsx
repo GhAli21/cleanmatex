@@ -5650,10 +5650,10 @@ export function PaymentFullView({
                       ) : null}
                       <aside
                         data-testid="payment-receipt-rail"
-                        className={`fixed inset-y-0 end-0 z-50 w-[min(92vw,380px)] overflow-y-auto bg-muted p-3 shadow-2xl transition-transform duration-300 motion-reduce:transition-none xl:static xl:z-auto xl:w-auto xl:min-w-0 xl:translate-x-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none ${
+                        className={`fixed inset-y-0 end-0 z-50 w-[min(92vw,380px)] overflow-y-auto bg-muted p-3 shadow-2xl transition-transform duration-300 motion-reduce:transition-none xl:static xl:z-auto xl:w-auto xl:min-w-0 xl:overflow-visible xl:bg-transparent xl:p-0 xl:shadow-none ${
                           railOpen
                             ? 'translate-x-0'
-                            : 'ltr:translate-x-full rtl:-translate-x-full'
+                            : 'max-xl:ltr:translate-x-full max-xl:rtl:-translate-x-full'
                         } ${
                           PAYMENT_MODAL_V04_PIN_FINAL_ORDER_TOTAL
                             ? 'xl:sticky xl:top-0 xl:z-10 xl:flex xl:max-h-[calc(94vh-11rem)] xl:flex-col xl:self-start'

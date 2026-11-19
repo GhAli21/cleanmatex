@@ -3,36 +3,37 @@
  * Delivery actions and payment collection
  */
 
-'use client';
+"use client";
 
-import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
-import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
-import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
-import { FILE_SOURCES } from '@/lib/constants/file-util';
-import { useTranslations } from 'next-intl';
-import Link from 'next/link';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useAuth } from '@/lib/auth/auth-context';
-import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
-import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
-import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
-import { CollectPaymentButton } from '@features/orders/ui/collect-payment/collect-payment-button';
+import { OrderFinancialView } from "@features/orders/order-fin-view/ui/order-financial-view";
+import { CmxCodeChip } from "@ui/data-display/cmx-code-chip";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { OrderStageFiles } from "@features/orders/ui/order-stage-files";
+import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
+import { PiecePhotosControl } from "@features/orders/ui/pieces/piece-photos";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useTenantCurrency } from "@/lib/context/tenant-currency-context";
+import { useTenantSettingsWithDefaults } from "@/lib/hooks/useTenantSettings";
+import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
+import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
+import { SETTLEMENT_TYPE_CODES } from "@/lib/constants/order-financial";
+import { OrderCollectPaymentModal } from "@features/orders/ui/collect-payment/order-collect-payment-modal";
+import { CollectPaymentButton } from "@features/orders/ui/collect-payment/collect-payment-button";
 import {
   mapReadyOrderFromStateResponse,
   type ReadyOrder,
   type ReadyOrderStateResponse,
-} from '@features/orders/model/ready-order-types';
-import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
-import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status';
-import { ReadyFulfilmentPanel } from '@features/pickup/ui/ready-fulfilment-panel';
-import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
-import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
-import { OrderLineNetNote } from '@features/orders/ui/order-line-net-note';
+} from "@features/orders/model/ready-order-types";
+import { WorkflowActionBar } from "@features/workflow/ui/WorkflowActionBar";
+import { PickupReleaseStatus } from "@features/pickup/ui/pickup-release-status";
+import { ReadyFulfilmentPanel } from "@features/pickup/ui/ready-fulfilment-panel";
+import { WORKFLOW_ACTIONS } from "@/lib/constants/workflow-actions";
+import { resolveSafeDashboardReturnUrl } from "@/lib/utils/safe-dashboard-return-url";
+import { OrderLineNetNote } from "@features/orders/ui/order-line-net-note";
 
 /**
  *
@@ -41,34 +42,49 @@ export default function ReadyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const t = useTranslations('workflow');
-  const tOrders = useTranslations('orders');
-  const tInvoices = useTranslations('invoices');
-  const tPieces = useTranslations('newOrder.pieces');
+  const t = useTranslations("workflow");
+  const tOrders = useTranslations("orders");
+  const tInvoices = useTranslations("invoices");
+  const tPieces = useTranslations("newOrder.pieces");
   const { currentTenant, user } = useAuth();
-  const { formatMoneyWithCode, currencyCode: tenantCurrencyCode } = useTenantCurrency();
-  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { formatMoneyWithCode, currencyCode: tenantCurrencyCode } =
+    useTenantCurrency();
+  const { trackByPiece } = useTenantSettingsWithDefaults(
+    currentTenant?.tenant_id || "",
+  );
 
   const [order, setOrder] = useState<ReadyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [printConfig, setPrintConfig] = useState<{
-    type: 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt';
-    layout: 'thermal' | 'a4';
-    sort?: 'asc' | 'desc';
+    type:
+      | "receipt"
+      | "order-details"
+      | "invoices-payments-rprt"
+      | "payments-rprt"
+      | "history-rprt";
+    layout: "thermal" | "a4";
+    sort?: "asc" | "desc";
   } | null>(null);
   const [collectOpen, setCollectOpen] = useState(false);
   /** Which control opened the collect dialog — the pickup card's CTA collects in
    *  order to release the handover, the payment card's is a plain collection. */
-  const [collectIntent, setCollectIntent] = useState<'payment' | 'handover'>('payment');
+  const [collectIntent, setCollectIntent] = useState<"payment" | "handover">(
+    "payment",
+  );
   const [actionBarKey, setActionBarKey] = useState(0);
 
   const orderId = (params as any)?.id as string | undefined;
-  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/ready');
+  const returnUrl = resolveSafeDashboardReturnUrl(
+    searchParams.get("returnUrl"),
+    "/dashboard/ready",
+  );
 
   const toggleItemExpansion = (itemId: string) => {
-    setExpandedItemIds(prev => {
+    setExpandedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -91,10 +107,10 @@ export default function ReadyDetailPage() {
       if (mapped) {
         setOrder(mapped);
       } else {
-        setError(json.error || t('ready.messages.loadFailed'));
+        setError(json.error || t("ready.messages.loadFailed"));
       }
     } catch (err: any) {
-      setError(err.message || t('ready.messages.loadFailed'));
+      setError(err.message || t("ready.messages.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -105,14 +121,19 @@ export default function ReadyDetailPage() {
   }, [loadOrder]);
 
   const openPrintPreview = (
-    type: 'receipt' | 'order-details' | 'invoices-payments-rprt' | 'payments-rprt' | 'history-rprt',
-    layout: 'thermal' | 'a4',
-    sort?: 'asc' | 'desc'
+    type:
+      | "receipt"
+      | "order-details"
+      | "invoices-payments-rprt"
+      | "payments-rprt"
+      | "history-rprt",
+    layout: "thermal" | "a4",
+    sort?: "asc" | "desc",
   ) => {
     setPrintConfig({ type, layout, sort });
   };
 
-  const isReadyForPickup = order?.currentStatus === 'ready_for_pickup';
+  const isReadyForPickup = order?.currentStatus === "ready_for_pickup";
 
   if (loading) {
     return (
@@ -125,7 +146,7 @@ export default function ReadyDetailPage() {
   if (!order) {
     return (
       <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
-        {t('ready.messages.notFound')}
+        {t("ready.messages.notFound")}
       </div>
     );
   }
@@ -133,11 +154,14 @@ export default function ReadyDetailPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
-        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
-          &laquo; {t('ready.actions.backToReady')}
+        <Link
+          href={returnUrl}
+          className="text-primary-text hover:underline mb-2 inline-block"
+        >
+          &laquo; {t("ready.actions.backToReady")}
         </Link>
         <h1 className="text-3xl font-bold">
-          {t('screens.ready')}{' '}
+          {t("screens.ready")}{" "}
           <CmxCodeChip code={order.orderNo} kind="order" size="md" />
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -154,7 +178,7 @@ export default function ReadyDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">{t('ready.itemsTitle')}</h3>
+            <h3 className="font-semibold mb-4">{t("ready.itemsTitle")}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
                 <div key={item.id} className="p-3 bg-muted rounded-lg">
@@ -162,34 +186,45 @@ export default function ReadyDetailPage() {
                     <div>
                       <p className="font-medium">{item.productName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {t('ready.quantity')}: {item.quantity}
+                        {t("ready.quantity")}: {item.quantity}
                       </p>
                     </div>
                     <div className="text-end">
                       <span className="font-bold text-primary-text">
                         {formatMoneyWithCode(item.totalPrice)}
                       </span>
-                      <OrderLineNetNote gross={item.totalPrice} net={item.netAmount} format={formatMoneyWithCode} />
+                      <OrderLineNetNote
+                        gross={item.totalPrice}
+                        net={item.netAmount}
+                        format={formatMoneyWithCode}
+                      />
                     </div>
                   </div>
 
                   {/* Pieces Section - Expandable */}
+                  {!trackByPiece && orderId && (
+                    <PiecePhotosControl
+                      orderId={orderId}
+                      refType={FILE_REF_TYPES.ORDER_ITEM}
+                      refId={item.id}
+                      label={item.productName}
+                      source={FILE_SOURCES.ORDER_READY}
+                    />
+                  )}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
                     <div className="mt-3 pt-3 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
                         className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
-                        <span>
-                          {tPieces('viewPieces') || 'View Pieces'}
-                        </span>
+                        <span>{tPieces("viewPieces") || "View Pieces"}</span>
                         {expandedItemIds.has(item.id) ? (
                           <ChevronUp className="w-4 h-4" />
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
                       </button>
-                      
+
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
                           <PiecesErrorBoundary>
@@ -215,7 +250,9 @@ export default function ReadyDetailPage() {
 
           <div className="bg-success-bg border border-success-border rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-foreground">{t('ready.totalAmount')}:</span>
+              <span className="font-medium text-foreground">
+                {t("ready.totalAmount")}:
+              </span>
               <span className="font-bold text-2xl text-success-text">
                 {formatMoneyWithCode(order.total)}
               </span>
@@ -224,19 +261,26 @@ export default function ReadyDetailPage() {
 
           <div className="bg-info-bg border border-info-border rounded-lg p-4">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-medium text-foreground">{t('ready.rack')}:</span>
+              <span className="font-medium text-foreground">
+                {t("ready.rack")}:
+              </span>
               <span className="font-bold text-xl text-primary-text">
-                {order.rackLocation?.trim() || '—'}
+                {order.rackLocation?.trim() || "—"}
               </span>
             </div>
           </div>
-          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_READY} />}
+          {orderId && (
+            <OrderStageFiles
+              orderId={orderId}
+              source={FILE_SOURCES.ORDER_READY}
+            />
+          )}
         </div>
 
         <div className="space-y-4">
           <section className="rounded-lg border border-border bg-card p-4 space-y-2">
             <h2 className="text-sm font-semibold text-foreground">
-              {t('ready.pickupRelease.title')}
+              {t("ready.pickupRelease.title")}
             </h2>
             <PickupReleaseStatus
               release={order.pickupRelease}
@@ -245,13 +289,13 @@ export default function ReadyDetailPage() {
             />
             <p className="text-xs text-muted-foreground">
               {isReadyForPickup
-                ? t('ready.pickupRelease.availableHelp')
-                : t('ready.pickupRelease.notReleasedHelp')}
+                ? t("ready.pickupRelease.availableHelp")
+                : t("ready.pickupRelease.notReleasedHelp")}
             </p>
           </section>
           {orderId ? (
             <>
-              {(order.currentStatus === 'ready' || isReadyForPickup) ? (
+              {order.currentStatus === "ready" || isReadyForPickup ? (
                 <ReadyFulfilmentPanel
                   key={`ready-fulfilment-${actionBarKey}`}
                   orderId={orderId}
@@ -260,10 +304,12 @@ export default function ReadyDetailPage() {
                   customerName={order.customer.name}
                   paymentTypeCode={order.paymentTypeCode}
                   outstandingAmount={order.paymentSummary?.remaining ?? 0}
-                  formattedOutstandingAmount={formatMoneyWithCode(order.paymentSummary?.remaining ?? 0)}
+                  formattedOutstandingAmount={formatMoneyWithCode(
+                    order.paymentSummary?.remaining ?? 0,
+                  )}
                   rackLocation={order.rackLocation}
                   onCollectPayment={() => {
-                    setCollectIntent('handover');
+                    setCollectIntent("handover");
                     setCollectOpen(true);
                   }}
                   onCompleted={() => {
@@ -277,13 +323,15 @@ export default function ReadyDetailPage() {
                 />
               ) : null}
               <WorkflowActionBar
-                key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ''}`}
+                key={`ready-actions-${actionBarKey}-${order.rackLocation ?? ""}`}
                 orderId={orderId}
                 screen="ready_release"
                 hideWhenEmpty
                 hiddenActionCodes={[
                   WORKFLOW_ACTIONS.RELEASE_FOR_PICKUP,
-                  ...(isReadyForPickup ? [WORKFLOW_ACTIONS.RELEASE_FOR_DELIVERY] : []),
+                  ...(isReadyForPickup
+                    ? [WORKFLOW_ACTIONS.RELEASE_FOR_DELIVERY]
+                    : []),
                 ]}
                 onActionSuccess={() => {
                   void loadOrder();
@@ -293,51 +341,70 @@ export default function ReadyDetailPage() {
           ) : null}
           {/* Payment section */}
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-3">{t('ready.paymentSection.title')}</h3>
+            <h3 className="font-semibold mb-3">
+              {t("ready.paymentSection.title")}
+            </h3>
             {order.paymentSummary && (
               <div className="space-y-2 mb-4">
                 {/* P6-04: total, paid, credits and the balance word from the read model. */}
-                {orderId && <OrderFinancialView source={{ kind: 'order', orderId }} config={{ preset: 'totals', layout: 'plain', density: 'compact', columns: 1 }} />}
+                {orderId && (
+                  <OrderFinancialView
+                    source={{ kind: "order", orderId }}
+                    config={{
+                      preset: "totals",
+                      layout: "plain",
+                      density: "compact",
+                      columns: 1,
+                    }}
+                  />
+                )}
                 {order.paymentSummary.remaining > 0 ? (
                   <>
-                    {currentTenant?.tenant_id && orderId && (() => {
-                      const isPoc =
-                        order.paymentTypeCode === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
-                      if (isPoc) {
+                    {currentTenant?.tenant_id &&
+                      orderId &&
+                      (() => {
+                        const isPoc =
+                          order.paymentTypeCode ===
+                          SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
+                        if (isPoc) {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-border">
+                              <CollectPaymentButton
+                                onCollect={() => {
+                                  setCollectIntent("payment");
+                                  setCollectOpen(true);
+                                }}
+                                className="w-full bg-success text-on-solid hover:bg-success/90"
+                              />
+                            </div>
+                          );
+                        }
+                        // Canonical path for invoice/on-account money: the
+                        // customer account receipt flow (preview → post →
+                        // allocation across invoices). The legacy per-invoice
+                        // record-payment form wrote the deprecated
+                        // legacy payments ledger (ADR-002) and was removed.
                         return (
-                          <div className="mt-3 pt-3 border-t border-border">
-                            <CollectPaymentButton
-                              onCollect={() => {
-                                setCollectIntent('payment');
-                                setCollectOpen(true);
-                              }}
-                              className="w-full bg-success text-on-solid hover:bg-success/90"
-                            />
+                          <div className="mt-3 pt-3 border-t border-border space-y-2">
+                            <Link
+                              href="/dashboard/customers/account-receipt"
+                              className="block w-full rounded-lg bg-success px-4 py-2 text-center text-sm font-semibold text-on-solid hover:bg-success/90"
+                            >
+                              {t("ready.paymentSection.receiveAccountPayment")}
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {t(
+                                "ready.paymentSection.receiveAccountPaymentHint",
+                              )}
+                            </p>
                           </div>
                         );
-                      }
-                      // Canonical path for invoice/on-account money: the
-                      // customer account receipt flow (preview → post →
-                      // allocation across invoices). The legacy per-invoice
-                      // record-payment form wrote the deprecated
-                      // legacy payments ledger (ADR-002) and was removed.
-                      return (
-                        <div className="mt-3 pt-3 border-t border-border space-y-2">
-                          <Link
-                            href="/dashboard/customers/account-receipt"
-                            className="block w-full rounded-lg bg-success px-4 py-2 text-center text-sm font-semibold text-on-solid hover:bg-success/90"
-                          >
-                            {t('ready.paymentSection.receiveAccountPayment')}
-                          </Link>
-                          <p className="text-xs text-muted-foreground">
-                            {t('ready.paymentSection.receiveAccountPaymentHint')}
-                          </p>
-                        </div>
-                      );
-                    })()}
+                      })()}
                   </>
                 ) : (
-                  <p className="text-sm font-medium text-success-text">{t('ready.paymentSection.paidInFull')}</p>
+                  <p className="text-sm font-medium text-success-text">
+                    {t("ready.paymentSection.paidInFull")}
+                  </p>
                 )}
               </div>
             )}
@@ -345,61 +412,67 @@ export default function ReadyDetailPage() {
             <div className="mt-2 space-y-2">
               <button
                 type="button"
-                onClick={() => openPrintPreview('receipt', 'thermal')}
+                onClick={() => openPrintPreview("receipt", "thermal")}
                 className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
               >
-                {t('ready.actions.printReceiptThermal')}
+                {t("ready.actions.printReceiptThermal")}
               </button>
               <button
                 type="button"
-                onClick={() => openPrintPreview('receipt', 'a4')}
+                onClick={() => openPrintPreview("receipt", "a4")}
                 className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
               >
-                {t('ready.actions.printReceiptA4')}
+                {t("ready.actions.printReceiptA4")}
               </button>
               <button
                 type="button"
-                onClick={() => openPrintPreview('order-details', 'thermal')}
+                onClick={() => openPrintPreview("order-details", "thermal")}
                 className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90"
               >
-                {t('ready.actions.printOrderDetailsThermal')}
+                {t("ready.actions.printOrderDetailsThermal")}
               </button>
               <button
                 type="button"
-                onClick={() => openPrintPreview('order-details', 'a4')}
+                onClick={() => openPrintPreview("order-details", "a4")}
                 className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90"
               >
-                {t('ready.actions.printOrderDetailsA4')}
+                {t("ready.actions.printOrderDetailsA4")}
               </button>
               <div className="pt-2 mt-2 border-t border-border">
-                <p className="text-xs font-medium text-muted-foreground mb-2">{t('ready.actions.reportsA4Rprt') ?? 'A4 Reports'}</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  {t("ready.actions.reportsA4Rprt") ?? "A4 Reports"}
+                </p>
                 <button
                   type="button"
-                  onClick={() => openPrintPreview('invoices-payments-rprt', 'a4')}
+                  onClick={() =>
+                    openPrintPreview("invoices-payments-rprt", "a4")
+                  }
                   className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
                 >
-                  {t('ready.actions.printInvoicesPaymentsA4Rprt')}
+                  {t("ready.actions.printInvoicesPaymentsA4Rprt")}
                 </button>
                 <button
                   type="button"
-                  onClick={() => openPrintPreview('payments-rprt', 'a4', 'desc')}
+                  onClick={() =>
+                    openPrintPreview("payments-rprt", "a4", "desc")
+                  }
                   className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
                 >
-                  {t('ready.actions.printPaymentsA4DescRprt')}
+                  {t("ready.actions.printPaymentsA4DescRprt")}
                 </button>
                 <button
                   type="button"
-                  onClick={() => openPrintPreview('payments-rprt', 'a4', 'asc')}
+                  onClick={() => openPrintPreview("payments-rprt", "a4", "asc")}
                   className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
                 >
-                  {t('ready.actions.printPaymentsA4AscRprt')}
+                  {t("ready.actions.printPaymentsA4AscRprt")}
                 </button>
                 <button
                   type="button"
-                  onClick={() => openPrintPreview('history-rprt', 'a4')}
+                  onClick={() => openPrintPreview("history-rprt", "a4")}
                   className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
                 >
-                  {t('ready.actions.printOrderHistoryA4Rprt')}
+                  {t("ready.actions.printOrderHistoryA4Rprt")}
                 </button>
               </div>
             </div>
@@ -412,27 +485,30 @@ export default function ReadyDetailPage() {
             <div className="flex items-center justify-between border-b px-4 py-2">
               <div>
                 <h2 className="text-sm font-semibold">
-                  {printConfig.type === 'receipt'
-                    ? t('ready.actions.printReceipt')
-                    : printConfig.type === 'order-details'
-                      ? t('ready.itemsTitle')
-                      : printConfig.type === 'invoices-payments-rprt'
-                        ? t('ready.actions.printInvoicesPaymentsA4Rprt')
-                        : printConfig.type === 'payments-rprt'
-                          ? (printConfig.sort === 'asc' ? t('ready.actions.printPaymentsA4AscRprt') : t('ready.actions.printPaymentsA4DescRprt'))
-                          : printConfig.type === 'history-rprt'
-                            ? t('ready.actions.printOrderHistoryA4Rprt')
-                            : t('ready.itemsTitle')}
+                  {printConfig.type === "receipt"
+                    ? t("ready.actions.printReceipt")
+                    : printConfig.type === "order-details"
+                      ? t("ready.itemsTitle")
+                      : printConfig.type === "invoices-payments-rprt"
+                        ? t("ready.actions.printInvoicesPaymentsA4Rprt")
+                        : printConfig.type === "payments-rprt"
+                          ? printConfig.sort === "asc"
+                            ? t("ready.actions.printPaymentsA4AscRprt")
+                            : t("ready.actions.printPaymentsA4DescRprt")
+                          : printConfig.type === "history-rprt"
+                            ? t("ready.actions.printOrderHistoryA4Rprt")
+                            : t("ready.itemsTitle")}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  {printConfig.layout === 'thermal' ? '80mm' : 'A4'} Ã¢â‚¬Â¢ {order.orderNo}
+                  {printConfig.layout === "thermal" ? "80mm" : "A4"} Ã¢â‚¬Â¢{" "}
+                  {order.orderNo}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setPrintConfig(null)}
                 className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={t('ready.actions.backToReady')}
+                aria-label={t("ready.actions.backToReady")}
               >
                 <span className="text-lg leading-none">&times;</span>
               </button>
@@ -441,7 +517,8 @@ export default function ReadyDetailPage() {
               <iframe
                 title="print-preview"
                 src={
-                  printConfig.sort != null && printConfig.type === 'payments-rprt'
+                  printConfig.sort != null &&
+                  printConfig.type === "payments-rprt"
                     ? `/dashboard/ready/${orderId}/print/${printConfig.type}?layout=${printConfig.layout}&sort=${printConfig.sort}`
                     : `/dashboard/ready/${orderId}/print/${printConfig.type}?layout=${printConfig.layout}`
                 }
@@ -469,8 +546,8 @@ export default function ReadyDetailPage() {
           }}
           // Ready is the only surface with print infrastructure, so it is the
           // only one that passes this. Closes B04's deferred receipt gap.
-          onPrintReceipt={() => openPrintPreview('receipt', 'thermal')}
-          handoverIntent={collectIntent === 'handover'}
+          onPrintReceipt={() => openPrintPreview("receipt", "thermal")}
+          handoverIntent={collectIntent === "handover"}
         />
       ) : null}
     </div>

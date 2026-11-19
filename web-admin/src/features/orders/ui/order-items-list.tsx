@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import { FILE_SOURCES } from '@/lib/constants/file-util';
-import { useState } from 'react';
-import React from 'react';
-import { AlertCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useBilingual } from '@/lib/hooks/useBilingual';
-import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
-import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
-import { lineCodeOfPieceRef } from '@features/orders/lib/piece-highlight';
-import { OrderLineNetNote } from './order-line-net-note';
+import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
+import { PiecePhotosControl } from "./pieces/piece-photos";
+import { useState } from "react";
+import React from "react";
+import {
+  AlertCircle,
+  Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useBilingual } from "@/lib/hooks/useBilingual";
+import { useTenantCurrency } from "@/lib/context/tenant-currency-context";
+import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
+import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
+import { CmxCodeChip } from "@ui/data-display/cmx-code-chip";
+import { lineCodeOfPieceRef } from "@features/orders/lib/piece-highlight";
+import { OrderLineNetNote } from "./order-line-net-note";
 
 interface OrderItem {
   id: string;
@@ -56,8 +62,8 @@ interface OrderItemsListProps {
  * @param root0.readOnly
  * @param root0.highlightPiece
  */
-export function OrderItemsList({ 
-  items, 
+export function OrderItemsList({
+  items,
   orderId,
   tenantId,
   branchId = null,
@@ -65,21 +71,27 @@ export function OrderItemsList({
   readOnly = true,
   highlightPiece = null,
 }: OrderItemsListProps) {
-  const t = useTranslations('orders.itemsList');
-  const tPieces = useTranslations('newOrder.pieces');
+  const t = useTranslations("orders.itemsList");
+  const tPieces = useTranslations("newOrder.pieces");
   const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
   // A piece code names its line; a piece id does not, so then every line opens to find it.
   const highlightLine = lineCodeOfPieceRef(highlightPiece);
   const isHighlightLine = (item: OrderItem) =>
     Boolean(highlightPiece) &&
-    (!highlightLine || (item.order_item_srno ?? '').toUpperCase() === highlightLine);
+    (!highlightLine ||
+      (item.order_item_srno ?? "").toUpperCase() === highlightLine);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
-    () => new Set(highlightPiece ? items.filter(isHighlightLine).map((item) => item.id) : [])
+    () =>
+      new Set(
+        highlightPiece
+          ? items.filter(isHighlightLine).map((item) => item.id)
+          : [],
+      ),
   );
 
   const toggleItemExpansion = (itemId: string) => {
-    setExpandedItemIds(prev => {
+    setExpandedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -94,8 +106,8 @@ export function OrderItemsList({
     return (
       <div className="text-center py-8 text-muted-foreground text-start">
         <ImageIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground" />
-        <p>{t('noItems')}</p>
-        <p className="text-sm mt-1">{t('itemsWillBeAdded')}</p>
+        <p>{t("noItems")}</p>
+        <p className="text-sm mt-1">{t("itemsWillBeAdded")}</p>
       </div>
     );
   }
@@ -111,12 +123,14 @@ export function OrderItemsList({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-foreground text-start">
-                  {getBilingual(item.product_name, item.product_name2) || item.service_category_code || t('item')}
+                  {getBilingual(item.product_name, item.product_name2) ||
+                    item.service_category_code ||
+                    t("item")}
                 </span>
                 <CmxCodeChip code={item.order_item_srno} kind="item" />
                 {item.status && (
                   <span className="px-2 py-0.5 text-xs bg-muted text-foreground rounded text-start">
-                    {item.status.replace('_', ' ')}
+                    {item.status.replace("_", " ")}
                   </span>
                 )}
               </div>
@@ -126,9 +140,16 @@ export function OrderItemsList({
                 {formatMoneyWithCode(parseFloat(item.total_price.toString()))}
               </div>
               <div className="text-xs text-muted-foreground text-end">
-                {item.quantity || 1} × {formatMoneyWithCode(parseFloat(item.price_per_unit.toString()))}
+                {item.quantity || 1} ×{" "}
+                {formatMoneyWithCode(
+                  parseFloat(item.price_per_unit.toString()),
+                )}
               </div>
-              <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
+              <OrderLineNetNote
+                gross={item.total_price}
+                net={item.net_amount}
+                format={formatMoneyWithCode}
+              />
             </div>
           </div>
 
@@ -137,12 +158,14 @@ export function OrderItemsList({
             <div className="flex gap-4 text-xs text-muted-foreground mb-2">
               {item.color && (
                 <span className="flex items-center gap-1">
-                  <span className="font-medium">{t('color')}:</span> {item.color}
+                  <span className="font-medium">{t("color")}:</span>{" "}
+                  {item.color}
                 </span>
               )}
               {item.brand && (
                 <span className="flex items-center gap-1">
-                  <span className="font-medium">{t('brand')}:</span> {item.brand}
+                  <span className="font-medium">{t("brand")}:</span>{" "}
+                  {item.brand}
                 </span>
               )}
             </div>
@@ -154,13 +177,13 @@ export function OrderItemsList({
               {item.has_stain && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-warning-bg text-warning-text border border-warning-border rounded">
                   <AlertCircle className="w-3 h-3" />
-                  {t('stain')}
+                  {t("stain")}
                 </span>
               )}
               {item.has_damage && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-danger-bg text-danger-text border border-danger-border rounded">
                   <AlertCircle className="w-3 h-3" />
-                  {t('damage')}
+                  {t("damage")}
                 </span>
               )}
             </div>
@@ -171,19 +194,25 @@ export function OrderItemsList({
             <div className="space-y-1 text-xs text-start">
               {item.stain_notes && (
                 <div className="bg-warning-bg border border-warning-border rounded p-2 text-start">
-                  <span className="font-medium text-warning-text">{t('stainNotes')}:</span>{' '}
+                  <span className="font-medium text-warning-text">
+                    {t("stainNotes")}:
+                  </span>{" "}
                   <span className="text-warning-text">{item.stain_notes}</span>
                 </div>
               )}
               {item.damage_notes && (
                 <div className="bg-danger-bg border border-danger-border rounded p-2 text-start">
-                  <span className="font-medium text-danger-text">{t('damageNotes')}:</span>{' '}
+                  <span className="font-medium text-danger-text">
+                    {t("damageNotes")}:
+                  </span>{" "}
                   <span className="text-danger-text">{item.damage_notes}</span>
                 </div>
               )}
               {item.notes && (
                 <div className="bg-muted border border-border rounded p-2 text-start">
-                  <span className="font-medium text-foreground">{t('notes')}:</span>{' '}
+                  <span className="font-medium text-foreground">
+                    {t("notes")}:
+                  </span>{" "}
                   <span className="text-muted-foreground">{item.notes}</span>
                 </div>
               )}
@@ -191,42 +220,64 @@ export function OrderItemsList({
           )}
 
           {/* Pieces Section - Expandable */}
+          {!trackByPiece && !isHighlightLine(item) && orderId && (
+            <PiecePhotosControl
+              orderId={orderId}
+              refType={FILE_REF_TYPES.ORDER_ITEM}
+              refId={item.id}
+              label={
+                getBilingual(item.product_name, item.product_name2) ||
+                item.service_category_code ||
+                t("item")
+              }
+              source={FILE_SOURCES.ORDER_DETAIL}
+            />
+          )}
           {(trackByPiece || isHighlightLine(item)) && orderId && tenantId && (
             <div className="mt-3 pt-3 border-t border-border">
               <button
                 onClick={() => toggleItemExpansion(item.id)}
                 className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
               >
-                <span>
-                  {tPieces('viewPieces')}
-                </span>
+                <span>{tPieces("viewPieces")}</span>
                 {expandedItemIds.has(item.id) ? (
                   <ChevronUp className="w-4 h-4 rtl:rotate-180" />
                 ) : (
                   <ChevronDown className="w-4 h-4 rtl:rotate-180" />
                 )}
               </button>
-              
-              {expandedItemIds.has(item.id) && orderId && tenantId && item.id && (
-                <div className="mt-3">
-                  <PiecesErrorBoundary>
-                    <React.Suspense fallback={<div className="text-sm text-muted-foreground p-2">Loading pieces...</div>}>
-                      <OrderPiecesManager
-                        orderId={orderId}
-                        itemId={item.id}
-                        fileSource={FILE_SOURCES.ORDER_DETAIL}
-                        tenantId={tenantId}
-                        branchId={branchId}
-                        readOnly={readOnly}
-                        autoLoad={true}
-                        enableBulkOperations={!readOnly}
-                        pieceDensity="compact"
-                        highlightPiece={isHighlightLine(item) ? highlightPiece : null}
-                      />
-                    </React.Suspense>
-                  </PiecesErrorBoundary>
-                </div>
-              )}
+
+              {expandedItemIds.has(item.id) &&
+                orderId &&
+                tenantId &&
+                item.id && (
+                  <div className="mt-3">
+                    <PiecesErrorBoundary>
+                      <React.Suspense
+                        fallback={
+                          <div className="text-sm text-muted-foreground p-2">
+                            Loading pieces...
+                          </div>
+                        }
+                      >
+                        <OrderPiecesManager
+                          orderId={orderId}
+                          itemId={item.id}
+                          fileSource={FILE_SOURCES.ORDER_DETAIL}
+                          tenantId={tenantId}
+                          branchId={branchId}
+                          readOnly={readOnly}
+                          autoLoad={true}
+                          enableBulkOperations={!readOnly}
+                          pieceDensity="compact"
+                          highlightPiece={
+                            isHighlightLine(item) ? highlightPiece : null
+                          }
+                        />
+                      </React.Suspense>
+                    </PiecesErrorBoundary>
+                  </div>
+                )}
             </div>
           )}
         </div>
@@ -235,8 +286,10 @@ export function OrderItemsList({
       {/* Summary */}
       <div className="pt-4 border-t border-border">
         <div className="flex justify-between text-sm font-medium text-foreground">
-          <span className="text-start">{t('totalItems')}:</span>
-          <span className="text-end">{items.reduce((sum, item) => sum + (item.quantity || 1), 0)}</span>
+          <span className="text-start">{t("totalItems")}:</span>
+          <span className="text-end">
+            {items.reduce((sum, item) => sum + (item.quantity || 1), 0)}
+          </span>
         </div>
       </div>
     </div>

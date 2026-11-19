@@ -1,18 +1,19 @@
 "use client";
 
-import { FILE_SOURCES } from '@/lib/constants/file-util';
-import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import { useBilingual } from '@/lib/utils/bilingual';
-import { formatCodeLabel } from '@/lib/utils/format-code-label';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
-import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
-import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import type { OrderItem } from '@/types/order';
-import { OrderLineNetNote } from '@features/orders/ui/order-line-net-note';
+import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
+import { PiecePhotosControl } from "@features/orders/ui/pieces/piece-photos";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useTenantCurrency } from "@/lib/context/tenant-currency-context";
+import { useTenantSettingsWithDefaults } from "@/lib/hooks/useTenantSettings";
+import { useBilingual } from "@/lib/utils/bilingual";
+import { formatCodeLabel } from "@/lib/utils/format-code-label";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { CmxButton } from "@ui/primitives";
+import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
+import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
+import type { OrderItem } from "@/types/order";
+import { OrderLineNetNote } from "@features/orders/ui/order-line-net-note";
 
 interface ItemListProps {
   orderId: string;
@@ -31,13 +32,13 @@ interface ItemListProps {
 function itemDisplayName(
   item: OrderItem,
   getBilingual: (name?: string | null, name2?: string | null) => string,
-  fallback: string
+  fallback: string,
 ): string {
   const bilingual =
     getBilingual(item.product_name, item.product_name2) ||
     getBilingual(
       item.org_product_data_mst?.product_name,
-      item.org_product_data_mst?.product_name2
+      item.org_product_data_mst?.product_name2,
     );
   return formatCodeLabel(bilingual || item.service_category_code, fallback);
 }
@@ -55,17 +56,19 @@ export function ItemList({
   onPiecesOrPrefsChange,
   disabled,
 }: ItemListProps) {
-  const tPieces = useTranslations('newOrder.pieces');
-  const tOrdPieces = useTranslations('orders.pieces');
-  const tCommon = useTranslations('common');
-  const tWorkflow = useTranslations('workflow');
+  const tPieces = useTranslations("newOrder.pieces");
+  const tOrdPieces = useTranslations("orders.pieces");
+  const tCommon = useTranslations("common");
+  const tWorkflow = useTranslations("workflow");
   const { formatMoneyWithCode } = useTenantCurrency();
   const { trackByPiece } = useTenantSettingsWithDefaults(tenantOrgId);
   const getBilingual = useBilingual();
-  const itemIdsKey = items.map((i) => i.id).join('|');
+  const itemIdsKey = items.map((i) => i.id).join("|");
   const expandSyncKey = `${defaultExpandAllPieces}:${trackByPiece}:${itemIdsKey}`;
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(() =>
-    defaultExpandAllPieces && trackByPiece ? new Set(items.map((i) => i.id)) : new Set()
+    defaultExpandAllPieces && trackByPiece
+      ? new Set(items.map((i) => i.id))
+      : new Set(),
   );
   const [syncedExpandKey, setSyncedExpandKey] = useState(expandSyncKey);
 
@@ -96,26 +99,36 @@ export function ItemList({
           className="text-sm text-warning-text bg-warning-bg border border-warning-border rounded-md px-3 py-2"
           role="status"
         >
-          {tOrdPieces('pieceTrackingDisabled')}
+          {tOrdPieces("pieceTrackingDisabled")}
         </p>
       )}
       {items.map((item) => {
         const name = itemDisplayName(
           item,
           getBilingual,
-          tWorkflow('preparation.detail.fallbackItem')
+          tWorkflow("preparation.detail.fallbackItem"),
         );
         const expanded = expandedItemIds.has(item.id);
 
         return (
-          <div key={item.id} className="border border-border rounded-lg p-3 bg-card">
+          <div
+            key={item.id}
+            className="border border-border rounded-lg p-3 bg-card"
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-foreground break-words">{name}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {item.quantity} × {formatMoneyWithCode(Number(item.price_per_unit))}
+                <div className="text-sm font-medium text-foreground break-words">
+                  {name}
                 </div>
-                <OrderLineNetNote gross={item.total_price} net={item.net_amount} format={formatMoneyWithCode} />
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {item.quantity} ×{" "}
+                  {formatMoneyWithCode(Number(item.price_per_unit))}
+                </div>
+                <OrderLineNetNote
+                  gross={item.total_price}
+                  net={item.net_amount}
+                  format={formatMoneyWithCode}
+                />
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className="text-sm font-semibold text-foreground tabular-nums">
@@ -124,6 +137,15 @@ export function ItemList({
               </div>
             </div>
 
+            {!trackByPiece && orderId && (
+              <PiecePhotosControl
+                orderId={orderId}
+                refType={FILE_REF_TYPES.ORDER_ITEM}
+                refId={item.id}
+                label={name}
+                source={FILE_SOURCES.ORDER_PREPARATION}
+              />
+            )}
             {trackByPiece && (
               <div className="mt-3 pt-3 border-t border-border">
                 <CmxButton
@@ -134,7 +156,7 @@ export function ItemList({
                   onClick={() => toggleItemExpansion(item.id)}
                   aria-expanded={expanded}
                 >
-                  <span>{tPieces('viewPieces') || 'View Pieces'}</span>
+                  <span>{tPieces("viewPieces") || "View Pieces"}</span>
                   {expanded ? (
                     <ChevronUp className="w-4 h-4" aria-hidden />
                   ) : (

@@ -4,28 +4,29 @@
  * PRD-010: Workflow-based QA detail
  */
 
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
-import { FILE_SOURCES } from '@/lib/constants/file-util';
-import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth/auth-context';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import Link from 'next/link';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
-import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useOrderTransition } from '@/lib/hooks/use-order-transition';
-import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
-import { useMessage } from '@ui/feedback';
-import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
-import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
-import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
-import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
-import { OrderIssueReportDialog } from '@features/orders/ui/issues/order-issue-report-dialog';
-import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { OrderStageFiles } from "@features/orders/ui/order-stage-files";
+import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
+import { PiecePhotosControl } from "@features/orders/ui/pieces/piece-photos";
+import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useTenantSettingsWithDefaults } from "@/lib/hooks/useTenantSettings";
+import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
+import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
+import { useOrderTransition } from "@/lib/hooks/use-order-transition";
+import { useWorkflowSystemMode } from "@/lib/config/workflow-config";
+import { useMessage } from "@ui/feedback";
+import { getOrderFromStateResponse } from "@/lib/utils/order-state-response";
+import { WorkflowActionBar } from "@features/workflow/ui/WorkflowActionBar";
+import { resolveSafeDashboardReturnUrl } from "@/lib/utils/safe-dashboard-return-url";
+import { WORKFLOW_ACTIONS } from "@/lib/constants/workflow-actions";
+import { OrderIssueReportDialog } from "@features/orders/ui/issues/order-issue-report-dialog";
+import { ORDER_ISSUE_SCOPE } from "@/lib/constants/order-issues";
 
 interface QAItem {
   id: string;
@@ -52,23 +53,27 @@ export default function QADetailPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const t = useTranslations('workflow');
-  const tPieces = useTranslations('newOrder.pieces');
+  const t = useTranslations("workflow");
+  const tPieces = useTranslations("newOrder.pieces");
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
-  const { trackByPiece, rejectColor } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { trackByPiece, rejectColor } = useTenantSettingsWithDefaults(
+    currentTenant?.tenant_id || "",
+  );
   const [order, setOrder] = useState<QAOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   /** Item whose QA reject dialog (reason + photos) is open. */
   const [rejectItemId, setRejectItemId] = useState<string | null>(null);
-  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleItemExpansion = (itemId: string) => {
-    setExpandedItemIds(prev => {
+    setExpandedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -81,21 +86,21 @@ export default function QADetailPage() {
 
   const loadOrder = async () => {
     if (!currentTenant || !orderId) return;
-    
+
     setLoading(true);
-    setError('');
+    setError("");
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
-      
+
       if (!res.ok || !json.success) {
-        setError(json.error || 'Failed to load order');
+        setError(json.error || "Failed to load order");
         setOrder(null);
         return;
       }
 
       const jsonOrder = getOrderFromStateResponse(json);
-      if (jsonOrder && typeof jsonOrder === 'object') {
+      if (jsonOrder && typeof jsonOrder === "object") {
         // Get customer data - prefer sys_customers_mst, fallback to org_customers_mst
         const orgCustomer = (jsonOrder as any).org_customers_mst;
         const sysCustomer = orgCustomer?.sys_customers_mst;
@@ -104,9 +109,12 @@ export default function QADetailPage() {
         // Transform items to match QAItem interface
         const items: QAItem[] = (json.items || []).map((item: any) => ({
           id: item.id,
-          product_name: item.org_product_data_mst?.product_name || item.product_name || 'Unknown Product',
+          product_name:
+            item.org_product_data_mst?.product_name ||
+            item.product_name ||
+            "Unknown Product",
           quantity: item.quantity || 0,
-          item_status: item.item_status || item.item_last_step || 'pending',
+          item_status: item.item_status || item.item_last_step || "pending",
         }));
 
         // Transform order to match QAOrder interface
@@ -115,19 +123,19 @@ export default function QADetailPage() {
           order_no: (jsonOrder as any).order_no,
           branch_id: (jsonOrder as any).branch_id ?? null,
           customer: {
-            name: customerData?.name || 'Unknown Customer',
-            phone: customerData?.phone || 'N/A',
+            name: customerData?.name || "Unknown Customer",
+            phone: customerData?.phone || "N/A",
           },
           items,
         };
 
         setOrder(qaOrder);
       } else {
-        setError('Order not found');
+        setError("Order not found");
         setOrder(null);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load order');
+      setError(err.message || "Failed to load order");
       setOrder(null);
     } finally {
       setLoading(false);
@@ -135,11 +143,13 @@ export default function QADetailPage() {
   };
 
   const orderId = (params as any)?.id as string | undefined;
-  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/qa');
+  const returnUrl = resolveSafeDashboardReturnUrl(
+    searchParams.get("returnUrl"),
+    "/dashboard/qa",
+  );
 
   useEffect(() => {
     loadOrder();
-     
   }, [orderId, currentTenant]);
 
   const handleAccept = async () => {
@@ -149,20 +159,20 @@ export default function QADetailPage() {
       const result = await transition.mutateAsync({
         orderId,
         input: {
-          screen: 'qa',
-          notes: 'QA passed',
+          screen: "qa",
+          notes: "QA passed",
           useOldWfCodeOrNew: useNewWorkflowSystem,
         },
       });
       if (result.success) {
-        showSuccess(t('qa.messages.acceptSuccess'));
+        showSuccess(t("qa.messages.acceptSuccess"));
         // Stay on QA worklist — do not auto-advance to packing/ready.
         router.replace(returnUrl);
       } else {
-        setError(result.error || t('qa.messages.acceptFailed'));
+        setError(result.error || t("qa.messages.acceptFailed"));
       }
     } catch (err: any) {
-      showErrorFrom(err, { fallback: t('qa.messages.acceptFailed') });
+      showErrorFrom(err, { fallback: t("qa.messages.acceptFailed") });
     } finally {
       setSubmitting(false);
     }
@@ -180,22 +190,22 @@ export default function QADetailPage() {
       const result = await transition.mutateAsync({
         orderId,
         input: {
-          screen: 'qa',
+          screen: "qa",
           actionCode: WORKFLOW_ACTIONS.FAIL_QA,
-          notes: 'QA rejected - returning to processing',
+          notes: "QA rejected - returning to processing",
           useOldWfCodeOrNew: useNewWorkflowSystem,
         },
       });
 
       if (result.success) {
-        showSuccess(t('qa.messages.rejectSuccess'));
+        showSuccess(t("qa.messages.rejectSuccess"));
         // Stay on QA worklist after reject (order returns to processing elsewhere).
         router.replace(returnUrl);
       } else {
-        setError(result.error || t('qa.messages.rejectFailed'));
+        setError(result.error || t("qa.messages.rejectFailed"));
       }
     } catch (err: any) {
-      showErrorFrom(err, { fallback: t('qa.messages.rejectFailed') });
+      showErrorFrom(err, { fallback: t("qa.messages.rejectFailed") });
     } finally {
       setSubmitting(false);
     }
@@ -232,11 +242,18 @@ export default function QADetailPage() {
         </div>
       ) : null}
       <div className="mb-6">
-        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
-          ← {t('qa.actions.backToQa')}
+        <Link
+          href={returnUrl}
+          className="text-primary-text hover:underline mb-2 inline-block"
+        >
+          ← {t("qa.actions.backToQa")}
         </Link>
-        <h1 className="text-3xl font-bold">{t('screens.qa')} - {order.order_no}</h1>
-        <p className="text-muted-foreground mt-1">{order.customer.name} • {order.customer.phone}</p>
+        <h1 className="text-3xl font-bold">
+          {t("screens.qa")} - {order.order_no}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          {order.customer.name} • {order.customer.phone}
+        </p>
       </div>
 
       {error && (
@@ -249,11 +266,16 @@ export default function QADetailPage() {
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
           {order.items.map((item) => (
-            <div key={item.id} className="bg-card rounded-lg border border-border p-4">
+            <div
+              key={item.id}
+              className="bg-card rounded-lg border border-border p-4"
+            >
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-semibold">{item.product_name}</h3>
-                  <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Quantity: {item.quantity}
+                  </p>
                 </div>
               </div>
 
@@ -265,59 +287,68 @@ export default function QADetailPage() {
                     disabled={submitting}
                     className="flex-1 px-3 py-2 bg-success text-on-solid rounded-lg hover:bg-success/90 disabled:opacity-50"
                   >
-                    ✓ {t('qa.actions.accept')}
+                    ✓ {t("qa.actions.accept")}
                   </button>
                   <button
                     onClick={() => setRejectItemId(item.id)}
                     disabled={submitting}
                     className="flex-1 px-3 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
                   >
-                    ✗ {t('qa.actions.reject')}
+                    ✗ {t("qa.actions.reject")}
                   </button>
                 </div>
               </div>
 
               {/* Pieces Section - Expandable */}
+              {!trackByPiece && orderId && (
+                <PiecePhotosControl
+                  orderId={orderId}
+                  refType={FILE_REF_TYPES.ORDER_ITEM}
+                  refId={item.id}
+                  label={item.product_name}
+                  source={FILE_SOURCES.ORDER_QA}
+                />
+              )}
               {trackByPiece && orderId && currentTenant?.tenant_id && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <button
                     onClick={() => toggleItemExpansion(item.id)}
                     className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                   >
-                    <span>
-                      {tPieces('viewPieces') || 'View Pieces'}
-                    </span>
+                    <span>{tPieces("viewPieces") || "View Pieces"}</span>
                     {expandedItemIds.has(item.id) ? (
                       <ChevronUp className="w-4 h-4" />
                     ) : (
                       <ChevronDown className="w-4 h-4" />
                     )}
                   </button>
-                  
-                      {expandedItemIds.has(item.id) && (
-                        <div className="mt-3">
-                          <PiecesErrorBoundary>
-                            <OrderPiecesManager
-                              orderId={orderId}
-                              itemId={item.id}
-                              fileSource={FILE_SOURCES.ORDER_QA}
-                              tenantId={currentTenant.tenant_id}
-                              branchId={order?.branch_id}
-                              readOnly={false}
-                              autoLoad={true}
-                              enableBulkOperations
-                              pieceDensity="compact"
-                              rejectColor={rejectColor}
-                              onUpdate={loadOrder}
-                            />
-                          </PiecesErrorBoundary>
-                        </div>
-                      )}
+
+                  {expandedItemIds.has(item.id) && (
+                    <div className="mt-3">
+                      <PiecesErrorBoundary>
+                        <OrderPiecesManager
+                          orderId={orderId}
+                          itemId={item.id}
+                          fileSource={FILE_SOURCES.ORDER_QA}
+                          tenantId={currentTenant.tenant_id}
+                          branchId={order?.branch_id}
+                          readOnly={false}
+                          autoLoad={true}
+                          enableBulkOperations
+                          pieceDensity="compact"
+                          rejectColor={rejectColor}
+                          onUpdate={loadOrder}
+                        />
+                      </PiecesErrorBoundary>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
-          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_QA} />}
+          {orderId && (
+            <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_QA} />
+          )}
           {orderId && (
             <OrderIssueReportDialog
               open={rejectItemId !== null}
@@ -337,13 +368,15 @@ export default function QADetailPage() {
         <div className="space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">QA Actions</h3>
-            
+
             <button
               onClick={handleAccept}
               disabled={submitting}
               className="w-full px-4 py-3 bg-success text-on-solid rounded-lg font-semibold hover:bg-success/90 disabled:opacity-50"
             >
-              {submitting ? t('qa.actions.processing') : t('qa.actions.acceptAll')}
+              {submitting
+                ? t("qa.actions.processing")
+                : t("qa.actions.acceptAll")}
             </button>
           </div>
         </div>

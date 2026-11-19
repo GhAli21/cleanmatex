@@ -61,7 +61,7 @@ Not done yet (in order):
 - [x] `npm run check:i18n` passes; tsc + eslint clean on all touched files (JSDoc warnings fixed in file-util-api; unused img eslint-disables removed).
 - [x] `npm run build` green (2026-11-17).
 - [x] `QA_TEST_GUIDE.md` written; PLAN 4.1–4.3 ticked; STATUS row added.
-- [ ] Owner browser QA (QA_TEST_GUIDE A + B). Then Phase 5 (product images, tenant logo, product-images policy migration, remove MinIO/tenant-assets/upload-photo.ts).
+- [x] Phase 5 started 2026-11-17 (owner QA A + B is in §5). Was: Phase 5 (product images, tenant logo, product-images policy migration, remove MinIO/tenant-assets/upload-photo.ts).
 
 ## 3b. Phase 5 progress (live) — started 2026-11-17
 
@@ -81,7 +81,6 @@ Steps:
 - [x] 5.e Migration written: `supabase/migrations/0750_file_util_retire_product_images.sql` (bucket private, 1-byte limit, impossible MIME → Storage API refuses all writes; clears `product_image` URLs pointing into `product-images`). **Owner: apply local + remote, then delete the empty `product-images` bucket and its 4 policies in the dashboard.** Not applied by the assistant.
 - [x] 5.f eslint clean (touched files), tests 81/81 (5 suites), i18n pass, tsc: 4 errors all outside this work, `npm run build` green (2026-11-17). PLAN (decision 14, 5.1–5.4 ticked), STATUS, QA guide §C written.
 - Next: owner applies `0750` + deletes bucket + QA §C; then Phase 6.
-- [ ] 5.f eslint/tsc/tests/build, QA guide section C, PLAN/STATUS.
 - Deferred: FOR_ORDER-with-MAIN-fallback display on the New Order grid (needs `CmxFileThumb` + batch list); grid keeps using `product_image` (MAIN).
 
 ## 3c. Phase 6 progress (live) — started 2026-11-17
@@ -95,16 +94,16 @@ Steps:
 - [x] 6.1 (done: new reusable `PendingFilesPicker` in `@features/file-util`; `uploadFilesToRecord` takes `refType/refId/notes`; i18n `fileUtil.pendingHint/removePending`, `orders.issues.photos` replaces `photoUrl*`) Order issue dialog → file picker; upload after create (purpose ISSUE_EVIDENCE, ref ORDER_ISSUE, source ORDER_ISSUE); drop `photoUrl` from API/schema/service.
 - [x] 6.2 (done: exception dialog → `PendingFilesPicker`, uploads after create with ref ASM_EXCEPTION, purpose ASSEMBLY_EXCEPTION, source ORDER_ASSEMBLY; modal passes `orderId`; `photoUrls`/`qaPhotoUrl` removed from routes, service, hook. QA endpoint has no screen yet, so no QA picker) Assembly exception + QA → same pattern; drop `photoUrls` / `qaPhotoUrl`.
 - [x] 6.3 (done: `app/dashboard/customers/[id]/page.tsx` new tab `files` → `FileAttachments` CUSTOMER_FILE, source CUSTOMER_PROFILE, read-only without `customers:update`; i18n `customers.files`) Customer detail → `FileAttachments` CUSTOMER_FILE.
-- [ ] 6.4 Delivery POD onto ORDER_FILE — sub-plan written in PLAN.md §6.4; **waiting for owner approval** (redesign of a working, secured flow).
+- [x] 6.4 Delivery POD onto ORDER_FILE — approved 2026-11-17, done in code (see §3d).
 - [x] 6.5 Migration `0751_file_util_drop_photo_url_columns.sql` written (5 empty columns; no DB dependents; RESTRICT). **Owner: apply local + remote, then `npm run prisma:pull` + `npx prisma generate` + types BEFORE running the app** (stale Prisma client would select the dropped `org_orders_mst.photo_urls`).
 - [x] 6.5b `FILE_CATEGORY_ACCESS` values are now any-of lists; ORDER_FILE write = `orders:update` or `orders:transition` (issue/exception routes use `transition`); guard tries the next code only after a 403; route tests 9 → 30/30 with service.
 - [x] 6.5c Owner asked "are dropped columns really replaced?" → audit: upload path checks the ref belongs to the same order+tenant (service `assertRefOwned`). Found + fixed: `useFileAttachments` ignored `refType/refId` when listing (would show all order files); `fetchFiles` now sends them and the cache key includes them. Added per-issue **Photos** action in the issues list (dialog = `FileAttachments` filtered to the issue, add allowed with `orders:transition`). Assembly exceptions have no list screen; their photos show on the order Files tab.
 - [x] 6.6 eslint clean; tests 100/100 (10 suites) + 38/38 after 6.5c; i18n pass; `npm run build` green. NOTE: `next build` here prints "Skipping validation of types", so run `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit -p .` separately: 4 errors, all outside File Util (login, navigation route, fx profile, users membership lock). QA guide §D, STATUS, PLAN updated.
 - [x] 6.7 Owner applied `0751` local + remote, regenerated types + Prisma (2026-11-17). Verified: the 5 columns are gone on remote; Prisma keeps only `org_dlv_pod_tr.photo_urls` (delivery, task 6.4).
-- 2026-11-17: owner APPROVED the 6.4 sub-plan (PLAN.md §6.4). Work in progress: see §3d.
+- 2026-11-17: owner APPROVED the 6.4 sub-plan (PLAN.md §6.4). Done: see §3d.
 - (was) NEXT: owner decision on 6.4 (delivery POD sub-plan in PLAN.md §6.4, incl. the driver upload-permission question). Then Phase 7 (HQ `/file-util-config`).
 
-## 3d. Task 6.4 — Delivery POD onto File Util (approved 2026-11-17, in progress)
+## 3d. Task 6.4 — Delivery POD onto File Util (approved 2026-11-17, done)
 
 Facts (remote, read-only): `org_dlv_pod_tr`, `org_dlv_ev_uploads_tr`, bucket `delivery-pod-evidence` all empty (0 rows / 0 objects); no cron/ops job uses them; HQ code does not use them. SIGNATURE allows jpeg/png/webp; DELIVERY_PROOF also heic/heif. The evidence route already needs `delivery:pod` AND `orders:transition`, and ORDER_FILE write accepts `orders:transition` → **no new permission needed for drivers**. DB function `hq_mntnc_cleanup_tenant_orders` deletes `org_dlv_ev_uploads_tr` rows (live text at lines ~1060-1068) → must be patched like 0659 (live-definition transform, asserted).
 
@@ -126,7 +125,7 @@ Steps:
 - [x] g. Tests 444/444 (42 suites) + DB integration 14/14 (local DB; ran `npx prisma generate` first — client was stale); eslint clean; i18n pass; tsc: same 4 errors outside File Util; `npm run build` green. QA guide §E, STATUS, PLAN updated.
 - **6.4 DONE (code).** Owner: delete bucket `delivery-pod-evidence` + its 4 `dlv_pod_evidence_*` policies in the dashboard; QA §E. NEXT: Phase 7 (HQ `/file-util-config`).
 
-## 3e. Phase 7 — HQ `/file-util-config` (in progress, repo `F:\jhapp\cleanmatexsaas`)
+## 3e. Phase 7 — HQ `/file-util-config` (done, repo `F:\jhapp\cleanmatexsaas`)
 
 ### 7.1 Shared code-table engine (design decided 2026-11-17)
 
@@ -149,14 +148,9 @@ Target (behavior of `/products-items-config` unchanged):
 - Web module config `FILE_UTIL_CODE_TABLES: CodeTableModule` like `PIC_CODE_TABLES` in `pic-model.ts`; API `FileUtilConfigService extends CodeTableEngine` like PIC `CodeTablesService`.
 - Navigation: load HQ skill `.claude/skills/manage-hq-navigation/SKILL.md` (cleanmatexsaas) — `hq_navigation_cd` rows in a new cleanmatex migration + `layout.json` keys + `FALLBACK_SECTIONS` in `cmx-sidebar.tsx` + hub page (`CmxHubScreen`) + `docs/features/hq-navigation/STATUS.md`. Add rows only once pages exist.
 
-## 3. Next steps (in order) — Phase 4: order photos
+## 3. Next steps
 
-1. Read `src/features/orders/ui/new-order-modals.tsx` (uses `PhotoCaptureModal` ~line 493) and find where captured photos are dropped today (plan §1: photos are discarded). New orders have no id until saved, so either upload after the order is created (queue files in state, then call `useFileAttachments` / API with the new order id, `source: 'ORDER_NEW'`, purpose `BEFORE_IMAGE`) or add photos from order detail. Pick the smallest flow that does not lose photos; explain it in STATUS.
-2. Replace `PhotoCaptureModal` with `CmxCameraCaptureDialog` (`@ui/overlays`); delete `photo-capture-modal.tsx` once unused; remove its now-unused `newOrder.photoCapture.*` keys only if nothing else uses them (grep first).
-3. Order detail (`app/dashboard/orders/[id]/order-detail-client.tsx`): add `<FileAttachments category="ORDER_FILE" entityId={order.id} source="ORDER_DETAIL" readOnly={!canUpdate} />` (`orders:update` decides edit).
-4. Browser test end-to-end with a tenant that HAS a subscription (2 of 4 demo tenants do): upload JPEG, PDF, HEIC; delete; edit purpose/note; viewer; RTL.
-5. Write `docs/features/File_Util/QA_TEST_GUIDE.md` (sidebar path, URL, what to click, expected).
-6. eslint, tsc, build; tick 4.x in PLAN, STATUS row, update this file.
+No code work open: all 10 phases are done in code (2026-11-19). Only the owner follow-ups in §5 remain. The old Phase 4 step list was removed; its steps are done (see PLAN.md Phase 4 and STATUS log).
 
 ## 4. Rules that matter here
 

@@ -41,7 +41,7 @@ function renderControl(pieceId: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <PiecePhotosControl orderId={ORDER} pieceId={pieceId} pieceLabel="P-1" source="ORDER_PROCESSING" />
+      <PiecePhotosControl orderId={ORDER} refId={pieceId} label="P-1" source="ORDER_PROCESSING" />
     </QueryClientProvider>,
   );
 }

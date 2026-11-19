@@ -4,27 +4,31 @@
  * PRD-010: Workflow-based assembly detail
  */
 
-'use client';
+"use client";
 
-import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
-import { useEffect, useState } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
-import { FILE_SOURCES } from '@/lib/constants/file-util';
-import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth/auth-context';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import Link from 'next/link';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
-import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useMessage } from '@ui/feedback';
-import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
-import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
-import { useCreateAssemblyTask } from '@features/assembly/hooks/use-assembly';
-import { AssemblyTaskModal } from '@features/assembly/ui/assembly-task-modal';
-import { CmxButton } from '@ui/primitives';
-import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
+import { CmxCodeChip } from "@ui/data-display/cmx-code-chip";
+import { useEffect, useState } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { OrderStageFiles } from "@features/orders/ui/order-stage-files";
+import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
+import { PiecePhotosControl } from "@features/orders/ui/pieces/piece-photos";
+import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useTenantSettingsWithDefaults } from "@/lib/hooks/useTenantSettings";
+import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
+import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
+import { useMessage } from "@ui/feedback";
+import {
+  getOrderFromStateResponse,
+  mapOrderCustomerFromStateRow,
+} from "@/lib/utils/order-state-response";
+import { WorkflowActionBar } from "@features/workflow/ui/WorkflowActionBar";
+import { useCreateAssemblyTask } from "@features/assembly/hooks/use-assembly";
+import { AssemblyTaskModal } from "@features/assembly/ui/assembly-task-modal";
+import { CmxButton } from "@ui/primitives";
+import { resolveSafeDashboardReturnUrl } from "@/lib/utils/safe-dashboard-return-url";
 
 interface AssemblyItem {
   id: string;
@@ -51,20 +55,25 @@ export default function AssemblyDetailPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const t = useTranslations('workflow');
-  const tPieces = useTranslations('newOrder.pieces');
+  const t = useTranslations("workflow");
+  const tPieces = useTranslations("newOrder.pieces");
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
-  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
-  const { mutateAsync: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
+  const { trackByPiece } = useTenantSettingsWithDefaults(
+    currentTenant?.tenant_id || "",
+  );
+  const { mutateAsync: createTask, isPending: isCreatingTask } =
+    useCreateAssemblyTask();
   const [order, setOrder] = useState<AssemblyOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [error, setError] = useState("");
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [taskId, setTaskId] = useState<string | null>(null);
 
   const toggleItemExpansion = (itemId: string) => {
-    setExpandedItemIds(prev => {
+    setExpandedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -77,42 +86,48 @@ export default function AssemblyDetailPage() {
 
   const loadOrder = async () => {
     if (!currentTenant || !orderId) return;
-    
+
     setLoading(true);
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
       const rawOrder = getOrderFromStateResponse(json);
-      if (!rawOrder || typeof rawOrder !== 'object') {
+      if (!rawOrder || typeof rawOrder !== "object") {
         setOrder(null);
         return;
       }
       const raw = rawOrder as Record<string, unknown>;
-      const items: AssemblyItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
-        id: String(item.id),
-        product_name:
-          (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
-          (item.product_name as string) ||
-          'Unknown Product',
-        quantity: Number(item.quantity ?? 0),
-        item_status: (item.item_status as string) || 'pending',
-      }));
+      const items: AssemblyItem[] = (json.items || []).map(
+        (item: Record<string, unknown>) => ({
+          id: String(item.id),
+          product_name:
+            (item.org_product_data_mst as { product_name?: string } | undefined)
+              ?.product_name ||
+            (item.product_name as string) ||
+            "Unknown Product",
+          quantity: Number(item.quantity ?? 0),
+          item_status: (item.item_status as string) || "pending",
+        }),
+      );
       setOrder({
         id: String(raw.id),
-        order_no: String(raw.order_no ?? ''),
+        order_no: String(raw.order_no ?? ""),
         branch_id: (raw.branch_id as string | null | undefined) ?? null,
         customer: mapOrderCustomerFromStateRow(raw),
         items,
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to load order');
+      setError(err.message || "Failed to load order");
     } finally {
       setLoading(false);
     }
   };
 
   const orderId = (params as any)?.id as string | undefined;
-  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/assembly');
+  const returnUrl = resolveSafeDashboardReturnUrl(
+    searchParams.get("returnUrl"),
+    "/dashboard/assembly",
+  );
 
   useEffect(() => {
     loadOrder();
@@ -124,10 +139,10 @@ export default function AssemblyDetailPage() {
       const result = await createTask(orderId);
       if (result.success && result.taskId) {
         setTaskId(result.taskId);
-        showSuccess(t('assembly.messages.taskCreated'));
+        showSuccess(t("assembly.messages.taskCreated"));
       }
     } catch (err: unknown) {
-      showErrorFrom(err, { fallback: t('assembly.messages.taskCreateFailed') });
+      showErrorFrom(err, { fallback: t("assembly.messages.taskCreateFailed") });
     }
   };
 
@@ -142,7 +157,7 @@ export default function AssemblyDetailPage() {
   if (!order) {
     return (
       <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
-        {error || t('assembly.task.messages.loadFailed')}
+        {error || t("assembly.task.messages.loadFailed")}
       </div>
     );
   }
@@ -162,13 +177,19 @@ export default function AssemblyDetailPage() {
         </div>
       ) : null}
       <div className="mb-6">
-        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
-          ← {t('assembly.backToAssembly')}
+        <Link
+          href={returnUrl}
+          className="text-primary-text hover:underline mb-2 inline-block"
+        >
+          ← {t("assembly.backToAssembly")}
         </Link>
         <h1 className="text-3xl font-bold">
-          {t('screens.assembly')} <CmxCodeChip code={order.order_no} kind="order" size="md" />
+          {t("screens.assembly")}{" "}
+          <CmxCodeChip code={order.order_no} kind="order" size="md" />
         </h1>
-        <p className="text-muted-foreground mt-1">{order.customer.name} • {order.customer.phone}</p>
+        <p className="text-muted-foreground mt-1">
+          {order.customer.name} • {order.customer.phone}
+        </p>
       </div>
 
       {error && (
@@ -181,37 +202,48 @@ export default function AssemblyDetailPage() {
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">{t('assemblyDetail.verifyItems')}</h3>
+            <h3 className="font-semibold mb-4">
+              {t("assemblyDetail.verifyItems")}
+            </h3>
             <div className="space-y-2">
               {order.items.map((item) => (
                 <div key={item.id} className="p-3 bg-muted rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-medium">{item.product_name}</p>
-                      <p className="text-sm text-muted-foreground">{t('assemblyDetail.quantity')}: {item.quantity}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("assemblyDetail.quantity")}: {item.quantity}
+                      </p>
                     </div>
                     <span className="px-3 py-1 bg-success-bg text-success-text rounded text-sm">
-                      {t('assemblyDetail.ready')}
+                      {t("assemblyDetail.ready")}
                     </span>
                   </div>
 
                   {/* Pieces Section - Expandable */}
+                  {!trackByPiece && orderId && (
+                    <PiecePhotosControl
+                      orderId={orderId}
+                      refType={FILE_REF_TYPES.ORDER_ITEM}
+                      refId={item.id}
+                      label={item.product_name}
+                      source={FILE_SOURCES.ORDER_ASSEMBLY}
+                    />
+                  )}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
                     <div className="mt-3 pt-3 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
                         className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
-                        <span>
-                          {tPieces('viewPieces') || 'View Pieces'}
-                        </span>
+                        <span>{tPieces("viewPieces") || "View Pieces"}</span>
                         {expandedItemIds.has(item.id) ? (
                           <ChevronUp className="w-4 h-4" />
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
                       </button>
-                      
+
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
                           <PiecesErrorBoundary>
@@ -237,17 +269,24 @@ export default function AssemblyDetailPage() {
 
           <div className="bg-warning-bg border border-warning-border rounded-lg p-4">
             <p className="text-sm text-warning-text">
-              {t('assemblyDetail.hint')}
+              {t("assemblyDetail.hint")}
             </p>
           </div>
-          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_ASSEMBLY} />}
+          {orderId && (
+            <OrderStageFiles
+              orderId={orderId}
+              source={FILE_SOURCES.ORDER_ASSEMBLY}
+            />
+          )}
         </div>
 
         {/* Actions Panel */}
         <div className="space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">{t('assemblyDetail.actionsTitle')}</h3>
-            
+            <h3 className="font-semibold mb-4">
+              {t("assemblyDetail.actionsTitle")}
+            </h3>
+
             <CmxButton
               className="w-full"
               onClick={() => {
@@ -256,7 +295,7 @@ export default function AssemblyDetailPage() {
               loading={isCreatingTask}
               disabled={isCreatingTask}
             >
-              {t('assembly.actions.assembleOrder')}
+              {t("assembly.actions.assembleOrder")}
             </CmxButton>
           </div>
         </div>

@@ -342,9 +342,9 @@ export default function CmxSidebar() {
           fixed top-0 bottom-0 z-40 bg-muted border-border flex flex-col shadow-sm
           ${prefersReducedMotion ? '' : 'transition-[transform,width] duration-300 ease-in-out'}
           start-0 border-e
-          w-64 lg:translate-x-0
+          w-64
           ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
-          ${isMobileOpen ? 'translate-x-0' : ('ltr:-translate-x-full rtl:translate-x-full')}
+          ${isMobileOpen ? 'translate-x-0' : 'max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full'}
         `}
       >
         <div className={`pt-4 pb-3 border-b border-border bg-card flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} `}>

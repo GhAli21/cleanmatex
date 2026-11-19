@@ -3,26 +3,30 @@
  * Built from scratch. Allows updating rack location and completing packing -> ready.
  */
 
-'use client';
+"use client";
 
-import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
-import { FILE_SOURCES } from '@/lib/constants/file-util';
-import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth/auth-context';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
-import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
-import { useOrderTransition } from '@/lib/hooks/use-order-transition';
-import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
-import { useMessage } from '@ui/feedback';
-import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
-import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
-import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
+import { CmxCodeChip } from "@ui/data-display/cmx-code-chip";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { OrderStageFiles } from "@features/orders/ui/order-stage-files";
+import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
+import { PiecePhotosControl } from "@features/orders/ui/pieces/piece-photos";
+import { useTranslations } from "next-intl";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useTenantSettingsWithDefaults } from "@/lib/hooks/useTenantSettings";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
+import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
+import { useOrderTransition } from "@/lib/hooks/use-order-transition";
+import { useWorkflowSystemMode } from "@/lib/config/workflow-config";
+import { useMessage } from "@ui/feedback";
+import {
+  getOrderFromStateResponse,
+  mapOrderCustomerFromStateRow,
+} from "@/lib/utils/order-state-response";
+import { WorkflowActionBar } from "@features/workflow/ui/WorkflowActionBar";
+import { resolveSafeDashboardReturnUrl } from "@/lib/utils/safe-dashboard-return-url";
 
 interface PackingItem {
   id: string;
@@ -47,28 +51,35 @@ export default function PackingDetailPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const t = useTranslations('workflow');
-  const tPieces = useTranslations('newOrder.pieces');
+  const t = useTranslations("workflow");
+  const tPieces = useTranslations("newOrder.pieces");
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
-  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { trackByPiece } = useTenantSettingsWithDefaults(
+    currentTenant?.tenant_id || "",
+  );
 
   const orderId = (params as any)?.id as string | undefined;
-  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/packing');
+  const returnUrl = resolveSafeDashboardReturnUrl(
+    searchParams.get("returnUrl"),
+    "/dashboard/packing",
+  );
 
   const [order, setOrder] = useState<PackingOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
+    new Set(),
+  );
 
-  const [rackLocation, setRackLocation] = useState('');
+  const [rackLocation, setRackLocation] = useState("");
 
   const toggleItemExpansion = (itemId: string) => {
-    setExpandedItemIds(prev => {
+    setExpandedItemIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -80,7 +91,10 @@ export default function PackingDetailPage() {
   };
 
   const totalQty = useMemo(() => {
-    return (order?.items ?? []).reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+    return (order?.items ?? []).reduce(
+      (sum, it) => sum + (Number(it.quantity) || 0),
+      0,
+    );
   }, [order]);
 
   const loadOrder = useCallback(async () => {
@@ -91,33 +105,38 @@ export default function PackingDetailPage() {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
       const rawOrder = getOrderFromStateResponse(json);
-      if (!rawOrder || typeof rawOrder !== 'object') {
-        setError(json.error || t('packing.messages.loadFailed'));
+      if (!rawOrder || typeof rawOrder !== "object") {
+        setError(json.error || t("packing.messages.loadFailed"));
         return;
       }
       const raw = rawOrder as Record<string, unknown>;
-      const items: PackingItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
-        id: String(item.id),
-        product_name:
-          (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
-          (item.product_name as string) ||
-          'Unknown Product',
-        quantity: Number(item.quantity ?? 0),
-        quantity_ready:
-          typeof item.quantity_ready === 'number' ? item.quantity_ready : undefined,
-      }));
+      const items: PackingItem[] = (json.items || []).map(
+        (item: Record<string, unknown>) => ({
+          id: String(item.id),
+          product_name:
+            (item.org_product_data_mst as { product_name?: string } | undefined)
+              ?.product_name ||
+            (item.product_name as string) ||
+            "Unknown Product",
+          quantity: Number(item.quantity ?? 0),
+          quantity_ready:
+            typeof item.quantity_ready === "number"
+              ? item.quantity_ready
+              : undefined,
+        }),
+      );
       const mapped: PackingOrder = {
         id: String(raw.id),
-        order_no: String(raw.order_no ?? ''),
+        order_no: String(raw.order_no ?? ""),
         branch_id: (raw.branch_id as string | null | undefined) ?? null,
         customer: mapOrderCustomerFromStateRow(raw),
-        rack_location: String(raw.rack_location ?? ''),
+        rack_location: String(raw.rack_location ?? ""),
         items,
       };
       setOrder(mapped);
-      setRackLocation(mapped.rack_location || '');
+      setRackLocation(mapped.rack_location || "");
     } catch (err: any) {
-      setError(err.message || t('packing.messages.loadFailed'));
+      setError(err.message || t("packing.messages.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -133,8 +152,8 @@ export default function PackingDetailPage() {
     setError(null);
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/batch-update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           updates: [],
           orderRackLocation: rackLocation.trim(),
@@ -142,11 +161,11 @@ export default function PackingDetailPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || t('packing.messages.rackSaveFailed'));
+        throw new Error(json.error || t("packing.messages.rackSaveFailed"));
       }
-      showSuccess(t('packing.messages.rackSaved'));
+      showSuccess(t("packing.messages.rackSaved"));
     } catch (err) {
-      showErrorFrom(err, { fallback: t('packing.messages.rackSaveFailed') });
+      showErrorFrom(err, { fallback: t("packing.messages.rackSaveFailed") });
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +179,7 @@ export default function PackingDetailPage() {
 
     try {
       if (!rackLocation.trim()) {
-        setError(t('packing.messages.rackRequired'));
+        setError(t("packing.messages.rackRequired"));
         return;
       }
 
@@ -170,8 +189,8 @@ export default function PackingDetailPage() {
       const result = await transition.mutateAsync({
         orderId,
         input: {
-          screen: 'packing',
-          to_status: 'ready',
+          screen: "packing",
+          to_status: "ready",
           notes: undefined,
           useOldWfCodeOrNew: useNewWorkflowSystem,
           rackLocation: rackLocation.trim(),
@@ -179,15 +198,15 @@ export default function PackingDetailPage() {
       });
 
       if (result.success) {
-        showSuccess(t('packing.messages.completeSuccess'));
+        showSuccess(t("packing.messages.completeSuccess"));
         // Stay on packing worklist — do not auto-advance to ready.
         router.replace(returnUrl);
       } else {
-        setError(result.error || t('packing.messages.completeFailed'));
+        setError(result.error || t("packing.messages.completeFailed"));
         if (result.blockers?.length) setBlockers(result.blockers);
       }
     } catch (err) {
-      showErrorFrom(err, { fallback: t('packing.messages.completeFailed') });
+      showErrorFrom(err, { fallback: t("packing.messages.completeFailed") });
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +223,7 @@ export default function PackingDetailPage() {
   if (!order) {
     return (
       <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
-        {t('packing.messages.notFound')}
+        {t("packing.messages.notFound")}
       </div>
     );
   }
@@ -222,11 +241,14 @@ export default function PackingDetailPage() {
         />
       ) : null}
       <div>
-        <Link href={returnUrl} className="text-primary-text hover:underline mb-2 inline-block">
-          ← {t('packing.actions.back')}
+        <Link
+          href={returnUrl}
+          className="text-primary-text hover:underline mb-2 inline-block"
+        >
+          ← {t("packing.actions.back")}
         </Link>
         <h1 className="text-3xl font-bold">
-          {t('screens.packing')}{' '}
+          {t("screens.packing")}{" "}
           <CmxCodeChip code={order.order_no} kind="order" size="md" />
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -235,12 +257,16 @@ export default function PackingDetailPage() {
       </div>
 
       {error && (
-        <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">{error}</div>
+        <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
+          {error}
+        </div>
       )}
 
       {blockers.length > 0 && (
         <div className="bg-warning-bg border border-warning-border text-warning-text px-4 py-3 rounded-lg">
-          <div className="font-medium mb-1">{t('packing.messages.blockersTitle')}</div>
+          <div className="font-medium mb-1">
+            {t("packing.messages.blockersTitle")}
+          </div>
           <ul className="list-disc list-inside text-sm space-y-1">
             {blockers.map((b, i) => (
               <li key={i}>{b}</li>
@@ -252,7 +278,7 @@ export default function PackingDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">{t('packing.itemsTitle')}</h3>
+            <h3 className="font-semibold mb-4">{t("packing.itemsTitle")}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
                 <div key={item.id} className="p-3 bg-muted rounded-lg">
@@ -260,29 +286,38 @@ export default function PackingDetailPage() {
                     <div>
                       <p className="font-medium">{item.product_name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {t('packing.quantity')}: {item.quantity}
-                        {typeof item.quantity_ready === 'number' ? ` • ${t('packing.readyQty')}: ${item.quantity_ready}` : ''}
+                        {t("packing.quantity")}: {item.quantity}
+                        {typeof item.quantity_ready === "number"
+                          ? ` • ${t("packing.readyQty")}: ${item.quantity_ready}`
+                          : ""}
                       </p>
                     </div>
                   </div>
 
                   {/* Pieces Section - Expandable */}
+                  {!trackByPiece && orderId && (
+                    <PiecePhotosControl
+                      orderId={orderId}
+                      refType={FILE_REF_TYPES.ORDER_ITEM}
+                      refId={item.id}
+                      label={item.product_name}
+                      source={FILE_SOURCES.ORDER_PACKING}
+                    />
+                  )}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
                     <div className="mt-3 pt-3 border-t border-border">
                       <button
                         onClick={() => toggleItemExpansion(item.id)}
                         className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
-                        <span>
-                          {tPieces('viewPieces') || 'View Pieces'}
-                        </span>
+                        <span>{tPieces("viewPieces") || "View Pieces"}</span>
                         {expandedItemIds.has(item.id) ? (
                           <ChevronUp className="w-4 h-4" />
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
                       </button>
-                      
+
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
                           <PiecesErrorBoundary>
@@ -305,21 +340,29 @@ export default function PackingDetailPage() {
               ))}
             </div>
             <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
-              {t('packing.totalQty')}: <span className="font-medium">{totalQty}</span>
+              {t("packing.totalQty")}:{" "}
+              <span className="font-medium">{totalQty}</span>
             </div>
           </div>
-          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_PACKING} />}
+          {orderId && (
+            <OrderStageFiles
+              orderId={orderId}
+              source={FILE_SOURCES.ORDER_PACKING}
+            />
+          )}
         </div>
 
         <div className="space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">{t('packing.actions.title')}</h3>
+            <h3 className="font-semibold mb-4">{t("packing.actions.title")}</h3>
 
-            <label className="block text-sm font-medium text-foreground mb-2">{t('packing.rack')}</label>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              {t("packing.rack")}
+            </label>
             <input
               value={rackLocation}
               onChange={(e) => setRackLocation(e.target.value)}
-              placeholder={t('packing.rackPlaceholder')}
+              placeholder={t("packing.rackPlaceholder")}
               className="w-full px-3 py-2 border border-border rounded-lg"
             />
 
@@ -328,7 +371,7 @@ export default function PackingDetailPage() {
               disabled={submitting}
               className="mt-3 w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50"
             >
-              {t('packing.actions.saveRack')}
+              {t("packing.actions.saveRack")}
             </button>
 
             <button
@@ -336,7 +379,9 @@ export default function PackingDetailPage() {
               disabled={submitting}
               className="mt-3 w-full px-4 py-3 bg-warning text-warning-foreground rounded-lg font-semibold hover:bg-warning/90 disabled:opacity-50"
             >
-              {submitting ? t('packing.actions.processing') : t('packing.actions.complete')}
+              {submitting
+                ? t("packing.actions.processing")
+                : t("packing.actions.complete")}
             </button>
           </div>
         </div>
@@ -344,5 +389,3 @@ export default function PackingDetailPage() {
     </div>
   );
 }
-
-
