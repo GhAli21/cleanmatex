@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxCheckbox, CmxTextarea } from '@ui/primitives';
+import { CmxCheckbox, CmxTextarea, Label } from '@ui/primitives';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { CashPlacementPicker, type CashPlacementChoice } from '@features/cash-drawers/ui/cash-placement-picker';
@@ -194,9 +194,9 @@ export function VoucherReversalDialog({
             </div>
           ) : null}
 
-          <label className="mb-1.5 block text-sm font-medium text-foreground" htmlFor="voucher-reversal-reason">
+          <Label className="mb-1.5 block text-sm font-medium text-foreground" htmlFor="voucher-reversal-reason">
             {t('reversalReason')}
-          </label>
+          </Label>
           <CmxTextarea
             id="voucher-reversal-reason"
             rows={3}

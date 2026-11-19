@@ -10,6 +10,8 @@
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { Search, X } from 'lucide-react'
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import { useAuth } from '@/lib/auth/auth-context'
 import { activateUser, deactivateUser } from '@/lib/api/users'
 import { cmxMessage } from '@ui/feedback'
@@ -142,98 +144,79 @@ export default function UserFiltersBar({
       {/* Search and Filters */}
       <div className="p-4 space-y-4">
         {/* Search Bar */}
-        <div className="relative">
-          <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-            <svg
-              className="h-5 w-5 text-muted-foreground"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder={t('searchPlaceholder')}
-            value={filters.search || ''}
-            onChange={handleSearch}
-            className="block w-full ps-10 pe-3 py-2 border border-border rounded-md leading-5 bg-card placeholder:text-muted-foreground focus:outline-none focus:placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:border-ring sm:text-sm"
-          />
-        </div>
+        <CmxInput
+          type="text"
+          placeholder={t('searchPlaceholder')}
+          value={filters.search || ''}
+          onChange={handleSearch}
+          leftIcon={<Search className="h-5 w-5" />}
+        />
 
         {/* Filters Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
           {/* Role Filter */}
           <div>
-            <label htmlFor="role-filter" className="block text-sm font-medium text-foreground mb-1">
+            <Label htmlFor="role-filter" className="mb-1 block">
               {tSettings('role')}
-            </label>
-            <select
+            </Label>
+            <CmxSelect
               id="role-filter"
               value={filters.role || 'all'}
               onChange={handleRoleFilter}
-              className="block w-full ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
-            >
-              <option value="all">{t('allRoles')}</option>
-              {roleOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: 'all', label: t('allRoles') },
+                ...roleOptions,
+              ]}
+            />
           </div>
 
           {/* Status Filter */}
           <div>
-            <label htmlFor="status-filter" className="block text-sm font-medium text-foreground mb-1">
+            <Label htmlFor="status-filter" className="mb-1 block">
               {tCommon('status')}
-            </label>
-            <select
+            </Label>
+            <CmxSelect
               id="status-filter"
               value={filters.status || 'all'}
               onChange={handleStatusFilter}
-              className="block w-full ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
-            >
-              <option value="all">{t('allStatus')}</option>
-              <option value="active">{tCommon('active')}</option>
-              <option value="inactive">{tCommon('inactive')}</option>
-            </select>
+              options={[
+                { value: 'all', label: t('allStatus') },
+                { value: 'active', label: tCommon('active') },
+                { value: 'inactive', label: tCommon('inactive') },
+              ]}
+            />
           </div>
 
           {/* Sort By */}
           <div>
-            <label htmlFor="sort-filter" className="block text-sm font-medium text-foreground mb-1">
+            <Label htmlFor="sort-filter" className="mb-1 block">
               {t('sortBy')}
-            </label>
-            <select
+            </Label>
+            <CmxSelect
               id="sort-filter"
               value={filters.sortBy || 'created_at'}
               onChange={handleSortChange}
-              className="block w-full ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
-            >
-              <option value="created_at">{t('dateCreated')}</option>
-              <option value="email">{tSettings('email')}</option>
-              <option value="name">{tCommon('name')}</option>
-              <option value="role">{tSettings('role')}</option>
-              <option value="last_login">{t('lastLogin')}</option>
-            </select>
+              options={[
+                { value: 'created_at', label: t('dateCreated') },
+                { value: 'email', label: tSettings('email') },
+                { value: 'name', label: tCommon('name') },
+                { value: 'role', label: tSettings('role') },
+                { value: 'last_login', label: t('lastLogin') },
+              ]}
+            />
           </div>
 
           {/* Clear Filters Button */}
           <div className="flex items-end">
-            <button
+            <CmxButton
+              type="button"
+              variant="outline"
               onClick={handleClearFilters}
               disabled={!hasActiveFilters}
-              className="w-full px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full"
             >
               {tCommon('clearFilters')}
-            </button>
+            </CmxButton>
           </div>
         </div>
       </div>
@@ -256,7 +239,7 @@ export default function UserFiltersBar({
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="text-sm font-medium text-primary-text">
+              <span className="text-sm font-medium text-primary-text tabular-nums">
                 {t('selectedCount', { count: selectedCount })}
               </span>
             </div>
@@ -269,20 +252,26 @@ export default function UserFiltersBar({
                 </div>
               ) : (
                 <>
-                  <button
+                  <CmxButton
+                    type="button"
+                    variant="secondary"
+                    size="xs"
                     onClick={handleBulkActivate}
                     disabled={selectedUserIds.length === 0}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-success-text bg-success-bg hover:bg-success-border/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success disabled:opacity-50"
+                    className="text-success-text bg-success-bg hover:bg-success-border/50"
                   >
                     {tTable('activate')}
-                  </button>
-                  <button
+                  </CmxButton>
+                  <CmxButton
+                    type="button"
+                    variant="secondary"
+                    size="xs"
                     onClick={handleBulkDeactivate}
                     disabled={selectedUserIds.length === 0}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-warning-text bg-warning-bg hover:bg-warning-border/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-warning disabled:opacity-50"
+                    className="text-warning-text bg-warning-bg hover:bg-warning-border/50"
                   >
                     {tTable('deactivate')}
-                  </button>
+                  </CmxButton>
                 </>
               )}
             </div>
@@ -298,52 +287,46 @@ export default function UserFiltersBar({
             {filters.search && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-info-bg text-info-text">
                 {tCommon('search')}: &quot;{filters.search}&quot;
-                <button
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
                   onClick={() => onFilterChange({ search: '' })}
-                  className="ms-1 inline-flex items-center"
+                  className="ms-1 h-4 w-4 p-0"
+                  aria-label={tCommon('clear')}
                 >
-                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
+                  <X className="h-3 w-3" />
+                </CmxButton>
               </span>
             )}
             {filters.role && filters.role !== 'all' && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-info-bg text-info-text">
                 {tSettings('role')}: {filters.role}
-                <button
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
                   onClick={() => onFilterChange({ role: 'all' })}
-                  className="ms-1 inline-flex items-center"
+                  className="ms-1 h-4 w-4 p-0"
+                  aria-label={tCommon('clear')}
                 >
-                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
+                  <X className="h-3 w-3" />
+                </CmxButton>
               </span>
             )}
             {filters.status && filters.status !== 'all' && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-bg text-success-text">
                 {tCommon('status')}: {filters.status}
-                <button
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
                   onClick={() => onFilterChange({ status: 'all' })}
-                  className="ms-1 inline-flex items-center"
+                  className="ms-1 h-4 w-4 p-0"
+                  aria-label={tCommon('clear')}
                 >
-                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
+                  <X className="h-3 w-3" />
+                </CmxButton>
               </span>
             )}
           </div>

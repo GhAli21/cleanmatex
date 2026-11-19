@@ -21,7 +21,7 @@
 import { useTranslations } from 'next-intl';
 import { CircleAlert } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { CmxInput } from '@ui/primitives';
+import { CmxInput, Label } from '@ui/primitives';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -127,11 +127,11 @@ export function B2BAccountBillingDialog({
     >
       <div className="flex flex-col gap-3">
         <div>
-          <label
+          <Label
             className="mb-1 block text-sm font-medium text-foreground text-start"
           >
             {t('b2b.contract')}
-          </label>
+          </Label>
           <CmxSelectDropdown
             value={b2bContractId || ''}
             onValueChange={(value) => onB2bContractIdChange(value || undefined)}

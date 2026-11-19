@@ -57,10 +57,12 @@ For Arabic:
 Examples:
 
 ```tsx
-<div className="text-left rtl:text-right" />
+<div className="text-start" />
 <ChevronRight className="rtl:rotate-180" />
 <div className="ms-4" />
 ```
+
+No physical classes and no hand-made `rtl:flex-row-reverse`; see `docs/dev/rules/cmx-design-system.md` §4.
 
 ## 5. Visual hierarchy
 
@@ -164,6 +166,8 @@ Required:
 - reduced-motion respect where animations exist.
 
 ## 12. Theme and branding
+
+Source: `docs/dev/rules/cmx-design-system.md` §2–§3 (tokens, dark mode by `data-mode`, no `dark:` classes, paper always light).
 
 Use Cmx tokens and CSS variables only.
 

@@ -6,8 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
@@ -132,20 +131,20 @@ export function CashDrawerFormDialog({
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 py-2">
           {!isEdit && (
             <div>
-              <label className="text-sm font-medium">{t('cashDrawers.code')}</label>
+              <Label>{t('cashDrawers.code')}</Label>
               <CmxInput {...form.register('drawer_code')} placeholder="DRW-001" className="font-mono" />
             </div>
           )}
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.name')}</label>
+            <Label>{t('cashDrawers.name')}</Label>
             <CmxInput {...form.register('drawer_name')} />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.name2')}</label>
+            <Label>{t('cashDrawers.name2')}</Label>
             <CmxInput {...form.register('drawer_name2')} dir="rtl" />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.drawerType')}</label>
+            <Label>{t('cashDrawers.drawerType')}</Label>
             <CmxSelectDropdown value={drawerType} onValueChange={(v) => form.setValue('drawer_type', v as never)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
@@ -171,7 +170,7 @@ export function CashDrawerFormDialog({
             </div>
           ) : null}
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.branch')}</label>
+            <Label>{t('cashDrawers.branch')}</Label>
             <CmxSelectDropdown value={selectedBranchId ?? ''} onValueChange={(v) => form.setValue('branch_id', v)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
@@ -182,7 +181,7 @@ export function CashDrawerFormDialog({
             </CmxSelectDropdown>
           </div>
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.currency')}</label>
+            <Label>{t('cashDrawers.currency')}</Label>
             <CmxInput value={tenantCurrencyCode} disabled className="font-mono" />
             <p className="mt-1 text-xs text-muted-foreground">
               {t('cashDrawers.currencyLockedHint')}
@@ -192,7 +191,7 @@ export function CashDrawerFormDialog({
             )}
           </div>
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.maxCashLimit')}</label>
+            <Label>{t('cashDrawers.maxCashLimit')}</Label>
             <CmxInput
               type="number"
               step="0.001"
@@ -202,7 +201,7 @@ export function CashDrawerFormDialog({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.varianceApprovalThreshold')}</label>
+            <Label>{t('cashDrawers.varianceApprovalThreshold')}</Label>
             <CmxInput
               type="number"
               step="0.001"
@@ -215,7 +214,7 @@ export function CashDrawerFormDialog({
             </p>
           </div>
           <div>
-            <label className="text-sm font-medium">{t('cashDrawers.assignedTerminal')}</label>
+            <Label>{t('cashDrawers.assignedTerminal')}</Label>
             <CmxSelectDropdown
               value={assignedTerminalId ?? NO_TERMINAL_VALUE}
               onValueChange={(value) => form.setValue('assigned_terminal_id', value === NO_TERMINAL_VALUE ? undefined : value)}

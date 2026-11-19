@@ -16,6 +16,7 @@ import { CarePackageBundles } from './CarePackageBundles';
 import { RepeatLastOrderPanel } from './RepeatLastOrderPanel';
 import { SmartSuggestionsPanel } from './SmartSuggestionsPanel';
 import { Zap, Settings2 } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
 
 interface PreferencesTabsSectionProps {
   trackByPiece: boolean;
@@ -83,40 +84,42 @@ export function PreferencesTabsSection({
         aria-label={t('preferences') || 'Preferences'}
       >
         {hasQuickApply && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
             role="tab"
             aria-selected={activePrefTab === 'quick'}
             aria-controls="prefs-quick-panel"
             id="prefs-quick-tab"
             onClick={() => setActivePrefTab('quick')}
-            className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
+            className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium flex-shrink-0 ${
               activePrefTab === 'quick'
-                ? 'bg-card text-primary-text shadow-sm border border-border'
+                ? 'bg-card text-primary-text shadow-sm border border-border hover:bg-card'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            } `}
+            }`}
           >
             <Zap className="w-4 h-4" />
             {t('quickApply') || 'Quick Apply'}
-          </button>
+          </CmxButton>
         )}
         {hasServicePrefs && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
             role="tab"
             aria-selected={activePrefTab === 'service'}
             aria-controls="prefs-service-panel"
             id="prefs-service-tab"
             onClick={() => setActivePrefTab('service')}
-            className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
+            className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium flex-shrink-0 ${
               activePrefTab === 'service'
-                ? 'bg-card text-primary-text shadow-sm border border-border'
+                ? 'bg-card text-primary-text shadow-sm border border-border hover:bg-card'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            } `}
+            }`}
           >
             <Settings2 className="w-4 h-4" />
             {t('servicePrefs') || 'Service Preferences'}
-          </button>
+          </CmxButton>
         )}
       </div>
 

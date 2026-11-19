@@ -50,6 +50,7 @@ Each skill is organized in its own directory with:
 | **codebase-visualizer** | Task | Generate interactive codebase tree |
 | **navigation** | Reference | Navigation tree management |
 | **storybook** | Task | Storybook story generation — Cmx components, RTL, a11y, interaction stories |
+| **cmx-ui-design-review** | Task | Review (or fix on request) any web-admin component, screen or page against `docs/dev/rules/cmx-design-system.md`: runs `check:ui` + ESLint, ranked findings with file:line and fix |
 | **update-rbac-role** | Task | Create or refresh RBAC roles with intelligent permission mapping — generates migration SQL and navigation.ts UserRole update |
 
 ## How to Use Skills
@@ -90,7 +91,6 @@ Claude automatically invokes relevant skills based on context:
 │   ├── SKILL.md
 │   ├── conventions.md
 │   ├── feature-abbreviations.md
-│   ├── grandfathered-objects.md
 │   ├── migration-plan.md
 │   ├── postgresql-prisma.md
 │   └── table-check-workflow.md
@@ -107,6 +107,8 @@ Claude automatically invokes relevant skills based on context:
 │   ├── css-tailwind.md
 │   └── config-files.md
 ├── storybook/
+│   └── SKILL.md
+├── cmx-ui-design-review/
 │   └── SKILL.md
 └── [other skills...]
 ```

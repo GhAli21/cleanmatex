@@ -11,6 +11,7 @@ jest.mock('@ui/primitives', () => ({
   ...jest.requireActual('@ui/primitives/cmx-input'),
   ...jest.requireActual('@ui/primitives/cmx-textarea'),
   ...jest.requireActual('@ui/primitives/cmx-checkbox'),
+  ...jest.requireActual('@ui/primitives/label'),
 }));
 jest.mock('@features/orders/order-change/order-workspace-session', () => ({ useOrderWorkspaceSessionOptional: () => mockSession }));
 

@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle } from '@/src/ui/overlays/cmx-dialog';
+import { CmxButton } from '@ui/primitives';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { isSafeMdiIconClass } from '@/lib/utils/mdi-icon';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
@@ -150,14 +151,15 @@ export function PieceKindPickerDialog({
             const isSelected = selectedConditionCodes.includes(cond.code);
             const label = getBilingual(cond.name, cond.name2 ?? null) || cond.name;
             return (
-              <button
+              <CmxButton
                 key={cond.code}
                 type="button"
+                variant="ghost"
                 onClick={() => onConditionToggle(cond.code)}
                 className={cn(
                   'inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                   isSelected
-                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground'
                     : 'border-border bg-muted text-foreground hover:border-muted-foreground hover:bg-card'
                 )}
                 aria-pressed={isSelected}
@@ -173,7 +175,7 @@ export function PieceKindPickerDialog({
                   />
                 ) : null}
                 <span>{label}</span>
-              </button>
+              </CmxButton>
             );
           })}
           {prefsForKind.length === 0 && (
@@ -192,8 +194,11 @@ export function PieceKindPickerDialog({
             const label = getBilingual(color.name, color.name2 ?? null) || color.name;
             return (
               <div key={color.code} className="flex max-w-[5.5rem] flex-col items-center gap-1">
-                <button
+                {/* cmx-ds-ignore UI003: fallback neutral swatch color */}
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   title={label}
                   onClick={() => {
                     const nextCodes = selectedColorCodes.includes(color.code)
@@ -206,10 +211,10 @@ export function PieceKindPickerDialog({
                     onColorsChange(nextCodes, nextCfIds);
                   }}
                   className={cn(
-                    'h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                    'h-11 w-11 rounded-full border-2 p-0 transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                     isSelected ? 'scale-110 border-primary ring-2 ring-ring' : 'border-border hover:border-muted-foreground'
                   )}
-                  style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
+                  style={{ /* cmx-ds-ignore UI003: fallback neutral swatch */ backgroundColor: color.color_hex ?? '#e5e7eb' }}
                   aria-label={label}
                   aria-pressed={isSelected}
                 />

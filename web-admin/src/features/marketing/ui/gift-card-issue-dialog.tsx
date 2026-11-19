@@ -24,9 +24,7 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxMoneyFieldController } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
-import { Label } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxMoneyFieldController, CmxSelect, Label } from '@ui/primitives';
 import { issueGiftCardAdmin } from '@/app/actions/marketing/gift-card-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import {
@@ -282,39 +280,33 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
                 {/* Issue type */}
                 <div>
                   <Label htmlFor="issue-type">{t('fields.issueType')} *</Label>
-                  <select
+                  <CmxSelect
                     id="issue-type"
                     {...form.register('issue_type')}
-                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {[
+                    className="mt-1"
+                    options={[
                       GIFT_CARD_ISSUE_TYPE.PROMOTIONAL,
                       GIFT_CARD_ISSUE_TYPE.CORPORATE,
                       GIFT_CARD_ISSUE_TYPE.GOODWILL,
                       GIFT_CARD_ISSUE_TYPE.MIGRATION,
                       GIFT_CARD_ISSUE_TYPE.REPLACEMENT,
-                    ].map((it) => (
-                      <option key={it} value={it}>{t(`issueTypes.${it}`)}</option>
-                    ))}
-                  </select>
+                    ].map((it) => ({ value: it, label: t(`issueTypes.${it}`) }))}
+                  />
                 </div>
 
                 {/* Card type */}
                 <div>
                   <Label htmlFor="gift-card-type">{t('fields.cardType')} *</Label>
-                  <select
+                  <CmxSelect
                     id="gift-card-type"
                     {...form.register('gift_card_type')}
-                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    {[
+                    className="mt-1"
+                    options={[
                       GIFT_CARD_TYPE.FIXED_VALUE,
                       GIFT_CARD_TYPE.PROMOTIONAL,
                       GIFT_CARD_TYPE.CORPORATE,
-                    ].map((ct) => (
-                      <option key={ct} value={ct}>{t(`cardTypes.${ct}`)}</option>
-                    ))}
-                  </select>
+                    ].map((ct) => ({ value: ct, label: t(`cardTypes.${ct}`) }))}
+                  />
                 </div>
 
                 {/* Card Name EN */}
@@ -359,6 +351,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
                     <div className="h-9 flex items-center justify-center rounded-md border bg-muted/40 px-3">
                       <span className="font-mono text-sm font-semibold">{currencyCode}</span>
                     </div>
+                    {/* cmx-ds-ignore UI001: RHF hidden currency_code input */}
                     <input type="hidden" {...form.register('currency_code')} />
                   </div>
                 </div>
@@ -401,6 +394,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
                       </CmxButton>
                     )}
                   </div>
+                  {/* cmx-ds-ignore UI001: RHF hidden input for selected customer ID */}
                   <input type="hidden" {...form.register('purchased_by_cust_id')} />
                 </div>
 
@@ -436,6 +430,7 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
                       </CmxButton>
                     )}
                   </div>
+                  {/* cmx-ds-ignore UI001: RHF hidden input for selected recipient customer ID */}
                   <input type="hidden" {...form.register('issued_to_customer_id')} />
                 </div>
 
@@ -450,18 +445,22 @@ export function GiftCardIssueDialog({ open, onClose, onSuccess }: GiftCardIssueD
                         {...form.register('card_pin')}
                         dir="ltr"
                         placeholder={tCommon('optional')}
+                        className="pe-8"
                       />
-                      <button
+                      <CmxButton
                         type="button"
-                        className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        variant="ghost"
+                        size="xs"
+                        className="absolute end-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         onClick={() => setPinVisible((v) => !v)}
                         tabIndex={-1}
+                        aria-label={pinVisible ? 'Hide PIN' : 'Show PIN'}
                       >
                         {pinVisible
                           ? <EyeOff className="h-4 w-4" />
                           : <Eye className="h-4 w-4" />
                         }
-                      </button>
+                      </CmxButton>
                     </div>
                     <CmxButton type="button" variant="outline" size="sm" onClick={suggestPin}>
                       {t('actions.suggestPin')}

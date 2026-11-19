@@ -5,10 +5,9 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import { CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
-
-import { CmxButton } from '@ui/primitives';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import { STOCK_STATUS } from '@/lib/constants/inventory';
 import type {
   InventoryItemListItem,
@@ -253,7 +252,7 @@ export default function StockPage() {
       <CmxCard className="p-4">
         <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('filters.branch')}</label>
+            <Label className="block mb-1">{t('filters.branch')}</Label>
             <CmxSelect
               value={branchId}
               onChange={(e) => {
@@ -320,38 +319,38 @@ export default function StockPage() {
           <div className="p-8 text-center text-muted-foreground">{t('messages.noItems')}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-muted text-start">
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.itemCode')}</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.itemName')}</th>
+            <Table className="min-w-full text-sm">
+              <TableHeader>
+                <TableRow className="bg-muted text-start">
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.itemCode')}</TableHead>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.itemName')}</TableHead>
                   {branchId && (
-                    <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.sku')}</th>
+                    <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.sku')}</TableHead>
                   )}
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.quantity')}</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.unit')}</th>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.quantity')}</TableHead>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.unit')}</TableHead>
                   {branchId && (
-                    <th className="px-4 py-3 font-medium text-muted-foreground">
+                    <TableHead className="px-4 py-3 font-medium text-muted-foreground">
                       {t('labels.storageLocation')}
-                    </th>
+                    </TableHead>
                   )}
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.unitCost')}</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.stockValue')}</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{t('labels.status')}</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground">{tc('actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.unitCost')}</TableHead>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.stockValue')}</TableHead>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{t('labels.status')}</TableHead>
+                  <TableHead className="px-4 py-3 font-medium text-muted-foreground">{tc('actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {items.map((item) => (
-                  <tr key={item.id} className="border-t hover:bg-muted">
-                    <td className="px-4 py-3 font-mono text-xs">{item.product_code}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={item.id} className="border-t hover:bg-muted">
+                    <TableCell className="px-4 py-3 font-mono text-xs">{item.product_code}</TableCell>
+                    <TableCell className="px-4 py-3">
                       {isRtl ? item.product_name2 || item.product_name : item.product_name}
-                    </td>
+                    </TableCell>
                     {branchId && (
-                      <td className="px-4 py-3 font-mono text-xs">{item.id_sku || '-'}</td>
+                      <TableCell className="px-4 py-3 font-mono text-xs">{item.id_sku || '-'}</TableCell>
                     )}
-                    <td className="px-4 py-3 font-medium">
+                    <TableCell className="px-4 py-3 font-medium tabular-nums">
                       {branchId &&
                       item.qty_on_hand === 0 &&
                       item.has_branch_record === false ? (
@@ -364,15 +363,15 @@ export default function StockPage() {
                       ) : (
                         item.qty_on_hand
                       )}
-                    </td>
-                    <td className="px-4 py-3">{item.product_unit || '-'}</td>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">{item.product_unit || '-'}</TableCell>
                     {branchId && (
-                      <td className="px-4 py-3 text-muted-foreground">{item.storage_location || '-'}</td>
+                      <TableCell className="px-4 py-3 text-muted-foreground">{item.storage_location || '-'}</TableCell>
                     )}
-                    <td className="px-4 py-3">{item.product_cost?.toFixed(2) ?? '-'}</td>
-                    <td className="px-4 py-3 font-medium">{item.stock_value.toFixed(2)}</td>
-                    <td className="px-4 py-3">{getStatusBadge(item.stock_status)}</td>
-                    <td className="px-4 py-3">
+                    <TableCell className="px-4 py-3 tabular-nums">{item.product_cost?.toFixed(2) ?? '-'}</TableCell>
+                    <TableCell className="px-4 py-3 font-medium tabular-nums">{item.stock_value.toFixed(2)}</TableCell>
+                    <TableCell className="px-4 py-3">{getStatusBadge(item.stock_status)}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex gap-1">
                         <CmxButton
                           size="sm"
@@ -389,11 +388,11 @@ export default function StockPage() {
                           {t('actions.history')}
                         </CmxButton>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 

@@ -18,6 +18,7 @@ Use this skill when implementing a focused feature or enhancement.
    - typecheck
    - targeted tests
    - build if affected
+   - UI changes: `npm run check:ui` (0 errors) and the `cmx-ui-design-review` skill (`docs/dev/rules/cmx-design-system.md`)
 8. Return:
    - summary
    - files changed

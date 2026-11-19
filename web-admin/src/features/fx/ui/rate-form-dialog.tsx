@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton, CmxInput, CmxSwitch, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSwitch, CmxTextarea, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
@@ -95,7 +95,7 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 p-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium">{t('rates.form.fromCurrency')}</label>
+              <Label>{t('rates.form.fromCurrency')}</Label>
               <CmxSelectDropdown value={fromCurrencyCode} onValueChange={(v) => form.setValue('fromCurrencyCode', v)}>
                 <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                 <CmxSelectDropdownContent>
@@ -106,7 +106,7 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
               </CmxSelectDropdown>
             </div>
             <div>
-              <label className="text-sm font-medium">{t('rates.form.toCurrency')}</label>
+              <Label>{t('rates.form.toCurrency')}</Label>
               <CmxSelectDropdown value={toCurrencyCode} onValueChange={(v) => form.setValue('toCurrencyCode', v)}>
                 <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                 <CmxSelectDropdownContent>
@@ -120,7 +120,7 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium">{t('rates.form.rateType')}</label>
+              <Label>{t('rates.form.rateType')}</Label>
               <CmxSelectDropdown value={rateTypeCode} onValueChange={(v) => form.setValue('rateTypeCode', v)}>
                 <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                 <CmxSelectDropdownContent>
@@ -131,7 +131,7 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
               </CmxSelectDropdown>
             </div>
             <div>
-              <label className="text-sm font-medium">{t('rates.form.source')}</label>
+              <Label>{t('rates.form.source')}</Label>
               <CmxSelectDropdown value={sourceCode} onValueChange={(v) => form.setValue('sourceCode', v)}>
                 <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                 <CmxSelectDropdownContent>
@@ -144,24 +144,24 @@ export function RateFormDialog({ open, onClose, onSuccess }: RateFormDialogProps
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('rates.rateDate')}</label>
+            <Label>{t('rates.rateDate')}</Label>
             <CmxInput type="date" {...form.register('rateDate')} />
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('rates.form.rateValue')}</label>
+            <Label>{t('rates.form.rateValue')}</Label>
             <CmxInput {...form.register('rate')} placeholder="0.3850000000" className="font-mono" />
             <p className="mt-1 text-xs text-muted-foreground">{t('rates.form.rateHint')}</p>
             {form.formState.errors.rate && <p className="mt-1 text-xs text-destructive">{form.formState.errors.rate.message}</p>}
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('rates.form.sourceReference')}</label>
+            <Label>{t('rates.form.sourceReference')}</Label>
             <CmxInput {...form.register('sourceReference')} />
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('rates.form.notes')}</label>
+            <Label>{t('rates.form.notes')}</Label>
             <CmxTextarea rows={2} {...form.register('notes')} />
           </div>
 

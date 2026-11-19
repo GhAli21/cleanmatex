@@ -10,7 +10,7 @@ agents:
 
 ## Critical Rules
 
-1. Always enforce `tenant_org_id` for tenant-scoped data.
+1. Every `org_*` query (Prisma, Supabase client, raw SQL, SQL functions, joins, and INSERT/UPDATE/DELETE writes) MUST include `tenant_org_id` directly in the query when the table has that column. RLS, Prisma guard/middleware, or a prior parent lookup are defense in depth only — never a substitute for the explicit predicate. Fetch/update/delete by `id` alone is a violation.
 2. Add RLS to new `org_*` tables.
 3. Prefer composite foreign keys where they strengthen tenant isolation.
 4. Verify tenant handling per module; do not universalize one implementation pattern.
@@ -24,6 +24,7 @@ agents:
 ## Review Checklist
 
 - every `org_*` query has safe tenant enforcement
+- every `org_*` query (prisma or raw SQL ...so on) must have clear direct tenant enforcement by adding `tenant_org_id` to the query if the table has that column
 - no cross-tenant leak path
 - no stale assumption that Prisma middleware alone solves everything
 - no destructive shortcut that bypasses tenant safety

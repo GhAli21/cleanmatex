@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { cmxMessage } from '@ui/feedback';
 import {
@@ -199,57 +199,49 @@ export function LoyaltyConfigClient() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               <ConfigField label={t('config.earnRate')}>
-                <input
+                <CmxInput
                   type="number" min="0" step="0.0001"
                   value={earnRate}
                   onChange={(e) => setEarnRate(e.target.value)}
-                  className="cmx-input"
                 />
               </ConfigField>
               <ConfigField label={t('config.redeemRate')}>
-                <input
+                <CmxInput
                   type="number" min="0" step="0.000001"
                   value={redeemRate}
                   onChange={(e) => setRedeemRate(e.target.value)}
-                  className="cmx-input"
                 />
               </ConfigField>
               <ConfigField label={t('config.minRedeemPoints')}>
-                <input
+                <CmxInput
                   type="number" min="0" step="1"
                   value={minRedeem}
                   onChange={(e) => setMinRedeem(e.target.value)}
-                  className="cmx-input"
                 />
               </ConfigField>
               <ConfigField label={t('config.maxRedeemPercent')}>
-                <input
+                <CmxInput
                   type="number" min="0" max="100" step="0.01"
                   value={maxPct}
                   onChange={(e) => setMaxPct(e.target.value)}
-                  className="cmx-input"
                 />
               </ConfigField>
               <ConfigField label={t('config.expiryDays')}>
-                <input
+                <CmxInput
                   type="number" min="0" step="1"
                   value={expiryDays}
                   onChange={(e) => setExpiryDays(e.target.value)}
-                  className="cmx-input"
                 />
               </ConfigField>
               <ConfigField label={t('config.roundingRule')}>
-                <select
+                <CmxSelect
                   value={roundingRule}
                   onChange={(e) => setRoundingRule(e.target.value)}
-                  className="cmx-input"
-                >
-                  {ROUNDING_RULE_OPTIONS.map((rule) => (
-                    <option key={rule} value={rule}>
-                      {t(`config.roundingRuleOptions.${rule}`)}
-                    </option>
-                  ))}
-                </select>
+                  options={ROUNDING_RULE_OPTIONS.map((rule) => ({
+                    value: rule,
+                    label: t(`config.roundingRuleOptions.${rule}`),
+                  }))}
+                />
               </ConfigField>
             </div>
           )}
@@ -357,50 +349,45 @@ export function LoyaltyConfigClient() {
 
           <div className="flex flex-col gap-4 py-2">
             <ConfigField label={t('tiers.name')} required>
-              <input
+              <CmxInput
                 type="text"
                 value={tierName}
                 onChange={(e) => setTierName(e.target.value)}
-                className="cmx-input"
               />
             </ConfigField>
             <ConfigField label={`${t('tiers.name')} (AR)`}>
-              <input
+              <CmxInput
                 type="text"
                 value={tierName2}
                 onChange={(e) => setTierName2(e.target.value)}
-                className="cmx-input"
                 dir="rtl"
               />
             </ConfigField>
             <ConfigField label={t('tiers.minPoints')} required>
-              <input
+              <CmxInput
                 type="number"
                 min="0"
                 step="1"
                 value={tierMinPts}
                 onChange={(e) => setTierMinPts(e.target.value)}
-                className="cmx-input"
               />
             </ConfigField>
             <ConfigField label={t('tiers.bonusMultiplier')} required>
-              <input
+              <CmxInput
                 type="number"
                 min="1"
                 step="0.01"
                 value={tierMultiplier}
                 onChange={(e) => setTierMultiplier(e.target.value)}
-                className="cmx-input"
               />
             </ConfigField>
             <ConfigField label="Sort Order">
-              <input
+              <CmxInput
                 type="number"
                 min="0"
                 step="1"
                 value={tierSort}
                 onChange={(e) => setTierSort(e.target.value)}
-                className="cmx-input"
               />
             </ConfigField>
           </div>
@@ -432,10 +419,10 @@ function ConfigField({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium">
+      <Label className="text-sm font-medium">
         {label}
         {required && <span className="ms-0.5 text-destructive">*</span>}
-      </label>
+      </Label>
       {children}
     </div>
   );

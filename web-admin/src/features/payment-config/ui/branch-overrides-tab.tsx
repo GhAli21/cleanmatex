@@ -4,7 +4,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Info } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, Label } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
 
@@ -241,7 +241,7 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
-        <label className="text-sm font-medium shrink-0">{t('branches.selectBranch')}</label>
+        <Label className="text-sm font-medium shrink-0">{t('branches.selectBranch')}</Label>
         <CmxSelectDropdown
           value={selectedBranchId}
           onValueChange={(v) => setSelectedBranchId(v)}

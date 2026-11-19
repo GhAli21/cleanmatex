@@ -6,6 +6,7 @@ import { AlertTriangle, Ban, CheckCircle2, Lock, RotateCcw, XCircle } from 'luci
 
 import { CmxButton } from '@ui/primitives/cmx-button'
 import { CmxTextarea } from '@ui/primitives/cmx-textarea'
+import { Label } from '@ui/primitives'
 import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
@@ -193,9 +194,9 @@ export function PaymentTransitionDialog({
           ) : null}
           {requiresFallback ? (
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              <Label className="mb-1 block text-xs font-medium text-muted-foreground">
                 {t('transition.fallbackClassificationLabel')}
-              </label>
+              </Label>
               <CmxSelectDropdown value={fallbackClassification} onValueChange={setFallbackClassification}>
                 <CmxSelectDropdownTrigger className="w-full text-sm">
                   {fallbackClassification

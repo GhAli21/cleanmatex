@@ -1,6 +1,8 @@
 /**
  * CmxDialog names and describes its role="dialog" node from CmxDialogTitle / CmxDialogDescription (HFC A-44).
  */
+// next-intl ships ESM that jest cannot parse; CmxDialog only needs key-returning translations.
+jest.mock('next-intl', () => ({ useLocale: () => 'en', useTranslations: () => (key: string) => key }));
 import '@testing-library/jest-dom';
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';

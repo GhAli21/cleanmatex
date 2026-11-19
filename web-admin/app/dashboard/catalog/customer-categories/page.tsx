@@ -9,7 +9,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 
 import {
   CmxDialog,
@@ -237,41 +238,41 @@ export default function CustomerCategoriesPage() {
             <p className="text-muted-foreground py-8 text-center">Loading...</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="border-b">
-                  <tr>
-                    <th className="text-start py-2 px-3 font-medium">Code</th>
-                    <th className="text-start py-2 px-3 font-medium">Name</th>
-                    <th className="text-start py-2 px-3 font-medium">Type</th>
-                    <th className="text-start py-2 px-3 font-medium">B2B</th>
-                    <th className="text-start py-2 px-3 font-medium">Status</th>
+              <Table className="min-w-full text-sm">
+                <TableHeader className="border-b">
+                  <TableRow>
+                    <TableHead className="text-start py-2 px-3 font-medium">Code</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">Name</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">Type</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">B2B</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">Status</TableHead>
                     <RequireAnyPermission
                       permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
-                      fallback={<th />}
+                      fallback={<TableHead />}
                     >
-                      <th className="text-end py-2 px-3 font-medium">Actions</th>
+                      <TableHead className="text-end py-2 px-3 font-medium">Actions</TableHead>
                     </RequireAnyPermission>
-                  </tr>
-                </thead>
-                <tbody>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {categories.map((cat) => (
-                    <tr key={cat.id} className="border-b last:border-0">
-                      <td className="py-2 px-3 font-mono">{cat.code}</td>
-                      <td className="py-2 px-3">
+                    <TableRow key={cat.id} className="border-b last:border-0">
+                      <TableCell className="py-2 px-3 font-mono">{cat.code}</TableCell>
+                      <TableCell className="py-2 px-3">
                         <div>{cat.name}</div>
                         {cat.name2 && (
                           <div className="text-muted-foreground text-xs" dir="rtl">
                             {cat.name2}
                           </div>
                         )}
-                      </td>
-                      <td className="py-2 px-3">{cat.system_type || '—'}</td>
-                      <td className="py-2 px-3">
+                      </TableCell>
+                      <TableCell className="py-2 px-3">{cat.system_type || '—'}</TableCell>
+                      <TableCell className="py-2 px-3">
                         <CmxStatusBadge size="sm" tone={cat.is_b2b ? 'brand' : 'neutral'}>
                           {cat.is_b2b ? 'Yes' : 'No'}
                         </CmxStatusBadge>
-                      </td>
-                      <td className="py-2 px-3">
+                      </TableCell>
+                      <TableCell className="py-2 px-3">
                         <div className="flex gap-1">
                           <CmxStatusBadge size="sm" tone={cat.is_active ? 'success' : 'neutral'}>
                             {cat.is_active ? 'Active' : 'Inactive'}
@@ -280,12 +281,12 @@ export default function CustomerCategoriesPage() {
                             <CmxStatusBadge size="sm" tone="neutral" appearance="outline">System</CmxStatusBadge>
                           )}
                         </div>
-                      </td>
+                      </TableCell>
                       <RequireAnyPermission
                         permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
-                        fallback={<td />}
+                        fallback={<TableCell />}
                       >
-                        <td className="py-2 px-3 text-end">
+                        <TableCell className="py-2 px-3 text-end">
                           <CmxButton
                             variant="ghost"
                             size="sm"
@@ -301,12 +302,12 @@ export default function CustomerCategoriesPage() {
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </CmxButton>
-                        </td>
+                        </TableCell>
                       </RequireAnyPermission>
-                    </tr>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CmxCardContent>
@@ -360,8 +361,7 @@ export default function CustomerCategoriesPage() {
               </div>
               <div>
                 <Label>System Type</Label>
-                <select
-                  className="w-full h-9 rounded-md border px-3"
+                <CmxSelect
                   value={formData.system_type}
                   onChange={(e) =>
                     setFormData({
@@ -372,13 +372,8 @@ export default function CustomerCategoriesPage() {
                     })
                   }
                   disabled={isReserved}
-                >
-                  {SYSTEM_TYPES.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  options={[...SYSTEM_TYPES]}
+                />
               </div>
               <div>
                 <Label>Display Order</Label>
@@ -391,29 +386,26 @@ export default function CustomerCategoriesPage() {
                   className="w-full"
                 />
               </div>
-              <div className="flex gap-4 sm:col-span-2">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_b2b}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        is_b2b: e.target.checked,
-                        is_individual: !e.target.checked,
-                      })
-                    }
-                    disabled={isReserved}
-                  />
-                  <span className="text-sm">B2B</span>
-                </label>
-                <label className="flex items-center gap-2">
+              <div className="flex items-center gap-4 sm:col-span-2">
+                <CmxCheckbox
+                  checked={formData.is_b2b}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      is_b2b: e.target.checked,
+                      is_individual: !e.target.checked,
+                    })
+                  }
+                  disabled={isReserved}
+                  label="B2B"
+                />
+                <div className="flex items-center gap-2">
                   <CmxSwitch
                     checked={formData.is_active}
                     onCheckedChange={(v) => setFormData({ ...formData, is_active: !!v })}
                   />
-                  <span className="text-sm">Active</span>
-                </label>
+                  <Label className="text-sm font-normal">Active</Label>
+                </div>
               </div>
             </div>
             <CmxDialogFooter>

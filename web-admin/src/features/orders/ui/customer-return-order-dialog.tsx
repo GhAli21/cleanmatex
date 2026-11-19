@@ -19,7 +19,7 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
-import { Label, CmxTextarea } from '@ui/primitives';
+import { Label, CmxSelect, CmxTextarea } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 
@@ -136,20 +136,21 @@ export function CustomerReturnOrderDialog({
             <Label htmlFor="return-reason-code" className="text-start">
               {t('reasonCodeLabel')} ({tCommon('optional')})
             </Label>
-            <select
+            <CmxSelect
               id="return-reason-code"
               value={reasonCode}
               onChange={(e) => setReasonCode(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-start"
+              className="mt-1 text-start"
               dir={isRTL ? 'rtl' : 'ltr'}
-            >
-              <option value="">{t('reasonCodePlaceholder')}</option>
-              <option value="CHANGED_MIND">{t('reasonCodes.changedMind')}</option>
-              <option value="QUALITY_ISSUE">{t('reasonCodes.qualityIssue')}</option>
-              <option value="WRONG_ITEMS">{t('reasonCodes.wrongItems')}</option>
-              <option value="DAMAGED">{t('reasonCodes.damaged')}</option>
-              <option value="OTHER">{t('reasonCodes.other')}</option>
-            </select>
+              options={[
+                { value: '', label: t('reasonCodePlaceholder') },
+                { value: 'CHANGED_MIND', label: t('reasonCodes.changedMind') },
+                { value: 'QUALITY_ISSUE', label: t('reasonCodes.qualityIssue') },
+                { value: 'WRONG_ITEMS', label: t('reasonCodes.wrongItems') },
+                { value: 'DAMAGED', label: t('reasonCodes.damaged') },
+                { value: 'OTHER', label: t('reasonCodes.other') },
+              ]}
+            />
           </div>
         </div>
 

@@ -257,16 +257,14 @@ Correct:
 ```tsx
 <div className="ms-4">...</div>
 <ChevronRight className="rtl:rotate-180" />
-<div className="text-left rtl:text-right">...</div>
+<div className="text-start">...</div>
 ```
 
-Avoid direction-specific layout unless paired:
-
-```tsx
-<div className="ml-4 rtl:ml-0 rtl:mr-4">...</div>
-```
+Never physical classes (`ml-`, `mr-`, `pl-`, `pr-`, `left-`, `right-`, `text-left`, `text-right`), not even paired with `rtl:`; ESLint fails them. Never `isRTL ? ... : ...` for layout classes. Full direction rules: `docs/dev/rules/cmx-design-system.md` §4.
 
 ## 10. Styling rules
+
+The full rules, with the token table and the fixes, are `docs/dev/rules/cmx-design-system.md`. No `dark:` classes: dark mode follows `<html data-mode>`, and the tokens switch by themselves.
 
 Do:
 
@@ -359,5 +357,7 @@ npm run
 ```
 
 Then report the closest available checks and their result.
+
+Also run `npm run check:ui` (design system checks on changed files; 0 errors) and the `/cmx-ui-design-review` skill on the changed UI.
 
 Do not claim checks passed unless they actually ran and exited successfully.

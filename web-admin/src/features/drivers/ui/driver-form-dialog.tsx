@@ -5,8 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import { createDriverSchema, updateDriverSchema, type CreateDriverFormValues } from '../model/driver-schema';
@@ -69,22 +68,22 @@ export function DriverFormDialog({ driver, branches, open, onClose, onSuccess }:
         </CmxDialogHeader>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 py-2">
           <div>
-            <label className="text-sm font-medium">{t('form.name')}</label>
+            <Label>{t('form.name')}</Label>
             <CmxInput {...form.register('name')} />
             {form.formState.errors.name && (
               <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>
             )}
           </div>
           <div>
-            <label className="text-sm font-medium">{t('form.name2')}</label>
+            <Label>{t('form.name2')}</Label>
             <CmxInput {...form.register('name2')} dir="rtl" />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('form.phone')}</label>
+            <Label>{t('form.phone')}</Label>
             <CmxInput {...form.register('phone')} placeholder="+968 9xxxxxxx" />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('form.branch')}</label>
+            <Label>{t('form.branch')}</Label>
             <CmxSelectDropdown
               value={branchId ?? NO_BRANCH_VALUE}
               onValueChange={(value) => form.setValue('branch_id', value === NO_BRANCH_VALUE ? undefined : value)}
@@ -99,15 +98,15 @@ export function DriverFormDialog({ driver, branches, open, onClose, onSuccess }:
             </CmxSelectDropdown>
           </div>
           <div>
-            <label className="text-sm font-medium">{t('form.vehicleType')}</label>
+            <Label>{t('form.vehicleType')}</Label>
             <CmxInput {...form.register('vehicle_type')} placeholder={t('form.vehicleTypePlaceholder')} />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('form.vehiclePlateNo')}</label>
+            <Label>{t('form.vehiclePlateNo')}</Label>
             <CmxInput {...form.register('vehicle_plate_no')} className="font-mono" />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('form.licenseNo')}</label>
+            <Label>{t('form.licenseNo')}</Label>
             <CmxInput {...form.register('license_no')} className="font-mono" />
           </div>
           <CmxDialogFooter>

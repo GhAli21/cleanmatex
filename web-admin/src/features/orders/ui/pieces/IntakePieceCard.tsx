@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { PieceBaseCard } from './PieceBaseCard';
-import { CmxButton, CmxCheckbox, CmxInput, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput, CmxTextarea, Label } from '@ui/primitives';
 import { EditIcon } from 'lucide-react';
 import { formatCodeLabel } from '@/lib/utils/format-code-label';
 import type { OrderItemPiece } from '@/types/order';
@@ -42,6 +42,7 @@ export function IntakePieceCard({
   showSplitCheckbox = false,
   isSelectedForSplit = false,
   onSplitToggle,
+  // cmx-ds-ignore UI003: fallback default color prop
   rejectColor = '#10B981',
   readOnly = false,
   density = 'comfortable',
@@ -149,9 +150,9 @@ export function IntakePieceCard({
       <div className="grid grid-cols-12 gap-3 mt-1">
         {/* Notes Input */}
         <div className="col-span-12 sm:col-span-8 min-w-0">
-          <label className="block text-xs font-medium text-foreground mb-1">
+          <Label className="block text-xs mb-1">
             {t('notes')}
-          </label>
+          </Label>
           {readOnly ? (
             <div className="text-sm text-muted-foreground min-h-[36px]">
               {piece.notes || t('noNotes')}
@@ -169,9 +170,9 @@ export function IntakePieceCard({
 
         {/* Rack Location Input */}
         <div className="col-span-12 sm:col-span-4 min-w-0">
-          <label className="block text-xs font-medium text-foreground mb-1">
+          <Label className="block text-xs mb-1">
             {t('rackLocation')}
-          </label>
+          </Label>
           {readOnly ? (
             <div className="text-sm text-muted-foreground">
               {piece.rack_location || t('notSet')}

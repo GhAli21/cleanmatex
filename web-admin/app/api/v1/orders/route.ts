@@ -15,7 +15,11 @@ import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
 import { logger } from '@/lib/utils/logger';
 import { getPickupReleaseSummaries } from '@/lib/services/pickup/pickup-release-state.service';
-import { listStageWorklistOrderPage } from '@/lib/services/workflow/stage-worklist-query.service';
+import {
+  listStageWorklistOrderPage,
+  listStageWorklistOrderPageWithSummary,
+  type StageWorklistSummary,
+} from '@/lib/services/workflow/stage-worklist-query.service';
 import {
   isReadyFloorScreen,
   parseReadyListQueryFromApi,
@@ -116,6 +120,10 @@ export async function GET(request: NextRequest) {
     const isRetail = searchParams.get('is_retail');
     const orderSourceCode = searchParams.get('order_source_code')?.trim() || '';
     const physicalIntakeStatus = searchParams.get('physical_intake_status')?.trim() || '';
+    const priorityParam = searchParams.get('priority')?.trim() || '';
+    const hasIssueParam = searchParams.get('has_issue');
+    const overdueParam = searchParams.get('overdue');
+    const includeSummary = searchParams.get('include_summary') === '1' || searchParams.get('include_summary') === 'true';
     const workflowScreen = searchParams.get('workflow_screen')?.trim() || '';
     const readyListQuery = isReadyFloorScreen(workflowScreen)
       ? parseReadyListQueryFromApi(searchParams)
@@ -189,8 +197,15 @@ export async function GET(request: NextRequest) {
           quantity_ready,
           service_category_code,
           item_is_rejected,
+          color,
+          brand,
           has_stain,
-          has_damage
+          has_damage,
+          org_product_data_mst(
+            id,
+            product_name,
+            product_name2
+          )
         )`
           : `,
         org_order_items_dtl(
@@ -260,6 +275,7 @@ export async function GET(request: NextRequest) {
 
     let stageWorklistTotal: number | null = null;
     let stageWorklistOrderIds: string[] | null = null;
+    let stageWorklistSummary: StageWorklistSummary | undefined;
     if (workflowScreen) {
       const focusNarrow = readyListQuery ? readyListQueryToWorklist(readyListQuery) : {};
       const statusNarrow = (
@@ -271,12 +287,20 @@ export async function GET(request: NextRequest) {
         ?.split(',')
         .map((value) => value.trim())
         .filter(Boolean);
-      const worklist = await listStageWorklistOrderPage(tenantId, {
+      const priority = priorityParam
+        ? priorityParam.split(',').map((value) => value.trim()).filter(Boolean)
+        : undefined;
+      const hasIssue = hasIssueParam === 'true' || hasIssueParam === '1';
+      const overdue = overdueParam === 'true' || overdueParam === '1';
+      const worklistInput = {
         screen: workflowScreen,
         page,
         pageSize: limit,
         search: search || undefined,
         statusNarrow,
+        priority,
+        hasIssue: hasIssue || undefined,
+        overdue: overdue || undefined,
         collectionDue: focusNarrow.collectionDue,
         missingRack: focusNarrow.missingRack,
         receivedFrom: receivedFrom || undefined,
@@ -285,9 +309,15 @@ export async function GET(request: NextRequest) {
         readyByTo: readyByTo || undefined,
         sortBy,
         sortAscending: sortOrder,
-      });
+      };
+      const worklist = includeSummary
+        ? await listStageWorklistOrderPageWithSummary(tenantId, worklistInput)
+        : await listStageWorklistOrderPage(tenantId, worklistInput);
       stageWorklistTotal = worklist.total;
       stageWorklistOrderIds = worklist.orderIds;
+      if (includeSummary && 'summary' in worklist) {
+        stageWorklistSummary = worklist.summary as StageWorklistSummary;
+      }
       if (worklist.orderIds.length === 0) {
         return NextResponse.json({
           success: true,
@@ -299,6 +329,7 @@ export async function GET(request: NextRequest) {
               total: worklist.total,
               totalPages: Math.ceil(worklist.total / limit),
             },
+            ...(stageWorklistSummary ? { summary: stageWorklistSummary } : {}),
           },
         });
       }
@@ -421,8 +452,28 @@ export async function GET(request: NextRequest) {
       includeItemsPreview && orders
         ? orders.map((orderRow: Record<string, unknown>) => {
             const rawItems = orderRow.org_order_items_dtl;
-            const items = Array.isArray(rawItems) ? rawItems.slice(0, 3) : rawItems;
-            return { ...orderRow, org_order_items_dtl: items };
+            if (!Array.isArray(rawItems)) {
+              return orderRow;
+            }
+            const readyPiecesCount = rawItems.reduce(
+              (sum, it) => sum + (Number((it as { quantity_ready?: unknown }).quantity_ready) || 0),
+              0,
+            );
+            const totalPiecesCount = rawItems.reduce(
+              (sum, it) => sum + (Number((it as { quantity?: unknown }).quantity) || 0),
+              0,
+            );
+            const hasStainAny = rawItems.some((it) => Boolean((it as { has_stain?: unknown }).has_stain));
+            const hasDamageAny = rawItems.some((it) => Boolean((it as { has_damage?: unknown }).has_damage));
+            return {
+              ...orderRow,
+              items_count: rawItems.length,
+              ready_pieces_count: readyPiecesCount,
+              total_pieces_count: totalPiecesCount,
+              has_stain_any: hasStainAny,
+              has_damage_any: hasDamageAny,
+              org_order_items_dtl: rawItems.slice(0, 3),
+            };
           })
         : orders;
     const pickupReleaseSummaries = await getPickupReleaseSummaries({
@@ -471,6 +522,7 @@ export async function GET(request: NextRequest) {
           total,
           totalPages: Math.ceil(total / limit),
         },
+        ...(stageWorklistSummary ? { summary: stageWorklistSummary } : {}),
       },
     });
   } catch (e) {

@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxButton, CmxInput, CmxTextarea, Label } from '@ui/primitives'
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'
 
@@ -16,12 +16,12 @@ import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, 
 const CHANNELS = ['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH'] as const
 
 const schema = z.object({
-  name:           z.string().min(1, 'Required').max(500),
-  name2:          z.string().max(500).optional(),
-  description:    z.string().optional(),
-  channel_code:   z.enum(CHANNELS),
+  name:            z.string().min(1, 'Required').max(500),
+  name2:           z.string().max(500).optional(),
+  description:     z.string().optional(),
+  channel_code:    z.enum(CHANNELS),
   target_user_ids: z.string().min(1, 'At least one user ID is required'),
-  scheduled_at:   z.string().optional(),
+  scheduled_at:    z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -48,16 +48,16 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { channel_code: 'IN_APP' },
   })
 
-  const channelCode = watch('channel_code')
+  const channelCode = useWatch({ control, name: 'channel_code' }) ?? 'IN_APP'
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null)
@@ -103,38 +103,34 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
 
       {/* Name EN */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium">
+        <Label className="block">
           {t('campaigns.form.name')}
-        </label>
-        <input
+        </Label>
+        <CmxInput
           {...register('name')}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.namePlaceholder')}
+          error={errors.name?.message}
         />
-        {errors.name && (
-          <p className="text-xs text-danger-text">{errors.name.message}</p>
-        )}
       </div>
 
       {/* Name AR */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium">
+        <Label className="block">
           {t('campaigns.form.nameAr')}
           <span className="ms-1 text-xs text-muted-foreground">({t('campaigns.form.optional')})</span>
-        </label>
-        <input
+        </Label>
+        <CmxInput
           {...register('name2')}
           dir="rtl"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.nameArPlaceholder')}
         />
       </div>
 
       {/* Channel */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium">
+        <Label className="block">
           {t('campaigns.form.channel')}
-        </label>
+        </Label>
         <CmxSelectDropdown
           value={channelCode}
           onValueChange={v => setValue('channel_code', v as typeof channelCode)}
@@ -155,47 +151,48 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
 
       {/* Description */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium">
+        <Label className="block">
           {t('campaigns.form.description')}
           <span className="ms-1 text-xs text-muted-foreground">({t('campaigns.form.optional')})</span>
-        </label>
-        <textarea
+        </Label>
+        <CmxTextarea
           {...register('description')}
           rows={2}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder={t('campaigns.form.descriptionPlaceholder')}
         />
       </div>
 
       {/* Target user IDs */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium">
+        <Label className="block">
           {t('campaigns.form.targetUserIds')}
-        </label>
-        <textarea
+        </Label>
+        <CmxTextarea
           {...register('target_user_ids')}
           rows={4}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-ring"
+          className="font-mono text-xs"
           placeholder={t('campaigns.form.targetUserIdsPlaceholder')}
+          aria-invalid={Boolean(errors.target_user_ids)}
         />
+        {errors.target_user_ids?.message && (
+          <p className="text-xs text-destructive" role="alert">
+            {errors.target_user_ids.message}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           {t('campaigns.form.targetUserIdsHint')}
         </p>
-        {errors.target_user_ids && (
-          <p className="text-xs text-danger-text">{errors.target_user_ids.message}</p>
-        )}
       </div>
 
       {/* Scheduled at (optional) */}
       <div className="space-y-1">
-        <label className="block text-sm font-medium">
+        <Label className="block">
           {t('campaigns.form.scheduledAt')}
           <span className="ms-1 text-xs text-muted-foreground">({t('campaigns.form.optional')})</span>
-        </label>
-        <input
+        </Label>
+        <CmxInput
           {...register('scheduled_at')}
           type="datetime-local"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
         <p className="text-xs text-muted-foreground">
           {t('campaigns.form.scheduledAtHint')}

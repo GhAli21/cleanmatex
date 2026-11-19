@@ -10,6 +10,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { CmxButton, CmxSelect } from '@ui/primitives';
 import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
 import { resolveScan, scanResultHref } from '@features/scan/api/scan-api';
 
@@ -89,75 +90,80 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         </div>
 
         {/* Status Filter */}
-        <select
+        <CmxSelect
           value={currentFilters.status || ''}
           onChange={(e) => handleFilterChange('status', e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-start"
+          className="text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByStatus')}
-        >
-          <option value="">{t('allStatuses')}</option>
-          <option value="draft">{t('statuses.draft')}</option>
-          <option value="intake">{t('statuses.intake')}</option>
-          <option value="preparation">{t('statuses.preparation')}</option>
-          <option value="processing">{t('statuses.processing')}</option>
-          <option value="ready">{t('statuses.ready')}</option>
-          <option value="ready_for_pickup">{t('statuses.readyForPickup')}</option>
-          <option value="out_for_delivery">{t('statuses.outForDelivery')}</option>
-          <option value="delivered">{t('statuses.delivered')}</option>
-        </select>
+          options={[
+            { value: '', label: t('allStatuses') },
+            { value: 'draft', label: t('statuses.draft') },
+            { value: 'intake', label: t('statuses.intake') },
+            { value: 'preparation', label: t('statuses.preparation') },
+            { value: 'processing', label: t('statuses.processing') },
+            { value: 'ready', label: t('statuses.ready') },
+            { value: 'ready_for_pickup', label: t('statuses.readyForPickup') },
+            { value: 'out_for_delivery', label: t('statuses.outForDelivery') },
+            { value: 'delivered', label: t('statuses.delivered') },
+          ]}
+        />
 
         {/* Preparation Status Filter */}
-        <select
+        <CmxSelect
           value={currentFilters.preparationStatus || ''}
           onChange={(e) => handleFilterChange('preparationStatus', e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-start"
+          className="text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
-        >
-          <option value="">{t('allPrepStatuses')}</option>
-          <option value="pending">{t('prepStatuses.pending')}</option>
-          <option value="in_progress">{t('prepStatuses.inProgress')}</option>
-          <option value="completed">{t('prepStatuses.completed')}</option>
-        </select>
+          options={[
+            { value: '', label: t('allPrepStatuses') },
+            { value: 'pending', label: t('prepStatuses.pending') },
+            { value: 'in_progress', label: t('prepStatuses.inProgress') },
+            { value: 'completed', label: t('prepStatuses.completed') },
+          ]}
+        />
 
         {/* Priority Filter */}
-        <select
+        <CmxSelect
           value={currentFilters.priority || ''}
           onChange={(e) => handleFilterChange('priority', e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-start"
+          className="text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByPriority')}
-        >
-          <option value="">{t('allPriorities')}</option>
-          <option value="normal">{t('priorities.normal')}</option>
-          <option value="urgent">{t('priorities.urgent')}</option>
-          <option value="express">{t('priorities.express')}</option>
-        </select>
+          options={[
+            { value: '', label: t('allPriorities') },
+            { value: 'normal', label: t('priorities.normal') },
+            { value: 'urgent', label: t('priorities.urgent') },
+            { value: 'express', label: t('priorities.express') },
+          ]}
+        />
 
         {/* Retail Filter */}
-        <select
+        <CmxSelect
           value={currentFilters.isRetail || ''}
           onChange={(e) => handleFilterChange('isRetail', e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-start"
+          className="text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByOrderType')}
-        >
-          <option value="">{t('allOrders')}</option>
-          <option value="true">{t('retailOnly')}</option>
-          <option value="false">{t('servicesOnly')}</option>
-        </select>
+          options={[
+            { value: '', label: t('allOrders') },
+            { value: 'true', label: t('retailOnly') },
+            { value: 'false', label: t('servicesOnly') },
+          ]}
+        />
 
-        <select
+        <CmxSelect
           value={currentFilters.physicalIntakeStatus || ''}
           onChange={(e) => handleFilterChange('physicalIntakeStatus', e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-start"
+          className="text-start"
           dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByIntake')}
-        >
-          <option value="">{t('allIntakeStatuses')}</option>
-          <option value="pending_dropoff">{t('intakePendingDropoff')}</option>
-          <option value="received">{t('intakeReceived')}</option>
-        </select>
+          options={[
+            { value: '', label: t('allIntakeStatuses') },
+            { value: 'pending_dropoff', label: t('intakePendingDropoff') },
+            { value: 'received', label: t('intakeReceived') },
+          ]}
+        />
       </div>
 
       {/* Clear Filters */}
@@ -167,12 +173,15 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         currentFilters.isRetail ||
         currentFilters.search) && (
         <div className="mt-3">
-          <button
+          <CmxButton
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={handleClearFilters}
-            className="text-sm text-primary-text hover:text-primary-text/80"
+            className="h-auto px-1 py-0.5 text-sm text-primary-text hover:bg-transparent hover:text-primary-text/80"
           >
             {t('clearAllFilters')}
-          </button>
+          </CmxButton>
         </div>
       )}
     </div>

@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
+import { CmxButton } from '@ui/primitives'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
 import { UserSessionsTab } from '@features/auth-session/ui/user-sessions-tab'
@@ -80,13 +81,16 @@ export function UserDetailScreen() {
   if (error && !user) {
     return (
       <div className="space-y-4">
-        <button
+        <CmxButton
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => router.push('/dashboard/users')}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+          className="h-auto px-0 py-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 me-1" />
           {t('backToUsers')}
-        </button>
+        </CmxButton>
         <div className="rounded-lg border border-danger-border bg-danger-bg p-6 text-center">
           <AlertCircle className="h-12 w-12 text-danger-text mx-auto mb-3" />
           <p className="text-danger-text">{error}</p>
@@ -99,13 +103,16 @@ export function UserDetailScreen() {
   if (!user) {
     return (
       <div className="space-y-4">
-        <button
+        <CmxButton
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => router.push('/dashboard/users')}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+          className="h-auto px-0 py-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 me-1" />
           {t('backToUsers')}
-        </button>
+        </CmxButton>
         <div className="rounded-lg border border-border p-8 text-center">
           <p className="text-muted-foreground">
             {t('userNotFound')}
@@ -120,13 +127,16 @@ export function UserDetailScreen() {
   return (
     <div className="space-y-6">
       {/* Back button */}
-      <button
+      <CmxButton
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => router.push('/dashboard/users')}
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        className="h-auto px-0 py-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 me-1" />
         {t('backToUsers')}
-      </button>
+      </CmxButton>
 
       {/* User header */}
       <div className="rounded-lg border border-border bg-background p-6">
@@ -147,9 +157,8 @@ export function UserDetailScreen() {
                 {user.role}
               </span>
               <span
-                className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                  user.is_active ? 'bg-success-bg text-success-text' : 'bg-danger-bg text-danger-text'
-                }`}
+                className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${user.is_active ? 'bg-success-bg text-success-text' : 'bg-danger-bg text-danger-text'
+                  }`}
               >
                 {user.is_active ? tCommon('active') : tCommon('inactive')}
               </span>
@@ -169,7 +178,7 @@ export function UserDetailScreen() {
 
       {/* Tabs */}
       <div className="border-b border-border">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-8" role="tablist">
           {(
             [
               { key: 'profile', label: t('profileTab') },
@@ -178,17 +187,21 @@ export function UserDetailScreen() {
               ...(canViewSessions ? [{ key: 'sessions', label: t('sessionsTab') }] : []),
             ] as { key: TabKey; label: string }[]
           ).map(({ key, label }) => (
-            <button
+            <CmxButton
               key={key}
+              type="button"
+              variant="ghost"
+              size="sm"
+              role="tab"
+              aria-selected={activeTab === key}
               onClick={() => setActiveTab(key)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === key
+              className={`rounded-none py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap hover:bg-transparent ${activeTab === key
                   ? 'border-primary text-primary-text'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-              }`}
+                }`}
             >
               {label}
-            </button>
+            </CmxButton>
           ))}
         </nav>
       </div>

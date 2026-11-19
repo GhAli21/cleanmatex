@@ -10,6 +10,7 @@ import {
   TrendingDown,
   RefreshCw,
 } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
 import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
 
 interface WorkflowStats {
@@ -95,12 +96,15 @@ export function WorkflowStatsWidget() {
           <h3 className="text-lg font-semibold text-foreground">
             Workflow Statistics
           </h3>
-          <button
+          <CmxButton
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={handleRefresh}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Refresh"
           >
             <RefreshCw className="h-5 w-5" />
-          </button>
+          </CmxButton>
         </div>
         <div className="rounded-lg bg-danger-bg p-4 text-sm text-danger-text">
           {error || 'No data available'}
@@ -130,6 +134,7 @@ export function WorkflowStatsWidget() {
     const meta = STATUS_META[item.status];
     return {
       label: meta?.label || item.status,
+      // cmx-ds-ignore UI003: fallback neutral conic-gradient slice hex color
       color: meta?.color || '#999',
       value: item.count,
       percentage: ((item.count / stats.totalOrders) * 100).toFixed(1),
@@ -152,16 +157,18 @@ export function WorkflowStatsWidget() {
         <h3 className="text-lg font-semibold text-foreground">
           Workflow Statistics
         </h3>
-        <button
+        <CmxButton
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh"
         >
           <RefreshCw
             className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
           />
-        </button>
+        </CmxButton>
       </div>
 
       {/* Content */}

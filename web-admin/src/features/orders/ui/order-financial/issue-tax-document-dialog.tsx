@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { Label } from '@ui/primitives';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -77,7 +78,7 @@ export function IssueTaxDocumentDialog({ open, onOpenChange, orderId }: IssueTax
           <CmxDialogDescription>{t('description')}</CmxDialogDescription>
         </CmxDialogHeader>
         <div className="space-y-3">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('documentTypeLabel')}</label>
+          <Label className="mb-1 block text-xs font-medium text-muted-foreground">{t('documentTypeLabel')}</Label>
           <CmxSelectDropdown value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
             <CmxSelectDropdownTrigger className="w-full text-sm">
               {documentType === 'INVOICE' ? t('documentTypeInvoice') : t('documentTypeSimplified')}

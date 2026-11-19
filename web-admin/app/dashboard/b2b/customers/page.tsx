@@ -4,17 +4,29 @@
  */
 
 'use client';
-import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
 
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { CmxButton } from '@ui/primitives';
+import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
+import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/auth-context';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { B2B_B2B_CUSTOMERS_ACCESS } from '@features/b2b/access/b2b-access';
 
-
-import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
-import { B2B_B2B_CUSTOMERS_ACCESS } from '@features/b2b/access/b2b-access'
+interface B2BCustomerRow {
+  id: string;
+  name: string | null;
+  name2: string | null;
+  display_name: string | null;
+  phone: string | null;
+  company_name: string | null;
+  company_name2: string | null;
+  credit_limit: number | null;
+  payment_terms_days: number | null;
+}
 
 /**
  *
@@ -37,88 +49,91 @@ export default function B2BCustomersPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as B2BCustomerRow[];
     },
     enabled: !!tenantId && !!currentTenant,
   });
 
   if (isLoading) {
     return (
-    <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_ACCESS.page.permissions ?? []}>
-      <div className="space-y-6">
-        <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
-        <div className="h-64 bg-muted rounded animate-pulse" />
-      </div>
-    </RequireAnyPermission>
-  );
+      <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_ACCESS.page.permissions ?? []}>
+        <div className="space-y-6">
+          <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
+          <div className="h-64 bg-muted rounded animate-pulse" />
+        </div>
+      </RequireAnyPermission>
+    );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">
-          {t('customers') || 'B2B Customers'}
-        </h1>
-        <CmxButton variant="primary" onClick={() => router.push('/dashboard/b2b/customers/new')}>
-          {t('createB2BCustomer') || 'Create B2B Customer'}
+  const columns: CmxDataTableSimpleColumn<B2BCustomerRow>[] = [
+    {
+      key: 'company',
+      header: t('company') || 'Company',
+      sortable: false,
+      render: (c) => c.company_name || c.display_name || c.name || '—',
+    },
+    {
+      key: 'phone',
+      header: t('phone') || 'Phone',
+      sortable: false,
+      render: (c) => (c.phone ? <bdi dir="ltr" className="tabular-nums">{c.phone}</bdi> : '—'),
+    },
+    {
+      key: 'credit_limit',
+      header: t('creditLimit') || 'Credit Limit',
+      align: 'end',
+      sortable: false,
+      render: (c) =>
+        c.credit_limit != null ? (
+          <bdi dir="ltr" className="tabular-nums">{Number(c.credit_limit).toLocaleString()}</bdi>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'actions',
+      header: t('actions') || 'Actions',
+      align: 'end',
+      sortable: false,
+      render: (c) => (
+        <CmxButton
+          variant="outline"
+          size="sm"
+          onClick={() => router.push(`/dashboard/b2b/customers/${c.id}`)}
+        >
+          {t('view') || 'View'}
         </CmxButton>
-      </div>
+      ),
+    },
+  ];
 
-      <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{t('customers') || 'B2B Customers'}</CmxCardTitle>
-        </CmxCardHeader>
-        <CmxCardContent>
-          {!customers?.length ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                {t('noCustomers') || 'No B2B customers yet. Create one to get started.'}
-              </p>
-              <CmxButton
-                onClick={() => router.push('/dashboard/b2b/customers/new')}
-                variant="primary"
-              >
-                {t('createB2BCustomer') || 'Create B2B Customer'}
-              </CmxButton>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-start py-2 px-3">{t('company') || 'Company'}</th>
-                    <th className="text-start py-2 px-3">{t('phone') || 'Phone'}</th>
-                    <th className="text-start py-2 px-3">{t('creditLimit') || 'Credit Limit'}</th>
-                    <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customers.map((c) => (
-                    <tr key={c.id} className="border-b hover:bg-muted">
-                      <td className="py-2 px-3">
-                        {c.company_name || c.display_name || c.name || '-'}
-                      </td>
-                      <td className="py-2 px-3">{c.phone || '-'}</td>
-                      <td className="py-2 px-3">
-                        {c.credit_limit != null ? Number(c.credit_limit).toLocaleString() : '-'}
-                      </td>
-                      <td className="py-2 px-3">
-                        <CmxButton
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/dashboard/b2b/customers/${c.id}`)}
-                        >
-                          {t('view') || 'View'}
-                        </CmxButton>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CmxCardContent>
-      </CmxCard>
-    </div>
+  return (
+    <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_ACCESS.page.permissions ?? []}>
+      <CmxCrudPageShell
+        title={t('customers') || 'B2B Customers'}
+        actions={
+          <CmxButton variant="primary" onClick={() => router.push('/dashboard/b2b/customers/new')}>
+            {t('createB2BCustomer') || 'Create B2B Customer'}
+          </CmxButton>
+        }
+      >
+        <CmxDataTable<B2BCustomerRow>
+          columns={columns}
+          data={customers ?? []}
+          auditConfig={false}
+          scrollable={false}
+          paginationFooter="never"
+          emptyStateTitle={t('noCustomers') || 'No B2B customers yet. Create one to get started.'}
+          emptyStateAction={
+            <CmxButton
+              onClick={() => router.push('/dashboard/b2b/customers/new')}
+              variant="primary"
+            >
+              {t('createB2BCustomer') || 'Create B2B Customer'}
+            </CmxButton>
+          }
+        />
+      </CmxCrudPageShell>
+    </RequireAnyPermission>
   );
 }

@@ -28,7 +28,7 @@ export function ErpLiteJournalsScreen({ rows }: ErpLiteJournalsScreenProps) {
           href={`/dashboard/erp-lite/gl?journalId=${encodeURIComponent(row.original.id)}`}
           className="font-medium text-primary-text hover:underline"
         >
-          {row.original.journal_no}
+          <bdi dir="ltr">{row.original.journal_no}</bdi>
         </Link>
       ),
     },
@@ -47,7 +47,12 @@ export function ErpLiteJournalsScreen({ rows }: ErpLiteJournalsScreenProps) {
     {
       accessorKey: 'source_doc_no',
       header: t('columns.docNo'),
-      cell: ({ row }) => row.original.source_doc_no ?? '—',
+      cell: ({ row }) =>
+        row.original.source_doc_no ? (
+          <bdi dir="ltr">{row.original.source_doc_no}</bdi>
+        ) : (
+          '—'
+        ),
     },
     {
       accessorKey: 'total_debit',

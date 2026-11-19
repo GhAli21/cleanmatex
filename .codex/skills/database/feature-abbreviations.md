@@ -256,7 +256,6 @@ author: CleanMateX Team
 ## Related Documentation
 
 - [Database Conventions](./database_conventions.md) - Complete naming rules
-- [Grandfathered Objects](./database_grandfathered_objects.md) - Existing objects registry
 - [Migration Plan](./database_migration_plan.md) - Migration strategy for existing objects
 
 ---

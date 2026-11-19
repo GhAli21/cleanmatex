@@ -1,12 +1,14 @@
 /**
  * Processing Stats Cards Component
- * Real-time statistics display for the processing queue
+ * Queue-wide KPI strip built on CmxKpiStatCard.
  */
 
 'use client';
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
+import { AlertTriangle, Clock, Coins, Layers, Package } from 'lucide-react';
+import { CmxKpiStatCard, type CmxKpiStatCardTone } from '@ui/data-display/cmx-kpi-stat-card';
 import type { ProcessingStats } from '@/types/processing';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
@@ -15,64 +17,86 @@ interface ProcessingStatsCardsProps {
 }
 
 /**
- *
- * @param root0
- * @param root0.stats
+ * Displays real-time KPIs for the processing queue using CmxKpiStatCard.
+ * @param props Queue KPI stats.
  */
-export function ProcessingStatsCards({ stats }: ProcessingStatsCardsProps) {
+export function ProcessingStatsCards(props: ProcessingStatsCardsProps) {
+  const { stats } = props;
   const t = useTranslations('processing.stats');
   const { formatMoneyWithCode } = useTenantCurrency();
 
   const statItems = useMemo(
     () => [
       {
-        label: t('orders'),
-        value: stats.orders,
-        format: (val: number) => val.toString(),
+        key: 'orders',
+        title: t('orders'),
+        subtitle: t('ordersSubtitle'),
+        value: stats.orders.toLocaleString(),
+        icon: <Package className="h-4 w-4 text-muted-foreground" aria-hidden />,
+        tone: 'default' as CmxKpiStatCardTone,
       },
       {
-        label: t('pieces'),
-        value: stats.pieces,
-        format: (val: number) => val.toString(),
+        key: 'pieces',
+        title: t('pieces'),
+        subtitle: t('piecesSubtitle'),
+        value: stats.pieces.toLocaleString(),
+        icon: <Layers className="h-4 w-4 text-muted-foreground" aria-hidden />,
+        tone: 'default' as CmxKpiStatCardTone,
       },
       {
-        label: t('weight'),
-        value: stats.weight,
-        format: (val: number) => `${val}kg`,
+        key: 'overdue',
+        title: t('overdue'),
+        subtitle: t('overdueSubtitle'),
+        value: stats.overdue.toLocaleString(),
+        icon: (
+          <Clock
+            className={stats.overdue > 0 ? 'h-4 w-4 text-danger-text' : 'h-4 w-4 text-muted-foreground'}
+            aria-hidden
+          />
+        ),
+        tone: (stats.overdue > 0 ? 'danger' : 'default') as CmxKpiStatCardTone,
       },
       {
-        label: t('value'),
-        value: stats.value,
-        format: (val: number) => formatMoneyWithCode(val),
+        key: 'issues',
+        title: t('issues'),
+        subtitle: t('issuesSubtitle'),
+        value: stats.issues.toLocaleString(),
+        icon: (
+          <AlertTriangle
+            className={stats.issues > 0 ? 'h-4 w-4 text-warning-text' : 'h-4 w-4 text-muted-foreground'}
+            aria-hidden
+          />
+        ),
+        tone: (stats.issues > 0 ? 'warning' : 'default') as CmxKpiStatCardTone,
       },
       {
-        label: t('unpaid'),
-        value: stats.unpaid,
-        format: (val: number) => formatMoneyWithCode(val),
-        highlight: true,
+        key: 'unpaid',
+        title: t('unpaid'),
+        subtitle: t('unpaidSubtitle'),
+        value: formatMoneyWithCode(stats.unpaid),
+        icon: (
+          <Coins
+            className={stats.unpaid > 0 ? 'h-4 w-4 text-warning-text' : 'h-4 w-4 text-muted-foreground'}
+            aria-hidden
+          />
+        ),
+        tone: (stats.unpaid > 0 ? 'warning' : 'default') as CmxKpiStatCardTone,
       },
     ],
-    [formatMoneyWithCode, stats.orders, stats.pieces, stats.unpaid, stats.value, stats.weight, t]
+    [formatMoneyWithCode, stats.issues, stats.orders, stats.overdue, stats.pieces, stats.unpaid, t]
   );
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
       {statItems.map((item) => (
-        <div
-          key={item.label}
-          className={`bg-card rounded-lg border p-4 ${
-            item.highlight ? 'border-warning-border bg-warning-bg' : 'border-border'
-          }`}
-        >
-          <div className="text-sm text-muted-foreground mb-1">{item.label}</div>
-          <div
-            className={`text-2xl font-bold ${
-              item.highlight ? 'text-warning-text' : 'text-foreground'
-            }`}
-          >
-            {item.format(item.value)}
-          </div>
-        </div>
+        <CmxKpiStatCard
+          key={item.key}
+          title={item.title}
+          subtitle={item.subtitle}
+          value={item.value}
+          icon={item.icon}
+          tone={item.tone}
+        />
       ))}
     </div>
   );

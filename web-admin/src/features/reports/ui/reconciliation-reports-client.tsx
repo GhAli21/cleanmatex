@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxTabsPanel } from '@ui/navigation';
 import { cmxMessage } from '@ui/feedback';
 import { RECONCILIATION_REPORT_KEYS } from '@/lib/constants/reconciliation-reports';
@@ -111,21 +111,19 @@ export function ReconciliationReportsClient() {
   const filterBar = (
     <div className="mb-4 flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium shrink-0">{t('periodFrom')}</label>
-        <input
+        <Label className="shrink-0">{t('periodFrom')}</Label>
+        <CmxInput
           type="date"
           aria-label={t('periodFrom')}
-          className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
         />
       </div>
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium shrink-0">{t('periodTo')}</label>
-        <input
+        <Label className="shrink-0">{t('periodTo')}</Label>
+        <CmxInput
           type="date"
           aria-label={t('periodTo')}
-          className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
           value={to}
           onChange={(e) => setTo(e.target.value)}
         />

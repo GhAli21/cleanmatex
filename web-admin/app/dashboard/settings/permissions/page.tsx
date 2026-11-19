@@ -20,6 +20,26 @@ import { useTranslations } from 'next-intl'
 import { RBAC_CATALOG_TENANT_WRITABLE } from '@/lib/constants/rbac-catalog'
 import { Plus, Lock, Edit, Trash2, AlertCircle, X, Search } from 'lucide-react'
 import {
+  CmxButton,
+  CmxInput,
+  CmxTextarea,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays'
+import { CmxConfirmDialog, CmxStatusBadge } from '@ui/feedback'
+import {
   getPermissionsByCategory,
   createPermission,
   updatePermission,
@@ -251,32 +271,34 @@ export default function PermissionsManagementPage() {
           </p>
         </div>
         {RBAC_CATALOG_TENANT_WRITABLE && (
-        <button
+        <CmxButton
+          type="button"
+          variant="primary"
+          size="sm"
           onClick={() => {
             setCreateForm({ code: '', name: '', name2: '', category: '', description: '', description2: '' })
             setActionError(null)
             setShowCreateModal(true)
           }}
-          className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover text-sm font-medium"
         >
           <Plus className="h-4 w-4 me-2" />
           Create Permission
-        </button>
+        </CmxButton>
         )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-foreground">{allPermissions.length}</div>
+          <div className="text-2xl font-bold text-foreground tabular-nums">{allPermissions.length}</div>
           <div className="text-sm text-muted-foreground">Total Permissions</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-primary-text">{systemCount}</div>
+          <div className="text-2xl font-bold text-primary-text tabular-nums">{systemCount}</div>
           <div className="text-sm text-muted-foreground">System Permissions</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-success-text">{customCount}</div>
+          <div className="text-2xl font-bold text-success-text tabular-nums">{customCount}</div>
           <div className="text-sm text-muted-foreground">Custom Permissions</div>
         </div>
       </div>
@@ -294,96 +316,97 @@ export default function PermissionsManagementPage() {
           <div className="flex-1">
             <p className="text-sm text-danger-text">{error}</p>
           </div>
-          <button onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80">
+          <CmxButton type="button" variant="ghost" size="xs" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80" aria-label="Dismiss error">
             <X className="h-4 w-4" />
-          </button>
+          </CmxButton>
         </div>
       )}
 
       {/* Search bar */}
-      <div className="relative">
-        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search permissions by code, name, or category..."
-          className="block w-full ps-10 pe-3 py-2 border border-border rounded-md leading-5 bg-card placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring sm:text-sm"
-        />
-      </div>
+      <CmxInput
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search permissions by code, name, or category..."
+        leftIcon={<Search className="h-5 w-5" />}
+      />
 
       {/* Category Tabs */}
       <div className="border-b border-border">
         <nav className="-mb-px flex space-x-4 overflow-x-auto">
-          <button
+          <CmxButton
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setSelectedCategory('all')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+            className={`rounded-none py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap tabular-nums ${
               selectedCategory === 'all'
                 ? 'border-primary text-primary-text'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             All ({allPermissions.length})
-          </button>
+          </CmxButton>
           {categories.map((cat) => (
-            <button
+            <CmxButton
               key={cat}
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setSelectedCategory(cat)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+              className={`rounded-none py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap tabular-nums ${
                 selectedCategory === cat
                   ? 'border-primary text-primary-text'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
               {cat} ({(permissionsByCategory[cat] ?? []).length})
-            </button>
+            </CmxButton>
           ))}
         </nav>
       </div>
 
       {/* Permissions Table */}
       <div className="bg-card shadow overflow-hidden rounded-lg">
-        <table className="min-w-full divide-y divide-border">
-          <thead className="bg-muted">
-            <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <Table className="min-w-full divide-y divide-border">
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Code
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Name (EN / AR)
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Category
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Used By
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Type
-              </th>
-              <th className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-card divide-y divide-border">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-card divide-y divide-border">
             {filteredPermissions.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                   {searchQuery ? 'No permissions match your search.' : 'No permissions found.'}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               filteredPermissions.map((permission) => (
-                <tr key={permission.code} className="hover:bg-muted">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-mono font-semibold rounded-full bg-muted text-foreground">
+                <TableRow key={permission.code} className="hover:bg-muted">
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
+                    <bdi dir="ltr" className="px-2 inline-flex text-xs leading-5 font-mono font-semibold rounded-full bg-muted text-foreground">
                       {permission.code}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
+                    </bdi>
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
                     <div className="text-sm font-medium text-foreground">{permission.name}</div>
                     {permission.name2 && (
                       <div className="text-sm text-muted-foreground text-end" dir="rtl">
@@ -395,42 +418,46 @@ export default function PermissionsManagementPage() {
                         {permission.description}
                       </div>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {permission.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                     {permission.role_count ?? '—'} role{permission.role_count !== 1 ? 's' : ''}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
                     {permission.is_system ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-info-bg text-info-text">
-                        System
-                      </span>
+                      <CmxStatusBadge size="sm" tone="info">System</CmxStatusBadge>
                     ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success-bg text-success-text">
-                        Custom
-                      </span>
+                      <CmxStatusBadge size="sm" tone="success">Custom</CmxStatusBadge>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
                     {RBAC_CATALOG_TENANT_WRITABLE && (
                     <div className="flex items-center justify-end gap-2">
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleEdit(permission)}
-                        className="text-primary-text hover:text-primary-text/80 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="text-primary-text hover:text-primary-text/80 h-8 w-8"
                         disabled={permission.is_system}
+                        aria-label={permission.is_system ? 'System permissions cannot be edited' : 'Edit Permission'}
                         title={permission.is_system ? 'System permissions cannot be edited' : 'Edit Permission'}
                       >
                         <Edit className="h-4 w-4" />
-                      </button>
-                      <button
+                      </CmxButton>
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setDeleteConfirmPermission(permission)}
-                        className="text-danger-text hover:text-danger-text/80 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="text-danger-text hover:text-danger-text/80 h-8 w-8"
                         disabled={
                           permission.is_system ||
                           (permission.role_count !== undefined && permission.role_count > 0)
                         }
+                        aria-label="Delete Permission"
                         title={
                           permission.is_system
                             ? 'System permissions cannot be deleted'
@@ -440,230 +467,188 @@ export default function PermissionsManagementPage() {
                         }
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </CmxButton>
                     </div>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-foreground">Create New Permission</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </button>
+      <CmxDialog open={showCreateModal} onOpenChange={(next) => { if (!next && !saving) setShowCreateModal(false) }}>
+        <CmxDialogContent className="max-w-md w-full p-6" scrollBody>
+          <CmxDialogHeader className="mb-4">
+            <CmxDialogTitle>Create New Permission</CmxDialogTitle>
+          </CmxDialogHeader>
+          {actionError && (
+            <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
+              {actionError}
             </div>
-            {actionError && (
-              <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
-                {actionError}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Code * <span className="text-muted-foreground text-xs">(format: resource:action)</span>
-                </label>
-                <input
-                  type="text"
-                  value={createForm.code}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, code: e.target.value.toLowerCase() })
-                  }
-                  placeholder="e.g. orders:read"
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Only lowercase letters and underscores allowed, separated by colon
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (English) *</label>
-                <input
-                  type="text"
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  placeholder="e.g. Read Orders"
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (Arabic)</label>
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={createForm.name2}
-                  onChange={(e) => setCreateForm({ ...createForm, name2: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Category *</label>
-                <input
-                  type="text"
-                  value={createForm.category}
-                  onChange={(e) => setCreateForm({ ...createForm, category: e.target.value })}
-                  placeholder="e.g. Orders"
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Description</label>
-                <textarea
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  rows={2}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
+          )}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="perm-create-code" className="mb-1 block">
+                Code * <span className="text-muted-foreground text-xs">(format: resource:action)</span>
+              </Label>
+              <CmxInput
+                id="perm-create-code"
+                type="text"
+                value={createForm.code}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, code: e.target.value.toLowerCase() })
+                }
+                placeholder="e.g. orders:read"
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Only lowercase letters and underscores allowed, separated by colon
+              </p>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                disabled={saving}
-                className="px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={saving}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card" />}
-                Create
-              </button>
+            <div>
+              <Label htmlFor="perm-create-name" className="mb-1 block">Name (English) *</Label>
+              <CmxInput
+                id="perm-create-name"
+                type="text"
+                value={createForm.name}
+                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                placeholder="e.g. Read Orders"
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-create-name2" className="mb-1 block">Name (Arabic)</Label>
+              <CmxInput
+                id="perm-create-name2"
+                type="text"
+                dir="rtl"
+                value={createForm.name2}
+                onChange={(e) => setCreateForm({ ...createForm, name2: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-create-category" className="mb-1 block">Category *</Label>
+              <CmxInput
+                id="perm-create-category"
+                type="text"
+                value={createForm.category}
+                onChange={(e) => setCreateForm({ ...createForm, category: e.target.value })}
+                placeholder="e.g. Orders"
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-create-desc" className="mb-1 block">Description</Label>
+              <CmxTextarea
+                id="perm-create-desc"
+                value={createForm.description}
+                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                rows={2}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <CmxDialogFooter className="mt-6">
+            <CmxButton type="button" variant="outline" onClick={() => setShowCreateModal(false)} disabled={saving}>
+              Cancel
+            </CmxButton>
+            <CmxButton type="button" variant="primary" onClick={handleCreate} loading={saving} disabled={saving}>
+              Create
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Edit Modal */}
-      {showEditModal && selectedPermission && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-foreground">Edit Permission</h3>
-              <button onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </button>
+      <CmxDialog
+        open={Boolean(showEditModal && selectedPermission)}
+        onOpenChange={(next) => { if (!next && !saving) setShowEditModal(false) }}
+      >
+        <CmxDialogContent className="max-w-md w-full p-6" scrollBody>
+          <CmxDialogHeader className="mb-4">
+            <CmxDialogTitle>Edit Permission</CmxDialogTitle>
+          </CmxDialogHeader>
+          {actionError && (
+            <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
+              {actionError}
             </div>
-            {actionError && (
-              <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
-                {actionError}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Code</label>
-                <input
-                  type="text"
-                  value={selectedPermission.code}
-                  disabled
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm bg-muted text-muted-foreground cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Permission code cannot be changed</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (English) *</label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (Arabic)</label>
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={editForm.name2}
-                  onChange={(e) => setEditForm({ ...editForm, name2: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Category</label>
-                <input
-                  type="text"
-                  value={editForm.category}
-                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Description</label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  rows={2}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
+          )}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="perm-edit-code" className="mb-1 block">Code</Label>
+              <CmxInput
+                id="perm-edit-code"
+                type="text"
+                value={selectedPermission?.code ?? ''}
+                disabled
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Permission code cannot be changed</p>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowEditModal(false)}
-                disabled={saving}
-                className="px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdate}
-                disabled={saving}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card" />}
-                Update
-              </button>
+            <div>
+              <Label htmlFor="perm-edit-name" className="mb-1 block">Name (English) *</Label>
+              <CmxInput
+                id="perm-edit-name"
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-edit-name2" className="mb-1 block">Name (Arabic)</Label>
+              <CmxInput
+                id="perm-edit-name2"
+                type="text"
+                dir="rtl"
+                value={editForm.name2}
+                onChange={(e) => setEditForm({ ...editForm, name2: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-edit-category" className="mb-1 block">Category</Label>
+              <CmxInput
+                id="perm-edit-category"
+                type="text"
+                value={editForm.category}
+                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="perm-edit-desc" className="mb-1 block">Description</Label>
+              <CmxTextarea
+                id="perm-edit-desc"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                rows={2}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <CmxDialogFooter className="mt-6">
+            <CmxButton type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>
+              Cancel
+            </CmxButton>
+            <CmxButton type="button" variant="primary" onClick={handleUpdate} loading={saving} disabled={saving}>
+              Update
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmPermission && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-sm w-full shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-danger-bg rounded-full">
-                <AlertCircle className="h-6 w-6 text-danger-text" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground">Delete Permission</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Are you sure you want to delete the permission{' '}
-              <strong>&quot;{deleteConfirmPermission.code}&quot;</strong>? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setDeleteConfirmPermission(null)}
-                disabled={saving}
-                className="px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={saving}
-                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90 disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card" />}
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CmxConfirmDialog
+        open={Boolean(deleteConfirmPermission)}
+        title="Delete Permission"
+        description={
+          deleteConfirmPermission
+            ? `Are you sure you want to delete the permission "${deleteConfirmPermission.code}"? This action cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmDisabled={saving}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => { if (!saving) setDeleteConfirmPermission(null) }}
+      />
     </div>
   )
 }

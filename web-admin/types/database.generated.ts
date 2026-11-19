@@ -9752,6 +9752,43 @@ isOneToOne: false
       referencedColumns: ["tenant_org_id"]
     }
                   ]
+                },"org_tenant_extra_config_cf": {
+                  Row: {
+                    "config_key": string,"config_value": string,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"id": string,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "config_key": string,"config_value": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"tenant_org_id": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "config_key"?: string,"config_value"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"id"?: string,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"tenant_org_id"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_otec_sys_key"
+      columns: ["config_key"]
+isOneToOne: false
+      referencedRelation: "sys_tenant_extra_config_cf"
+      referencedColumns: ["config_key"]
+    },{
+      foreignKeyName: "fk_otec_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "org_tenants_mst"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "fk_otec_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_missing_required_usage"
+      referencedColumns: ["tenant_org_id"]
+    },{
+      foreignKeyName: "fk_otec_tenant"
+      columns: ["tenant_org_id"]
+isOneToOne: false
+      referencedRelation: "vw_fin_tenant_readiness"
+      referencedColumns: ["tenant_org_id"]
+    }
+                  ]
                 },"org_tenant_order_sources_cf": {
                   Row: {
                     "created_at": string | null,"created_by": string | null,"created_info": string | null,"id": string,"is_active": boolean,"is_allowed": boolean,"order_source_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number | null,"tenant_org_id": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
@@ -13240,6 +13277,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"sys_ntf_wkr_canary_run_cf": {
+                  Row: {
+                    "claimed_at": string | null,"claimed_by": string | null,"claimed_claim_token": string | null,"claimed_outbox_id": string | null,"claimed_tenant_org_id": string | null,"claims_used": number,"close_reason": string | null,"closed_at": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"run_id": string,"status": string,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null
+                  }
+                  Insert: {
+                    "claimed_at"?: string | null,"claimed_by"?: string | null,"claimed_claim_token"?: string | null,"claimed_outbox_id"?: string | null,"claimed_tenant_org_id"?: string | null,"claims_used"?: number,"close_reason"?: string | null,"closed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_id": string,"status"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "claimed_at"?: string | null,"claimed_by"?: string | null,"claimed_claim_token"?: string | null,"claimed_outbox_id"?: string | null,"claimed_tenant_org_id"?: string | null,"claims_used"?: number,"close_reason"?: string | null,"closed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"is_active"?: boolean,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"run_id"?: string,"status"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"sys_oc_edit_policy_def_cf": {
                   Row: {
                     "created_at": string,"created_by": string | null,"created_info": string | null,"edit_policy_id": string,"id": string,"is_active": boolean,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_info": string | null,"workflow_profile_version_id": string
@@ -14558,6 +14608,19 @@ isOneToOne: false
                   }
                   Update: {
                     "charge_kind"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"description"?: string | null,"is_active"?: boolean,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"sort_order"?: number,"tax_type"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"sys_tenant_extra_config_cf": {
+                  Row: {
+                    "allowed_values_json": Json | null,"category_code": string,"config_key": string,"created_at": string,"created_by": string | null,"created_info": string | null,"default_value": string,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"is_editable_by_tenant": boolean,"max_num": number | null,"min_num": number | null,"name": string,"name2": string | null,"plan_flag_key": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null,"validation_regex": string | null,"value_type": string
+                  }
+                  Insert: {
+                    "allowed_values_json"?: Json | null,"category_code": string,"config_key": string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"default_value": string,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"is_editable_by_tenant"?: boolean,"max_num"?: number | null,"min_num"?: number | null,"name": string,"name2"?: string | null,"plan_flag_key"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"validation_regex"?: string | null,"value_type": string
+                  }
+                  Update: {
+                    "allowed_values_json"?: Json | null,"category_code"?: string,"config_key"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"default_value"?: string,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"is_editable_by_tenant"?: boolean,"max_num"?: number | null,"min_num"?: number | null,"name"?: string,"name2"?: string | null,"plan_flag_key"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null,"validation_regex"?: string | null,"value_type"?: string
                   }
                   Relationships: [
                     
@@ -16061,6 +16124,11 @@ isOneToOne: false
 "fn_ntf_usage_reconcile":
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "channel_code": string,"difference": number,"dispatch_sent": number,"metered_sent": number,"tenant_org_id": string,"usage_date": string
+            }[]
+                           },
+"fn_ntf_worker_claim_canary":
+{ Args: { "p_lease_seconds"?: number,"p_run_id": string,"p_tenant_org_id": string,"p_worker_id": string }; Returns: {
+              "channel_code": string,"claim_token": string,"event_code": string,"id": string,"max_retries": number,"metadata": Json,"recipient_address": string,"recipient_user_id": string,"rendered_body": string,"rendered_subject": string,"retry_count": number,"source_entity_id": string,"source_entity_type": string,"tenant_org_id": string
             }[]
                            },
 "fn_ntf_worker_claim_due":

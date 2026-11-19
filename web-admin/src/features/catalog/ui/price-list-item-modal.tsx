@@ -9,8 +9,8 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
-import { CmxButton, CmxInput } from '@ui/primitives'
-import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
+import { CmxButton, CmxCheckbox, CmxInput, Label } from '@ui/primitives'
+import { cmxMessage } from '@ui/feedback'
 import type { PriceListItem } from '@/lib/types/catalog'
 
 interface PriceListItemModalProps {
@@ -44,7 +44,7 @@ export function PriceListItemModal({
   item,
   onSuccess,
 }: PriceListItemModalProps) {
-  const t = useTranslations('catalog')
+  const _t = useTranslations('catalog')
   const { currencyCode, decimalPlaces } = useTenantCurrency()
   const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces
   const isEditMode = !!item
@@ -176,10 +176,11 @@ export function PriceListItemModal({
       const json = await res.json()
       if (!res.ok) throw new Error(json?.error || 'Failed to save item')
 
-      showSuccessToast(isEditMode ? 'Item updated successfully' : 'Item added successfully')
+      cmxMessage.success(isEditMode ? 'Item updated successfully' : 'Item added successfully')
       onSuccess()
-    } catch (err: any) {
-      showErrorToast(err.message || 'Failed to save item')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save item'
+      cmxMessage.error(msg)
     } finally {
       setSaving(false)
     }
@@ -199,9 +200,9 @@ export function PriceListItemModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Product Search/Select */}
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <Label className="block mb-1">
               Product *
-            </label>
+            </Label>
             <div className="relative">
               <CmxInput
                 value={productSearch}
@@ -216,24 +217,27 @@ export function PriceListItemModal({
               {productSearch && !productId && products.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                   {products.map((product) => (
-                    <button
+                    <CmxButton
                       key={product.id}
                       type="button"
+                      variant="ghost"
                       onClick={() => {
                         setProductId(product.id)
                         setProductSearch(product.product_name || product.product_code || '')
                         setProducts([])
                       }}
-                      className="w-full px-4 py-2 text-start hover:bg-muted text-start"
+                      className="h-auto w-full justify-start rounded-none px-4 py-2 text-start font-normal hover:bg-muted"
                     >
-                      <div className="font-medium">{product.product_name || product.product_code}</div>
-                      {product.product_name2 && (
-                        <div className="text-xs text-muted-foreground">{product.product_name2}</div>
-                      )}
-                      {product.product_code && (
-                        <div className="text-xs text-muted-foreground">Code: {product.product_code}</div>
-                      )}
-                    </button>
+                      <div className="w-full text-start">
+                        <div className="font-medium">{product.product_name || product.product_code}</div>
+                        {product.product_name2 && (
+                          <div className="text-xs text-muted-foreground">{product.product_name2}</div>
+                        )}
+                        {product.product_code && (
+                          <div className="text-xs text-muted-foreground">Code: {product.product_code}</div>
+                        )}
+                      </div>
+                    </CmxButton>
                   ))}
                 </div>
               )}
@@ -250,9 +254,9 @@ export function PriceListItemModal({
 
           {/* Price */}
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <Label className="block mb-1">
               Price ({currencyCode}) *
-            </label>
+            </Label>
             <CmxInput
               type="number"
               step={priceStep}
@@ -268,9 +272,9 @@ export function PriceListItemModal({
 
           {/* Discount */}
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <Label className="block mb-1">
               Discount (%)
-            </label>
+            </Label>
             <CmxInput
               type="number"
               step="0.01"
@@ -287,9 +291,9 @@ export function PriceListItemModal({
           {/* Quantity Range */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <Label className="block mb-1">
                 Min Quantity *
-              </label>
+              </Label>
               <CmxInput
                 type="number"
                 min="1"
@@ -302,9 +306,9 @@ export function PriceListItemModal({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <Label className="block mb-1">
                 Max Quantity (leave empty for unlimited)
-              </label>
+              </Label>
               <CmxInput
                 type="number"
                 min={minQuantity}
@@ -320,14 +324,11 @@ export function PriceListItemModal({
 
           {/* Active Toggle */}
           <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-              />
-              <span>Active</span>
-            </label>
+            <CmxCheckbox
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              label="Active"
+            />
           </div>
 
           <CmxDialogFooter>
@@ -343,4 +344,3 @@ export function PriceListItemModal({
     </CmxDialog>
   )
 }
-

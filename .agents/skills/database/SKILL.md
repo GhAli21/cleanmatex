@@ -44,6 +44,7 @@ Use this skill only when the task explicitly matches **database**. Keep the acti
 - Modify only files required by the task.
 - Preserve CleanMateX Tenant App rules from `CLAUDE.md`.
 - Keep output concise.
+- Public-key grants, `search_path`, and catalog views: follow **Public-key grants** in `conventions.md`. New objects do not inherit `anon` or `authenticated` grants.
 
 ## Multi-Currency Transaction Standard (base == functional)
 
@@ -89,7 +90,7 @@ Postgres treats `(a,b)` and `(b,a)` as the same unique. Prisma 6 does not (`db p
 - “Fix” P1012 by changing `org_asm_tasks_mst` / `org_pck_packing_lists_mst` on `org_orders_mst` from `?` to `[]`. Those are real 1:1s.
 - Make `tenant_org_id` optional to silence Prisma `SetNull` warnings.
 
-**After `db pull`:** re-add `@ignore` on `cmx_effective_permissions[]` back-relations (`users`, `org_tenants_mst`). Mass `onDelete: SetNull` warnings are not P1012.
+**After pull:** from the repo root, `npm run prisma:pull` (no `cd web-admin`). It auto-patches `@ignore` on `cmx_effective_permissions[]` via `scripts/prisma-patch-after-pull.mjs`. Mass `onDelete: SetNull` warnings are not P1012.
 
 Details + SQL: `reference-original.md` → "Composite Foreign Keys".
 
@@ -129,3 +130,13 @@ After permission seed migrations or feature-flag catalog changes:
 - Validation result
 - Risks / follow-ups
 ```
+
+<!-- HFC-RULE:BEGIN (Human-Friendly Codes; short form) -->
+## Human-Friendly Codes (document numbering)
+
+Codes people see (order no, invoice no, piece code ...) are made only by the DB and are immutable. Each code type has one row in `sys_doc_seq_type_cd` (unique 3-5 letter `type_prefix`, format, reset policy, `implement_description`). GENERAL types use the `fn_doc_seq_assign_code` trigger; never `MAX()+1` in app code; never expose UUIDs as business ids. Full rule: `conventions.md`.
+
+Reuse the shared code helpers (web-admin `code-format-schemas.ts` and `cmx-code-payload.ts`, mobile `mobile_core` `human_codes.dart`); show codes left-to-right with `CmxCodeChip`; notifications carry the code, never the UUID.
+
+New table with a code: code column NOT NULL + `UNIQUE (tenant_org_id, <code>)`, config row, assign + guard triggers, backfill + counter seed in the same migration, then `vw_doc_seq_consistency` shows 0 ERROR rows.
+<!-- HFC-RULE:END -->

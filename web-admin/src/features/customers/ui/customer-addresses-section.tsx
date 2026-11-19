@@ -9,6 +9,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { CmxButton } from '@ui/primitives'
+import { CmxConfirmDialog } from '@ui/feedback'
 import { updateAddress, deleteAddress } from '@/lib/api/customers'
 import type { CustomerAddress } from '@/lib/types/customer'
 import AddressFormModal from './address-form-modal'
@@ -38,6 +40,7 @@ export function CustomerAddressesSection({
   const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteAddress, setConfirmDeleteAddress] = useState<CustomerAddress | null>(null)
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null)
 
   const handleOpenAdd = () => {
@@ -57,16 +60,17 @@ export function CustomerAddressesSection({
     setEditingAddress(null)
   }
 
-  const handleModalSuccess = async (address: CustomerAddress) => {
+  const handleModalSuccess = async (_address: CustomerAddress) => {
     setShowModal(false)
     setEditingAddress(null)
     setActionError(null)
     await onAddressesChange?.()
   }
 
-  const handleDelete = async (address: CustomerAddress) => {
-    const message = t('deleteAddressConfirm')
-    if (typeof window !== 'undefined' && !window.confirm(message)) return
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteAddress) return
+    const address = confirmDeleteAddress
+    setConfirmDeleteAddress(null)
 
     setActionError(null)
     setDeletingId(address.id)
@@ -96,25 +100,17 @@ export function CustomerAddressesSection({
 
   return (
     <div className="text-start">
-      <div
-        className="flex items-center justify-between mb-6"
-      >
+      <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">
           {t('deliveryAddresses')}
         </h3>
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
-        >
+        <CmxButton type="button" variant="primary" size="sm" onClick={handleOpenAdd}>
           {t('addAddress')}
-        </button>
+        </CmxButton>
       </div>
 
       {actionError && (
-        <div
-          className="mb-4 p-3 rounded-md bg-danger-bg border border-danger-border text-sm text-danger-text text-start border-s-4 border-e-0"
-        >
+        <div className="mb-4 p-3 rounded-md bg-danger-bg border border-danger-border text-sm text-danger-text text-start border-s-4 border-e-0">
           {actionError}
         </div>
       )}
@@ -141,13 +137,9 @@ export function CustomerAddressesSection({
             />
           </svg>
           <p className="text-muted-foreground mb-4">{t('noAddresses')}</p>
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-          >
+          <CmxButton type="button" variant="primary" size="sm" onClick={handleOpenAdd}>
             {t('addFirstAddress')}
-          </button>
+          </CmxButton>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,9 +148,7 @@ export function CustomerAddressesSection({
               key={address.id}
               className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
             >
-              <div
-                className="flex items-start justify-between mb-2"
-              >
+              <div className="flex items-start justify-between mb-2">
                 <h4 className="font-medium text-foreground">
                   {address.label ?? t('addressLabel')}
                 </h4>
@@ -178,42 +168,46 @@ export function CustomerAddressesSection({
                   {address.deliveryNotes}
                 </p>
               )}
-              <div
-                className="flex items-center gap-2 flex-wrap"
-              >
+              <div className="flex items-center gap-2 flex-wrap">
                 {!address.isDefault && (
-                  <button
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleSetDefault(address)}
                     disabled={settingDefaultId !== null}
-                    className="text-sm text-primary-text hover:text-primary-text/80 disabled:opacity-50"
+                    className="px-0 h-auto"
                   >
                     {settingDefaultId === address.id
                       ? tCommon('loading')
                       : t('setAsDefault')}
-                  </button>
+                  </CmxButton>
                 )}
                 {!address.isDefault && (
                   <span className="text-muted-foreground">|</span>
                 )}
-                <button
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleOpenEdit(address)}
-                  className="text-sm text-primary-text hover:text-primary-text/80"
+                  className="px-0 h-auto"
                 >
                   {tCommon('edit')}
-                </button>
+                </CmxButton>
                 <span className="text-muted-foreground">|</span>
-                <button
+                <CmxButton
                   type="button"
-                  onClick={() => handleDelete(address)}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmDeleteAddress(address)}
                   disabled={deletingId !== null}
-                  className="text-sm text-danger-text hover:text-danger-text/80 disabled:opacity-50"
+                  className="px-1 h-auto text-danger-text hover:text-danger-text/80"
                 >
                   {deletingId === address.id
                     ? tCommon('deleting')
                     : tCommon('delete')}
-                </button>
+                </CmxButton>
               </div>
             </div>
           ))}
@@ -221,15 +215,24 @@ export function CustomerAddressesSection({
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-[9999]" aria-modal="true">
-          <AddressFormModal
-            customerId={customerId}
-            address={editingAddress ?? undefined}
-            onClose={handleCloseModal}
-            onSuccess={handleModalSuccess}
-          />
-        </div>
+        <AddressFormModal
+          customerId={customerId}
+          address={editingAddress ?? undefined}
+          open={showModal}
+          onClose={handleCloseModal}
+          onSuccess={handleModalSuccess}
+        />
       )}
+
+      <CmxConfirmDialog
+        open={Boolean(confirmDeleteAddress)}
+        title={tCommon('delete')}
+        description={t('deleteAddressConfirm')}
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDeleteAddress(null)}
+      />
     </div>
   )
 }

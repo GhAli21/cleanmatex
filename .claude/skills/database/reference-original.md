@@ -38,7 +38,7 @@ Examples:
 
 See [feature-abbreviations.md](./feature-abbreviations.md) for complete feature prefix list.
 
-**IMPORTANT:** For existing objects, see [grandfathered-objects.md](./grandfathered-objects.md) for exact names.
+**For existing database objects**, take the exact name from the live database (Supabase remote MCP, read-only) or `web-admin/prisma/schema.prisma`. Never take a name from memory or an old list; the old grandfathered registry is archived in `docs/_archive/2026-11/grandfathered-objects/`.
 
 ## Required Audit Fields
 
@@ -368,7 +368,6 @@ CREATE POLICY tenant_isolation ON org_example_mst
 
 - [conventions.md](./conventions.md) - Complete naming patterns and examples
 - [feature-abbreviations.md](./feature-abbreviations.md) - Feature prefix list
-- [grandfathered-objects.md](./grandfathered-objects.md) - Existing object names
 - [table-check-workflow.md](./table-check-workflow.md) - Before creating tables
 - [postgresql-prisma.md](./postgresql-prisma.md) - PostgreSQL and Prisma rules
 - [migration-plan.md](./migration-plan.md) - Migration strategy

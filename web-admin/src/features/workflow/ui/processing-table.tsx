@@ -1,110 +1,68 @@
 /**
  * Processing Table Component
- * Dense, sortable data table with all order details
+ * Full-width, dense Cmx worklist table (desktop) and responsive cards (mobile).
  */
 
 'use client';
 
-import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import React, { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle, ListChecks } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  CheckCircle,
+  ExternalLink,
+  FileText,
+  ListChecks,
+  Loader2,
+  MoreVertical,
+  PackageOpen,
+  RotateCcw,
+  SquarePen,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { cmxMessage } from '@ui/feedback/cmx-message';
-import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
-import { normalizeOrderStateResponse } from '@features/workflow/lib/processing-piece-map';
+import { useLocale, useTranslations } from 'next-intl';
+import {
+  CmxButton,
+  CmxInput,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives';
+import { CmxCodeChip, CmxEmptyState } from '@ui/data-display';
+import { CmxStatusBadge, CmxSummaryMessage, cmxMessage, type CmxBadgeTone } from '@ui/feedback';
 import {
   CmxDialog,
   CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
   CmxDialogHeader,
   CmxDialogTitle,
-  CmxDialogFooter,
-  CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxInput, Label } from '@ui/primitives';
-import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import { ORDER_PAYMENT_STATUS } from '@/lib/constants/order-financial';
+import { PRIORITY_LEVELS } from '@/lib/constants/order-types';
+import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
+import { useBilingual } from '@/lib/utils/bilingual';
+import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
+import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
 import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
-import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
-import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
-import { postStaffWorkflowCommand } from '@/lib/workflow/post-staff-workflow-command';
-import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
-
-const sortableHeaderClass =
-  'px-4 py-3 text-start text-sm font-semibold text-foreground cursor-pointer hover:bg-muted transition-colors';
-
-function formatProcessingDate(dateString: string): string {
-  const date = new Date(dateString);
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear().toString().slice(-2);
-  const hours = date.getHours();
-  const ampm = hours >= 12 ? 'pm' : 'am';
-  const hour12 = hours % 12 || 12;
-  return `${day}/${month}/${year} ${hour12}${ampm}`;
-}
-
-function useProcessingDialogPrefetch() {
-  const queryClient = useQueryClient();
-
-  return React.useCallback((orderId: string) => {
-    void queryClient.prefetchQuery({
-      queryKey: ['order-processing', orderId],
-      queryFn: async () => {
-        const response = await fetch(`/api/v1/orders/${orderId}/state`);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            (errorData as { error?: string }).error || `HTTP ${response.status}`
-          );
-        }
-        return normalizeOrderStateResponse(await response.json());
-      },
-      staleTime: 30000,
-    });
-
-    void queryClient.prefetchQuery({
-      queryKey: ['order-pieces', orderId],
-      queryFn: async () => {
-        const response = await fetch(`/api/v1/orders/${orderId}/pieces`);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            (errorData as { error?: string }).error || `HTTP ${response.status}`
-          );
-        }
-        return response.json();
-      },
-      staleTime: 30000,
-    });
-  }, [queryClient]);
-}
-
-function ProcessingSortableHeader({
-  field,
-  sortField,
-  onSort,
-  children,
-}: {
-  field: SortField;
-  sortField: SortField;
-  onSort: (field: SortField) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <th className={sortableHeaderClass} onClick={() => onSort(field)}>
-      <div className="flex items-center gap-2">
-        {children}
-        <ArrowUpDown
-          className={`h-4 w-4 ${sortField === field ? 'text-primary-text' : 'text-muted-foreground'}`}
-        />
-      </div>
-    </th>
-  );
-}
+import { normalizeOrderStateResponse } from '@features/workflow/lib/processing-piece-map';
+import type { ProcessingOrder, SortDirection, SortField } from '@/types/processing';
 
 interface ProcessingTableProps {
   tenantOrgId?: string | null;
@@ -114,46 +72,187 @@ interface ProcessingTableProps {
   onSort: (field: SortField) => void;
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
-  /** Opens Simple Processing dialog */
   onSimpleProcessClick?: (orderId: string) => void;
   selectedOrderId?: string | null;
+  nowMs: number;
+  hasActiveFilters?: boolean;
+  onResetFilters?: () => void;
+}
+
+function formatProcessingDate(dateString: string, locale: string): string {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
+}
+
+type SlaState = 'overdue' | 'dueSoon' | 'today' | null;
+
+function getSlaState(readyByAt: string, nowMs: number): SlaState {
+  const due = new Date(readyByAt);
+  if (Number.isNaN(due.getTime())) return null;
+  const now = new Date(nowMs);
+  const diffMs = due.getTime() - nowMs;
+  if (diffMs < 0) return 'overdue';
+  if (diffMs <= 2 * 60 * 60 * 1000) return 'dueSoon';
+  if (
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate()
+  ) {
+    return 'today';
+  }
+  return null;
+}
+
+function getPaymentBadgeInfo(
+  order: ProcessingOrder,
+  t: ReturnType<typeof useTranslations>
+): { label: string; tone: CmxBadgeTone } {
+  const normalized = normalizeOrderPaymentStatus(order.payment_status, {
+    paymentTypeCode: order.payment_type_code,
+    outstandingAmount: order.outstanding_amount,
+  });
+
+  switch (normalized) {
+    case ORDER_PAYMENT_STATUS.PAID:
+    case ORDER_PAYMENT_STATUS.OVERPAID:
+      return { label: t('paymentPaid'), tone: 'success' };
+    case ORDER_PAYMENT_STATUS.PARTIALLY_PAID:
+      return { label: t('paymentPartial'), tone: 'warning' };
+    case ORDER_PAYMENT_STATUS.PENDING_COLLECTION:
+      return { label: t('paymentCollection'), tone: 'warning' };
+    default:
+      return { label: t('paymentUnpaid'), tone: 'danger' };
+  }
+}
+
+function getPriorityBadgeInfo(
+  priority: string,
+  t: ReturnType<typeof useTranslations>
+): { label: string; tone: CmxBadgeTone } | null {
+  const normalized = (priority || '').toLowerCase();
+  if (normalized === PRIORITY_LEVELS.URGENT) {
+    return { label: t('priorityUrgent'), tone: 'danger' };
+  }
+  if (normalized === PRIORITY_LEVELS.EXPRESS) {
+    return { label: t('priorityExpress'), tone: 'brand' };
+  }
+  return null;
+}
+
+function useProcessingDialogPrefetch() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (orderId: string) => {
+      void queryClient.prefetchQuery({
+        queryKey: ['order-processing', orderId],
+        queryFn: async () => {
+          const response = await fetch(`/api/v1/orders/${orderId}/state`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              (errorData as { error?: string }).error || `HTTP ${response.status}`
+            );
+          }
+          return normalizeOrderStateResponse(await response.json());
+        },
+        staleTime: 30000,
+      });
+
+      void queryClient.prefetchQuery({
+        queryKey: ['order-pieces', orderId],
+        queryFn: async () => {
+          const response = await fetch(`/api/v1/orders/${orderId}/pieces`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              (errorData as { error?: string }).error || `HTTP ${response.status}`
+            );
+          }
+          return response.json();
+        },
+        staleTime: 30000,
+      });
+    },
+    [queryClient]
+  );
+}
+
+function ProcessingSortableHeader({
+  field,
+  sortField,
+  sortDirection,
+  onSort,
+  alignEnd = false,
+  children,
+}: {
+  field: SortField;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+  alignEnd?: boolean;
+  children: React.ReactNode;
+}) {
+  const isActive = sortField === field;
+  const SortIcon = !isActive
+    ? ArrowUpDown
+    : sortDirection === 'asc'
+      ? ArrowUp
+      : ArrowDown;
+
+  return (
+    <TableHead
+      rowHeight="compact"
+      aria-sort={isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={alignEnd ? 'text-end' : undefined}
+    >
+      <CmxButton
+        type="button"
+        variant="ghost"
+        size="xs"
+        onClick={() => onSort(field)}
+        className={`-mx-2 h-7 px-2 font-semibold text-foreground ${alignEnd ? 'ms-auto' : ''}`}
+      >
+        <span>{children}</span>
+        <SortIcon
+          className={`ms-1.5 h-3.5 w-3.5 ${isActive ? 'text-primary-text' : 'text-muted-foreground'}`}
+          aria-hidden
+        />
+      </CmxButton>
+    </TableHead>
+  );
 }
 
 /**
- *
- * @param root0
- * @param root0.orders
- * @param root0.sortField
- * @param root0.onSort
- * @param root0.onRefresh
- * @param root0.onEditClick
- * @param root0.selectedOrderId
+ * Processing worklist with responsive desktop table and mobile card list.
+ * @param props Component props.
  */
-export function ProcessingTable({
-  tenantOrgId,
-  orders,
-  sortField,
-  onSort,
-  onRefresh,
-  onEditClick,
-  onSimpleProcessClick,
-  selectedOrderId,
-}: ProcessingTableProps) {
+export function ProcessingTable(props: ProcessingTableProps) {
+  const {
+    tenantOrgId,
+    orders,
+    sortField,
+    sortDirection,
+    onSort,
+    onRefresh,
+    onEditClick,
+    onSimpleProcessClick,
+    selectedOrderId,
+    nowMs,
+    hasActiveFilters = false,
+    onResetFilters,
+  } = props;
   const t = useTranslations('processing.table');
-  const [isMobile, setIsMobile] = React.useState(false);
+  const tFilters = useTranslations('processing.filters');
   const [markReadyOrder, setMarkReadyOrder] = useState<ProcessingOrder | null>(null);
   const [markReadyBusyId, setMarkReadyBusyId] = useState<string | null>(null);
   const [markReadySuccessId, setMarkReadySuccessId] = useState<string | null>(null);
-
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const handleMarkReadyClick = useCallback((order: ProcessingOrder) => {
     setMarkReadyOrder(order);
@@ -168,91 +267,122 @@ export function ProcessingTable({
       setMarkReadyOrder(null);
       setMarkReadyBusyId(null);
       setMarkReadySuccessId(orderId);
+      cmxMessage.success(t('markReadySuccess'));
       window.setTimeout(() => {
         onRefresh();
         setMarkReadySuccessId(null);
-      }, 1500);
+      }, 900);
     },
-    [onRefresh]
+    [onRefresh, t]
   );
 
   const handleMarkReadyBusy = useCallback((orderId: string | null) => {
     setMarkReadyBusyId(orderId);
   }, []);
 
-  const sharedMarkReadyDialog = (
-    <SharedMarkReadyDialog
-      order={markReadyOrder}
-      onClose={handleMarkReadyClose}
-      onBusy={handleMarkReadyBusy}
-      onSuccess={handleMarkReadySuccess}
-    />
-  );
-
   if (orders.length === 0) {
     return (
-      <div className="bg-card rounded-lg border border-border p-12 text-center">
-        <p className="text-muted-foreground text-lg">{t('noOrders')}</p>
-        <Link
-          href="/dashboard/orders/new"
-          className="inline-block mt-4 text-primary-text hover:text-primary-text/80 font-medium"
-        >
-          {t('createNew')}
-        </Link>
-      </div>
-    );
-  }
-
-  if (isMobile) {
-    return (
-      <>
-        <div className="space-y-4">
-          {orders.map((order, index) => (
-            <ProcessingOrderCard
-              key={order.id}
-              order={order}
-              formatDate={formatProcessingDate}
-              onEditClick={onEditClick}
-              onSimpleProcessClick={onSimpleProcessClick}
-              onMarkReadyClick={handleMarkReadyClick}
-              onRefresh={onRefresh}
-              markReadyBusy={markReadyBusyId === order.id}
-              markReadySuccess={markReadySuccessId === order.id}
-              index={index}
-              selectedOrderId={selectedOrderId}
-              tenantOrgId={tenantOrgId}
-            />
-          ))}
-        </div>
-        {sharedMarkReadyDialog}
-      </>
+      <CmxEmptyState
+        icon={<PackageOpen className="h-10 w-10 text-muted-foreground" aria-hidden />}
+        title={hasActiveFilters ? t('noOrdersFiltered') : t('noOrders')}
+        description={hasActiveFilters ? t('clearFiltersHint') : undefined}
+        action={
+          hasActiveFilters && onResetFilters ? (
+            <CmxButton type="button" variant="outline" onClick={onResetFilters}>
+              <RotateCcw className="me-1.5 h-4 w-4" aria-hidden />
+              {tFilters('clearFilters')}
+            </CmxButton>
+          ) : (
+            <CmxButton variant="primary" asChild>
+              <Link href="/dashboard/orders/new">{t('createNew')}</Link>
+            </CmxButton>
+          )
+        }
+      />
     );
   }
 
   return (
     <>
-      <ProcessingTableDesktop
-        orders={orders}
-        sortField={sortField}
-        onSort={onSort}
-        onEditClick={onEditClick}
-        onSimpleProcessClick={onSimpleProcessClick}
-        onMarkReadyClick={handleMarkReadyClick}
-        onRefresh={onRefresh}
-        markReadyBusyId={markReadyBusyId}
-        markReadySuccessId={markReadySuccessId}
-        formatDate={formatProcessingDate}
-        selectedOrderId={selectedOrderId}
-        tenantOrgId={tenantOrgId}
+      {/* Mobile Cards (< md) */}
+      <div className="space-y-3 md:hidden">
+        {orders.map((order) => (
+          <ProcessingOrderCard
+            key={order.id}
+            order={order}
+            onEditClick={onEditClick}
+            onSimpleProcessClick={onSimpleProcessClick}
+            onMarkReadyClick={handleMarkReadyClick}
+            onRefresh={onRefresh}
+            markReadyBusy={markReadyBusyId === order.id}
+            markReadySuccess={markReadySuccessId === order.id}
+            selectedOrderId={selectedOrderId}
+            nowMs={nowMs}
+            tenantOrgId={tenantOrgId}
+          />
+        ))}
+      </div>
+
+      {/* Desktop Table (>= md) */}
+      <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm md:block">
+        <Table>
+          <TableHeader className="bg-muted/60">
+            <TableRow>
+              <ProcessingSortableHeader field="order_no" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>
+                {t('id')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="ready_by_at" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>
+                {t('readyBy')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="customer_name" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>
+                {t('customer')}
+              </ProcessingSortableHeader>
+              <TableHead rowHeight="compact">{t('order')}</TableHead>
+              <ProcessingSortableHeader field="total_items" sortField={sortField} sortDirection={sortDirection} onSort={onSort} alignEnd>
+                {t('pcs')}
+              </ProcessingSortableHeader>
+              <TableHead rowHeight="compact">{t('notes')}</TableHead>
+              <ProcessingSortableHeader field="total" sortField={sortField} sortDirection={sortDirection} onSort={onSort} alignEnd>
+                {t('total')}
+              </ProcessingSortableHeader>
+              <ProcessingSortableHeader field="status" sortField={sortField} sortDirection={sortDirection} onSort={onSort} alignEnd>
+                {t('status')}
+              </ProcessingSortableHeader>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {orders.map((order, index) => (
+              <OrderRow
+                key={order.id}
+                order={order}
+                onEditClick={onEditClick}
+                onSimpleProcessClick={onSimpleProcessClick}
+                onMarkReadyClick={handleMarkReadyClick}
+                onRefresh={onRefresh}
+                markReadyBusy={markReadyBusyId === order.id}
+                markReadySuccess={markReadySuccessId === order.id}
+                index={index}
+                selectedOrderId={selectedOrderId}
+                nowMs={nowMs}
+                tenantOrgId={tenantOrgId}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <SharedMarkReadyDialog
+        order={markReadyOrder}
+        onClose={handleMarkReadyClose}
+        onBusy={handleMarkReadyBusy}
+        onSuccess={handleMarkReadySuccess}
       />
-      {sharedMarkReadyDialog}
     </>
   );
 }
 
 interface OrderRowProps {
   order: ProcessingOrder;
-  formatDate: (date: string) => string;
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
   onMarkReadyClick: (order: ProcessingOrder) => void;
@@ -261,12 +391,12 @@ interface OrderRowProps {
   markReadySuccess: boolean;
   index: number;
   selectedOrderId?: string | null;
+  nowMs: number;
   tenantOrgId?: string | null;
 }
 
 const OrderRow = React.memo(function OrderRow({
   order,
-  formatDate,
   onEditClick,
   onSimpleProcessClick,
   onMarkReadyClick,
@@ -275,280 +405,317 @@ const OrderRow = React.memo(function OrderRow({
   markReadySuccess,
   index,
   selectedOrderId,
+  nowMs,
   tenantOrgId,
 }: OrderRowProps) {
-  const router = useRouter();
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
+  const locale = useLocale();
+  const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
   const prefetchProcessingDialogs = useProcessingDialogPrefetch();
-  const isPaid = isOrderPaidStatus(order.payment_status);
-  const isUrgent = order.priority === 'urgent' || order.priority === 'express';
+
   const isSelected = selectedOrderId === order.id;
+  const slaState = getSlaState(order.ready_by_at, nowMs);
+  const priorityBadge = getPriorityBadgeInfo(order.priority, t);
+  const paymentBadge = getPaymentBadgeInfo(order, t);
 
-  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
-  const successMessage = markReadySuccess
-    ? t('markReadySuccess') || 'Order marked as ready successfully'
-    : null;
+  const totalItems = Math.max(0, order.total_items || 0);
+  const readyCount = Math.min(totalItems, Math.max(0, order.quantity_ready || 0));
+  const progressPercent = totalItems > 0 ? Math.round((readyCount / totalItems) * 100) : 0;
+  const extraItemsCount = Math.max(0, (order.items_count ?? order.items.length) - order.items.length);
 
-  const rowHighlight = isUrgent ? 'border-s-4 border-s-primary' : 'border-s-4 border-s-info-border';
+  const displayCustomerName = getBilingual(order.customer_name, order.customer_name2) || order.customer_name;
+  const secondaryCustomerName =
+    locale === 'ar'
+      ? order.customer_name2 && order.customer_name && order.customer_name2 !== order.customer_name
+        ? order.customer_name
+        : null
+      : order.customer_name2 && order.customer_name2 !== order.customer_name
+        ? order.customer_name2
+        : null;
 
-  const rowBgColor = isSelected
-    ? 'bg-success-bg'
-    : index % 2 === 0
-      ? 'bg-card'
-      : 'bg-muted/50';
-  const hoverColor = isSelected ? 'hover:bg-success-border/50' : 'hover:bg-info-bg/50';
+  const rowHighlight = priorityBadge
+    ? 'border-s-4 border-s-primary'
+    : slaState === 'overdue'
+      ? 'border-s-4 border-s-destructive'
+      : 'border-s-4 border-s-transparent';
 
-  const handleStatusToggleClick = () => {
-    onMarkReadyClick(order);
-  };
+  const rowBg = isSelected
+    ? 'bg-success-bg/60'
+    : markReadySuccess
+      ? 'bg-success-bg/40'
+      : index % 2 === 1
+        ? 'bg-muted/25'
+        : 'bg-card';
 
-  const handleEdit = () => {
-    setIsLoadingEdit(true);
-
-    if (onEditClick) {
-      onEditClick(order.id);
-      setTimeout(() => setIsLoadingEdit(false), 500);
-    } else {
-      router.push(`/dashboard/processing/${order.id}`);
-    }
-  };
+  const orderDetailsHref = `/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}`;
 
   return (
-    <React.Fragment>
-      <tr className={`${rowBgColor} ${hoverColor} transition-colors duration-150 ${rowHighlight}`}>
-        {/* ID */}
-        <td className="px-4 py-4">
-          <div className="flex items-center gap-2">
+    <TableRow className={`${rowBg} ${rowHighlight} transition-colors`}>
+      {/* Order & Priority & Issues */}
+      <TableCell rowHeight="compact" className="align-top whitespace-nowrap">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
             <CmxCodeChip code={order.order_no} kind="order" size="md" />
             <OrderIssueRowActions
               orderId={order.id}
               scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
               openCount={order.has_issue ? 1 : 0}
-              totalCount={
-                order.issue_total_count ??
-                (order.has_issue ? 1 : 0)
-              }
+              totalCount={order.issue_total_count ?? (order.has_issue ? 1 : 0)}
               hasOpenIssue={order.has_issue}
               onChanged={onRefresh}
             />
           </div>
-        </td>
-
-        {/* READY BY */}
-        <td className="px-4 py-4">
-          <div className="text-sm">{formatDate(order.ready_by_at)}</div>
-        </td>
-
-        {/* CUSTOMER */}
-        <td className="px-4 py-4">
-          <div className="font-medium">{order.customer_name}</div>
-          {order.customer_name2 && (
-            <div className="text-sm text-muted-foreground">{order.customer_name2}</div>
+          {priorityBadge && (
+            <div>
+              <CmxStatusBadge label={priorityBadge.label} tone={priorityBadge.tone} size="sm" />
+            </div>
           )}
-        </td>
+        </div>
+      </TableCell>
 
-        {/* ORDER - Multi-line items with details */}
-        <td className="px-4 py-4">
-          <div className="space-y-2 max-w-xs">
-            {order.items.slice(0, 3).map((item, idx) => (
-              <div key={idx} className="text-sm space-y-1">
-                <div className="font-medium">
-                  {item.product_name} x {item.quantity}
-                </div>
-                {/* Item Details: Color, Brand */}
-                {(item.color || item.brand) && (
-                  <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+      {/* Ready By & SLA */}
+      <TableCell rowHeight="compact" className="align-top whitespace-nowrap">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium tabular-nums text-foreground">
+            {formatProcessingDate(order.ready_by_at, locale)}
+          </span>
+          {slaState && (
+            <div>
+              <CmxStatusBadge
+                size="sm"
+                tone={slaState === 'overdue' ? 'danger' : slaState === 'dueSoon' ? 'warning' : 'info'}
+                label={
+                  slaState === 'overdue'
+                    ? t('slaOverdue')
+                    : slaState === 'dueSoon'
+                      ? t('slaDueSoon')
+                      : t('slaToday')
+                }
+              />
+            </div>
+          )}
+        </div>
+      </TableCell>
+
+      {/* Customer */}
+      <TableCell rowHeight="compact" className="align-top">
+        <div className="max-w-[11rem]">
+          <div className="truncate text-sm font-medium text-foreground" title={displayCustomerName}>
+            {displayCustomerName}
+          </div>
+          {secondaryCustomerName && (
+            <div className="truncate text-xs text-muted-foreground">{secondaryCustomerName}</div>
+          )}
+          {order.customer_phone && (
+            <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+              <bdi dir="ltr">{order.customer_phone}</bdi>
+            </div>
+          )}
+        </div>
+      </TableCell>
+
+      {/* Items Preview & Details Link */}
+      <TableCell rowHeight="compact" className="align-top">
+        <div className="max-w-[16rem] space-y-1">
+          {order.items.map((item, idx) => {
+            const itemName = getBilingual(item.product_name, item.product_name2) || item.product_name;
+            return (
+              <div key={idx} className="text-xs leading-snug">
+                <span className="font-medium text-foreground">
+                  {itemName}{' '}
+                  <span className="tabular-nums text-muted-foreground">× {item.quantity}</span>
+                </span>
+                {(item.color || item.brand || item.has_stain || item.has_damage) && (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
                     {item.color && (
-                      <span className="px-1.5 py-0.5 bg-muted rounded">
-                        {t('color') || 'Color'}: {item.color}
+                      <span className="rounded bg-muted px-1 py-0.5 text-[11px] text-muted-foreground">
+                        {item.color}
                       </span>
                     )}
                     {item.brand && (
-                      <span className="px-1.5 py-0.5 bg-muted rounded">
-                        {t('brand') || 'Brand'}: {item.brand}
+                      <span className="rounded bg-muted px-1 py-0.5 text-[11px] text-muted-foreground">
+                        {item.brand}
                       </span>
                     )}
-                  </div>
-                )}
-                {/* Condition Flags: Stain, Damage */}
-                {(item.has_stain || item.has_damage) && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
                     {item.has_stain && (
-                      <span className="px-1.5 py-0.5 text-xs font-medium bg-warning-bg text-warning-text rounded border border-warning-border">
-                        {t('stain') || 'Stain'}
-                      </span>
+                      <CmxStatusBadge label={t('stain')} tone="warning" size="sm" />
                     )}
                     {item.has_damage && (
-                      <span className="px-1.5 py-0.5 text-xs font-medium bg-danger-bg text-danger-text rounded border border-danger-border">
-                        {t('damage') || 'Damage'}
-                      </span>
+                      <CmxStatusBadge label={t('damage')} tone="danger" size="sm" />
                     )}
                   </div>
                 )}
               </div>
-            ))}
-            {order.items.length > 3 && (
-              <div className="text-sm text-muted-foreground">
-                +{order.items.length - 3} {t('moreItems')}
-              </div>
-            )}
+            );
+          })}
+          {extraItemsCount > 0 && (
+            <div className="text-xs font-medium text-muted-foreground tabular-nums">
+              +{extraItemsCount} {t('moreItems')}
+            </div>
+          )}
+          <div className="pt-0.5">
             <OrderDetailsLink
               tenantOrgId={tenantOrgId}
               orderId={order.id}
               orderNo={order.order_no}
               returnUrl="/dashboard/processing"
-              returnLabel={tProcessing('backToProcessing') || 'Back to Processing'}
-              className="inline-block mt-2 text-xs text-primary-text hover:text-primary-text/80"
+              returnLabel={tProcessing('backToProcessing')}
+              className="text-xs font-medium text-primary-text hover:underline"
             >
-              {t('details')} →
+              {t('details')}
             </OrderDetailsLink>
           </div>
-        </td>
+        </div>
+      </TableCell>
 
-        {/* PCS */}
-        <td className="px-4 py-4 text-end">
-          <div className="font-medium">{order.total_items}</div>
-        </td>
-
-        {/* ✅ PROGRESS - NEW */}
-        <td className="px-4 py-4">
-          <div className="w-24">
-            {(() => {
-              const progressPercent = order.total_items > 0
-                ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
-                : 0;
-
-              return (
-                <>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-foreground">
-                      {tProcessing('progress')}: {progressPercent}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-300 ${progressPercent === 100 ? 'bg-success' : 'bg-primary'
-                        }`}
-                      style={{ width: `${Math.min(100, progressPercent)}%` }}
-                    />
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </td>
-
-        {/* NOTES */}
-        <td className="px-4 py-4">
-          <div className="text-sm text-muted-foreground max-w-xs truncate">
-            {order.notes || '—'}
-          </div>
-        </td>
-
-        {/* TOTAL */}
-        <td className="px-4 py-4 text-end">
-          <div className="font-semibold">{formatMoneyWithCode(order.total)}</div>
-        </td>
-
-        {/* STATUS - Action Icons */}
-        <td className="px-4 py-4">
-          <div className="flex items-center gap-3 justify-end">
-            {/* Payment/Priority Tag */}
-            {!isPaid && (
-              <span className="px-2 py-1 text-xs font-medium bg-warning-bg text-warning-text rounded">
-                1st
-              </span>
-            )}
-
-            {/* Full processing editor */}
-            <button
-              onClick={handleEdit}
-              onMouseEnter={() => prefetchProcessingDialogs(order.id)}
-              disabled={isLoadingEdit}
-              className="p-2 hover:bg-muted rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
-              title={isLoadingEdit ? (t('opening') || 'Opening...') : t('edit')}
-              aria-label={t('edit')}
-            >
-              {isLoadingEdit ? (
-                <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-              ) : (
-                <SquarePen className="h-4 w-4 text-muted-foreground" />
-              )}
-            </button>
-
-            {/* Simple processing dialog */}
-            <button
-              type="button"
-              onClick={() => onSimpleProcessClick?.(order.id)}
-              onMouseEnter={() => prefetchProcessingDialogs(order.id)}
-              disabled={!onSimpleProcessClick}
-              className="p-2 hover:bg-info-bg rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={t('simpleProcess')}
-              aria-label={t('simpleProcess')}
-            >
-              <ListChecks className="h-4 w-4 text-primary-text" />
-            </button>
-
-            {/* Status Toggle Icon */}
-            <button
-              type="button"
-              onClick={handleStatusToggleClick}
-              disabled={markReadyBusy}
-              className="p-2 hover:bg-success-border/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
-              title={markReadyBusy ? (t('processing') || 'Processing...') : t('complete')}
-              aria-label={t('complete')}
-            >
-              {markReadyBusy ? (
-                <Loader2 className="h-4 w-4 text-success-text animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4 text-success-text" />
-              )}
-            </button>
-
-            {/* Current Status Badge */}
-            <span className="px-2 py-1 text-xs font-medium bg-info-bg text-info-text rounded">
-              {order.current_status}
+      {/* Pieces & Progress */}
+      <TableCell rowHeight="compact" alignment="right" className="align-top whitespace-nowrap">
+        <div className="ms-auto w-28 space-y-1 text-end">
+          <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+            <span className="font-semibold text-foreground">{totalItems}</span>
+            <span className="text-muted-foreground">
+              {t('piecesReadyCount', { ready: readyCount, total: totalItems })} ({progressPercent}%)
             </span>
-
-            {/* Link to processing details page */}
-            <Link
-              href={`/dashboard/processing/${order.id}`}
-              className="text-xs font-medium text-primary-text hover:text-primary-text/80 whitespace-nowrap"
-              title={t('viewProcessingDetails')}
-              aria-label={t('viewProcessingDetails')}
-            >
-              {t('viewProcessingDetails')} →
-            </Link>
           </div>
-        </td>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                progressPercent === 100 ? 'bg-success' : 'bg-primary'
+              }`}
+              style={{ width: `${Math.min(100, progressPercent)}%` }}
+            />
+          </div>
+        </div>
+      </TableCell>
 
-      </tr>
+      {/* Notes */}
+      <TableCell rowHeight="compact" className="align-top">
+        <div className="max-w-[11rem] truncate text-xs text-muted-foreground" title={order.notes || undefined}>
+          {order.notes || '—'}
+        </div>
+      </TableCell>
 
-      {/* Success Message Row */}
-      {successMessage && (
-        <tr>
-          <td colSpan={9} className="px-4 py-3 bg-success-bg border-t border-success-border">
-            <div className="flex items-center gap-2 text-success-text">
-              <CheckCircle className="h-4 w-4 text-success-text" />
-              <span className="text-sm font-medium">{successMessage}</span>
-            </div>
-          </td>
-        </tr>
-      )}
-    </React.Fragment>
+      {/* Total & Payment */}
+      <TableCell rowHeight="compact" alignment="right" className="align-top whitespace-nowrap">
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-sm font-semibold tabular-nums text-foreground">
+            {formatMoneyWithCode(order.total)}
+          </span>
+          <CmxStatusBadge label={paymentBadge.label} tone={paymentBadge.tone} size="sm" />
+        </div>
+      </TableCell>
+
+      {/* Status & Streamlined Actions */}
+      <TableCell rowHeight="compact" alignment="right" className="align-top whitespace-nowrap">
+        <div className="flex items-center justify-end gap-1.5">
+          <CmxStatusBadge label={order.current_status} tone="info" size="sm" />
+
+          <CmxButton
+            type="button"
+            size="xs"
+            variant="secondary"
+            onClick={() => onSimpleProcessClick?.(order.id)}
+            onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+            disabled={!onSimpleProcessClick}
+            title={t('simpleProcess')}
+            aria-label={t('simpleProcess')}
+          >
+            <ListChecks className="me-1 h-3.5 w-3.5" aria-hidden />
+            <span className="hidden xl:inline">{t('simpleProcess')}</span>
+          </CmxButton>
+
+          <CmxButton
+            type="button"
+            size="xs"
+            variant="outline"
+            onClick={() => onMarkReadyClick(order)}
+            disabled={markReadyBusy}
+            loading={markReadyBusy}
+            title={t('complete')}
+            aria-label={t('complete')}
+            className="border-success-border text-success-text hover:bg-success-bg"
+          >
+            {!markReadyBusy && <CheckCircle className="h-3.5 w-3.5" aria-hidden />}
+          </CmxButton>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <CmxButton
+                type="button"
+                size="xs"
+                variant="ghost"
+                aria-label={t('moreActions')}
+                title={t('moreActions')}
+              >
+                <MoreVertical className="h-3.5 w-3.5" aria-hidden />
+              </CmxButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onEditClick && (
+                <DropdownMenuItem
+                  onSelect={() => onEditClick(order.id)}
+                  onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+                >
+                  <SquarePen className="h-4 w-4" aria-hidden />
+                  <span>{t('edit')}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/processing/${order.id}`}>
+                  <ExternalLink className="h-4 w-4" aria-hidden />
+                  <span>{t('viewProcessingDetails')}</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={orderDetailsHref}>
+                  <FileText className="h-4 w-4" aria-hidden />
+                  <span>{t('details')}</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 });
 
-/** Single shared Mark Ready confirm dialog for the whole table (desktop + mobile). */
-function SharedMarkReadyDialog({
+/**
+ * Single shared Mark Ready confirm dialog for desktop and mobile.
+ * @param props Dialog state and lifecycle callbacks.
+ */
+function SharedMarkReadyDialog(props: {
+  order: ProcessingOrder | null;
+  onClose: () => void;
+  onBusy: (orderId: string | null) => void;
+  onSuccess: (orderId: string) => void;
+}) {
+  const { order, onClose, onBusy, onSuccess } = props;
+  return (
+    <CmxDialog open={!!order} onOpenChange={(open) => { if (!open) onClose(); }}>
+      {order ? (
+        <SharedMarkReadyDialogContent
+          key={order.id}
+          order={order}
+          onClose={onClose}
+          onBusy={onBusy}
+          onSuccess={onSuccess}
+        />
+      ) : null}
+    </CmxDialog>
+  );
+}
+
+function SharedMarkReadyDialogContent({
   order,
   onClose,
   onBusy,
   onSuccess,
 }: {
-  order: ProcessingOrder | null;
+  order: ProcessingOrder;
   onClose: () => void;
   onBusy: (orderId: string | null) => void;
   onSuccess: (orderId: string) => void;
@@ -560,33 +727,19 @@ function SharedMarkReadyDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [rackLocation, setRackLocation] = useState('');
   const [rackLocationError, setRackLocationError] = useState('');
-
-  const resetForm = useCallback(() => {
-    setRackLocation('');
-    setRackLocationError('');
-    setIsLoading(false);
-  }, []);
-
-  React.useEffect(() => {
-    if (order) {
-      resetForm();
-    }
-  }, [order?.id, resetForm]);
+  const [submitError, setSubmitError] = useState('');
 
   const handleConfirm = async () => {
-    if (!order) return;
     const rack = rackLocation.trim();
     if (!rack) {
-      setRackLocationError(
-        tDetail('validation.rackLocationRequired') || 'Rack location is required'
-      );
+      setRackLocationError(tDetail('validation.rackLocationRequired'));
       return;
     }
 
     const orderId = order.id;
     onBusy(orderId);
     setIsLoading(true);
-    onClose();
+    setSubmitError('');
 
     try {
       const availRes = await fetch(
@@ -595,9 +748,8 @@ function SharedMarkReadyDialog({
       const availJson = await availRes.json().catch(() => ({}));
       if (!availRes.ok || !availJson.success) {
         throw new Error(
-          profileStaffMessage(availJson.code, availJson.error || t('markReadyError'))
-            || t('markReadyError')
-            || 'Failed to update order status',
+          profileStaffMessage(availJson.code, availJson.error || t('markReadyError')) ||
+            t('markReadyError'),
         );
       }
       const payload = availJson.data ?? availJson;
@@ -611,51 +763,44 @@ function SharedMarkReadyDialog({
       });
 
       if (result.ok && result.success) {
-        resetForm();
         onSuccess(orderId);
         return;
       }
-      onBusy(null);
-      setIsLoading(false);
-      cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
-        description: profileStaffMessage(result.code, result.error) || result.error,
-        duration: 5000,
-      });
-    } catch (error) {
-      onBusy(null);
-      setIsLoading(false);
-      cmxMessage.error(t('markReadyError') || 'Error updating order status', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-        duration: 5000,
-      });
-    }
-  };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      resetForm();
-      onClose();
+      const errMsg = profileStaffMessage(result.code, result.error) || result.error || t('markReadyError');
+      setSubmitError(errMsg);
+      cmxMessage.error(t('markReadyError'), { description: errMsg, duration: 5000 });
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : t('markReadyError');
+      setSubmitError(errMsg);
+      cmxMessage.error(t('markReadyError'), { description: errMsg, duration: 5000 });
+    } finally {
+      onBusy(null);
+      setIsLoading(false);
     }
   };
 
   return (
-    <CmxDialog open={!!order} onOpenChange={handleOpenChange}>
-      <CmxDialogContent className="max-w-md">
-        <CmxDialogHeader>
-          <CmxDialogTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-warning-text" />
-            {t('confirmMarkReady') || 'Confirm Mark as Ready'}
-          </CmxDialogTitle>
-          <CmxDialogDescription>
-            {t('confirmMarkReadyMessage') ||
-              `Are you sure you want to mark order ${order?.order_no ?? ''} as ready?`}
-          </CmxDialogDescription>
-        </CmxDialogHeader>
+    <CmxDialogContent className="max-w-md">
+      <CmxDialogHeader>
+        <CmxDialogTitle className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-warning-text" aria-hidden />
+          {t('confirmMarkReady')}
+        </CmxDialogTitle>
+        <CmxDialogDescription>
+          {t('confirmMarkReadyMessage', { orderNo: order.order_no })}
+        </CmxDialogDescription>
+      </CmxDialogHeader>
 
-        <div className="py-4 space-y-2">
+      <div className="space-y-3 py-3">
+        {submitError && (
+          <CmxSummaryMessage type="error" title={t('markReadyError')} items={[submitError]} />
+        )}
+
+        <div className="space-y-2">
           <Label htmlFor="rack-location" className="block text-sm font-medium text-foreground">
-            {t('rackLocation') || tDetail('rackLocation') || 'Rack Location'}
-            <span className="text-danger-text ms-1">*</span>
+            {t('rackLocation')}
+            <span className="ms-1 text-danger-text">*</span>
           </Label>
           <CmxInput
             id="rack-location"
@@ -663,202 +808,182 @@ function SharedMarkReadyDialog({
             onChange={(e) => {
               setRackLocation(e.target.value);
               setRackLocationError('');
+              setSubmitError('');
             }}
-            placeholder={tDetail('rackLocationPlaceholder') || 'e.g., Rack A-12'}
-            aria-invalid={!!rackLocationError}
+            placeholder={tDetail('rackLocationPlaceholder')}
+            error={rackLocationError || undefined}
+            disabled={isLoading}
             required
           />
-          {rackLocationError && (
-            <p className="text-sm text-danger-text">{rackLocationError}</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {tDetail('rackLocationHelp') ||
-              'Enter the rack location where this order is stored'}
-          </p>
+          <p className="text-xs text-muted-foreground">{tDetail('rackLocationHelp')}</p>
         </div>
+      </div>
 
-        <CmxDialogFooter>
-          <CmxButton
-            variant="secondary"
-            onClick={() => handleOpenChange(false)}
-            disabled={isLoading}
-          >
-            {tCommon('cancel') || 'Cancel'}
-          </CmxButton>
-          <CmxButton
-            variant="primary"
-            onClick={handleConfirm}
-            disabled={isLoading || !rackLocation.trim()}
-            loading={isLoading}
-            className="bg-success hover:bg-success/90"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                {t('processing') || 'Processing...'}
-              </>
-            ) : (
-              t('confirmReady') || 'Confirm Ready'
-            )}
-          </CmxButton>
-        </CmxDialogFooter>
-      </CmxDialogContent>
-    </CmxDialog>
+      <CmxDialogFooter>
+        <CmxButton variant="secondary" onClick={onClose} disabled={isLoading}>
+          {tCommon('cancel')}
+        </CmxButton>
+        <CmxButton
+          variant="primary"
+          onClick={handleConfirm}
+          disabled={isLoading || !rackLocation.trim()}
+          loading={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="me-2 h-4 w-4 animate-spin" aria-hidden />
+              {t('processing')}
+            </>
+          ) : (
+            t('confirmReady')
+          )}
+        </CmxButton>
+      </CmxDialogFooter>
+    </CmxDialogContent>
   );
 }
 
-// ✅ Mobile Card View Component
-function ProcessingOrderCard({
-  order,
-  formatDate,
-  onEditClick,
-  onSimpleProcessClick,
-  onMarkReadyClick,
-  onRefresh,
-  markReadyBusy,
-  markReadySuccess,
-  index,
-  selectedOrderId,
-  tenantOrgId,
-}: {
+/** Mobile Card View Component (shown on < md viewports via CSS). */
+function ProcessingOrderCard(props: {
   order: ProcessingOrder;
-  formatDate: (date: string) => string;
   onEditClick?: (orderId: string) => void;
   onSimpleProcessClick?: (orderId: string) => void;
   onMarkReadyClick: (order: ProcessingOrder) => void;
   onRefresh: () => void;
   markReadyBusy: boolean;
   markReadySuccess: boolean;
-  index: number;
   selectedOrderId?: string | null;
+  nowMs: number;
   tenantOrgId?: string | null;
 }) {
-  const router = useRouter();
+  const {
+    order,
+    onEditClick,
+    onSimpleProcessClick,
+    onMarkReadyClick,
+    onRefresh,
+    markReadyBusy,
+    markReadySuccess,
+    selectedOrderId,
+    nowMs,
+    tenantOrgId,
+  } = props;
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
+  const locale = useLocale();
+  const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
-  const isPaid = isOrderPaidStatus(order.payment_status);
-  const isUrgent = order.priority === 'urgent' || order.priority === 'express';
-  const isSelected = selectedOrderId === order.id;
-  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const prefetchProcessingDialogs = useProcessingDialogPrefetch();
 
-  const handleEdit = () => {
-    setIsLoadingEdit(true);
-    if (onEditClick) {
-      onEditClick(order.id);
-      setTimeout(() => setIsLoadingEdit(false), 500);
-    } else {
-      router.push(`/dashboard/processing/${order.id}`);
-    }
-  };
+  const isSelected = selectedOrderId === order.id;
+  const slaState = getSlaState(order.ready_by_at, nowMs);
+  const priorityBadge = getPriorityBadgeInfo(order.priority, t);
+  const paymentBadge = getPaymentBadgeInfo(order, t);
 
-  const progressPercent = order.total_items > 0
-    ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
-    : 0;
+  const totalItems = Math.max(0, order.total_items || 0);
+  const readyCount = Math.min(totalItems, Math.max(0, order.quantity_ready || 0));
+  const progressPercent = totalItems > 0 ? Math.round((readyCount / totalItems) * 100) : 0;
+  const extraItemsCount = Math.max(0, (order.items_count ?? order.items.length) - order.items.length);
+  const displayCustomerName = getBilingual(order.customer_name, order.customer_name2) || order.customer_name;
+
+  const cardBorder = isSelected
+    ? 'border-success-border bg-success-bg/50'
+    : priorityBadge
+      ? 'border-border border-s-4 border-s-primary bg-card'
+      : 'border-border bg-card';
 
   return (
-    <div className={`rounded-lg border-2 p-4 ${isSelected
-      ? 'bg-success-bg border-success-border'
-      : isUrgent
-        ? 'bg-card border-s-4 border-s-primary'
-        : 'bg-card border-border'
-      }`}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-primary-text text-lg"><CmxCodeChip code={order.order_no} kind="order" size="md" /></h3>
+    <div className={`rounded-lg border p-4 ${cardBorder}`}>
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <CmxCodeChip code={order.order_no} kind="order" size="md" />
             <OrderIssueRowActions
               orderId={order.id}
               scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
               openCount={order.has_issue ? 1 : 0}
-              totalCount={
-                order.issue_total_count ?? (order.has_issue ? 1 : 0)
-              }
+              totalCount={order.issue_total_count ?? (order.has_issue ? 1 : 0)}
               hasOpenIssue={order.has_issue}
               onChanged={onRefresh}
             />
-            {!isPaid && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-warning-bg text-warning-text rounded">
-                1st
-              </span>
+            {priorityBadge && (
+              <CmxStatusBadge label={priorityBadge.label} tone={priorityBadge.tone} size="sm" />
             )}
-            <span className="px-2 py-0.5 text-xs font-medium bg-info-bg text-info-text rounded">
-              {order.current_status}
-            </span>
           </div>
-          <p className="text-sm text-muted-foreground">{order.customer_name}</p>
-          <p className="text-xs text-muted-foreground">{formatDate(order.ready_by_at)}</p>
+          <p className="text-sm font-medium text-foreground">{displayCustomerName}</p>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground tabular-nums">
+            <span>{formatProcessingDate(order.ready_by_at, locale)}</span>
+            {slaState && (
+              <CmxStatusBadge
+                size="sm"
+                tone={slaState === 'overdue' ? 'danger' : slaState === 'dueSoon' ? 'warning' : 'info'}
+                label={
+                  slaState === 'overdue'
+                    ? t('slaOverdue')
+                    : slaState === 'dueSoon'
+                      ? t('slaDueSoon')
+                      : t('slaToday')
+                }
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-1">
+          <CmxStatusBadge label={order.current_status} tone="info" size="sm" />
+          <CmxStatusBadge label={paymentBadge.label} tone={paymentBadge.tone} size="sm" />
         </div>
       </div>
 
       {/* Items */}
-      <div className="mb-3 space-y-2">
-        {order.items.slice(0, 2).map((item, idx) => (
-          <div key={idx} className="text-sm space-y-1">
-            <div className="font-medium text-foreground">
-              {item.product_name} x {item.quantity}
+      <div className="mb-3 space-y-1.5">
+        {order.items.slice(0, 2).map((item, idx) => {
+          const itemName = getBilingual(item.product_name, item.product_name2) || item.product_name;
+          return (
+            <div key={idx} className="text-sm">
+              <div className="font-medium text-foreground">
+                {itemName}{' '}
+                <span className="tabular-nums text-muted-foreground">× {item.quantity}</span>
+              </div>
+              {(item.has_stain || item.has_damage) && (
+                <div className="mt-0.5 flex flex-wrap gap-1">
+                  {item.has_stain && <CmxStatusBadge label={t('stain')} tone="warning" size="sm" />}
+                  {item.has_damage && <CmxStatusBadge label={t('damage')} tone="danger" size="sm" />}
+                </div>
+              )}
             </div>
-            {/* Item Details: Color, Brand */}
-            {(item.color || item.brand) && (
-              <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
-                {item.color && (
-                  <span className="px-1.5 py-0.5 bg-muted rounded">
-                    {t('color') || 'Color'}: {item.color}
-                  </span>
-                )}
-                {item.brand && (
-                  <span className="px-1.5 py-0.5 bg-muted rounded">
-                    {t('brand') || 'Brand'}: {item.brand}
-                  </span>
-                )}
-              </div>
-            )}
-            {/* Condition Flags: Stain, Damage */}
-            {(item.has_stain || item.has_damage) && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {item.has_stain && (
-                  <span className="px-1.5 py-0.5 text-xs font-medium bg-warning-bg text-warning-text rounded border border-warning-border">
-                    {t('stain') || 'Stain'}
-                  </span>
-                )}
-                {item.has_damage && (
-                  <span className="px-1.5 py-0.5 text-xs font-medium bg-danger-bg text-danger-text rounded border border-danger-border">
-                    {t('damage') || 'Damage'}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-        {order.items.length > 2 && (
-          <div className="text-xs text-muted-foreground">
-            +{order.items.length - 2} {t('moreItems')}
+          );
+        })}
+        {extraItemsCount > 0 && (
+          <div className="text-xs text-muted-foreground tabular-nums">
+            +{extraItemsCount} {t('moreItems')}
           </div>
         )}
       </div>
 
       {/* Progress */}
       <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-foreground">{tProcessing('progress')}</span>
-          <span className="text-xs font-medium text-foreground">{progressPercent}%</span>
+        <div className="mb-1 flex items-center justify-between text-xs tabular-nums">
+          <span className="font-medium text-foreground">{tProcessing('progress')}</span>
+          <span className="font-medium text-foreground">
+            {t('piecesReadyCount', { ready: readyCount, total: totalItems })} ({progressPercent}%)
+          </span>
         </div>
-        <div className="w-full bg-muted rounded-full h-2">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${progressPercent === 100 ? 'bg-success' : 'bg-primary'
-              }`}
+            className={`h-full rounded-full transition-all duration-300 ${
+              progressPercent === 100 ? 'bg-success' : 'bg-primary'
+            }`}
             style={{ width: `${Math.min(100, progressPercent)}%` }}
           />
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+      <div className="mb-3 grid grid-cols-2 gap-2 text-sm tabular-nums">
         <div>
           <span className="text-muted-foreground">{t('pcs')}: </span>
-          <span className="font-medium">{order.total_items}</span>
+          <span className="font-medium">{totalItems}</span>
         </div>
         <div className="text-end">
           <span className="text-muted-foreground">{t('total')}: </span>
@@ -867,166 +992,71 @@ function ProcessingOrderCard({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 pt-3 border-t border-border">
-        <Link
-          href={`/dashboard/processing/${order.id}`}
-          className="text-xs text-primary-text hover:text-primary-text/80 text-center py-1 font-medium"
+      <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
+        <CmxButton
+          type="button"
+          size="sm"
+          variant="primary"
+          onClick={() => onSimpleProcessClick?.(order.id)}
+          onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+          disabled={!onSimpleProcessClick}
         >
-          {t('viewProcessingDetails')} →
-        </Link>
+          <ListChecks className="me-1.5 h-4 w-4" aria-hidden />
+          {t('simpleProcess')}
+        </CmxButton>
+
+        <CmxButton
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => onMarkReadyClick(order)}
+          disabled={markReadyBusy}
+          loading={markReadyBusy}
+          className="border-success-border text-success-text hover:bg-success-bg"
+        >
+          {!markReadyBusy && <CheckCircle className="me-1.5 h-4 w-4" aria-hidden />}
+          {t('complete')}
+        </CmxButton>
+
+        {onEditClick && (
+          <CmxButton
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => onEditClick(order.id)}
+            onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+          >
+            <SquarePen className="me-1.5 h-4 w-4" aria-hidden />
+            {t('edit')}
+          </CmxButton>
+        )}
+
+        <CmxButton size="sm" variant="ghost" asChild>
+          <Link href={`/dashboard/processing/${order.id}`}>
+            <ExternalLink className="me-1.5 h-4 w-4" aria-hidden />
+            {t('viewProcessingDetails')}
+          </Link>
+        </CmxButton>
+      </div>
+
+      <div className="mt-2 text-center">
         <OrderDetailsLink
           tenantOrgId={tenantOrgId}
           orderId={order.id}
           orderNo={order.order_no}
           returnUrl="/dashboard/processing"
-          returnLabel={tProcessing('backToProcessing') || 'Back to Processing'}
-          className="text-xs text-primary-text hover:text-primary-text/80 text-center py-1"
+          returnLabel={tProcessing('backToProcessing')}
+          className="text-xs font-medium text-primary-text hover:underline"
         >
-          {t('details')} →
+          {t('details')}
         </OrderDetailsLink>
-        <button
-          type="button"
-          onClick={() => onSimpleProcessClick?.(order.id)}
-          onMouseEnter={() => prefetchProcessingDialogs(order.id)}
-          disabled={!onSimpleProcessClick}
-          className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2"
-        >
-          <ListChecks className="h-4 w-4" />
-          {t('simpleProcess')}
-        </button>
-        <button
-          type="button"
-          onClick={handleEdit}
-          onMouseEnter={() => prefetchProcessingDialogs(order.id)}
-          disabled={isLoadingEdit}
-          className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-wait text-sm font-medium flex items-center justify-center gap-2"
-        >
-          {isLoadingEdit ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t('opening') || 'Opening...'}
-            </>
-          ) : (
-            <>
-              <SquarePen className="h-4 w-4" />
-              {t('edit')}
-            </>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => onMarkReadyClick(order)}
-          disabled={markReadyBusy}
-          className="w-full px-3 py-2 bg-success text-on-solid rounded-lg hover:bg-success/90 disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2"
-        >
-          {markReadyBusy ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t('processing') || 'Processing...'}
-            </>
-          ) : (
-            <>
-              <CheckCircle className="h-4 w-4" />
-              {t('complete')}
-            </>
-          )}
-        </button>
-        {markReadySuccess ? (
-          <p className="text-sm text-success-text text-center">
-            {t('markReadySuccess') || 'Order marked as ready successfully'}
-          </p>
-        ) : null}
       </div>
-    </div>
-  );
-}
 
-// ✅ Desktop Table Component (extracted for clarity)
-function ProcessingTableDesktop({
-  orders,
-  sortField,
-  onSort,
-  onEditClick,
-  onSimpleProcessClick,
-  onMarkReadyClick,
-  onRefresh,
-  markReadyBusyId,
-  markReadySuccessId,
-  formatDate,
-  selectedOrderId,
-  tenantOrgId,
-}: {
-  orders: ProcessingOrder[];
-  sortField: SortField;
-  onSort: (field: SortField) => void;
-  onEditClick?: (orderId: string) => void;
-  onSimpleProcessClick?: (orderId: string) => void;
-  onMarkReadyClick: (order: ProcessingOrder) => void;
-  onRefresh: () => void;
-  markReadyBusyId: string | null;
-  markReadySuccessId: string | null;
-  formatDate: (date: string) => string;
-  selectedOrderId?: string | null;
-  tenantOrgId?: string | null;
-}) {
-  const t = useTranslations('processing.table');
-  const tProcessing = useTranslations('processing');
-
-  return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-muted border-b-2 border-border">
-            <tr>
-              <ProcessingSortableHeader field="id" sortField={sortField} onSort={onSort}>
-                {t('id')}
-              </ProcessingSortableHeader>
-              <ProcessingSortableHeader field="ready_by_at" sortField={sortField} onSort={onSort}>
-                {t('readyBy')}
-              </ProcessingSortableHeader>
-              <ProcessingSortableHeader field="customer_name" sortField={sortField} onSort={onSort}>
-                {t('customer')}
-              </ProcessingSortableHeader>
-              <th className="px-4 py-3 text-start text-sm font-semibold text-foreground">
-                {t('order')}
-              </th>
-              <ProcessingSortableHeader field="total_items" sortField={sortField} onSort={onSort}>
-                {t('pcs')}
-              </ProcessingSortableHeader>
-              <th className="px-4 py-3 text-start text-sm font-semibold text-foreground">
-                {tProcessing('progress')}
-              </th>
-              <ProcessingSortableHeader field="notes" sortField={sortField} onSort={onSort}>
-                {t('notes')}
-              </ProcessingSortableHeader>
-              <ProcessingSortableHeader field="total" sortField={sortField} onSort={onSort}>
-                {t('total')}
-              </ProcessingSortableHeader>
-              <ProcessingSortableHeader field="status" sortField={sortField} onSort={onSort}>
-                {t('status')}
-              </ProcessingSortableHeader>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {orders.map((order, index) => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                formatDate={formatDate}
-                onEditClick={onEditClick}
-                onSimpleProcessClick={onSimpleProcessClick}
-                onMarkReadyClick={onMarkReadyClick}
-                onRefresh={onRefresh}
-                markReadyBusy={markReadyBusyId === order.id}
-                markReadySuccess={markReadySuccessId === order.id}
-                index={index}
-                selectedOrderId={selectedOrderId}
-                tenantOrgId={tenantOrgId}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {markReadySuccess && (
+        <p className="mt-2 text-center text-xs font-medium text-success-text">
+          {t('markReadySuccess')}
+        </p>
+      )}
     </div>
   );
 }

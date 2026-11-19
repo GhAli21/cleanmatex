@@ -9,6 +9,7 @@
 import { useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { CmxSelect, Label } from '@ui/primitives';
 import type { PackingPreference } from '@/lib/types/service-preferences';
 
 interface PackingPreferenceSelectorProps {
@@ -51,10 +52,10 @@ export function PackingPreferenceSelector({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-semibold text-foreground">
+      <Label className="block text-sm font-semibold text-foreground">
         {t('packingPref') || 'Packing'}
-      </label>
-      <select
+      </Label>
+      <CmxSelect
         value={value ?? ''}
         onChange={(e) => {
           const raw = e.target.value;
@@ -66,14 +67,9 @@ export function PackingPreferenceSelector({
           onChange(raw, pref?.packing_cf_id ?? null);
         }}
         disabled={disabled}
-        className="w-full min-w-[160px] rounded-xl border border-border px-3 py-2.5 text-sm text-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-      >
-        {options.map((opt) => (
-          <option key={opt.value || 'none'} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        className="min-w-[160px] rounded-xl"
+        options={options}
+      />
     </div>
   );
 }

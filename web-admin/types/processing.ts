@@ -21,15 +21,21 @@ export interface ProcessingOrder {
   ready_by_at: string;
   customer_name: string;
   customer_name2?: string;
+  customer_phone?: string;
   items: ProcessingOrderItem[];
+  items_count?: number;
   total_items: number;
-  quantity_ready?: number;  // ✅ NEW: For progress indicator
+  quantity_ready?: number;
+  has_stain_any?: boolean;
+  has_damage_any?: boolean;
   notes?: string;
   total: number;
   status: string;
   current_status: string;
   payment_status: string;
+  payment_type_code?: string | null;
   paid_amount: number;
+  outstanding_amount: number;
   priority: string;
   has_issue?: boolean;
   /** Total issues including solved — enables green badge when has_issue is false */
@@ -41,9 +47,11 @@ export interface ProcessingOrder {
 export interface ProcessingStats {
   orders: number;
   pieces: number;
-  weight: number;
+  overdue: number;
+  issues: number;
   value: number;
   unpaid: number;
+  weight?: number;
 }
 
 export interface FilterOption {
@@ -51,13 +59,15 @@ export interface FilterOption {
   label: string;
 }
 
+export type ProcessingFocus = 'all' | 'urgent' | 'overdue' | 'issues' | 'ready';
+
 export interface ProcessingFilters {
-  reports?: string;
-  sections?: string;
-  orderType?: string;
-  date?: string;
+  search?: string;
+  focus?: ProcessingFocus;
+  priority?: string;
   statusFilter?: string;
+  readyByDate?: string;
 }
 
-export type SortField = 'id' | 'ready_by_at' | 'customer_name' | 'total_items' | 'notes' | 'total' | 'status';
+export type SortField = 'order_no' | 'ready_by_at' | 'customer_name' | 'total_items' | 'total' | 'status';
 export type SortDirection = 'asc' | 'desc';

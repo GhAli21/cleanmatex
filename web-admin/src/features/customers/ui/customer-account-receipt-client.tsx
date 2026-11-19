@@ -206,7 +206,9 @@ export function CustomerAccountReceiptClient() {
               <div>
                 <p className="font-medium">{customer.name}</p>
                 {customer.phone ? (
-                  <p className="text-sm text-muted-foreground">{customer.phone}</p>
+                  <p className="text-sm text-muted-foreground">
+                    <bdi dir="ltr" className="tabular-nums">{customer.phone}</bdi>
+                  </p>
                 ) : null}
               </div>
               <CmxButton variant="outline" onClick={() => setPickerOpen(true)}>

@@ -15,6 +15,7 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertCircle, RefreshCw } from 'lucide-react'
+import { CmxButton } from '@ui/primitives'
 import { useRole } from '@/lib/auth/role-context'
 import { useFeatureOptional } from '@/src/features/auth/ui/RequireFeature'
 import type { UserRole } from '@/config/navigation'
@@ -100,17 +101,18 @@ export function Widget({
         <div className="flex items-center space-x-2">
           {titleAction}
           {onRefresh && (
-            <button
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="xs"
               onClick={handleRefresh}
               disabled={isRefreshing || isLoading}
-              className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
               aria-label="Refresh widget"
             >
               <RefreshCw
                 className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
               />
-            </button>
+            </CmxButton>
           )}
         </div>
       </div>
@@ -165,14 +167,15 @@ function ErrorState({
       </h4>
       <p className="text-sm text-muted-foreground mb-4">{error}</p>
       {onRetry && (
-        <button
+        <CmxButton
           type="button"
+          variant="primary"
+          size="sm"
           onClick={onRetry}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
         >
           <RefreshCw className="h-4 w-4 me-2" />
           {t('tryAgain')}
-        </button>
+        </CmxButton>
       )}
     </div>
   )

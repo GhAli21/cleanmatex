@@ -1,11 +1,10 @@
-
 /**
  * B2B Customer Creation Page screen
  * Dedicated screen to create B2B customers within the B2B section
  */
 
 'use client';
-import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -16,7 +15,6 @@ import { createCustomer } from '@/lib/api/customers';
 import { fetchCustomerCategories } from '@/lib/api/customer-categories';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useAuth } from '@/lib/auth/auth-context';
-
 
 import { useMessage } from '@ui/feedback';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
@@ -130,147 +128,152 @@ export default function B2BCustomerCreatePage() {
     }
   };
 
-  const inputClass = (dir?: 'ltr' | 'rtl') =>
-    `block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed ${dir === 'rtl' ? 'text-end' : 'text-start'}`;
-  const labelClass = `block text-sm font-medium text-foreground mb-1 text-start`;
-  const flexRow = `flex `;
-
   return (
     <RequireAnyPermission permissions={B2B_B2B_CUSTOMERS_NEW_ACCESS.page.permissions ?? []}>
       <div className="space-y-6">
-      <div className={flexRow + ' items-center justify-between gap-4'}>
-        <div className={flexRow + ' items-center gap-3'}>
-          <CmxButton variant="ghost" size="icon" asChild>
-            <Link href="/dashboard/b2b/customers" aria-label={tCommon('back')}>
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-          </CmxButton>
-          <div>
-            <h1 className="text-2xl font-semibold">{tB2b('createB2BCustomer') || 'Create B2B Customer'}</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {tB2b('createB2BCustomerSubtitle') || 'Add a new business customer with company details and credit terms'}
-            </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <CmxButton variant="ghost" size="icon" asChild>
+              <Link href="/dashboard/b2b/customers" aria-label={tCommon('back')}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+            </CmxButton>
+            <div>
+              <h1 className="text-2xl font-semibold">{tB2b('createB2BCustomer') || 'Create B2B Customer'}</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {tB2b('createB2BCustomerSubtitle') || 'Add a new business customer with company details and credit terms'}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{tB2b('companyDetails') || 'Company & Contact Details'}</CmxCardTitle>
-        </CmxCardHeader>
-        <CmxCardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="rounded-md p-4 border-s-4 border-e-0 border-destructive bg-danger-bg">
-                <p className="text-sm text-danger-text">{error}</p>
-              </div>
-            )}
-
-            {/* Category first - B2B categories only (is_b2b=true) */}
-            <div>
-              <label htmlFor="customerCategoryId" className={labelClass}>{t('category') || 'Category'}</label>
-              <select id="customerCategoryId" value={customerCategoryId} onChange={(e) => setCustomerCategoryId(e.target.value)} disabled={loading} className={inputClass()}>
-                <option value="">{tCommon('select') || 'Select...'}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Contact person */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-foreground border-b pb-2">{t('contactInformation') || 'Contact'}</h3>
-                <div>
-                  <label htmlFor="displayName" className={labelClass}>{t('displayName')}</label>
-                  <input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={tB2b('companyName')} disabled={loading} />
-                  <p className="text-xs text-muted-foreground mt-1">{t('displayNameHelper') || 'Defaults to company name if empty'}</p>
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{tB2b('companyDetails') || 'Company & Contact Details'}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="rounded-md p-4 border-s-4 border-e-0 border-destructive bg-danger-bg">
+                  <p className="text-sm text-danger-text">{error}</p>
                 </div>
-                <div>
-                  <label htmlFor="phone" className={labelClass}>{t('phoneNumber')} <span className="text-danger-text">*</span></label>
-                  <div className={flexRow}>
-                    <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} disabled={loading} className="inline-flex items-center px-3 py-2 border border-border bg-muted text-foreground text-sm focus:outline-none focus:ring-ring focus:border-ring disabled:opacity-50 rounded-s-md border-s border-e-0">
-                      {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
-                    </select>
-                    <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className={`flex-1 ${inputClass('ltr')} rounded-e-md`} placeholder="90123456" required disabled={loading} />
+              )}
+
+              {/* Category first - B2B categories only (is_b2b=true) */}
+              <div>
+                <Label htmlFor="customerCategoryId" className="mb-1 block text-start">{t('category') || 'Category'}</Label>
+                <CmxSelect
+                  id="customerCategoryId"
+                  value={customerCategoryId}
+                  onChange={(e) => setCustomerCategoryId(e.target.value)}
+                  disabled={loading}
+                  options={[
+                    { value: '', label: tCommon('select') || 'Select...' },
+                    ...categories.map((c) => ({ value: c.id, label: c.name })),
+                  ]}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Contact person */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-foreground border-b pb-2">{t('contactInformation') || 'Contact'}</h3>
+                  <div>
+                    <Label htmlFor="displayName" className="mb-1 block text-start">{t('displayName')}</Label>
+                    <CmxInput id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} placeholder={tB2b('companyName')} disabled={loading} />
+                    <p className="text-xs text-muted-foreground mt-1">{t('displayNameHelper') || 'Defaults to company name if empty'}</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone" className="mb-1 block text-start">{t('phoneNumber')} <span className="text-danger-text">*</span></Label>
+                    <div className="flex gap-2" dir="ltr">
+                      <div className="w-28 shrink-0">
+                        <CmxSelect
+                          aria-label={t('countryCode') || 'Country code'}
+                          value={countryCode}
+                          onChange={(e) => setCountryCode(e.target.value)}
+                          disabled={loading}
+                          options={COUNTRY_CODES.map((c) => ({ value: c.code, label: `${c.flag} ${c.code}` }))}
+                        />
+                      </div>
+                      <CmxInput id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className="flex-1 tabular-nums" placeholder="90123456" required disabled={loading} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="mb-1 block text-start">{t('emailOptional')}</Label>
+                    <CmxInput id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" placeholder="customer@example.com" disabled={loading} />
                   </div>
                 </div>
-                <div>
-                  <label htmlFor="email" className={labelClass}>{t('emailOptional')}</label>
-                  <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" className={inputClass()} placeholder="customer@example.com" disabled={loading} />
+
+                {/* Company details */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-foreground border-b pb-2">{tB2b('companyInfo') || 'Company Info'}</h3>
+                  <div>
+                    <Label htmlFor="companyName" className="mb-1 block text-start">{tB2b('companyName')} <span className="text-danger-text">*</span></Label>
+                    <CmxInput id="companyName" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} placeholder={tB2b('companyName')} required disabled={loading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="companyName2" className="mb-1 block text-start">{tB2b('companyName2')}</Label>
+                    <CmxInput id="companyName2" type="text" value={companyName2} onChange={(e) => setCompanyName2(e.target.value)} dir="rtl" className="text-end" placeholder={tB2b('companyName2')} disabled={loading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="taxId" className="mb-1 block text-start">{tB2b('taxId')}</Label>
+                    <CmxInput id="taxId" type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} dir="ltr" placeholder={tB2b('taxId')} disabled={loading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="costCenterCode" className="mb-1 block text-start">{tB2b('costCenterCode')}</Label>
+                    <CmxInput id="costCenterCode" type="text" value={costCenterCode} onChange={(e) => setCostCenterCode(e.target.value)} dir="ltr" placeholder={tB2b('costCenterCode')} disabled={loading} />
+                  </div>
                 </div>
               </div>
 
-              {/* Company details */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-foreground border-b pb-2">{tB2b('companyInfo') || 'Company Info'}</h3>
+              {/* Credit & payment */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                <h3 className="text-sm font-medium text-foreground md:col-span-2">{tB2b('creditLimit')} & {tB2b('paymentTermsDays')}</h3>
                 <div>
-                  <label htmlFor="companyName" className={labelClass}>{tB2b('companyName')} <span className="text-danger-text">*</span></label>
-                  <input id="companyName" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={tB2b('companyName')} required disabled={loading} />
+                  <Label htmlFor="creditLimit" className="mb-1 block text-start">{tB2b('creditLimit')}</Label>
+                  <CmxInput id="creditLimit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} min={0} step={0.01} dir="ltr" className="tabular-nums" placeholder="0" disabled={loading} />
                 </div>
                 <div>
-                  <label htmlFor="companyName2" className={labelClass}>{tB2b('companyName2')}</label>
-                  <input id="companyName2" type="text" value={companyName2} onChange={(e) => setCompanyName2(e.target.value)} dir="rtl" className={inputClass('rtl')} placeholder={tB2b('companyName2')} disabled={loading} />
-                </div>
-                <div>
-                  <label htmlFor="taxId" className={labelClass}>{tB2b('taxId')}</label>
-                  <input id="taxId" type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} dir="ltr" className={inputClass()} placeholder={tB2b('taxId')} disabled={loading} />
-                </div>
-                <div>
-                  <label htmlFor="costCenterCode" className={labelClass}>{tB2b('costCenterCode')}</label>
-                  <input id="costCenterCode" type="text" value={costCenterCode} onChange={(e) => setCostCenterCode(e.target.value)} dir="ltr" className={inputClass()} placeholder={tB2b('costCenterCode')} disabled={loading} />
+                  <Label htmlFor="paymentTermsDays" className="mb-1 block text-start">{tB2b('paymentTermsDays')}</Label>
+                  <CmxInput id="paymentTermsDays" type="number" value={paymentTermsDays} onChange={(e) => setPaymentTermsDays(e.target.value)} min={0} dir="ltr" className="tabular-nums" placeholder="30" disabled={loading} />
                 </div>
               </div>
-            </div>
 
-            {/* Credit & payment */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-              <h3 className="text-sm font-medium text-foreground md:col-span-2">{tB2b('creditLimit')} & {tB2b('paymentTermsDays')}</h3>
-              <div>
-                <label htmlFor="creditLimit" className={labelClass}>{tB2b('creditLimit')}</label>
-                <input id="creditLimit" type="number" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} min={0} step={0.01} dir="ltr" className={inputClass()} placeholder="0" disabled={loading} />
+              {/* Address (optional) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                <h3 className="text-sm font-medium text-foreground md:col-span-2">{t('address') || 'Address'}</h3>
+                <div className="md:col-span-2">
+                  <Label htmlFor="address" className="mb-1 block text-start">{t('address')}</Label>
+                  <CmxInput id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} placeholder={t('address')} disabled={loading} />
+                </div>
+                <div>
+                  <Label htmlFor="area" className="mb-1 block text-start">{t('area') || 'Area'}</Label>
+                  <CmxInput id="area" type="text" value={area} onChange={(e) => setArea(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} disabled={loading} />
+                </div>
+                <div>
+                  <Label htmlFor="building" className="mb-1 block text-start">{t('building') || 'Building'}</Label>
+                  <CmxInput id="building" type="text" value={building} onChange={(e) => setBuilding(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} disabled={loading} />
+                </div>
+                <div>
+                  <Label htmlFor="floor" className="mb-1 block text-start">{t('floor') || 'Floor'}</Label>
+                  <CmxInput id="floor" type="text" value={floor} onChange={(e) => setFloor(e.target.value)} dir="ltr" disabled={loading} />
+                </div>
               </div>
-              <div>
-                <label htmlFor="paymentTermsDays" className={labelClass}>{tB2b('paymentTermsDays')}</label>
-                <input id="paymentTermsDays" type="number" value={paymentTermsDays} onChange={(e) => setPaymentTermsDays(e.target.value)} min={0} dir="ltr" className={inputClass()} placeholder="30" disabled={loading} />
-              </div>
-            </div>
 
-            {/* Address (optional) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-              <h3 className="text-sm font-medium text-foreground md:col-span-2">{t('address') || 'Address'}</h3>
-              <div className="md:col-span-2">
-                <label htmlFor="address" className={labelClass}>{t('address')}</label>
-                <input id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={t('address')} disabled={loading} />
+              <div className="pt-6 flex items-center justify-end gap-3">
+                <CmxButton type="button" variant="outline" disabled={loading} asChild>
+                  <Link href="/dashboard/b2b/customers">{tCommon('cancel')}</Link>
+                </CmxButton>
+                <CmxButton type="submit" loading={loading} disabled={loading}>
+                  {loading ? (t('creating') || 'Creating...') : (tB2b('createB2BCustomer') || 'Create B2B Customer')}
+                </CmxButton>
               </div>
-              <div>
-                <label htmlFor="area" className={labelClass}>{t('area') || 'Area'}</label>
-                <input id="area" type="text" value={area} onChange={(e) => setArea(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} disabled={loading} />
-              </div>
-              <div>
-                <label htmlFor="building" className={labelClass}>{t('building') || 'Building'}</label>
-                <input id="building" type="text" value={building} onChange={(e) => setBuilding(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} disabled={loading} />
-              </div>
-              <div>
-                <label htmlFor="floor" className={labelClass}>{t('floor') || 'Floor'}</label>
-                <input id="floor" type="text" value={floor} onChange={(e) => setFloor(e.target.value)} dir="ltr" className={inputClass()} disabled={loading} />
-              </div>
-            </div>
-
-            <div className="pt-6 flex items-center justify-end gap-3">
-              <CmxButton type="button" variant="outline" disabled={loading} asChild>
-                <Link href="/dashboard/b2b/customers">{tCommon('cancel')}</Link>
-              </CmxButton>
-              <CmxButton type="submit" disabled={loading}>
-                {loading ? (t('creating') || 'Creating...') : (tB2b('createB2BCustomer') || 'Create B2B Customer')}
-              </CmxButton>
-            </div>
-          </form>
-        </CmxCardContent>
-      </CmxCard>
-    </div>
+            </form>
+          </CmxCardContent>
+        </CmxCard>
+      </div>
     </RequireAnyPermission>
   );
 }

@@ -6,6 +6,8 @@
 
 'use client';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
+import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
+import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
@@ -69,15 +71,147 @@ export default function B2BStatementsPage() {
     );
   }
 
+  const overdueColumns: CmxDataTableSimpleColumn<{
+    id: string;
+    statementNo: string;
+    customerId: string;
+    dueDate: string;
+    balanceAmount: number;
+    daysOverdue: number;
+    dunningLevel?: { days: number; action: string } | null;
+  }>[] = [
+    {
+      key: 'statementNo',
+      header: t('statementNo') || 'Statement No',
+      sortable: false,
+      render: (s) => <bdi dir="ltr">{s.statementNo}</bdi>,
+    },
+    {
+      key: 'dueDate',
+      header: t('dueDate') || 'Due Date',
+      sortable: false,
+      render: (s) => (s.dueDate ? <bdi dir="ltr" className="tabular-nums">{new Date(s.dueDate).toLocaleDateString()}</bdi> : '—'),
+    },
+    {
+      key: 'balanceAmount',
+      header: t('balanceAmount') || 'Balance',
+      align: 'end',
+      sortable: false,
+      render: (s) => (
+        <span className="font-medium tabular-nums">
+          {s.balanceAmount != null ? <bdi dir="ltr">{Number(s.balanceAmount).toLocaleString()}</bdi> : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'daysOverdue',
+      header: t('daysOverdue') || 'Days Overdue',
+      align: 'end',
+      sortable: false,
+      render: (s) => <span className="text-warning-text tabular-nums">{s.daysOverdue}</span>,
+    },
+    {
+      key: 'dunningAction',
+      header: t('dunningAction') || 'Action',
+      sortable: false,
+      render: (s) =>
+        s.dunningLevel ? (
+          <span className="text-xs font-medium text-warning-text">
+            {s.dunningLevel.days}d → {s.dunningLevel.action}
+          </span>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'actions',
+      header: t('actions') || 'Actions',
+      align: 'end',
+      sortable: false,
+      render: (s) => (
+        <CmxButton
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
+        >
+          {t('view') || 'View'}
+        </CmxButton>
+      ),
+    },
+  ];
+
+  const statementColumns: CmxDataTableSimpleColumn<{
+    id: string;
+    statement_no: string;
+    customer_id: string;
+    period_from: string | null;
+    period_to: string | null;
+    due_date: string | null;
+    total_amount: number | null;
+    paid_amount: number | null;
+    balance_amount: number | null;
+    status_cd: string | null;
+  }>[] = [
+    {
+      key: 'statement_no',
+      header: t('statementNo') || 'Statement No',
+      sortable: false,
+      render: (s) => <bdi dir="ltr">{s.statement_no}</bdi>,
+    },
+    {
+      key: 'period_from',
+      header: t('periodFrom') || 'Period From',
+      sortable: false,
+      render: (s) => (s.period_from ? <bdi dir="ltr" className="tabular-nums">{new Date(s.period_from).toLocaleDateString()}</bdi> : '—'),
+    },
+    {
+      key: 'period_to',
+      header: t('periodTo') || 'Period To',
+      sortable: false,
+      render: (s) => (s.period_to ? <bdi dir="ltr" className="tabular-nums">{new Date(s.period_to).toLocaleDateString()}</bdi> : '—'),
+    },
+    {
+      key: 'due_date',
+      header: t('dueDate') || 'Due Date',
+      sortable: false,
+      render: (s) => (s.due_date ? <bdi dir="ltr" className="tabular-nums">{new Date(s.due_date).toLocaleDateString()}</bdi> : '—'),
+    },
+    {
+      key: 'total_amount',
+      header: t('totalAmount') || 'Total',
+      align: 'end',
+      sortable: false,
+      render: (s) =>
+        s.total_amount != null ? <bdi dir="ltr" className="tabular-nums">{Number(s.total_amount).toLocaleString()}</bdi> : '—',
+    },
+    {
+      key: 'balance_amount',
+      header: t('balanceAmount') || 'Balance',
+      align: 'end',
+      sortable: false,
+      render: (s) =>
+        s.balance_amount != null ? <bdi dir="ltr" className="tabular-nums">{Number(s.balance_amount).toLocaleString()}</bdi> : '—',
+    },
+    {
+      key: 'actions',
+      header: t('actions') || 'Actions',
+      align: 'end',
+      sortable: false,
+      render: (s) => (
+        <CmxButton
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
+        >
+          {t('view') || 'View'}
+        </CmxButton>
+      ),
+    },
+  ];
+
   return (
     <RequireAnyPermission permissions={B2B_B2B_STATEMENTS_ACCESS.page.permissions ?? []}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">
-            {t('statements') || 'Statements'}
-          </h1>
-        </div>
-
+      <CmxCrudPageShell title={t('statements') || 'Statements'}>
         {/* Overdue (Dunning) section */}
         {overdueStatements && overdueStatements.length > 0 && (
           <CmxCard className="border-warning-border bg-warning-bg/50">
@@ -87,125 +221,36 @@ export default function B2BStatementsPage() {
                 {t('overdueStatements') || 'Overdue Statements'}
               </CmxCardTitle>
             </CmxCardHeader>
-            <CmxCardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-warning-border">
-                      <th className="text-start py-2 px-3">{t('statementNo') || 'Statement No'}</th>
-                      <th className="text-start py-2 px-3">{t('dueDate') || 'Due Date'}</th>
-                      <th className="text-start py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
-                      <th className="text-start py-2 px-3">{t('daysOverdue') || 'Days Overdue'}</th>
-                      <th className="text-start py-2 px-3">{t('dunningAction') || 'Action'}</th>
-                      <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {overdueStatements.map((s) => (
-                      <tr key={s.id} className="border-b border-warning-border hover:bg-warning-bg">
-                        <td className="py-2 px-3">{s.statementNo}</td>
-                        <td className="py-2 px-3">
-                          {s.dueDate ? new Date(s.dueDate).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2 px-3 font-medium">
-                          {s.balanceAmount != null ? Number(s.balanceAmount).toLocaleString() : '-'}
-                        </td>
-                        <td className="py-2 px-3 text-warning-text">{s.daysOverdue}</td>
-                        <td className="py-2 px-3">
-                          {s.dunningLevel ? (
-                            <span className="text-xs font-medium text-warning-text">
-                              {s.dunningLevel.days}d → {s.dunningLevel.action}
-                            </span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                        <td className="py-2 px-3">
-                          <CmxButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
-                          >
-                            {t('view') || 'View'}
-                          </CmxButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <CmxCardContent className="p-0">
+              <CmxDataTable
+                columns={overdueColumns}
+                data={overdueStatements}
+                auditConfig={false}
+                scrollable={false}
+                paginationFooter="never"
+                className="border-0 shadow-none"
+              />
             </CmxCardContent>
           </CmxCard>
         )}
 
-        <CmxCard>
-          <CmxCardHeader>
-            <CmxCardTitle>{t('statements') || 'Statements'}</CmxCardTitle>
-          </CmxCardHeader>
-          <CmxCardContent>
-            {!statements?.length ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground mb-4">
-                  No statements yet. Generate a statement from a B2B customer detail page.
-                </p>
-                <CmxButton
-                  variant="primary"
-                  onClick={() => window.location.assign('/dashboard/b2b/customers')}
-                >
-                  {t('goToCustomers') || 'Go to B2B Customers'}
-                </CmxButton>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-start py-2 px-3">{t('statementNo') || 'Statement No'}</th>
-                      <th className="text-start py-2 px-3">{t('periodFrom') || 'Period From'}</th>
-                      <th className="text-start py-2 px-3">{t('periodTo') || 'Period To'}</th>
-                      <th className="text-start py-2 px-3">{t('dueDate') || 'Due Date'}</th>
-                      <th className="text-start py-2 px-3">{t('totalAmount') || 'Total'}</th>
-                      <th className="text-start py-2 px-3">{t('balanceAmount') || 'Balance'}</th>
-                      <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {statements.map((s) => (
-                      <tr key={s.id} className="border-b hover:bg-muted">
-                        <td className="py-2 px-3">{s.statement_no}</td>
-                        <td className="py-2 px-3">
-                          {s.period_from ? new Date(s.period_from).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          {s.period_to ? new Date(s.period_to).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          {s.due_date ? new Date(s.due_date).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          {s.total_amount != null ? Number(s.total_amount).toLocaleString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          {s.balance_amount != null ? Number(s.balance_amount).toLocaleString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <CmxButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.location.assign(`/dashboard/b2b/statements/${s.id}`)}
-                          >
-                            {t('view') || 'View'}
-                          </CmxButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CmxCardContent>
-        </CmxCard>
-      </div>
+        <CmxDataTable
+          columns={statementColumns}
+          data={statements ?? []}
+          auditConfig={false}
+          scrollable={false}
+          paginationFooter="never"
+          emptyStateDescription="No statements yet. Generate a statement from a B2B customer detail page."
+          emptyStateAction={
+            <CmxButton
+              variant="primary"
+              onClick={() => window.location.assign('/dashboard/b2b/customers')}
+            >
+              {t('goToCustomers') || 'Go to B2B Customers'}
+            </CmxButton>
+          }
+        />
+      </CmxCrudPageShell>
     </RequireAnyPermission>
   );
 }

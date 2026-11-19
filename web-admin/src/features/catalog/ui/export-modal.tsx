@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CmxButton, CmxCard, CmxSelect } from '@ui/primitives'
+import { CmxButton, CmxSelect } from '@ui/primitives'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays'
 
 interface ExportModalProps {
   onClose: () => void
@@ -22,32 +29,29 @@ export default function ExportModal({ onClose }: ExportModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <CmxCard className="w-full max-w-lg p-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{t('export')}</h2>
-          <CmxButton variant="secondary" onClick={onClose}>{t('close')}</CmxButton>
-        </div>
+    <CmxDialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <CmxDialogContent className="w-full max-w-lg">
+        <CmxDialogHeader>
+          <CmxDialogTitle>{t('export')}</CmxDialogTitle>
+        </CmxDialogHeader>
 
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">{t('downloadTemplate')}</label>
-            <CmxSelect
-              value={template}
-              onChange={(e) => setTemplate(e.target.value as 'basic' | 'advanced')}
-              options={[
-                { value: 'basic', label: t('basicTemplate') },
-                { value: 'advanced', label: t('advancedTemplate') }
-              ]}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <CmxButton onClick={onDownload}>{t('download')}</CmxButton>
-            <CmxButton variant="secondary" onClick={onClose}>{t('close')}</CmxButton>
-          </div>
+          <CmxSelect
+            label={t('downloadTemplate')}
+            value={template}
+            onChange={(e) => setTemplate(e.target.value as 'basic' | 'advanced')}
+            options={[
+              { value: 'basic', label: t('basicTemplate') },
+              { value: 'advanced', label: t('advancedTemplate') }
+            ]}
+          />
         </div>
-      </CmxCard>
-    </div>
+
+        <CmxDialogFooter className="justify-between">
+          <CmxButton variant="secondary" onClick={onClose}>{t('close')}</CmxButton>
+          <CmxButton onClick={onDownload}>{t('download')}</CmxButton>
+        </CmxDialogFooter>
+      </CmxDialogContent>
+    </CmxDialog>
   )
 }

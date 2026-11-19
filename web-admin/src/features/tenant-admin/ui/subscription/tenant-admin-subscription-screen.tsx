@@ -7,7 +7,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
+import {
+  CmxButton,
+  CmxRadio,
+  CmxSelect,
+  CmxTextarea,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
 import { CmxProgressBar, CmxStatusBadge } from '@ui/feedback';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import type {
@@ -437,69 +455,65 @@ export function TenantAdminSubscriptionScreen() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Available Plans</h2>
             <div className="flex items-center space-x-2">
-              <button
+              <CmxButton
+                type="button"
+                variant={showPricing === 'monthly' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setShowPricing('monthly')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  showPricing === 'monthly'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground hover:bg-border'
-                }`}
               >
                 Monthly
-              </button>
-              <button
+              </CmxButton>
+              <CmxButton
+                type="button"
+                variant={showPricing === 'yearly' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setShowPricing('yearly')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  showPricing === 'yearly'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground hover:bg-border'
-                }`}
               >
                 Yearly
                 <span className="ms-1 text-xs">(Save 20%)</span>
-              </button>
+              </CmxButton>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Table className="min-w-full divide-y divide-border">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Plan
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Price
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Orders
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Users
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Branches
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Key Features
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="bg-card divide-y divide-border">
                 {plans.map((plan) => {
                   const price = showPricing === 'yearly' && plan.price_yearly
                     ? plan.price_yearly / 12
                     : plan.price_monthly;
 
                   return (
-                    <tr
+                    <TableRow
                       key={plan.plan_code}
                       className={plan.isCurrentPlan ? 'bg-info-bg' : ''}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <span className="font-semibold text-foreground">
                             {plan.plan_name}
@@ -515,23 +529,23 @@ export function TenantAdminSubscriptionScreen() {
                             </CmxStatusBadge>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-lg font-bold text-foreground">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap tabular-nums">
+                        <bdi dir="ltr" className="text-lg font-bold text-foreground">
                           {fmtPlanMoney(price)}
-                        </span>
+                        </bdi>
                         <span className="text-sm text-muted-foreground">/mo</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground tabular-nums">
                         {plan.orders_limit === 999999 ? 'Unlimited' : plan.orders_limit}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground tabular-nums">
                         {plan.users_limit === 999999 ? 'Unlimited' : plan.users_limit}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground tabular-nums">
                         {plan.branches_limit === 999999 ? 'Unlimited' : plan.branches_limit}
-                      </td>
-                      <td className="px-6 py-4">
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
                           {plan.feature_flags.pdf_invoices && (
                             <CmxStatusBadge size="sm" tone="brand" appearance="solid">PDF</CmxStatusBadge>
@@ -549,8 +563,8 @@ export function TenantAdminSubscriptionScreen() {
                             <CmxStatusBadge size="sm" tone="brand" appearance="solid">API</CmxStatusBadge>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         {plan.isCurrentPlan ? (
                           <CmxButton variant="secondary" size="sm" disabled>
                             Current Plan
@@ -570,12 +584,12 @@ export function TenantAdminSubscriptionScreen() {
                             Downgrade
                           </CmxButton>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </CmxCard>
@@ -594,24 +608,20 @@ export function TenantAdminSubscriptionScreen() {
       )}
 
       {/* Upgrade Modal */}
-      {showUpgradeModal && selectedPlan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground">
+      <CmxDialog
+        open={Boolean(showUpgradeModal && selectedPlan)}
+        onOpenChange={(next) => {
+          if (!next && !isProcessing) setShowUpgradeModal(false);
+        }}
+      >
+        <CmxDialogContent className="max-w-2xl w-full p-6" scrollBody>
+          {selectedPlan && (
+            <>
+              <CmxDialogHeader className="mb-6">
+                <CmxDialogTitle className="text-2xl font-bold">
                   Upgrade to {selectedPlan.plan_name}
-                </h2>
-                <button
-                  onClick={() => setShowUpgradeModal(false)}
-                  className="text-muted-foreground hover:text-foreground"
-                  disabled={isProcessing}
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+                </CmxDialogTitle>
+              </CmxDialogHeader>
 
               {error && (
                 <CmxSummaryMessage
@@ -627,41 +637,43 @@ export function TenantAdminSubscriptionScreen() {
                   Select Billing Cycle
                 </h3>
                 <div className="flex space-x-4">
-                  <label className="flex-1">
-                    <input
-                      type="radio"
+                  <div className="flex-1">
+                    <CmxRadio
+                      name="billingCycle"
                       value="monthly"
                       checked={billingCycle === 'monthly'}
                       onChange={(e) => setBillingCycle(e.target.value as 'monthly')}
-                      className="me-2"
                       disabled={isProcessing}
+                      label={
+                        <span className="tabular-nums">
+                          Monthly - {fmtPlanMoney(Number(selectedPlan.price_monthly))}/mo
+                        </span>
+                      }
                     />
-                    <span className="text-sm">
-                      Monthly - {fmtPlanMoney(Number(selectedPlan.price_monthly))}/mo
-                    </span>
-                  </label>
-                  <label className="flex-1">
-                    <input
-                      type="radio"
+                  </div>
+                  <div className="flex-1">
+                    <CmxRadio
+                      name="billingCycle"
                       value="yearly"
                       checked={billingCycle === 'yearly'}
                       onChange={(e) => setBillingCycle(e.target.value as 'yearly')}
-                      className="me-2"
                       disabled={isProcessing}
-                    />
-                    <span className="text-sm">
-                      Yearly - {fmtPlanMoney(
-                        selectedPlan.price_yearly
-                          ? Number(selectedPlan.price_yearly) / 12
-                          : Number(selectedPlan.price_monthly) * 12
-                      )}/mo
-                      {selectedPlan.price_yearly && (
-                        <span className="ms-2 text-success-text font-semibold">
-                          Save 20%!
+                      label={
+                        <span className="tabular-nums">
+                          Yearly - {fmtPlanMoney(
+                            selectedPlan.price_yearly
+                              ? Number(selectedPlan.price_yearly) / 12
+                              : Number(selectedPlan.price_monthly) * 12
+                          )}/mo
+                          {selectedPlan.price_yearly && (
+                            <span className="ms-2 text-success-text font-semibold">
+                              Save 20%!
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                  </label>
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -703,110 +715,116 @@ export function TenantAdminSubscriptionScreen() {
                   variant="primary"
                   size="md"
                   onClick={handleUpgrade}
+                  loading={isProcessing}
                   disabled={isProcessing}
                   className="flex-1"
                 >
                   {isProcessing ? 'Processing...' : 'Confirm Upgrade'}
                 </CmxButton>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Cancel Subscription Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Cancel Subscription
-              </h2>
+      <CmxDialog
+        open={showCancelModal}
+        onOpenChange={(next) => {
+          if (!next && !isProcessing) setShowCancelModal(false);
+        }}
+      >
+        <CmxDialogContent className="max-w-md w-full p-6">
+          <CmxDialogHeader className="mb-4">
+            <CmxDialogTitle className="text-2xl font-bold">
+              Cancel Subscription
+            </CmxDialogTitle>
+          </CmxDialogHeader>
 
-              {error && (
-                <CmxSummaryMessage
-                  type="error"
-                  title="Error"
-                  message={error}
-                  className="mb-4"
-                />
-              )}
+          {error && (
+            <CmxSummaryMessage
+              type="error"
+              title="Error"
+              message={error}
+              className="mb-4"
+            />
+          )}
 
-              <CmxSummaryMessage
-                type="warning"
-                title="Warning"
-                message="Your subscription will remain active until the end of the current billing period. You will lose access to premium features after cancellation."
-                className="mb-4"
-              />
+          <CmxSummaryMessage
+            type="warning"
+            title="Warning"
+            message="Your subscription will remain active until the end of the current billing period. You will lose access to premium features after cancellation."
+            className="mb-4"
+          />
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Reason for Cancellation *
-                </label>
-                <CmxSelect
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  disabled={isProcessing}
-                  className="w-full"
-                  options={[
-                    { value: '', label: 'Select a reason' },
-                    { value: 'Too expensive', label: 'Too expensive' },
-                    { value: 'Missing features', label: 'Missing features' },
-                    { value: 'Switching to competitor', label: 'Switching to competitor' },
-                    { value: 'No longer needed', label: 'No longer needed' },
-                    { value: 'Other', label: 'Other' },
-                  ]}
-                  placeholder="Select a reason"
-                />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Additional Feedback (Optional)
-                </label>
-                <textarea
-                  value={cancelFeedback}
-                  onChange={(e) => setCancelFeedback(e.target.value)}
-                  disabled={isProcessing}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="Help us improve by sharing your feedback..."
-                />
-              </div>
-
-              <div className="mb-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm text-foreground">
-                  <strong>Effective Date:</strong>{' '}
-                  {usage?.currentPeriod.end
-                    ? new Date(usage.currentPeriod.end).toLocaleDateString()
-                    : '-'}
-                </p>
-              </div>
-
-              <div className="flex space-x-4">
-                <CmxButton
-                  variant="secondary"
-                  size="md"
-                  onClick={() => setShowCancelModal(false)}
-                  disabled={isProcessing}
-                  className="flex-1"
-                >
-                  Keep Subscription
-                </CmxButton>
-                <CmxButton
-                  variant="destructive"
-                  size="md"
-                  onClick={handleCancel}
-                  disabled={isProcessing || !cancelReason}
-                  className="flex-1"
-                >
-                  {isProcessing ? 'Processing...' : 'Confirm Cancellation'}
-                </CmxButton>
-              </div>
-            </div>
+          <div className="mb-4">
+            <Label htmlFor="cancel-reason-select" className="mb-2 block">
+              Reason for Cancellation *
+            </Label>
+            <CmxSelect
+              id="cancel-reason-select"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              disabled={isProcessing}
+              className="w-full"
+              options={[
+                { value: '', label: 'Select a reason' },
+                { value: 'Too expensive', label: 'Too expensive' },
+                { value: 'Missing features', label: 'Missing features' },
+                { value: 'Switching to competitor', label: 'Switching to competitor' },
+                { value: 'No longer needed', label: 'No longer needed' },
+                { value: 'Other', label: 'Other' },
+              ]}
+              placeholder="Select a reason"
+            />
           </div>
-        </div>
-      )}
+
+          <div className="mb-6">
+            <Label htmlFor="cancel-feedback-input" className="mb-2 block">
+              Additional Feedback (Optional)
+            </Label>
+            <CmxTextarea
+              id="cancel-feedback-input"
+              value={cancelFeedback}
+              onChange={(e) => setCancelFeedback(e.target.value)}
+              disabled={isProcessing}
+              rows={3}
+              placeholder="Help us improve by sharing your feedback..."
+            />
+          </div>
+
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm text-foreground">
+              <strong>Effective Date:</strong>{' '}
+              {usage?.currentPeriod.end
+                ? new Date(usage.currentPeriod.end).toLocaleDateString()
+                : '-'}
+            </p>
+          </div>
+
+          <div className="flex space-x-4">
+            <CmxButton
+              variant="secondary"
+              size="md"
+              onClick={() => setShowCancelModal(false)}
+              disabled={isProcessing}
+              className="flex-1"
+            >
+              Keep Subscription
+            </CmxButton>
+            <CmxButton
+              variant="destructive"
+              size="md"
+              onClick={handleCancel}
+              loading={isProcessing}
+              disabled={isProcessing || !cancelReason}
+              className="flex-1"
+            >
+              {isProcessing ? 'Processing...' : 'Confirm Cancellation'}
+            </CmxButton>
+          </div>
+        </CmxDialogContent>
+      </CmxDialog>
     </div>
   );
 }

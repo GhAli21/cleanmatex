@@ -70,7 +70,7 @@ export function CmxFormActions({
   return (
     <div
       className={cn(
-        'rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgba(255,255,255,0.94)] p-4 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))] backdrop-blur-sm',
+        'rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-card/95 p-4 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))] backdrop-blur-sm',
         sticky && 'sticky bottom-0 z-10',
         className
       )}

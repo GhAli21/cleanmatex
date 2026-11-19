@@ -10,10 +10,10 @@ Use this skill to turn a rough request into a cleaner CleanMateX prompt without 
 
 ## Canonical docs
 
-- Prompt index: `docs/dev/Codex/prompts/index.md`
-- Prompt creation guide: `docs/dev/Codex/prompts/prompt_creation_guide.md`
-- Prompt cheat sheet: `docs/dev/Codex/prompts/prompt_creation_cheat_sheet.md`
-- Shared quality blocks: `docs/dev/Codex/prompts/reusable-quality-blocks.md`
+- Prompt index: `docs/dev/claude_code/prompts/index.md`
+- Prompt creation guide: `docs/dev/claude_code/prompts/prompt_creation_guide.md`
+- Prompt cheat sheet: `docs/dev/claude_code/prompts/prompt_creation_cheat_sheet.md`
+- Shared quality blocks: `docs/dev/claude_code/prompts/reusable-quality-blocks.md`
 
 ## Read only what you need
 

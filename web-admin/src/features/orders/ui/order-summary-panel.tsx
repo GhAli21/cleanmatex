@@ -17,7 +17,7 @@ import { ItemCartList, type ItemCartListQuoteProps } from './item-cart-list';
 import { ServiceSpeedSelect } from './service-speed-select';
 import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
-import { CmxButton, CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSwitch, CmxTextarea } from '@ui/primitives';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { CartQuoteTotals, type CartQuoteTotalsProps } from './cart-quote-totals';
 import { EditControlNotice } from '../order-change/edit-control-notice';
@@ -136,8 +136,9 @@ interface OrderSummaryPanelProps {
   onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
 }
 
-/** Theming design: 44px targets only on touch screens; mouse users keep the compact size. */
-const TOUCH_MIN = 'pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)]';
+/** Adaptive 44px targets on touch screens, or forced 44px everywhere when POS_STEPPER_MIN_TARGET = ALWAYS_TOUCH_44. */
+const TOUCH_MIN =
+  'pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)] cmx-pos-touch-target';
 
 function OrderSummaryPanelComponent({
   items = [],
@@ -448,12 +449,14 @@ function OrderSummaryPanelComponent({
             <div className="flex items-center gap-2 px-3 py-2 bg-muted">
               <span className="text-xs font-medium text-muted-foreground">{t('bags') || 'Bags'}</span>
               {onBagsChange ? (
-                <input
+                <CmxInput
                   type="number"
                   min={0}
+                  fullWidth={false}
                   value={bags}
                   onChange={(e) => onBagsChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="w-12 text-sm font-bold text-foreground bg-transparent border-none outline-none p-0 text-center tabular-nums"
+                  className="h-8 w-16 px-1.5 py-0 text-center text-sm font-bold tabular-nums"
+                  aria-label={t('bags') || 'Bags'}
                   dir="ltr"
                 />
               ) : (
@@ -484,11 +487,11 @@ function OrderSummaryPanelComponent({
           {/* Notes textarea — shown when Save toggle is ON */}
           {showNotes && (
             <div className="px-3 py-2 border-b border-border bg-card">
-              <textarea
+              <CmxTextarea
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}
                 rows={2}
-                className="w-full px-2 py-1.5 border border-border rounded text-xs focus:ring-2 focus:ring-ring focus:border-transparent resize-none text-start"
+                className="w-full text-xs resize-none text-start"
                 placeholder={t('addSpecialInstructions') || 'Add special instructions...'}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
@@ -507,7 +510,7 @@ function OrderSummaryPanelComponent({
                   onQuickDropQuantityChange(next);
                   if (next === 0 && isQuickDrop) _onQuickDropToggle(false);
                 }}
-                className={`h-6 w-6 font-bold text-sm ${TOUCH_MIN}`}
+                className={`h-8 w-8 font-bold text-sm ${TOUCH_MIN}`}
                 aria-label={t('quickDropDecrease')}
               >
                 -
@@ -524,7 +527,7 @@ function OrderSummaryPanelComponent({
                   onQuickDropQuantityChange(next);
                   if (next > 0 && !isQuickDrop) _onQuickDropToggle(true);
                 }}
-                className={`h-6 w-6 font-bold text-sm ${TOUCH_MIN}`}
+                className={`h-8 w-8 font-bold text-sm ${TOUCH_MIN}`}
                 aria-label={t('quickDropIncrease')}
               >
                 +

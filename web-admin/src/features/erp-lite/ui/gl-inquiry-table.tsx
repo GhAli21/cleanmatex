@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl'
 import { ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react'
 import type { ErpLiteGlInquiryRow } from '@/lib/services/erp-lite-reporting.service'
 import { formatErpLiteMoney, type ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
+import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
+import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge'
 
 interface GlInquiryTableProps {
   rows: ErpLiteGlInquiryRow[]
@@ -40,119 +42,119 @@ export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInq
     })
   }
 
-  if (rows.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface py-16 text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-          <ArrowUpRight className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <p className="text-sm font-medium text-foreground">
-          {t('gl.empty')}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t('gl.emptyHint')}
-        </p>
-      </div>
-    )
-  }
+  const columns: CmxDataTableSimpleColumn<ErpLiteGlInquiryRow>[] = [
+    {
+      key: 'journal_no',
+      header: t('columns.journal'),
+      sortable: false,
+      render: (line) => (
+        <>
+          <div className="font-medium text-foreground">
+            <bdi dir="ltr">{line.journal_no}</bdi>
+          </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {line.source_doc_type_code}
+            {line.source_doc_no ? (
+              <>
+                {' · '}
+                <bdi dir="ltr">{line.source_doc_no}</bdi>
+              </>
+            ) : null}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'posting_date',
+      header: t('columns.postingDate'),
+      sortable: false,
+      render: (line) => (
+        <span className="text-foreground tabular-nums">
+          <bdi dir="ltr">{line.posting_date}</bdi>
+        </span>
+      ),
+    },
+    {
+      key: 'txn_event_code',
+      header: t('columns.event'),
+      sortable: false,
+      render: (line) => (
+        <CmxStatusBadge size="sm" tone="neutral" label={line.txn_event_code} />
+      ),
+    },
+    {
+      key: 'account',
+      header: t('columns.account'),
+      sortable: false,
+      render: (line) => (
+        <>
+          <bdi dir="ltr" className="font-mono text-xs text-muted-foreground">
+            {line.account_code}
+          </bdi>
+          <span className="ms-1.5 text-foreground">
+            {line.account_name}
+          </span>
+        </>
+      ),
+    },
+    {
+      key: 'entry_side',
+      header: t('columns.side'),
+      sortable: false,
+      render: (line) =>
+        line.entry_side === 'DEBIT' ? (
+          <CmxStatusBadge size="sm" tone="danger" icon={ArrowUpRight} label="DR" />
+        ) : (
+          <CmxStatusBadge size="sm" tone="success" icon={ArrowDownLeft} label="CR" />
+        ),
+    },
+    {
+      key: 'amount',
+      header: t('columns.amount'),
+      align: 'end',
+      sortable: false,
+      render: (line) => (
+        <bdi dir="ltr" className="font-mono text-sm font-medium text-foreground tabular-nums">
+          {formatErpLiteMoney(line.amount_txn_currency, {
+            ...displayConfig,
+            currencyCode: line.currency_code || displayConfig.currencyCode,
+          })}
+        </bdi>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'end',
+      sortable: false,
+      render: (line) => {
+        const isSelected = line.journal_id === selectedJournalId
+        return (
+          <ChevronRight
+            className={`h-4 w-4 text-muted-foreground transition-transform rtl:rotate-180 ${isSelected ? 'rotate-90' : ''}`}
+            aria-hidden="true"
+          />
+        )
+      },
+    },
+  ]
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-surface">
-      <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3 text-start font-medium">{t('columns.journal')}</th>
-            <th className="px-4 py-3 text-start font-medium">{t('columns.postingDate')}</th>
-            <th className="px-4 py-3 text-start font-medium">{t('columns.event')}</th>
-            <th className="px-4 py-3 text-start font-medium">{t('columns.account')}</th>
-            <th className="px-4 py-3 text-start font-medium">{t('columns.side')}</th>
-            <th className="px-4 py-3 text-end font-medium">{t('columns.amount')}</th>
-            <th className="w-8 px-2 py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((line) => {
-            const isSelected = line.journal_id === selectedJournalId
-            return (
-              <tr
-                key={`${line.journal_id}-${line.line_no}`}
-                onClick={() => openDetail(line.journal_id)}
-                className={`cursor-pointer border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors ${
-                  isSelected
-                    ? 'bg-primary/5 ring-1 ring-inset ring-ring/30'
-                    : 'hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]'
-                }`}
-                aria-selected={isSelected}
-              >
-                {/* Journal column */}
-                <td className="px-4 py-3">
-                  <div className="font-medium text-foreground">
-                    {line.journal_no}
-                  </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {line.source_doc_type_code}
-                    {line.source_doc_no ? ` · ${line.source_doc_no}` : ''}
-                  </div>
-                </td>
-
-                {/* Posting date */}
-                <td className="px-4 py-3 text-foreground">
-                  {line.posting_date}
-                </td>
-
-                {/* Event */}
-                <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-                    {line.txn_event_code}
-                  </span>
-                </td>
-
-                {/* Account */}
-                <td className="px-4 py-3">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {line.account_code}
-                  </span>
-                  <span className="ms-1.5 text-foreground">
-                    {line.account_name}
-                  </span>
-                </td>
-
-                {/* Side */}
-                <td className="px-4 py-3">
-                  {line.entry_side === 'DEBIT' ? (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-danger-bg px-2 py-0.5 text-xs font-medium text-danger-text">
-                      <ArrowUpRight className="h-3 w-3" />
-                      DR
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success-text">
-                      <ArrowDownLeft className="h-3 w-3" />
-                      CR
-                    </span>
-                  )}
-                </td>
-
-                {/* Amount */}
-                <td className="px-4 py-3 text-end">
-                  <span className="font-mono text-sm font-medium text-foreground">
-                    {formatErpLiteMoney(line.amount_txn_currency, {
-                      ...displayConfig,
-                      currencyCode: line.currency_code || displayConfig.currencyCode,
-                    })}
-                  </span>
-                </td>
-
-                {/* Chevron indicator */}
-                <td className="px-2 py-3 text-muted-foreground">
-                  <ChevronRight
-                    className={`h-4 w-4 transition-transform rtl:rotate-180 ${isSelected ? 'rotate-90' : ''}`}
-                  />
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <CmxDataTable<ErpLiteGlInquiryRow>
+      columns={columns}
+      data={rows}
+      auditConfig={false}
+      scrollable={false}
+      paginationFooter="never"
+      onRowClick={(line) => openDetail(line.journal_id)}
+      getRowClassName={(line) =>
+        line.journal_id === selectedJournalId
+          ? 'bg-primary/5 ring-1 ring-inset ring-ring/30'
+          : undefined
+      }
+      emptyStateIcon={<ArrowUpRight className="h-6 w-6 text-muted-foreground" />}
+      emptyStateTitle={t('gl.empty')}
+      emptyStateDescription={t('gl.emptyHint')}
+    />
   )
 }

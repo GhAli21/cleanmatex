@@ -685,9 +685,9 @@ export function CmxEditableDataTable<
         <table className="min-w-full text-sm">
           <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <tr key={headerGroup.id} className="h-[var(--cmx-row-h)]">
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-3 py-2 text-start font-medium">
+                  <th key={header.id} className="px-[var(--cmx-cell-px)] py-2 text-start font-medium">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -704,7 +704,7 @@ export function CmxEditableDataTable<
               <tr>
                 <td
                   colSpan={tableColumns.length}
-                  className="px-3 py-8 text-center text-muted-foreground"
+                  className="px-[var(--cmx-cell-px)] py-8 text-center text-muted-foreground"
                 >
                   <CmxSpinner />
                 </td>
@@ -723,7 +723,7 @@ export function CmxEditableDataTable<
                   <tr
                     key={row.id}
                     className={cn(
-                      'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                      'h-[var(--cmx-row-h)] border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                       isNew && 'bg-info-bg/50',
                       isDirty && 'bg-warning-bg/50',
                       hasErrors && 'bg-danger-bg/50',
@@ -731,7 +731,7 @@ export function CmxEditableDataTable<
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-2">
+                      <td key={cell.id} className="px-[var(--cmx-cell-px)] py-2">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Preferences Catalog Page
  * Service and packing preferences catalog; Care Package bundles CRUD
  * Route: /dashboard/catalog/preferences
@@ -17,8 +17,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAlertDialog, useMessage, CmxStatusBadge } from '@ui/feedback';
 import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect, CmxSwitch, Label } from '@ui/primitives';
 import { CmxHexColorField } from '@ui/forms';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@ui/primitives/table';
 
 import {
   CmxDialog,
@@ -188,28 +189,28 @@ function CatalogOfferFilterBar({
 function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
-      <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]">
-          <tr>
+      <Table className="min-w-full text-sm">
+        <TableHeader className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]">
+          <TableRow>
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <th key={i} className="px-4 py-3 text-start">
+              <TableHead key={i} className="px-4 py-3 text-start">
                 <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {Array.from({ length: rows }).map((_, i) => (
-            <tr key={i} className="border-t border-border">
+            <TableRow key={i} className="border-t border-border">
               {[1, 2, 3, 4, 5, 6].map((j) => (
-                <td key={j} className="px-4 py-3">
+                <TableCell key={j} className="px-4 py-3">
                   <div className="h-4 bg-muted rounded animate-pulse" />
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -1411,7 +1412,7 @@ function PreferenceKindEditDialog({
           )}
           <p className="text-sm text-muted-foreground font-mono">{kind.kind_code}</p>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
+            <Label className="block mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</Label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1420,7 +1421,7 @@ function PreferenceKindEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
+            <Label className="block mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</Label>
             <CmxInput
               value={name2}
               onChange={(e) => setName2(e.target.value)}
@@ -1431,6 +1432,7 @@ function PreferenceKindEditDialog({
           <CmxHexColorField
             label={t('bgColor', { defaultValue: 'Background Color' })}
             helperText={t('preferenceColorHint', { defaultValue: '#RRGGBB or blank to use catalog default' })}
+            // cmx-ds-ignore UI003: default hex color placeholder for garment swatch input
             hexPlaceholder={t('preferenceColorPlaceholder', { defaultValue: '#1976D2' })}
             pickerAriaLabel={t('colorPickLabel', { defaultValue: 'Open color picker' })}
             clearLabel={t('clearPreferenceColor', { defaultValue: 'Use catalog default' })}
@@ -1443,21 +1445,21 @@ function PreferenceKindEditDialog({
               checked={showInQuickBar}
               onCheckedChange={setShowInQuickBar}
             />
-            <label className="text-sm text-foreground">{t('showInQuickBar', { defaultValue: 'Show in Quick Bar' })}</label>
+            <Label className="text-sm text-foreground">{t('showInQuickBar', { defaultValue: 'Show in Quick Bar' })}</Label>
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={showForCustomer}
               onCheckedChange={setShowForCustomer}
             />
-            <label className="text-sm text-foreground">{t('showForCustomer', { defaultValue: 'Show for Customer' })}</label>
+            <Label className="text-sm text-foreground">{t('showForCustomer', { defaultValue: 'Show for Customer' })}</Label>
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</label>
+            <Label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</Label>
           </div>
           <CmxDialogFooter>
             <CmxDialogClose asChild>
@@ -1996,7 +1998,7 @@ function BundleFormDialog({
             <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>
           )}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('bundleCode', { defaultValue: 'Bundle Code' })}</label>
+            <Label className="block mb-1">{t('bundleCode', { defaultValue: 'Bundle Code' })}</Label>
             <CmxInput
               value={bundleCode}
               onChange={(e) => setBundleCode(e.target.value)}
@@ -2007,7 +2009,7 @@ function BundleFormDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('bundleName', { defaultValue: 'Name' })}</label>
+            <Label className="block mb-1">{t('bundleName', { defaultValue: 'Name' })}</Label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -2017,21 +2019,19 @@ function BundleFormDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">{t('preferences', { defaultValue: 'Preferences' })}</label>
+            <Label className="block mb-2">{t('preferences', { defaultValue: 'Preferences' })}</Label>
             <div className="flex flex-wrap gap-2">
               {servicePrefs.map((p) => (
-                <button
+                <CmxButton
                   key={p.code}
                   type="button"
+                  size="sm"
+                  variant={preferenceCodes.includes(p.code) ? 'primary' : 'outline'}
                   onClick={() => togglePref(p.code)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    preferenceCodes.includes(p.code)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground hover:bg-border'
-                  }`}
+                  className="rounded-full text-xs"
                 >
                   {p.name}
-                </button>
+                </CmxButton>
               ))}
             </div>
           </div>
@@ -2129,9 +2129,9 @@ function CustomServicePrefCreateDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('code', { defaultValue: 'Code' })} <span className="text-danger-text">*</span>
-            </label>
+            </Label>
             <CmxInput
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -2141,15 +2141,15 @@ function CustomServicePrefCreateDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-danger-text">*</span>
-            </label>
+            </Label>
             <CmxInput value={name} onChange={(e) => setName(e.target.value)} className="w-full" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('customNameAr', { defaultValue: 'Name (AR)' })}
-            </label>
+            </Label>
             <CmxInput value={name2} onChange={(e) => setName2(e.target.value)} className="w-full" />
           </div>
           <div>
@@ -2161,9 +2161,9 @@ function CustomServicePrefCreateDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('extraPrice', { defaultValue: 'Extra Price' })}
-            </label>
+            </Label>
             <CmxInput
               type="number"
               step="0.0001"
@@ -2174,9 +2174,9 @@ function CustomServicePrefCreateDialog({
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch checked={isActive} onCheckedChange={setIsActive} id="svc-create-active" />
-            <label htmlFor="svc-create-active" className="text-sm text-foreground">
+            <Label htmlFor="svc-create-active" className="text-sm text-foreground">
               {t('active', { defaultValue: 'Active' })}
-            </label>
+            </Label>
           </div>
           <CmxDialogFooter>
             <CmxDialogClose asChild>
@@ -2261,9 +2261,9 @@ function CustomPackingPrefCreateDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="p-3 rounded-md bg-danger-bg text-danger-text text-sm">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('code', { defaultValue: 'Code' })} <span className="text-danger-text">*</span>
-            </label>
+            </Label>
             <CmxInput
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -2273,21 +2273,21 @@ function CustomPackingPrefCreateDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-danger-text">*</span>
-            </label>
+            </Label>
             <CmxInput value={name} onChange={(e) => setName(e.target.value)} className="w-full" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('customNameAr', { defaultValue: 'Name (AR)' })}
-            </label>
+            </Label>
             <CmxInput value={name2} onChange={(e) => setName2(e.target.value)} className="w-full" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <Label className="block mb-1">
               {t('extraPrice', { defaultValue: 'Extra Price' })}
-            </label>
+            </Label>
             <CmxInput
               type="number"
               step="0.0001"
@@ -2298,9 +2298,9 @@ function CustomPackingPrefCreateDialog({
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch checked={isActive} onCheckedChange={setIsActive} id="pack-create-active" />
-            <label htmlFor="pack-create-active" className="text-sm text-foreground">
+            <Label htmlFor="pack-create-active" className="text-sm text-foreground">
               {t('active', { defaultValue: 'Active' })}
-            </label>
+            </Label>
           </div>
           <CmxDialogFooter>
             <CmxDialogClose asChild>
@@ -2453,7 +2453,7 @@ function ServicePrefEditDialog({
             </p>
           ) : null}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
+            <Label className="block mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</Label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -2462,7 +2462,7 @@ function ServicePrefEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
+            <Label className="block mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</Label>
             <CmxInput
               value={name2}
               onChange={(e) => setName2(e.target.value)}
@@ -2484,6 +2484,7 @@ function ServicePrefEditDialog({
               helperText={t('preferenceColorHint', {
                 defaultValue: '#RRGGBB or blank to use catalog default',
               })}
+              // cmx-ds-ignore UI003: default hex color placeholder for garment swatch input
               hexPlaceholder={t('preferenceColorPlaceholder', { defaultValue: '#1976D2' })}
               pickerAriaLabel={t('colorPickLabel', { defaultValue: 'Open color picker' })}
               clearLabel={t('clearPreferenceColor', { defaultValue: 'Use catalog default' })}
@@ -2493,7 +2494,7 @@ function ServicePrefEditDialog({
             />
           ) : null}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</label>
+            <Label className="block mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</Label>
             <CmxInput
               type="number"
               step="0.0001"
@@ -2508,14 +2509,14 @@ function ServicePrefEditDialog({
               checked={isIncludedInBase}
               onCheckedChange={setIsIncludedInBase}
             />
-            <label className="text-sm text-foreground">{t('includedInBase', { defaultValue: 'Included in base price' })}</label>
+            <Label className="text-sm text-foreground">{t('includedInBase', { defaultValue: 'Included in base price' })}</Label>
           </div>
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</label>
+            <Label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</Label>
           </div>
           <CmxDialogFooter>
             {pref.cf_id && (
@@ -2649,7 +2650,7 @@ function PackingPrefEditDialog({
             </p>
           ) : null}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</label>
+            <Label className="block mb-1">{t('customName', { defaultValue: 'Custom Name (EN)' })}</Label>
             <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -2658,7 +2659,7 @@ function PackingPrefEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</label>
+            <Label className="block mb-1">{t('customNameAr', { defaultValue: 'Custom Name (AR)' })}</Label>
             <CmxInput
               value={name2}
               onChange={(e) => setName2(e.target.value)}
@@ -2667,7 +2668,7 @@ function PackingPrefEditDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</label>
+            <Label className="block mb-1">{t('extraPrice', { defaultValue: 'Extra Price' })}</Label>
             <CmxInput
               type="number"
               step="0.0001"
@@ -2682,7 +2683,7 @@ function PackingPrefEditDialog({
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</label>
+            <Label className="text-sm text-foreground">{t('enabled', { defaultValue: 'Enabled' })}</Label>
           </div>
           <CmxDialogFooter>
             {pref.cf_id && (

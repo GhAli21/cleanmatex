@@ -38,23 +38,30 @@ Examples:
 
 See [feature-abbreviations.md](./feature-abbreviations.md) for complete feature prefix list.
 
-**IMPORTANT:** For existing objects, see [grandfathered-objects.md](./grandfathered-objects.md) for exact names.
+**For existing database objects**, take the exact name from the live database (Supabase remote MCP, read-only) or `web-admin/prisma/schema.prisma`. Never take a name from memory or an old list; the old grandfathered registry is archived in `docs/_archive/2026-11/grandfathered-objects/`.
 
 ## Required Audit Fields
 
 Include in EVERY table:
 
 ```sql
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-created_by VARCHAR(120),
+created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+created_by TEXT,
 created_info TEXT,
-updated_at TIMESTAMP,
-updated_by VARCHAR(120),
+-- update 
+updated_at TIMESTAMPTZ,
+updated_by TEXT,
 updated_info TEXT,
-rec_status SMALLINT DEFAULT 1,
+updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
+-- soft delete 
+deleted_at TIMESTAMPTZ,
+deleted_by TEXT,
+deleted_info TEXT,
+-- rec columns
+rec_status SMALLINT DEFAULT 1, -- 0 for soft delete 
 rec_order INTEGER,
-rec_notes VARCHAR(200),
-is_active BOOLEAN NOT NULL DEFAULT true
+rec_notes TEXT,
+is_active BOOLEAN DEFAULT true
 ```
 
 ## Bilingual Fields
@@ -113,7 +120,6 @@ CONSTRAINT chk_<tbl>_fx_same_ccy CHECK (
 )
 ```
 
-
 ## Composite Foreign Keys (CRITICAL for tenant isolation)
 
 **Prisma-safe order (MUST):** child FK + 1:1 UNIQUE + referenced parent key use the **same columns in the same order**. Copy the parent key that already exists. Do not flip it to tenant-first unless the parent key is already tenant-first.
@@ -135,23 +141,52 @@ FOREIGN KEY (account_id, tenant_org_id)
 
 ### Prisma 6 column-order invariant (P1012)
 
-Postgres treats `UNIQUE (tenant_org_id, account_id)` and `UNIQUE (account_id, tenant_org_id)` as the same uniqueness. Prisma 6 does not.
+Postgres treats `UNIQUE (tenant_org_id, account_id)` and `UNIQUE (account_id, tenant_org_id)` as the same uniqueness. Prisma 6 does not. A one-to-one relation is valid only when a unique covers **every** `@relation(fields: [...])` column **in that same order**.
 
 ```sql
--- WRONG — pull emits P1012
+-- WRONG — pull emits P1012: 1:1 unique order ≠ FK order
 UNIQUE (tenant_org_id, account_id)
 FOREIGN KEY (account_id, tenant_org_id)
   REFERENCES org_fin_acct_mst (id, tenant_org_id)
 
--- RIGHT when parent key is (id, tenant_org_id) — tenant second (0553)
+-- RIGHT when the parent key is already (tenant_org_id, id)
+UNIQUE (tenant_org_id, account_id)
+FOREIGN KEY (tenant_org_id, account_id)
+  REFERENCES org_fin_acct_mst (tenant_org_id, id)
+
+-- RIGHT when the parent key is (id, tenant_org_id) — match it (tenant second) 
+-- This is what 0553 does: it does not rewrite the live FKs.
 UNIQUE (account_id, tenant_org_id)
 FOREIGN KEY (account_id, tenant_org_id)
   REFERENCES org_fin_acct_mst (id, tenant_org_id)
+
 ```
 
-Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. Do not flip `org_asm_tasks_mst` / `org_pck_packing_lists_mst` on orders from `?` to `[]`.
+Do not flip an existing FK to tenant-first just to match index style. Flip the 1:1 unique to match the FK (or rebuild both sides together). `0553` only realigns uniques to the FKs that already exist.
+
+Also wrong: a composite FK `(tenant_org_id, line_id)` whose only unique is `UNIQUE (line_id)`. If the row is 1:1, add `UNIQUE (tenant_org_id, line_id)` in the same order as the FK (keep the stronger single-column unique if needed).
 
 See `0135_fix_prisma_unique_constraints_order.sql` and `0553_prisma_1to1_unique_column_order.sql`.
+
+### ON DELETE SET NULL on composite tenant FKs
+
+Do **not** write:
+
+```sql
+FOREIGN KEY (branch_id, tenant_org_id)
+  REFERENCES org_branches_mst (id, tenant_org_id)
+  ON DELETE SET NULL
+```
+
+`tenant_org_id` is `NOT NULL`. Prisma warns (`SetNull` on a required field). A hard delete of the parent can fail or is undefined for the tenant column.
+
+Use:
+
+- `ON DELETE RESTRICT` / `NO ACTION` when the optional parent is soft-deleted
+- `ON DELETE CASCADE` when the child must die with the parent
+- PG 15+ `ON DELETE SET NULL (branch_id)` when only the nullable parent id should clear
+
+Prisma `onDelete: SetNull` warnings after `db pull` are not P1012. Do not “fix” them by making `tenant_org_id` optional or by flipping real 1:1 back-relations (`org_asm_tasks_mst`, `org_pck_packing_lists_mst`) to `[]`.
 
 ## Standard Indexes
 
@@ -201,10 +236,9 @@ This rule is **always active** — no exceptions.
 Before adding a migration:
 
 1. **List existing migrations** in `supabase/migrations/` (excluding `archive/`, `seeds/`, and `x_*` / `xproduction/`).
-2. **Determine the latest version** from filenames: either numeric `NNNN` (e.g. `0082`) or timestamp `YYYYMMDDHHMMSS` (e.g. `20260127090030`).
+2. **Determine the latest version** from filenames: only numeric `NNNN` (e.g. `0082`) .
 3. **Use the next version:**
    - If the latest is **numeric** (e.g. `0082_svc_cat_proc_steps.sql`), use the next integer zero-padded to 4 digits: **`0083`**.
-   - If the latest is **timestamp**, use current date-time in that format: **`YYYYMMDDHHMMSS`**.
 4. **Name the file:** `{version}_{descriptive_snake_case_name}.sql`  
    Example: `0083_payments_nullable_invoice_id.sql`.
 
@@ -299,10 +333,10 @@ CREATE TABLE org_example_mst (
   description2 TEXT,             -- Arabic description
 
   -- Audit fields
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by VARCHAR(120),
   created_info TEXT,
-  updated_at TIMESTAMP,
+  updated_at TIMESTAMPTZ,
   updated_by VARCHAR(120),
   updated_info TEXT,
   rec_status SMALLINT DEFAULT 1,
@@ -334,7 +368,6 @@ CREATE POLICY tenant_isolation ON org_example_mst
 
 - [conventions.md](./conventions.md) - Complete naming patterns and examples
 - [feature-abbreviations.md](./feature-abbreviations.md) - Feature prefix list
-- [grandfathered-objects.md](./grandfathered-objects.md) - Existing object names
 - [table-check-workflow.md](./table-check-workflow.md) - Before creating tables
 - [postgresql-prisma.md](./postgresql-prisma.md) - PostgreSQL and Prisma rules
 - [migration-plan.md](./migration-plan.md) - Migration strategy

@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
-import { CmxButton, CmxMoneyField, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxMoneyField, CmxTextarea, Label } from '@ui/primitives';
 import { CmxRadioGroup } from '@ui/forms';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -102,9 +102,9 @@ export function LineDiscountDialog({ open, onClose, productName, lineGross, curr
           />
 
           <div>
-            <label htmlFor="line-discount-value" className="mb-1 block text-sm font-medium text-foreground">
+            <Label htmlFor="line-discount-value" className="mb-1 block">
               {isPercent ? t('percentLabel') : t('amountLabel', { currency: currencyCode })}
-            </label>
+            </Label>
             <CmxMoneyField
               id="line-discount-value"
               value={value || null}
@@ -118,9 +118,9 @@ export function LineDiscountDialog({ open, onClose, productName, lineGross, curr
           </div>
 
           <div>
-            <label htmlFor="line-discount-reason" className="mb-1 block text-sm font-medium text-foreground">
+            <Label htmlFor="line-discount-reason" className="mb-1 block">
               {t('reasonLabel')}
-            </label>
+            </Label>
             <CmxTextarea
               id="line-discount-reason"
               value={reason}

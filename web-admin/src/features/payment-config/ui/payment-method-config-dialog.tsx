@@ -5,9 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
-import { CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSwitch, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { cmxMessage } from '@ui/feedback';
@@ -146,27 +144,27 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
             <CmxCardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium">{t('methods.displayName')}</label>
+                  <Label className="mb-1 block">{t('methods.displayName')}</Label>
                   <CmxInput {...form.register('display_name')} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.displayName2')}</label>
+                  <Label className="mb-1 block">{t('methods.displayName2')}</Label>
                   <CmxInput {...form.register('display_name2')} dir="rtl" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium">{t('methods.description')}</label>
+                  <Label className="mb-1 block">{t('methods.description')}</Label>
                   <CmxInput {...form.register('description')} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.description2')}</label>
+                  <Label className="mb-1 block">{t('methods.description2')}</Label>
                   <CmxInput {...form.register('description2')} dir="rtl" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium">{t('methods.paymentNature')}</label>
+                  <Label className="mb-1 block">{t('methods.paymentNature')}</Label>
                   <CmxSelectDropdown value={paymentNature} onValueChange={(v) => form.setValue('payment_nature', v as never)}>
                     <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                     <CmxSelectDropdownContent>
@@ -177,7 +175,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                   </CmxSelectDropdown>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.displayOrder')}</label>
+                  <Label className="mb-1 block">{t('methods.displayOrder')}</Label>
                   <CmxInput
                     type="number"
                     min={0}
@@ -246,7 +244,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
             <CmxCardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium">{t('methods.settlementTypeCode')}</label>
+                  <Label className="mb-1 block">{t('methods.settlementTypeCode')}</Label>
                   <CmxSelectDropdown
                     value={settlementTypeForm}
                     onValueChange={(v) =>
@@ -269,7 +267,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                 </div>
                 {paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION && (
                   <div>
-                    <label className="text-sm font-medium">{t('methods.creditApplicationType')}</label>
+                    <Label className="mb-1 block">{t('methods.creditApplicationType')}</Label>
                     <CmxSelectDropdown
                       value={creditApplicationTypeForm}
                       onValueChange={(v) =>
@@ -292,7 +290,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                   </div>
                 )}
                 <div>
-                  <label className="text-sm font-medium">{t('methods.defaultCreationStatus')}</label>
+                  <Label className="mb-1 block">{t('methods.defaultCreationStatus')}</Label>
                   <CmxSelectDropdown
                     value={defaultCreationStatusForm}
                     onValueChange={(v) =>
@@ -314,7 +312,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                   </CmxSelectDropdown>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.allowStatusOverride')}</label>
+                  <Label className="mb-1 block">{t('methods.allowStatusOverride')}</Label>
                   <CmxSelectDropdown
                     value={allowStatusOverrideForm}
                     onValueChange={(v) =>
@@ -330,7 +328,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                   </CmxSelectDropdown>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.isUserIdRequired')}</label>
+                  <Label className="mb-1 block">{t('methods.isUserIdRequired')}</Label>
                   <CmxSelectDropdown
                     value={isUserIdRequiredForm}
                     onValueChange={(v) =>
@@ -355,15 +353,15 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
             <CmxCardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-sm font-medium">{t('methods.minAmount')}</label>
+                  <Label className="mb-1 block">{t('methods.minAmount')}</Label>
                   <CmxInput type="number" step="0.001" {...form.register('min_amount', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.maxAmount')}</label>
+                  <Label className="mb-1 block">{t('methods.maxAmount')}</Label>
                   <CmxInput type="number" step="0.001" {...form.register('max_amount', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('methods.currencyCode')}</label>
+                  <Label className="mb-1 block">{t('methods.currencyCode')}</Label>
                   <CmxInput value={tenantCurrencyCode} disabled className="font-mono" />
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t('methods.currencyLockedHint')}
@@ -371,7 +369,7 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">{t('methods.feeType')}</label>
+                <Label className="mb-1 block">{t('methods.feeType')}</Label>
                 <CmxSelectDropdown value={feeType} onValueChange={(v) => form.setValue('fee_type', v as never)}>
                   <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
                   <CmxSelectDropdownContent>
@@ -383,13 +381,13 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
               </div>
               {feeType === FEE_TYPES.FIXED && (
                 <div>
-                  <label className="text-sm font-medium">{t('methods.feeAmount')}</label>
+                  <Label className="mb-1 block">{t('methods.feeAmount')}</Label>
                   <CmxInput type="number" step="0.001" {...form.register('fee_amount', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
               )}
               {feeType === FEE_TYPES.PERCENTAGE && (
                 <div>
-                  <label className="text-sm font-medium">{t('methods.feeRate')} (%)</label>
+                  <Label className="mb-1 block">{t('methods.feeRate')} (%)</Label>
                   <CmxInput type="number" step="0.01" {...form.register('fee_rate', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
               )}

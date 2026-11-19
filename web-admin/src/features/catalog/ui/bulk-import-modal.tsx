@@ -8,9 +8,10 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
-import { CmxButton } from '@ui/primitives'
-import { Download, Upload, X } from 'lucide-react'
-import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
+import { CmxButton, Label } from '@ui/primitives'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table'
+import { Download, Upload } from 'lucide-react'
+import { cmxMessage } from '@ui/feedback'
 
 interface BulkImportModalProps {
   open: boolean
@@ -33,10 +34,10 @@ export function BulkImportModal({
   priceListId,
   onSuccess,
 }: BulkImportModalProps) {
-  const t = useTranslations('catalog')
+  const _t = useTranslations('catalog')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [preview, setPreview] = useState<any>(null)
+  const [preview, setPreview] = useState<{ headers: string[]; rows: string[][]; totalRows: number } | null>(null)
 
   // Download template
   async function downloadTemplate() {
@@ -53,9 +54,9 @@ export function BulkImportModal({
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      showSuccessToast('Template downloaded')
-    } catch (err: any) {
-      showErrorToast(err.message || 'Failed to download template')
+      cmxMessage.success('Template downloaded')
+    } catch (err: unknown) {
+      cmxMessage.error(err instanceof Error ? err.message : 'Failed to download template')
     }
   }
 
@@ -65,7 +66,7 @@ export function BulkImportModal({
     if (!selectedFile) return
 
     if (!selectedFile.name.endsWith('.csv')) {
-      showErrorToast('Please select a CSV file')
+      cmxMessage.error('Please select a CSV file')
       return
     }
 
@@ -104,14 +105,14 @@ export function BulkImportModal({
       if (!res.ok) throw new Error(json?.error || 'Failed to import')
 
       if (json.errors && json.errors.length > 0) {
-        showErrorToast(`Import completed with ${json.errors.length} errors. ${json.imported} items imported.`)
+        cmxMessage.error(`Import completed with ${json.errors.length} errors. ${json.imported} items imported.`)
       } else {
-        showSuccessToast(`Successfully imported ${json.imported} items`)
+        cmxMessage.success(`Successfully imported ${json.imported} items`)
       }
 
       onSuccess()
-    } catch (err: any) {
-      showErrorToast(err.message || 'Failed to import')
+    } catch (err: unknown) {
+      cmxMessage.error(err instanceof Error ? err.message : 'Failed to import')
     } finally {
       setUploading(false)
     }
@@ -150,7 +151,8 @@ export function BulkImportModal({
 
           {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium mb-2">Select CSV File</label>
+            <Label className="block mb-2">Select CSV File</Label>
+            {/* cmx-ds-ignore UI001: native file input required for CSV upload */}
             <input
               type="file"
               accept=".csv"
@@ -170,28 +172,28 @@ export function BulkImportModal({
               <h3 className="font-medium mb-2">Preview ({preview.totalRows} rows)</h3>
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-h-60 overflow-y-auto">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-muted">
-                      <tr>
+                  <Table className="min-w-full text-sm">
+                    <TableHeader className="bg-muted">
+                      <TableRow>
                         {preview.headers.map((header: string, i: number) => (
-                          <th key={i} className="px-3 py-2 text-start border-b">
+                          <TableHead key={i} className="px-3 py-2 text-start border-b">
                             {header}
-                          </th>
+                          </TableHead>
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {preview.rows.map((row: string[], i: number) => (
-                        <tr key={i} className="border-b">
+                        <TableRow key={i} className="border-b">
                           {row.map((cell: string, j: number) => (
-                            <td key={j} className="px-3 py-2">
+                            <TableCell key={j} className="px-3 py-2">
                               {cell}
-                            </td>
+                            </TableCell>
                           ))}
-                        </tr>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             </div>
@@ -214,4 +216,3 @@ export function BulkImportModal({
     </CmxDialog>
   )
 }
-

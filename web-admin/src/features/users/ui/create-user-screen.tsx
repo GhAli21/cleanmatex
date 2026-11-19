@@ -12,9 +12,10 @@ import { useTranslations } from 'next-intl'
 import { useState, useEffect, useRef, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, UserPlus } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { cmxMessage, CmxSummaryMessage } from '@ui/feedback'
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, Label } from '@ui/primitives'
+import { CmxSummaryMessage, cmxMessage } from '@ui/feedback'
 import { createUser, lookupGlobalUser } from '@/lib/api/users'
 import { getAllRoles } from '@/lib/api/roles'
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions'
@@ -70,8 +71,6 @@ export default function CreateUserScreen() {
   const [branchesLoading, setBranchesLoading] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [lookup, setLookup] = useState<GlobalUserLookup | null>(null)
   const lookupSeq = useRef(0)
   const reusesLogin = lookup?.outcome === 'add' || lookup?.outcome === 'activate'
@@ -268,10 +267,10 @@ export default function CreateUserScreen() {
               <p className="mt-1 text-sm text-muted-foreground">{t('accountInfoDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="email" className="mb-1 block">
                     {tModal('emailLabel')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="email"
                     id="email"
                     required
@@ -283,80 +282,50 @@ export default function CreateUserScreen() {
                     onBlur={() => {
                       void runLookup()
                     }}
-                    className={`${inputBase} ${errors.email ? inputError : ''}`}
+                    dir="ltr"
+                    error={errors.email}
+                    helpText={t('emailHelper')}
                     placeholder="user@example.com"
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">{t('emailHelper')}</p>
-                  {errors.email && <p className="mt-1 text-sm text-danger-text">{errors.email}</p>}
                 </div>
 
                 {!reusesLogin && lookup?.outcome !== 'open' ? (
                 <>
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="password" className="mb-1 block">
                     {tModal('passwordLabel')} <span className="text-danger-text">*</span>
-                  </label>
-                  <div className="relative mt-1">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="password"
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className={`block w-full rounded-md shadow-sm sm:text-sm pe-10 ${
-                        errors.password ? 'border-danger-border' : 'border-border'
-                      } focus:border-ring focus:ring-ring`}
-                      placeholder={tModal('passwordPlaceholder')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 end-0 pe-3 flex items-center"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{t('passwordHelper')}</p>
-                  {errors.password && <p className="mt-1 text-sm text-danger-text">{errors.password}</p>}
+                  </Label>
+                  <CmxInput
+                    type="password"
+                    id="password"
+                    passwordToggle
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    dir="ltr"
+                    error={errors.password}
+                    helpText={t('passwordHelper')}
+                    placeholder={tModal('passwordPlaceholder')}
+                  />
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="confirmPassword" className="mb-1 block">
                     {tModal('confirmPasswordLabel')}
-                  </label>
-                  <div className="relative mt-1">
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      id="confirmPassword"
-                      required
-                      value={formData.confirmPassword}
-                      onChange={(e) =>
-                        setFormData({ ...formData, confirmPassword: e.target.value })
-                      }
-                      className={`block w-full rounded-md shadow-sm sm:text-sm pe-10 ${
-                        errors.confirmPassword ? 'border-danger-border' : 'border-border'
-                      } focus:border-ring focus:ring-ring`}
-                      placeholder={tModal('confirmPasswordPlaceholder')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 end-0 pe-3 flex items-center"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-danger-text">{errors.confirmPassword}</p>
-                  )}
+                  </Label>
+                  <CmxInput
+                    type="password"
+                    id="confirmPassword"
+                    passwordToggle
+                    required
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({ ...formData, confirmPassword: e.target.value })
+                    }
+                    dir="ltr"
+                    error={errors.confirmPassword}
+                    placeholder={tModal('confirmPasswordPlaceholder')}
+                  />
                 </div>
                 </>
                 ) : null}
@@ -369,58 +338,53 @@ export default function CreateUserScreen() {
               <p className="mt-1 text-sm text-muted-foreground">{t('personalInfoDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="display_name" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="display_name" className="mb-1 block">
                     {tModal('displayNameLabel')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     id="display_name"
                     required
                     value={formData.display_name}
                     onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                    className={`${inputBase} ${errors.display_name ? inputError : ''}`}
+                    error={errors.display_name}
+                    helpText={t('displayNameHelper')}
                     placeholder={tModal('displayNamePlaceholder')}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">{t('displayNameHelper')}</p>
-                  {errors.display_name && (
-                    <p className="mt-1 text-sm text-danger-text">{errors.display_name}</p>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="first_name" className="block text-sm font-medium text-foreground">
+                    <Label htmlFor="first_name" className="mb-1 block">
                       {t('firstName')}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="first_name"
                       value={formData.first_name}
                       onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                      className={inputBase}
                       placeholder="John"
                     />
                   </div>
                   <div>
-                    <label htmlFor="last_name" className="block text-sm font-medium text-foreground">
+                    <Label htmlFor="last_name" className="mb-1 block">
                       {t('lastName')}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="last_name"
                       value={formData.last_name}
                       onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                      className={inputBase}
                       placeholder="Doe"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="phone" className="mb-1 block">
                     {t('phone')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="tel"
                     id="phone"
                     value={formData.phone}
@@ -431,56 +395,55 @@ export default function CreateUserScreen() {
                     onBlur={() => {
                       void runLookup()
                     }}
-                    className={inputBase}
+                    dir="ltr"
+                    className="tabular-nums"
                     placeholder="+968 9123 4567"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="name" className="mb-1 block">
                     {t('fullNameEn')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className={inputBase}
+                    helpText={t('fullNameEnHelper')}
                     placeholder="John Doe"
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">{t('fullNameEnHelper')}</p>
                 </div>
 
                 <div>
-                  <label htmlFor="name2" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="name2" className="mb-1 block">
                     {t('fullNameAr')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     id="name2"
                     value={formData.name2}
                     onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
-                    className={inputBase}
+                    helpText={t('fullNameArHelper')}
                     placeholder="أحمد محمد"
                     dir="rtl"
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">{t('fullNameArHelper')}</p>
                 </div>
 
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="type" className="mb-1 block">
                     {t('userType')}
-                  </label>
-                  <select
+                  </Label>
+                  <CmxSelect
                     id="type"
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className={inputBase}
-                  >
-                    <option value="employee">{t('userTypeEmployee')}</option>
-                    <option value="manager">{t('userTypeManager')}</option>
-                    <option value="admin">{t('userTypeAdmin')}</option>
-                  </select>
+                    options={[
+                      { value: 'employee', label: t('userTypeEmployee') },
+                      { value: 'manager', label: t('userTypeManager') },
+                      { value: 'admin', label: t('userTypeAdmin') },
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -491,85 +454,77 @@ export default function CreateUserScreen() {
               <p className="mt-1 text-sm text-muted-foreground">{t('addressInfoDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="address" className="mb-1 block">
                     {t('address')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className={inputBase}
                     placeholder={t('addressPlaceholder')}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="area" className="block text-sm font-medium text-foreground">
+                    <Label htmlFor="area" className="mb-1 block">
                       {t('areaDistrict')}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="area"
                       value={formData.area}
                       onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                      className={inputBase}
                       placeholder={t('areaPlaceholder')}
                     />
                   </div>
                   <div>
-                    <label htmlFor="building" className="block text-sm font-medium text-foreground">
+                    <Label htmlFor="building" className="mb-1 block">
                       {t('building')}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="building"
                       value={formData.building}
                       onChange={(e) => setFormData({ ...formData, building: e.target.value })}
-                      className={inputBase}
                       placeholder={t('buildingPlaceholder')}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="floor" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="floor" className="mb-1 block">
                     {t('floor')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     id="floor"
                     value={formData.floor}
                     onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                    className={inputBase}
                     placeholder={t('floorPlaceholder')}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="main_branch_id" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="main_branch_id" className="mb-1 block">
                     {t('mainBranch')}
-                  </label>
+                  </Label>
                   {branchesLoading ? (
                     <div className="mt-1 text-sm text-muted-foreground">Loading branches...</div>
                   ) : (
                     <>
-                      <select
+                      <CmxSelect
                         id="main_branch_id"
                         value={formData.main_branch_id}
                         onChange={(e) =>
                           setFormData({ ...formData, main_branch_id: e.target.value })
                         }
-                        className={inputBase}
-                      >
-                        <option value="">{t('noBranchAssigned')}</option>
-                        {branches.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: t('noBranchAssigned') },
+                          ...branches.map((b) => ({ value: b.id, label: b.name })),
+                        ]}
+                      />
                       <p className="mt-1 text-xs text-muted-foreground">{t('mainBranchHelper')}</p>
                     </>
                   )}
@@ -585,117 +540,71 @@ export default function CreateUserScreen() {
               <p className="mt-1 text-sm text-muted-foreground">{t('roleAccessDesc')}</p>
               <div className="mt-4 space-y-4">
                 <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="role" className="mb-1 block">
                     {tModal('roleLabel')}
-                  </label>
+                  </Label>
                   {rolesLoading ? (
                     <div className="mt-1 text-sm text-muted-foreground">Loading roles...</div>
                   ) : (
-                    <>
-                      <select
-                        id="role"
-                        required
-                        value={formData.role}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        className={`${inputBase} ${errors.role ? inputError : ''}`}
-                      >
-                        <option value="">{t('selectRolePlaceholder')}</option>
-                        {roleOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.role && (
-                        <p className="mt-1 text-sm text-danger-text">{errors.role}</p>
-                      )}
-                    </>
+                    <CmxSelect
+                      id="role"
+                      required
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      error={errors.role}
+                      options={[
+                        { value: '', label: t('selectRolePlaceholder') },
+                        ...roleOptions.map((opt) => ({ value: opt.value, label: opt.label })),
+                      ]}
+                    />
                   )}
                 </div>
 
                 <div className="pt-2">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_active}
-                      onChange={(e) =>
-                        setFormData({ ...formData, is_active: e.target.checked })
-                      }
-                      className="mt-1 h-4 w-4 rounded border-border text-primary-text focus:ring-ring"
-                    />
-                    <div>
-                      <span className="block text-sm font-medium text-foreground">
-                        {t('accountActive')}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">{t('accountActiveHelper')}</span>
-                    </div>
-                  </label>
+                  <CmxCheckbox
+                    id="create-user-active"
+                    size="sm"
+                    checked={formData.is_active}
+                    onChange={(e) =>
+                      setFormData({ ...formData, is_active: e.target.checked })
+                    }
+                    label={t('accountActive')}
+                    description={t('accountActiveHelper')}
+                  />
                 </div>
 
                 <div className="pt-2">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_user}
-                      onChange={(e) =>
-                        setFormData({ ...formData, is_user: e.target.checked })
-                      }
-                      className="mt-1 h-4 w-4 rounded border-border text-primary-text focus:ring-ring"
-                    />
-                    <div>
-                      <span className="block text-sm font-medium text-foreground">
-                        {t('isUserAccount')}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">{t('isUserHelper')}</span>
-                    </div>
-                  </label>
+                  <CmxCheckbox
+                    id="create-user-account"
+                    size="sm"
+                    checked={formData.is_user}
+                    onChange={(e) =>
+                      setFormData({ ...formData, is_user: e.target.checked })
+                    }
+                    label={t('isUserAccount')}
+                    description={t('isUserHelper')}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Actions */}
             <div className="space-y-3">
-              <button
+              <CmxButton
                 type="submit"
+                variant="primary"
+                loading={loading}
                 disabled={loading || lookup?.outcome === 'open'}
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full"
               >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ms-1 me-2 h-4 w-4 text-on-solid"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    {tCommon('saving')}
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-5 w-5 me-2" />
-                    {tModal('createUser')}
-                  </>
-                )}
-              </button>
-              <Link
-                href="/dashboard/users"
-                className="w-full inline-flex items-center justify-center px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
-              >
-                {tCommon('cancel')}
-              </Link>
+                <UserPlus className="h-5 w-5 me-2" aria-hidden="true" />
+                {loading ? tCommon('saving') : tModal('createUser')}
+              </CmxButton>
+              <CmxButton variant="outline" className="w-full" asChild>
+                <Link href="/dashboard/users">
+                  {tCommon('cancel')}
+                </Link>
+              </CmxButton>
             </div>
           </div>
         </div>

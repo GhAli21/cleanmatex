@@ -28,6 +28,7 @@ import { ThemeEditorForm } from './theme-editor-form'
 const ERROR_KEYS: Record<string, string> = {
   NOT_FOUND: 'notFound',
   THEME_IN_USE: 'themeInUse',
+  SWITCH_CONFLICT: 'switchConflict',
   FEATURE_NOT_IN_PLAN: 'notInPlan',
   INVALID_CATALOG_CODE: 'invalidCode',
 }

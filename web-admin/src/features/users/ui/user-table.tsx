@@ -13,7 +13,18 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { activateUser, deactivateUser } from '@/lib/api/users'
 import { useAuth } from '@/lib/auth/auth-context'
-import { cmxMessage } from '@ui/feedback'
+import {
+  CmxButton,
+  CmxCheckbox,
+  CmxSpinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives'
+import { CmxStatusBadge, cmxMessage } from '@ui/feedback'
 import type { TenantUser } from '@/lib/api/users'
 
 interface PaginationData {
@@ -162,47 +173,47 @@ export default function UserTable({
 
   return (
     <div className="bg-card shadow rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-border">
-        <thead className="bg-muted">
-          <tr>
-            <th className="px-6 py-3 text-start">
-              <input
-                type="checkbox"
+      <Table className="min-w-full divide-y divide-border">
+        <TableHeader className="bg-muted">
+          <TableRow>
+            <TableHead className="px-6 py-3 text-start">
+              <CmxCheckbox
+                size="sm"
+                aria-label={t('selectAll') || 'Select all users'}
                 checked={selectedUsers.length === users.length && users.length > 0}
                 onChange={handleSelectAll}
-                className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
               />
-            </th>
-            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            </TableHead>
+            <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tSettings('user')}
-            </th>
-            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            </TableHead>
+            <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tSettings('role')}
-            </th>
-            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            </TableHead>
+            <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tCommon('status')}
-            </th>
-            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            </TableHead>
+            <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {t('lastLogin')}
-            </th>
-            <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            </TableHead>
+            <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {tCommon('actions')}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-card divide-y divide-border">
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="bg-card divide-y divide-border">
           {users.map((user) => (
-            <tr key={user.user_id} className="hover:bg-muted">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <input
-                  type="checkbox"
+            <TableRow key={user.user_id} className="hover:bg-muted">
+              <TableCell className="px-6 py-4 whitespace-nowrap">
+                <CmxCheckbox
+                  size="sm"
+                  aria-label={user.display_name || user.email}
                   checked={selectedUsers.includes(user.user_id)}
                   onChange={() => handleToggleSelect(user.user_id)}
                   disabled={user.user_id === currentUser?.id}
-                  className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded disabled:opacity-50"
                 />
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
@@ -215,11 +226,13 @@ export default function UserTable({
                     <div className="text-sm font-medium text-foreground">
                       {user.display_name || t('noName')}
                     </div>
-                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="text-sm text-muted-foreground">
+                      <bdi dir="ltr">{user.email}</bdi>
+                    </div>
                   </div>
                 </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(
                     user.role
@@ -227,86 +240,92 @@ export default function UserTable({
                 >
                   {user.role}
                 </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.is_active
-                      ? 'bg-success-bg text-success-text'
-                      : 'bg-danger-bg text-danger-text'
-                  }`}
-                >
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap">
+                <CmxStatusBadge size="sm" tone={user.is_active ? 'success' : 'danger'}>
                   {user.is_active ? tCommon('active') : tCommon('inactive')}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                </CmxStatusBadge>
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                 {formatDate(user.last_login_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              </TableCell>
+              <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 {actionLoading === user.user_id ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                  <CmxSpinner size="sm" />
                 ) : (
-                  <div className="flex space-x-2">
-                    {/* View Details link */}
-                    <Link
-                      href={`/dashboard/users/${user.user_id}`}
-                      className="text-primary-text hover:text-primary-text/80"
-                    >
-                      {t('details')}
-                    </Link>
-                    <button
+                  <div className="flex items-center gap-2">
+                    <CmxButton variant="ghost" size="xs" className="px-0 h-auto" asChild>
+                      <Link href={`/dashboard/users/${user.user_id}`}>
+                        {t('details')}
+                      </Link>
+                    </CmxButton>
+                    <CmxButton
+                      type="button"
+                      variant="ghost"
+                      size="xs"
                       onClick={() => onEditUser(user)}
-                      className="text-primary-text hover:text-primary-text/80"
                       disabled={user.user_id === currentUser?.id}
+                      className="px-0 h-auto"
                     >
                       {tCommon('edit')}
-                    </button>
+                    </CmxButton>
                     {user.is_active ? (
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="xs"
                         onClick={() => handleDeactivate(user)}
-                        className="text-danger-text hover:text-danger-text/80"
                         disabled={user.user_id === currentUser?.id}
+                        className="px-1 h-auto text-danger-text hover:text-danger-text/80"
                       >
                         {t('deactivate')}
-                      </button>
+                      </CmxButton>
                     ) : (
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="xs"
                         onClick={() => handleActivate(user)}
-                        className="text-success-text hover:text-success-text/80"
+                        className="px-1 h-auto text-success-text hover:text-success-text/80"
                       >
                         {t('activate')}
-                      </button>
+                      </CmxButton>
                     )}
                   </div>
                 )}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="bg-card px-4 py-3 flex items-center justify-between border-t border-border sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">
-            <button
+            <CmxButton
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => onPageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50"
             >
               {tCommon('previous')}
-            </button>
-            <button
+            </CmxButton>
+            <CmxButton
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => onPageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.totalPages}
-              className="ms-3 relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50"
+              className="ms-3"
             >
               {tCommon('next')}
-            </button>
+            </CmxButton>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-foreground">
+              <p className="text-sm text-foreground tabular-nums">
                 {tPagination('showing', {
                   from: (pagination.page - 1) * pagination.limit + 1,
                   to: Math.min(pagination.page * pagination.limit, pagination.total),
@@ -315,34 +334,37 @@ export default function UserTable({
               </p>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm gap-1">
+                <CmxButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => onPageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-s-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
                 >
                   {tCommon('previous')}
-                </button>
+                </CmxButton>
                 {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
+                  <CmxButton
                     key={page}
+                    type="button"
+                    variant={page === pagination.page ? 'primary' : 'outline'}
+                    size="sm"
                     onClick={() => onPageChange(page)}
-                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                      page === pagination.page
-                        ? 'z-10 bg-info-bg border-primary text-info-text'
-                        : 'bg-card border-border text-muted-foreground hover:bg-muted'
-                    }`}
+                    className="tabular-nums"
                   >
                     {page}
-                  </button>
+                  </CmxButton>
                 ))}
-                <button
+                <CmxButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => onPageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-e-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
                 >
                   {tCommon('next')}
-                </button>
+                </CmxButton>
               </nav>
             </div>
           </div>

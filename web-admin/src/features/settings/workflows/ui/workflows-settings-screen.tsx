@@ -7,10 +7,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { Resolver } from 'react-hook-form'
-import { CmxButton } from '@ui/primitives'
-import { CmxInput } from '@ui/primitives'
-import { CmxTextarea } from '@ui/primitives'
-import { CmxSwitch } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSwitch, CmxTextarea, Label } from '@ui/primitives'
 
 import { CmxDataTable } from '@ui/data-display'
 import { CmxEmptyState } from '@ui/data-display'
@@ -395,7 +392,7 @@ export function WorkflowsSettingsScreen({
 
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium">{t('screenContracts.screenKey')} *</label>
+              <Label>{t('screenContracts.screenKey')} *</Label>
               <CmxSelectDropdown
                 value={screenKey}
                 onValueChange={(v) => form.setValue('screenKey', v)}
@@ -415,7 +412,7 @@ export function WorkflowsSettingsScreen({
             </div>
 
             <div>
-              <label className="text-sm font-medium">{t('screenContracts.statuses')} *</label>
+              <Label>{t('screenContracts.statuses')} *</Label>
               <CmxInput
                 {...form.register('statusesText')}
                 placeholder={t('screenContracts.statusesPlaceholder')}
@@ -431,7 +428,7 @@ export function WorkflowsSettingsScreen({
             </div>
 
             <div>
-              <label className="text-sm font-medium">{t('screenContracts.permissions')}</label>
+              <Label>{t('screenContracts.permissions')}</Label>
               <CmxInput
                 {...form.register('permissionsText')}
                 placeholder={t('screenContracts.permissionsPlaceholder')}
@@ -442,9 +439,9 @@ export function WorkflowsSettingsScreen({
             </div>
 
             <div>
-              <label className="text-sm font-medium">
+              <Label>
                 {t('screenContracts.additionalFilters')}
-              </label>
+              </Label>
               <CmxTextarea
                 rows={4}
                 className="font-mono text-xs"

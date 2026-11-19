@@ -18,9 +18,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxButton } from '@ui/primitives';
 
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
@@ -422,8 +421,10 @@ export default function ProcessingDetailPage() {
                         const isDisabled = submitting || isCompleted || isPending;
 
                         return (
-                          <button
+                          <CmxButton
                             key={step.code}
+                            type="button"
+                            variant="ghost"
                             onClick={() => {
                               if (!isDisabled) {
                                 handleRecordStep(item.id, step.code, idx + 1);
@@ -431,15 +432,14 @@ export default function ProcessingDetailPage() {
                             }}
                             disabled={isDisabled}
                             className={`
-                              relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-                              transition-all duration-200 border-2
+                              h-auto relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+                              border-2
                               ${isCompleted
                                 ? 'bg-success-bg text-success-text border-success-border cursor-default'
                                 : isCurrent
                                 ? 'bg-info-bg text-info-text border-primary hover:bg-info-border/50 hover:border-primary-hover shadow-sm'
                                 : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
                               }
-                              ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                               ${isCurrent && !submitting ? 'ring-2 ring-ring' : ''}
                             `}
                             title={
@@ -468,7 +468,7 @@ export default function ProcessingDetailPage() {
                                 {t('clickToComplete') || 'Click'}
                               </span>
                             )}
-                          </button>
+                          </CmxButton>
                         );
                       })}
                     </div>
@@ -486,9 +486,12 @@ export default function ProcessingDetailPage() {
                   )}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
                     <div className="mt-4 pt-4 border-t border-border">
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleItemExpansion(item.id)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                        className="h-auto w-full justify-between px-0 py-1 text-sm font-medium text-foreground hover:bg-transparent hover:text-foreground/80"
                       >
                         <span>
                           {tPieces('viewPieces')}
@@ -498,7 +501,7 @@ export default function ProcessingDetailPage() {
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
-                      </button>
+                      </CmxButton>
                       
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
@@ -543,10 +546,10 @@ export default function ProcessingDetailPage() {
             <CmxCardContent>
             {/* Rack Location Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <Label className="block mb-1">
                 {tModal('rackLocationOrder')}
                 <span className="text-danger-text ms-1">*</span>
-              </label>
+              </Label>
               <div className="relative">
                 <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <CmxInput

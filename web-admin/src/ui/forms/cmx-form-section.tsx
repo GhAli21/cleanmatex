@@ -57,10 +57,10 @@ export function CmxFormSection({
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
 
   const statusAccentClass = {
-    default: 'from-[rgba(37,99,235,0.15)] via-transparent to-transparent',
-    complete: 'from-[rgba(22,163,74,0.16)] via-transparent to-transparent',
-    warning: 'from-[rgba(217,119,6,0.16)] via-transparent to-transparent',
-    danger: 'from-[rgba(220,38,38,0.16)] via-transparent to-transparent',
+    default: 'from-primary/15 via-transparent to-transparent',
+    complete: 'from-success/15 via-transparent to-transparent',
+    warning: 'from-warning/15 via-transparent to-transparent',
+    danger: 'from-destructive/15 via-transparent to-transparent',
   }[status]
 
   const layoutClass = {

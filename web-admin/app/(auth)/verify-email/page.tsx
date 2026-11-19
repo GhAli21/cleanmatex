@@ -11,6 +11,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { CmxButton } from '@ui/primitives'
 
 function VerifyEmailContent() {
   const router = useRouter()
@@ -255,12 +256,13 @@ function VerifyEmailContent() {
           </div>
 
           <div className="flex gap-3">
-            <button
+            <CmxButton
+              type="button"
               onClick={handleResendEmail}
-              className="flex-1 flex justify-center rounded-md border border-transparent bg-primary py-2 px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="flex-1"
             >
               Resend Verification Email
-            </button>
+            </CmxButton>
             <Link
               href="/login"
               className="flex-1 flex justify-center rounded-md border border-border bg-card py-2 px-4 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -400,12 +402,14 @@ function VerifyEmailContent() {
               </svg>
               <span className="ms-2 text-sm text-foreground">Didn't receive the email?</span>
             </div>
-            <button
+            <CmxButton
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={handleResendEmail}
-              className="text-sm font-medium text-primary-text hover:text-primary-text/80"
             >
               Resend
-            </button>
+            </CmxButton>
           </div>
         </div>
 

@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
-import { CmxInput, CmxTextarea } from '@ui/primitives';
+import { CmxInput, CmxTextarea, Label } from '@ui/primitives';
 import { EditControlNotice } from '../order-change/edit-control-notice';
 import type { CustomerSnapshotOverride } from '../model/new-order-types';
 
@@ -114,9 +114,9 @@ export function OrderCustomerDetailsSection() {
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="order-customer-name" className="block text-sm font-medium text-foreground mb-1">
+          <Label htmlFor="order-customer-name" className="block mb-1">
             {tCommon('name') || 'Name'}
-          </label>
+          </Label>
           <CmxInput
             id="order-customer-name"
             type="text"
@@ -131,9 +131,9 @@ export function OrderCustomerDetailsSection() {
         </div>
 
         <div>
-          <label htmlFor="order-customer-phone" className="block text-sm font-medium text-foreground mb-1">
+          <Label htmlFor="order-customer-phone" className="block mb-1">
             {tCommon('phone') || 'Phone'}
-          </label>
+          </Label>
           <CmxInput
             id="order-customer-phone"
             type="tel"
@@ -148,9 +148,9 @@ export function OrderCustomerDetailsSection() {
         </div>
 
         <div>
-          <label htmlFor="order-customer-email" className="block text-sm font-medium text-foreground mb-1">
+          <Label htmlFor="order-customer-email" className="block mb-1">
             {tCommon('email') || 'Email'}
-          </label>
+          </Label>
           <CmxInput
             id="order-customer-email"
             type="email"
@@ -165,9 +165,9 @@ export function OrderCustomerDetailsSection() {
         </div>
 
         <div>
-          <label htmlFor="order-customer-notes" className="block text-sm font-medium text-foreground mb-1">
+          <Label htmlFor="order-customer-notes" className="block mb-1">
             {t('customerNotes') || 'Customer notes'}
-          </label>
+          </Label>
           <CmxTextarea
             id="order-customer-notes"
             value={state.customerNotes ?? ''}

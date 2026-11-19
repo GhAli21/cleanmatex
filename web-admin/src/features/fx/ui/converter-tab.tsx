@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { ArrowRightLeft, Calculator } from 'lucide-react';
-import { CmxButton, CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { CmxSummaryMessage } from '@ui/feedback';
@@ -67,7 +67,7 @@ export function ConverterTab() {
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
           <div>
-            <label className="text-sm font-medium">{t('converter.from')}</label>
+            <Label>{t('converter.from')}</Label>
             <CmxSelectDropdown value={from} onValueChange={setFrom}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
@@ -79,7 +79,7 @@ export function ConverterTab() {
           </div>
           <ArrowRightLeft className="mb-2 h-4 w-4 text-muted-foreground rtl:rotate-180" />
           <div>
-            <label className="text-sm font-medium">{t('converter.to')}</label>
+            <Label>{t('converter.to')}</Label>
             <CmxSelectDropdown value={to} onValueChange={setTo}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
@@ -92,7 +92,7 @@ export function ConverterTab() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">{t('converter.amount')}</label>
+          <Label>{t('converter.amount')}</Label>
           <CmxInput value={amount} onChange={(e) => setAmount(e.target.value)} className="font-mono" />
         </div>
 

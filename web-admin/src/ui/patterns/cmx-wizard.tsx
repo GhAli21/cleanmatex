@@ -91,7 +91,7 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
               onClick={handleBack}
               disabled={!canGoBack || isLoading}
             >
-              Back
+              {tCommon('back')}
             </CmxButton>
           )}
 
@@ -103,7 +103,7 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
               onClick={handleSkip}
               disabled={isLoading}
             >
-              Skip
+              {tCommon('skip')}
             </CmxButton>
           )}
         </div>
@@ -136,15 +136,15 @@ export const CmxWizard: React.FC<CmxWizardProps> = ({
             disabled={!canGoNext || isLoading}
             loading={isLoading}
           >
-            {isLastStep ? 'Complete' : 'Next'}
+            {isLastStep ? tCommon('complete') : tCommon('next')}
           </CmxButton>
         </div>
       </div>
 
       {/* Step indicator text */}
-      <div className="text-center text-xs text-muted-foreground">
-        Step {currentStep + 1} of {steps.length}
-        {currentStepData?.isOptional && ' (Optional)'}
+      <div className="text-center text-xs text-muted-foreground tabular-nums">
+        {tCommon('stepProgress', { current: currentStep + 1, total: steps.length })}
+        {currentStepData?.isOptional && ` (${tCommon('optional')})`}
       </div>
     </div>
   )

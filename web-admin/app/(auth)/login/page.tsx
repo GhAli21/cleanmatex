@@ -307,9 +307,19 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mx-auto w-full max-w-[17rem]">
-                  {brand?.logo ? (
-                    // Organization logo from File Util's public storage (host checked when the cookie is read).
-                    <img src={brand.logo} alt={brandName ?? t('login.brandAlt')} className="mx-auto max-h-24 w-auto object-contain" />
+                  {brand?.logo || brand?.logoDark ? (
+                    // Organization logos from File Util's public storage (host checked when the cookie is read).
+                    // With a dark logo, globals.css shows one of the two by the page's colour mode.
+                    <>
+                      <img
+                        src={(brand.logo ?? brand.logoDark)!}
+                        alt={brandName ?? t('login.brandAlt')}
+                        className={`mx-auto max-h-24 w-auto object-contain ${brand.logo && brand.logoDark ? 'cmx-logo-light' : ''}`}
+                      />
+                      {brand.logo && brand.logoDark ? (
+                        <img src={brand.logoDark} alt={brandName ?? t('login.brandAlt')} className="cmx-logo-dark mx-auto max-h-24 w-auto object-contain" />
+                      ) : null}
+                    </>
                   ) : (
                     <Image
                       src="/brand/cleanmatex-wordmark.png"

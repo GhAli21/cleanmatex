@@ -13,6 +13,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type { PriceChangedLine } from '@/lib/services/commercial/price-confirmation';
@@ -46,24 +47,28 @@ export function PriceChangedDialog({ open, lines, itemName, onUseCurrentPrices, 
         </CmxDialogHeader>
         <p className="text-sm text-muted-foreground">{t('message')}</p>
         <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-foreground">
-              <tr>
-                <th scope="col" className="px-3 py-2 text-start font-semibold">{t('item')}</th>
-                <th scope="col" className="px-3 py-2 text-end font-semibold">{t('shownPrice')}</th>
-                <th scope="col" className="px-3 py-2 text-end font-semibold">{t('currentPrice')}</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full text-sm">
+            <TableHeader className="bg-muted text-foreground">
+              <TableRow>
+                <TableHead scope="col" className="px-3 py-2 text-start font-semibold">{t('item')}</TableHead>
+                <TableHead scope="col" className="px-3 py-2 text-end font-semibold">{t('shownPrice')}</TableHead>
+                <TableHead scope="col" className="px-3 py-2 text-end font-semibold">{t('currentPrice')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {lines.map((line) => (
-                <tr key={line.index} className="border-t border-border">
-                  <td className="px-3 py-2 text-start text-foreground">{itemName(line.index)}</td>
-                  <td className="px-3 py-2 text-end tabular-nums text-muted-foreground line-through">{fmt(line.shownUnitPrice)}</td>
-                  <td className="px-3 py-2 text-end tabular-nums font-semibold text-foreground">{fmt(line.currentUnitPrice)}</td>
-                </tr>
+                <TableRow key={line.index} className="border-t border-border">
+                  <TableCell className="px-3 py-2 text-start text-foreground">{itemName(line.index)}</TableCell>
+                  <TableCell className="px-3 py-2 text-end tabular-nums text-muted-foreground line-through">
+                    <bdi dir="ltr">{fmt(line.shownUnitPrice)}</bdi>
+                  </TableCell>
+                  <TableCell className="px-3 py-2 text-end tabular-nums font-semibold text-foreground">
+                    <bdi dir="ltr">{fmt(line.currentUnitPrice)}</bdi>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         <p className="text-xs text-muted-foreground">{t('hint')}</p>
         <CmxDialogFooter>

@@ -44,7 +44,7 @@ alwaysApply: true
 ## Branding & Theme
 - Apply CleanMateX brand colors, fonts, and iconography consistently.
 - Support **dark mode** and **RTL layout** via global theme toggles.
-- Store theme config in `ui/theme.ts` or `flutter_theme.dart`.
+- web-admin: the server resolves the theme (`<html data-mode data-density data-font-scale>`); use theme token classes only, no `dark:` classes, logical RTL classes. Full rules: `docs/dev/rules/cmx-design-system.md`. Flutter: `flutter_theme.dart`.
 
 ## Microinteractions
 - Animate transitions subtly (e.g., fade, slide).

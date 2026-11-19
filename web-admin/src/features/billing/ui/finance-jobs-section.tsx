@@ -88,24 +88,28 @@ function ErrorCellActions({ errorMessage, onExpand, onCopy, viewLabel, copyLabel
       <Tooltip content={errorMessage}>
         <span className="max-w-[220px] truncate text-xs text-destructive">{truncateError(errorMessage)}</span>
       </Tooltip>
-      <button
+      <CmxButton
         type="button"
+        variant="ghost"
+        size="xs"
         aria-label={viewLabel}
         title={viewLabel}
         onClick={() => onExpand(errorMessage)}
-        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="h-auto shrink-0 p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <Eye className="h-3.5 w-3.5" />
-      </button>
-      <button
+      </CmxButton>
+      <CmxButton
         type="button"
+        variant="ghost"
+        size="xs"
         aria-label={copyLabel}
         title={copyLabel}
         onClick={() => { void onCopy(errorMessage); }}
-        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="h-auto shrink-0 p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
       >
         <Copy className="h-3.5 w-3.5" />
-      </button>
+      </CmxButton>
     </div>
   );
 }

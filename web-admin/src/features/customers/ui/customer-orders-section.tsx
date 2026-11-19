@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@ui/primitives/table';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -201,16 +203,16 @@ export function CustomerOrdersSection({
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" role="table" aria-label={tCustomers('orderHistory')}>
-            <thead className="border-b border-border bg-muted">
-              <tr>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-start"
-                >
-                  <button
+          <Table className="w-full text-sm" aria-label={tCustomers('orderHistory')}>
+            <TableHeader className="border-b border-border bg-muted">
+              <TableRow>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-start">
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleSort('order_no')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
+                    className="h-auto px-0 py-0 font-medium inline-flex items-center gap-1 hover:bg-transparent hover:text-foreground"
                   >
                     {tOrders('orderNumber')}
                     {sortBy === 'order_no' ? (
@@ -218,15 +220,15 @@ export function CustomerOrdersSection({
                     ) : (
                       <ChevronsUpDown className="w-4 h-4 opacity-50" />
                     )}
-                  </button>
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-start"
-                >
-                  <button
+                  </CmxButton>
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-start">
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleSort('received_at')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
+                    className="h-auto px-0 py-0 font-medium inline-flex items-center gap-1 hover:bg-transparent hover:text-foreground"
                   >
                     {tOrders('received')}
                     {sortBy === 'received_at' ? (
@@ -234,35 +236,29 @@ export function CustomerOrdersSection({
                     ) : (
                       <ChevronsUpDown className="w-4 h-4 opacity-50" />
                     )}
-                  </button>
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-start"
-                >
+                  </CmxButton>
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-start">
                   {tOrders('status')}
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-start"
-                >
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-start">
                   {tOrders('prepStatus')}
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-end"
-                >
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-end">
                   {tOrders('items')}
                   {trackByPiece && (
                     <span className="ms-1 text-xs text-muted-foreground">
                       / {tPieces('totalPieces') || 'Pieces'}
                     </span>
                   )}
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-end"
-                >
-                  <button
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-end">
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleSort('total')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
+                    className="h-auto px-0 py-0 font-medium inline-flex items-center gap-1 hover:bg-transparent hover:text-foreground"
                   >
                     {tOrders('total')}
                     {sortBy === 'total' ? (
@@ -270,15 +266,15 @@ export function CustomerOrdersSection({
                     ) : (
                       <ChevronsUpDown className="w-4 h-4 opacity-50" />
                     )}
-                  </button>
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-start"
-                >
-                  <button
+                  </CmxButton>
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-start">
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleSort('ready_by')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
+                    className="h-auto px-0 py-0 font-medium inline-flex items-center gap-1 hover:bg-transparent hover:text-foreground"
                   >
                     {tOrders('readyBy')}
                     {sortBy === 'ready_by' ? (
@@ -286,44 +282,38 @@ export function CustomerOrdersSection({
                     ) : (
                       <ChevronsUpDown className="w-4 h-4 opacity-50" />
                     )}
-                  </button>
-                </th>
-                <th
-                  className="px-4 py-3 font-medium text-foreground text-start"
-                >
+                  </CmxButton>
+                </TableHead>
+                <TableHead className="px-4 py-3 font-medium text-foreground text-start">
                   {tCommon('actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border">
               {orders.map((order) => (
-                <tr
+                <TableRow
                   key={order.id}
                   className="cursor-pointer hover:bg-muted transition-colors"
                   onClick={() => router.push(buildOrderHref(order.id))}
                 >
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-primary-text">{order.order_no}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                  <TableCell className="px-4 py-3">
+                    <bdi dir="ltr" className="font-medium text-primary-text tabular-nums">{order.order_no}</bdi>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
                     {order.received_at
                       ? formatReadyByDate(
                           order.received_at instanceof Date ? order.received_at : new Date(order.received_at)
                         )
                       : '—'}
-                  </td>
-                  <td className="px-4 py-3 capitalize">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 capitalize">
                     {order.status?.replace(/_/g, ' ') || '—'}
-                  </td>
-                  <td className="px-4 py-3 capitalize">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 capitalize">
                     {order.preparation_status?.replace(/_/g, ' ') || '—'}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-end"
-                  >
-                    <div
-                      className="flex flex-col items-end"
-                    >
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-end tabular-nums">
+                    <div className="flex flex-col items-end">
                       <span>{order.total_items}</span>
                       {trackByPiece &&
                         order.total_pieces != null && (
@@ -333,18 +323,18 @@ export function CustomerOrdersSection({
                           </span>
                         )}
                     </div>
-                  </td>
-                  <td
-                    className="px-4 py-3 font-medium text-end"
-                  >
-                    {formatPrice(
-                      order.total,
-                      currencyCode,
-                      resolveMoneyIntlLocale(moneyUiLocale),
-                      decimalPlaces,
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 font-medium text-end tabular-nums">
+                    <bdi dir="ltr">
+                      {formatPrice(
+                        order.total,
+                        currencyCode,
+                        resolveMoneyIntlLocale(moneyUiLocale),
+                        decimalPlaces,
+                      )}
+                    </bdi>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 tabular-nums">
                     {order.ready_by ? (
                       <span className="text-xs text-foreground">
                         {formatReadyByDate(
@@ -356,8 +346,8 @@ export function CustomerOrdersSection({
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-end">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-end">
                     <Link
                       href={buildOrderHref(order.id)}
                       className="text-xs text-primary-text hover:text-primary-text/80 font-medium"
@@ -365,17 +355,15 @@ export function CustomerOrdersSection({
                     >
                       {tOrders('view')}
                     </Link>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
 
         {pagination.totalPages > 1 && (
-          <div
-            className="flex items-center border-t border-border px-4 py-3 text-xs text-muted-foreground justify-between"
-          >
+          <div className="flex items-center border-t border-border px-4 py-3 text-xs text-muted-foreground justify-between">
             <div>
               {tOrders('showing')}{' '}
               {(pagination.page - 1) * pagination.limit + 1}{' '}
@@ -385,22 +373,24 @@ export function CustomerOrdersSection({
               {pagination.total} {tOrders('orders').toLowerCase()}
             </div>
             <div className="flex gap-2">
-              <button
+              <CmxButton
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => goToPage(pagination.page - 1)}
                 disabled={isFirstPage}
-                className="rounded border border-border px-3 py-1 disabled:opacity-50 hover:bg-muted"
               >
                 {tOrders('previous')}
-              </button>
-              <button
+              </CmxButton>
+              <CmxButton
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => goToPage(pagination.page + 1)}
                 disabled={isLastPage}
-                className="rounded border border-border px-3 py-1 disabled:opacity-50 hover:bg-muted"
               >
                 {tOrders('next')}
-              </button>
+              </CmxButton>
             </div>
           </div>
         )}

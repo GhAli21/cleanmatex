@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { useBilingual } from '@/lib/hooks/useBilingual'
-import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSwitch, Label } from '@ui/primitives'
 import { CMX_DEFAULT_PAGE_SIZE, CmxDataTable } from '@ui/data-display'
 import { CmxStatusBadge, cmxMessage } from '@ui/feedback'
 import { taxApi } from '../api/tax-api'
@@ -65,10 +65,10 @@ export function TaxCodesTab({ canManage }: { canManage: boolean }) {
         <div className="w-full sm:w-72">
           <CmxInput label={tCommon('search')} value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} />
         </div>
-        <label className="flex items-center gap-2 text-sm">
+        <Label className="flex items-center gap-2 text-sm font-normal">
           <CmxSwitch checked={includeInactive} onCheckedChange={(v) => { setIncludeInactive(v); setPage(0) }} aria-label={t('showInactive')} />
           {t('showInactive')}
-        </label>
+        </Label>
         {canManage && <CmxButton disabled={!options.data} onClick={() => setEditing('new')}>{t('add')}</CmxButton>}
       </div>
       {isError && <p className="text-sm text-destructive">{t('loadError')}</p>}

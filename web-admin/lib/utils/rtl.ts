@@ -6,10 +6,16 @@
  */
 
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
-import { formatMoneyAmount } from '@/lib/money/format-money'
+import {
+  DEFAULT_RESOLVED_EXTRA_CONFIG,
+  NUMBER_SCRIPTS,
+  type NumberGroupingLocale,
+  type NumberScript,
+} from '@/lib/constants/tenant-extra-config'
+import { formatMoneyAmount, resolveMoneyIntlLocale } from '@/lib/money/format-money'
 
 /**
- * Check if current locale is RTL
+ * Check if current locale is RTL.
  */
 export function isRTL(): boolean {
   if (typeof window === 'undefined') return false
@@ -17,7 +23,7 @@ export function isRTL(): boolean {
 }
 
 /**
- * Get current locale from HTML
+ * Get current locale from `<html lang>`.
  */
 export function getCurrentLocale(): 'en' | 'ar' {
   if (typeof window === 'undefined') return 'en'
@@ -26,11 +32,30 @@ export function getCurrentLocale(): 'en' | 'ar' {
 }
 
 /**
- * Format number for current locale
+ * Resolve Intl date/time locale respecting `DATE_DIGITS` (defaults to Western `123` digits).
  */
-export function formatNumber(num: number, locale?: 'en' | 'ar'): string {
+export function resolveDateIntlLocale(
+  locale: 'en' | 'ar',
+  dateDigits: NumberScript = DEFAULT_RESOLVED_EXTRA_CONFIG.dateDigits
+): string {
+  if (dateDigits === NUMBER_SCRIPTS.ARAB) {
+    return locale === 'ar' ? 'ar-u-nu-arab' : 'en-u-nu-arab'
+  }
+  return locale === 'ar' ? 'ar-u-nu-latn' : 'en-US'
+}
+
+/**
+ * Format number for current locale using Organization script and grouping defaults.
+ */
+export function formatNumber(
+  num: number,
+  locale?: 'en' | 'ar',
+  numberScript: NumberScript = DEFAULT_RESOLVED_EXTRA_CONFIG.numberScript,
+  groupingLocale: NumberGroupingLocale = DEFAULT_RESOLVED_EXTRA_CONFIG.numberGroupingLocale
+): string {
   const currentLocale = locale || getCurrentLocale()
-  return new Intl.NumberFormat(currentLocale === 'ar' ? 'ar' : 'en').format(num)
+  const intlLocale = resolveMoneyIntlLocale(currentLocale, { numberScript, groupingLocale })
+  return new Intl.NumberFormat(intlLocale).format(num)
 }
 
 /**
@@ -44,13 +69,17 @@ export function formatCurrency(
   amount: number,
   currency: string = '',
   locale?: 'en' | 'ar',
-  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
+  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
+  numberScript: NumberScript = DEFAULT_RESOLVED_EXTRA_CONFIG.numberScript,
+  groupingLocale: NumberGroupingLocale = DEFAULT_RESOLVED_EXTRA_CONFIG.numberGroupingLocale
 ): string {
   const currentLocale = locale || getCurrentLocale()
   return formatMoneyAmount(amount, {
     currencyCode: currency,
     decimalPlaces,
     locale: currentLocale,
+    numberScript,
+    groupingLocale,
   })
 }
 
@@ -60,7 +89,8 @@ export function formatCurrency(
 export function formatDate(
   date: Date | string,
   options?: Intl.DateTimeFormatOptions,
-  locale?: 'en' | 'ar'
+  locale?: 'en' | 'ar',
+  dateDigits: NumberScript = DEFAULT_RESOLVED_EXTRA_CONFIG.dateDigits
 ): string {
   const currentLocale = locale || getCurrentLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
@@ -73,7 +103,7 @@ export function formatDate(
   }
 
   return new Intl.DateTimeFormat(
-    currentLocale === 'ar' ? 'ar' : 'en',
+    resolveDateIntlLocale(currentLocale, dateDigits),
     defaultOptions
   ).format(dateObj)
 }
@@ -83,12 +113,13 @@ export function formatDate(
  */
 export function formatTime(
   date: Date | string,
-  locale?: 'en' | 'ar'
+  locale?: 'en' | 'ar',
+  dateDigits: NumberScript = DEFAULT_RESOLVED_EXTRA_CONFIG.dateDigits
 ): string {
   const currentLocale = locale || getCurrentLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
 
-  return new Intl.DateTimeFormat(currentLocale === 'ar' ? 'ar' : 'en', {
+  return new Intl.DateTimeFormat(resolveDateIntlLocale(currentLocale, dateDigits), {
     hour: '2-digit',
     minute: '2-digit',
   }).format(dateObj)

@@ -14,7 +14,7 @@ An inventory of configuration keys (environment variables and settings) with, pe
 | `env_var_name` | The environment variable that carries the key on its host. |
 | `is_secret` / `is_encrypted` | `is_secret` implies `is_encrypted` (database CHECK). Encrypted values are stored only as an AES-256-GCM envelope and are **write-only**. A non-secret key may still be encrypted. |
 | `is_bootstrap` | Needed before the database is reachable. Forced `ENV_ONLY`, never stored (CHECK). |
-| `is_wired` | `true` only once application code reads the key through `ConfigResolverService`. While `false`, a value stored here is **not consumed** by anything. |
+| `is_wired` | `true` only once application code reads the key through `ConfigResolverService`. While `false`, a stored registry value is **not consumed**. Unwired keys cannot store a value or switch to a stored-value source policy (`UNWIRED_KEY` → HTTP 409). They may only become `ENV_ONLY`. |
 | `manage_via` | `UI`, `HOSTING_ENV`, `EXTERNAL_CONSOLE`, `MIGRATION`, `GIT`. Non-UI keys show a guidance panel (EN/AR). |
 | `applies_to_app` | `PLATFORM_API`, `PLATFORM_WORKERS`, `TENANT_WEB`, `ALL`. |
 
@@ -59,7 +59,7 @@ Never storable here: database URL, Supabase URL/keys/JWT secret, `HQ_ENCRYPTION_
    - `config_key`: lowercase dotted, at most 120 chars (`^[a-z0-9_]+(\.[a-z0-9_]+)*$`).
    - Secrets: `is_secret = true`, `is_encrypted = true`, `value_type = 'SECRET_STRING'`.
    - `source_policy`: `ENV_OVERRIDES_DB` for a key that already works as env-wins; `ENV_ONLY` + `is_bootstrap = true` + `manage_via = 'HOSTING_ENV'` for bootstrap keys. Anything except `DB_ONLY` needs `env_var_name`.
-   - `is_wired = false` until the consuming code is converted; set `requires_restart = true` until then.
+   - `is_wired = false` until the consuming code is converted; set `requires_restart = true` until then. After `0777`, unwired keys cannot store a value or switch to a stored-value policy.
    - Provide EN and AR `name`, `description`, `guidance`, `guidance2` for any key not managed from the UI.
    - Never put a value in the migration. Values are entered through the screen.
 3. Document every column with `COMMENT ON` per the migration standards.
@@ -115,7 +115,8 @@ Tests: `dispatch/__tests__/config-registry-wiring.spec.ts`, `email-resend.resolv
 1. Open Operations → Configuration Registry. Every key should show; bootstrap and `ENV_ONLY` keys say "Environment only".
 2. Press **Check now**. `UNCHECKABLE` is expected for tenant-app keys.
 3. Safe first exercise: edit `ntf.hq.resend.from_email` (plain). While `HQ_RESEND_FROM_EMAIL` is set in the HQ environment it still wins (the dialog warns); change its policy to `DB_ONLY` only after storing the value, if you want the screen to be authoritative.
-4. Anything marked "Not wired yet": storing a value is safe but has no effect until that key is converted.
+4. Anything marked "Not wired yet": do not store a value and do not change its source policy to a stored-value policy. Set the host environment of the consuming app, then restart that app. HQ Check now cannot see Render `platform-workers`.
+5. I11 worker controls (`ntf.worker.*`, `workers.legacy_bullmq_enabled`, `platform.worker_api_key`) are `ENV_ONLY` / `HOSTING_ENV` / `is_wired=false`. `PLATFORM_WORKER_API_KEY` is write-only metadata; never paste its value. Check now may report HQ API presence of that machine key only.
 
 ## 9. Not verified yet
 

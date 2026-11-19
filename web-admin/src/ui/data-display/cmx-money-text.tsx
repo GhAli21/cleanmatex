@@ -14,6 +14,7 @@
 
 import * as React from 'react'
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
+import { useTenantExtraConfig } from '@/lib/context/tenant-extra-config-context'
 import { cn } from '@/lib/utils'
 
 export type CmxMoneyTextTone = 'default' | 'muted' | 'warning' | 'success' | 'info'
@@ -44,9 +45,9 @@ export interface CmxMoneyTextProps {
 const TONES: Record<CmxMoneyTextTone, string> = {
   default: 'text-foreground',
   muted: 'text-muted-foreground',
-  warning: 'text-[rgb(var(--cmx-warning-dark-rgb))]',
-  success: 'text-[rgb(var(--cmx-success-dark-rgb))]',
-  info: 'text-info',
+  warning: 'text-warning-text',
+  success: 'text-success-text',
+  info: 'text-info-text',
 }
 
 const SIZES = { sm: 'text-xs', md: 'text-sm', lg: 'text-lg', xl: 'text-3xl font-semibold' } as const
@@ -69,6 +70,7 @@ export function CmxMoneyText({
   size = 'md',
   className,
 }: CmxMoneyTextProps) {
+  const extraConfig = useTenantExtraConfig()
   const known = Boolean(currencyCode) && decimalPlaces != null
   const text = amount == null
     ? '—'
@@ -77,20 +79,25 @@ export function CmxMoneyText({
       currencyCode: hideCode || !known ? '' : (currencyCode ?? ''),
       decimalPlaces: decimalPlaces ?? 2,
       locale,
+      numberScript: extraConfig.numberScript,
+      groupingLocale: extraConfig.numberGroupingLocale,
     })
   const glyph = amount == null || sign === 'neutral' ? null : sign === 'minus' ? '−' : '+'
+  const inner = (
+    <>
+      {glyph && (
+        <>
+          <span aria-hidden="true">{glyph}</span>
+          {signLabels && <span className="sr-only">{sign === 'minus' ? signLabels.minus : signLabels.plus} </span>}
+        </>
+      )}
+      {text}
+    </>
+  )
 
   return (
     <span className={cn('inline-flex items-baseline gap-1 tabular-nums whitespace-nowrap', SIZES[size], TONES[tone], struck && 'line-through opacity-70', className)}>
-      <bdi dir="ltr">
-        {glyph && (
-          <>
-            <span aria-hidden="true">{glyph}</span>
-            {signLabels && <span className="sr-only">{sign === 'minus' ? signLabels.minus : signLabels.plus} </span>}
-          </>
-        )}
-        {text}
-      </bdi>
+      {extraConfig.bdiIsolationEnabled ? <bdi dir="ltr">{inner}</bdi> : inner}
       {!known && amount != null && unknownCurrencyLabel && (
         <span className="text-xs text-muted-foreground">{unknownCurrencyLabel}</span>
       )}

@@ -7,11 +7,11 @@
 'use client';
 
 import { useState } from 'react';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxButton, CmxCheckbox, CmxSelect, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useReceipts, useSendReceipt } from '../hooks/use-receipts';
 import { useMessage } from '@ui/feedback/useMessage';
-import { Receipt, Send, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Receipt, Send, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 interface ReceiptPreviewProps {
   orderId: string;
@@ -44,7 +44,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   /** B2B forces email; otherwise use checkbox-controlled state */
   const effectiveChannels = isB2b ? ['email'] : deliveryChannels;
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
-  const { data: receipts, isLoading } = useReceipts(orderId);
+  const { data: receipts } = useReceipts(orderId);
   const { mutate: sendReceipt, isPending: isSending } = useSendReceipt();
   const { showSuccess, showError } = useMessage();
 
@@ -109,57 +109,48 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Receipt Type</label>
-            <select
+            <CmxSelect
+              label="Receipt Type"
               value={receiptType}
               onChange={(e) => setReceiptType(e.target.value)}
-              className="w-full h-9 rounded-md border border-border px-3 text-sm"
-            >
-              {RECEIPT_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
+              options={RECEIPT_TYPES}
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Delivery Channels</label>
+            <Label className="block mb-1">Delivery Channels</Label>
             <div className="space-y-2">
               {DELIVERY_CHANNELS.map((channel) => (
-                <label key={channel.value} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    disabled={isB2b}
-                    checked={effectiveChannels.includes(channel.value)}
-                    onChange={(e) => {
-                      if (isB2b) return;
-                      if (e.target.checked) {
-                        setDeliveryChannels([...deliveryChannels, channel.value]);
-                      } else {
-                        setDeliveryChannels(
-                          deliveryChannels.filter((c) => c !== channel.value)
-                        );
-                      }
-                    }}
-                    className="rounded border-border"
-                  />
-                  <span className="text-sm">{channel.label}</span>
-                </label>
+                <CmxCheckbox
+                  key={channel.value}
+                  disabled={isB2b}
+                  checked={effectiveChannels.includes(channel.value)}
+                  onChange={(e) => {
+                    if (isB2b) return;
+                    if (e.target.checked) {
+                      setDeliveryChannels([...deliveryChannels, channel.value]);
+                    } else {
+                      setDeliveryChannels(
+                        deliveryChannels.filter((c) => c !== channel.value)
+                      );
+                    }
+                  }}
+                  label={channel.label}
+                />
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Language</label>
-            <select
+            <CmxSelect
+              label="Language"
               value={language}
               onChange={(e) => setLanguage(e.target.value as 'en' | 'ar')}
-              className="w-full h-9 rounded-md border border-border px-3 text-sm"
-            >
-              <option value="en">English</option>
-              <option value="ar">Arabic</option>
-            </select>
+              options={[
+                { value: 'en', label: 'English' },
+                { value: 'ar', label: 'Arabic' },
+              ]}
+            />
           </div>
 
           <CmxButton onClick={handleSend} loading={isSending} disabled={isSending} className="w-full">
@@ -210,4 +201,3 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
     </div>
   );
 }
-

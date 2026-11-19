@@ -108,6 +108,27 @@ test('activate rolls back with NOT_FOUND when the target is gone at the switch',
   await expect(activateOrgTheme(T, 'th1', actor)).rejects.toMatchObject({ code: 'NOT_FOUND' })
 })
 
+// PR-07 minor M1: the loser of a concurrent switch hits the one-in-use unique index; that is a 409, not a 500.
+test('activate maps the unique-index refusal of a concurrent switch to SWITCH_CONFLICT', async () => {
+  tx.org_tenant_ui_theme_dtl.findFirst.mockResolvedValueOnce({ id: 'th1' })
+  tx.org_tenant_ui_theme_dtl.updateMany
+    .mockResolvedValueOnce({ count: 0 })
+    .mockRejectedValueOnce(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+  await expect(activateOrgTheme(T, 'th1', actor)).rejects.toMatchObject({ code: 'SWITCH_CONFLICT' })
+})
+
+// PR-07 minor M2: a theme HQ has since deactivated stays editable while the codes it stores are unchanged.
+test('an edit that keeps the stored HQ codes is not refused when HQ has deactivated them', async () => {
+  tx.sys_ui_theme_cd.count.mockResolvedValue(0)
+  tx.sys_ui_radius_cd.count.mockResolvedValue(0)
+  tx.sys_ui_font_pair_cd.count.mockResolvedValue(0)
+  tx.org_tenant_ui_theme_dtl.findFirst.mockResolvedValue({ ui_theme_code: 'OLD', ui_radius_code: 'SOFT', ui_font_pair_code: 'SERIF' })
+  tx.org_tenant_ui_theme_dtl.updateMany.mockResolvedValue({ count: 1 })
+  await expect(updateOrgTheme(T, 'th1', { theme_name: 'Renamed', ui_theme_code: 'OLD', ui_radius_code: 'SOFT', ui_font_pair_code: 'SERIF' }, actor)).resolves.toBeUndefined()
+  // Switching to a code that is not offered is still refused.
+  await expect(updateOrgTheme(T, 'th1', { theme_name: 'Renamed', ui_theme_code: 'GONE' }, actor)).rejects.toMatchObject({ code: 'INVALID_CATALOG_CODE' })
+})
+
 // PR-07 review I2: after a plan downgrade, an edit leaves the stored overrides and app name alone.
 test('an update that leaves out plan-gated fields keeps them as stored', async () => {
   getFeatureFlags.mockResolvedValue({ custom_branding: false, white_label: false })

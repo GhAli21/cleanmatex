@@ -13,12 +13,12 @@ import { User, Globe, Palette, Clock, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxSelect } from '@ui/primitives';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
 /**
- *
+ * User preferences settings page.
  */
 export default function UserPreferencesPage() {
   const tAppearance = useTranslations('authSession.appearance');
@@ -134,10 +134,13 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
-              <option value="en">English</option>
-              <option value="ar">Arabic</option>
-            </select>
+            <CmxSelect
+              disabled={isSaving}
+              options={[
+                { value: 'en', label: 'English' },
+                { value: 'ar', label: 'Arabic' },
+              ]}
+            />
           </UserPreference>
 
           <UserPreference
@@ -147,11 +150,14 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
-              <option value="Asia/Muscat">Asia/Muscat (Oman)</option>
-              <option value="Asia/Riyadh">Asia/Riyadh (Saudi Arabia)</option>
-              <option value="Asia/Dubai">Asia/Dubai (UAE)</option>
-            </select>
+            <CmxSelect
+              disabled={isSaving}
+              options={[
+                { value: 'Asia/Muscat', label: 'Asia/Muscat (Oman)' },
+                { value: 'Asia/Riyadh', label: 'Asia/Riyadh (Saudi Arabia)' },
+                { value: 'Asia/Dubai', label: 'Asia/Dubai (UAE)' },
+              ]}
+            />
           </UserPreference>
 
           <UserPreference
@@ -161,11 +167,14 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
-              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-            </select>
+            <CmxSelect
+              disabled={isSaving}
+              options={[
+                { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+                { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+                { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+              ]}
+            />
           </UserPreference>
         </div>
       </CmxCard>
@@ -202,7 +211,7 @@ export default function UserPreferencesPage() {
             onSave={handleSave}
             isBoolean
           >
-            <input type="checkbox" className="rounded border-border" />
+            <CmxCheckbox disabled={isSaving} />
           </UserPreference>
 
           <UserPreference
@@ -213,7 +222,7 @@ export default function UserPreferencesPage() {
             onSave={handleSave}
             isBoolean
           >
-            <input type="checkbox" className="rounded border-border" />
+            <CmxCheckbox disabled={isSaving} />
           </UserPreference>
 
           <UserPreference
@@ -224,7 +233,7 @@ export default function UserPreferencesPage() {
             onSave={handleSave}
             isBoolean
           >
-            <input type="checkbox" className="rounded border-border" />
+            <CmxCheckbox disabled={isSaving} />
           </UserPreference>
         </div>
       </CmxCard>
@@ -245,10 +254,11 @@ export default function UserPreferencesPage() {
           effectiveSettings={effectiveSettings}
           onSave={handleSave}
         >
-          <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
-            <option value="">Select branch...</option>
-            {/* Branch options would be loaded dynamically */}
-          </select>
+          <CmxSelect
+            disabled={isSaving}
+            placeholder="Select branch..."
+            options={[]}
+          />
         </UserPreference>
       </CmxCard>
     </div>
@@ -265,7 +275,7 @@ interface UserPreferenceProps {
   description: string;
   effectiveSettings: ResolvedSetting[];
   onSave: (settingCode: string, value: unknown) => void;
-  /** Native `<select>` or `<input type="checkbox" />` — receives controlled props via cloneElement. */
+  /** CmxSelect or CmxCheckbox — receives controlled props via cloneElement. */
   children: React.ReactElement<Record<string, unknown>>;
   isBoolean?: boolean;
 }

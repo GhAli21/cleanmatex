@@ -6,8 +6,8 @@ version: 1.3.0
 deprecated: false
 effort: low
 references:
-  - @.Codex/skills/create-feature-flag/reference.md
-  - AGENTS.md
+  - @.claude/skills/create-feature-flag/reference.md
+  - CLAUDE.md
 agents:
 ---
 

@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T13:02:08.496Z
+Generated: 2026-11-19T20:40:46.887Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
@@ -18,9 +18,12 @@ Generated: 2026-11-19T13:02:08.496Z
 | getFeatureFlags | lib/services/feature-flags.service.ts | 356 | return getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/order-change/order-change-legacy-writer-guard.ts | 137 | getFeatureFlags(tenantId), |
 | getFeatureFlags | lib/services/order-change/order-change-preview-reads.ts | 107 | const flags = await getFeatureFlags(tenantId); |
-| getFeatureFlags | lib/services/org-ui-theme.service.ts | 85 | const flags = await getFeatureFlags(tenantId) |
+| getFeatureFlags | lib/services/org-ui-theme.service.ts | 89 | const flags = await getFeatureFlags(tenantId) |
 | getFeatureFlags | lib/services/pricing-mode-resolver.service.ts | 63 | const flags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/setup-health/setup-health.service.ts | 88 | getFeatureFlags(tenantOrgId), |
+| getFeatureFlags | lib/services/tenant-extra-config.service.ts | 154 | getFeatureFlags(tenantId), |
+| getFeatureFlags | lib/services/tenant-extra-config.service.ts | 197 | getFeatureFlags(tenantId), |
+| getFeatureFlags | lib/services/tenant-extra-config.service.ts | 336 | getFeatureFlags(tenantId), |
 | getFeatureFlags | lib/services/ui-theme.service.ts | 62 | getFeatureFlags(tenantId), |
 | getFeatureFlags | lib/services/workflow-service-enhanced.ts | 227 | const featureFlags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | lib/services/workflow-service-enhanced.ts | 448 | const flags = await getFeatureFlags(tenantId); |

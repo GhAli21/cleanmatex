@@ -177,9 +177,9 @@ export const ProductGrid = memo(function ProductGrid({
                 className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4"
               >
                 <div className="relative min-w-0 flex-1 xl:max-w-md">
-                  <label htmlFor="new-order-product-search" className="sr-only">
+                  <Label htmlFor="new-order-product-search" className="sr-only">
                     {t('searchProductsLabel')}
-                  </label>
+                  </Label>
                   <Search
                     className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground start-3"
                     aria-hidden="true"

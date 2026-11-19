@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-19T13:02:04.600Z",
+  "extractedAt": "2026-11-19T20:40:39.098Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -31,7 +31,7 @@
       "route": "/dashboard/customers/[id]",
       "permission": "customers:update",
       "component": "useHasPermission",
-      "line": 70,
+      "line": 71,
       "surface": "screen"
     },
     {
@@ -191,7 +191,7 @@
       "route": "src/features/billing/ui/finance-jobs-section.tsx",
       "permission": "finance_jobs:view",
       "component": "useHasPermissionCode",
-      "line": 123,
+      "line": 127,
       "surface": "screen"
     },
     {
@@ -199,7 +199,7 @@
       "route": "src/features/billing/ui/finance-jobs-section.tsx",
       "permission": "finance_jobs:run",
       "component": "useHasPermissionCode",
-      "line": 124,
+      "line": 128,
       "surface": "screen"
     },
     {
@@ -271,7 +271,7 @@
       "route": "src/features/cash-drawers/ui/cash-control-settings-screen.tsx",
       "permission": "cash_control:manage",
       "component": "useHasPermissionCode",
-      "line": 77,
+      "line": 74,
       "surface": "screen"
     },
     {
@@ -423,7 +423,7 @@
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_wallet_credit",
       "component": "useHasPermissionCode",
-      "line": 108,
+      "line": 111,
       "surface": "screen"
     },
     {
@@ -431,7 +431,7 @@
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_advance",
       "component": "useHasPermissionCode",
-      "line": 109,
+      "line": 112,
       "surface": "screen"
     },
     {
@@ -543,7 +543,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:verify_payment",
       "component": "useHasPermission",
-      "line": 75,
+      "line": 76,
       "surface": "screen"
     },
     {
@@ -551,7 +551,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:cancel_payment",
       "component": "useHasPermission",
-      "line": 77,
+      "line": 78,
       "surface": "screen"
     },
     {
@@ -559,7 +559,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:fail_payment",
       "component": "useHasPermission",
-      "line": 78,
+      "line": 79,
       "surface": "screen"
     },
     {
@@ -567,7 +567,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:void_payment",
       "component": "useHasPermission",
-      "line": 81,
+      "line": 82,
       "surface": "screen"
     },
     {
@@ -575,7 +575,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:reverse_payment",
       "component": "useHasPermission",
-      "line": 82,
+      "line": 83,
       "surface": "screen"
     },
     {
@@ -583,7 +583,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:verify_payment",
       "component": "useHasPermission",
-      "line": 85,
+      "line": 86,
       "surface": "screen"
     },
     {
@@ -591,7 +591,7 @@
       "route": "src/features/orders/ui/order-financial/order-payments-credits-tables.tsx",
       "permission": "orders:process_refund",
       "component": "useHasPermission",
-      "line": 91,
+      "line": 92,
       "surface": "screen"
     },
     {
@@ -615,7 +615,7 @@
       "route": "src/features/orders/ui/order-stage-files.tsx",
       "permission": "orders:update",
       "component": "useHasPermission",
-      "line": 34,
+      "line": 39,
       "surface": "screen"
     },
     {
@@ -623,7 +623,7 @@
       "route": "src/features/orders/ui/order-stage-files.tsx",
       "permission": "orders:transition",
       "component": "useHasPermission",
-      "line": 35,
+      "line": 40,
       "surface": "screen"
     },
     {
@@ -631,7 +631,7 @@
       "route": "src/features/orders/ui/order-stage-files.tsx",
       "permission": "orders:read",
       "component": "useHasPermission",
-      "line": 37,
+      "line": 42,
       "surface": "screen"
     },
     {
@@ -647,7 +647,7 @@
       "route": "src/features/orders/ui/pieces/piece-photos.tsx",
       "permission": "orders:update",
       "component": "useHasPermission",
-      "line": 108,
+      "line": 113,
       "surface": "screen"
     },
     {
@@ -655,7 +655,7 @@
       "route": "src/features/orders/ui/pieces/piece-photos.tsx",
       "permission": "orders:transition",
       "component": "useHasPermission",
-      "line": 109,
+      "line": 114,
       "surface": "screen"
     },
     {
@@ -663,7 +663,7 @@
       "route": "src/features/orders/ui/pieces/piece-photos.tsx",
       "permission": "orders:read",
       "component": "useHasPermission",
-      "line": 152,
+      "line": 158,
       "surface": "screen"
     },
     {
@@ -839,7 +839,15 @@
       "route": "src/features/settings/ui/branding/branding-screen.tsx",
       "permission": "settings:branding",
       "component": "useHasPermission",
-      "line": 41,
+      "line": 42,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/settings/ui/extra-config/extra-config-screen.tsx",
+      "route": "src/features/settings/ui/extra-config/extra-config-screen.tsx",
+      "permission": "settings:update",
+      "component": "useHasPermission",
+      "line": 34,
       "surface": "screen"
     },
     {
@@ -863,7 +871,7 @@
       "route": "src/features/users/ui/user-detail-screen.tsx",
       "permission": "user_sessions:read",
       "component": "useHasPermission",
-      "line": 41,
+      "line": 42,
       "surface": "screen"
     },
     {
@@ -992,6 +1000,22 @@
       "permission": "settings:branding",
       "component": "requirePermission",
       "line": 25,
+      "surface": "service"
+    },
+    {
+      "file": "lib/services/tenant-extra-config-http.ts",
+      "route": "lib/services/tenant-extra-config-http.ts",
+      "permission": "settings:read",
+      "component": "requirePermission",
+      "line": 26,
+      "surface": "service"
+    },
+    {
+      "file": "lib/services/tenant-extra-config-http.ts",
+      "route": "lib/services/tenant-extra-config-http.ts",
+      "permission": "settings:update",
+      "component": "requirePermission",
+      "line": 39,
       "surface": "service"
     }
   ],
@@ -2913,7 +2937,7 @@
       "method": "GET",
       "route": "/api/v1/orders",
       "permission": "orders:read",
-      "line": 82,
+      "line": 86,
       "surface": "api"
     },
     {

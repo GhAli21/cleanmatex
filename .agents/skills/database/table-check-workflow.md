@@ -64,7 +64,7 @@ Does a table exist with similar name/purpose?
         |
 Check naming convention:
   - NEW object? -> Use feature grouping: {scope}_{feature}_{name}_{suffix}
-  - Related to existing? -> Check grandfathered objects registry
+  - Related to existing? -> Check the real table in the live DB (remote MCP, read-only) or `web-admin/prisma/schema.prisma`
         |
 Create table with proper naming and document decision
 ```

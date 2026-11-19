@@ -23,7 +23,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { runReconciliationAction } from '@/app/actions/billing/reconciliation-actions';
-import { CmxButton, CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -181,47 +182,47 @@ export default function ReconciliationListClient({
       ) : (
         <div className="rounded-lg border border-border bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-border text-sm">
-              <thead className="bg-muted">
-                <tr>
+            <Table className="w-full divide-y divide-border text-sm">
+              <TableHeader className="bg-muted">
+                <TableRow>
                   {/* RTL: header alignment flips alongside the row cells below. */}
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('runNo')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('status')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('period')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('currency')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('ranAt')}
-                  </th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('ranBy')}
-                  </th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('totalChecked')}
-                  </th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('blockers')}
-                  </th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     {t('warnings')}
-                  </th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-card">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground" />
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border bg-card">
                 {runs.map((run) => (
-                  <tr key={run.id} className="hover:bg-muted">
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">
-                      {run.run_no}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
+                  <TableRow key={run.id} className="hover:bg-muted">
+                    <TableCell className="whitespace-nowrap px-4 py-3 font-mono text-xs">
+                      <bdi dir="ltr">{run.run_no}</bdi>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3">
                       <CmxStatusBadge size="sm" tone={statusBadgeVariant(run.status)}>
                         {t(
                           `statusLabels.${run.status}` as Parameters<
@@ -229,23 +230,23 @@ export default function ReconciliationListClient({
                           >[0],
                         )}
                       </CmxStatusBadge>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-foreground tabular-nums">
                       {fmtPeriod(locale, run.period_from, run.period_to)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-foreground">
                       {run.currency_code}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-foreground tabular-nums">
                       {fmtDate(locale, run.completed_at ?? run.started_at)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-foreground">
                       {run.triggered_by ?? EM_DASH}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-end tabular-nums text-foreground">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-end tabular-nums text-foreground">
                       {run.total_checked ?? EM_DASH}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-end">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-end tabular-nums">
                       {(run.failed_checks ?? 0) > 0 ? (
                         <span className="font-semibold text-danger-text">
                           {run.failed_checks}
@@ -253,8 +254,8 @@ export default function ReconciliationListClient({
                       ) : (
                         <span className="text-muted-foreground">0</span>
                       )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-end">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-end tabular-nums">
                       {(run.warning_checks ?? 0) > 0 ? (
                         <span className="font-semibold text-warning-text">
                           {run.warning_checks}
@@ -262,8 +263,8 @@ export default function ReconciliationListClient({
                       ) : (
                         <span className="text-muted-foreground">0</span>
                       )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-end">
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-3 text-end">
                       <CmxButton asChild variant="outline" size="xs">
                         <Link
                           href={`/dashboard/internal_fin/reconciliation/${run.id}`}
@@ -271,11 +272,11 @@ export default function ReconciliationListClient({
                           {t('viewDetails')}
                         </Link>
                       </CmxButton>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           <div className="flex items-center justify-between border-t border-border bg-card px-4 py-3 text-sm text-foreground">
@@ -324,12 +325,12 @@ export default function ReconciliationListClient({
               <CmxSummaryMessage type="error" title={errorMsg} items={[]} />
             )}
             <div>
-              <label
-                className="block text-sm font-medium text-foreground"
+              <Label
+                className="block"
                 htmlFor="recon-period-from"
               >
                 {t('runForm.periodFrom')}
-              </label>
+              </Label>
               <CmxInput
                 id="recon-period-from"
                 type="date"
@@ -339,12 +340,12 @@ export default function ReconciliationListClient({
               />
             </div>
             <div>
-              <label
-                className="block text-sm font-medium text-foreground"
+              <Label
+                className="block"
                 htmlFor="recon-period-to"
               >
                 {t('runForm.periodTo')}
-              </label>
+              </Label>
               <CmxInput
                 id="recon-period-to"
                 type="date"
@@ -354,12 +355,12 @@ export default function ReconciliationListClient({
               />
             </div>
             <div>
-              <label
-                className="block text-sm font-medium text-foreground"
+              <Label
+                className="block"
                 htmlFor="recon-currency"
               >
                 {t('runForm.currency')}
-              </label>
+              </Label>
               <CmxInput
                 id="recon-currency"
                 type="text"

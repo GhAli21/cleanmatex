@@ -11,7 +11,7 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
-import { CmxButton, CmxInput, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxTextarea, Label } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { updateCardBrandConfig } from '@/app/actions/payment-config/card-brands-actions';
 import {
@@ -87,12 +87,12 @@ export function CardBrandConfigDialog({
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-2">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('cardBrands.code')}</label>
+              <Label>{t('cardBrands.code')}</Label>
               <CmxInput value={brand.card_brand_code} disabled />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('cardBrands.recOrder')}</label>
+              <Label>{t('cardBrands.recOrder')}</Label>
               <CmxInput
                 type="number"
                 min={0}
@@ -106,24 +106,24 @@ export function CardBrandConfigDialog({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('cardBrands.name')}</label>
+              <Label>{t('cardBrands.name')}</Label>
               <CmxInput {...form.register('name')} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('cardBrands.name2')}</label>
+              <Label>{t('cardBrands.name2')}</Label>
               <CmxInput {...form.register('name2')} dir="rtl" />
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('cardBrands.description')}</label>
+              <Label>{t('cardBrands.description')}</Label>
               <CmxTextarea rows={4} {...form.register('description')} />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('cardBrands.description2')}</label>
+              <Label>{t('cardBrands.description2')}</Label>
               <CmxTextarea rows={4} {...form.register('description2')} dir="rtl" />
             </div>
           </div>

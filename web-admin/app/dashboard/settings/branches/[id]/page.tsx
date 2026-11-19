@@ -13,7 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives';
 import { CmxTabsPanel } from '@ui/navigation';
 import { settingsClient, type ResolvedSetting, type SettingDefinition } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
@@ -212,32 +212,28 @@ function SettingInput({ setting, value, onChange }: SettingInputProps) {
   switch (setting.stng_data_type) {
     case 'BOOLEAN':
       return (
-        <input
-          type="checkbox"
+        <CmxCheckbox
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
-          className="rounded border-border"
         />
       );
 
     case 'NUMBER':
       return (
-        <input
+        <CmxInput
           type="number"
           value={value || ''}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full rounded border-border"
         />
       );
 
     case 'TEXT':
     default:
       return (
-        <input
+        <CmxInput
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded border-border"
         />
       );
   }

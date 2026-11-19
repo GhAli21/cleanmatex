@@ -16,6 +16,7 @@ const ITEMS: CmxFileItem[] = [
   { id: '2', name: 'shirt-after.jpg', mimeType: 'image/jpeg', url: swatch('#16a34a', 'After'), previewMode: 'IMAGE', label: 'Delivery proof', meta: 'Out for delivery · Delivery', notes: 'Locked: proof of delivery (no edit/delete)', locked: true },
   { id: '3', name: 'care-instructions.pdf', mimeType: 'application/pdf', url: '#', previewMode: 'PDF', label: 'Customer document' },
   { id: '4', name: 'sleeve-tear.mp4', mimeType: 'video/mp4', url: '#', previewMode: 'VIDEO', label: 'Item video', notes: 'Tear on left sleeve' },
+  { id: '6', name: 'long-note.jpg', mimeType: 'image/jpeg', url: swatch('#9333ea', 'Note'), previewMode: 'IMAGE', label: 'Quality check', meta: 'Quality check · Order issue', notes: 'A long note that wraps over two lines and is then cut with an ellipsis so tiles stay the same height', sizeBytes: 2457600 },
   { id: '5', name: 'price-list.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', url: '#', previewMode: 'DOWNLOAD', label: 'Other' },
 ]
 

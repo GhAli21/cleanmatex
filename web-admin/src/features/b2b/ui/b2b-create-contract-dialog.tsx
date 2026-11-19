@@ -27,6 +27,7 @@ type B2bCustomerRow = {
 };
 
 /**
+ * Create B2B contract dialog.
  *
  * @param root0
  * @param root0.open
@@ -152,20 +153,18 @@ export function B2bCreateContractDialog({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contract-effective-from">{t('effectiveFrom')}</Label>
-                <input
+                <CmxInput
                   id="contract-effective-from"
                   type="date"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={effectiveFrom}
                   onChange={(e) => setEffectiveFrom(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contract-effective-to">{t('effectiveTo')}</Label>
-                <input
+                <CmxInput
                   id="contract-effective-to"
                   type="date"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={effectiveTo}
                   onChange={(e) => setEffectiveTo(e.target.value)}
                 />

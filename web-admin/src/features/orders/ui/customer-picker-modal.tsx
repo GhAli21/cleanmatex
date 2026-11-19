@@ -18,11 +18,14 @@ import {
 import { searchCustomersForPicker } from '@/lib/api/customers';
 import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxCheckbox } from '@ui/primitives/cmx-checkbox';
+import { Label } from '@ui/primitives/label';
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton';
 import {
   CmxDialog,
   CmxDialogContent,
   CmxDialogDescription,
+  CmxDialogFooter,
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays/cmx-dialog';
@@ -396,12 +399,12 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         <div className="px-6 pb-4 space-y-3">
           {/* Main Search Input */}
           <div>
-            <label
+            <Label
               htmlFor="customer-search-input"
-              className="block text-sm font-medium text-foreground mb-2 text-start"
+              className="mb-2 block text-start"
             >
               {t('searchLabel') || 'Search Customer'}
-            </label>
+            </Label>
             <div className="relative">
               <CmxInput
                 id="customer-search-input"
@@ -429,10 +432,12 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
 
           {/* Advanced Search Toggle */}
           <div className="flex items-center gap-2 justify-start">
-            <button
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setAdvancedSearchOpen((o) => !o)}
-              className="inline-flex items-center gap-1.5 text-sm text-primary-text hover:text-primary-text/80 focus:outline-none focus:ring-2 focus:ring-ring rounded px-2 py-1 transition-colors"
+              className="text-primary-text hover:text-primary-text/80 px-2 py-1"
               aria-expanded={advancedSearchOpen}
             >
               <svg
@@ -444,7 +449,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
               <span>{t('advancedSearch') || 'Advanced search'}</span>
-            </button>
+            </CmxButton>
           </div>
 
           {/* Advanced Search Fields */}
@@ -458,9 +463,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
             >
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-start">
                 <div>
-                  <label htmlFor="search-phone" className="block text-xs font-medium text-foreground mb-1.5">
+                  <Label htmlFor="search-phone" className="mb-1.5 block text-xs">
                     {tCommon('phone') || 'Phone'}
-                  </label>
+                  </Label>
                   <CmxInput
                     id="search-phone"
                     type="tel"
@@ -472,9 +477,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </div>
                 <div>
-                  <label htmlFor="search-name" className="block text-xs font-medium text-foreground mb-1.5">
+                  <Label htmlFor="search-name" className="mb-1.5 block text-xs">
                     {tCommon('name') || 'Name'}
-                  </label>
+                  </Label>
                   <CmxInput
                     id="search-name"
                     type="text"
@@ -486,9 +491,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </div>
                 <div>
-                  <label htmlFor="search-email" className="block text-xs font-medium text-foreground mb-1.5">
+                  <Label htmlFor="search-email" className="mb-1.5 block text-xs">
                     {tCommon('email') || 'Email'}
-                  </label>
+                  </Label>
                   <CmxInput
                     id="search-email"
                     type="email"
@@ -500,18 +505,14 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   />
                 </div>
               </div>
-              <label
-                className="flex items-center gap-2 cursor-pointer select-none text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={searchAllOptions}
-                  onChange={(e) => setSearchAllOptions(e.target.checked)}
-                  className="w-4 h-4 text-primary-text border-border rounded focus:ring-ring"
-                  aria-describedby="customer-search-hint"
-                />
-                <span className="text-foreground">{t('searchAllOptions')}</span>
-              </label>
+              <CmxCheckbox
+                id="search-all-options"
+                size="sm"
+                checked={searchAllOptions}
+                onChange={(e) => setSearchAllOptions(e.target.checked)}
+                label={t('searchAllOptions')}
+                aria-describedby="customer-search-hint"
+              />
               <div className="flex items-center gap-2 pt-1 justify-start">
                 <CmxButton
                   type="submit"
@@ -626,13 +627,14 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           ) : (
             <div className="space-y-2" role="group" aria-live="polite" aria-atomic="true">
               {customers.map((customer, idx) => (
-                <button
+                <CmxButton
                   key={customer.id}
                   type="button"
+                  variant="ghost"
                   role="option"
                   aria-selected={idx === focusedIndex}
                   onClick={() => handleCustomerClick(customer)}
-                  className={`w-full text-start p-4 border rounded-lg transition-all ${
+                  className={`w-full h-auto justify-start text-start p-4 border rounded-lg transition-all ${
                     idx === focusedIndex ? 'ring-2 ring-ring border-primary bg-info-bg' : ''
                   } ${
                     customer.source === 'current_tenant'
@@ -658,9 +660,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                         <div
                           className="text-sm text-muted-foreground mt-0.5 truncate text-start"
                         >
-                          {customer.phone && <bdi className="tabular-nums">{customer.phone}</bdi>}
+                          {customer.phone && <bdi dir="ltr" className="tabular-nums">{customer.phone}</bdi>}
                           {customer.phone && customer.email && <span className="mx-1">•</span>}
-                          {customer.email && <bdi>{customer.email}</bdi>}
+                          {customer.email && <bdi dir="ltr">{customer.email}</bdi>}
                         </div>
                       )}
                     </div>
@@ -675,7 +677,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                       </span>
                     )}
                   </div>
-                </button>
+                </CmxButton>
               ))}
             </div>
           )}
@@ -697,50 +699,54 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         </div>
       </CmxDialogContent>
 
-      {/* Confirmation Dialog: a sibling of the content (its transform would break `fixed`), inside the focus trap */}
-      {showConfirmDialog && linkingCustomer && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
-          role="alertdialog"
-          aria-modal="true"
-        >
-          <div className="bg-card rounded-xl max-w-md w-full p-6 shadow-xl border border-border">
-            <h3 className="text-lg font-semibold mb-4 text-start">
-              {t('confirmLink')}
-            </h3>
-            <p className="text-muted-foreground mb-6 text-sm text-start">
-              {linkingCustomer.source === 'sys_global'
+      {/* Confirmation Dialog */}
+      <CmxDialog
+        open={Boolean(showConfirmDialog && linkingCustomer)}
+        onOpenChange={(next) => {
+          if (!next && !linkLoading) {
+            setShowConfirmDialog(false);
+            setLinkingCustomer(null);
+          }
+        }}
+        stackAboveModals
+      >
+        <CmxDialogContent className="max-w-md w-full p-6">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('confirmLink')}</CmxDialogTitle>
+            <CmxDialogDescription>
+              {linkingCustomer?.source === 'sys_global'
                 ? t('confirmLinkGlobal')
                 : t('confirmLinkOtherTenant')}
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowConfirmDialog(false);
-                  setLinkingCustomer(null);
-                }}
-                disabled={linkLoading}
-                className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 text-sm font-medium"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleLinkCustomer}
-                disabled={linkLoading}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 text-sm font-medium"
-              >
-                {linkLoading
-                  ? t('linking')
-                  : linkingCustomer.source === 'sys_global'
-                    ? t('linkCustomer')
-                    : t('copyCustomer')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </CmxDialogDescription>
+          </CmxDialogHeader>
+          <CmxDialogFooter className="mt-4">
+            <CmxButton
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setLinkingCustomer(null);
+              }}
+              disabled={linkLoading}
+            >
+              {tCommon('cancel')}
+            </CmxButton>
+            <CmxButton
+              type="button"
+              variant="primary"
+              onClick={handleLinkCustomer}
+              loading={linkLoading}
+              disabled={linkLoading}
+            >
+              {linkLoading
+                ? t('linking')
+                : linkingCustomer?.source === 'sys_global'
+                  ? t('linkCustomer')
+                  : t('copyCustomer')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Customer Create Modal */}
       <CustomerCreateModal

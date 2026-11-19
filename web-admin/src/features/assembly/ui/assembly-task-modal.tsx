@@ -8,7 +8,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton, CmxSkeleton } from '@ui/primitives';
-import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
 import { AssemblyScanner } from './assembly-scanner';
 import { AssemblyItemsList } from './assembly-items-list';
 import { ExceptionDialog } from './exception-dialog';
@@ -149,156 +154,136 @@ export function AssemblyTaskModal({
 
   if (!taskId) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <CmxCard className="w-full max-w-md">
-          <CmxCardHeader className="flex flex-row items-center justify-between">
-            <CmxCardTitle>{t('title')}</CmxCardTitle>
-            <CmxButton
-              variant="ghost"
-              size="xs"
-              onClick={onClose}
-              aria-label={t('actions.close')}
-            >
-              <X className="h-5 w-5" />
-            </CmxButton>
-          </CmxCardHeader>
-          <CmxCardContent>
-            <p className="mb-4 text-sm text-muted-foreground">
-              {t('creatingTask')}
-            </p>
-            <CmxButton onClick={onClose} variant="outline" className="w-full">
-              {t('actions.close')}
-            </CmxButton>
-          </CmxCardContent>
-        </CmxCard>
-      </div>
+      <CmxDialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+        <CmxDialogContent className="w-full max-w-md">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('title')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {t('creatingTask')}
+          </p>
+          <CmxButton onClick={onClose} variant="outline" className="w-full">
+            {t('actions.close')}
+          </CmxButton>
+        </CmxDialogContent>
+      </CmxDialog>
     );
   }
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="assembly-task-title"
+      <CmxDialog
+        open
+        onOpenChange={(next) => {
+          if (!next && !showExceptionDialog) onClose();
+        }}
       >
-        <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto">
-          <CmxCard>
-            <CmxCardHeader className="flex flex-row items-center justify-between gap-2">
-              <CmxCardTitle id="assembly-task-title">
-                {t('titleWithOrder', { orderNo: orderLabel })}
-              </CmxCardTitle>
+        <CmxDialogContent className="w-full max-w-4xl" scrollBody>
+          <CmxDialogHeader>
+            <CmxDialogTitle id="assembly-task-title">
+              {t('titleWithOrder', { orderNo: orderLabel })}
+            </CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-6">
+            {isError ? (
+              <div className="rounded-lg border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
+                {(error as Error)?.message || t('messages.loadFailed')}
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-lg bg-info-bg p-4">
+                <div className="text-sm text-muted-foreground">
+                  {t('metrics.totalItems')}
+                </div>
+                <div className="text-2xl font-bold text-primary-text tabular-nums">
+                  {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : totalItems}
+                </div>
+              </div>
+              <div className="rounded-lg bg-success-bg p-4">
+                <div className="text-sm text-muted-foreground">
+                  {t('metrics.scanned')}
+                </div>
+                <div className="text-2xl font-bold text-success-text tabular-nums">
+                  {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : scannedItems}
+                </div>
+              </div>
+              <div className="rounded-lg bg-danger-bg p-4">
+                <div className="text-sm text-muted-foreground">
+                  {t('metrics.exceptions')}
+                </div>
+                <div className="text-2xl font-bold text-danger-text tabular-nums">
+                  {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : exceptionItems}
+                </div>
+              </div>
+            </div>
+
+            {isStarting ? (
+              <p className="text-sm text-muted-foreground">{t('startingTask')}</p>
+            ) : null}
+
+            <AssemblyScanner
+              taskId={taskId}
+              onScanSuccess={() => {
+                void refetch();
+              }}
+            />
+
+            <AssemblyItemsList
+              taskId={taskId}
+              items={taskData?.items ?? []}
+              isLoading={isLoading}
+              onItemMarked={() => {
+                void refetch();
+              }}
+            />
+
+            <OrderStageFiles
+              orderId={orderId}
+              source={FILE_SOURCES.ORDER_ASSEMBLY}
+              refType={FILE_REF_TYPES.ASM_TASK}
+              refId={taskId}
+            />
+
+            <div className="flex flex-col gap-2 sm:flex-row">
               <CmxButton
-                variant="ghost"
-                size="xs"
-                onClick={onClose}
-                aria-label={t('actions.close')}
+                variant="outline"
+                onClick={() => setShowExceptionDialog(true)}
+                className="flex-1"
+                disabled={isBusy}
               >
-                <X className="h-5 w-5" />
+                <AlertTriangle className="me-2 h-4 w-4" />
+                {t('actions.recordException')}
               </CmxButton>
-            </CmxCardHeader>
-            <CmxCardContent className="space-y-6">
-              {isError ? (
-                <div className="rounded-lg border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
-                  {(error as Error)?.message || t('messages.loadFailed')}
-                </div>
-              ) : null}
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="rounded-lg bg-info-bg p-4">
-                  <div className="text-sm text-muted-foreground">
-                    {t('metrics.totalItems')}
-                  </div>
-                  <div className="text-2xl font-bold text-primary-text">
-                    {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : totalItems}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-success-bg p-4">
-                  <div className="text-sm text-muted-foreground">
-                    {t('metrics.scanned')}
-                  </div>
-                  <div className="text-2xl font-bold text-success-text">
-                    {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : scannedItems}
-                  </div>
-                </div>
-                <div className="rounded-lg bg-danger-bg p-4">
-                  <div className="text-sm text-muted-foreground">
-                    {t('metrics.exceptions')}
-                  </div>
-                  <div className="text-2xl font-bold text-danger-text">
-                    {isLoading ? <CmxSkeleton className="mt-1 h-8 w-10" /> : exceptionItems}
-                  </div>
-                </div>
-              </div>
-
-              {isStarting ? (
-                <p className="text-sm text-muted-foreground">{t('startingTask')}</p>
-              ) : null}
-
-              <AssemblyScanner
-                taskId={taskId}
-                onScanSuccess={() => {
-                  void refetch();
+              <CmxButton
+                onClick={() => {
+                  void handleComplete();
                 }}
-              />
-
-              <AssemblyItemsList
-                taskId={taskId}
-                items={taskData?.items ?? []}
-                isLoading={isLoading}
-                onItemMarked={() => {
-                  void refetch();
-                }}
-              />
-
-              <OrderStageFiles
-                orderId={orderId}
-                source={FILE_SOURCES.ORDER_ASSEMBLY}
-                refType={FILE_REF_TYPES.ASM_TASK}
-                refId={taskId}
-              />
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <CmxButton
-                  variant="outline"
-                  onClick={() => setShowExceptionDialog(true)}
-                  className="flex-1"
-                  disabled={isBusy}
-                >
-                  <AlertTriangle className="me-2 h-4 w-4" />
-                  {t('actions.recordException')}
-                </CmxButton>
-                <CmxButton
-                  onClick={() => {
-                    void handleComplete();
-                  }}
-                  loading={isBusy}
-                  disabled={isBusy || !canComplete}
-                  className="flex-1"
-                  title={
-                    !canComplete
-                      ? hasOpenExceptions
-                        ? t('messages.openExceptionsBlock')
-                        : t('messages.completeRequiresAllItems')
-                      : undefined
-                  }
-                >
-                  <CheckCircle2 className="me-2 h-4 w-4" />
-                  {t('actions.completeAssembly')}
-                </CmxButton>
-              </div>
-              {!canComplete && !isLoading ? (
-                <p className="text-xs text-muted-foreground">
-                  {hasOpenExceptions
-                    ? t('messages.openExceptionsBlock')
-                    : t('messages.completeRequiresAllItems')}
-                </p>
-              ) : null}
-            </CmxCardContent>
-          </CmxCard>
-        </div>
-      </div>
+                loading={isBusy}
+                disabled={isBusy || !canComplete}
+                className="flex-1"
+                title={
+                  !canComplete
+                    ? hasOpenExceptions
+                      ? t('messages.openExceptionsBlock')
+                      : t('messages.completeRequiresAllItems')
+                    : undefined
+                }
+              >
+                <CheckCircle2 className="me-2 h-4 w-4" />
+                {t('actions.completeAssembly')}
+              </CmxButton>
+            </div>
+            {!canComplete && !isLoading ? (
+              <p className="text-xs text-muted-foreground">
+                {hasOpenExceptions
+                  ? t('messages.openExceptionsBlock')
+                  : t('messages.completeRequiresAllItems')}
+              </p>
+            ) : null}
+          </div>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {showExceptionDialog ? (
         <ExceptionDialog

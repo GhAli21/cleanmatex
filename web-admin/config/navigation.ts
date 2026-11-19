@@ -1043,6 +1043,15 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         permissions: ['settings:read'],
       },
       {
+        // Dual-write: sys_components_cd row settings_extra_config (migration 0776).
+        key: 'settings_extra_config',
+        label: 'Display & Formatting',
+        label2: 'العرض وتنسيق الأرقام',
+        path: '/dashboard/settings/extra-config',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['settings:read'],
+      },
+      {
         key: 'settings_finance',
         label: 'Finance',
         path: '/dashboard/settings/finance',

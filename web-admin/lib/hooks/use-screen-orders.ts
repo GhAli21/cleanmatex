@@ -14,11 +14,24 @@ export interface OrdersPagination {
 /**
  *
  */
+export interface ScreenOrdersSummary {
+  totalOrders: number;
+  totalPieces: number;
+  totalValue: number;
+  unpaidOutstanding: number;
+  overdueCount: number;
+  openIssuesCount: number;
+}
+
+/**
+ *
+ */
 export interface OrdersListResponse<TOrder = any> {
   success: boolean;
   data?: {
     orders: TOrder[];
     pagination: OrdersPagination;
+    summary?: ScreenOrdersSummary;
   };
   error?: string;
   message?: string;
@@ -107,6 +120,7 @@ export function useScreenOrders<TOrder = any>(
   statusFilter: string;
   orders: (TOrder & { customer?: NormalizedCustomer })[];
   pagination: OrdersPagination;
+  summary?: ScreenOrdersSummary;
   isLoading: boolean;
   isFetching: boolean;
   error: string | null;
@@ -198,6 +212,8 @@ export function useScreenOrders<TOrder = any>(
     totalPages: 0,
   };
 
+  const summary = data?.data?.summary;
+
   const mergedError = error instanceof Error ? error.message : null;
 
   return {
@@ -207,6 +223,7 @@ export function useScreenOrders<TOrder = any>(
     isFetching,
     error: mergedError,
     pagination,
+    summary,
     refetch: async () => {
       await refetch();
     },

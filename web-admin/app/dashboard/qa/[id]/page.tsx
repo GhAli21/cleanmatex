@@ -21,6 +21,7 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
+import { CmxButton } from '@ui/primitives';
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
@@ -261,20 +262,23 @@ export default function QADetailPage() {
               <div className="space-y-2">
                 <p className="text-sm font-medium mb-2">Quality Decision:</p>
                 <div className="flex gap-2">
-                  <button
+                  <CmxButton
+                    type="button"
                     onClick={() => handleAccept()}
                     disabled={submitting}
-                    className="flex-1 px-3 py-2 bg-success text-on-solid rounded-lg hover:bg-success/90 disabled:opacity-50"
+                    className="flex-1 bg-success text-on-solid hover:bg-success/90"
                   >
                     ✓ {t('qa.actions.accept')}
-                  </button>
-                  <button
+                  </CmxButton>
+                  <CmxButton
+                    type="button"
+                    variant="destructive"
                     onClick={() => setRejectItemId(item.id)}
                     disabled={submitting}
-                    className="flex-1 px-3 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
+                    className="flex-1"
                   >
                     ✗ {t('qa.actions.reject')}
-                  </button>
+                  </CmxButton>
                 </div>
               </div>
 
@@ -290,9 +294,12 @@ export default function QADetailPage() {
               )}
               {trackByPiece && orderId && currentTenant?.tenant_id && (
                 <div className="mt-4 pt-4 border-t border-border">
-                  <button
+                  <CmxButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => toggleItemExpansion(item.id)}
-                    className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                    className="h-auto w-full justify-between px-0 py-1 text-sm font-medium text-foreground hover:bg-transparent hover:text-foreground/80"
                   >
                     <span>
                       {tPieces('viewPieces') || 'View Pieces'}
@@ -302,7 +309,7 @@ export default function QADetailPage() {
                     ) : (
                       <ChevronDown className="w-4 h-4" />
                     )}
-                  </button>
+                  </CmxButton>
                   
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
@@ -348,13 +355,14 @@ export default function QADetailPage() {
           <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">QA Actions</h3>
             
-            <button
+            <CmxButton
+              type="button"
               onClick={handleAccept}
               disabled={submitting}
-              className="w-full px-4 py-3 bg-success text-on-solid rounded-lg font-semibold hover:bg-success/90 disabled:opacity-50"
+              className="w-full py-3 bg-success text-on-solid font-semibold hover:bg-success/90"
             >
               {submitting ? t('qa.actions.processing') : t('qa.actions.acceptAll')}
-            </button>
+            </CmxButton>
           </div>
         </div>
       </div>

@@ -304,7 +304,7 @@ export function OrderWorkspaceScreen({
               </p>
               <p className="text-3xl font-bold tabular-nums">{fmt(total)}</p>
               {hasCollectionDue ? (
-                <p className="mt-1 text-sm font-medium text-[rgb(var(--cmx-warning-dark-rgb,161_98_7))]">
+                <p className="mt-1 text-sm font-medium text-warning-text">
                   {t('balanceDue', { value: fmt(balance) })}
                 </p>
               ) : null}

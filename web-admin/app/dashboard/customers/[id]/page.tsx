@@ -36,6 +36,7 @@ import { CustomerEditModal } from '@features/orders/ui/customer-edit-modal'
 import { FileAttachments } from '@features/file-util'
 import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
+import { CmxButton } from '@ui/primitives'
 
 // Tab definitions
 type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'stored_value' | 'files' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
@@ -293,19 +294,23 @@ export default function CustomerDetailPage() {
             {/* Actions */}
             <div className="flex items-center space-x-2">
               {customer.type === 'stub' && (
-                <button
-                  className="px-4 py-2 bg-success text-on-solid rounded-md hover:bg-success/90 text-sm font-medium"
+                <CmxButton
+                  type="button"
+                  size="sm"
+                  className="bg-success text-on-solid hover:bg-success/90"
                   onClick={() => setShowUpgradeModal(true)}
                 >
                   Upgrade to Full
-                </button>
+                </CmxButton>
               )}
-              <button
-                className="px-4 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-foreground"
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowEditModal(true)}
               >
                 Edit
-              </button>
+              </CmxButton>
             </div>
           </div>
         </div>
@@ -339,8 +344,8 @@ export default function CustomerDetailPage() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">{t('advanceBalance')}</p>
-              <p className="text-2xl font-bold text-foreground">
-                {formatMoneyWithCode(advanceBalance)}
+              <p className="text-2xl font-bold text-foreground tabular-nums">
+                <bdi dir="ltr">{formatMoneyWithCode(advanceBalance)}</bdi>
               </p>
               {advanceBalance === 0 && (
                 <p className="text-sm text-muted-foreground mt-2">{t('noAdvancePayments')}</p>
@@ -362,13 +367,17 @@ export default function CustomerDetailPage() {
         <div className="bg-card rounded-lg shadow-sm">
           {/* Tab Navigation */}
           <div className="border-b border-border">
-            <nav className="flex -mb-px">
+            <nav className="flex -mb-px" role="tablist">
               {tabs.map((tab) => (
-                <button
+                <CmxButton
                   key={tab.id}
+                  type="button"
+                  variant="ghost"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    px-6 py-4 text-sm font-medium border-b-2 transition-colors
+                    rounded-none px-6 py-4 text-sm font-medium border-b-2 transition-colors hover:bg-transparent
                     ${
                       activeTab === tab.id
                         ? 'border-primary text-primary-text'
@@ -378,7 +387,7 @@ export default function CustomerDetailPage() {
                 >
                   <span className="me-2">{tab.icon}</span>
                   {tab.label}
-                </button>
+                </CmxButton>
               ))}
             </nav>
           </div>

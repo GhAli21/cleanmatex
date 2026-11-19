@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Route, Truck } from 'lucide-react'
 import { CmxDataTable, CmxDataGrid, CmxEmptyState, type AuditExtraRow } from '@ui/data-display'
 import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, cmxMessage } from '@ui/feedback'
-import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxCheckbox, CmxInput, CmxSkeletonTable } from '@ui/primitives'
+import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxCheckbox, CmxInput, CmxSkeletonTable, Label } from '@ui/primitives'
 import { formatDateTime } from '@/lib/utils/rtl'
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -461,15 +461,15 @@ export function DeliveryRoutePlanningScreen() {
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="route-started-at">{t('routes.fields.startedAt')}</label>
+              <Label htmlFor="route-started-at">{t('routes.fields.startedAt')}</Label>
               <CmxInput id="route-started-at" type="datetime-local" value={plannedStartedAt} onChange={(e) => setPlannedStartedAt(e.target.value)} disabled={isMutating || !canManageRoutes} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="route-duration">{t('routes.fields.estimatedDurationMinutes')}</label>
+              <Label htmlFor="route-duration">{t('routes.fields.estimatedDurationMinutes')}</Label>
               <CmxInput id="route-duration" type="number" min={1} max={1440} value={plannedDurationMinutes} onChange={(e) => setPlannedDurationMinutes(e.target.value)} disabled={isMutating || !canManageRoutes} placeholder={t('routes.fields.minutesPlaceholder')} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="route-distance">{t('routes.fields.totalDistanceKm')}</label>
+              <Label htmlFor="route-distance">{t('routes.fields.totalDistanceKm')}</Label>
               <CmxInput id="route-distance" type="number" min={0.1} step={0.1} max={5000} value={plannedDistanceKm} onChange={(e) => setPlannedDistanceKm(e.target.value)} disabled={isMutating || !canManageRoutes} placeholder={t('routes.fields.kmPlaceholder')} />
             </div>
           </div>

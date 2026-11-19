@@ -15,6 +15,8 @@
 | PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | **In progress** (`PLAN_PR-07.md`, approved 2026-11-17). Tasks 1–4 done (0752–0754 applied); Tasks 1–5 done (migrations 0752, 0753, 0754, 0757 applied); Tasks 6–9 done (resolver; layout and login brand; public readers; branding screen with saved themes); Task 10 done (user appearance page); Tasks 1–11 done (migrations 0752, 0753, 0754, 0757, 0759 applied); Task 12 HQ plan approved 2026-11-18; **HQ A1 + A2 implemented 2026-11-19** (appearance catalogs in HQ Products & Items Config; `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`); Task 13 (verification, review, docs) done 2026-11-18; owner QA and commit left in both repos (HQ package B is separate). **Task 6 (dark mode): `PLAN_PR-07-T6.md` approved 2026-11-19 (ruling 6 = A). Tasks 1–5 and 7 done 2026-11-19 (print stays light, mode follows the person, Appearance choice, charts, paper previews, sweep); Tasks 6 and 8 done 2026-11-19 (0773 applied; fresh review done and fixed). Owner: QA M1–M14 and commit. PR-03 and PR-06: owner decides after everything else is done (2026-11-19)** |
 | PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | **Implemented 2026-11-19** (`PLAN_PR-05.md`, approved with the owner amendment "decide everything"). Codemod v2 decides every case (0 left for a person); 573 files migrated; global RTL hacks and old aliases deleted; `Alert` removed; lint rules at `error` everywhere; ESLint 0 errors, typecheck clean, jest only the 7 known failures. Fresh review done and its 5 real findings fixed; build: passed (`npm run build`, Next 16 webpack, 2026-11-19). Left: owner QA (`QA_TEST_GUIDE.md` → PR-05), commit |
 | PR-04 | POS touch targets and keyboard shortcuts | PR-01 | **Implemented 2026-11-19 (all 5 tasks), owner QA pending**; build PASSED 2026-11-19 after the `next.config.ts` fix (option B), see the PR-04 result (`PLAN_PR-04.md`). Tasks 1–4: (orders list on `CmxPagination` with tabular numbers; customer picker on `CmxDialog`; summary panel: Cmx buttons and switch, touch size, logical layout; POS hotkeys `/ F2 F9 Ctrl+Enter ?` and a cheat sheet, all off while a dialog is open) |
+| PR-08 | Feature convergence, table density, modal hygiene, extra tenant config (`sys_tenant_extra_config_cf` / `org_tenant_extra_config_cf`), BiDi, HQ catalog | PR-04, PR-05, PR-07 | **In progress** (`PLAN_PR-08.md`). **T1 Done**, **T2 Done**, **T3 Done**, **T4 Done (2026-11-19):** all hand-rolled feature modals migrated onto `CmxDialog` / `CmxConfirmDialog` and drawers (`ExplainDrawer`, `GlJournalDetailPanel`, `OrderSummaryBottomSheet`) hardened with `useFocusTrap`+`Escape`+scroll-lock; ESLint 0, `check:ui` 0 errors, Jest `__tests__/ui/` 41/41 suites (291/291 tests). **T5 In progress** (5.1 `order-summary-panel.tsx` done & verified). |
+| DS-RULES | Design system rules file, `npm run check:ui`, `cmx-ui-design-review` skill in Claude, Codex, Cursor and Antigravity; old grandfathered registry archived | — | **Done 2026-11-19** (`PLAN_DESIGN_SYSTEM_RULES.md`; result section below). Left: owner QA (`QA_TEST_GUIDE.md` → "Design system rules" + M22), commit |
 | PR-03 | Zod validation at boundaries | — (independent track) | Not started |
 | PR-06 | Server-component boundaries; cache only if measured | — (independent track) | Not started |
 
@@ -155,9 +157,58 @@
   - Checks: tests green, typecheck 0, ESLint 0, `check:i18n` passed, build passed 2026-11-19.
 - **Still open, separate work:**
   - i18n sweep: measured about 800 English-only strings in about 100 files (682 text strings + about 120 props + 18 feedback calls, without the `jhtestui` developer page). Plan `PLAN_I18N_SWEEP.md` written 2026-11-19, waiting for owner approval.
-  - PR-07 M1–M5.
-  - The breadcrumb component.
-- **Owner:** QA `QA_TEST_GUIDE.md` → "PR-07 task 6" M1–M18, then commit.
+  - The breadcrumb component (optional, not started).
+- **"Mine, smaller" items done 2026-11-19** (owner asked for all):
+  - M1: a lost race in "Make active" returns 409 `SWITCH_CONFLICT` with a message in the screen (EN/AR), not 500. Test first.
+  - M2: an edit that keeps a theme's stored HQ codes is no longer refused when HQ has since deactivated them; a different code is still checked. Test added.
+  - M3: not measurable without the running app. `writeLastBrandCookie` now logs a warning when the theme read takes over 300 ms, so real use shows it.
+  - M4: left as is. It is already a marked shortcut (parallel reads, a customer has a handful of Organizations); batching needs the shared theme read reworked.
+  - M5: closed. No Organization has a logo yet (remote check: 0 of 0), and File Util is the only writer and always writes a public-storage URL.
+  - Sign-in page now shows the dark logo (cookie field `logoDark`, optional so old cookies still read; same CSS swap as the sidebar).
+  - Logout error path: closed. If sign-out fails the person is still signed in as themselves, so keeping their mode is correct.
+  - Chart legend text now reads the foreground token (`.recharts-legend-item-text`), with a test.
+  - Contrast of the seeded theme pairs: all 10 in migration 0752 pass 4.5:1 in both modes (`__tests__/lib/theme/seeded-theme-contrast.test.ts`). The "nine" in the old note was ten.
+  - Tailwind v4 minimum browsers, from Tailwind's v4 documentation (not re-fetched today): Safari 16.4, Chrome 111, Firefox 128.
+  - Pre-existing failures: the 3 `cmx-dialog` suites now pass (they needed a `next-intl` stub). The payment and order-financial-view suites pass now too. Typecheck is 0 errors (needs `NODE_OPTIONS=--max-old-space-size=8192`). Still failing, outside this program: `auth/request-permission-auth` and `security/api-route-auth-guard`.
+  - Not done: font pairs to seed (needs the owner's licence and Arabic-coverage decision; outline in `fonts_to_be_predefine.md`). The two stray build logs were deleted.
+  - Checks: ESLint 0 on touched files, `check:i18n` passed, jest 226 suites / 2532 tests (theme, services, foundations, overlays, auth-session, settings). The `npm run build` after these edits passed (exit 0, 2026-11-19).
+- **Owner:** QA `QA_TEST_GUIDE.md` → "PR-07 task 6" M1–M22, then commit.
+
+## Design system rules, checker and review skill (2026-11-19)
+
+- **Rules file:** `docs/dev/rules/cmx-design-system.md` is now the one source for web-admin UI: tokens with meanings, dark mode and paper, RTL, size/layers, which component, states, a11y, numbers/codes, text, charts, changing `src/ui`, ignore markers, how to check, how to fix, debt baseline, done list.
+- **Checker:** `npm run check:ui` (`web-admin/scripts/ui/check-design-system.js`). It covers the rules ESLint does not: UI001 raw form/table elements, UI002 legacy feedback, UI003 hex, UI004 `dark:`, UI005 page-level z-index, UI006 arbitrary colour classes, UI007 hardcoded page size (all errors), and UI008 English JSX text (a warning). It checks the changed files by default, or `-- --all`. Test: `__tests__/scripts/check-design-system.test.ts` (20/20).
+- **Review skill:** `/cmx-ui-design-review` (`.claude/skills/cmx-ui-design-review/SKILL.md`). It picks the target, runs the tools, reads the code for what the tools miss, and reports by severity with file:line and the fix. Fix mode runs only when asked.
+- **Wired into:**
+  - `CLAUDE.md` (rule 17 and the skill table) and `AGENTS.md`;
+  - the frontend skill (`SKILL.md`, `standards.md`, `ui-blueprint.md`, `uiux-rules.md`);
+  - `.cursor/rules/cmx-design-system.mdc` (new), plus `uiuxrules.mdc`, `aicoderfrontendinstructions.mdc`, and a banner on `frontendnextjsrules.mdc`;
+  - `docs/dev/rules/README.md` and `cmx-shared-components.md`;
+  - `claude-md-reference.md`, `.claude/skills/README.md`, `web-admin/.clauderc` and `ui-migration-guide.md`.
+- **Follow-up (2026-11-19, owner):**
+  - The skill was renamed from `/ui-design-review` to `/cmx-ui-design-review` (folder and every reference).
+  - The Codex skills are in step: `.codex/skills/frontend` (SKILL, standards, ui-blueprint, uiux-rules), a copy of `cmx-ui-design-review`, and pointers in `storybook`, `feature-implementation`, `code-review` and the README.
+  - The Claude `implementation` and `storybook` skills now point to the rules too.
+  - The same updates are in all four tools: Claude (`.claude/skills`), Codex (`.codex/skills`), Antigravity (`.agents/skills`) and Cursor (`.cursor/rules/cmx-design-system.mdc`, `.cursor/skills/cmx-ui-design-review`, `.cursor/commands/cmx-ui-design-review.md`).
+  - Antigravity `frontend`, `implementation`, `storybook` and `README` were old copies from 29 Oct, now in step with Claude.
+  - `AGENTS.md`, which Codex and Antigravity read, already carries the rule.
+  - All Antigravity skills synced from Claude (2026-11-19, owner):
+    - 30 out-of-date files updated in 20 skills;
+    - `file-util-wire` added;
+    - `database/grandfathered-objects.md` renamed to `xx…` as in Claude; later (same day, owner) all 6 copies of the old grandfathered-objects registry moved to `docs/_archive/2026-11/grandfathered-objects/` (README there), and every active link was replaced by "take the name from the live DB or `schema.prisma`";
+    - `source-command-cmx-ui-design-review` added (the Cursor command's wrapper).
+    - The 4 `source-command-*` skills were already in step with `.cursor/commands`.
+    - Where an Antigravity file looked newer, it was a bad word swap (`@.Codex/skills/…`, `docs/dev/Codex/prompts`, a path that does not exist), so Claude was taken.
+- **Stale guidance removed:**
+  - `text-left rtl:text-right` and `ml-4 rtl:mr-4` examples (now ESLint errors);
+  - `class="dark"` / `data-accent` theme attributes (replaced by `data-mode`/`data-density`/`data-font-scale`);
+  - `CmxFieldLabel`, which never existed (now `CmxFormField` / `CmxFieldShell` / `Label`).
+- **Real bugs the first full run found in `src/ui`, fixed:**
+  - `CmxFormActions` had a fixed white `rgba(255,255,255,0.94)` background in dark mode → `bg-card/95`;
+  - `CmxFormSection` status gradients used fixed blue/green/amber/red → `from-primary/15`, `from-success/15`, `from-warning/15`, `from-destructive/15`.
+  - `src/ui` now has 0 checker errors (3 warnings: the sr-only "Loading...", the sidebar version string, and "English" in the language switcher, which is intended).
+- **Debt baseline** (old code, the whole app): UI001 552, UI002 20, UI003 88, UI005 9, UI007 1, UI008 294 warnings. New code adds none; touched lines get fixed.
+- **Not done:** HQ (`cleanmatexsaas`) has no copy of the rules or the skill yet; there is no shared chart series palette (chart hex colours are debt); nothing seen in a browser.
 
 ## Open
 
@@ -166,10 +217,19 @@
 - PR-07: owner QA (`QA_TEST_GUIDE.md` → PR-07 and PR-07 HQ) and commit in both repos.
 - HQ A3 (owner follow-up 2026-11-19): corner sizes from a list and every refusal as a field message. Done (API + web, tests pass, HQ build passed 2026-11-19). Fonts outline plan written: `fonts_to_be_predefine.md` (later package, not started).
 - PR-04: implementation (plan approved 2026-11-19), after A3 and the fonts plan.
-- Pre-existing, not from this program: 2 type errors (`app/(auth)/login/page.tsx:162`, `src/features/users/ui/membership-lock-action.tsx:84`) and 9 failing jest suites (list in `PLAN_PR-01.md`).
-- Font pairs to seed (licence and Arabic coverage check).
-- Tailwind v4's exact minimum browser versions.
-- Contrast check of the nine proposed theme colour pairs.
+- Pre-existing, not from this program: jest `auth/request-permission-auth` and `security/api-route-auth-guard` still fail (the type errors and the other 7 suites are fixed, see above).
+- Font pairs to seed (licence and Arabic coverage check; owner decision).
+
+## PR-08 result (2026-11-20 — T1–T8 Done across both repos)
+
+- **T1 Done:** `CmxWizard` localized, `CmxPagination`/`CmxKpiStatCard` `tabular-nums`, pagination touch target (`cmx-pos-touch-target` + `pointer-coarse`), `CmxDataTable` logical `align`, density `--cmx-row-h`/`--cmx-cell-px` wired into data tables/grids.
+- **T2 Done:** `DashboardContent` `tabular-nums` + `<bdi>`, `OrderStatsCards` Lucide icons, `CmxMoneyText` & `OrderWorkspaceScreen` semantic tokens (`text-warning-text`/`text-success-text`/`text-info-text`).
+- **T3 Done:** `OrdersSimpleTable`, `GlInquiryTable`, `UserRolesTab`, and `app/dashboard/b2b/{customers,contracts,statements}` converged onto `CmxCrudPageShell` + `CmxDataTable` + `CmxStatusBadge`.
+- **T4 Done:** Non-shell feature `fixed inset-0` modals migrated onto `CmxDialog`/`CmxConfirmDialog` + `Cmx*` controls (`FIXED_INSET0_COUNT=4` in production JSX scan); focus-trap/Escape/scroll-lock added to `OrderSummaryBottomSheet`, `ExplainDrawer`, `GlJournalDetailPanel`.
+- **T5 Done + Final Raw HTML Burn-Down:** `OrderSummaryPanel`, `CustomItemModal`, settings/order labels & Waves 1–3C raw controls converted to Cmx primitives (`NON_FORM_COUNT=40` in production `app/` + `src/features/`, excluding `jhtestui`, `-rprt.tsx`, `/print/`, `payment-full-view.tsx`, `hidden`/`file` inputs, `cmx-ds-ignore`, well below `< 50` target).
+- **T6 Done:** [0775_sys_tenant_extra_config_cf.sql](file:///f:/jhapp/cleanmatex/supabase/migrations/0775_sys_tenant_extra_config_cf.sql) & [0776_org_tenant_extra_config_cf.sql](file:///f:/jhapp/cleanmatex/supabase/migrations/0776_org_tenant_extra_config_cf.sql) applied; Prisma schema pulled; `tenant-extra-config` constants/Zod/pure resolver/cached server service (`catalogReadClient` + explicit `tenant_org_id`), `/api/v1/settings/extra-config*` routes, formatter/table/`cmx-pos-touch-target` wiring, `/dashboard/settings/extra-config` list-assisted UI, EN/AR i18n, access contract & navigation complete.
+- **T7 Done:** BiDi `<bdi dir="ltr">` sweep across receipts/B2B/ERP/refunds/pickers/dashboard; [QA_TEST_GUIDE.md](file:///f:/jhapp/cleanmatex/docs/features/UI_Design_System_Enhace/QA_TEST_GUIDE.md) updated (`P1`–`P9`). Final verification after last edit: `npm run typecheck` (exit 0), `npx eslint . --quiet` (exit 0), `npm run check:i18n` (PASS), `npm run check:ui` (189 files, 0 errors, 185 pre-existing UI008 warnings), `npm run check:platform-info-inventories` (PASS, drift 0, 2/2 suites, 10/10 tests), scoped Jest (92/92 suites, 770/770 tests; excludes 4 pre-existing unrelated `orders/payment/*` & `order-financial-view.ui` suites), and `npm run build` (exit 0, 0 CSS/import warnings, 343/343 pages).
+- **T8 Done:** Implemented `cleanmatexsaas` HQ catalog management per `PLAN_PR-08-HQ.md` (`H1` `platform-api` `ExtraConfigController` / `ExtraConfigService` with `extra-config.service.spec.ts` 8/8 passed + Nest build PASS; `H2` `platform-web` `/products-items-config/extra-config` `HqExtraConfigScreen` + `HqExtraConfigEditorDialog` with list-assisted default picker, bilingual `allowed_values_json` builder, org usage dialog, deactivate warning, hub card on `PicHubScreen`, EN/AR i18n, `check:i18n` PASS, `tsc --noEmit --incremental false` PASS, scoped ESLint 0, `hq-extra-config-screen.test.tsx` 2/2 passed, Next `build` 191/191 PASS). Left: owner manual QA (`P1`–`P10` in [QA_TEST_GUIDE.md](file:///f:/jhapp/cleanmatex/docs/features/UI_Design_System_Enhace/QA_TEST_GUIDE.md)) & commits in both repos.
 
 ## PR file review (2026-11-16)
 

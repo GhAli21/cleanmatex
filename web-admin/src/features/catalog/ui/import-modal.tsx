@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CmxButton, CmxCard, CmxInput, CmxTextarea } from '@ui/primitives'
+import { CmxButton, CmxTextarea, Label } from '@ui/primitives'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays'
 
 interface ImportResult {
   success: boolean
@@ -57,12 +64,11 @@ export default function ImportModal({ onClose }: ImportModalProps) {
   const sampleAdvanced = 'product_code,product_name,product_name_ar,category_code,price_regular,price_express,express_multiplier,unit,min_qty,turnaround_hh,turnaround_hh_express,tax_category_code,is_active\nPROD-00002,Dress,فستان,DRY_CLEAN,2.500,3.000,,piece,1,24,12,STANDARD,true'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <CmxCard className="w-full max-w-3xl p-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{tCommon('import')}</h2>
-          <CmxButton variant="secondary" onClick={onClose}>{t('close')}</CmxButton>
-        </div>
+    <CmxDialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <CmxDialogContent className="w-full max-w-3xl" scrollBody>
+        <CmxDialogHeader>
+          <CmxDialogTitle>{tCommon('import')}</CmxDialogTitle>
+        </CmxDialogHeader>
 
         {error && (
           <div className="mb-3 rounded-md border border-danger-border bg-danger-bg p-3 text-danger-text">{error}</div>
@@ -71,7 +77,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="md:col-span-1">
-              <label className="mb-1 block text-sm font-medium">{t('downloadTemplate')}</label>
+              <Label className="mb-1 block text-sm font-medium">{t('downloadTemplate')}</Label>
               <div className="flex gap-2">
                 <CmxButton type="button" variant={template === 'basic' ? 'primary' : 'secondary'} onClick={() => setTemplate('basic')}>
                   {t('basicTemplate')}
@@ -89,15 +95,15 @@ export default function ImportModal({ onClose }: ImportModalProps) {
               </div>
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium">{t('uploadFile')}</label>
+              <Label className="mb-1 block text-sm font-medium">{t('uploadFile')}</Label>
               <CmxTextarea rows={10} value={csv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsv(e.target.value)} placeholder={template === 'basic' ? sampleBasic : sampleAdvanced} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <CmxButton type="submit" disabled={submitting}>{submitting ? tCommon('loading') : tCommon('import')}</CmxButton>
+          <CmxDialogFooter className="justify-between">
+            <CmxButton type="submit" disabled={submitting} loading={submitting}>{submitting ? tCommon('loading') : tCommon('import')}</CmxButton>
             <CmxButton type="button" variant="secondary" onClick={onClose}>{t('close')}</CmxButton>
-          </div>
+          </CmxDialogFooter>
         </form>
 
         {result && (
@@ -115,7 +121,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
             )}
           </div>
         )}
-        </CmxCard>
-    </div>
+      </CmxDialogContent>
+    </CmxDialog>
   )
 }

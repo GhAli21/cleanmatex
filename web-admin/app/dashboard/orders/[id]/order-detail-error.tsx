@@ -11,6 +11,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
+import { Table, TableBody, TableCell, TableRow } from '@ui/primitives/table';
 
 /**
  *
@@ -78,10 +80,12 @@ export function OrderDetailError({
 
             {hasDebug && (
               <div className="mt-4">
-                <button
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="xs"
                   onClick={() => setShowDebug(!showDebug)}
-                  className="flex items-center gap-1 text-xs font-medium text-warning-text hover:text-warning-text/80"
+                  className="h-auto px-0 py-0 flex items-center gap-1 text-xs font-medium text-warning-text hover:bg-transparent hover:text-warning-text/80"
                 >
                   {showDebug ? (
                     <>
@@ -94,41 +98,41 @@ export function OrderDetailError({
                       Show debug info (to trace error)
                     </>
                   )}
-                </button>
+                </CmxButton>
                 {showDebug && (
                   <div className="mt-2 rounded border border-warning-border bg-warning-bg/50 p-3 font-mono text-xs text-warning-text">
-                    <table className="w-full text-start">
-                      <tbody>
+                    <Table className="w-full text-start">
+                      <TableBody>
                         {debug?.condition && (
-                          <tr>
-                            <td className="py-1 pe-4 font-semibold">Condition:</td>
-                            <td className="py-1">{debug.condition}</td>
-                          </tr>
+                          <TableRow>
+                            <TableCell className="py-1 pe-4 font-semibold">Condition:</TableCell>
+                            <TableCell className="py-1">{debug.condition}</TableCell>
+                          </TableRow>
                         )}
                         {debug?.serverError && (
-                          <tr>
-                            <td className="py-1 pe-4 font-semibold">Server error:</td>
-                            <td className="py-1">{debug.serverError}</td>
-                          </tr>
+                          <TableRow>
+                            <TableCell className="py-1 pe-4 font-semibold">Server error:</TableCell>
+                            <TableCell className="py-1">{debug.serverError}</TableCell>
+                          </TableRow>
                         )}
                         {debug?.tenantId && (
-                          <tr>
-                            <td className="py-1 pe-4 font-semibold">Tenant ID (used for query):</td>
-                            <td className="py-1 break-all">{debug.tenantId}</td>
-                          </tr>
+                          <TableRow>
+                            <TableCell className="py-1 pe-4 font-semibold">Tenant ID (used for query):</TableCell>
+                            <TableCell className="py-1 break-all">{debug.tenantId}</TableCell>
+                          </TableRow>
                         )}
                         {debug?.userId && (
-                          <tr>
-                            <td className="py-1 pe-4 font-semibold">User ID:</td>
-                            <td className="py-1 break-all">{debug.userId}</td>
-                          </tr>
+                          <TableRow>
+                            <TableCell className="py-1 pe-4 font-semibold">User ID:</TableCell>
+                            <TableCell className="py-1 break-all">{debug.userId}</TableCell>
+                          </TableRow>
                         )}
-                        <tr>
-                          <td className="py-1 pe-4 font-semibold">Order ID (queried):</td>
-                          <td className="py-1 break-all">{orderId || '(empty)'}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                        <TableRow>
+                          <TableCell className="py-1 pe-4 font-semibold">Order ID (queried):</TableCell>
+                          <TableCell className="py-1 break-all">{orderId || '(empty)'}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                     <p className="mt-2 text-warning-text">
                       Possible causes: order deleted, tenant mismatch (order belongs to different tenant), database connection issue, or RLS policy blocking access.
                     </p>

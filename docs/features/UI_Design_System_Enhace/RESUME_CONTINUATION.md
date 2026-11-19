@@ -1,9 +1,24 @@
 # UI Design System — Resume Here
 
-**Written:** 2026-11-17, for the next session or assistant.
-**Authority:** `THEMING_ARCHITECTURE_DESIGN.md` (design) → `STATUS.md` (package states) → `PLAN_PR-02.md` (current plan, its Progress table and Rulings). If this file disagrees with them, they win.
+**Written:** 2026-11-19, for the next session or assistant.
+**Authority:** `THEMING_ARCHITECTURE_DESIGN.md` (design) → `STATUS.md` (package states) → `PLAN_PR-08.md` (current convergence & extra-config plan, its Progress table and Rulings). If this file disagrees with them, they win.
 
 ## Where things stand
+
+- **DS-RULES (DONE 2026-11-19):** `PLAN_DESIGN_SYSTEM_RULES.md`. It covers:
+  - the rules: `docs/dev/rules/cmx-design-system.md`;
+  - the checker: `npm run check:ui` in web-admin;
+  - the review skill `cmx-ui-design-review`, the same in `.claude/skills`, `.codex/skills`, `.agents/skills` and `.cursor/skills`, plus `.cursor/commands`.
+
+  Antigravity skills were synced from Claude. The old grandfathered registry is archived in `docs/_archive/2026-11/grandfathered-objects/`. If you change the skill, change all four copies.
+
+  Left: owner QA, commit, HQ copy (not started).
+
+- **PR-08 (T1–T8 Done 2026-11-20 across both repos):** Following `PLAN_PR-08.md` (`T1–T8`) + `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-08-HQ.md` (`H1–H2`).
+  - **T1–T5 Done (2026-11-19 / 2026-11-20):** Cmx component & page convergence, modal migrations (`FIXED_INSET0_COUNT=4`), and raw HTML burn-down (`CustomItemModal`, `OrderSummaryPanel`, settings/order labels, Waves 1–3C: `NON_FORM_COUNT=40` in production `app/` + `src/features/`, excluding `jhtestui`, `-rprt.tsx`, `/print/`, `payment-full-view.tsx`, `hidden`/`file`, `cmx-ds-ignore`).
+  - **T6 Done (2026-11-20):** Migrations `0775_sys_tenant_extra_config_cf.sql` & `0776_org_tenant_extra_config_cf.sql` applied; Prisma synced; constants, Zod, pure resolver, cached server service, `/api/v1/settings/extra-config*` routes, formatter/table/`cmx-pos-touch-target` wiring, `/dashboard/settings/extra-config` UI, EN/AR i18n, access contract & navigation complete.
+  - **T7 Done (2026-11-20):** BiDi `<bdi dir="ltr">` sweep across receipts/B2B/ERP/refunds/pickers/dashboard; `QA_TEST_GUIDE.md` (`P1`–`P10`) updated. `web-admin` checks: `tsc --noEmit` (0), `eslint . --quiet` (0), `check:i18n` (PASS), `check:ui` (189 files, 0 errors, 185 warnings), `check:platform-info-inventories` (PASS, drift 0, 2/2 suites, 10/10 tests), scoped Jest (92/92 suites, 770/770 tests), `npm run build` (exit 0, 0 warnings, 343/343 pages).
+  - **T8 Done (2026-11-20, `cleanmatexsaas`):** `H1` (`platform-api` `ExtraConfigController`/`ExtraConfigService` — Jest 8/8, Nest build PASS) + `H2` (`platform-web` `/products-items-config/extra-config` + `PicHubScreen` card + EN/AR i18n — `check:i18n` PASS, `tsc --noEmit --incremental false` exit 0, scoped ESLint 0, Jest 2/2, `next build` 191/191 PASS). Left: owner manual QA (`P1`–`P10`) and commits across both repos.
 
 - **PR-01:** implemented 2026-11-16, all 7 tasks. Waiting for owner QA (`QA_TEST_GUIDE.md` → PR-01) and commit.
 - **PR-02:** running inline from `PLAN_PR-02.md`, approved 2026-11-16.
@@ -44,6 +59,8 @@
 After PR-02, the recommended order is PR-07 tasks 1–5 → PR-04 → PR-05 → PR-07 task 6. Write `PLAN_PR-0N.md` just before each package and get owner approval first.
 
 ## Rules for this program (owner's, still in force)
+
+- UI work follows `docs/dev/rules/cmx-design-system.md`. Before done: `npm run check:ui` and `/cmx-ui-design-review`.
 
 - Plan first, then wait for approval. The PR-02 plan is already approved.
 - Every plan has progress and status update tasks.
@@ -90,4 +107,7 @@ After PR-02, the recommended order is PR-07 tasks 1–5 → PR-04 → PR-05 → 
 
 ## Not verified yet
 
+- Design system rules (2026-11-19): the `CmxFormActions` / `CmxFormSection` colour fixes were not seen in a browser (light or dark). The checker's UI008 English-text heuristic can flag TypeScript generics on one line; when a reason is real, mark the line with `cmx-ds-ignore UI008: <reason>`.
+
+- 2026-11-19 "Mine, smaller" items (PR-07 M1–M5, sign-in dark logo, legend rule, contrast, 3 dialog suites) are done; details in `STATUS.md` → "Mine, smaller". Not built again after them. Remaining for me: the i18n sweep (plan waiting for approval), the breadcrumb (optional), font pairs (owner decision). QA rows M19–M21 added.
 - No screen has been checked in a real browser. The select inside dialogs, the top-bar menu and badge colours are proven only by jsdom tests. These are owner QA items.

@@ -4,7 +4,9 @@
  */
 
 'use client';
-import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
+import { CmxButton } from '@ui/primitives';
+import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
+import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
@@ -104,94 +106,99 @@ export default function B2BContractsPage() {
     );
   }
 
+  const columns: CmxDataTableSimpleColumn<ContractRow>[] = [
+    {
+      key: 'contract_no',
+      header: t('contractNo') || 'Contract No',
+      sortable: false,
+      render: (c) => <bdi dir="ltr">{c.contract_no}</bdi>,
+    },
+    {
+      key: 'company',
+      header: t('company'),
+      sortable: false,
+      render: (c) => customerLabelById.get(c.customer_id) ?? '—',
+    },
+    {
+      key: 'effective_from',
+      header: t('effectiveFrom') || 'Effective From',
+      sortable: false,
+      render: (c) =>
+        c.effective_from ? (
+          <bdi dir="ltr" className="tabular-nums">{new Date(c.effective_from).toLocaleDateString()}</bdi>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'effective_to',
+      header: t('effectiveTo') || 'Effective To',
+      sortable: false,
+      render: (c) =>
+        c.effective_to ? (
+          <bdi dir="ltr" className="tabular-nums">{new Date(c.effective_to).toLocaleDateString()}</bdi>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'actions',
+      header: t('actions') || 'Actions',
+      align: 'end',
+      sortable: false,
+      render: (c) => (
+        <CmxButton
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.assign(`/dashboard/b2b/customers/${c.customer_id}`)}
+        >
+          {t('view') || 'View Customer'}
+        </CmxButton>
+      ),
+    },
+  ];
+
   return (
     <RequireAnyPermission permissions={B2B_CONTRACTS_ACCESS.page.permissions ?? []}>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-semibold">
-            {t('contracts') || 'Contracts'}
-          </h1>
-          {canCreate ? (
+      <CmxCrudPageShell
+        title={t('contracts') || 'Contracts'}
+        actions={
+          canCreate ? (
             <CmxButton type="button" variant="primary" onClick={() => setCreateOpen(true)}>
               {t('createContract')}
             </CmxButton>
-          ) : null}
-        </div>
-
-        <CmxCard>
-          <CmxCardHeader>
-            <CmxCardTitle>{t('contracts') || 'Contracts'}</CmxCardTitle>
-          </CmxCardHeader>
-          <CmxCardContent>
-            {!contracts?.length ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground mb-4 max-w-md">
-                  {contractsListEmptyHint}
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {canCreate ? (
-                    <CmxButton type="button" variant="primary" onClick={() => setCreateOpen(true)}>
-                      {t('createContract')}
-                    </CmxButton>
-                  ) : null}
-                  <CmxButton
-                    type="button"
-                    variant={canCreate ? 'outline' : 'primary'}
-                    onClick={() => window.location.assign('/dashboard/b2b/customers')}
-                  >
-                    {t('goToCustomers') || 'Go to B2B Customers'}
-                  </CmxButton>
-                </div>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-start py-2 px-3">{t('contractNo') || 'Contract No'}</th>
-                      <th className="text-start py-2 px-3">{t('company')}</th>
-                      <th className="text-start py-2 px-3">{t('effectiveFrom') || 'Effective From'}</th>
-                      <th className="text-start py-2 px-3">{t('effectiveTo') || 'Effective To'}</th>
-                      <th className="text-start py-2 px-3">{t('actions') || 'Actions'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contracts.map((c) => (
-                      <tr key={c.id} className="border-b hover:bg-muted">
-                        <td className="py-2 px-3">{c.contract_no}</td>
-                        <td className="py-2 px-3">
-                          {customerLabelById.get(c.customer_id) ?? '—'}
-                        </td>
-                        <td className="py-2 px-3">
-                          {c.effective_from ? new Date(c.effective_from).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          {c.effective_to ? new Date(c.effective_to).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <CmxButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              window.location.assign(`/dashboard/b2b/customers/${c.customer_id}`)
-                            }
-                          >
-                            {t('view') || 'View Customer'}
-                          </CmxButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CmxCardContent>
-        </CmxCard>
+          ) : undefined
+        }
+      >
+        <CmxDataTable<ContractRow>
+          columns={columns}
+          data={contracts ?? []}
+          auditConfig={false}
+          scrollable={false}
+          paginationFooter="never"
+          emptyStateDescription={contractsListEmptyHint}
+          emptyStateAction={
+            <div className="flex flex-wrap justify-center gap-2">
+              {canCreate ? (
+                <CmxButton type="button" variant="primary" onClick={() => setCreateOpen(true)}>
+                  {t('createContract')}
+                </CmxButton>
+              ) : null}
+              <CmxButton
+                type="button"
+                variant={canCreate ? 'outline' : 'primary'}
+                onClick={() => window.location.assign('/dashboard/b2b/customers')}
+              >
+                {t('goToCustomers') || 'Go to B2B Customers'}
+              </CmxButton>
+            </div>
+          }
+        />
 
         {canCreate ? (
           <B2bCreateContractDialog open={createOpen} onOpenChange={setCreateOpen} />
         ) : null}
-      </div>
+      </CmxCrudPageShell>
     </RequireAnyPermission>
   );
 }

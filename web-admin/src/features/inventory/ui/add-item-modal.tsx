@@ -9,7 +9,7 @@ import {
   CmxDialogTitle,
   CmxDialogFooter,
 } from '@ui/overlays';
-import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import { TAX_CATEGORIES } from '@/lib/constants/commercial';
 import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
@@ -365,18 +365,12 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={recNotes}
                   onChange={(e) => setRecNotes(e.target.value)}
                 />
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                  <label htmlFor="isActive" className="text-sm font-medium">
-                    {tc('active')}
-                  </label>
-                </div>
+                <CmxCheckbox
+                  id="isActive"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  label={tc('active')}
+                />
               </div>
             </div>
           </div>

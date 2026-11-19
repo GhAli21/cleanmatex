@@ -1,10 +1,12 @@
 # Rule: always reuse shared Cmx components
 
+Part of the design system rules: `cmx-design-system.md` (tokens, direction, dark mode, states, a11y, checks). Check with `npm run check:ui`; review with `/cmx-ui-design-review`.
+
 Applies to every frontend change in `web-admin`: pages, screens, forms, dialogs, tables, filters, and detail views.
 
 ## Must
 1. Build UI only from the shared Cmx components in `src/ui/` (`@ui/primitives`, `@ui/forms`, `@ui/data-display`, `@ui/overlays`, `@ui/feedback`, `@ui/navigation`, `@ui/patterns`). Search `src/ui/` for an existing component BEFORE writing any markup.
-2. Inputs: `CmxInput`, `CmxSelect` (both support `error`), LOV/picker components for values that live in a table. Labels: `CmxFieldLabel` (help icon, required star, RTL). Never a raw `<input>`, `<select>`, `<label>`, or `<table>` in feature code.
+2. Inputs: `CmxInput`, `CmxSelect` (both support `error`), LOV/picker components for values that live in a table. Labels: `CmxFormField` (React Hook Form) or `CmxFieldShell` (label, help, error), or `Label` from `@ui/primitives` for a bare label. Never a raw `<input>`, `<select>`, `<label>`, or `<table>` in feature code.
 3. Tables: `CmxDataTable` / `CmxDataGrid`. Paging uses the shared settings in `src/ui/data-display/cmx-table-defaults.ts` (`CMX_DEFAULT_PAGE_SIZE`, `CMX_PAGE_SIZE_OPTIONS`). Never hardcode a page size or page-size list in a screen.
 4. Feedback: `cmxMessage` / `useMessage()` from `@ui/feedback`.
 5. If a shared component lacks something you need, IMPROVE THE SHARED COMPONENT (backward compatible: optional props, no renames, no behavior change for existing callers) so every screen benefits. Add or update its test and story (`/storybook`). Do not fork it.
@@ -13,7 +15,7 @@ Applies to every frontend change in `web-admin`: pages, screens, forms, dialogs,
 ## Must not
 - Create a one-off component in a feature folder that duplicates or wraps a shared Cmx component only to restyle it.
 - Copy-paste markup or Tailwind class strings from a Cmx component into a screen.
-- Add a feature-local field/label/table wrapper when a Cmx one exists (migrate existing ones such as `NtfFormField` to `CmxFieldLabel` when you touch them).
+- Add a feature-local field/label/table wrapper when a Cmx one exists (migrate existing ones such as `NtfFormField` to `CmxFormField` / `CmxFieldShell` when you touch them).
 
 ## Allowed exceptions
 - A feature-specific composite (for example a routes dialog) that is BUILT FROM Cmx components.

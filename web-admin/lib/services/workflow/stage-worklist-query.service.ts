@@ -56,6 +56,12 @@ export interface StageWorklistQueryInput {
   pageSize: number
   search?: string
   statusNarrow?: string[]
+  /** Priority filter values (e.g. `normal`, `express`, `urgent`). */
+  priority?: string[]
+  /** When true, only orders with `has_issue = true`. */
+  hasIssue?: boolean
+  /** When true, only orders past their `ready_by` timestamp. */
+  overdue?: boolean
   /** Ready desk: outstanding balance still due. */
   collectionDue?: boolean
   /** Ready desk: no usable rack location. */
@@ -72,6 +78,25 @@ export interface StageWorklistQueryInput {
 export interface StageWorklistPage {
   orderIds: string[]
   total: number
+}
+
+/** Queue-wide KPI totals across the matching floor-screen orders. */
+export interface StageWorklistSummary {
+  totalOrders: number
+  totalPieces: number
+  totalValue: number
+  unpaidOutstanding: number
+  overdueCount: number
+  openIssuesCount: number
+}
+
+interface SummaryRow {
+  total_orders: bigint
+  total_pieces: bigint
+  total_value: number | string | null
+  unpaid_outstanding: number | string | null
+  overdue_count: bigint
+  open_issues_count: bigint
 }
 
 function normalise(value: string): string {
@@ -119,6 +144,21 @@ function buildWhereSql(
     clauses.push(Prisma.sql`o.current_status IN (${Prisma.join(statusNarrow)})`)
   }
 
+  const priorities = uniqueStatuses(input.priority ?? [])
+  if (priorities.length > 0) {
+    clauses.push(Prisma.sql`LOWER(COALESCE(o.priority, 'normal')) IN (${Prisma.join(priorities)})`)
+  }
+
+  if (input.hasIssue) {
+    clauses.push(Prisma.sql`COALESCE(o.has_issue, false) = true`)
+  }
+
+  if (input.overdue) {
+    clauses.push(
+      Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) IS NOT NULL AND COALESCE(o.ready_by_at_new, o.ready_by) < NOW()`,
+    )
+  }
+
   if (input.collectionDue) {
     clauses.push(Prisma.sql`COALESCE(o.outstanding_amount, 0) > 0`)
   }
@@ -154,6 +194,19 @@ function orderBySql(input: StageWorklistQueryInput): Prisma.Sql {
   switch (input.sortBy) {
     case 'order_no':
       return ascending ? Prisma.sql`o.order_no ASC NULLS LAST` : Prisma.sql`o.order_no DESC NULLS LAST`
+    case 'customer_name':
+      return ascending
+        ? Prisma.sql`COALESCE(o.customer_name, c.name, '') ASC NULLS LAST`
+        : Prisma.sql`COALESCE(o.customer_name, c.name, '') DESC NULLS LAST`
+    case 'total_items':
+      return ascending
+        ? Prisma.sql`COALESCE(o.total_items, 0) ASC`
+        : Prisma.sql`COALESCE(o.total_items, 0) DESC`
+    case 'status':
+    case 'current_status':
+      return ascending
+        ? Prisma.sql`o.current_status ASC NULLS LAST`
+        : Prisma.sql`o.current_status DESC NULLS LAST`
     case 'ready_by':
     case 'ready_by_at':
     case 'ready_by_at_new':
@@ -246,19 +299,26 @@ async function resolveScopes(
   return scopes
 }
 
-/**
- * Lists the current page of floor-screen order IDs using each order's live
- * profile-version policy. Orders without a complete version binding are excluded.
- *
- * @param tenantId Authenticated tenant resolved by the API adapter.
- * @param input Floor screen, paging, and optional operator filters.
- */
-export async function listStageWorklistOrderPage(
+const EMPTY_STAGE_WORKLIST_SUMMARY: StageWorklistSummary = {
+  totalOrders: 0,
+  totalPieces: 0,
+  totalValue: 0,
+  unpaidOutstanding: 0,
+  overdueCount: 0,
+  openIssuesCount: 0,
+}
+
+async function queryStageWorklistPage(
   tenantId: string,
   input: StageWorklistQueryInput,
-): Promise<StageWorklistPage> {
+  includeSummary: boolean,
+): Promise<StageWorklistPage & { summary?: StageWorklistSummary }> {
   const screens = canonicalStageWorklistScreens(input.screen)
-  if (screens.length === 0) return { orderIds: [], total: 0 }
+  if (screens.length === 0) {
+    return includeSummary
+      ? { orderIds: [], total: 0, summary: { ...EMPTY_STAGE_WORKLIST_SUMMARY } }
+      : { orderIds: [], total: 0 }
+  }
 
   const page = Number.isFinite(input.page) && input.page > 0 ? Math.floor(input.page) : 1
   const pageSize = Number.isFinite(input.pageSize) && input.pageSize > 0
@@ -266,7 +326,11 @@ export async function listStageWorklistOrderPage(
     : 20
 
   const scopes = await resolveScopes(tenantId, screens)
-  if (scopes.length === 0) return { orderIds: [], total: 0 }
+  if (scopes.length === 0) {
+    return includeSummary
+      ? { orderIds: [], total: 0, summary: { ...EMPTY_STAGE_WORKLIST_SUMMARY } }
+      : { orderIds: [], total: 0 }
+  }
 
   const whereSql = buildWhereSql(tenantId, { ...input, page, pageSize }, scopes)
   const offset = (page - 1) * pageSize
@@ -281,17 +345,96 @@ export async function listStageWorklistOrderPage(
     LIMIT ${pageSize}
     OFFSET ${offset}
   `
-  const countRows = await prisma.$queryRaw<CountRow[]>`
-    SELECT COUNT(*)::bigint AS total
+
+  if (!includeSummary) {
+    const countRows = await prisma.$queryRaw<CountRow[]>`
+      SELECT COUNT(*)::bigint AS total
+      FROM public.org_orders_mst o
+      LEFT JOIN public.org_customers_mst c
+        ON c.id = o.customer_id
+        AND c.tenant_org_id = o.tenant_org_id
+      WHERE ${whereSql}
+    `
+    return {
+      orderIds: rows.map((row) => row.id),
+      total: Number(countRows[0]?.total ?? 0),
+    }
+  }
+
+  const summaryRows = await prisma.$queryRaw<SummaryRow[]>`
+    SELECT
+      COUNT(*)::bigint AS total_orders,
+      COALESCE(SUM(COALESCE(o.total_items, 0)), 0)::bigint AS total_pieces,
+      COALESCE(SUM(COALESCE(o.total_amount, 0)), 0)::double precision AS total_value,
+      COALESCE(
+        SUM(
+          GREATEST(
+            COALESCE(
+              o.outstanding_amount,
+              COALESCE(o.total_amount, 0) - COALESCE(o.total_paid_amount, 0),
+              0
+            ),
+            0
+          )
+        ),
+        0
+      )::double precision AS unpaid_outstanding,
+      COUNT(*) FILTER (
+        WHERE COALESCE(o.ready_by_at_new, o.ready_by) IS NOT NULL
+          AND COALESCE(o.ready_by_at_new, o.ready_by) < NOW()
+      )::bigint AS overdue_count,
+      COUNT(*) FILTER (WHERE COALESCE(o.has_issue, false) = true)::bigint AS open_issues_count
     FROM public.org_orders_mst o
     LEFT JOIN public.org_customers_mst c
       ON c.id = o.customer_id
       AND c.tenant_org_id = o.tenant_org_id
     WHERE ${whereSql}
   `
-
+  const s = summaryRows[0]
+  const totalOrders = Number(s?.total_orders ?? 0)
   return {
     orderIds: rows.map((row) => row.id),
-    total: Number(countRows[0]?.total ?? 0),
+    total: totalOrders,
+    summary: {
+      totalOrders,
+      totalPieces: Number(s?.total_pieces ?? 0),
+      totalValue: Number(s?.total_value ?? 0),
+      unpaidOutstanding: Number(s?.unpaid_outstanding ?? 0),
+      overdueCount: Number(s?.overdue_count ?? 0),
+      openIssuesCount: Number(s?.open_issues_count ?? 0),
+    },
+  }
+}
+
+/**
+ * Lists the current page of floor-screen order IDs using each order's live
+ * profile-version policy. Orders without a complete version binding are excluded.
+ *
+ * @param tenantId Authenticated tenant resolved by the API adapter.
+ * @param input Floor screen, paging, and optional operator filters.
+ */
+export async function listStageWorklistOrderPage(
+  tenantId: string,
+  input: StageWorklistQueryInput,
+): Promise<StageWorklistPage> {
+  return queryStageWorklistPage(tenantId, input, false)
+}
+
+/**
+ * Lists the current page of floor-screen order IDs plus queue-wide KPI totals
+ * computed over the same filtered scope.
+ *
+ * @param tenantId Authenticated tenant resolved by the API adapter.
+ * @param input Floor screen, paging, and optional operator filters.
+ */
+export async function listStageWorklistOrderPageWithSummary(
+  tenantId: string,
+  input: StageWorklistQueryInput,
+): Promise<StageWorklistPage & { summary: StageWorklistSummary }> {
+  const result = await queryStageWorklistPage(tenantId, input, true)
+  return {
+    orderIds: result.orderIds,
+    total: result.total,
+    summary: result.summary ?? { ...EMPTY_STAGE_WORKLIST_SUMMARY },
   }
 }

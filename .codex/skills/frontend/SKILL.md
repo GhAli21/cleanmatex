@@ -57,11 +57,11 @@ For menu-visible routes, load the `/navigation` skill before writing route code.
 20. Async actions must have loading, success, error, and empty states as applicable.
 21. Arabic RTL must be supported for layout, icons, alignment, and text direction.
 22. Do not hardcode brand colors or hex values in feature UI.
-23. Use design tokens and CSS variables.
+23. Use design tokens and CSS variables. The full design system rules are `docs/dev/rules/cmx-design-system.md` (tokens, no `dark:`, logical direction, paper light, states, a11y); they win over older examples in these skill files.
 24. Menu-visible routes require the `/navigation` dual-write workflow.
 25. Within one Next.js route family, keep dynamic slug names identical for the same path depth across pages and route handlers. Never mix names such as `[id]` and `[routeId]` for the same segment family; for a new family, prefer `[id]` unless the family already uses one domain-specific slug consistently.
 26. Do not hand-edit generated files, inventories, access contracts, or generated route/permission outputs unless the file explicitly says it is manually maintained.
-27. Before finishing, run the mandatory frontend verification commands listed in `standards.md`.
+27. Before finishing, run the mandatory frontend verification commands listed in `standards.md`, including `npm run check:ui` (0 errors on changed files), then run `/cmx-ui-design-review` on the changed UI and fix its Critical and Important findings.
 28. No silent money mutation: apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
 
 ## 3. Canonical folder structure

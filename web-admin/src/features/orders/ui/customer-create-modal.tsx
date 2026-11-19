@@ -9,6 +9,15 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
 import { createCustomer } from '@/lib/api/customers';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useFeatureOptional } from '@/src/features/auth/ui/RequireFeature';
@@ -188,41 +197,17 @@ export function CustomerCreateModal({
     onClose();
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-md w-full mx-4">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-foreground">
-              {t('quickAddCustomer') || 'Create New Customer'}
-            </h3>
-            <button
-              onClick={handleClose}
-              disabled={loading}
-              className="text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground text-start">
+    <CmxDialog open={open} onOpenChange={(next) => { if (!next && !loading) handleClose(); }} stackAboveModals>
+      <CmxDialogContent className="max-w-md w-full p-0" scrollBody>
+        <CmxDialogHeader>
+          <CmxDialogTitle>
+            {t('quickAddCustomer') || 'Create New Customer'}
+          </CmxDialogTitle>
+          <CmxDialogDescription>
             {t('createQuickProfile') || 'Create a quick customer profile for this order'}
-          </p>
-        </div>
+          </CmxDialogDescription>
+        </CmxDialogHeader>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-4">
@@ -252,47 +237,38 @@ export function CustomerCreateModal({
 
           {/* Customer Type Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-foreground mb-2 text-start">
+            <Label className="mb-2 block text-start">
               {t('customerType') || 'Customer Type'}
-            </label>
+            </Label>
             <div className={`grid gap-3 ${hasB2B ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <button
+              <CmxButton
                 type="button"
+                variant={customerType === 'guest' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setCustomerType('guest')}
                 disabled={loading}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
-                  customerType === 'guest'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground hover:bg-border'
-                }`}
               >
                 {t('types.guest') || 'Guest'}
-              </button>
-              <button
+              </CmxButton>
+              <CmxButton
                 type="button"
+                variant={customerType === 'stub' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => setCustomerType('stub')}
                 disabled={loading}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
-                  customerType === 'stub'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground hover:bg-border'
-                }`}
               >
                 {t('stubRecommended') || 'Stub (Recommended)'}
-              </button>
+              </CmxButton>
               {hasB2B && (
-                <button
+                <CmxButton
                   type="button"
+                  variant={customerType === 'b2b' ? 'primary' : 'secondary'}
+                  size="sm"
                   onClick={() => setCustomerType('b2b')}
                   disabled={loading}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
-                    customerType === 'b2b'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground hover:bg-border'
-                  }`}
                 >
                   {tB2b('customer') || 'B2B'}
-                </button>
+                </CmxButton>
               )}
             </div>
             <p className="mt-1 text-xs text-muted-foreground text-start">
@@ -304,20 +280,16 @@ export function CustomerCreateModal({
 
           {/* First Name */}
           <div className="mb-4">
-            <label
-              htmlFor="create-customer-firstName"
-              className="block text-sm font-medium text-foreground mb-1 text-start"
-            >
+            <Label htmlFor="create-customer-firstName" className="mb-1 block text-start">
               {t('firstName') || 'First Name'} <span className="text-danger-text">*</span>
-            </label>
-            <input
+            </Label>
+            <CmxInput
               type="text"
               id="create-customer-firstName"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
               disabled={loading}
-              className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
               placeholder={t('firstName') || 'First Name'}
               required
             />
@@ -325,20 +297,16 @@ export function CustomerCreateModal({
 
           {/* Last Name */}
           <div className="mb-4">
-            <label
-              htmlFor="create-customer-lastName"
-              className="block text-sm font-medium text-foreground mb-1 text-start"
-            >
+            <Label htmlFor="create-customer-lastName" className="mb-1 block text-start">
               {t('lastName') || 'Last Name'}
-            </label>
-            <input
+            </Label>
+            <CmxInput
               type="text"
               id="create-customer-lastName"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               dir={isRTL ? 'rtl' : 'ltr'}
               disabled={loading}
-              className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
               placeholder={t('lastName') || 'Last Name'}
             />
           </div>
@@ -346,33 +314,30 @@ export function CustomerCreateModal({
           {/* Phone (for stub customers) */}
           {customerType !== 'guest' && (
             <div className="mb-4">
-              <label
-                htmlFor="create-customer-phone"
-                className="block text-sm font-medium text-foreground mb-1 text-start"
-              >
+              <Label htmlFor="create-customer-phone" className="mb-1 block text-start">
                 {t('phoneNumber') || 'Phone Number'} <span className="text-danger-text">*</span>
-              </label>
-              <div className="flex">
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  disabled={loading}
-                  className="inline-flex items-center px-3 py-2 border border-border bg-muted text-foreground text-sm focus:outline-none focus:ring-ring focus:border-ring disabled:opacity-50 rounded-s-md border-s border-e-0"
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.flag} {c.code}
-                    </option>
-                  ))}
-                </select>
-                <input
+              </Label>
+              <div className="flex gap-2" dir="ltr">
+                <div className="w-28 shrink-0">
+                  <CmxSelect
+                    aria-label={t('countryCode') || 'Country code'}
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    disabled={loading}
+                    options={COUNTRY_CODES.map((c) => ({
+                      value: c.code,
+                      label: `${c.flag} ${c.code}`,
+                    }))}
+                  />
+                </div>
+                <CmxInput
                   type="tel"
                   id="create-customer-phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   dir="ltr"
                   disabled={loading}
-                  className="flex-1 block w-full px-3 py-2 border border-border rounded-e-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed"
+                  className="flex-1 tabular-nums"
                   placeholder="90123456"
                   required
                 />
@@ -383,20 +348,16 @@ export function CustomerCreateModal({
           {/* Email (optional for stub, required-ish for B2B) */}
           {(customerType === 'stub' || customerType === 'b2b') && (
             <div className="mb-4">
-              <label
-                htmlFor="create-customer-email"
-                className="block text-sm font-medium text-foreground mb-1 text-start"
-              >
+              <Label htmlFor="create-customer-email" className="mb-1 block text-start">
                 {customerType === 'b2b' ? (t('email') || 'Email') : (t('emailOptional') || 'Email (Optional)')}
-              </label>
-              <input
+              </Label>
+              <CmxInput
                 type="email"
                 id="create-customer-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 dir="ltr"
                 disabled={loading}
-                className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                 placeholder="customer@example.com"
               />
             </div>
@@ -406,68 +367,54 @@ export function CustomerCreateModal({
           {customerType === 'b2b' && (
             <>
               <div className="mb-4">
-                <label
-                  htmlFor="create-customer-companyName"
-                  className="block text-sm font-medium text-foreground mb-1 text-start"
-                >
+                <Label htmlFor="create-customer-companyName" className="mb-1 block text-start">
                   {tB2b('companyName') || 'Company Name'} <span className="text-danger-text">*</span>
-                </label>
-                <input
+                </Label>
+                <CmxInput
                   type="text"
                   id="create-customer-companyName"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   dir={isRTL ? 'rtl' : 'ltr'}
                   disabled={loading}
-                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                   placeholder={tB2b('companyName') || 'Company Name'}
                 />
               </div>
               <div className="mb-4">
-                <label
-                  htmlFor="create-customer-companyName2"
-                  className="block text-sm font-medium text-foreground mb-1 text-start"
-                >
+                <Label htmlFor="create-customer-companyName2" className="mb-1 block text-start">
                   {tB2b('companyName2') || 'Company Name (Arabic)'}
-                </label>
-                <input
+                </Label>
+                <CmxInput
                   type="text"
                   id="create-customer-companyName2"
                   value={companyName2}
                   onChange={(e) => setCompanyName2(e.target.value)}
                   dir="rtl"
                   disabled={loading}
-                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-end"
+                  className="text-end"
                   placeholder={tB2b('companyName2') || 'Company Name (Arabic)'}
                 />
               </div>
               <div className="mb-4">
-                <label
-                  htmlFor="create-customer-taxId"
-                  className="block text-sm font-medium text-foreground mb-1 text-start"
-                >
+                <Label htmlFor="create-customer-taxId" className="mb-1 block text-start">
                   {tB2b('taxId') || 'Tax ID'}
-                </label>
-                <input
+                </Label>
+                <CmxInput
                   type="text"
                   id="create-customer-taxId"
                   value={taxId}
                   onChange={(e) => setTaxId(e.target.value)}
                   dir="ltr"
                   disabled={loading}
-                  className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
                   placeholder={tB2b('taxId') || 'Tax ID'}
                 />
               </div>
               <div className="mb-4 grid grid-cols-2 gap-3">
                 <div>
-                  <label
-                    htmlFor="create-customer-creditLimit"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
+                  <Label htmlFor="create-customer-creditLimit" className="mb-1 block text-start">
                     {tB2b('creditLimit') || 'Credit Limit'}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="number"
                     id="create-customer-creditLimit"
                     value={creditLimit}
@@ -476,18 +423,15 @@ export function CustomerCreateModal({
                     disabled={loading}
                     min={0}
                     step={0.01}
-                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                    className="tabular-nums"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="create-customer-paymentTermsDays"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
+                  <Label htmlFor="create-customer-paymentTermsDays" className="mb-1 block text-start">
                     {tB2b('paymentTermsDays') || 'Payment Terms (Days)'}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="number"
                     id="create-customer-paymentTermsDays"
                     value={paymentTermsDays}
@@ -495,7 +439,7 @@ export function CustomerCreateModal({
                     dir="ltr"
                     disabled={loading}
                     min={0}
-                    className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                    className="tabular-nums"
                     placeholder="30"
                   />
                 </div>
@@ -504,50 +448,26 @@ export function CustomerCreateModal({
           )}
 
           {/* Actions */}
-          <div className="mt-6 flex items-center justify-end space-x-3">
-            <button
+          <CmxDialogFooter className="mt-6">
+            <CmxButton
               type="button"
+              variant="outline"
               onClick={handleClose}
               disabled={loading}
-              className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {tCommon('cancel')}
-            </button>
-            <button
+            </CmxButton>
+            <CmxButton
               type="submit"
+              variant="primary"
+              loading={loading}
               disabled={loading}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4 text-on-solid -ms-1 me-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  {t('creating') || 'Creating...'}
-                </>
-              ) : (
-                t('addCustomer') || 'Add Customer'
-              )}
-            </button>
-          </div>
+              {loading ? (t('creating') || 'Creating...') : (t('addCustomer') || 'Add Customer')}
+            </CmxButton>
+          </CmxDialogFooter>
         </form>
-      </div>
-    </div>
+      </CmxDialogContent>
+    </CmxDialog>
   );
 }

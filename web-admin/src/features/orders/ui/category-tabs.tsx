@@ -9,6 +9,7 @@
 import { memo } from 'react';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useTranslations } from 'next-intl';
+import { CmxButton } from '@ui/primitives';
 import {
   Scissors,
   Droplet,
@@ -89,21 +90,23 @@ export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCat
           const isSelected = selectedCategory === category.service_category_code;
 
           return (
-            <button
+            <CmxButton
               key={category.service_category_code}
+              type="button"
+              variant="ghost"
               onClick={() => onSelectCategory(category.service_category_code)}
               role="tab"
               aria-selected={isSelected}
               aria-controls={`category-${category.service_category_code}`}
               tabIndex={isSelected ? 0 : -1}
               className={`min-h-[44px] px-4 py-2 rounded-lg font-medium transition-all flex items-center flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 gap-2 ${isSelected
-                  ? 'bg-primary text-primary-foreground shadow-md'
+                  ? 'bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:text-primary-foreground'
                   : 'bg-muted text-foreground hover:bg-border'
                 }`}
             >
               {IconComponent && <IconComponent className="w-4 h-4" aria-hidden="true" />}
               <span className="text-start">{displayName}</span>
-            </button>
+            </CmxButton>
           );
         })}
       </div>

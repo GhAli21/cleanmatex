@@ -483,7 +483,7 @@ import { debounce } from "lodash-es"; // Not import _ from 'lodash'
 
 See also: [Multi-Tenancy Enforcement](./multitenancy.md#tenant-context-management-mandatory)
 
-- **Always filter by `tenant_org_id`** in every query
+- **Always filter by `tenant_org_id`** in every query — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
 - **Use composite foreign keys** for tenant-scoped joins
 - **Test tenant isolation** in unit tests
 - **Never expose** tenant data across boundaries
@@ -525,6 +525,7 @@ Document which of the following apply to the feature (mark N/A if not applicable
 - [ ] **New feature flag** — Add to `sys_ff_*` if feature is gated
 - [ ] **New plan limit / constraint** — Add to plan limits if feature is tiered
 - [ ] **New i18n keys** — Add to `web-admin/messages/en/**` / `web-admin/messages/ar/**` (search existing first)
+- [ ] **User-facing feedback** — Use `cmxMessage` / `useMessage()` when applicable (`docs/dev/rules/cmx-message.md`); no new legacy toast helpers
 - [ ] **New API route(s)** — Document endpoint(s) and version
 - [ ] **Database migration(s)** — New tables, columns, indexes, RLS
 - [ ] **New constants / types** — Add to `lib/constants/` and `lib/types/`

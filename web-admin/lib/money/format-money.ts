@@ -4,6 +4,13 @@
  */
 
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import {
+  DEFAULT_RESOLVED_EXTRA_CONFIG,
+  NUMBER_GROUPING_LOCALES,
+  NUMBER_SCRIPTS,
+  type NumberGroupingLocale,
+  type NumberScript,
+} from '@/lib/constants/tenant-extra-config';
 
 /**
  *
@@ -18,6 +25,10 @@ export interface FormatMoneyOptions {
   decimalPlaces: number;
   /** UI locale for digit grouping and script; defaults to en */
   locale?: MoneyLocale;
+  /** Optional numeral script override ('LATN' = 123 GCC default, 'ARAB' = ١٢٣). */
+  numberScript?: NumberScript;
+  /** Optional grouping/decimal separator convention ('EN_US' | 'AR_LATN' | 'AR_NATIVE'). */
+  groupingLocale?: NumberGroupingLocale;
 }
 
 /**
@@ -36,10 +47,32 @@ function coerceAmount(amount: MoneyAmountInput): number {
 
 /**
  * BCP 47 locale for Intl when UI is EN vs AR (GCC-style).
+ * When `script` or `grouping` options are omitted, keeps legacy `'en' | 'ar'`
+ * return values; when provided (or inside formatting calls), respects
+ * `NUMBER_SCRIPT` ('LATN' GCC default vs 'ARAB') and `NUMBER_GROUPING_LOCALE`.
  * @param locale
+ * @param scriptOpts
  */
-export function resolveMoneyIntlLocale(locale?: MoneyLocale): string {
-  return locale === 'ar' ? 'ar' : 'en';
+export function resolveMoneyIntlLocale(
+  locale?: MoneyLocale,
+  scriptOpts?: {
+    numberScript?: NumberScript;
+    groupingLocale?: NumberGroupingLocale;
+  }
+): string {
+  if (!scriptOpts || (scriptOpts.numberScript === undefined && scriptOpts.groupingLocale === undefined)) {
+    return locale === 'ar' ? 'ar' : 'en';
+  }
+  const script = scriptOpts.numberScript ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberScript;
+  const grouping = scriptOpts.groupingLocale ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberGroupingLocale;
+  if (script === NUMBER_SCRIPTS.ARAB || grouping === NUMBER_GROUPING_LOCALES.AR_NATIVE) {
+    return locale === 'ar' ? 'ar-u-nu-arab' : 'en-u-nu-arab';
+  }
+  if (grouping === NUMBER_GROUPING_LOCALES.AR_LATN) {
+    return locale === 'ar' ? 'ar-u-nu-latn' : 'en-u-nu-latn';
+  }
+  // EN_US + LATN: standard Western 123 digits with dot decimal & comma grouping
+  return 'en-US';
 }
 
 function clampDecimalPlaces(decimalPlaces: number): number {
@@ -98,7 +131,10 @@ export function roundMoneyAmount(amount: MoneyAmountInput, decimalPlaces: number
 export function formatMoneyAmount(amount: MoneyAmountInput, options: FormatMoneyOptions): string {
   const cc = options.currencyCode?.trim() ?? '';
   const dp = clampDecimalPlaces(options.decimalPlaces);
-  const intlLocale = resolveMoneyIntlLocale(options.locale);
+  const intlLocale = resolveMoneyIntlLocale(options.locale, {
+    numberScript: options.numberScript ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberScript,
+    groupingLocale: options.groupingLocale ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberGroupingLocale,
+  });
   const num = coerceAmount(amount);
   if (!cc) {
     return new Intl.NumberFormat(intlLocale, {
@@ -130,7 +166,10 @@ export function formatMoneyAmountWithCode(
 ): string {
   const cc = options.currencyCode?.trim() ?? '';
   const dp = clampDecimalPlaces(options.decimalPlaces);
-  const intlLocale = resolveMoneyIntlLocale(options.locale);
+  const intlLocale = resolveMoneyIntlLocale(options.locale, {
+    numberScript: options.numberScript ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberScript,
+    groupingLocale: options.groupingLocale ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberGroupingLocale,
+  });
   const num = new Intl.NumberFormat(intlLocale, {
     minimumFractionDigits: dp,
     maximumFractionDigits: dp,

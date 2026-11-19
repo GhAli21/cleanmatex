@@ -240,7 +240,11 @@ export default function RefundsListClient({
     {
       accessorKey: 'refund_no',
       header: t('refundNo'),
-      cell: ({ getValue }) => <span className="font-mono text-xs font-medium">{getValue() as string}</span>,
+      cell: ({ getValue }) => (
+        <span className="font-mono text-xs font-medium">
+          <bdi dir="ltr">{getValue() as string}</bdi>
+        </span>
+      ),
       meta: { isCopyable: true },
     },
     {
@@ -251,7 +255,7 @@ export default function RefundsListClient({
           href={`${VOUCHER_RELATED_HREFS.order(row.original.order_id)}?tab=financial`}
           className="font-medium text-primary-text hover:underline"
         >
-          {row.original.order_no ?? row.original.order_id}
+          <bdi dir="ltr">{row.original.order_no ?? row.original.order_id}</bdi>
         </Link>
       ),
       meta: { isCopyable: true },
@@ -261,7 +265,10 @@ export default function RefundsListClient({
       header: t('amount'),
       cell: ({ row }) => (
         <span className="font-mono font-medium tabular-nums">
-          {row.original.refund_amount.toFixed(3)} <span className="text-xs text-muted-foreground">{row.original.currency_code}</span>
+          <bdi dir="ltr">
+            {row.original.refund_amount.toFixed(3)}{' '}
+            <span className="text-xs text-muted-foreground">{row.original.currency_code}</span>
+          </bdi>
         </span>
       ),
       meta: { disableFilter: true },

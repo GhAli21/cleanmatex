@@ -1,8 +1,11 @@
 'use client'
 
+import { useEffect, useCallback } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { X, FileText, ArrowUpRight, ArrowDownLeft, Hash, Calendar, Globe } from 'lucide-react'
+import { CmxButton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives'
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap'
 
 import type { ErpLiteGlJournalDetail } from '@/lib/services/erp-lite-reporting.service'
 import {
@@ -30,11 +33,29 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const closeDetail = () => {
+  const closeDetail = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete('journalId')
     router.push(`${pathname}?${params.toString()}`)
-  }
+  }, [pathname, router, searchParams])
+
+  const trapRef = useFocusTrap(true, { returnFocus: true })
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeDetail()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [closeDetail])
 
   const totalDebit = journal.lines.reduce(
     (s, l) => (l.entry_side === 'DEBIT' ? s + l.amount_txn_currency : s),
@@ -57,7 +78,9 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
 
       {/* Panel */}
       <aside
-        role="complementary"
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
         aria-label={t('gl.detail.panelLabel')}
         className="fixed inset-y-0 end-0 z-50 flex w-full max-w-lg flex-col bg-surface shadow-2xl"
       >
@@ -68,7 +91,7 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
               {t('gl.detail.eyebrow')}
             </p>
             <h2 className="truncate text-xl font-semibold text-foreground">
-              {journal.journal_no}
+              <bdi dir="ltr">{journal.journal_no}</bdi>
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <StatusBadge status={journal.status_code} />
@@ -77,13 +100,16 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
               </span>
             </div>
           </div>
-          <button
+          <CmxButton
+            type="button"
+            variant="ghost"
+            size="icon"
             onClick={closeDetail}
             aria-label={t('gl.detail.close')}
-            className="ms-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            className="ms-4 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
           >
             <X className="h-4 w-4" />
-          </button>
+          </CmxButton>
         </div>
 
         {/* Scrollable body */}
@@ -142,47 +168,51 @@ export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetail
               {t('gl.detail.lines')} ({journal.lines.length})
             </p>
             <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
-              <table className="min-w-full text-sm">
-                <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-start font-medium">#</th>
-                    <th className="px-3 py-2 text-start font-medium">{t('columns.account')}</th>
-                    <th className="px-3 py-2 text-start font-medium">{t('columns.side')}</th>
-                    <th className="px-3 py-2 text-end font-medium">{t('gl.detail.amountTxn')}</th>
-                    <th className="px-3 py-2 text-end font-medium">{t('gl.detail.amountBase')}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="min-w-full text-sm">
+                <TableHeader className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground">
+                  <TableRow>
+                    <TableHead className="px-3 py-2 text-start font-medium">#</TableHead>
+                    <TableHead className="px-3 py-2 text-start font-medium">{t('columns.account')}</TableHead>
+                    <TableHead className="px-3 py-2 text-start font-medium">{t('columns.side')}</TableHead>
+                    <TableHead className="px-3 py-2 text-end font-medium">{t('gl.detail.amountTxn')}</TableHead>
+                    <TableHead className="px-3 py-2 text-end font-medium">{t('gl.detail.amountBase')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {journal.lines.map((line) => (
-                    <tr
+                    <TableRow
                       key={line.line_no}
                       className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
                     >
-                      <td className="px-3 py-2 text-muted-foreground">
+                      <TableCell className="px-3 py-2 text-muted-foreground tabular-nums">
                         {line.line_no}
-                      </td>
-                      <td className="px-3 py-2">
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
                         <div className="font-medium">{line.account_code}</div>
                         <div className="text-xs text-muted-foreground">
                           {line.account_name}
                         </div>
-                      </td>
-                      <td className="px-3 py-2">
+                      </TableCell>
+                      <TableCell className="px-3 py-2">
                         <SideChip side={line.entry_side} />
-                      </td>
-                      <td className="px-3 py-2 text-end font-mono text-xs">
-                        {formatErpLiteMoney(line.amount_txn_currency, {
-                          ...displayConfig,
-                          currencyCode: journal.currency_code || displayConfig.currencyCode,
-                        })}
-                      </td>
-                      <td className="px-3 py-2 text-end font-mono text-xs text-muted-foreground">
-                        {formatErpLiteMoney(line.amount_base_currency, displayConfig)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-end font-mono text-xs tabular-nums">
+                        <bdi dir="ltr">
+                          {formatErpLiteMoney(line.amount_txn_currency, {
+                            ...displayConfig,
+                            currencyCode: journal.currency_code || displayConfig.currencyCode,
+                          })}
+                        </bdi>
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-end font-mono text-xs text-muted-foreground tabular-nums">
+                        <bdi dir="ltr">
+                          {formatErpLiteMoney(line.amount_base_currency, displayConfig)}
+                        </bdi>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Totals footer */}

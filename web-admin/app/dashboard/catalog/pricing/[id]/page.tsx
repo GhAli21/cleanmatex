@@ -14,9 +14,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { CmxInput } from '@ui/primitives'
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
-import { CmxButton } from '@ui/primitives'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -30,7 +30,7 @@ import { PriceListItemModal } from '@features/catalog/ui/price-list-item-modal'
 import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 import { BulkImportModal } from '@features/catalog/ui/bulk-import-modal'
 import { PriceHistoryTimeline } from '@features/catalog/ui/price-history-timeline'
-import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
+import { cmxMessage } from '@ui/feedback'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 
@@ -120,7 +120,7 @@ export default function PriceListDetailPage() {
         })
       } catch (err: any) {
         setError(err.message || 'Failed to load price list')
-        showErrorToast(err.message || 'Failed to load price list')
+        cmxMessage.error(err.message || 'Failed to load price list')
       } finally {
         setLoading(false)
       }
@@ -146,10 +146,10 @@ export default function PriceListDetailPage() {
 
       setPriceList({ ...priceList!, ...formData } as PriceListWithItems)
       setEditing(false)
-      showSuccessToast('Price list updated successfully')
+      cmxMessage.success('Price list updated successfully')
     } catch (err: any) {
       setError(err.message || 'Failed to update price list')
-      showErrorToast(err.message || 'Failed to update price list')
+      cmxMessage.error(err.message || 'Failed to update price list')
     } finally {
       setSaving(false)
     }
@@ -173,10 +173,10 @@ export default function PriceListDetailPage() {
       const json2 = await res2.json()
       if (res2.ok) {
         setPriceList(json2.data)
-        showSuccessToast('Item deleted successfully')
+        cmxMessage.success('Item deleted successfully')
       }
     } catch (err: any) {
-      showErrorToast(err.message || 'Failed to delete item')
+      cmxMessage.error(err.message || 'Failed to delete item')
     }
   }
 
@@ -195,9 +195,9 @@ export default function PriceListDetailPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      showSuccessToast('Export completed')
+      cmxMessage.success('Export completed')
     } catch (err: any) {
-      showErrorToast(err.message || 'Failed to export')
+      cmxMessage.error(err.message || 'Failed to export')
     }
   }
 
@@ -292,14 +292,18 @@ export default function PriceListDetailPage() {
       <CmxCard className="p-0 overflow-hidden">
         {/* Tab Navigation */}
         <div className="border-b border-border">
-          <nav className="flex -mb-px">
+          <nav className="flex -mb-px" role="tablist">
             {tabs.map((tab) => (
-              <button
+              <CmxButton
                 key={tab.id}
+                type="button"
+                variant="ghost"
+                role="tab"
+                aria-selected={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  px-6 py-4 text-sm font-medium border-b-2 transition-colors
-                  text-start
+                  rounded-none px-6 py-4 text-sm font-medium border-b-2 transition-colors
+                  text-start hover:bg-transparent
                   ${activeTab === tab.id
                     ? 'border-primary text-primary-text'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -308,7 +312,7 @@ export default function PriceListDetailPage() {
               >
                 <span className="me-2">{tab.icon}</span>
                 {tab.label}
-              </button>
+              </CmxButton>
             ))}
           </nav>
         </div>
@@ -449,17 +453,17 @@ function ItemsTab({
       if (!res.ok) throw new Error(json?.error || 'Failed to import products')
 
       if (json.errors && json.errors.length > 0) {
-        showErrorToast(
+        cmxMessage.error(
           `Import completed with ${json.errors.length} errors. ${json.imported} products imported.`
         )
       } else {
-        showSuccessToast(`Successfully imported ${json.imported} products with default prices`)
+        cmxMessage.success(`Successfully imported ${json.imported} products with default prices`)
       }
 
       setShowImportConfirm(false)
       onReload()
     } catch (err: any) {
-      showErrorToast(err.message || 'Failed to import products')
+      cmxMessage.error(err.message || 'Failed to import products')
     } finally {
       setImportingAll(false)
     }
@@ -512,17 +516,11 @@ function ItemsTab({
             </div>
 
             <div className="space-y-2">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={overwriteExisting}
-                  onChange={(e) => setOverwriteExisting(e.target.checked)}
-                  className="rounded"
-                />
-                <span className="text-sm">
-                  Overwrite existing price list items (if unchecked, only new products will be added)
-                </span>
-              </label>
+              <CmxCheckbox
+                checked={overwriteExisting}
+                onChange={(e) => setOverwriteExisting(e.target.checked)}
+                label="Overwrite existing price list items (if unchecked, only new products will be added)"
+              />
             </div>
 
             <div className="text-sm text-muted-foreground">
@@ -556,43 +554,45 @@ function ItemsTab({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-muted text-start border-b">
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Price ({currencyCode})</th>
-                <th className="px-4 py-3">Discount %</th>
-                <th className="px-4 py-3">Quantity Range</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-full text-sm">
+            <TableHeader>
+              <TableRow className="bg-muted text-start border-b">
+                <TableHead className="px-4 py-3">Product</TableHead>
+                <TableHead className="px-4 py-3">Price ({currencyCode})</TableHead>
+                <TableHead className="px-4 py-3">Discount %</TableHead>
+                <TableHead className="px-4 py-3">Quantity Range</TableHead>
+                <TableHead className="px-4 py-3">Status</TableHead>
+                <TableHead className="px-4 py-3">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((item) => (
-                <tr key={item.id} className="border-b hover:bg-muted">
-                  <td className="px-4 py-3">
+                <TableRow key={item.id} className="border-b hover:bg-muted">
+                  <TableCell className="px-4 py-3">
                     <div>
                       <div className="font-medium">{item.product_name || item.product_code}</div>
                       {item.product_name2 && (
                         <div className="text-xs text-muted-foreground">{item.product_name2}</div>
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3">{fmtPrice(Number(item.price))}</td>
-                  <td className="px-4 py-3">{Number(item.discount_percent || 0).toFixed(2)}%</td>
-                  <td className="px-4 py-3">
-                    {item.min_quantity}
-                    {item.max_quantity ? ` - ${item.max_quantity}` : '+'}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3 tabular-nums"><bdi dir="ltr">{fmtPrice(Number(item.price))}</bdi></TableCell>
+                  <TableCell className="px-4 py-3 tabular-nums"><bdi dir="ltr">{Number(item.discount_percent || 0).toFixed(2)}%</bdi></TableCell>
+                  <TableCell className="px-4 py-3 tabular-nums">
+                    <bdi dir="ltr">
+                      {item.min_quantity}
+                      {item.max_quantity ? ` - ${item.max_quantity}` : '+'}
+                    </bdi>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <span className={`px-2 py-1 text-xs rounded ${item.is_active
                       ? 'bg-success-bg text-success-text'
                       : 'bg-muted text-foreground'
                       }`}>
                       {item.is_active ? 'Active' : 'Inactive'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <CmxButton
                         size="sm"
@@ -609,11 +609,11 @@ function ItemsTab({
                         <Trash2 className="w-4 h-4 text-danger-text" />
                       </CmxButton>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
@@ -667,7 +667,7 @@ function SettingsTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Name (EN) *</label>
+          <Label className="block mb-1">Name (EN) *</Label>
           <CmxInput
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -676,7 +676,7 @@ function SettingsTab({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Name (AR)</label>
+          <Label className="block mb-1">Name (AR)</Label>
           <CmxInput
             value={formData.name2}
             onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
@@ -684,46 +684,42 @@ function SettingsTab({
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Description (EN)</label>
-          <textarea
+          <Label className="block mb-1">Description (EN)</Label>
+          <CmxTextarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             disabled={!editing}
-            className="w-full px-3 py-2 border border-border rounded-lg"
             rows={3}
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Description (AR)</label>
-          <textarea
+          <Label className="block mb-1">Description (AR)</Label>
+          <CmxTextarea
             value={formData.description2}
             onChange={(e) => setFormData({ ...formData, description2: e.target.value })}
             disabled={!editing}
-            className="w-full px-3 py-2 border border-border rounded-lg"
             rows={3}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Type</label>
-          <select
+          <CmxSelect
+            label="Type"
             value={formData.price_list_type}
-            onChange={(e) => setFormData({ ...formData, price_list_type: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, price_list_type: e.target.value as PriceListType })}
             disabled={!editing || hasItems}
-            className="w-full px-3 py-2 border border-border rounded-lg"
-          >
-            <option value="standard">Standard</option>
-            <option value="express">Express</option>
-            <option value="vip">VIP</option>
-            <option value="seasonal">Seasonal</option>
-            <option value="b2b">B2B</option>
-            <option value="promotional">Promotional</option>
-          </select>
-          {hasItems && (
-            <p className="text-xs text-muted-foreground mt-1">Type cannot be changed when items exist</p>
-          )}
+            helpText={hasItems ? 'Type cannot be changed when items exist' : undefined}
+            options={[
+              { value: 'standard', label: 'Standard' },
+              { value: 'express', label: 'Express' },
+              { value: 'vip', label: 'VIP' },
+              { value: 'seasonal', label: 'Seasonal' },
+              { value: 'b2b', label: 'B2B' },
+              { value: 'promotional', label: 'Promotional' },
+            ]}
+          />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Priority</label>
+          <Label className="block mb-1">Priority</Label>
           <CmxInput
             type="number"
             value={formData.priority}
@@ -732,7 +728,7 @@ function SettingsTab({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Effective From</label>
+          <Label className="block mb-1">Effective From</Label>
           <CmxInput
             type="date"
             value={formData.effective_from}
@@ -741,7 +737,7 @@ function SettingsTab({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Effective To</label>
+          <Label className="block mb-1">Effective To</Label>
           <CmxInput
             type="date"
             value={formData.effective_to}
@@ -750,26 +746,20 @@ function SettingsTab({
           />
         </div>
         <div className="md:col-span-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.is_default}
-              onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-              disabled={!editing}
-            />
-            <span>Default price list for this type</span>
-          </label>
+          <CmxCheckbox
+            checked={formData.is_default}
+            onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+            disabled={!editing}
+            label="Default price list for this type"
+          />
         </div>
         <div className="md:col-span-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              disabled={!editing}
-            />
-            <span>Active</span>
-          </label>
+          <CmxCheckbox
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            disabled={!editing}
+            label="Active"
+          />
         </div>
       </div>
     </div>

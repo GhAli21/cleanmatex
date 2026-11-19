@@ -12,6 +12,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl'
 import { AuthProvider } from '@/lib/auth/auth-context'
+import { TenantExtraConfigProvider } from '@/lib/context/tenant-extra-config-context'
 import { TenantCurrencyProvider } from '@/lib/context/tenant-currency-context'
 import { RoleProvider } from '@/lib/auth/role-context'
 import { Toaster } from 'sonner'
@@ -19,6 +20,7 @@ import { AlertDialogProvider } from '@ui/feedback'
 import { PermissionsInspectorProvider } from '@features/access/ui/permissions-inspector'
 import { type Locale } from '@/lib/utils/locale.client'
 import type { UiColorMode } from '@/lib/constants/ui-theme'
+import type { ResolvedExtraConfig } from '@/lib/types/tenant-extra-config'
 
 /**
  *
@@ -28,6 +30,7 @@ import type { UiColorMode } from '@/lib/constants/ui-theme'
  * @param root0.messages
  * @param root0.timeZone Tenant IANA timezone for date formatting; undefined falls back to the viewer's own
  * @param root0.mode The person's colour mode (`<html data-mode>`), so toasts match it
+ * @param root0.extraConfig Server-resolved Organization extra config defaults
  */
 export function AppProviders({
   children,
@@ -35,12 +38,14 @@ export function AppProviders({
   messages,
   timeZone,
   mode = 'SYSTEM',
+  extraConfig,
 }: {
   children: ReactNode;
   locale?: Locale;
   messages: AbstractIntlMessages;
   timeZone?: string;
   mode?: UiColorMode;
+  extraConfig?: ResolvedExtraConfig;
 }) {
   // Create QueryClient instance with default options
   const [queryClient] = useState(
@@ -70,16 +75,18 @@ export function AppProviders({
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
         <AuthProvider>
-          <TenantCurrencyProvider>
-            <RoleProvider>
-              <AlertDialogProvider>
-                <PermissionsInspectorProvider>
-                  {children}
-                  <Toaster position={toastPosition} theme={toastTheme} richColors closeButton />
-                </PermissionsInspectorProvider>
-              </AlertDialogProvider>
-            </RoleProvider>
-          </TenantCurrencyProvider>
+          <TenantExtraConfigProvider value={extraConfig}>
+            <TenantCurrencyProvider>
+              <RoleProvider>
+                <AlertDialogProvider>
+                  <PermissionsInspectorProvider>
+                    {children}
+                    <Toaster position={toastPosition} theme={toastTheme} richColors closeButton />
+                  </PermissionsInspectorProvider>
+                </AlertDialogProvider>
+              </RoleProvider>
+            </TenantCurrencyProvider>
+          </TenantExtraConfigProvider>
         </AuthProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>

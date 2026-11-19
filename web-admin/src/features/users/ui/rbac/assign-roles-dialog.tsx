@@ -15,8 +15,14 @@ import { useState, useMemo } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Shield } from 'lucide-react'
 import { cmxMessage } from '@ui/feedback'
-import { CmxButton } from '@ui/primitives/cmx-button'
-import { CmxCheckbox } from '@ui/primitives/cmx-checkbox'
+import {
+  CmxButton,
+  CmxCheckbox,
+  CmxInput,
+  CmxRadio,
+  CmxSelect,
+  Label,
+} from '@ui/primitives'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -76,7 +82,6 @@ export function AssignRolesDialog({
   // Re-sync selection when dialog opens or assigned codes change
   useMemo(() => {
     setSelected(new Set(assignedCodes))
-   
   }, [open])
 
   const added = useMemo(
@@ -133,60 +138,50 @@ export function AssignRolesDialog({
         <div className="px-6 py-4 space-y-4">
           {/* Scope selector */}
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="scope"
-                value="tenant"
-                checked={scope === 'tenant'}
-                onChange={() => setScope('tenant')}
-                className="h-4 w-4 text-primary-text"
-              />
-              {t('scopeTenant')}
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <input
-                type="radio"
-                name="scope"
-                value="resource"
-                checked={scope === 'resource'}
-                onChange={() => setScope('resource')}
-                className="h-4 w-4 text-primary-text"
-              />
-              {t('scopeResource')}
-            </label>
+            <CmxRadio
+              name="scope"
+              size="sm"
+              value="tenant"
+              checked={scope === 'tenant'}
+              onChange={() => setScope('tenant')}
+              label={t('scopeTenant')}
+            />
+            <CmxRadio
+              name="scope"
+              size="sm"
+              value="resource"
+              checked={scope === 'resource'}
+              onChange={() => setScope('resource')}
+              label={t('scopeResource')}
+            />
           </div>
 
           {/* Resource type/ID — shown only for resource scope */}
           {scope === 'resource' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
+                <Label className="mb-1 block text-xs">
                   {t('resourceType')}
-                </label>
-                <select
+                </Label>
+                <CmxSelect
                   value={resourceType}
                   onChange={(e) => setResourceType(e.target.value)}
-                  className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">{tCommon('select')}</option>
-                  {RESOURCE_TYPES.map((rt) => (
-                    <option key={rt} value={rt}>
-                      {rt}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: tCommon('select') },
+                    ...RESOURCE_TYPES.map((rt) => ({ value: rt, label: rt })),
+                  ]}
+                />
               </div>
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
+                <Label className="mb-1 block text-xs">
                   {t('resourceId')}
-                </label>
-                <input
+                </Label>
+                <CmxInput
                   type="text"
                   value={resourceId}
                   onChange={(e) => setResourceId(e.target.value)}
                   placeholder="UUID"
-                  className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  dir="ltr"
                 />
               </div>
             </div>
@@ -200,44 +195,46 @@ export function AssignRolesDialog({
           ) : (
             <div className="h-[300px] overflow-y-auto space-y-1 border border-border rounded-md p-2">
               {roles.map((role) => (
-                <label
+                <div
                   key={role.code}
-                  className="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-secondary transition-colors"
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-secondary transition-colors"
                 >
                   <CmxCheckbox
+                    id={`assign-role-${role.code}`}
+                    size="sm"
                     checked={selected.has(role.code)}
                     onChange={() => toggle(role.code)}
-                    className="mt-0.5"
+                    label={
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">
+                            {isAr && role.name2 ? role.name2 : role.name}
+                          </span>
+                          {role.is_system && (
+                            <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-info-bg text-info-text">
+                              System
+                            </span>
+                          )}
+                          {role.permission_count !== undefined && (
+                            <span className="px-1.5 py-0.5 text-xs rounded-full bg-secondary text-muted-foreground tabular-nums">
+                              {role.permission_count} perms
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          <bdi dir="ltr">{role.code}</bdi>
+                        </div>
+                      </div>
+                    }
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-foreground">
-                        {isAr && role.name2 ? role.name2 : role.name}
-                      </span>
-                      {role.is_system && (
-                        <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-info-bg text-info-text">
-                          {/* system badge */}
-                          System
-                        </span>
-                      )}
-                      {role.permission_count !== undefined && (
-                        <span className="px-1.5 py-0.5 text-xs rounded-full bg-secondary text-muted-foreground">
-                          {role.permission_count} perms
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground font-mono">
-                      {role.code}
-                    </div>
-                  </div>
-                </label>
+                </div>
               ))}
             </div>
           )}
 
           {/* Change summary */}
           {(added.length > 0 || removed.length > 0) && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground tabular-nums">
               {t('changesSummary', { added: added.length, removed: removed.length })}
             </p>
           )}

@@ -1456,8 +1456,10 @@ export function OrderDetailsFullClient({
               {t.awaitingDropoffHint ??
                 'Customer booked remotely; confirm when garments arrive at this branch.'}
             </p>
-            <button
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="sm"
               disabled={intakeConfirming}
               onClick={async (e) => {
                 e.stopPropagation();
@@ -1478,12 +1480,12 @@ export function OrderDetailsFullClient({
                   setIntakeConfirming(false);
                 }
               }}
-              className="rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground hover:bg-warning/90 disabled:opacity-50"
+              className="rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground hover:bg-warning/90"
             >
               {intakeConfirming
                 ? (t.confirmIntakeWorking ?? 'Saving…')
                 : (t.confirmIntakeCta ?? 'Mark received at branch')}
-            </button>
+            </CmxButton>
           </div>
         )}
       {/* Header */}
@@ -1503,15 +1505,17 @@ export function OrderDetailsFullClient({
             <StartOrderEditButton orderId={String(order.id)} label={t.edit} />
           )}
           {publicTrackingPath && (
-            <button
+            <CmxButton
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleCopyPublicLink}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-info-text bg-info-bg border border-info-border rounded-lg hover:bg-info-border/50"
+              className="inline-flex items-center gap-2 text-info-text bg-info-bg border-info-border hover:bg-info-border/50"
             >
               <Link2 className="w-4 h-4" />
               <span>{t.publicTrackingLink ?? 'Public tracking link'}</span>
               <Copy className="w-3 h-3 opacity-70" />
-            </button>
+            </CmxButton>
           )}
         </div>
       </div>
@@ -1746,31 +1750,37 @@ export function OrderDetailsFullClient({
             {/* Quick navigation links */}
             <div className="mt-4 pt-4 border-t border-border space-y-2">
               <div className="flex flex-col gap-2 items-start">
-                <button
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleTabChange('payments')}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:text-primary-text/80"
+                  className="h-auto px-0 py-0.5 inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:bg-transparent hover:text-primary-text/80"
                 >
                   {t.paymentDetails}
                   <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
-                </button>
-                <button
+                </CmxButton>
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleTabChange('history')}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:text-primary-text/80"
+                  className="h-auto px-0 py-0.5 inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:bg-transparent hover:text-primary-text/80"
                 >
                   {t.tabsHistory ?? 'Order History'}
                   <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
-                </button>
+                </CmxButton>
                 {!isTerminalStatus && (
-                  <button
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleTabChange('actions')}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:text-primary-text/80"
+                    className="h-auto px-0 py-0.5 inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:bg-transparent hover:text-primary-text/80"
                   >
                     {t.quickActions}
                     <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
-                  </button>
+                  </CmxButton>
                 )}
               </div>
             </div>

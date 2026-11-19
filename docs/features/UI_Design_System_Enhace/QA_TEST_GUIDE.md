@@ -177,6 +177,10 @@ Set the mode on **Account → Appearance → "Light or dark"** (no console trick
 | M16 | Settings → User Preferences | Look at the "Appearance" card; click "Open Appearance" | No Theme or Display Density dropdowns any more; the link opens Account → Appearance. EN and AR. |
 | M17 | Any page in **Dark** | Do something that shows a toast (e.g. save Appearance) | The toast is dark with readable text; in Light it is light; with "Same as this device" it follows the device. |
 | M18 | Account → Appearance in **Arabic** | Look at the browser tab title | "المظهر" (not "Appearance"). |
+| M19 | Sign in once with an Organization that has a main and a dark logo, sign out, open the sign-in page. Set Appearance to Dark (or the device to dark) and reload it | Look at the logo above the sign-in form | The main logo in light, the dark logo in dark. With only a main logo, the same logo shows in both. |
+| M20 | Settings → Branding. Make a theme the one in use in two browser tabs and press "Make active" at the same moment | Look at the message in the tab that lost | A message "Another theme was made active at the same moment. Try again." (Arabic: "تم تفعيل سمة أخرى في اللحظة نفسها. حاول مرة أخرى.") and not a generic save error. The list still shows one theme in use. |
+| M21 | Open a dashboard page with a chart legend (for example the dashboard sales chart) in Dark | Look at the legend words | The words are readable light text. The small swatch keeps the series colour. |
+| M22 | Settings → Label printing (or Catalog → edit a product) in Dark, then in Light | Look at the bar with Save / Cancel at the bottom of the form, and the faint colour wash at the top of each form section | Dark: the bar is dark like the cards (not a white strip). The section wash follows the theme colour (green for a complete section). Light: same look as before. |
 
 ## Financial_Expert_Tester Results
 
@@ -298,3 +302,328 @@ Set the mode on **Account → Appearance → "Light or dark"** (no console trick
 **Test data left behind (UIDS):**
 - Demo Laundry: theme "Ocean" (Arabic name أوشن, starts from Ocean, default density Comfortable) is IN USE, with no UI way back to CleanMateX. Admin Appearance restored to "Same as the Organization" / Medium; language English.
 - HQ: theme TEST_SKY exists and is Inactive (not default). SOFT Small corners restored to 0.5rem. OCEAN was deactivated and reactivated (Active now).
+
+### Retest r2 2026-11-19 — UI Design System
+
+**Retest r2 — 2026-11-19, 16:14 to 20:29 Asia/Muscat (UTC+4).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: the owner deployed new updates at 16:14 and asked to retest the FAILED, BLOCKED and PENDING (PARTIAL / NOT RUN) rows of this guide and the other QA guide. Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch; admin, plus viewer and operator for the role rows) and HQ https://hqsaas.cleanmatex.com (Incognito). Real mouse and keyboard, no direct API calls, no page scripts, no Jest. Credentials: see the credentials file, none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\retest2\shots\` (names in the Shot column; the Round 1 shots stay in `C:\Users\JHNLP\qa-20261119\shots\`). Notes: Round 1 text above is untouched. Rows needing a write the owner has not approved, and the HIGH-IMPACT rows, were not run and are marked NOT RUN, or BLOCKED where a missing screen is the reason. No order was paid or submitted in r2.
+
+**Guide changes found while writing back.** The guide I tested from (45,356 B, 11:26) was edited again by the owner at 17:56 during the retest: new row PR-05 D18 and new rows PR-07 task 6 M13 to M18 (7 rows). They are listed below as NOT RUN. Only text above this section changed in that edit; Round 1 results and all other rows are unchanged, and there are no Dev notes.
+
+#### Retest r2 results
+
+Columns: r1 = Round 1 result (or "- (new row)"), r2 = this retest. Rows that passed in Round 1 and were not re-run keep PASS.
+
+| Row | r1 | r2 | Evidence | Shot |
+|---|---|---|---|---|
+| PR-01 #1 | PARTIAL | PARTIAL | Saudi Demo Add Customer button is aqua with dark text. Links and focus outline colours not recorded. | T3-F-PR01-customers |
+| PR-01 #2 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-01 #3 | PARTIAL | PARTIAL | Arabic search icon is on the right (start) and sidebar chevrons are correct. Font and the end-of-line ellipsis not verified. A stray "JWT Test" sidebar item is visible. | T1-PR01-03, T1-PR01-03-sidebar-ar |
+| PR-01 #4 | PARTIAL | FAIL | Orders (12 rows) has no pager. Customers has no page-size picker and its arrows are reversed in Arabic. Vouchers picker offers only 20; header "Total 43" vs footer "1-20 of 20" vs "Page 1 of 3"; tooltips English. | T1-PR01-04-orders, T1-PR01-04-customers-en, T1-PR01-04-customers-ar, T1-PR01-04-vouchers, T1-PR01-04-vouchers-en |
+| PR-01 #5 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-01 #6 | PARTIAL | FAIL | Quick Add Customer dialog: Tab still escapes to the search box and browser chrome, Escape does not close it (see FET-UIDS-Nov19-DialogEscapeFocusTrap). | T1-PR01-06-tab-en, T1-PR01-06-tab-ar |
+| PR-01 #7 | NOT RUN | FAIL | Under 3G throttling the confirm dialog closed at once while the action was still running; the tile lingered. | - |
+| PR-01 #8 | NOT RUN | NOT RUN | Adding a voucher line needs "Next: Add Lines", which saves a draft voucher. Not done. | - |
+| PR-01 #9 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-01 #10 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-01 #11 | NOT RUN | NOT RUN | Storybook is not part of the remote apps (remote-only rule). | - |
+| PR-01 #12 | PARTIAL | PARTIAL | B2B screens are plain tables with outline View buttons and a duplicate heading; Roles has an empty Actions column; native selects; inactive chip is grey. | T1-PR01-12-b2b-contracts, T1-PR01-12-b2b-customers, T1-PR01-12-b2b-statements, T1-PR01-12-roles, T1-PR01-12-users, T1-PR01-12-dashboard, T1-PR01-12-orders, T1-PR01-12-customers, T1-PR01-12-neworder |
+| PR-02 #1 | FAIL | FAIL | Orders list still shows status and prep status as plain text; only the order page header has the amber pill. | T1-PR02-01, T1-PR02-01b-orderheader, T1-PR02-01c-orders-en-playwright |
+| PR-02 #2 | PARTIAL | NOT RUN | Needs orders in three or more statuses; that depends on the T5/T6 state changes (awaiting owner approval). Only Processing orders exist. | - |
+| PR-02 #3 | PARTIAL | PARTIAL | Vouchers "Posted" is green on light green. The status filter is a text match over the 20 loaded of 43 rows; Draft/Cancelled/Reversed not confirmed. | - |
+| PR-02 #4 | FAIL | PARTIAL | FIXED gate: /dashboard/processing now loads (about 10 s), no sys_order_sources_cd error. ORD-20261119-00004: item badge "processing" blue; no per-piece status badge visible. | T4-PR02-12b |
+| PR-02 #5 | PARTIAL | FAIL | Dropdown Escape closes the dropdown only (PASS), but the second Escape does not close the dialog. | T1-PR02-05-6-escape-en |
+| PR-02 #6 | PARTIAL | PARTIAL | The list is a native select. Near-bottom placement and arrow/typing keys were not tested. | T1-PR02-05-6-escape-en |
+| PR-02 #7 | NOT RUN | PARTIAL | "All" works as a filter choice; the choice is not kept after a reload. | T1-PR02-07-dropdown-en, T1-PR02-07-dropdown-ar |
+| PR-02 #8 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-02 #9 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-02 #10 | NOT RUN | FAIL | B2B and Processing screens look consistent. In Arabic the back link on Processing details has its chevron pointing left on the start side (wrong way) and "التفاصيل" uses a right arrow. "Mark order ready" loading text not run (needs NEW approval). | T4-PR02-10b |
+| PR-02 #11 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-02 #12 | NOT RUN | PARTIAL | "No Bleach" checkbox is a blue (theme) box with a white tick. Keypad CLEAR not reachable without paying. Processing timeline has no completed step to judge (clicking a step changes data). | T4-PR02-12, T4-PR02-12b, T4-PR02-12-remove |
+| PR-02 #13 | FAIL | PARTIAL | FIXED part: in Arabic the content no longer slides under the right sidebar (Customers, Orders, Issues, Vouchers, New Order, Branding). Still wrong: page titles stay English, Vouchers search icon is missing. | T1-PR02-13-customers-ar, T1-PR02-13-orders-ar, T1-PR02-13-vouchers-ar, T1-PR02-13-issues-ar |
+| PR-02 #14 | FAIL | FAIL | Arabic Vouchers footer still English ("Rows per page", "Go to page", "Page 1 of 1") and mirrored "of 20 20-1"; Customers pager says Previous/Next in English. Issues empty state is Arabic. | T1-PR02-14-vouchers-footer-ar, T1-PR02-14-customers-footer-ar, T1-PR02-14-issues-empty-ar |
+| PR-02 #15 | NOT RUN | BLOCKED | Issues dialog unreachable: no Issues tab on the order and no Report issue control (FU D1). | - |
+| PR-02 #16 | PARTIAL | PARTIAL | Arabic Customers has no # column, Contact header is offset, phone shows "96896662624+" (plus at the end), Orders cells stay English. | T1-PR02-16-customers-ar, T1-PR02-16-orders-ar, T1-PR02-16-vouchers-ar |
+| PR-02 #17 | FAIL | PARTIAL | Arabic dialog X is now top-left (PASS). Quick Add "Customer Category" and option "Stub" stay English; New Theme dialog footer is clipped. | T1-PR02-17-dialog-ar, T1-PR02-17-dialog2-newtheme-ar |
+| PR-02 #18 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-02 #19 | NOT RUN | PARTIAL | "Stub" badge seen; its fill was not judged against the aqua reference. | - |
+| PR-02 #20 | NOT RUN | NOT PRESENT | No dropdown inside a clickable row or card on New Order, Edit or Order details; no touch emulation used. | - |
+| PR-02 #21 | NOT RUN | NOT RUN | Storybook is not part of the remote apps (remote-only rule). | - |
+| PR-07 #1 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-07 #2 | PARTIAL | FAIL | Branding Logos card still shows "The request was not valid." (Retry does not help). | T2-1 |
+| PR-07 #3 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-07 #4 | BLOCKED | BLOCKED | Ocean edit: colour fields still disabled with "Your plan does not include your own colours, corners and font." Root cause found in HQ: plan ENTERPRISE but custom_branding, white_label, branded_emails, branded_receipts, receipt_branding_enabled are all false (Source: Plan). Colour picker shows #6366f1 while the text box shows the #2563EB placeholder. | T3-PR07-04, H3-flags-demo |
+| PR-07 #5 | BLOCKED | BLOCKED | Corners control still disabled by the same plan-flag gap. | T3-PR07-05, H3-flags-demo |
+| PR-07 #6 | PARTIAL | PASS | In-use Ocean has no Delete. Created QA-Alt, made it In use: Ocean then had Delete; switched back to Ocean and deleted QA-Alt ("Theme deleted" 17:26). Still no control to go back to CleanMateX (FET-UIDS-Nov19-NoRevertToDefaultTheme open). | T3-A, T3-Ocean-original |
+| PR-07 #7 | PARTIAL | PASS | Saudi Demo (Free Trial): New theme colour, corner, font and app name are disabled with plan messages; starting theme and density enabled. | T3-F-PR07-7 |
+| PR-07 #8 | BLOCKED | BLOCKED | App name field still disabled on Enterprise (plan-flag gap, see #4). | T3-PR07-08, H3-flags-demo |
+| PR-07 #9 | FAIL | FAIL | qa_logo.png upload fails with HTTP 400 "The request was not valid."; sidebar still shows the initial "C". | T2-2 |
+| PR-07 #10 | NOT RUN | PASS | Adapted: sign-in page (normal and Incognito) shows the CleanMateX brand because no tenant logo exists. | T2-5-signin, T2-5-incognito |
+| PR-07 #11 | PARTIAL | FAIL | Viewer and operator on /dashboard/settings/branding: Logos card "The request was not valid." and Themes "Could not load the themes." with only Retry. Read-only behaviour cannot be confirmed. | T12-PR07-11 |
+| PR-07 #12 | PARTIAL | PARTIAL | New URL /dashboard/account/appearance works. Compact + Large saved ("Appearance saved"); a visibly denser row pitch was not measured. | T3-B, T3-B-toast |
+| PR-07 #13 | NOT RUN | PASS | Incognito sign-in page shows Compact + Large for that user. Appearance restored to Same as the Organization / Medium at 17:33. | T3-C, T3-D |
+| PR-07 #14 | NOT RUN | PASS | Saudi sign-in page and first page free of Demo branding/size. After sign-out the page kept a teal (Saudi) tint, which the guide allows. | T3-F14-login, T3-F14-dashboard |
+| PR-07 #19 | NOT RUN | NOT RUN | HIGH-IMPACT: needs an HQ plan downgrade/upgrade of an organization. Awaiting an explicit owner yes. | - |
+| PR-07 #15 | PARTIAL | NOT RUN | Ocean default-density edit not run (theme edit fields are plan-gated). | - |
+| PR-07 #16 | NOT RUN | PARTIAL | Public tracking page in Incognito: neutral "We could not find this order" with no brand colour. Customer mobile app not available. | T3-E |
+| PR-07 #17 | NOT RUN | BLOCKED | No tenant logo can be saved (upload 400), so no receipt or invoice preview with the tenant brand. | - |
+| PR-07 #18 | PARTIAL | PARTIAL | Arabic Branding is still offset; Files shows "Invalid request. Retry"; dialog footers clipped; swatches do not match their codes; /settings/preferences shows "Failed to fetch effective settings". | T1-PR07-18-branding-ar, T1-PR07-18-appearance-ar, T1-PR07-18-edittheme-ar, T1-PR07-18-newtheme-ar |
+| HQ H1 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H2 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H3 | PARTIAL | PASS | HQ Themes: TEST_SKY (Test Sky / سما, #1E88E5 / #0D47A1, Soft) reactivated about 20:27; it is listed in the tenant Settings > Branding > New theme starting-theme list (CleanMateX, Ocean, Emerald, Teal, Royal, Rose, Sunset, Gold, Slate, Graphite, Test Sky). Deactivated again afterwards (no organization uses it). | H4-HQH3 |
+| HQ H4 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H5 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H5b | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H6 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H7 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H8 | PARTIAL | PARTIAL | HQ prompt is correct: "...1 organization uses it now. Its pages keep showing it, but it cannot save theme changes until it picks another." Ocean deactivated 20:28:42 and reactivated about 20:29:00 (about 18 s). Tenant after Ctrl+Shift+R still listed Ocean In use; its edit dialog showed no "no longer offered until another is picked" message. Tenant screenshot not captured (screen lag). | H4-HQH8-prompt |
+| HQ H9 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| HQ H10 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| PR-04 K1 | NOT RUN (new) | PASS | "?" outside a field opens the Keyboard shortcuts list (/, F2, F9, Ctrl+Enter / Ctrl+S, Alt+1..Alt+5, ?); Escape closes it. | T7-K1 |
+| PR-04 K2 | NOT RUN (new) | PASS | "/" focuses the item search, nothing typed. | T7-K3a |
+| PR-04 K3 | NOT RUN (new) | PASS | Typing "/" and "?" in item search and in order notes types them; focus stays, list does not open. | T7-K3a, T7-K3b |
+| PR-04 K4 | NOT RUN (new) | PASS | F2 from the page and from inside item search opens Select Customer with focus in its search box. | T7-K4a, T7-K4b |
+| PR-04 K5 | NOT RUN (new) | PASS | With customer + Blouse + Ready by 20/11/2026 05:00 PM: F9 and, separately, Ctrl+Enter open the payment view (Pay later pre-applied, Submit blue). Not paid. | T7-K5-F9, T7-K5-ctrlenter |
+| PR-04 K6 | NOT RUN (new) | PASS | No customer: toast "Please select a customer before submitting the order." With customer and no items: "Please add at least one item to the order." for F9 and Ctrl+S; no payment view, no browser Save dialog. Toasts stay until closed. | T7-K6-nocust, T7-K6 |
+| PR-04 K7 | NOT RUN (new) | NOT RUN | Needs a closed-session fixture (NEW approval). Awaiting owner approval. | - |
+| PR-04 K7b | NOT RUN (new) | PASS | Customer + Blouse, Ready by empty: F9 gives toast "Ready by date is required", no payment view. The "must be in the future" variant: Ready-by dialog showed "Date must be in the future" with Apply disabled for a past time. | T7-K7b, T7-K7b-dialog-past |
+| PR-04 K8 | NOT RUN (new) | PARTIAL | First half PASS: with the payment view open, F9 and Ctrl+S change nothing and open no second view or Save dialog. Second half (F2, Enter, Ctrl+Enter inside the payment view) NOT RUN: needs Pay approval (HIGH). | T7-K8 |
+| PR-04 K9 | NOT RUN (new) | PASS | Customer picker, Line discount dialog and Whole Order preferences dialog: "/", "?" and F9 do nothing behind the dialog (in the picker they type into the search field). | T7-K9-customer, T7-K9-discount, T7-K9-prefs |
+| PR-04 K10 | NOT RUN (new) | PASS | Limited: on Order Edit (opened via Edit) F2 and F9 do nothing. Ctrl+Enter and Ctrl+S show "No changes to save", same as the Review button with 0 changes; no Review screen without an edit. | T8-K10-F2F9, T8-K10-review |
+| PR-04 K11 | NOT RUN (new) | NOT RUN | Needs an Arabic keyboard layout and real typing on the box (OS limit). | - |
+| PR-04 T1 | NOT RUN (new) | NOT RUN | No touch emulation (real input only). Visual: Quick Drop minus/plus are about 16 px with the mouse. | - |
+| PR-04 T2 | NOT RUN (new) | FAIL | Quick Drop + and - give no visible change (no count, Pieces and Bags unchanged, no toast), with and without an item in the cart. Accessible names exist in EN and AR. First load had 5 HTTP 504 (categories, service-preferences, packing-preferences, navigation) which may explain it. | T8-T4-submit-disabled-noitems |
+| PR-04 T3 | NOT RUN (new) | PASS | Notes "Save" switch: ON shows the notes box, OFF hides it, typed text is kept; knob moves correctly in EN and AR. | T8-T3-on-en, T8-T3-EN-off, T8-T5-AR-summary |
+| PR-04 T4 | NOT RUN (new) | PASS | No items: Submit faded and disabled. Customer + Blouse: Submit is solid theme blue with "Ready to submit". Add and Apply buttons are still fixed green (noted). | T8-T4-submit-disabled-noitems, T8-T4-submit-enabled |
+| PR-04 T5 | NOT RUN (new) | PASS | Arabic summary panel is RTL: labels right, values left; Pieces, Bags, date 20/11/2026 and time "05:00 م" not jumbled. Toast "Ready by date is required" stays English and does not close. | T8-T5-AR-summary |
+| PR-04 P1 | NOT RUN (new) | PASS | Typing "jh": 5 grey skeleton rows (no spinner). A "No customers found / Create New Customer" flash appears just before the skeleton. | T9-P1 |
+| PR-04 P2 | NOT RUN (new) | PASS | Arrow Down and Up move the highlight, Enter picks "Jh Test dev21" and closes the dialog. | T9-P2, T9-P2-results |
+| PR-04 P3 | NOT RUN (new) | PASS | Escape closes only the dialog (with results and with "No customers found"); focus returns to Select Customer. | T9-P3, T9-P3-noresults |
+| PR-04 P4 | NOT RUN (new) | NOT PRESENT | No global or other-organization customer or link prompt appeared for "jh", "am", "te", "glob". | T9-P4 |
+| PR-04 P5 | NOT RUN (new) | PASS | Arabic results show "+" in front with digits in order. Extra defect: the Quick Select recent-customer card shows "96896662624+" (plus at the end). | T9-P5 |
+| PR-04 L1 | NOT RUN (new) | NOT RUN | Orders is a single page: 12 rows, Total Orders 12, no pager and no rows-per-page box, so Next/page/Previous cannot be used. | L1 |
+| PR-04 L2 | NOT RUN (new) | PASS | Arabic Orders table: Order # rightmost, customer name + phone ("+" in front), status, items and total in the same relative order as English mirrored; 7 KPI cards in one row. | T9-L2 |
+| PR-05 D1 | NOT RUN (new) | PASS | Arabic: sidebar on the right with a divider on its left; collapse keeps an icon rail on the right. At about 400% zoom the hamburger opens a right-docked drawer (slide direction inferred from the final position). Header title stays English. | T9-D1, D1-desktop, D1-collapsed, D1-mobile-first |
+| PR-05 D2 | NOT RUN (new) | PARTIAL | User menu PASS: flush with the trigger, right-aligned, Up/Down work. Row menu NOT PRESENT: Orders and Customers tables have no row menu, only inline links. | T9-D2-usermenu, T9-D2-rowmenu |
+| PR-05 D3 | NOT RUN (new) | PASS | Settings tabs in Arabic: ArrowLeft moves to the next tab to the left (Tenant Settings to Branch Settings). Extra: red English toast "Failed to fetch effective settings" and "Loading settings..." stuck. | T9-D3, T9-D3-before |
+| PR-05 D4 | NOT RUN (new) | PASS | Orders in EN and AR: title and actions in one row, 7 KPI cards, one framed filter bar, then the table; text columns start-aligned, numbers right. | D4-en, T9-D4-ar |
+| PR-05 D5 | NOT RUN (new) | FAIL | Customers frame is right, but "CSV تصدير": no spinner seen, red English toast "Insufficient permissions. Only admins can export customer data." for a super_admin, and no download. Phones show "96896662624+" in Arabic. | T9-D5 |
+| PR-05 D6 | NOT RUN (new) | BLOCKED | ERP Lite module is not enabled for Demo Laundry (plan policy message at /dashboard/erp-lite/gl). | T10-D6-en |
+| PR-05 D7 | NOT RUN (new) | PASS | Arabic Payments, Receipts and voucher detail: ID and code cells align at the start (right). AR invoice detail not reachable (no AR invoice). Bugs: raw keys orders.detailFull.cardBrand, cardLastFour, paidAmount; CASH, COMPLETED, POSTED etc. untranslated. | T10-D7-payments-ar, T10-D7-receipts-ar, T10-D7-voucher-ar |
+| PR-05 D8 | NOT RUN (new) | PARTIAL | Arabic Quick Add: labels, inputs and placeholders right-aligned, email LTR, buttons centred. Phone prefix box reads "968+" (bidi); "Customer Category" untranslated; validation is a native English browser tooltip. | T10-D8-quickadd-ar |
+| PR-05 D9 | NOT RUN (new) | PASS | Arabic Quick Add and customer picker: page behind is dimmed but see-through, not solid grey. | T10-D9-modal-dim |
+| PR-05 D10 | NOT RUN (new) | PARTIAL | Info banner (Aging), success toast ("Appearance saved"), amber warning banner and dark error toast look right. The settings load error appears as a toast, not a banner. Wrong-password banner not triggered. | T10-D10-info-banner-ar, T10-D10-toast-ar, T11-D10-dark-error |
+| PR-05 D11 | NOT RUN (new) | PARTIAL | Order number is a copy-button chip, not a link; the "View" link hover is only a subtle shade change in light and dark. | T10-D11-light, T11-D11-orders-dark |
+| PR-05 D12 | NOT RUN (new) | PARTIAL | Dark: order header Processing (amber), Posted (green), IN (blue), OUT (amber) chips readable. Invoice chips NOT RUN (no invoices exist). | T11-D12-vouchers-chips-dark, T11-D12-vouchers-list-dark |
+| PR-05 D13 | NOT RUN (new) | PASS | Unit list reads Per Piece / Per Kg / Per Item in EN and لكل قطعة / لكل كيلوغرام / لكل عنصر in AR. Closed without saving. Minor: raw "mdi-" text in the product image preview. | T10-D13-unit-en, T10-D13-unit-ar |
+| PR-05 D14 | NOT RUN (new) | PASS | Arabic payment view mirrors English (panel order, quick tender chips 3/5/20/50, Cash Tendered and Change Returned row); amounts stay LTR. Cancelled, not paid. | T11-D14-payment-ar, T11-D14-payment-en |
+| PR-05 D15 | NOT RUN (new) | PASS | English row: label left, tick right; العربية row: label right, tick left, on both English and Arabic pages. | T10-D15-en, T10-D15-ar |
+| PR-05 D16 | NOT RUN (new) | FAIL | New Order stain toggles: the amber "Damage" toggle has white text and icon on orange in light and dark (Stains red, others also white). Orders KPI "Pending Prep" amber is dark text and OK. Packing queue empty, Customers has no stats cards. | T10-D16-stain-en-light, T10-D16-stain-toggles-ar-light, T11-D16-stain-dark |
+| PR-05 D17 | NOT RUN (new) | PARTIAL | Arabic voucher detail, new voucher, Aging and Balances read right to left. Voucher grid toolbar ("Reset filters", "Columns", "Density", "Go to page", "Rows per page") is English; topbar titles English. AR invoice detail NOT RUN. | T11-D17-vouchers-grid-ar, T11-D17-newvoucher-ar, T11-D17-balances-ar |
+| PR-05 D18 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built. Related: Arabic desktop sidebar and phone drawer seen in D1. | - |
+| PR-07 task 6 M1 | NOT RUN (new) | PASS | Save disabled until a change. Dark + Save: toast "Appearance saved", the page turned dark in about 5 s without a reload; F5 kept dark. | T11-M1-dark-applied, T11-M1-reload |
+| PR-07 task 6 M2 | NOT RUN (new) | PARTIAL | Same as this device + Save switched to light at once (device is light). Following a dark device not tested (no DevTools emulation). | T11-M2-restored |
+| PR-07 task 6 M3 | NOT RUN (new) | PASS | After sign-out the login page follows the device (light), not the last session (dark). | T11-M3-login-light |
+| PR-07 task 6 M4 | NOT RUN (new) | NOT RUN | NEW approval: two people on a shared Demo device. Awaiting owner approval. | - |
+| PR-07 task 6 M5 | NOT RUN (new) | PASS | Dark dashboard, sidebar, top bar, user dropdown, dialogs and toasts readable; borders quiet; amber warning alert readable. | T11-M5-dashboard-dropdown, T11-M5-dialog-dark, T11-M5-toast-dark |
+| PR-07 task 6 M6 | NOT RUN (new) | PASS | Dark orders list, order details tabs, New Order and the payment view readable; amber buttons have dark text. Green Add buttons are bright with white text (low contrast). | T11-D11-orders-dark, T11-M6-neworder-dark, T11-M6-payment-dark |
+| PR-07 task 6 M7 | NOT RUN (new) | FAIL | Dark Reports > Orders: "Orders by Status" bars are black on the dark card, tooltip "Count : 11" is dark text on dark. Dashboard Payment Mix tooltip "Cash : 100.0%" is dark text on dark. Top Services tooltip and the Payments, Revenue and Customers charts are readable. | T11-M7-orders-report, T11-M7-paymentmix-tooltip-BUG, T11-M7-topservices-tooltip, T11-M7-customers-report |
+| PR-07 task 6 M8 | NOT RUN (new) | PASS | Dark Customers (+ Quick Add), Catalog list and Edit Product, Users (+ Invite), Roles, Branding, date picker, order Files panel: inputs, selects and pickers dark and readable. ERP Lite pages not reached (module disabled). | T11-M8-customers-dialog, T11-M8-catalog-list, T11-M8-catalog-form, T11-M8-users-invite, T11-M8-roles, T11-M8-branding, T11-M8-datepicker-dark, T11-M8-order-files |
+| PR-07 task 6 M9 | NOT RUN (new) | PASS | Signed out with Appearance = Same as device (device light): /login, /register and /forgot-password are light and readable. Dark device not tested. | T11-M9-register-light, T11-M9-forgot-light |
+| PR-07 task 6 M10 | NOT RUN (new) | PARTIAL | Cash drawer session print is white paper with dark text. /dashboard/reports/print (no params) spins for more than 20 s. Order receipt, AR statement, POS shift report, variance and tax-document print pages could not be reached (no data; "Issue tax document" creates data). | T11-M10-cashdrawer-print, T11-M10-reports-print-spinner |
+| PR-07 task 6 M11 | NOT RUN (new) | PARTIAL | Print preview of order page, cash drawer and label: white paper, dark text, no tints. The printed page has the mobile header with the text "CleanMateX" and no main logo. | T11-M11-orderpage-preview, T11-M11-cashdrawer-preview, T11-M11-label-preview |
+| PR-07 task 6 M12 | NOT RUN (new) | BLOCKED | Logo upload is still refused (400), so no dark logo can be uploaded. | - |
+| PR-07 task 6 M13 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built; needs a logo upload (blocked, see M12). | - |
+| PR-07 task 6 M14 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built; needs a signed-out Dark device. | - |
+| PR-07 task 6 M15 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built; needs a rejected piece and a light reject colour. | - |
+| PR-07 task 6 M16 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built; not opened since the row was added. | - |
+| PR-07 task 6 M17 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built; not specifically run; a dark error toast was readable in M5/D10. | - |
+| PR-07 task 6 M18 | - (new row) | NOT RUN | Row added to the guide at 17:56, after the retest plan was built; not checked. | - |
+
+#### Retest r2 — prior findings
+
+Each Round 1 finding is kept as written above; this is its status after the 16:14 deploy.
+
+- **FET-UIDS-Nov19-RtlContentUnderSidebar** — Retest r2 2026-11-19: **FIXED.** In Arabic the content no longer slides under the right sidebar on Customers, Orders, Issues, Vouchers, New Order or Branding (PR-02 #13, PR-05 D1). T1-PR02-13-customers-ar, T9-D1.
+- **FET-UIDS-Nov19-PlanFlagsMismatch** — Retest r2 2026-11-19: **STILL BROKEN (root cause found).** Branding colour, corner, font and app-name fields are still disabled on Demo Laundry. HQ shows the tenant is on ENTERPRISE (Active) but custom_branding, white_label, branded_emails, branded_receipts and receipt_branding_enabled are all false with Source "Plan". Blocks PR-07 #4, #5, #8, #15, #17. One-line fix: turn those flags on for the ENTERPRISE plan (or map them to it). H3-flags-demo.
+- **FET-UIDS-Nov19-TenantLogoInvalidRequest** — Retest r2 2026-11-19: **STILL BROKEN.** Logos card still shows "The request was not valid." on every visit and the upload returns HTTP 400. Admin, viewer and operator all affected. Blocks PR-07 #9, #17, M12, M13, FU C9. T2-1, T2-2, T12-PR07-11.
+- **FET-UIDS-Nov19-ProcessingPermissionDenied** — Retest r2 2026-11-19: **FIXED.** /dashboard/processing loads (about 10 s) with no "permission denied for table sys_order_sources_cd"; order pages open. T4-PR02-12b, T4-PR02-10b.
+- **FET-UIDS-Nov19-DialogEscapeFocusTrap** — Retest r2 2026-11-19: **STILL BROKEN.** Quick Add Customer: Escape does not close it and Tab leaves it; the dropdown-in-dialog case needs a second Escape that still does not close the dialog (PR-01 #6, PR-02 #5). T1-PR01-06-tab-en, T1-PR02-05-6-escape-en.
+- **FET-UIDS-Nov19-NoRevertToDefaultTheme** — Retest r2 2026-11-19: **STILL BROKEN.** No control to go back to the CleanMateX theme; the in-use theme has no Delete. T3-A.
+- **FET-UIDS-Nov19-OrdersListNoStatusBadge** — Retest r2 2026-11-19: **STILL BROKEN.** Orders list status and prep status are still plain text; the pill appears only on the order header (PR-02 #1). T1-PR02-01.
+- **FET-UIDS-Nov19-ArabicTableFooterEnglish** — Retest r2 2026-11-19: **STILL BROKEN.** Arabic Vouchers footer still English ("Rows per page", "Go to page", "Page 1 of 1") with mirrored "of 20 20-1"; Customers pager Previous/Next English (PR-02 #14). T1-PR02-14-vouchers-footer-ar.
+- **FET-UIDS-Nov19-VouchersPagerMismatch** — Retest r2 2026-11-19: **STILL BROKEN.** Header "Total 43", footer "1-20 of 20" and "Page 1 of 3"; page-size picker offers only 20 (PR-01 #4). T1-PR01-04-vouchers.
+- **FET-UIDS-Nov19-ViewerThemesListFails** — Retest r2 2026-11-19: **STILL BROKEN.** Viewer and also operator see "Could not load the themes." and the logo error on Branding (PR-07 #11). T12-PR07-11.
+- **FET-UIDS-Nov19-DensityNotVisible** — Retest r2 2026-11-19: **NOT RE-VERIFIED.** Compact + Large save, show on the Incognito sign-in page and restore, but a visibly denser row pitch was not measured (PR-07 #12). T3-B, T3-C.
+- **FET-UIDS-Nov19-ProductsDeepLink500** — Retest r2 2026-11-19: **NOT RE-CHECKED.** The signed-out HQ deep link was not opened in r2.
+- **FET-UIDS-Nov19-HqSaveSlow** — Retest r2 2026-11-19: **NOT RE-MEASURED.** HQ screens were slow to repaint again (screen capture lagged during the Ocean check); not timed.
+- **FET-UIDS-Nov19-ArabicDialogXAndLabels** — Retest r2 2026-11-19: **PARTLY FIXED.** Dialog X is now top-left (PR-02 #17). Customer Category label, the "Stub" option and the New Theme dialog footer are still English or clipped. T1-PR02-17-dialog-ar.
+- **FET-UIDS-Nov19-ArabicSearchIconSide** — Retest r2 2026-11-19: **PARTLY FIXED.** Customers search icon is now on the right (start). The Vouchers search icon is missing. T1-PR02-13-customers-ar, T1-PR02-13-vouchers-ar.
+- **FET-UIDS-Nov19-LangSwitchMixedState** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Language switch took about 8 s to translate; after Arabic to English the stepper shows reversed parentheses (see FET-UIDS-Nov19-StepperParensReversed).
+- **FET-UIDS-Nov19-PrintChrome** — Retest r2 2026-11-19: **STILL BROKEN.** Order page print preview is white with dark text, but still prints the app mobile header (hamburger and the text "CleanMateX", no main logo). T11-M11-orderpage-preview.
+- **FET-UIDS-Nov19-ArabicLeftovers** — Retest r2 2026-11-19: **STILL BROKEN.** Arabic phone numbers still show the plus at the end ("96896662624+") on Customers, Processing details and the Quick Select card; statuses and dates English. T9-D5, T9-P5.
+- **FET-UIDS-Nov19-HqDefaultRefusalAsToast** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Not repeated in r2.
+- **FET-UIDS-Nov19-MobileSidebarUnderHeader** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Only the Arabic drawer at about 400% zoom was seen (T9-D1); the English phone-width case was not repeated.
+- **FET-UIDS-Nov19-OrderFilesTabMissingInFullView** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Not repeated in r2.
+
+#### Retest r2 — new findings (Financial_Expert_Tester, 2026-11-19)
+
+Code locations were not inspected (remote-only run); fixes are the likely place to look.
+
+- **P2 FET-UIDS-Nov19-DarkChartsUnreadable** — Dark mode: Reports > Orders "Orders by Status" bars are black on the dark card and the tooltip "Count : 11" is dark text on dark; the dashboard Payment Mix tooltip "Cash : 100.0%" is dark on dark (M7). Evidence: T11-M7-orders-report, T11-M7-paymentmix-tooltip-BUG. Fix: give chart bar fills and tooltip text the theme tokens instead of fixed dark values.
+- **P2 FET-UIDS-Nov19-AmberToggleWhiteText** — New Order stain toggle "Damage" (amber) has white text and icon in light and dark; Stains (red) and others also white (D16). Evidence: T10-D16-stain-en-light, T11-D16-stain-dark. Fix: use the dark-on-amber foreground token for the amber toggles.
+- **P2 FET-UIDS-Nov19-QuickDropNoChange** — Quick Drop + and - show no visible change (no count, Pieces and Bags unchanged, no toast), with an empty cart and with an item (PR-04 T2). Accessible names exist in EN and AR. Likely linked to the first-load 504s. Evidence: T8-T4-submit-disabled-noitems. Fix: show the count and on/off state and report any failed call.
+- **P2 FET-UIDS-Nov19-Api504OnFirstLoad** — POS first load returned HTTP 504 on /api/v1/categories, service-preferences, packing-preferences and /api/navigation (5 calls); categories and products took about 30 s to appear after Ctrl+Shift+R. Fix: look at the cold-start or timeout cause on those routes and show a retry state.
+- **P2 FET-UIDS-Nov19-CustomerExportDenied** — Customers "CSV تصدير" as a super_admin shows the red English toast "Insufficient permissions. Only admins can export customer data." and no download; no spinner (PR-05 D5). Evidence: T9-D5. Fix: align the export permission check with super_admin and translate the message.
+- **P2 FET-UIDS-Nov19-ArabicRawTranslationKeys** — Arabic order details show raw keys orders.detailFull.cardBrand, orders.detailFull.cardLastFour and orders.detailFull.paidAmount; CASH, COMPLETED, POSTED, RECEIPT_VOUCHER, IN/OUT stay untranslated; tax shows "0" then OMR 0.088 (PR-05 D7). Evidence: T10-D7-payments-ar, T10-D7-receipts-ar. Fix: add the missing keys and map status codes to labels.
+- **P2 FET-UIDS-Nov19-ProcessingCustomerMismatch** — Order ORD-20261119-00004: Processing details shows customer "Test Customer2 Mohammed Ahmed" while All Orders lists "Jh Test dev21". Two pages disagree on the customer of one order (data or lookup bug). Evidence: T4-PR02-10b. Fix: check which customer id each page reads.
+- **P2 FET-UIDS-Nov19-EffectiveSettingsFetchFails** — Settings screens show the red English toast "Failed to fetch effective settings" (Settings tabs, /settings/preferences, Branch settings ~15 s) and a table stuck on "Loading settings..." (D3, D10, PR-07 #18). Evidence: T9-D3, T10-D10-toast-ar. Fix: find the failing effective-settings call and show a banner with Retry.
+- **P2 FET-UIDS-Nov19-ReportsPrintSpinner** — /dashboard/reports/print (no parameters) spins for more than 20 s with no report and no message (M10). Evidence: T11-M10-reports-print-spinner. Fix: show "choose a report" or an error when parameters are missing.
+- **P2 FET-UIDS-Nov19-SlowPages** — Slow screens in r2: sign-in over 10 s, Orders in Arabic 13.8 s, Issues 22.7 s, Branch settings about 15 s, Customer Balances 15-18 s, Processing about 10 s, POS about 30 s after a hard reload. Several have no skeleton. Observation only, no lab.
+- **P2 FET-UIDS-Nov19-InputLagDropsKeys** — Typing lags 1-3 s and drops or reorders characters (sign-in email typed into the wrong field, first character lost in the customer picker and HQ forms, Ctrl+A does not select in fields). Slows every form test and would frustrate counter staff.
+- **P2 FET-UIDS-Nov19-HqOceanDeactivateTenantNotice** — HQ deactivating Ocean warns that one organization uses it, but the tenant (after Ctrl+Shift+R) still lists Ocean In use and its edit dialog shows no "no longer offered until another is picked" message (HQ H8). Evidence: H4-HQH8-prompt. Fix: show the notice in the tenant theme editor when its theme is inactive.
+- **P3 FET-UIDS-Nov19-StickyEnglishToasts** — Toasts never close on their own (a "select a customer" toast stayed over 60 s) and stay in English in Arabic ("Ready by date is required", "Failed to fetch effective settings"). Evidence: T7-K6, T8-T5-AR-summary.
+- **P3 FET-UIDS-Nov19-StepperParensReversed** — New Order step tabs show "Order Items) 1(" and "Edit Items Preferences )1(" in English too (bidi residue after switching language).
+- **P3 FET-UIDS-Nov19-ArabicBackArrowWrong** — Arabic Processing details: the back link "العودة إلى المعالجة" has its chevron pointing left on the start side, and "التفاصيل" uses a right arrow (PR-02 #10). Evidence: T4-PR02-10b. Fix: flip the arrow icons in RTL.
+- **P3 FET-UIDS-Nov19-ArabicTopbarTitlesEnglish** — Top bar titles stay English in Arabic (New Order, Processing Details, Business Vouchers, AR Aging, Catalog Service Details, Customers); Settings tab labels also English (D3). Evidence: T9-D1, T10-D7-voucher-ar.
+- **P3 FET-UIDS-Nov19-PrintHeaderNoLogo** — Print previews (order page, cash drawer, label) carry the mobile header with the text "CleanMateX" and no main logo (M11). Evidence: T11-M11-orderpage-preview. Fix: render the tenant logo in the print header.
+- **P3 FET-UIDS-Nov19-ReadyByDateFieldStale** — Ready-by dialog: the typed date field stays "11/19/2026" while the calendar shows 20 until Apply; the default (today 5:00 PM) is already past in the evening, so the dialog opens with an error. Evidence: T7-K7b-dialog-past.
+- **P3 FET-UIDS-Nov19-PickerEmptyFlash** — Customer picker flashes "No customers found / Create New Customer" for a moment before the skeleton rows (PR-04 P1). Evidence: T9-P1.
+- **P3 FET-UIDS-Nov19-GreenAddButtonsFixed** — Add buttons and the Ready-by Apply button on New Order are still fixed bright green with white text (low contrast) and do not follow the theme (PR-04 T4, M6). Evidence: T8-T4-submit-enabled, T11-M6-neworder-dark.
+- **P3 FET-UIDS-Nov19-ErpLiteOffForDemo** — ERP Lite is not enabled for Demo Laundry, so ERP Lite pages (PR-05 D6, M8) cannot be QA-checked. Fix: enable the module for the Demo tenant. Evidence: T10-D6-en.
+- **P3 FET-UIDS-Nov19-ProductImagePreviewRawText** — Catalog product form: the image preview shows raw "mdi-" text. Evidence: T11-M8-catalog-form.
+
+#### Retest r2 — recount, leftovers, caveats
+
+**Recount r2 (UI Design System, 116 rows of Round 1/the 2026-11-19 pull):** PASS 56 / FAIL 14 / PARTIAL 26 / BLOCKED 7 / NOT RUN 11 / NOT PRESENT 2 (total 116).
+
+**Including the 7 rows the owner added after the pull (123 rows now):** PASS 56 / FAIL 14 / PARTIAL 26 / BLOCKED 7 / NOT RUN 18 / NOT PRESENT 2 (total 123).
+
+**By section (PASS / FAIL / PARTIAL / BLOCKED / NOT RUN / NOT PRESENT, incl. new rows):** PR-01: 4/3/3/0/2/0; PR-02: 4/4/9/1/2/1; PR-07 tasks 1–11: 7/3/3/4/2/0; PR-07 HQ: 10/0/1/0/0/0; PR-04: 17/1/1/0/4/1; PR-05: 8/2/6/1/1/0; PR-07 task 6: 6/1/3/1/7/0.
+
+**Round 1 for comparison:** PASS 19 / FAIL 6 / PARTIAL 19 / BLOCKED 3 / NOT RUN 16 (63 rows); the 53 rows the owner added between Round 1 and the deploy started as NOT RUN.
+
+**Caveats:** one browser run at a time; several runs were interrupted and were recovered from run notes and screenshots (T3 at the QA-Alt delete, T4, H1). Input lag dropped characters, so fields were re-checked before saving. No camera, no touch emulation, no DevTools, no Arabic keyboard layout on the box. A dark device setting was not tested. Rows marked "awaiting owner approval" are writes that were not on the morning approval list; the owner-approved items (HQ H8 Ocean deactivate and re-activate for about 18 s, E7 read-only re-check) were run.
+
+**Test data left behind (r2):**
+- Demo Laundry: theme Ocean is still IN USE, with no UI way back to CleanMateX. A QA-Alt theme was created from Ocean and deleted again at 17:26. Admin Appearance was changed (Compact + Large, then Dark) and restored to the originals: Same as this device / Same as the Organization / Medium; confirmed after a hard reload. Viewer, operator and admin sessions were signed out and back in; the only failed sign-in was one HQ attempt (typo from input lag, second attempt worked), so no account was near lockout.
+- HQ: OCEAN was deactivated at 20:28:42 and reactivated at about 20:29:00 (Active now). TEST_SKY was reactivated at about 20:27 for the New theme list check and deactivated again (Inactive, not default).
+- Orders: nothing was paid or submitted and no status was changed; carts were emptied and customers cleared. ORD-20261119-00005 (Jh Test dev21, Processing, 2 pieces, OMR 4.708, created 07:39, partly paid) is not from this tester.
+
+### Retest r3 (2026-11-19 20:56–22:30 Asia/Muscat) — UI Design System
+
+**Retest r3 (2026-11-19 20:56–22:30 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: on 2026-11-19 at 20:47 the owner answered "Yes for all those" to the writes and high-impact items held back in Retest r2 (order-flow writes, F21, F22, F23, F29, H2, H6, F10, K8, B3, PR-07 #19) and the rows the owner added since. Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch; admin and operator) and HQ https://hqsaas.cleanmatex.com (Incognito). Real mouse and keyboard, no direct API calls, no page scripts, no Jest. Credentials: see the credentials file, none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\retest3\shots\` (file names in the Shot column, all `.webp`). Notes: Round 1 and Retest r2 text above is untouched. The last cmx sign-in attempt ended at 22:35 (the 22:30 end of the window is the label given for this round). Only rows with r3 evidence are listed; every other row keeps its r2 status.
+
+**Guide changes found while writing back.** The guide was edited again by the owner or a developer at 21:05:07 (86,317 B after my r2 write at 20:38:41; 87,625 B now, +1,308 B). The change is above my sections, in the PR-07 task 6 table: four new rows M19, M20, M21 and M22. They are listed below as NOT RUN. My Round 1 and Retest r2 sections are byte-identical (the r2 section at the end still hashes to 0502BBC9…). There are no Dev notes. This section is appended after the existing text.
+
+#### Retest r3 results
+
+Columns: r2 = Retest r2 result, r3 = this retest. Only rows touched in r3 are listed; all other rows keep their r2 result.
+
+| Row | r2 | r3 | Evidence | Shot |
+|---|---|---|---|---|
+| PR-02 #10 | FAIL | FAIL | r3 sub-results: "Mark Order Ready" shows "Processing…" (greyed with a spinner) and then the toast "Order transitioned successfully": PASS. B2B screens (Customers, Contracts, Statements and the customer detail) match the rest of the app (white cards, blue primary and outline secondary buttons; Arabic flips RTL with breadcrumb reversed and sidebar on the right): PASS. The back arrow is not testable: B2B pages have no back-arrow button, only the breadcrumb "B2B / B2B Customers / B2B_Company_Customer1". The row stays FAIL because the Assembly queue still shows 0 (Pending 0, In Progress 0, QA Pending 0, "No orders in assembly") while Processing shows 12 orders. | O-5.webp, O-6.webp |
+| PR-04 K7 | NOT RUN | BLOCKED | The operator's POS session was open (header chip "Session Hub Open" on /dashboard/orders/new), so the closed-session case could not be seen. The session was not closed and F9 was not pressed; the operator signed out. | O-1.webp |
+| PR-04 K8 | PARTIAL | PARTIAL | Half 1 PASS: on the payment view F9 and Ctrl+S do nothing and open no Save dialog. Half 2 PARTIAL: with Cash chosen, F2 and Enter open the "Confirm & Submit" dialog; one click on it created exactly one order (ORD-20261119-00006). Ctrl+Enter was not tested. | O-1.webp |
+| PR-05 D18 | NOT RUN | PARTIAL | Desktop 1280 px EN: sidebar on the left; "Collapse sidebar" folds it to an icon rail. AR: sidebar on the right; collapse and icon rail work on the right. Phone width (about 512 px, AR): sidebar hidden, only "CleanMateX" and a hamburger at top-right; the hamburger opens the drawer from the right (the start side in RTL) with an X that replaces the hamburger. PASS for those. Not checked: the payment-view receipt rail, and the English phone width. Note: the collapse state persisted across the language switch. | 0-D18-en-expanded.webp, 1-D18-en-collapsed.webp, 2-D18-ar-expanded.webp, 3-D18-ar-collapsed.webp, 4-D18-ar-mobile-drawer.webp, 5-D18-ar-mobile-closed.webp |
+| PR-07 #19 | NOT RUN | NOT RUN | HIGH-IMPACT HQ plan change: the owner has not named the organization and plan, so it was not run. | - |
+| PR-07 task 6 M4 | NOT RUN | PARTIAL | Not a clean test: both the admin and the operator appearance were on "Same as this device" (not Dark and Light), and the device rendered Light. The operator was set to "Light" at 21:59 ("Appearance saved") and restored to "Same as this device" at 22:03. After signing the admin back in, the dashboard rendered Light as expected for that setting; the Dark case was not observed. | J-4.webp, J-5.webp |
+| PR-07 task 6 M13 | NOT RUN | NOT RUN | Not run: needs a logo upload (still blocked, see M12) and cmx was unreachable after 22:09 (Cloudflare 524; admin sign-in failed twice). | 8-signin-fail2.webp |
+| PR-07 task 6 M14 | NOT RUN | PARTIAL | Dark (Chrome Mode set to Dark in a separate window, restored to Device afterwards): the sign-in card is dark and readable, but the logo sits in a white square tile and the mascot illustration has a white background (white glare), and the EN / عربي pill is top-right, not top-start. The submit button read "Signing in…" (greyed) on load. Light: white card with grey borders on the inputs and card, readable text, button "Sign in". (FET-UIDS-Nov19-SignInDarkWhiteTiles) | 6-M14-login-dark.webp, 7-M14-login-light.webp |
+| PR-07 task 6 M15 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09 and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`; stopped per the 2-attempt rule. | 8-signin-fail2.webp |
+| PR-07 task 6 M16 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09 and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`; stopped per the 2-attempt rule. | 8-signin-fail2.webp |
+| PR-07 task 6 M17 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09 and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`; stopped per the 2-attempt rule. | 8-signin-fail2.webp |
+| PR-07 task 6 M18 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09 and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`; stopped per the 2-attempt rule. | 8-signin-fail2.webp |
+| PR-07 task 6 M19 | - (new row) | NOT RUN | Row added by the owner at 21:05, after the r2 write-back; not run in r3 (cmx unreachable after 22:09). | - |
+| PR-07 task 6 M20 | - (new row) | NOT RUN | Row added by the owner at 21:05, after the r2 write-back; not run in r3 (cmx unreachable after 22:09). | - |
+| PR-07 task 6 M21 | - (new row) | NOT RUN | Row added by the owner at 21:05, after the r2 write-back; not run in r3 (cmx unreachable after 22:09). | - |
+| PR-07 task 6 M22 | - (new row) | NOT RUN | Row added by the owner at 21:05, after the r2 write-back; not run in r3 (cmx unreachable after 22:09). | - |
+
+#### Retest r3 — prior findings
+
+- **FET-UIDS-Nov19-ArabicBackArrowWrong** — Retest r3 2026-11-19: **NOT RE-VERIFIED.** B2B pages have no back-arrow button; only the breadcrumb flips correctly in Arabic (PR-02 #10).
+- **FET-UIDS-Nov19-TenantLogoInvalidRequest** — Retest r3 2026-11-19: **NOT RE-CHECKED.** No logo upload was tried; M13 is NOT RUN.
+- **FET-UIDS-Nov19-ArabicLeftovers** — Retest r3 2026-11-19: **STILL SEEN.** In Arabic some dashboard strings stay English (D18 pass, 4-D18-ar-expanded).
+
+#### Retest r3 — new findings (Financial_Expert_Tester, 2026-11-19)
+
+- **P3 FET-UIDS-Nov19-SignInDarkWhiteTiles** — In Dark the sign-in logo sits in a white square tile and the mascot illustration has a white background (white glare); the EN / عربي pill is top-right instead of top-start; the submit button read "Signing in…" (greyed) while idle on load (M14). Evidence: 6-M14-login-dark, 7-M14-login-light. Fix: use the dark logo and a transparent mascot in Dark.
+- **P1 FET-FU-Nov19-Cmx524SignInHtml** — (Same finding as in the File Util guide.) From 22:09 cmx hung with Cloudflare 524 for about 9 minutes and two admin sign-ins ended in `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`; M13 and M15 to M18 could not be run. Evidence: 8-signin-fail2.
+- **P3 FET-UIDS-Nov19-PosSessionCheckFirstLoad** — The first load of New Order showed "POS session could not be checked / Refresh the Session Hub, then start or resume an open POS session before creating an order." (PR-04). After a hard refresh it behaved normally.
+
+#### Retest r3 — recount, leftovers, caveats
+
+**Recount r3 (UI Design System, 127 rows now, including the 4 rows the owner added at 21:05; r3 status changes applied on top of the r2 counts):** PASS 56 / FAIL 14 / PARTIAL 29 / BLOCKED 8 / NOT RUN 18 / NOT PRESENT 2 (total 127).
+
+**Changes from r2 (123 rows: PASS 56 / FAIL 14 / PARTIAL 26 / BLOCKED 7 / NOT RUN 18 / NOT PRESENT 2):** NOT RUN to PARTIAL: PR-05 D18, PR-07 task 6 M4, M14 (3 rows); NOT RUN to BLOCKED: PR-04 K7 (1 row); 4 new rows M19 to M22 added as NOT RUN. Unchanged: PR-02 #10 stays FAIL, PR-04 K8 stays PARTIAL, PR-07 #19 and M13, M15 to M18 stay NOT RUN. The r2 by-section table was not re-tallied.
+
+**Caveats:** one browser run at a time; site input lag dropped characters. The device was Light throughout, so no dark device setting was available except Chrome's own appearance mode, which I set to Dark for M14 and restored to Device. The D18 phone case used browser zoom 250% (about 512 px wide), not a real phone. cmx stopped answering from 22:09 (Cloudflare 524), so M13 and M15 to M18 were not run.
+
+**Test data left behind (r3):**
+- Demo Laundry: QA order ORD-20261119-00006 (Jh Test dev21, 1.070 OMR paid in cash) is READY on rack QA-A1 with 2 QA files; it was not handed over. Operator Appearance was changed to Light and restored to "Same as this device" (confirmed by the "Appearance saved" toast). Admin Appearance was not changed.
+- Chrome appearance mode (M14) was restored to Device.
+- HQ: file-util settings and the purge job were changed and restored in the File Util part of this round (see the File Util guide); nothing in the UI Design System HQ catalogs was changed.
+- Sign-ins: admin had 2 failed attempts at 22:25 to 22:35 (HTML 524 response) and is not signed in; the operator signed in OK.
+
+## Design system rules (2026-11-19)
+
+| # | Where | What to do | Expected |
+|---|---|---|---|
+| R1 | Terminal in `web-admin` | Run `npm run check:ui` | It lists the changed files and ends with "N files checked: 0 errors" for this work (warnings are allowed) |
+| R2 | Terminal in `web-admin` | Put `<button>x</button>` in any feature screen, run `npm run check:ui`, then remove it | It reports `UI001 error` on that line and exits with an error. After the removal it is clean again |
+| R3 | Claude Code chat | Type `/cmx-ui-design-review src/features/catalog/ui/product-form.tsx` | A report with Tools / Critical / Important / Minor / Debt seen / Not checked / Verdict, each finding with file:line and a fix. No file is changed |
+| R4 | Cursor chat | Run `/cmx-ui-design-review` on the same file | The same kind of report (it loads `.cursor/skills/cmx-ui-design-review/SKILL.md`) |
+| R5 | Codex and Antigravity | Ask "review product-form.tsx with the cmx-ui-design-review skill" | The skill is found and the same kind of report comes back |
+| R6 | Cursor | Open any SQL migration | The old "Grandfathered Objects" rule is no longer listed among the applied rules |
+| R7 | Settings → Label printing (or Catalog → edit a product) | Do the QA row M22 | As in M22 |
+
+## PR-08 — Feature Convergence, Modal Hygiene, Extra Config & GCC Digits (2026-11-20)
+
+**Setup:** migrations `0775` and `0776` applied; `cd web-admin && npm run dev`. Test in EN and AR RTL, Light and Dark mode.
+
+| # | Where | Do | Expected |
+|---|---|---|---|
+| P1 | Switch interface to Arabic (`ar`) on Dashboard, Orders, B2B, Invoices | Check currency amounts, KPI counts, pagination, and dates | Western `123` digits render by default (`12.500 OMR`, not `١٢.٥٠٠`) alongside Arabic labels and months; `<bdi dir="ltr">` keeps `+968` phone numbers, `ORD-*` codes, and emails un-flipped |
+| P2 | Settings → **Display & Formatting** (`/dashboard/settings/extra-config`) | Open page as admin (`settings:read` + `settings:update`) | Grouped sections load with **Live GCC Formatting Preview**, System Default/Custom Override badges, radio cards (2–3 options), dropdown lists (`CmxSelectDropdown`, 4+ options), and switches (`CmxSwitch`); no free-typing needed for list fields |
+| P3 | Extra Config → Currency & Number Digits | Switch from `LATN` (`123`) to `ARAB` (`١٢٣`) → Save | Live preview updates immediately before save; after Save toast (`cmxMessage.success`), page refreshes and Arabic monetary figures render Eastern digits |
+| P4 | Same setting → Click **Reset to default** (or **Reset all to defaults**) | Confirm reset | Override is removed, `System Default` badge returns, and Arabic digits revert cleanly to `123` (`LATN`) |
+| P5 | Extra Config → Organization Table Density | Switch `INHERIT` → `COMPACT` → Save; open Orders or GL Inquiry table | `html[data-density="COMPACT"]` activates and `--cmx-row-h`/`--cmx-cell-px` visibly tighten row height & cell padding in `CmxDataTable` / `CmxDataGrid` |
+| P6 | Extra Config → Default Table Rows Per Page | Change `10` → `20` → Save; open a `CmxDataTable` screen without explicit override | Table defaults to `20` rows/page; Reset returns to `10` (`CMX_DEFAULT_PAGE_SIZE`) |
+| P7 | Extra Config → POS Counter Touch Target Mode | Set `ALWAYS_TOUCH_44` → Save; open `/dashboard/orders/new` on desktop | Quick Drop `-`/`+` and pagination steppers expand to `44px` minimum even with mouse pointer |
+| P8 | Feature modals (Permissions, Roles, Assembly Task, Ready Date, Customer Create/Edit, User Modal, Subscription, Bottom Sheet) | Open, Tab cycle, press Escape, switch Light/Dark & EN/AR | Focus stays trapped inside dialog; Escape closes modal and restores focus to opener; close `X` sits on top-end without overlapping title; body scroll stays locked while open |
+| P9 | User without `settings:update` opens `/dashboard/settings/extra-config` | Inspect controls | Read-only notice displayed; dropdowns/switches disabled and Save/Reset actions hidden |
+| P10 | HQ Console (`/products-items-config/extra-config`) → Edit `NUMBER_SCRIPT` or add an option in the Option List Builder → Save | Open Organization `/dashboard/settings/extra-config` on next request | HQ catalog row updates immediately, org override count badge + usage modal list active overriding organizations, Deactivate confirms with active org count, and the tenant settings dropdown shows the new HQ option without redeploy |
+
+### Retest r4 (2026-11-20 00:52–01:12 Asia/Muscat) — UI Design System
+
+**Retest r4 (2026-11-20 00:52–01:12 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: at 00:51 the owner said "try now" after the cmx outage that stopped Retest r3 (Cloudflare 524 from 22:09). This round runs the rows Retest r3 could not reach. Environment: remote only, https://cmx.cleanmatex.com (Demo Laundry, Main Branch, admin). Signed in on the first attempt; no 524 errors. Real mouse and keyboard, no direct API calls, no page scripts, no Jest. Credentials: none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\retest4\shots\` (`.webp`). Writes in this round: one photo (qa_photo2.jpg, note "QA r4 note") added to QA order ORD-20261119-00006; Appearance set to Dark and Light and restored to its original "Same as this device" / "Same as the Organization" / "Medium"; a New Order cart opened to the payment view and cancelled without paying (no order created). Branding, settings and other orders were not changed. Earlier rounds above are untouched.
+
+**Guide changes found while writing back.** The guide was edited by the owner or a developer after my Retest r3 write (97,655 B, SHA EF983BBC…, 22:40:13). Re-pulled at 01:15 it is 101,663 B (SHA ECEE6377…): two new sections were appended after my Retest r3 section, "Design system rules (2026-11-19)" (rows R1–R7) and "PR-08 — Feature Convergence, Modal Hygiene, Extra Config & GCC Digits (2026-11-20)" (rows P1–P9). They were not run in r4 and are listed as NOT RUN at the end of this section (R1–R6 are local terminal or editor checks, outside the remote-only scope). My Round 1, r2 and r3 sections are byte-identical. There are no Dev notes. This section is appended after the existing text.
+
+#### Retest r4 results
+
+Columns: r3 = Retest r3 result, r4 = this retest. Only rows touched in r4 are listed.
+
+| Row | r3 | r4 | Evidence | Shot |
+|---|---|---|---|---|
+| D18 | PARTIAL | PASS | Payment-rail half now run. Wide window, New Order with a test customer and Fitness Leggings (1.000 OMR); Submit stayed disabled until a Ready By date was set, then F9 opened the payment view. A "Receipt" rail sits beside the form: Gross Value, Taxes (VAT 5.00% 0.050, Municipal Fee 2% 0.020), Order Total OMR 1.070, Remaining Balance OMR 1.070. Cancelled without paying, cart cleared, no order created. With the r3 sidebar checks, the row passes. | R4-D18-1.webp |
+| PR-07 task 6 M13 | NOT RUN | NOT RUN | Not run: needs the main logo removed in Branding (a branding change). Read-only look at Settings → Branding: active theme "Ocean – In use"; the Logos area shows "The request was not valid." with Retry (retried once, same), so it is not visible whether a main or dark logo is set (FET-UIDS-Nov20-BrandingLogosInvalidRequest). | - |
+| PR-07 task 6 M15 | NOT RUN | BLOCKED | No rejected piece exists: 11 orders in Processing, 6 details and the pieces of ORD-20261119-00003 opened, no "Rejected" badge. Not created, to avoid changing real orders. | - |
+| PR-07 task 6 M16 | NOT RUN | BLOCKED | Settings → User Preferences shows "Error Loading Preferences – Failed to fetch effective settings" in English and Arabic; the console shows HTTP 500 on `/api/settings/tenants/me/effective?userId=me`, repeated over about 15 minutes. The Appearance card and "Open Appearance" could not be checked (FET-UIDS-Nov20-EffectiveSettings500). | - |
+| PR-07 task 6 M17 | NOT RUN | PASS | Account → Appearance. Dark save: dark-green toast with light-green "Appearance saved", readable. Light save: light-green toast with dark-green text, readable. Minor: for about a second after saving Light the toast kept the dark style, because the page switches theme after the toast appears (P3 FET-UIDS-Nov20-ToastThemeLag). "Same as this device" case not separately observed. Restored afterwards. | - |
+| PR-07 task 6 M18 | NOT RUN | PASS | Arabic tab title "المظهر — CleanMateX" (h1 "المظهر", page RTL), same suffix pattern as English "Appearance — CleanMateX". | - |
+| PR-07 task 6 M19 | NOT RUN | FAIL | Signed out while Appearance was Dark: the sign-in page rendered fully Light with the main navy/green "CleanMateX" logo on a light card, not the dark logo. The sign-in page does not follow the saved Dark preference (FET-UIDS-Nov20-SignInIgnoresDarkPref). Whether a dark logo is set is unknown (Logos list fails, see M13). | R4-M19-1-signin-after-dark-signout.webp |
+| PR-07 task 6 M20 | NOT RUN | NOT RUN | Not run: needs two tabs pressing "Make active" on a theme at the same moment (a live branding change). Owner approval and a QA theme needed. | - |
+| PR-07 task 6 M21 | NOT RUN | PARTIAL | The dashboard has no sales chart legend; charts are Payment Mix (pie) and Top Services (bar, no legend). Payment Mix legend Dark: green swatch with white "Cash" "100.0%", readable; Light: dark text, readable. The "View detailed report" link goes to `/reports/services`, which returns 404 (P3 FET-UIDS-Nov20-ServicesReport404). | R4-M21-1-dark.webp, R4-M21-2-light.webp |
+| PR-07 task 6 M22 | NOT RUN | PASS | Settings → Labels & Tags (nothing saved). Dark: the bottom bar "Discard changes" / "Save" is dark, not a white strip. Light: near-white as before. Section cards "Order label" and "Piece tag" show a faint blue wash at the top in both themes. | R4-M22-1-dark.webp, R4-M22-2-light.webp |
+
+**New findings in r4**
+
+- **P2 FET-UIDS-Nov20-EffectiveSettings500** — `/api/settings/tenants/me/effective?userId=me` returns HTTP 500, so Settings → User Preferences shows "Error Loading Preferences" (M16).
+- **P3 FET-UIDS-Nov20-SignInIgnoresDarkPref** — The sign-in page renders Light after signing out with Appearance Dark, so the dark logo is never shown (M19).
+- **P3 FET-UIDS-Nov20-BrandingLogosInvalidRequest** — Settings → Branding Logos shows "The request was not valid." (M13).
+- **P3 FET-UIDS-Nov20-ServicesReport404** — Dashboard "View detailed report" opens `/reports/services`, a 404 (M21).
+- **P3 FET-UIDS-Nov20-ToastThemeLag** — After saving Light, the toast keeps the dark style for about a second (M17).
+
+**r4 tally for the rows above:** PASS 4 (D18, M17, M18, M22) · FAIL 1 (M19) · PARTIAL 1 (M21) · BLOCKED 2 (M15, M16) · NOT RUN 2 (M13, M20).
+
+**New rows added since r3, not run in r4:** Design system rules R1–R7 (R1–R6 are local terminal, Claude Code, Cursor, Codex checks, outside the remote-only scope; R7 is the same as M22, PASS above) and PR-08 P1–P9 (need migrations 0775/0776 on cmx and Extra Config writes; to run in a later round).

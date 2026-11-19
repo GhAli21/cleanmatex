@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { AlertCircle, Clock, RefreshCw, ExternalLink } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
@@ -115,16 +117,18 @@ export function OverdueOrdersWidget() {
             )}
           </div>
         </div>
-        <button
+        <CmxButton
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Refresh"
         >
           <RefreshCw
             className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
           />
-        </button>
+        </CmxButton>
       </div>
 
       {/* Content */}
@@ -148,48 +152,48 @@ export function OverdueOrdersWidget() {
         ) : (
           <div className="space-y-2">
             <div className="overflow-hidden rounded-lg border border-border">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <Table className="min-w-full divide-y divide-border">
+                <TableHeader className="bg-muted">
+                  <TableRow>
+                    <TableHead className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Order
-                    </th>
-                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Customer
-                    </th>
-                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Due Date
-                    </th>
-                    <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Overdue
-                    </th>
-                    <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border bg-card">
                   {orders.map((order) => (
-                    <tr
+                    <TableRow
                       key={order.id}
                       className="hover:bg-muted cursor-pointer transition-colors"
                       onClick={() => handleOrderClick(order.id)}
                     >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-foreground">
-                          #{order.order_no}
+                      <TableCell className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm font-medium text-foreground tabular-nums">
+                          <bdi dir="ltr">#{order.order_no}</bdi>
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {order.status}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-foreground">
                           {order.customer_name}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-foreground">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-foreground tabular-nums">
                           {new Date(order.ready_by).toLocaleDateString('en-OM', {
                             month: 'short',
                             day: 'numeric',
@@ -197,8 +201,8 @@ export function OverdueOrdersWidget() {
                             minute: '2-digit',
                           })}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-end">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-end tabular-nums">
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getSeverityColor(
                             order.hours_overdue
@@ -207,9 +211,12 @@ export function OverdueOrdersWidget() {
                           <Clock className="h-3 w-3" />
                           {formatHoursOverdue(order.hours_overdue)}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-end">
-                        <button
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-end">
+                        <CmxButton
+                          type="button"
+                          variant="ghost"
+                          size="xs"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOrderClick(order.id);
@@ -218,22 +225,25 @@ export function OverdueOrdersWidget() {
                           aria-label="View order"
                         >
                           <ExternalLink className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
+                        </CmxButton>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {orders.length > 5 && (
               <div className="text-center pt-2">
-                <button
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => router.push('/dashboard/orders?filter=overdue')}
                   className="text-sm text-primary-text hover:text-primary-text/80 font-medium"
                 >
                   View all overdue orders →
-                </button>
+                </CmxButton>
               </div>
             )}
           </div>

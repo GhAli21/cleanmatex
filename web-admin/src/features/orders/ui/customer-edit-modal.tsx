@@ -12,6 +12,15 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { getCustomerById, updateCustomer } from '@/lib/api/customers';
 import { fetchCustomerCategories } from '@/lib/api/customer-categories';
 import type { Customer, CustomerWithTenantData } from '@/lib/types/customer';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 
 interface CustomerEditModalProps {
   open: boolean;
@@ -38,7 +47,7 @@ export function CustomerEditModal({
   const tB2b = useTranslations('b2b');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  
+
   // Form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -54,7 +63,7 @@ export function CustomerEditModal({
   const [customerCategoryId, setCustomerCategoryId] = useState('');
   const [b2bCategories, setB2bCategories] = useState<{ id: string; name: string }[]>([]);
   const [customerType, setCustomerType] = useState<string>('');
-  
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -72,7 +81,7 @@ export function CustomerEditModal({
 
       try {
         const customer: CustomerWithTenantData = await getCustomerById(customerId);
-        
+
         // Populate form fields
         setFirstName(customer.firstName || '');
         setLastName(customer.lastName || '');
@@ -98,8 +107,8 @@ export function CustomerEditModal({
             .catch(() => { /* keep empty */ });
         }
       } catch (err) {
-        const errorMessage = err instanceof Error 
-          ? err.message 
+        const errorMessage = err instanceof Error
+          ? err.message
           : (t('failedToLoadCustomer') || 'Failed to load customer data');
         setError(errorMessage);
       } finally {
@@ -151,8 +160,8 @@ export function CustomerEditModal({
       // Call success callback with updated customer
       onSuccess(updatedCustomer);
     } catch (err) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
+      const errorMessage = err instanceof Error
+        ? err.message
         : (t('failedToUpdateCustomer') || 'Failed to update customer');
       setError(errorMessage);
       setLoading(false);
@@ -161,7 +170,7 @@ export function CustomerEditModal({
 
   const handleClose = () => {
     if (loading || fetching) return; // Prevent closing while loading
-    
+
     // Reset form on close
     setFirstName('');
     setLastName('');
@@ -180,44 +189,24 @@ export function CustomerEditModal({
     onClose();
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-foreground">
-              {t('editCustomer') || 'Edit Customer'}
-            </h3>
-            <button
-              onClick={handleClose}
-              disabled={loading || fetching}
-              className="text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground text-start">
+    <CmxDialog
+      open={open}
+      onOpenChange={(next) => { if (!next) handleClose(); }}
+      stackAboveModals
+    >
+      <CmxDialogContent className="max-w-2xl w-full" scrollBody>
+        <CmxDialogHeader>
+          <CmxDialogTitle>
+            {t('editCustomer') || 'Edit Customer'}
+          </CmxDialogTitle>
+          <CmxDialogDescription className="text-start">
             {t('editCustomerProfile') || 'Update customer profile information'}
-          </p>
-        </div>
+          </CmxDialogDescription>
+        </CmxDialogHeader>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Loading State */}
           {fetching && (
             <div className="mb-4 flex items-center justify-center py-8">
@@ -278,20 +267,20 @@ export function CustomerEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* First Name */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-firstName"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('firstName') || 'First Name'} <span className="text-danger-text">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-firstName"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('firstName') || 'First Name'}
                       required
                     />
@@ -299,80 +288,80 @@ export function CustomerEditModal({
 
                   {/* Last Name */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-lastName"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('lastName') || 'Last Name'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-lastName"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('lastName') || 'Last Name'}
                     />
                   </div>
 
                   {/* Name */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-name"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('name') || 'Name'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('name') || 'Name'}
                     />
                   </div>
 
                   {/* Name2 (Arabic) */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-name2"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('name2') || 'Name (Arabic)'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-name2"
                       value={name2}
                       onChange={(e) => setName2(e.target.value)}
                       dir="rtl"
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-end"
+                      className="text-end"
                       placeholder={t('name2') || 'Name (Arabic)'}
                     />
                   </div>
 
                   {/* Display Name */}
                   <div className="md:col-span-2">
-                    <label
+                    <Label
                       htmlFor="edit-customer-displayName"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('displayName') || 'Display Name'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-displayName"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('displayName') || 'Display Name'}
                     />
                   </div>
@@ -387,24 +376,24 @@ export function CustomerEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Phone */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-phone"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('phoneNumber') || 'Phone Number'}
-                    </label>
+                    </Label>
                     <div className="flex">
                       <span className="inline-flex items-center px-3 rounded-s-md border-s border-e-0 border border-border bg-muted text-muted-foreground text-sm">
-                        +968
+                        <bdi dir="ltr">+968</bdi>
                       </span>
-                      <input
+                      <CmxInput
                         type="tel"
                         id="edit-customer-phone"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         dir="ltr"
                         disabled={loading}
-                        className="flex-1 block w-full px-3 py-2 border border-border rounded-e-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed"
+                        className="flex-1 rounded-s-none"
                         placeholder="90123456"
                       />
                     </div>
@@ -412,20 +401,20 @@ export function CustomerEditModal({
 
                   {/* Email */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-email"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('email') || 'Email'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="email"
                       id="edit-customer-email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       dir="ltr"
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder="customer@example.com"
                     />
                   </div>
@@ -440,24 +429,21 @@ export function CustomerEditModal({
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label
+                      <Label
                         htmlFor="edit-customer-category"
-                        className="block text-sm font-medium text-foreground mb-1 text-start"
+                        className="block mb-1 text-start"
                       >
                         {t('category') || 'Category'}
-                      </label>
-                      <select
+                      </Label>
+                      <CmxSelect
                         id="edit-customer-category"
                         value={customerCategoryId}
                         onChange={(e) => setCustomerCategoryId(e.target.value)}
                         disabled={loading}
-                        className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
-                      >
-                        <option value="">{tCommon('select') || 'Select...'}</option>
-                        {b2bCategories.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                        className="text-start"
+                        placeholder={tCommon('select') || 'Select...'}
+                        options={b2bCategories.map((c) => ({ value: c.id, label: c.name }))}
+                      />
                     </div>
                   </div>
                 </div>
@@ -471,133 +457,108 @@ export function CustomerEditModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Address */}
                   <div className="md:col-span-2">
-                    <label
+                    <Label
                       htmlFor="edit-customer-address"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('address') || 'Address'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-address"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('address') || 'Address'}
                     />
                   </div>
 
                   {/* Area */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-area"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('area') || 'Area'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-area"
                       value={area}
                       onChange={(e) => setArea(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('area') || 'Area'}
                     />
                   </div>
 
                   {/* Building */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-building"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('building') || 'Building'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-building"
                       value={building}
                       onChange={(e) => setBuilding(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('building') || 'Building'}
                     />
                   </div>
 
                   {/* Floor */}
                   <div>
-                    <label
+                    <Label
                       htmlFor="edit-customer-floor"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
+                      className="block mb-1 text-start"
                     >
                       {t('floor') || 'Floor'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       id="edit-customer-floor"
                       value={floor}
                       onChange={(e) => setFloor(e.target.value)}
                       dir={isRTL ? 'rtl' : 'ltr'}
                       disabled={loading}
-                      className="block w-full px-3 py-2 border border-border rounded-md shadow-sm focus:outline-none focus:ring-ring focus:border-ring sm:text-sm disabled:bg-muted disabled:cursor-not-allowed text-start"
+                      className="text-start"
                       placeholder={t('floor') || 'Floor'}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="mt-6 flex items-center justify-end space-x-3">
-                <button
+              <CmxDialogFooter className="mt-6 gap-3">
+                <CmxButton
                   type="button"
+                  variant="outline"
                   onClick={handleClose}
                   disabled={loading}
-                  className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {tCommon('cancel')}
-                </button>
-                <button
+                </CmxButton>
+                <CmxButton
                   type="submit"
+                  variant="primary"
+                  loading={loading}
                   disabled={loading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? (
-                    <>
-                      <svg
-                        className="animate-spin h-4 w-4 text-on-solid -ms-1 me-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      {t('updating') || 'Updating...'}
-                    </>
-                  ) : (
-                    t('saveChanges') || 'Save Changes'
-                  )}
-                </button>
-              </div>
+                  {loading ? (t('updating') || 'Updating...') : (t('saveChanges') || 'Save Changes')}
+                </CmxButton>
+              </CmxDialogFooter>
             </>
           )}
         </form>
-      </div>
-    </div>
+      </CmxDialogContent>
+    </CmxDialog>
   );
 }

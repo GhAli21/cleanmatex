@@ -33,8 +33,8 @@ agents:
 - [ ] Create migrations for new tables
 - [ ] Add composite foreign keys for tenant isolation — FK + 1:1 UNIQUE + parent key use the **same column order** (`/database` Prisma-safe FKs). If parent is `(id, tenant_org_id)`, child is `(parent_id, tenant_org_id)` (tenant second). Never `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`.
 - [ ] Enable RLS policies
-- [ ] Add standard indexes
-- [ ] Update Prisma schema
+- [ ] Add standard indexes (list indexes stay tenant-first; that is not the FK order)
+- [ ] Sync Prisma with `db pull` + `validate` + `generate` (do not hand-edit generated 1:1s to `[]`)
 - [ ] **Permissions** — migration seeds DB; add `{DOMAIN}_PERMISSIONS` in `lib/constants/permissions/{domain}-perm.ts`
 - [ ] **Navigation** (menu-visible routes) — `/navigation` dual-write: `navigation.ts` + `sys_components_cd` migration **before** derive (derive reads `navigation.ts` for `page.permissions`)
 - [ ] **Access contract** — load `/rebuild-ui-access-contract`; do **not** hand-write full `*-access.ts` from scratch:
@@ -63,7 +63,9 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] Implement UI components
 - [ ] Add i18n translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`
 - [ ] Support RTL layout
-- [ ] Use Cmx Design System components
+- [ ] Use Cmx Design System components and follow `docs/dev/rules/cmx-design-system.md`
+- [ ] Before done: run `npm run check:ui` (0 errors on changed files) and `/cmx-ui-design-review` on the changed UI
+- [ ] Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`)
 - [ ] For editable money fields, prevent invalid entry or explain inline; never rewrite typed money as a side effect
 
 ### Phase 5: Testing & Build
@@ -114,11 +116,13 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - Feature-specific code in `src/features/`
 - Always use i18n for text
 - Support RTL
+- **Mandatory when applicable:** `cmxMessage` / `useMessage()` for user-facing success/error/warning/info/confirm (`docs/dev/rules/cmx-message.md`)
 
 ### Error Handling
 - Use centralized logger (`@/lib/utils/logger`)
 - Never use `console.log` directly
 - Log with proper context (tenantId, userId, etc.)
+- In UI: surface errors via `cmxMessage` / `useMessage()`, not legacy toast helpers or `alert()`
 
 ## Code Review Checklist
 

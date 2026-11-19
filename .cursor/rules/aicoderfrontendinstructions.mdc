@@ -184,12 +184,8 @@ export default async function OrdersPage() {
 
 ### 4.1 Theme Engine
 
-- Theme (colors, radius, density, dark mode, etc.) is controlled by a Theme Settings Engine.
-- `ThemeProvider` sets DOM attributes on `<html>`:
-  - `class="dark"` (for dark mode)
-  - `data-accent="blue" | "emerald" | "violet"`
-  - `data-radius="sm" | "md" | "lg"`
-  - `data-density="compact" | "comfortable" | "spacious"`
+- web-admin: the server resolves the theme and writes `<html data-mode="LIGHT|DARK|SYSTEM" data-density data-font-scale data-font>`; brand colours and radius come from the Organization theme CSS. No `dark:` classes.
+- The full rules (token table, RTL, paper, states, a11y, checks) are in `docs/dev/rules/cmx-design-system.md`.
 
 ### 4.2 Styling – DO and DO NOT
 

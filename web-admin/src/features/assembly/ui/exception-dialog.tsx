@@ -8,20 +8,26 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton, CmxTextarea, Label } from '@ui/primitives';
 import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
+import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
   CmxSelectDropdownValue,
   CmxSelectDropdownContent,
   CmxSelectDropdownItem,
 } from '@ui/forms';
-import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useMessage } from '@ui/feedback/useMessage';
 import { cmxMessage } from '@ui/feedback';
 import { PendingFilesPicker, uploadFilesToRecord } from '@features/file-util';
 import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
 import { useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import type { AssemblyTaskItem } from '../hooks/use-assembly';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ExceptionDialogProps {
   taskId: string;
@@ -128,23 +134,15 @@ export function ExceptionDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <CmxCard className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
-        <CmxCardHeader className="flex flex-row items-center justify-between">
-          <CmxCardTitle className="flex items-center gap-2">
+    <CmxDialog open onOpenChange={(next) => { if (!next && !isSubmitting) onClose(); }} stackAboveModals>
+      <CmxDialogContent className="max-w-2xl w-full p-0" scrollBody>
+        <CmxDialogHeader>
+          <CmxDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning-text" />
             {t('title')}
-          </CmxCardTitle>
-          <CmxButton
-            variant="ghost"
-            size="xs"
-            onClick={onClose}
-            aria-label={tTask('actions.close')}
-          >
-            <X className="h-5 w-5" />
-          </CmxButton>
-        </CmxCardHeader>
-        <CmxCardContent className="space-y-4">
+          </CmxDialogTitle>
+        </CmxDialogHeader>
+        <div className="p-6 space-y-4">
           <div className="space-y-1.5">
             <Label>{t('typeLabel')}</Label>
             <CmxSelectDropdown value={exceptionType} onValueChange={setExceptionType}>
@@ -233,23 +231,23 @@ export function ExceptionDialog({
             onChange={setPhotos}
             disabled={isSubmitting}
           />
+        </div>
 
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <CmxButton variant="outline" onClick={onClose} disabled={isSubmitting}>
-              {t('actions.cancel')}
-            </CmxButton>
-            <CmxButton
-              onClick={() => {
-                void handleSubmit();
-              }}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-            >
-              {t('actions.submit')}
-            </CmxButton>
-          </div>
-        </CmxCardContent>
-      </CmxCard>
-    </div>
+        <CmxDialogFooter className="border-t px-6 py-4">
+          <CmxButton variant="outline" onClick={onClose} disabled={isSubmitting}>
+            {t('actions.cancel')}
+          </CmxButton>
+          <CmxButton
+            onClick={() => {
+              void handleSubmit();
+            }}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
+            {t('actions.submit')}
+          </CmxButton>
+        </CmxDialogFooter>
+      </CmxDialogContent>
+    </CmxDialog>
   );
 }

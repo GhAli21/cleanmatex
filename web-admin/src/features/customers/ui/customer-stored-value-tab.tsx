@@ -17,7 +17,10 @@ import {
   CmxCardContent,
   CmxCardHeader,
   CmxCardTitle,
+  CmxInput,
   CmxMoneyField,
+  CmxTextarea,
+  Label,
 } from '@ui/primitives';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
@@ -449,7 +452,7 @@ export function CustomerStoredValueTab({ customerId }: Props) {
           <div className="flex flex-col gap-4 py-2">
             {/* Amount */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">{t('amount')}</label>
+              <Label>{t('amount')}</Label>
               <CmxMoneyField
                 value={parseMoneyDraft(amount) || null}
                 draftValue={amount}
@@ -481,12 +484,11 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             {/* Currency — only for credit note */}
             {dialog === 'creditNote' && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">{t('currency')}</label>
-                <input
+                <Label>{t('currency')}</Label>
+                <CmxInput
                   type="text"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="OMR"
                   maxLength={3}
                 />
@@ -496,11 +498,10 @@ export function CustomerStoredValueTab({ customerId }: Props) {
             {/* Reason — required for credit note */}
             {dialog === 'creditNote' && (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">{t('reason')} *</label>
-                <textarea
+                <Label>{t('reason')} *</Label>
+                <CmxTextarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   rows={3}
                   placeholder={t('reason')}
                 />
@@ -515,13 +516,12 @@ export function CustomerStoredValueTab({ customerId }: Props) {
                 (dialog === 'topUp' || dialog === 'advance')
               ) && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">
+                  <Label>
                     {t('notesOptional')}
-                  </label>
-                  <textarea
+                  </Label>
+                  <CmxTextarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     rows={3}
                   />
                 </div>

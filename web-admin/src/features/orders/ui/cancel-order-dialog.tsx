@@ -20,7 +20,7 @@ import {
   CmxDialogHeader,
   CmxDialogTitle,
 } from '@ui/overlays';
-import { Label, CmxTextarea } from '@ui/primitives';
+import { CmxSelect, Label, CmxTextarea } from '@ui/primitives';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -174,20 +174,21 @@ export function CancelOrderDialog({
             <Label htmlFor="cancel-reason-code" className="text-start">
               {t('reasonCodeLabel')} ({tCommon('optional')})
             </Label>
-            <select
+            <CmxSelect
               id="cancel-reason-code"
               value={reasonCode}
               onChange={(e) => setReasonCode(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-start"
+              className="mt-1 text-start"
               dir={isRTL ? 'rtl' : 'ltr'}
-            >
-              <option value="">{t('reasonCodePlaceholder')}</option>
-              <option value="CUSTOMER_REQUEST">{t('reasonCodes.customerRequest')}</option>
-              <option value="DUPLICATE">{t('reasonCodes.duplicate')}</option>
-              <option value="WRONG_ADDRESS">{t('reasonCodes.wrongAddress')}</option>
-              <option value="OUT_OF_STOCK">{t('reasonCodes.outOfStock')}</option>
-              <option value="OTHER">{t('reasonCodes.other')}</option>
-            </select>
+              options={[
+                { value: '', label: t('reasonCodePlaceholder') },
+                { value: 'CUSTOMER_REQUEST', label: t('reasonCodes.customerRequest') },
+                { value: 'DUPLICATE', label: t('reasonCodes.duplicate') },
+                { value: 'WRONG_ADDRESS', label: t('reasonCodes.wrongAddress') },
+                { value: 'OUT_OF_STOCK', label: t('reasonCodes.outOfStock') },
+                { value: 'OTHER', label: t('reasonCodes.other') },
+              ]}
+            />
           </div>
         </div>
 

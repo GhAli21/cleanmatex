@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Expenses' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
@@ -197,9 +197,9 @@ export default async function ErpLiteExpensesPage({
                   label={t('forms.expense.fields.payee')}
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-expense-description" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-expense-description" className="block">
                     {t('forms.expense.fields.description')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-expense-description"
                     name="description"
@@ -323,9 +323,9 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-cash-txn-description" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-cash-txn-description" className="block">
                     {t('forms.cashTxn.fields.description')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-cash-txn-description"
                     name="description"
@@ -368,9 +368,9 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-approval-action-note" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-approval-action-note" className="block">
                     {t('forms.approval.fields.note')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-approval-action-note"
                     name="action_note"
@@ -415,9 +415,9 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-cash-recon-note" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-cash-recon-note" className="block">
                     {t('forms.cashRecon.fields.note')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-cash-recon-note"
                     name="note"
@@ -462,9 +462,9 @@ export default async function ErpLiteExpensesPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-cash-recon-ex-note" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-cash-recon-ex-note" className="block">
                     {t('forms.cashReconException.fields.note')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-cash-recon-ex-note"
                     name="note"
@@ -512,12 +512,14 @@ export default async function ErpLiteExpensesPage({
                       {item.status_code === 'PENDING' ? (
                         <div className="mt-3 grid gap-2 md:grid-cols-2">
                           <form action={approveErpLiteApprovalAction}>
+                            {/* cmx-ds-ignore UI001: hidden input binds record id to Next.js Server Action */}
                             <input type="hidden" name="approval_id" value={item.id} />
                             <CmxButton type="submit" variant="outline" className="w-full">
                               {t('lists.approvals.approve')}
                             </CmxButton>
                           </form>
                           <form action={rejectErpLiteApprovalAction}>
+                            {/* cmx-ds-ignore UI001: hidden input binds record id to Next.js Server Action */}
                             <input type="hidden" name="approval_id" value={item.id} />
                             <CmxButton type="submit" variant="outline" className="w-full">
                               {t('lists.approvals.reject')}
@@ -584,6 +586,7 @@ export default async function ErpLiteExpensesPage({
                       </div>
                       {item.status_code === 'OPEN' ? (
                         <form action={closeErpLiteCashReconciliationAction} className="mt-3">
+                          {/* cmx-ds-ignore UI001: hidden input binds record id to Next.js Server Action */}
                           <input type="hidden" name="cash_recon_id" value={item.id} />
                           <CmxButton type="submit" variant="outline" className="w-full">
                             {t('lists.cashRecons.close')}
@@ -592,6 +595,7 @@ export default async function ErpLiteExpensesPage({
                       ) : null}
                       {item.status_code === 'CLOSED' ? (
                         <form action={lockErpLiteCashReconciliationAction} className="mt-3">
+                          {/* cmx-ds-ignore UI001: hidden input binds record id to Next.js Server Action */}
                           <input type="hidden" name="cash_recon_id" value={item.id} />
                           <CmxButton type="submit" variant="outline" className="w-full">
                             {t('lists.cashRecons.lock')}

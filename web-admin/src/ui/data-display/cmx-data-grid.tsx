@@ -248,19 +248,19 @@ function mergeLabels(partial?: Partial<CmxDataGridLabels>): CmxDataGridLabels {
 function densityHeaderClass(d: CmxDataGridDensity): string {
   if (d === 'compact') return 'px-1.5 py-1';
   if (d === 'comfortable') return 'px-3 py-2.5';
-  return 'px-2 py-2';
+  return 'px-[var(--cmx-cell-px)] py-2';
 }
 
 function densityFilterRowClass(d: CmxDataGridDensity): string {
   if (d === 'compact') return 'px-1.5 py-0.5';
   if (d === 'comfortable') return 'px-3 py-2';
-  return 'px-2 py-1.5';
+  return 'px-[var(--cmx-cell-px)] py-1.5';
 }
 
 function densityCellClass(d: CmxDataGridDensity): string {
   if (d === 'compact') return 'px-1.5 py-1';
   if (d === 'comfortable') return 'px-3 py-2.5';
-  return 'px-2 py-2';
+  return 'px-[var(--cmx-cell-px)] py-2';
 }
 
 function densityFilterInputClass(d: CmxDataGridDensity): string {
@@ -1035,6 +1035,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                 <tr
                   key={row.id}
                   className={cn(
+                    density === 'standard' && 'h-[var(--cmx-row-h)]',
                     'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
                     'hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                     enableZebra && rowIndex % 2 === 1 && 'bg-muted/40'

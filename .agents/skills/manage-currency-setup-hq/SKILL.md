@@ -6,8 +6,8 @@ version: 1.0.0
 deprecated: false
 effort: medium
 references:
-  - @.Codex/skills/manage-currency-setup-hq/reference.md
-  - AGENTS.md
+  - @.claude/skills/manage-currency-setup-hq/reference.md
+  - CLAUDE.md
   - docs/dev/rules/integration-contracts.md
   - cleanmatexsaas/docs/features/Currency_Setup/HQ_CURRENCY_HANDOFF.md
 agents:

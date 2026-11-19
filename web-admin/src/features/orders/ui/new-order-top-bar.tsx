@@ -16,7 +16,7 @@ import { CategoryTabs } from './category-tabs';
 import { CategoryTabsSkeleton } from './loading-skeletons';
 import { UserPlus, UserCheck, Edit2, Settings2 } from 'lucide-react';
 import type { BranchOption } from '@/lib/services/inventory-service';
-import { CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxSelect } from '@ui/primitives';
 import {
   SELECTABLE_NEW_ORDER_SOURCE_CODES,
   type OrderSourceCode,
@@ -121,7 +121,9 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
       <div className="px-4 py-2 flex items-center gap-3 flex-wrap">
         {/* Branch Selector — only if multiple branches */}
         {branches.length > 1 && (
-          <select
+          <CmxSelect
+            fullWidth={false}
+            size="sm"
             value={branchId ?? ''}
             autoFocus={!branchId && !branchLocked}
             disabled={branchLocked}
@@ -129,6 +131,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               if (branchLocked) return;
               const newId = e.target.value || null;
               if (hasBranchDependentData && newId && newId !== branchId) {
+                // cmx-ds-ignore UI002: synchronous confirmation gates branch change before state clear
                 const confirmed = window.confirm(
                   t('warnings.changeBranchConfirm') || 'Changing the branch will clear your current order data. Continue?'
                 );
@@ -136,29 +139,31 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               }
               onBranchChange(newId);
             }}
-            className={`max-w-[180px] px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-transparent ${branchLocked ? 'border-border bg-muted text-foreground' : !branchId ? 'border-warning bg-warning-bg' : 'border-border'} text-start`}
+            className={`max-w-[180px] text-start ${branchLocked ? 'border-border bg-muted text-foreground' : !branchId ? 'border-warning bg-warning-bg' : 'border-border'}`}
             dir={isRTL ? 'rtl' : 'ltr'}
             aria-label={tCommon('branch')}
-          >
-            <option value="">{tCommon('selectBranch')}</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {isRTL ? (b.name2 || b.name) : b.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: '', label: tCommon('selectBranch') },
+              ...branches.map((b) => ({
+                value: b.id,
+                label: isRTL ? (b.name2 || b.name) : b.name,
+              })),
+            ]}
+          />
         )}
         {branchesLoading && branches.length === 0 && (
           <span className="text-xs text-muted-foreground">{tCommon('loading') || 'Loading...'}</span>
         )}
 
         {/* Customer pill */}
-        <button
+        <CmxButton
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={customerName ? (onEditCustomer ?? onSelectCustomer) : onSelectCustomer}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1  ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium ${
             customerName
-              ? 'border-primary bg-info-bg text-info-text'
+              ? 'border-primary bg-info-bg text-info-text hover:bg-info-bg'
               : 'border-border bg-card text-muted-foreground hover:border-muted-foreground'
           }`}
           aria-label={customerName ? (t('orderSummary.editCustomer') || 'Edit customer') : t('selectCustomer')}
@@ -172,7 +177,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
             {customerName || t('selectCustomer')}
           </span>
           {customerName && <Edit2 className="w-3 h-3 shrink-0 opacity-60" aria-hidden />}
-        </button>
+        </CmxButton>
 
         {/* Order speed (§5.4): options from sys_service_speed_cd; new lines follow it */}
         <ServiceSpeedSelect
@@ -188,12 +193,14 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
         {/* Order-wide preferences pill — always visible on every step, so staff don't
             need to remember which step/tab holds order-level entry (see B18 redesign). */}
         {onOpenOrderPreferences && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onOpenOrderPreferences}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1  ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 text-sm font-medium ${
               orderPrefsCount > 0
-                ? 'border-primary bg-info-bg text-info-text'
+                ? 'border-primary bg-info-bg text-info-text hover:bg-info-bg'
                 : 'border-border bg-card text-muted-foreground hover:border-muted-foreground'
             }`}
             aria-label={
@@ -210,7 +217,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
                 {orderPrefsCount}
               </span>
             )}
-          </button>
+          </CmxButton>
         )}
 
         {/* Context remains above the fold because it changes workflow and audit semantics, not item pricing. */}

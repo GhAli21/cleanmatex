@@ -103,28 +103,17 @@ Cmx components must support:
 - accessible focus states,
 - semantic variants.
 
-Theme attributes live on `<html>`:
+The server writes the theme on `<html>` (no client theme switching):
 
 ```txt
-class="dark"
-data-accent="blue|emerald|violet|..."
-data-radius="sm|md|lg"
-data-density="compact|comfortable|spacious"
+data-mode="LIGHT|DARK|SYSTEM"
+data-density="COMFORTABLE|COMPACT"
+data-font-scale="SM|MD|LG"
+data-font="<font pair code>"
 dir="ltr|rtl"
 ```
 
-Use CSS variables:
-
-```css
---cmx-background-rgb
---cmx-foreground-rgb
---cmx-surface-rgb
---cmx-border-rgb
---cmx-primary-rgb
---cmx-danger-rgb
---cmx-warning-rgb
---cmx-success-rgb
-```
+The radius and brand colours come from the Organization theme CSS. Use the token classes (`bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, `text-primary-text`, `bg-{success|warning|danger|info}-bg`, `text-on-solid`, ...). Outside Tailwind, use `rgb(var(--cmx-<name>-rgb))`. The token table, dark mode, paper and RTL rules are in `docs/dev/rules/cmx-design-system.md` §2–§4.
 
 ## 4. `CmxButton` contract
 

@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Purchase Orders' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
@@ -141,9 +141,9 @@ export default async function ErpLitePoPage({
                   options={taxOptions.tax_class_options.map((item) => ({ value: item.id, label: item.label }))}
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-po-description" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-po-description" className="block text-sm font-medium text-foreground">
                     {t('forms.po.fields.description')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-po-description"
                     name="description"

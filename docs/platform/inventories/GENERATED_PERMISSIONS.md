@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T13:02:08.496Z
+Generated: 2026-11-19T20:40:46.887Z
 
 ## By surface (counts)
 
@@ -11,8 +11,8 @@ Generated: 2026-11-19T13:02:08.496Z
 | --- | --- |
 | api | 375 |
 | middleware | 4 |
-| screen | 116 |
-| service | 4 |
+| screen | 117 |
+| service | 6 |
 
 ## All permission usages
 
@@ -74,7 +74,7 @@ Generated: 2026-11-19T13:02:08.496Z
 | b2b_statements:view | api | app/api/v1/b2b-statements/route.ts | 16 | /api/v1/b2b-statements |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/print/route.ts | 22 | /api/v1/b2b-statements/[id]/print |
 | b2b_statements:view | api | app/api/v1/b2b-statements/[id]/route.ts | 30 | /api/v1/b2b-statements/[id] |
-| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 77 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
+| cash_control:manage | screen | src/features/cash-drawers/ui/cash-control-settings-screen.tsx | 74 | src/features/cash-drawers/ui/cash-control-settings-screen.tsx |
 | cash_control:manage | screen | src/features/cash-drawers/ui/cash-denomination-control-card.tsx | 52 | src/features/cash-drawers/ui/cash-denomination-control-card.tsx |
 | cash_control:manage | screen | src/features/cash-drawers/ui/cash-drawer-policy-tab.tsx | 46 | src/features/cash-drawers/ui/cash-drawer-policy-tab.tsx |
 | cash_control:manage | screen | src/features/pos-settings/ui/pos-settings-screen.tsx | 49 | src/features/pos-settings/ui/pos-settings-screen.tsx |
@@ -169,7 +169,7 @@ Generated: 2026-11-19T13:02:08.496Z
 | customers:read | api | app/api/v1/customers/[id]/route.ts | 43 | /api/v1/customers/[id] |
 | customers:read | api | app/api/v1/customers/[id]/service-prefs/route.ts | 26 | /api/v1/customers/[id]/service-prefs |
 | customers:receipt_allocate | screen | src/features/customers/ui/customer-account-receipt-client.tsx | 57 | src/features/customers/ui/customer-account-receipt-client.tsx |
-| customers:update | screen | app/dashboard/customers/[id]/page.tsx | 70 | /dashboard/customers/[id] |
+| customers:update | screen | app/dashboard/customers/[id]/page.tsx | 71 | /dashboard/customers/[id] |
 | customers:update | screen | src/features/customers/ui/customer-whatsapp-consent-card.tsx | 27 | src/features/customers/ui/customer-whatsapp-consent-card.tsx |
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 132 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
@@ -197,9 +197,9 @@ Generated: 2026-11-19T13:02:08.496Z
 | fin_vouchers:view | api | app/api/v1/finance/vouchers/[voucherId]/route.ts | 17 | /api/v1/finance/vouchers/[voucherId] |
 | fin_vouchers:view_effects | api | app/api/v1/finance/voucher-lines/[lineId]/linked-effects/route.ts | 15 | /api/v1/finance/voucher-lines/[lineId]/linked-effects |
 | fin_vouchers:view_effects | api | app/api/v1/finance/vouchers/[voucherId]/linked-effects/route.ts | 15 | /api/v1/finance/vouchers/[voucherId]/linked-effects |
-| finance_jobs:run | screen | src/features/billing/ui/finance-jobs-section.tsx | 124 | src/features/billing/ui/finance-jobs-section.tsx |
+| finance_jobs:run | screen | src/features/billing/ui/finance-jobs-section.tsx | 128 | src/features/billing/ui/finance-jobs-section.tsx |
 | finance_jobs:run | api | app/api/v1/finance/jobs/[jobCode]/run/route.ts | 24 | /api/v1/finance/jobs/[jobCode]/run |
-| finance_jobs:view | screen | src/features/billing/ui/finance-jobs-section.tsx | 123 | src/features/billing/ui/finance-jobs-section.tsx |
+| finance_jobs:view | screen | src/features/billing/ui/finance-jobs-section.tsx | 127 | src/features/billing/ui/finance-jobs-section.tsx |
 | finance_jobs:view | api | app/api/v1/finance/jobs/route.ts | 13 | /api/v1/finance/jobs |
 | finance_jobs:view | api | app/api/v1/finance/jobs/[jobCode]/runs/route.ts | 19 | /api/v1/finance/jobs/[jobCode]/runs |
 | finance_outbox:retry | screen | src/features/billing/ui/outbox-monitor-page.tsx | 96 | src/features/billing/ui/outbox-monitor-page.tsx |
@@ -272,7 +272,7 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:approve_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 164 | src/features/billing/ui/refunds-list-client.tsx |
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 73 | src/features/billing/ui/pending-payments-worklist-page.tsx |
-| orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 77 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 78 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 121 | /dashboard/delivery |
 | orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 51 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
 | orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 205 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
@@ -290,7 +290,7 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:edit | api | app/api/v1/orders/[id]/changes/route.ts | 68 | /api/v1/orders/[id]/changes |
 | orders:edit | api | app/api/v1/orders/[id]/edit-session/route.ts | 56 | /api/v1/orders/[id]/edit-session |
 | orders:fail_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 74 | src/features/billing/ui/pending-payments-worklist-page.tsx |
-| orders:fail_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 78 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:fail_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 79 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:history | api | app/api/v1/orders/[id]/history/route.ts | 13 | /api/v1/orders/[id]/history |
 | orders:manual_charge | screen | src/features/orders/ui/order-financial/order-charges-void-panel.tsx | 38 | src/features/orders/ui/order-financial/order-charges-void-panel.tsx |
 | orders:manual_charge | api | app/api/v1/orders/[id]/charges/[chargeId]/void/route.ts | 30 | /api/v1/orders/[id]/charges/[chargeId]/void |
@@ -299,12 +299,12 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:pending_payments_view | api | app/api/v1/finance/pending-payments/route.ts | 21 | /api/v1/finance/pending-payments |
 | orders:post_settlement_edit | api | app/api/v1/orders/[id]/edit-history/[editHistoryId]/settlement/route.ts | 34 | /api/v1/orders/[id]/edit-history/[editHistoryId]/settlement |
 | orders:process_refund | screen | src/features/billing/ui/refunds-list-client.tsx | 165 | src/features/billing/ui/refunds-list-client.tsx |
-| orders:process_refund | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 91 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:process_refund | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 92 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:process_refund | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 34 | /api/v1/orders/refunds/[refundId]/process |
 | orders:process_refund | api | app/api/v1/orders/[id]/refund/route.ts | 66 | /api/v1/orders/[id]/refund |
 | orders:process_refund | api | app/api/v1/orders/[id]/refunds/route.ts | 108 | /api/v1/orders/[id]/refunds |
-| orders:read | screen | src/features/orders/ui/order-stage-files.tsx | 37 | src/features/orders/ui/order-stage-files.tsx |
-| orders:read | screen | src/features/orders/ui/pieces/piece-photos.tsx | 152 | src/features/orders/ui/pieces/piece-photos.tsx |
+| orders:read | screen | src/features/orders/ui/order-stage-files.tsx | 42 | src/features/orders/ui/order-stage-files.tsx |
+| orders:read | screen | src/features/orders/ui/pieces/piece-photos.tsx | 158 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:read | service | lib/constants/permissions/orders-perm.ts | 5 | lib/constants/permissions/orders-perm.ts |
 | orders:read | api | app/api/orders/[orderId]/status/route.ts | 59 | /api/orders/[orderId]/status |
 | orders:read | api | app/api/orders/[orderId]/status-history/route.ts | 25 | /api/orders/[orderId]/status-history |
@@ -320,7 +320,7 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:read | api | app/api/v1/orders/lookup/route.ts | 15 | /api/v1/orders/lookup |
 | orders:read | api | app/api/v1/orders/pieces/lookup/route.ts | 15 | /api/v1/orders/pieces/lookup |
 | orders:read | api | app/api/v1/orders/pieces/[pieceId]/history/route.ts | 36 | /api/v1/orders/pieces/[pieceId]/history |
-| orders:read | api | app/api/v1/orders/route.ts | 82 | /api/v1/orders |
+| orders:read | api | app/api/v1/orders/route.ts | 86 | /api/v1/orders |
 | orders:read | api | app/api/v1/orders/[id]/change-context/route.ts | 34 | /api/v1/orders/[id]/change-context |
 | orders:read | api | app/api/v1/orders/[id]/changes/route.ts | 33 | /api/v1/orders/[id]/changes |
 | orders:read | api | app/api/v1/orders/[id]/discounts/route.ts | 18 | /api/v1/orders/[id]/discounts |
@@ -346,15 +346,15 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:read | api | app/api/v1/preparation/[id]/preview/route.ts | 26 | /api/v1/preparation/[id]/preview |
 | orders:read | api | app/api/v1/scan/resolve/route.ts | 17 | /api/v1/scan/resolve |
 | orders:rebill_authorize | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 93 | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx |
-| orders:reverse_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 82 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:reverse_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 83 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:split | screen | src/features/workflow/ui/processing-modal.tsx | 161 | src/features/workflow/ui/processing-modal.tsx |
 | orders:split | screen | src/features/workflow/ui/simple-processing-dialog.tsx | 131 | src/features/workflow/ui/simple-processing-dialog.tsx |
 | orders:split | api | app/api/v1/orders/[id]/split/route.ts | 34 | /api/v1/orders/[id]/split |
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |
 | orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 73 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:transition | screen | src/features/orders/ui/order-actions.tsx | 49 | src/features/orders/ui/order-actions.tsx |
-| orders:transition | screen | src/features/orders/ui/order-stage-files.tsx | 35 | src/features/orders/ui/order-stage-files.tsx |
-| orders:transition | screen | src/features/orders/ui/pieces/piece-photos.tsx | 109 | src/features/orders/ui/pieces/piece-photos.tsx |
+| orders:transition | screen | src/features/orders/ui/order-stage-files.tsx | 40 | src/features/orders/ui/order-stage-files.tsx |
+| orders:transition | screen | src/features/orders/ui/pieces/piece-photos.tsx | 114 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:transition | api | app/api/v1/assembly/exceptions/[id]/resolve/route.ts | 19 | /api/v1/assembly/exceptions/[id]/resolve |
 | orders:transition | api | app/api/v1/assembly/tasks/route.ts | 15 | /api/v1/assembly/tasks |
 | orders:transition | api | app/api/v1/assembly/tasks/[taskId]/complete/route.ts | 19 | /api/v1/assembly/tasks/[taskId]/complete |
@@ -375,8 +375,8 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:update | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 74 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:update | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 56 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
-| orders:update | screen | src/features/orders/ui/order-stage-files.tsx | 34 | src/features/orders/ui/order-stage-files.tsx |
-| orders:update | screen | src/features/orders/ui/pieces/piece-photos.tsx | 108 | src/features/orders/ui/pieces/piece-photos.tsx |
+| orders:update | screen | src/features/orders/ui/order-stage-files.tsx | 39 | src/features/orders/ui/order-stage-files.tsx |
+| orders:update | screen | src/features/orders/ui/pieces/piece-photos.tsx | 113 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 53 | src/features/workflow/ui/FastItemizer.tsx |
 | orders:update | api | app/api/orders/bulk-status/route.ts | 16 | /api/orders/bulk-status |
 | orders:update | api | app/api/orders/[orderId]/status/route.ts | 21 | /api/orders/[orderId]/status |
@@ -401,15 +401,15 @@ Generated: 2026-11-19T13:02:08.496Z
 | orders:update | api | app/api/v1/orders/[id]/items/[itemId]/service-prefs/route.ts | 145 | /api/v1/orders/[id]/items/[itemId]/service-prefs |
 | orders:verify_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 72 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:verify_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 80 | src/features/billing/ui/pending-payments-worklist-page.tsx |
-| orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 75 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 85 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 76 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:verify_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 86 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:verify_payment | api | app/api/v1/orders/[id]/payments/[paymentId]/verify/route.ts | 52 | /api/v1/orders/[id]/payments/[paymentId]/verify |
 | orders:view_financial_breakdown | screen | app/dashboard/orders/[id]/tax-documents/[documentId]/print/page.tsx | 42 | /dashboard/orders/[id]/tax-documents/[documentId]/print |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/financial-summary/route.ts | 23 | /api/v1/orders/[id]/financial-summary |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/refunds/route.ts | 72 | /api/v1/orders/[id]/refunds |
 | orders:view_financial_breakdown | api | app/api/v1/orders/[id]/tax-documents/[documentId]/print/route.ts | 20 | /api/v1/orders/[id]/tax-documents/[documentId]/print |
 | orders:void_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 77 | src/features/billing/ui/pending-payments-worklist-page.tsx |
-| orders:void_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 81 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
+| orders:void_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 82 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | payment_config:manage | api | app/api/v1/settings/payments/card-brands/[brandId]/route.ts | 39 | /api/v1/settings/payments/card-brands/[brandId] |
 | payment_config:manage | api | app/api/v1/settings/payments/methods/[methodId]/route.ts | 32 | /api/v1/settings/payments/methods/[methodId] |
 | payment_config:manage | api | app/api/v1/settings/payments/terminals/route.ts | 57 | /api/v1/settings/payments/terminals |
@@ -476,16 +476,19 @@ Generated: 2026-11-19T13:02:08.496Z
 | reconciliation:view | api | app/api/v1/finance/reconciliation/runs/[runId]/route.ts | 46 | /api/v1/finance/reconciliation/runs/[runId] |
 | reconciliation:view | api | app/api/v1/finance/vouchers/[voucherId]/reconciliation/route.ts | 37 | /api/v1/finance/vouchers/[voucherId]/reconciliation |
 | reconciliation:view | api | app/api/v1/orders/[id]/financial-reconciliation/route.ts | 31 | /api/v1/orders/[id]/financial-reconciliation |
-| settings:branding | screen | src/features/settings/ui/branding/branding-screen.tsx | 41 | src/features/settings/ui/branding/branding-screen.tsx |
+| settings:branding | screen | src/features/settings/ui/branding/branding-screen.tsx | 42 | src/features/settings/ui/branding/branding-screen.tsx |
 | settings:branding | service | lib/services/org-ui-theme-http.ts | 25 | lib/services/org-ui-theme-http.ts |
 | settings:organization | api | app/api/v1/settings/general/route.ts | 116 | /api/v1/settings/general |
+| settings:read | service | lib/services/tenant-extra-config-http.ts | 26 | lib/services/tenant-extra-config-http.ts |
 | settings:read | api | app/api/v1/settings/branding/route.ts | 24 | /api/v1/settings/branding |
 | settings:read | api | app/api/v1/settings/general/route.ts | 84 | /api/v1/settings/general |
+| settings:update | screen | src/features/settings/ui/extra-config/extra-config-screen.tsx | 34 | src/features/settings/ui/extra-config/extra-config-screen.tsx |
+| settings:update | service | lib/services/tenant-extra-config-http.ts | 39 | lib/services/tenant-extra-config-http.ts |
 | settings:workflow | api | app/api/v1/workflows/config/route.ts | 52 | /api/v1/workflows/config |
-| stored_value:issue_advance | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 109 | src/features/customers/ui/customer-stored-value-tab.tsx |
+| stored_value:issue_advance | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 112 | src/features/customers/ui/customer-stored-value-tab.tsx |
 | stored_value:issue_advance | api | app/api/v1/customers/[id]/advance/issue/route.ts | 28 | /api/v1/customers/[id]/advance/issue |
 | stored_value:issue_credit_note | api | app/api/v1/customers/[id]/credit-note/issue/route.ts | 28 | /api/v1/customers/[id]/credit-note/issue |
-| stored_value:issue_wallet_credit | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 108 | src/features/customers/ui/customer-stored-value-tab.tsx |
+| stored_value:issue_wallet_credit | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 111 | src/features/customers/ui/customer-stored-value-tab.tsx |
 | stored_value:top_up_wallet | api | app/api/v1/customers/[id]/wallet/top-up/route.ts | 28 | /api/v1/customers/[id]/wallet/top-up |
 | stored_value:view | api | app/api/v1/customers/[id]/advance/ledger/route.ts | 16 | /api/v1/customers/[id]/advance/ledger |
 | stored_value:view | api | app/api/v1/customers/[id]/credit-notes/route.ts | 15 | /api/v1/customers/[id]/credit-notes |
@@ -515,7 +518,7 @@ Generated: 2026-11-19T13:02:08.496Z
 | tax:view_config | api | app/api/v1/tax/rules/route.ts | 11 | /api/v1/tax/rules |
 | tax:view_reports | api | app/api/v1/tax/returns/lines/route.ts | 9 | /api/v1/tax/returns/lines |
 | tax:view_reports | api | app/api/v1/tax/returns/route.ts | 9 | /api/v1/tax/returns |
-| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 41 | src/features/users/ui/user-detail-screen.tsx |
+| user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 42 | src/features/users/ui/user-detail-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |
 | users:read | screen | src/features/users/access/users-access.ts | 106 | src/features/users/access/users-access.ts |

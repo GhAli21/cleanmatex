@@ -10,6 +10,7 @@ import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 
 import {
   CmxDialog,
@@ -106,25 +107,25 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
           )}
         </CmxCardHeader>
         <CmxCardContent className="overflow-x-auto p-0 sm:p-0">
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className={th}>{t('col.method')}</th>
-                <th className={`${th} text-end`}>{t('col.amount')}</th>
-                <th className={th}>{t('col.status')}</th>
-                <th className={th}>{t('col.voucher')}</th>
-                <th className={th}>{t('col.reference')}</th>
-                <th className={th}>{t('col.date')}</th>
-                <th className={th}>{t('col.verify')}</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full min-w-[720px] border-collapse">
+            <TableHeader>
+              <TableRow className="border-b border-border bg-muted/40">
+                <TableHead className={th}>{t('col.method')}</TableHead>
+                <TableHead className={`${th} text-end`}>{t('col.amount')}</TableHead>
+                <TableHead className={th}>{t('col.status')}</TableHead>
+                <TableHead className={th}>{t('col.voucher')}</TableHead>
+                <TableHead className={th}>{t('col.reference')}</TableHead>
+                <TableHead className={th}>{t('col.date')}</TableHead>
+                <TableHead className={th}>{t('col.verify')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {payments.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className={`${td} py-8 text-muted-foreground`}>
+                <TableRow>
+                  <TableCell colSpan={7} className={`${td} py-8 text-muted-foreground`}>
                     {t('none')}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 payments.map((p) => (
                   <PaymentRow
@@ -143,8 +144,8 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                   />
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </CmxCardContent>
       </CmxCard>
 
@@ -153,24 +154,24 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
           <CmxCardTitle>{t('creditApplicationsTable')}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="overflow-x-auto p-0 sm:p-0">
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className={th}>{t('col.creditType')}</th>
-                <th className={`${th} text-end`}>{t('col.amount')}</th>
-                <th className={th}>{t('col.applicationStatus')}</th>
-                <th className={th}>{t('col.reference')}</th>
-                <th className={th}>{t('col.voucher')}</th>
-                <th className={th}>{t('col.date')}</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full min-w-[720px] border-collapse">
+            <TableHeader>
+              <TableRow className="border-b border-border bg-muted/40">
+                <TableHead className={th}>{t('col.creditType')}</TableHead>
+                <TableHead className={`${th} text-end`}>{t('col.amount')}</TableHead>
+                <TableHead className={th}>{t('col.applicationStatus')}</TableHead>
+                <TableHead className={th}>{t('col.reference')}</TableHead>
+                <TableHead className={th}>{t('col.voucher')}</TableHead>
+                <TableHead className={th}>{t('col.date')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {creditApplications.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className={`${td} py-8 text-muted-foreground`}>
+                <TableRow>
+                  <TableCell colSpan={6} className={`${td} py-8 text-muted-foreground`}>
                     {t('none')}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 creditApplications.map((c) => {
                   const appStatus = c.application_status ?? CREDIT_APPLICATION_STATUSES.APPLIED;
@@ -185,22 +186,22 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                     : appStatus === CREDIT_APPLICATION_STATUSES.REVERSED ? 'info'
                     : 'neutral';
                   return (
-                    <tr key={c.id} className="border-b border-border/60">
-                      <td className={td}>{c.credit_type.replace(/_/g, ' ')}</td>
-                      <td className={`${td} text-end`}>
+                    <TableRow key={c.id} className="border-b border-border/60">
+                      <TableCell className={td}>{c.credit_type.replace(/_/g, ' ')}</TableCell>
+                      <TableCell className={`${td} text-end`}>
                         <OrderFinancialMoneyValue
                           amount={c.applied_amount}
                           currencyCode={currencyCode}
                           variant="credit"
                         />
-                      </td>
-                      <td className={td}>
+                      </TableCell>
+                      <TableCell className={td}>
                         <CmxStatusBadge size="sm" tone={statusVariant}>
                           {t(`creditApp.status.${appStatus.toLowerCase()}`)}
                         </CmxStatusBadge>
-                      </td>
-                      <td className={td}>{c.reference_no ?? '—'}</td>
-                      <td className={td}>
+                      </TableCell>
+                      <TableCell className={td}>{c.reference_no ?? '—'}</TableCell>
+                      <TableCell className={td}>
                         {c.fin_voucher_id ? (
                           <Link
                             href={`/dashboard/internal_fin/vouchers/${c.fin_voucher_id}`}
@@ -211,14 +212,14 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                         ) : (
                           '—'
                         )}
-                      </td>
-                      <td className={td}>{new Date(c.applied_at).toLocaleString()}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className={td}>{new Date(c.applied_at).toLocaleString()}</TableCell>
+                    </TableRow>
                   );
                 })
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </CmxCardContent>
       </CmxCard>
 
@@ -228,42 +229,42 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
             <CmxCardTitle>{t('refundsTable')}</CmxCardTitle>
           </CmxCardHeader>
           <CmxCardContent className="overflow-x-auto p-0 sm:p-0">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className={th}>{t('col.reference')}</th>
-                  <th className={`${th} text-end`}>{t('col.amount')}</th>
-                  <th className={th}>{t('col.sourceType')}</th>
-                  <th className={th}>{t('col.context')}</th>
-                  <th className={th}>{t('col.method')}</th>
-                  <th className={th}>{t('col.reopensDue')}</th>
-                  <th className={th}>{t('col.status')}</th>
-                  <th className={th}>{t('col.date')}</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full min-w-[720px] border-collapse">
+              <TableHeader>
+                <TableRow className="border-b border-border bg-muted/40">
+                  <TableHead className={th}>{t('col.reference')}</TableHead>
+                  <TableHead className={`${th} text-end`}>{t('col.amount')}</TableHead>
+                  <TableHead className={th}>{t('col.sourceType')}</TableHead>
+                  <TableHead className={th}>{t('col.context')}</TableHead>
+                  <TableHead className={th}>{t('col.method')}</TableHead>
+                  <TableHead className={th}>{t('col.reopensDue')}</TableHead>
+                  <TableHead className={th}>{t('col.status')}</TableHead>
+                  <TableHead className={th}>{t('col.date')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {refunds.map((r) => (
-                  <tr key={r.id} className="border-b border-border/60">
-                    <td className={td}>{r.refund_no ?? '—'}</td>
-                    <td className={`${td} text-end`}>
+                  <TableRow key={r.id} className="border-b border-border/60">
+                    <TableCell className={td}>{r.refund_no ?? '—'}</TableCell>
+                    <TableCell className={`${td} text-end`}>
                       <OrderFinancialMoneyValue
                         amount={r.refund_amount}
                         currencyCode={r.currency_code ?? currencyCode}
                         variant="credit"
                       />
-                    </td>
-                    <td className={td}>
+                    </TableCell>
+                    <TableCell className={td}>
                       {r.refund_source_type
                         ? t(`refunds.sourceTypeLabels.${r.refund_source_type}`)
                         : '—'}
-                    </td>
-                    <td className={td}>
+                    </TableCell>
+                    <TableCell className={td}>
                       {r.refund_context
                         ? t(`refunds.contextLabels.${r.refund_context}`)
                         : '—'}
-                    </td>
-                    <td className={td}>{r.refund_method_code?.replace(/_/g, ' ') ?? '—'}</td>
-                    <td className={`${td} text-end`}>
+                    </TableCell>
+                    <TableCell className={td}>{r.refund_method_code?.replace(/_/g, ' ') ?? '—'}</TableCell>
+                    <TableCell className={`${td} text-end`}>
                       {r.reopens_due_amount > 0 ? (
                         <OrderFinancialMoneyValue
                           amount={r.reopens_due_amount}
@@ -272,13 +273,13 @@ export function OrderPaymentsCreditsTables({ viewModel }: OrderPaymentsCreditsTa
                       ) : (
                         '—'
                       )}
-                    </td>
-                    <td className={td}>{r.refund_status ?? '—'}</td>
-                    <td className={td}>{new Date(r.created_at).toLocaleString()}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className={td}>{r.refund_status ?? '—'}</TableCell>
+                    <TableCell className={td}>{new Date(r.created_at).toLocaleString()}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </CmxCardContent>
         </CmxCard>
       )}

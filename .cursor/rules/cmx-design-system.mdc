@@ -1,0 +1,24 @@
+---
+description: Cmx design system rules for web-admin UI — tokens, dark mode, RTL, components, states, a11y, how to check and fix
+globs: web-admin/**/*.tsx, web-admin/app/globals.css, web-admin/src/ui/**
+alwaysApply: true
+---
+
+Apply `docs/dev/rules/cmx-design-system.md` to every web-admin UI change.
+
+**Hard rules:**
+- Use Cmx components only.
+- Use theme token classes only: no Tailwind palette classes, no hex, no `dark:`.
+- Use logical direction classes, and never `isRTL` ternaries for layout.
+- Print roots get `data-mode="LIGHT"`.
+- Every async view has loading, empty and error states.
+- Feedback goes through `cmxMessage`.
+- All text is EN/AR keys.
+- Accessibility: names, focus, keyboard, 4.5:1 contrast.
+
+**Before done:**
+1. Run `cd web-admin && npm run check:ui`. Changed files must show 0 errors.
+2. Run `npx eslint <files> --quiet`.
+3. Run a design review with `/cmx-ui-design-review` (`.cursor/skills/cmx-ui-design-review/SKILL.md`).
+
+Fixes are in §14 of the rules file. `node scripts/ui/codemod-classes.js <file> --write` rewrites palette and physical classes.

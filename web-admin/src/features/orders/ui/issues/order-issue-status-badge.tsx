@@ -7,6 +7,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Tooltip } from '@ui/primitives/tooltip';
+import { CmxButton } from '@ui/primitives';
 import { cn } from '@/lib/utils';
 
 export interface OrderIssueStatusBadgeProps {
@@ -41,23 +42,24 @@ export function OrderIssueStatusBadge({
 
   return (
     <Tooltip content={label}>
-      <button
+      <CmxButton
         type="button"
+        variant="ghost"
+        size="xs"
         onClick={(e) => {
           e.stopPropagation();
           onClick?.();
         }}
         aria-label={label}
         className={cn(
-          'inline-flex shrink-0 items-center justify-center rounded-full font-bold text-on-solid shadow-none',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring',
+          'inline-flex shrink-0 items-center justify-center rounded-full p-0 font-bold text-on-solid shadow-none',
           hasOpen ? 'bg-destructive hover:bg-destructive/90' : 'bg-success hover:bg-success/90',
           dim,
           className
         )}
       >
         !
-      </button>
+      </CmxButton>
     </Tooltip>
   );
 }

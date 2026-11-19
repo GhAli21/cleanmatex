@@ -11,6 +11,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { Plus, Minus } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
 
 interface Product {
   id: string;
@@ -135,33 +136,40 @@ export function ProductCard({
       {/* Action Buttons */}
       {hasQuantity ? (
         <div className="flex items-center justify-between gap-2 mt-auto">
-          <button
+          <CmxButton
+            type="button"
+            variant="destructive"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); onDecrement(); }}
-            className="min-h-9 min-w-9 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/90 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2"
+            className="h-9 w-9 p-0 rounded-full shadow-md"
             aria-label={t('decreaseQuantity')}
           >
             <Minus className="w-3 h-3" />
-          </button>
-          <span className="flex-1 text-center font-bold text-xl text-foreground">
+          </CmxButton>
+          <span className="flex-1 text-center font-bold text-xl text-foreground tabular-nums">
             {quantity}
           </span>
-          <button
+          <CmxButton
+            type="button"
+            variant="primary"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); onIncrement(); }}
-            className="min-h-9 min-w-9 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="h-9 w-9 p-0 rounded-full shadow-md"
             aria-label={t('increaseQuantity')}
           >
             <Plus className="w-5 h-5" />
-          </button>
+          </CmxButton>
         </div>
       ) : (
-        <button
+        <CmxButton
+          type="button"
           onClick={(e) => { e.stopPropagation(); onAdd(); }}
-          className="w-full min-h-9 px-2 py-2 bg-success text-on-solid rounded-lg hover:bg-success/90 active:bg-success/90 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-success focus:ring-offset-2"
+          className="w-full min-h-9 px-2 py-2 bg-success text-on-solid rounded-lg hover:bg-success/90 font-semibold text-xs shadow-sm flex items-center justify-center gap-1"
           aria-label={t('add') || 'Add item'}
         >
           <Plus className="w-3 h-3" aria-hidden />
           {t('add')}
-        </button>
+        </CmxButton>
       )}
     </div>
   );

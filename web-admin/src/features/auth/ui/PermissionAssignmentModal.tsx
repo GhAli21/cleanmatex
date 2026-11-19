@@ -14,7 +14,16 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { X, Search, CheckCircle2, Shield, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, CheckCircle2, Shield, ChevronDown, ChevronRight } from 'lucide-react'
+import { CmxButton, CmxCheckbox, CmxInput, CmxSpinner } from '@ui/primitives'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays'
 import { getAllPermissions, type TenantPermission } from '@/lib/api/permissions'
 import { assignPermissionsToRole } from '@/lib/api/roles'
 import type { TenantRole } from '@/lib/api/roles'
@@ -184,53 +193,38 @@ export default function PermissionAssignmentModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-        <div className="bg-card rounded-lg p-6">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </div>
+      <CmxDialog open onOpenChange={(next) => { if (!next) onClose() }} stackAboveModals>
+        <CmxDialogContent className="max-w-xs w-full p-6 flex items-center justify-center">
+          <CmxSpinner size="lg" />
+        </CmxDialogContent>
+      </CmxDialog>
     )
   }
 
   return (
-    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">
-              Assign Permissions to {role.name}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Select permissions to assign to this role. Users with this role will have access to the selected permissions.
+    <CmxDialog open onOpenChange={(next) => { if (!next) onClose() }} stackAboveModals>
+      <CmxDialogContent className="max-w-5xl w-full p-0 flex flex-col max-h-[90vh]">
+        <CmxDialogHeader className="px-6 py-4 border-b border-border">
+          <CmxDialogTitle>Assign Permissions to {role.name}</CmxDialogTitle>
+          <CmxDialogDescription>
+            Select permissions to assign to this role. Users with this role will have access to the selected permissions.
+          </CmxDialogDescription>
+          {role.is_system && (
+            <p className="text-xs text-warning-text mt-1 font-medium">
+              System role — changes will affect all users with this role
             </p>
-            {role.is_system && (
-              <p className="text-xs text-warning-text mt-1 font-medium">
-                ⚠ System role — changes will affect all users with this role
-              </p>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-            aria-label="Close"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
+          )}
+        </CmxDialogHeader>
 
         {/* Search */}
         <div className="px-6 py-4 border-b border-border">
-          <div className="relative">
-            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search permissions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full ps-10 pe-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
-            />
-          </div>
+          <CmxInput
+            type="text"
+            placeholder="Search permissions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            leftIcon={<Search className="h-5 w-5" />}
+          />
         </div>
 
         {/* Error Message */}
@@ -258,17 +252,19 @@ export default function PermissionAssignmentModal({
                     {/* Category Header */}
                     <div className="bg-muted px-4 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
-                        <button
+                        <CmxButton
+                          type="button"
+                          variant="ghost"
+                          size="xs"
                           onClick={() => toggleCategory(category)}
-                          className="text-muted-foreground hover:text-foreground"
                           aria-label={isExpanded ? 'Collapse' : 'Expand'}
                         >
                           {isExpanded ? (
                             <ChevronDown className="h-5 w-5" />
                           ) : (
-                            <ChevronRight className="h-5 w-5" />
+                            <ChevronRight className="h-5 w-5 rtl:rotate-180" />
                           )}
-                        </button>
+                        </CmxButton>
                         <Shield className="h-5 w-5 text-muted-foreground" />
                         <div className="flex-1">
                           <div className="font-medium text-foreground">{categoryInfo.name}</div>
@@ -276,16 +272,19 @@ export default function PermissionAssignmentModal({
                             <div className="text-sm text-muted-foreground">{categoryInfo.name2}</div>
                           )}
                         </div>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-muted-foreground tabular-nums">
                           {perms.length} permission{perms.length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleCategorySelection(category)}
-                        className="ms-4 text-sm text-primary-text hover:text-primary-text/80 font-medium"
+                        className="ms-4"
                       >
                         {allSelected ? 'Deselect All' : 'Select All'}
-                      </button>
+                      </CmxButton>
                     </div>
 
                     {/* Permissions */}
@@ -296,45 +295,47 @@ export default function PermissionAssignmentModal({
                           const resource = getResourceFromCode(perm.code)
 
                           return (
-                            <label
+                            <div
                               key={perm.code}
-                              className={`flex items-start p-4 hover:bg-muted cursor-pointer ${
+                              className={`flex items-start p-4 hover:bg-muted ${
                                 isSelected ? 'bg-info-bg' : ''
                               }`}
                             >
-                              <input
-                                type="checkbox"
+                              <CmxCheckbox
+                                id={`perm-${perm.code}`}
+                                size="sm"
                                 checked={isSelected}
                                 onChange={() => togglePermission(perm.code)}
-                                className="mt-1 h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
+                                label={
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-foreground">
+                                        {perm.name || perm.code}
+                                      </span>
+                                      {isSelected && (
+                                        <CheckCircle2 className="h-4 w-4 text-primary-text" />
+                                      )}
+                                      {perm.is_system && (
+                                        <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                                          system
+                                        </span>
+                                      )}
+                                    </div>
+                                    {perm.name2 && (
+                                      <div className="text-sm text-muted-foreground mt-1">{perm.name2}</div>
+                                    )}
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <bdi dir="ltr" className="text-xs font-mono text-muted-foreground">{perm.code}</bdi>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <span className="text-xs text-muted-foreground capitalize">{resource}</span>
+                                    </div>
+                                    {perm.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{perm.description}</p>
+                                    )}
+                                  </div>
+                                }
                               />
-                              <div className="ms-3 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-foreground">
-                                    {perm.name || perm.code}
-                                  </span>
-                                  {isSelected && (
-                                    <CheckCircle2 className="h-4 w-4 text-primary-text" />
-                                  )}
-                                  {perm.is_system && (
-                                    <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                                      system
-                                    </span>
-                                  )}
-                                </div>
-                                {perm.name2 && (
-                                  <div className="text-sm text-muted-foreground mt-1">{perm.name2}</div>
-                                )}
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs font-mono text-muted-foreground">{perm.code}</span>
-                                  <span className="text-xs text-muted-foreground">•</span>
-                                  <span className="text-xs text-muted-foreground capitalize">{resource}</span>
-                                </div>
-                                {perm.description && (
-                                  <p className="text-sm text-muted-foreground mt-1">{perm.description}</p>
-                                )}
-                              </div>
-                            </label>
+                            </div>
                           )
                         })}
                       </div>
@@ -347,31 +348,26 @@ export default function PermissionAssignmentModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-muted">
-          <div className="text-sm text-muted-foreground">
+        <CmxDialogFooter className="px-6 py-4 border-t border-border flex items-center justify-between bg-muted">
+          <div className="text-sm text-muted-foreground tabular-nums">
             <strong>{selectedPermissions.size}</strong> permission{selectedPermissions.size !== 1 ? 's' : ''} selected
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              disabled={saving}
-              className="px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50"
-            >
+            <CmxButton type="button" variant="outline" onClick={onClose} disabled={saving}>
               Cancel
-            </button>
-            <button
+            </CmxButton>
+            <CmxButton
+              type="button"
+              variant="primary"
               onClick={handleSave}
+              loading={saving}
               disabled={saving}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {saving && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card"></div>
-              )}
               Save Permissions
-            </button>
+            </CmxButton>
           </div>
-        </div>
-      </div>
-    </div>
+        </CmxDialogFooter>
+      </CmxDialogContent>
+    </CmxDialog>
   )
 }

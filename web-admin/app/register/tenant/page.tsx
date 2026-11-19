@@ -9,7 +9,7 @@
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import {
   CmxCard,
   CmxCardHeader,
@@ -276,7 +276,7 @@ export default function TenantRegisterPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Business Name <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Business Name <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   value={formData.businessName}
                   onChange={(e) => handleBusinessNameChange(e.target.value)}
@@ -288,7 +288,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Business Name (Arabic)</label>
+                <Label className="block mb-1">Business Name (Arabic)</Label>
                 <CmxInput
                   value={formData.businessNameAr || ''}
                   onChange={(e) =>
@@ -301,7 +301,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Slug (URL Identifier) <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Slug (URL Identifier) <span className="text-danger-text">*</span></Label>
                 <div className="relative">
                   <CmxInput
                     value={formData.slug}
@@ -329,7 +329,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Business Email <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Business Email <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="email"
                   value={formData.email}
@@ -344,7 +344,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Phone Number <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Phone Number <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="tel"
                   value={formData.phone}
@@ -364,7 +364,7 @@ export default function TenantRegisterPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Country <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Country <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.country}
                   onChange={(e) =>
@@ -376,7 +376,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Currency <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Currency <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.currency}
                   onChange={(e) =>
@@ -389,7 +389,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Timezone <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Timezone <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.timezone}
                   onChange={(e) =>
@@ -402,7 +402,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Default Language <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Default Language <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.language}
                   onChange={(e) =>
@@ -419,7 +419,7 @@ export default function TenantRegisterPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Admin Email <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Admin Email <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="email"
                   value={formData.adminUser.email}
@@ -438,7 +438,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Password <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Password <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="password"
                   value={formData.adminUser.password}
@@ -456,7 +456,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Display Name <span className="text-danger-text">*</span></label>
+                <Label className="block mb-1">Display Name <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   value={formData.adminUser.displayName}
                   onChange={(e) =>

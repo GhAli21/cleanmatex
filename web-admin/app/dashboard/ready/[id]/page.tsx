@@ -7,6 +7,14 @@
 
 import { OrderFinancialView } from '@features/orders/order-fin-view/ui/order-financial-view';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { CmxButton } from '@ui/primitives';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
@@ -186,9 +194,12 @@ export default function ReadyDetailPage() {
                   )}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
                     <div className="mt-3 pt-3 border-t border-border">
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleItemExpansion(item.id)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                        className="w-full justify-between px-0 text-sm font-medium text-foreground hover:text-foreground/80"
                       >
                         <span>
                           {tPieces('viewPieces') || 'View Pieces'}
@@ -198,7 +209,7 @@ export default function ReadyDetailPage() {
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
-                      </button>
+                      </CmxButton>
                       
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
@@ -353,75 +364,94 @@ export default function ReadyDetailPage() {
             )}
 
             <div className="mt-2 space-y-2">
-              <button
+              <CmxButton
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={() => openPrintPreview('receipt', 'thermal')}
-                className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+                className="w-full"
               >
                 {t('ready.actions.printReceiptThermal')}
-              </button>
-              <button
+              </CmxButton>
+              <CmxButton
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={() => openPrintPreview('receipt', 'a4')}
-                className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+                className="w-full"
               >
                 {t('ready.actions.printReceiptA4')}
-              </button>
-              <button
+              </CmxButton>
+              <CmxButton
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => openPrintPreview('order-details', 'thermal')}
-                className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90"
+                className="w-full bg-foreground text-background hover:bg-foreground/90"
               >
                 {t('ready.actions.printOrderDetailsThermal')}
-              </button>
-              <button
+              </CmxButton>
+              <CmxButton
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => openPrintPreview('order-details', 'a4')}
-                className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/90"
+                className="w-full bg-foreground text-background hover:bg-foreground/90"
               >
                 {t('ready.actions.printOrderDetailsA4')}
-              </button>
-              <div className="pt-2 mt-2 border-t border-border">
-                <p className="text-xs font-medium text-muted-foreground mb-2">{t('ready.actions.reportsA4Rprt') ?? 'A4 Reports'}</p>
-                <button
+              </CmxButton>
+              <div className="pt-2 mt-2 border-t border-border space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">{t('ready.actions.reportsA4Rprt') ?? 'A4 Reports'}</p>
+                <CmxButton
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={() => openPrintPreview('invoices-payments-rprt', 'a4')}
-                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
+                  className="w-full"
                 >
                   {t('ready.actions.printInvoicesPaymentsA4Rprt')}
-                </button>
-                <button
+                </CmxButton>
+                <CmxButton
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={() => openPrintPreview('payments-rprt', 'a4', 'desc')}
-                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
+                  className="w-full"
                 >
                   {t('ready.actions.printPaymentsA4DescRprt')}
-                </button>
-                <button
+                </CmxButton>
+                <CmxButton
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={() => openPrintPreview('payments-rprt', 'a4', 'asc')}
-                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover mb-2"
+                  className="w-full"
                 >
                   {t('ready.actions.printPaymentsA4AscRprt')}
-                </button>
-                <button
+                </CmxButton>
+                <CmxButton
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={() => openPrintPreview('history-rprt', 'a4')}
-                  className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+                  className="w-full"
                 >
                   {t('ready.actions.printOrderHistoryA4Rprt')}
-                </button>
+                </CmxButton>
               </div>
             </div>
           </div>
         </div>
       </div>
-      {printConfig && orderId && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
-          <div className="relative h-[90vh] w-full max-w-4xl rounded-lg bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-2">
-              <div>
-                <h2 className="text-sm font-semibold">
+      <CmxDialog
+        open={Boolean(printConfig && orderId)}
+        onOpenChange={(next) => { if (!next) setPrintConfig(null); }}
+      >
+        <CmxDialogContent className="h-[90vh] max-w-4xl w-full p-0 flex flex-col">
+          {printConfig && orderId && (
+            <>
+              <CmxDialogHeader className="border-b px-4 py-2">
+                <CmxDialogTitle className="text-sm font-semibold">
                   {printConfig.type === 'receipt'
                     ? t('ready.actions.printReceipt')
                     : printConfig.type === 'order-details'
@@ -433,34 +463,26 @@ export default function ReadyDetailPage() {
                           : printConfig.type === 'history-rprt'
                             ? t('ready.actions.printOrderHistoryA4Rprt')
                             : t('ready.itemsTitle')}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {printConfig.layout === 'thermal' ? '80mm' : 'A4'} Ã¢â‚¬Â¢ {order.orderNo}
-                </p>
+                </CmxDialogTitle>
+                <CmxDialogDescription className="text-xs tabular-nums">
+                  {printConfig.layout === 'thermal' ? '80mm' : 'A4'} · <bdi dir="ltr">{order.orderNo}</bdi>
+                </CmxDialogDescription>
+              </CmxDialogHeader>
+              <div className="flex-1 min-h-0">
+                <iframe
+                  title="print-preview"
+                  src={
+                    printConfig.sort != null && printConfig.type === 'payments-rprt'
+                      ? `/dashboard/ready/${orderId}/print/${printConfig.type}?layout=${printConfig.layout}&sort=${printConfig.sort}`
+                      : `/dashboard/ready/${orderId}/print/${printConfig.type}?layout=${printConfig.layout}`
+                  }
+                  className="h-full w-full border-0"
+                />
               </div>
-              <button
-                type="button"
-                onClick={() => setPrintConfig(null)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={t('ready.actions.backToReady')}
-              >
-                <span className="text-lg leading-none">&times;</span>
-              </button>
-            </div>
-            <div className="h-[calc(90vh-40px)]">
-              <iframe
-                title="print-preview"
-                src={
-                  printConfig.sort != null && printConfig.type === 'payments-rprt'
-                    ? `/dashboard/ready/${orderId}/print/${printConfig.type}?layout=${printConfig.layout}&sort=${printConfig.sort}`
-                    : `/dashboard/ready/${orderId}/print/${printConfig.type}?layout=${printConfig.layout}`
-                }
-                className="h-full w-full border-0"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </CmxDialogContent>
+      </CmxDialog>
       {order && orderId ? (
         <OrderCollectPaymentModal
           open={collectOpen}

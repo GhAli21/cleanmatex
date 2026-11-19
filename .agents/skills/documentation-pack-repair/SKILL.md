@@ -26,6 +26,7 @@ Complete the pack without reopening canon decisions.
 - If canon is unclear, stop and use `/documentation-canonicalization`.
 - Prefer minimal churn and reuse of current truthful content.
 - Do not convert legacy neighboring folders into active sources of truth from inside this skill.
+- If a file inside the folder is stale/duplicate/superseded rather than missing, route it to `/documentation-archive-migration` instead of silently rewriting or deleting it.
 
 ## Output Contract
 

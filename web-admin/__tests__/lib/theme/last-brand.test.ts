@@ -9,6 +9,7 @@ test('round trip: what sign-in writes, the login page reads back', () => {
   const raw = buildLastBrand(theme, logo)
   expect(parseLastBrand(raw, STORAGE)).toEqual({
     logo,
+    logoDark: null,
     primary: '#2563EB',
     secondary: '#0F172A',
     name: 'Sparkle',
@@ -18,7 +19,7 @@ test('round trip: what sign-in writes, the login page reads back', () => {
 
 test('the cookie holds only the public brand: no tenant id, user or email, under 1 KB', () => {
   const raw = buildLastBrand(theme, logo)
-  expect(Object.keys(JSON.parse(raw)).sort()).toEqual(['logo', 'name', 'name2', 'primary', 'secondary'])
+  expect(Object.keys(JSON.parse(raw)).sort()).toEqual(['logo', 'logoDark', 'name', 'name2', 'primary', 'secondary'])
   expect(raw.length).toBeLessThan(1024)
 })
 
@@ -31,4 +32,12 @@ test('a logo outside our public storage, a bad colour or broken JSON is dropped'
 
 test('no logo is fine; an unbranded STANDARD Organization stores nothing worth showing', () => {
   expect(parseLastBrand(buildLastBrand(theme, null), STORAGE)?.logo).toBeNull()
+})
+
+test('the dark logo travels in the cookie and is host-checked; an older cookie without it still reads', () => {
+  const dark = `${STORAGE}tenants-cmx-public/t1/TENANT_LOGO/t1/f2.webp`
+  expect(parseLastBrand(buildLastBrand(theme, logo, dark), STORAGE)?.logoDark).toBe(dark)
+  expect(parseLastBrand(buildLastBrand(theme, logo, 'https://evil.example/x.png'), STORAGE)).toBeNull()
+  const old = JSON.stringify({ logo, primary: '#2563EB', secondary: '#0F172A', name: null, name2: null })
+  expect(parseLastBrand(old, STORAGE)?.logo).toBe(logo)
 })

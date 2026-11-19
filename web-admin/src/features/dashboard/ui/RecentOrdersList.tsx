@@ -59,7 +59,9 @@ export function RecentOrdersList() {
             href={`/dashboard/orders/${order.id}`}
             className="flex items-center justify-between py-2 px-3 rounded hover:bg-muted"
           >
-            <span className="font-medium text-foreground">{order.order_no}</span>
+            <span className="font-medium text-foreground tabular-nums">
+              <bdi dir="ltr">{order.order_no}</bdi>
+            </span>
             <span className="text-sm text-muted-foreground">{order.status}</span>
           </Link>
         </li>

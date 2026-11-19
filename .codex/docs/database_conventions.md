@@ -3,7 +3,6 @@
 **Quick Links**:
 - [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) - Decide where features should be implemented
 - [Feature Abbreviations](./database_feature_abbreviations.md) - Complete list of module prefixes
-- [Grandfathered Objects Registry](./database_grandfathered_objects.md) - Existing objects using old naming
 
 ---
 
@@ -195,7 +194,7 @@ Tenant isolation via composite references on `(tenant_org_id, ...)`.
 
 **⚠️ IMPORTANT: Existing Objects Reference**
 
-**For EXISTING database objects**, refer to the [Grandfathered Objects Registry](./database_grandfathered_objects.md) for exact names.
+**For existing database objects**, take the exact name from the live database (Supabase remote MCP, read-only) or `web-admin/prisma/schema.prisma`. Never take a name from memory or an old list; the old grandfathered registry is archived in `docs/_archive/2026-11/grandfathered-objects/`.
 
 **Key Points:**
 
@@ -794,7 +793,6 @@ SELECT soft_delete_record('org_orders_mst', 'order-uuid', 'tenant-uuid', 'user-i
 
 - [Database table check workflow](./database_table_check_workflow.md
 - [Feature Abbreviations](./database_feature_abbreviations.md) - Complete list of feature abbreviations for new objects
-- [Grandfathered Objects Registry](./database_grandfathered_objects.md) - List of existing objects using old naming
 - [Migration Plan](./database_migration_plan.md) - Strategy for migrating existing objects to new naming
 
 ---

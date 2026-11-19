@@ -14,6 +14,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
+import { CmxButton } from '@ui/primitives';
 import { ChevronDown, Pencil, Percent, Trash2 } from 'lucide-react';
 import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
@@ -271,14 +272,16 @@ function SummaryCartItemComponent({
           />
         ) : null}
         {quote?.onEditPieceDiscount ? (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={(e) => { e.stopPropagation(); quote.onEditPieceDiscount?.(piece.id); }}
-            className="shrink-0 p-0.5 text-muted-foreground hover:text-success-text rounded focus:outline-none focus:ring-1 focus:ring-success"
+            className="h-auto shrink-0 p-0.5 text-muted-foreground hover:text-success-text"
             aria-label={tLine('discountActionFor', { item: `${displayName} ${k + 1}` })}
           >
             <Percent className="w-3 h-3" />
-          </button>
+          </CmxButton>
         ) : null}
         {quote?.line?.pieces[k] ? <span className="tabular-nums">{fmt(quote.line.pieces[k].netAmount)}</span> : null}
       </dd>
@@ -296,15 +299,17 @@ function SummaryCartItemComponent({
 
         {/* Pen — edit item preferences */}
         {onEditPreferences && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={(e) => { e.stopPropagation(); onEditPreferences(); }}
-            className="shrink-0 p-0.5 text-muted-foreground hover:text-primary-text rounded transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-auto shrink-0 p-0.5 text-muted-foreground hover:text-primary-text"
             title={tPieces('editItemPreferences')}
             aria-label={tPieces('editItemPreferences')}
           >
             <Pencil className="w-3 h-3" />
-          </button>
+          </CmxButton>
         )}
 
         {/* Item name */}
@@ -341,51 +346,61 @@ function SummaryCartItemComponent({
 
         {/* Line discount (P5-03c) */}
         {quote?.onEditLineDiscount && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={(e) => { e.stopPropagation(); quote.onEditLineDiscount?.(); }}
-            className="shrink-0 p-0.5 text-muted-foreground hover:text-success-text rounded transition-colors focus:outline-none focus:ring-1 focus:ring-success"
+            className="h-auto shrink-0 p-0.5 text-muted-foreground hover:text-success-text"
             title={tLine('discountAction')}
             aria-label={tLine('discountActionFor', { item: displayName })}
           >
             <Percent className="w-3 h-3" />
-          </button>
+          </CmxButton>
         )}
 
         {/* Line breakdown toggle: gross, discounts, net, tax (server figures) */}
         {(quote?.line || (quote?.piecePriced && showPieceRows)) && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
-            className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground rounded transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-auto shrink-0 p-0.5 text-muted-foreground hover:text-foreground"
             aria-expanded={expanded}
             aria-label={expanded ? tLine('hide', { item: displayName }) : tLine('show', { item: displayName })}
           >
             <ChevronDown className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} />
-          </button>
+          </CmxButton>
         )}
 
         {/* Pen — edit price override */}
         {onEditPrice && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={(e) => { e.stopPropagation(); onEditPrice(); }}
-            className="shrink-0 p-0.5 text-muted-foreground hover:text-primary-text rounded transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+            className="h-auto shrink-0 p-0.5 text-muted-foreground hover:text-primary-text"
             title="Override price"
+            aria-label="Override price"
           >
             <Pencil className="w-3 h-3" />
-          </button>
+          </CmxButton>
         )}
 
         {/* Delete */}
-        <button
+        <CmxButton
           type="button"
+          variant="ghost"
+          size="xs"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="shrink-0 p-0.5 text-muted-foreground hover:text-danger-text hover:bg-danger-bg rounded transition-colors focus:outline-none focus:ring-1 focus:ring-destructive"
+          className="h-auto shrink-0 p-0.5 text-muted-foreground hover:text-danger-text hover:bg-danger-bg"
           title="Remove item"
+          aria-label="Remove item"
         >
           <Trash2 className="w-3 h-3" />
-        </button>
+        </CmxButton>
       </div>
 
       {quote?.piecePriced && !quote.line && expanded && showPieceRows ? (

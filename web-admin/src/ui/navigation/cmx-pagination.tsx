@@ -79,7 +79,7 @@ export function CmxPagination({
           </div>
         )}
         {showInfo && (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground tabular-nums">
             {totalItems > 0 ? (
               <>
                 {`${startItem}-${endItem} ${tCommon('of')} ${totalItems}`}
@@ -146,7 +146,7 @@ export function CmxPagination({
 
       {/* Page info */}
       {showInfo && (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground tabular-nums">
           {totalItems > 0 ? (
             <>
               {`${startItem}-${endItem} ${tCommon('of')} ${totalItems}`}
@@ -164,7 +164,7 @@ export function CmxPagination({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={disabled || currentPage === 1}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)] cmx-pos-touch-target"
           aria-label={tCommon('firstPage')}
         >
           <ChevronsLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
@@ -175,7 +175,7 @@ export function CmxPagination({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={disabled || currentPage === 1}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)] cmx-pos-touch-target"
           aria-label={tCommon('previous')}
         >
           <ChevronLeft className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
@@ -195,7 +195,7 @@ export function CmxPagination({
                   size="sm"
                   onClick={() => onPageChange(page as number)}
                   disabled={disabled}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 tabular-nums pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)] cmx-pos-touch-target"
                 >
                   {page}
                 </CmxButton>
@@ -209,7 +209,7 @@ export function CmxPagination({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={disabled || currentPage === totalPages}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)] cmx-pos-touch-target"
           aria-label={tCommon('next')}
         >
           <ChevronRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
@@ -220,7 +220,7 @@ export function CmxPagination({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={disabled || currentPage === totalPages}
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)] cmx-pos-touch-target"
           aria-label={tCommon('lastPage')}
         >
           <ChevronsRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />

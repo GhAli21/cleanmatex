@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Clock } from 'lucide-react';
-import { CmxButton, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxSelect, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card';
 import { CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { useLocale } from '@/lib/hooks/useLocale';
@@ -118,9 +118,9 @@ export function BranchBusinessDayCard({ branchId }: { branchId: string }) {
         ) : null}
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-foreground" htmlFor="branch-timezone">
+          <Label className="block text-sm font-medium text-foreground" htmlFor="branch-timezone">
             {t('branchSettings.businessDay.label')}
-          </label>
+          </Label>
           <CmxSelect
             id="branch-timezone"
             value={value ?? INHERIT}

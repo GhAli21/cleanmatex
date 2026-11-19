@@ -5,8 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import { createPaymentMethodConfigSchema, type CreatePaymentMethodConfigFormValues } from '../model/payment-method-config-schema';
@@ -76,7 +75,7 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
         </CmxDialogHeader>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-2">
           <div>
-            <label className="text-sm font-medium">{t('methods.paymentMethod')}</label>
+            <Label>{t('methods.paymentMethod')}</Label>
             <CmxSelectDropdown
               value={paymentMethodCode}
               onValueChange={(v) => {
@@ -109,7 +108,7 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('methods.displayName')}</label>
+            <Label>{t('methods.displayName')}</Label>
             <CmxInput {...form.register('display_name')} placeholder={t('methods.displayNamePlaceholder')} />
             {form.formState.errors.display_name && (
               <p className="text-xs text-destructive mt-1">{form.formState.errors.display_name.message}</p>
@@ -117,12 +116,12 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('methods.displayName2')}</label>
+            <Label>{t('methods.displayName2')}</Label>
             <CmxInput {...form.register('display_name2')} placeholder={t('methods.displayName2Placeholder')} dir="rtl" />
           </div>
 
           <div>
-            <label className="text-sm font-medium">{t('methods.paymentNature')}</label>
+            <Label>{t('methods.paymentNature')}</Label>
             <CmxSelectDropdown
               value={paymentNature}
               onValueChange={(v) => form.setValue('payment_nature', v as never)}

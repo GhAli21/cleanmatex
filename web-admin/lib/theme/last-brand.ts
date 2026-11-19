@@ -18,7 +18,7 @@ const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/)
 const name = z.string().min(1).max(80).nullable()
 
 const schema = z
-  .object({ logo: z.string().url().max(500).nullable(), primary: hex, secondary: hex, name, name2: name })
+  .object({ logo: z.string().url().max(500).nullable(), logoDark: z.string().url().max(500).nullable().optional(), primary: hex, secondary: hex, name, name2: name })
   .strict()
 
 export type LastBrand = z.infer<typeof schema>
@@ -27,11 +27,13 @@ export type LastBrand = z.infer<typeof schema>
  * Cookie value for one Organization's resolved theme and published logo URL.
  * @param theme - The Organization's resolved theme (no user preferences needed)
  * @param logoUrl - `org_tenants_mst.logo_url` (File Util's published MAIN logo), or null
+ * @param logoDarkUrl - `org_tenants_mst.logo_dark_url` (published DARK logo), or null
  * @returns JSON text for the cookie
  */
-export function buildLastBrand(theme: ResolvedTheme, logoUrl: string | null): string {
+export function buildLastBrand(theme: ResolvedTheme, logoUrl: string | null, logoDarkUrl: string | null = null): string {
   const value: LastBrand = {
     logo: logoUrl || null,
+    logoDark: logoDarkUrl || null,
     primary: theme.seeds.primary,
     secondary: theme.seeds.secondary,
     name: theme.appName,
@@ -52,6 +54,7 @@ export function parseLastBrand(raw: string | undefined, publicStoragePrefix: str
     const parsed = schema.safeParse(JSON.parse(raw))
     if (!parsed.success) return null
     if (parsed.data.logo && !parsed.data.logo.startsWith(publicStoragePrefix)) return null
+    if (parsed.data.logoDark && !parsed.data.logoDark.startsWith(publicStoragePrefix)) return null
     return parsed.data
   } catch {
     return null

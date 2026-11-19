@@ -29,7 +29,7 @@ import {
   Leaf,
   type LucideIcon,
 } from 'lucide-react';
-import { CmxCheckbox } from '@ui/primitives';
+import { CmxCheckbox, Label } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import type { OrderItemServicePref } from '../../model/new-order-types';
 import type { ServicePreference } from '@/lib/types/service-preferences';

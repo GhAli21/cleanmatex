@@ -81,6 +81,13 @@ body {
   .cmx-type-field-error { font-size: 0.75rem; line-height: 1rem; color: rgb(var(--cmx-destructive-rgb)); }
 }
 
+@layer utilities {
+  html[data-pos-target="ALWAYS_TOUCH_44"] .cmx-pos-touch-target {
+    min-height: var(--cmx-touch-min);
+    min-width: var(--cmx-touch-min);
+  }
+}
+
 /*
  * Recharts draws its tooltip, grid and axis text in fixed light-mode greys.
  * These rules give every chart the theme colours once, so charts read in dark mode.
@@ -98,6 +105,8 @@ body {
 .recharts-cartesian-axis-tick-line { stroke: rgb(var(--cmx-border-rgb)); }
 .recharts-cartesian-axis-tick-value { fill: rgb(var(--cmx-muted-foreground-rgb)); }
 .recharts-tooltip-cursor { fill: rgb(var(--cmx-muted-rgb)); }
+/* Recharts writes the series colour on the legend text inline; the swatch keeps it, the words read as text. */
+.recharts-legend-item-text { color: rgb(var(--cmx-foreground-rgb)) !important; }
 
 /* Paper is always light, whatever the screen mode. */
 /* Light paper inside a dark screen: tokens reset, but color inherits as a computed value, so set it again. */

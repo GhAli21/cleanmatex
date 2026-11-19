@@ -15,7 +15,7 @@ import { useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { AlertTriangle, X } from 'lucide-react'
 import { cmxMessage } from '@ui/feedback'
-import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxButton, CmxInput, CmxRadio, CmxSelect, Label } from '@ui/primitives'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -176,105 +176,107 @@ export function PermissionOverrideDialog({
             </h3>
 
             {/* Permission selector */}
-            <select
-              size={5}
-              value={selectedPermCode}
-              onChange={(e) => setSelectedPermCode(e.target.value)}
-              className="block w-full overflow-y-auto rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            <div
+              role="listbox"
+              aria-label={t('addOverride')}
+              className="max-h-40 overflow-y-auto rounded border border-border bg-background divide-y divide-border"
             >
               {Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([cat, perms]) => (
-                  <optgroup key={cat} label={cat}>
-                    {perms.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {isAr && p.name2 ? p.name2 : p.name} ({p.code})
-                      </option>
-                    ))}
-                  </optgroup>
+                  <div key={cat}>
+                    <div className="bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                      {cat}
+                    </div>
+                    <div className="p-1 space-y-0.5">
+                      {perms.map((p) => {
+                        const isSelected = selectedPermCode === p.code
+                        return (
+                          <CmxButton
+                            key={p.code}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            variant={isSelected ? 'primary' : 'ghost'}
+                            size="xs"
+                            onClick={() => setSelectedPermCode(p.code)}
+                            className="w-full justify-start text-start font-normal"
+                          >
+                            <span className="truncate">
+                              {isAr && p.name2 ? p.name2 : p.name} ({p.code})
+                            </span>
+                          </CmxButton>
+                        )
+                      })}
+                    </div>
+                  </div>
                 ))}
-            </select>
+            </div>
 
             {/* Allow / Deny */}
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="allowDeny"
-                  checked={allow}
-                  onChange={() => setAllow(true)}
-                  className="h-4 w-4 text-success-text"
-                />
-                <span className="text-success-text font-medium">{t('allow')}</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="allowDeny"
-                  checked={!allow}
-                  onChange={() => setAllow(false)}
-                  className="h-4 w-4 text-danger-text"
-                />
-                <span className="text-danger-text font-medium">{t('deny')}</span>
-              </label>
+              <CmxRadio
+                name="allowDeny"
+                size="sm"
+                checked={allow}
+                onChange={() => setAllow(true)}
+                label={<span className="text-success-text font-medium">{t('allow')}</span>}
+              />
+              <CmxRadio
+                name="allowDeny"
+                size="sm"
+                checked={!allow}
+                onChange={() => setAllow(false)}
+                label={<span className="text-danger-text font-medium">{t('deny')}</span>}
+              />
             </div>
 
             {/* Scope */}
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="overrideScope"
-                  value="global"
-                  checked={overrideScope === 'global'}
-                  onChange={() => setOverrideScope('global')}
-                  className="h-4 w-4"
-                />
-                {t('scopeTenant')}
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="radio"
-                  name="overrideScope"
-                  value="resource"
-                  checked={overrideScope === 'resource'}
-                  onChange={() => setOverrideScope('resource')}
-                  className="h-4 w-4"
-                />
-                {t('scopeResource')}
-              </label>
+              <CmxRadio
+                name="overrideScope"
+                size="sm"
+                value="global"
+                checked={overrideScope === 'global'}
+                onChange={() => setOverrideScope('global')}
+                label={t('scopeTenant')}
+              />
+              <CmxRadio
+                name="overrideScope"
+                size="sm"
+                value="resource"
+                checked={overrideScope === 'resource'}
+                onChange={() => setOverrideScope('resource')}
+                label={t('scopeResource')}
+              />
             </div>
 
             {/* Resource fields */}
             {overrideScope === 'resource' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
+                  <Label className="mb-1 block text-xs">
                     {t('resourceType')}
-                  </label>
-                  <select
+                  </Label>
+                  <CmxSelect
                     value={resourceType}
                     onChange={(e) => setResourceType(e.target.value)}
-                    className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">{tCommon('select')}</option>
-                    {RESOURCE_TYPES.map((rt) => (
-                      <option key={rt} value={rt}>
-                        {rt}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: tCommon('select') },
+                      ...RESOURCE_TYPES.map((rt) => ({ value: rt, label: rt })),
+                    ]}
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
+                  <Label className="mb-1 block text-xs">
                     {t('resourceId')}
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={resourceId}
                     onChange={(e) => setResourceId(e.target.value)}
                     placeholder="UUID"
-                    className="block w-full rounded border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    dir="ltr"
                   />
                 </div>
               </div>
@@ -321,12 +323,16 @@ export function PermissionOverrideDialog({
                       {p.resource_type}/{p.resource_id}
                     </span>
                   )}
-                  <button
+                  <CmxButton
+                    type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => removePending(i)}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    aria-label={tCommon('remove') || 'Remove'}
                   >
                     <X className="h-3.5 w-3.5" />
-                  </button>
+                  </CmxButton>
                 </div>
               ))}
             </div>

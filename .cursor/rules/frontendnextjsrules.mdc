@@ -1,5 +1,7 @@
 # Next.js Web Admin Development Rules
 
+> **Styling examples in this file are old.** Classes such as `bg-gray-800`, `text-blue-500`, `bg-white` or `text-red-600` now fail ESLint. For colours, direction, dark mode and components, follow `docs/dev/rules/cmx-design-system.md`, and use Cmx components instead of the raw elements shown here.
+
 ## What is Next.js?
 Next.js is a React framework that makes building web applications easier. It handles routing, server-side rendering, and optimization automatically.
 

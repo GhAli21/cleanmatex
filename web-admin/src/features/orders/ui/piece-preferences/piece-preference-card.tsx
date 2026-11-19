@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxTextarea } from '@ui/primitives/cmx-textarea';
+import { CmxTextarea, Label } from '@ui/primitives';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
@@ -300,9 +300,10 @@ export function PiecePreferenceCard({
                     'hover:brightness-[0.98]'
                   );
               return (
-                <button
+                <CmxButton
                   key={kind.kind_code}
                   type="button"
+                  variant="ghost"
                   onClick={() => {
                     setToolbarActiveKind(kind.kind_code);
                     if (isNotesKindRow(kind)) {
@@ -314,7 +315,7 @@ export function PiecePreferenceCard({
                   className={cn(
                     'rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                    isActive ? 'bg-primary text-primary-foreground shadow-md' : inactiveClass
+                    isActive ? 'bg-primary text-primary-foreground shadow-md hover:bg-primary/90 hover:text-primary-foreground' : inactiveClass
                   )}
                   style={
                     isActive || tw
@@ -326,7 +327,7 @@ export function PiecePreferenceCard({
                   aria-pressed={isActive}
                 >
                   {getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code}
-                </button>
+                </CmxButton>
               );
             })}
           </div>
@@ -335,7 +336,7 @@ export function PiecePreferenceCard({
 
       {notesToolbarActive && (
         <div className={cn('mt-2 space-y-1.5')}>
-          <label
+          <Label
             htmlFor={`piece-pref-notes-${piece.id}`}
             className={cn(
               'block text-xs font-bold uppercase tracking-wide text-muted-foreground',
@@ -343,7 +344,7 @@ export function PiecePreferenceCard({
             )}
           >
             {t('notesFieldLabel')}
-          </label>
+          </Label>
           <CmxTextarea
             id={`piece-pref-notes-${piece.id}`}
             dir={isRTL ? 'rtl' : 'ltr'}

@@ -1,3 +1,5 @@
+// next-intl ships ESM that jest cannot parse; CmxDialog only needs key-returning translations.
+jest.mock('next-intl', () => ({ useLocale: () => 'en', useTranslations: () => (key: string) => key }));
 import '@testing-library/jest-dom';
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';

@@ -16,6 +16,14 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { createAddress, updateAddress } from '@/lib/api/customers'
+import { CmxButton, CmxCheckbox, CmxInput, CmxTextarea, Label } from '@ui/primitives'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays'
 import type {
   CustomerAddress,
   CreateAddressRequest,
@@ -25,6 +33,7 @@ import type {
 interface AddressFormModalProps {
   customerId: string
   address?: CustomerAddress // If provided, edit mode
+  open?: boolean
   onClose: () => void
   onSuccess: (address: CustomerAddress) => void
 }
@@ -34,12 +43,14 @@ interface AddressFormModalProps {
  * @param root0
  * @param root0.customerId
  * @param root0.address
+ * @param root0.open
  * @param root0.onClose
  * @param root0.onSuccess
  */
 export default function AddressFormModal({
   customerId,
   address,
+  open = true,
   onClose,
   onSuccess,
 }: AddressFormModalProps) {
@@ -184,336 +195,203 @@ export default function AddressFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="address-modal-title">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Backdrop - semi-transparent so page content is visible behind */}
-        <div
-          className="fixed inset-0 z-0 transition-opacity bg-black/40"
-          onClick={onClose}
-          aria-hidden="true"
-        />
+    <CmxDialog open={open} onOpenChange={(next) => { if (!next) onClose() }} stackAboveModals>
+      <CmxDialogContent className="max-w-2xl w-full p-0" scrollBody>
+        <CmxDialogHeader>
+          <CmxDialogTitle id="address-modal-title">
+            {isEditMode ? t('editAddress') : t('addNewAddress')}
+          </CmxDialogTitle>
+        </CmxDialogHeader>
 
-        {/* Modal content - above backdrop */}
-        <div className="relative z-10 inline-block align-bottom bg-card rounded-lg text-start overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-          {/* Header */}
-          <div className="bg-muted px-6 py-4 border-b border-border">
-            <div className="flex items-center justify-between">
-              <h3 id="address-modal-title" className="text-lg font-semibold text-foreground">
-                {isEditMode ? t('editAddress') : t('addNewAddress')}
-              </h3>
-              <button
-                onClick={onClose}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-4 space-y-4">
+            {/* Label */}
+            <div>
+              <Label htmlFor="label" className="mb-1 block text-start">
+                {t('addressLabel')} *
+              </Label>
+              <CmxInput
+                type="text"
+                id="label"
+                name="label"
+                value={formData.label}
+                onChange={handleChange}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                placeholder={t('addressLabel')}
+                error={errors.label}
+              />
             </div>
-          </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">
-              <div className="space-y-4">
-                {/* Label */}
-                <div>
-                  <label
-                    htmlFor="label"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
-                    {t('addressLabel')} *
-                  </label>
-                  <input
-                    type="text"
-                    id="label"
-                    name="label"
-                    value={formData.label}
-                    onChange={handleChange}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    placeholder={t('addressLabel')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
-                      errors.label ? 'border-destructive' : 'border-border'
-                    }`}
-                  />
-                  {errors.label && (
-                    <p className="mt-1 text-sm text-danger-text text-start">{errors.label}</p>
-                  )}
-                </div>
+            {/* Building Name */}
+            <div>
+              <Label htmlFor="building_name" className="mb-1 block text-start">
+                {t('buildingName')}
+              </Label>
+              <CmxInput
+                type="text"
+                id="building_name"
+                name="building_name"
+                value={formData.building_name}
+                onChange={handleChange}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                placeholder={t('buildingName')}
+              />
+            </div>
 
-                {/* Building Name */}
-                <div>
-                  <label
-                    htmlFor="building_name"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
-                    {t('buildingName')}
-                  </label>
-                  <input
-                    type="text"
-                    id="building_name"
-                    name="building_name"
-                    value={formData.building_name}
-                    onChange={handleChange}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    placeholder={t('buildingName')}
-                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start"
-                  />
-                </div>
+            {/* Street Address */}
+            <div>
+              <Label htmlFor="street_address" className="mb-1 block text-start">
+                {t('streetAddress')} *
+              </Label>
+              <CmxInput
+                type="text"
+                id="street_address"
+                name="street_address"
+                value={formData.street_address}
+                onChange={handleChange}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                placeholder={t('streetAddress')}
+                error={errors.street_address}
+              />
+            </div>
 
-                {/* Street Address */}
-                <div>
-                  <label
-                    htmlFor="street_address"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
-                    {t('streetAddress')} *
-                  </label>
-                  <input
-                    type="text"
-                    id="street_address"
-                    name="street_address"
-                    value={formData.street_address}
-                    onChange={handleChange}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    placeholder={t('streetAddress')}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
-                      errors.street_address ? 'border-destructive' : 'border-border'
-                    }`}
-                  />
-                  {errors.street_address && (
-                    <p className="mt-1 text-sm text-danger-text text-start">{errors.street_address}</p>
-                  )}
-                </div>
+            {/* Area & City */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="area" className="mb-1 block text-start">
+                  {tCommon('area')} *
+                </Label>
+                <CmxInput
+                  type="text"
+                  id="area"
+                  name="area"
+                  value={formData.area}
+                  onChange={handleChange}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  placeholder={tCommon('area')}
+                  error={errors.area}
+                />
+              </div>
 
-                {/* Area & City */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="area"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
-                    >
-                      {tCommon('area')} *
-                    </label>
-                    <input
-                      type="text"
-                      id="area"
-                      name="area"
-                      value={formData.area}
-                      onChange={handleChange}
-                      dir={isRTL ? 'rtl' : 'ltr'}
-                      placeholder={tCommon('area')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
-                        errors.area ? 'border-destructive' : 'border-border'
-                      }`}
-                    />
-                    {errors.area && (
-                      <p className="mt-1 text-sm text-danger-text text-start">{errors.area}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="city"
-                      className="block text-sm font-medium text-foreground mb-1 text-start"
-                    >
-                      {tCommon('city')} *
-                    </label>
-                    <input
-                      type="text"
-                      id="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      dir={isRTL ? 'rtl' : 'ltr'}
-                      placeholder={tCommon('city')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start ${
-                        errors.city ? 'border-destructive' : 'border-border'
-                      }`}
-                    />
-                    {errors.city && (
-                      <p className="mt-1 text-sm text-danger-text text-start">{errors.city}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Postal Code */}
-                <div>
-                  <label
-                    htmlFor="postal_code"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
-                    {t('postalCode')}
-                  </label>
-                  <input
-                    type="text"
-                    id="postal_code"
-                    name="postal_code"
-                    value={formData.postal_code}
-                    onChange={handleChange}
-                    dir="ltr"
-                    placeholder="100"
-                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start"
-                  />
-                </div>
-
-                {/* GPS Coordinates */}
-                <div className="border-t border-border pt-4">
-                  <h4 className="text-sm font-medium text-foreground mb-3 text-start">
-                    {t('gpsCoordinates')}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="gps_latitude"
-                        className="block text-sm font-medium text-muted-foreground mb-1 text-start"
-                      >
-                        {t('latitude')}
-                      </label>
-                      <input
-                        type="text"
-                        id="gps_latitude"
-                        name="gps_latitude"
-                        value={formData.gps_latitude}
-                        onChange={handleChange}
-                        dir="ltr"
-                        placeholder="23.588660"
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring ${
-                          errors.gps_latitude ? 'border-destructive' : 'border-border'
-                        }`}
-                      />
-                      {errors.gps_latitude && (
-                        <p className="mt-1 text-sm text-danger-text text-start">
-                          {errors.gps_latitude}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="gps_longitude"
-                        className="block text-sm font-medium text-muted-foreground mb-1 text-start"
-                      >
-                        {t('longitude')}
-                      </label>
-                      <input
-                        type="text"
-                        id="gps_longitude"
-                        name="gps_longitude"
-                        value={formData.gps_longitude}
-                        onChange={handleChange}
-                        dir="ltr"
-                        placeholder="58.382897"
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring ${
-                          errors.gps_longitude ? 'border-destructive' : 'border-border'
-                        }`}
-                      />
-                      {errors.gps_longitude && (
-                        <p className="mt-1 text-sm text-danger-text text-start">
-                          {errors.gps_longitude}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Delivery Instructions */}
-                <div>
-                  <label
-                    htmlFor="delivery_instructions"
-                    className="block text-sm font-medium text-foreground mb-1 text-start"
-                  >
-                    {t('deliveryInstructions')}
-                  </label>
-                  <textarea
-                    id="delivery_instructions"
-                    name="delivery_instructions"
-                    value={formData.delivery_instructions}
-                    onChange={handleChange}
-                    rows={3}
-                    dir={isRTL ? 'rtl' : 'ltr'}
-                    placeholder={t('deliveryInstructions')}
-                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring text-start"
-                  />
-                </div>
-
-                {/* Default Address Toggle */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_default"
-                    name="is_default"
-                    checked={formData.is_default}
-                    onChange={handleChange}
-                    className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
-                  />
-                  <label
-                    htmlFor="is_default"
-                    className="ms-2 block text-sm text-foreground"
-                  >
-                    {t('setAsDefault')}
-                  </label>
-                </div>
-
-                {/* Submit Error */}
-                {errors.submit && (
-                  <div className="bg-danger-bg border border-s-4 border-e-0 border-danger-border rounded-md p-3">
-                    <p className="text-sm text-danger-text text-start">{errors.submit}</p>
-                  </div>
-                )}
+              <div>
+                <Label htmlFor="city" className="mb-1 block text-start">
+                  {tCommon('city')} *
+                </Label>
+                <CmxInput
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  placeholder={tCommon('city')}
+                  error={errors.city}
+                />
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="bg-muted px-6 py-4 border-t border-border flex items-center justify-end space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin h-4 w-4 text-on-solid -ms-1 me-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    {t('saving')}
-                  </span>
-                ) : (
-                  <span>{isEditMode ? t('updateAddress') : t('addAddress')}</span>
-                )}
-              </button>
+            {/* Postal Code */}
+            <div>
+              <Label htmlFor="postal_code" className="mb-1 block text-start">
+                {t('postalCode')}
+              </Label>
+              <CmxInput
+                type="text"
+                id="postal_code"
+                name="postal_code"
+                value={formData.postal_code}
+                onChange={handleChange}
+                dir="ltr"
+                placeholder="100"
+              />
             </div>
-          </form>
-        </div>
-      </div>
-    </div>
+
+            {/* GPS Coordinates */}
+            <div className="border-t border-border pt-4">
+              <h4 className="text-sm font-medium text-foreground mb-3 text-start">
+                {t('gpsCoordinates')}
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="gps_latitude" className="mb-1 block text-muted-foreground text-start">
+                    {t('latitude')}
+                  </Label>
+                  <CmxInput
+                    type="text"
+                    id="gps_latitude"
+                    name="gps_latitude"
+                    value={formData.gps_latitude}
+                    onChange={handleChange}
+                    dir="ltr"
+                    placeholder="23.588660"
+                    className="tabular-nums"
+                    error={errors.gps_latitude}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="gps_longitude" className="mb-1 block text-muted-foreground text-start">
+                    {t('longitude')}
+                  </Label>
+                  <CmxInput
+                    type="text"
+                    id="gps_longitude"
+                    name="gps_longitude"
+                    value={formData.gps_longitude}
+                    onChange={handleChange}
+                    dir="ltr"
+                    placeholder="58.382897"
+                    className="tabular-nums"
+                    error={errors.gps_longitude}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Delivery Instructions */}
+            <div>
+              <Label htmlFor="delivery_instructions" className="mb-1 block text-start">
+                {t('deliveryInstructions')}
+              </Label>
+              <CmxTextarea
+                id="delivery_instructions"
+                name="delivery_instructions"
+                value={formData.delivery_instructions}
+                onChange={handleChange}
+                rows={3}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                placeholder={t('deliveryInstructions')}
+              />
+            </div>
+
+            {/* Default Address Toggle */}
+            <CmxCheckbox
+              id="is_default"
+              name="is_default"
+              checked={formData.is_default}
+              onChange={handleChange}
+              label={t('setAsDefault')}
+            />
+
+            {/* Submit Error */}
+            {errors.submit && (
+              <div className="bg-danger-bg border border-s-4 border-e-0 border-danger-border rounded-md p-3">
+                <p className="text-sm text-danger-text text-start">{errors.submit}</p>
+              </div>
+            )}
+          </div>
+
+          <CmxDialogFooter className="bg-muted px-6 py-4 border-t border-border">
+            <CmxButton type="button" variant="outline" onClick={onClose}>
+              {tCommon('cancel')}
+            </CmxButton>
+            <CmxButton type="submit" variant="primary" loading={loading} disabled={loading}>
+              {loading ? t('saving') : isEditMode ? t('updateAddress') : t('addAddress')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </form>
+      </CmxDialogContent>
+    </CmxDialog>
   )
 }

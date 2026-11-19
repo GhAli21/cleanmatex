@@ -1,5 +1,7 @@
 # UI Migration Guide: Legacy @/components/ui → @ui APIs
 
+> Current design system rules (tokens, dark mode, RTL, components, checks and fixes): [`rules/cmx-design-system.md`](rules/cmx-design-system.md). Where this guide differs, the rules file wins.
+
 This guide supports the migration from `@/components/ui` (legacy, **removed**) to the new `@ui` design system.
 
 **Status:** Phase 7 complete. Legacy `components/` and compat layer removed. All imports use @ui Cmx components (`@ui/primitives`, `@ui/feedback`, `@ui/overlays`, etc.) or `@features/*`.

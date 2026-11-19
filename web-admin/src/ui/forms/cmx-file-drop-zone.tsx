@@ -32,6 +32,8 @@ export interface CmxFileDropZoneProps {
   label?: string;
   /** Extra line under the title (e.g. allowed types and size). */
   hint?: string;
+  /** Slim one-row bar (icon beside the text) for toolbars and panels where space is tight. */
+  compact?: boolean;
   className?: string;
 }
 
@@ -49,6 +51,7 @@ export function CmxFileDropZone({
   disabled = false,
   label,
   hint,
+  compact = false,
   className,
 }: CmxFileDropZoneProps) {
   const t = useTranslations('common.files');
@@ -95,7 +98,8 @@ export function CmxFileDropZone({
         handle(e.dataTransfer.files);
       }}
       className={cn(
-        'flex flex-col items-center justify-center gap-2 rounded-[var(--cmx-radius-md,0.375rem)] border-2 border-dashed p-6 text-center transition-colors',
+        'rounded-xl border-2 border-dashed transition-colors',
+        compact ? 'flex items-center gap-3 px-4 py-3 text-start' : 'flex flex-col items-center justify-center gap-2 p-6 text-center',
         'border-border text-muted-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         dragging && 'border-primary bg-primary-bg',
@@ -103,9 +107,11 @@ export function CmxFileDropZone({
         className,
       )}
     >
-      <UploadCloud className="h-8 w-8" aria-hidden />
-      <p className="text-sm font-medium text-foreground">{label ?? t('dropTitle')}</p>
-      <p className="text-xs">{hint ?? t('dropHint')}</p>
+      <UploadCloud className={cn('shrink-0', compact ? 'h-6 w-6' : 'h-8 w-8')} aria-hidden />
+      <div className={cn('min-w-0', compact ? 'space-y-0.5' : 'space-y-2')}>
+        <p className="text-sm font-medium text-foreground">{label ?? t('dropTitle')}</p>
+        <p className="text-xs">{hint ?? t('dropHint')}</p>
+      </div>
       <input
         ref={inputRef}
         type="file"

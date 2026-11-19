@@ -21,6 +21,7 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
 import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
@@ -279,9 +280,12 @@ export default function PackingDetailPage() {
                   )}
                   {trackByPiece && orderId && currentTenant?.tenant_id && (
                     <div className="mt-3 pt-3 border-t border-border">
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleItemExpansion(item.id)}
-                        className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                        className="h-auto w-full justify-between px-0 py-1 text-sm font-medium text-foreground hover:bg-transparent hover:text-foreground/80"
                       >
                         <span>
                           {tPieces('viewPieces') || 'View Pieces'}
@@ -291,7 +295,7 @@ export default function PackingDetailPage() {
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
-                      </button>
+                      </CmxButton>
                       
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
@@ -325,29 +329,31 @@ export default function PackingDetailPage() {
           <div className="bg-card rounded-lg border border-border p-4">
             <h3 className="font-semibold mb-4">{t('packing.actions.title')}</h3>
 
-            <label className="block text-sm font-medium text-foreground mb-2">{t('packing.rack')}</label>
-            <input
+            <Label className="block mb-2">{t('packing.rack')}</Label>
+            <CmxInput
               value={rackLocation}
               onChange={(e) => setRackLocation(e.target.value)}
               placeholder={t('packing.rackPlaceholder')}
-              className="w-full px-3 py-2 border border-border rounded-lg"
             />
 
-            <button
+            <CmxButton
+              type="button"
+              variant="primary"
               onClick={saveRackLocation}
               disabled={submitting}
-              className="mt-3 w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50"
+              className="mt-3 w-full"
             >
               {t('packing.actions.saveRack')}
-            </button>
+            </CmxButton>
 
-            <button
+            <CmxButton
+              type="button"
               onClick={handleCompletePacking}
               disabled={submitting}
-              className="mt-3 w-full px-4 py-3 bg-warning text-warning-foreground rounded-lg font-semibold hover:bg-warning/90 disabled:opacity-50"
+              className="mt-3 w-full bg-warning text-warning-foreground hover:bg-warning/90"
             >
               {submitting ? t('packing.actions.processing') : t('packing.actions.complete')}
-            </button>
+            </CmxButton>
           </div>
         </div>
       </div>

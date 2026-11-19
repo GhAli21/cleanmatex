@@ -1,7 +1,7 @@
 # Platform Operations Console — Status
 
 **Plan:** [PLAN.md](./PLAN.md) · **Operator guide:** [job_manager_guide.md](./job_manager_guide.md)
-**Last updated:** 2026-10-14
+**Last updated:** 2026-11-20
 
 | Phase | Scope | State |
 |---|---|---|
@@ -17,7 +17,7 @@
 2. **DB types are regenerated** (all 6 `sys_ops_*` tables + `fn_ops_*` functions are in both apps' generated types, verified 2026-10-14); the narrow typed bridges (`as unknown as`) in the four ops repositories can now be replaced by the generated types.
 3. **Everything is uncommitted** in `cleanmatexsaas` (user commits).
 4. **Arabic strings** for the ops screens are model-written and need a native review.
-5. **Per-key config conversion:** only `ntf.hq.resend.from_email` reads through the resolver; the remaining keys stay `ENV_OVERRIDES_DB` until converted one by one (`config_registry_guide.md` §7). Tenant-app keys have no resolver (`is_wired=false`).
+5. **Per-key config conversion:** HQ notification provider keys read through the resolver; remaining keys stay host/env until converted one by one (`config_registry_guide.md` §7). Unwired keys cannot store a value or take a stored-value policy (`0777`, `UNWIRED_KEY`). I11 worker env names are inventoried as `ENV_ONLY` / `HOSTING_ENV` and are not resolver-wired.
 6. **Setup Health limits:** HQ cannot read the tenant host's env (those checks show UNKNOWN); thresholds (1 h backlog, 7 d failures) are constants; no panel on the Templates screen.
 7. **Not yet built:** change-history UI for `sys_ops_config_chg_log`, master-key rotation/re-encryption tool, drift alerting, HQ page-access registry/nav-migration conventions for the new routes (unconfirmed HQ contract).
 8. Live demo-tenant state Setup Health will report: no provider accounts, senders, template registrations or routes; 0 opted-in customers; 3 stale outbox rows; `ntf-reconcile-outbox` last run FAILED.

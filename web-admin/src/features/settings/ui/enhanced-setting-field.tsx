@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { HelpCircle, RotateCcw } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, Label } from '@ui/primitives';
 import { SourceBadge, type SettingSource } from './source-badge';
 import { ExplainDrawer } from './explain-drawer';
 import { settingsClient } from '@/lib/api/settings-client';
@@ -95,9 +95,9 @@ export function EnhancedSettingField({
       {/* Label Row */}
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-foreground">
+          <Label className="block text-sm font-medium text-foreground">
             {label}
-          </label>
+          </Label>
           {description && (
             <p className="mt-1 text-xs text-muted-foreground">{description}</p>
           )}

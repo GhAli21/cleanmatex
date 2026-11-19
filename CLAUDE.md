@@ -17,6 +17,7 @@ Less-frequent rules, role definition, inventories, skills catalog and doc index:
 | New feature | `/implementation` |
 | Inline comment, JSDoc, SQL comment | `/code-documentation` |
 | `.stories.tsx` / new Cmx component | `/storybook` |
+| Review a screen / component / page against the design system (before UI work is done) | `/cmx-ui-design-review` |
 | Navigation add/modify | `/navigation` |
 | Files / photos / attachments on a screen (wire, change, unwire) | `/file-util-wire` |
 | Dashboard route gating | `/refill-ui-access-contract-permissions` + `/rebuild-ui-access-contract` |
@@ -50,6 +51,7 @@ If you wrote code without the skill: stop, load it, verify, fix.
 14. "HQ" = the SaaS Backoffice (`cleanmatexsaas`), never a tenant's headquarters. Glossary: `docs/dev/i18n_docs/GLOSSARY.md`.
 15. Settings (`sys_stng_*`) and feature flags (`sys_feature_flags_*`) are consumed via HQ API — never queried directly here. Cross-project: `docs/dev/rules/integration-contracts.md`.
 16. Performance-relevant changes follow `docs/dev/rules/performance-engineering.md`.
+17. **Design system:** `docs/dev/rules/cmx-design-system.md` is the source for UI look and behaviour — theme tokens only (no palette classes, hex, `dark:`), logical RTL classes, paper `data-mode="LIGHT"`, states, a11y. Before UI work is done: `npm run check:ui` (0 errors on changed files) and `/cmx-ui-design-review`.
 
 ## Database quick rules
 - `sys_*` global, `org_*` tenant (RLS). Max 30 chars per object name. TEXT not VARCHAR. Money `DECIMAL(19,4)`.

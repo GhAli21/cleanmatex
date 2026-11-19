@@ -7,6 +7,8 @@ import { loadLocaleMessages } from '@/lib/i18n/load-locale-messages'
 import { getLocaleFromCookies } from '@/lib/utils/locale.server';
 import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
 import { getRequestTheme } from '@/lib/services/ui-theme.service';
+import { getRequestExtraConfig } from '@/lib/services/tenant-extra-config.service';
+import { TABLE_DENSITY_OVERRIDES } from '@/lib/constants/tenant-extra-config';
 import { themeStyleCss } from '@/lib/theme/theme-style';
 import { TenantBrandProvider } from '@/lib/theme/tenant-brand';
 import "./globals.css";
@@ -47,7 +49,15 @@ export default async function RootLayout({
   // Get locale from cookies (server-side compatible)
   const locale = await getLocaleFromCookies();
   const messages = await loadLocaleMessages(locale)
-  const [timeZone, theme] = await Promise.all([getTenantTimeZone(), getRequestTheme()])
+  const [timeZone, theme, extraConfig] = await Promise.all([
+    getTenantTimeZone(),
+    getRequestTheme(),
+    getRequestExtraConfig(),
+  ])
+  const effectiveDensity =
+    extraConfig.tableDensityOverride !== TABLE_DENSITY_OVERRIDES.INHERIT
+      ? extraConfig.tableDensityOverride
+      : theme.density;
   const themeCss = themeStyleCss(theme)
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
 
@@ -59,16 +69,24 @@ export default async function RootLayout({
       dir={dir}
       className={notoSansArabic.variable}
       data-mode={theme.mode}
-      data-density={theme.density}
+      data-density={effectiveDensity}
       data-font-scale={theme.fontScale}
       data-font={theme.fontCode}
+      data-bdi={extraConfig.bdiIsolationEnabled ? 'ON' : 'OFF'}
+      data-pos-target={extraConfig.posStepperMinTarget}
     >
       <body
         className="antialiased"
       >
         {/* After the head stylesheets, so these values override tokens.css; empty for the plain STANDARD theme. */}
         {themeCss ? <style id="cmx-theme" dangerouslySetInnerHTML={{ __html: themeCss }} /> : null}
-        <AppProviders locale={locale} messages={messages} timeZone={timeZone} mode={theme.mode}>
+        <AppProviders
+          locale={locale}
+          messages={messages}
+          timeZone={timeZone}
+          mode={theme.mode}
+          extraConfig={extraConfig}
+        >
           <TenantBrandProvider value={{ appName: theme.appName, appName2: theme.appName2, logoUrl: theme.logoUrl, logoDarkUrl: theme.logoDarkUrl }}>
             {children}
           </TenantBrandProvider>

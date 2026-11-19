@@ -1555,6 +1555,167 @@
   "existing": false
  },
  {
+  "key": "ntf.worker.outbox_enabled",
+  "env": "NTF_OUTBOX_WORKER_ENABLED",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "NTF_OUTBOX_WORKER_ENABLED",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. HQ API cannot verify this host.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.worker.outbox_shadow_enabled",
+  "env": "NTF_OUTBOX_SHADOW_ENABLED",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "NTF_OUTBOX_SHADOW_ENABLED",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. HQ API cannot verify this host.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.worker.outbox_claim_limit",
+  "env": "NTF_OUTBOX_CLAIM_LIMIT",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "NTF_OUTBOX_CLAIM_LIMIT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. HQ API cannot verify this host.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.worker.outbox_max_claims_per_boot",
+  "env": "NTF_OUTBOX_MAX_CLAIMS_PER_BOOT",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "NTF_OUTBOX_MAX_CLAIMS_PER_BOOT",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. HQ API cannot verify this host.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.worker.outbox_canary_run_id",
+  "env": "NTF_OUTBOX_CANARY_RUN_ID",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "NTF_OUTBOX_CANARY_RUN_ID",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. HQ API cannot verify this host.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "workers.legacy_bullmq_enabled",
+  "env": "LEGACY_BULLMQ_ENABLED",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "LEGACY_BULLMQ_ENABLED",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. HQ API cannot verify this host.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "ntf.worker.hq_jobs_api_url",
+  "env": "HQ_JOBS_API_URL",
+  "secret": false,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "HQ_JOBS_API_URL",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read only from Render platform-workers process.env. Presence and value are never copied into the registry.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
+  "key": "platform.worker_api_key",
+  "env": "PLATFORM_WORKER_API_KEY",
+  "secret": true,
+  "policy": "ENV_ONLY",
+  "bootstrap": false,
+  "scopes": [
+   {
+    "scope": "HQ_API",
+    "env_var_name": "PLATFORM_WORKER_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by HQ platform-api PlatformWorkerGuard from its host environment. Check now may report presence on this host only; the value is never returned.",
+    "is_still_used": true
+   },
+   {
+    "scope": "HQ_WORKERS",
+    "env_var_name": "PLATFORM_WORKER_API_KEY",
+    "is_it_there": "unknown",
+    "value": null,
+    "fingerprint": null,
+    "description": "Read by Render platform-workers from its host environment. HQ API cannot verify this host or expose the secret.",
+    "is_still_used": true
+   }
+  ],
+  "existing": true
+ },
+ {
   "key": "platform.upstash.rest_url",
   "env": "UPSTASH_REDIS_REST_URL",
   "secret": false,

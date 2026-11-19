@@ -23,6 +23,7 @@ import { CmxEmptyState } from './cmx-empty-state'
 import { CmxAuditInfoCard } from './cmx-audit-info-card'
 import { CmxPagination } from '../navigation/cmx-pagination'
 import { CMX_DEFAULT_PAGE_SIZE } from './cmx-table-defaults'
+import { useTenantExtraConfig } from '@/lib/context/tenant-extra-config-context'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -56,6 +57,17 @@ const AUDIT_KEYS = [
   'recNotes',
 ] as const
 
+/** Logical horizontal alignment (`'left'` and `'right'` are deprecated aliases for `'start'` and `'end'`). */
+export type CmxDataTableColumnAlign = 'start' | 'center' | 'end' | 'left' | 'right'
+
+const COLUMN_ALIGN_CLASSES: Record<CmxDataTableColumnAlign, string> = {
+  start: 'text-start',
+  left: 'text-start',
+  center: 'text-center',
+  end: 'text-end',
+  right: 'text-end',
+}
+
 /**
  * Lightweight column descriptor used by feature screens.
  * Internally translated into TanStack `ColumnDef` so callers don't need to
@@ -67,7 +79,7 @@ export interface CmxDataTableSimpleColumn<TData> {
   render: (row: TData) => ReactNode
   /** Default true except `key === 'actions'`. Set false to disable header sort. */
   sortable?: boolean
-  align?: 'left' | 'center' | 'right'
+  align?: CmxDataTableColumnAlign
 }
 
 type AnyColumn<TData> =
@@ -412,7 +424,7 @@ export function CmxDataTable<TData>({
   isLoading,
   page,
   currentPage,
-  pageSize = CMX_DEFAULT_PAGE_SIZE,
+  pageSize: pageSizeProp,
   total,
   totalCount,
   onPageChange,
@@ -446,6 +458,8 @@ export function CmxDataTable<TData>({
   auditConfig,
 }: CmxDataTableProps<TData>) {
   const tCommon = useTranslations('common')
+  const { defaultTablePageSize } = useTenantExtraConfig()
+  const pageSize = pageSizeProp ?? defaultTablePageSize ?? CMX_DEFAULT_PAGE_SIZE
   const effectiveLoading = loading ?? isLoading ?? false
   const effectiveTotal = total ?? totalCount ?? 0
   // `currentPage` is 1-based (UI convention); TanStack expects 0-based.
@@ -595,12 +609,19 @@ export function CmxDataTable<TData>({
               return col.header
             }
             const sorted = column.getIsSorted()
+            const headerAlign = col.align ? COLUMN_ALIGN_CLASSES[col.align] : ''
+            const justifyClass =
+              headerAlign === 'text-end'
+                ? 'justify-end'
+                : headerAlign === 'text-center'
+                  ? 'justify-center'
+                  : 'justify-start'
             return (
                 <CmxButton
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-auto min-h-8 w-full justify-start gap-1 p-0 font-medium hover:bg-transparent rtl:justify-end"
+                className={cn('h-auto min-h-8 w-full gap-1 p-0 font-medium hover:bg-transparent', justifyClass)}
                 onClick={() => column.toggleSorting()}
               >
                 <span className="inline-flex items-center gap-1">
@@ -752,15 +773,21 @@ export function CmxDataTable<TData>({
             <table className={cn('min-w-full text-sm', showColumnBorders && 'border-separate border-spacing-0', tableClassName)}>
               <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-muted-foreground shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
+                  <tr key={headerGroup.id} className="h-[var(--cmx-row-h)]">
+                    {headerGroup.headers.map((header) => {
+                      const simpleHeaderCol = columns.find(
+                        (col) => isSimpleColumn(col) && col.key === header.column.id,
+                      ) as CmxDataTableSimpleColumn<TData> | undefined
+                      const headerAlignClass = simpleHeaderCol?.align ? COLUMN_ALIGN_CLASSES[simpleHeaderCol.align] : ''
+                      return (
                       <th
                         key={header.id}
                         scope="col"
                         className={cn(
-                          'px-4 py-4 text-start text-xs font-semibold uppercase tracking-[0.02em]',
-                          headerSize === 'emphasized' && 'py-5 text-sm font-bold normal-case tracking-normal text-foreground',
+                          'px-[var(--cmx-cell-px)] py-2.5 text-start text-xs font-semibold uppercase tracking-[0.02em]',
+                          headerSize === 'emphasized' && 'py-3.5 text-sm font-bold normal-case tracking-normal text-foreground',
                           showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
+                          headerAlignClass,
                           headerClassName,
                           header.column.id === ROW_NUM_COL_ID && 'w-14 text-end tabular-nums',
                           header.column.id === AUDIT_COL_ID && 'w-14 text-end',
@@ -779,7 +806,8 @@ export function CmxDataTable<TData>({
                               header.getContext(),
                             )}
                       </th>
-                    ))}
+                      )
+                    })}
                   </tr>
                 ))}
               </thead>
@@ -788,13 +816,13 @@ export function CmxDataTable<TData>({
                   Array.from({ length: skeletonRows }).map((_, rowIndex) => (
                     <tr
                       key={rowIndex}
-                      className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] transition-colors"
+                      className="h-[var(--cmx-row-h)] border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] transition-colors"
                     >
                       {tanstackColumns.map((_, cellIndex) => (
                         <td
                           key={cellIndex}
                           className={cn(
-                            'px-4 py-4',
+                            'px-[var(--cmx-cell-px)] py-2',
                             showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                             stickyEndColumnIds.includes(tanstackColumns[cellIndex]?.id ?? '') && 'sticky end-0 z-[2] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)]',
                           )}
@@ -809,7 +837,7 @@ export function CmxDataTable<TData>({
                     <tr
                       key={row.id}
                       className={cn(
-                        'group border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                        'group h-[var(--cmx-row-h)] border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                         onRowClick && 'cursor-pointer',
                         enableZebraStriping && index % 2 === 1 && 'bg-muted',
                         getRowClassName?.(row.original, index),
@@ -820,12 +848,12 @@ export function CmxDataTable<TData>({
                         const simpleCol = columns.find(
                           (col) => isSimpleColumn(col) && col.key === cell.column.id,
                         ) as CmxDataTableSimpleColumn<TData> | undefined
-                        const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
+                        const alignClass = simpleCol?.align ? COLUMN_ALIGN_CLASSES[simpleCol.align] : ''
                         return (
                           <td
                             key={cell.id}
                             className={cn(
-                              'px-4 py-4 align-middle',
+                              'px-[var(--cmx-cell-px)] py-2 align-middle',
                               showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                               alignClass,
                               cell.column.id === ROW_NUM_COL_ID && 'w-14 text-end tabular-nums',

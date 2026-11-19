@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSwitch, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import {
@@ -144,7 +144,7 @@ export function CurrencyFormDialog({ currency, open, onClose, onSuccess }: Curre
         <form onSubmit={form.handleSubmit(handleSubmit)} className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
           {!isEdit && (
             <div>
-              <label className="text-sm font-medium">{t('currencies.form.currencyCode')}</label>
+              <Label>{t('currencies.form.currencyCode')}</Label>
               <CmxSelectDropdown value={currencyCode} onValueChange={(v) => form.setValue('currencyCode', v)}>
                 <CmxSelectDropdownTrigger>
                   <CmxSelectDropdownValue placeholder={t('currencies.form.selectCurrency')} />
@@ -186,7 +186,7 @@ export function CurrencyFormDialog({ currency, open, onClose, onSuccess }: Curre
             <p className="text-xs font-semibold uppercase text-muted-foreground">{t('currencies.form.advanced')}</p>
 
             <div>
-              <label className="text-sm font-medium">{t('currencies.form.defaultRateTypeCode')}</label>
+              <Label>{t('currencies.form.defaultRateTypeCode')}</Label>
               <CmxSelectDropdown
                 value={defaultRateTypeCode ?? NONE_VALUE}
                 onValueChange={(v) => form.setValue('defaultRateTypeCode', v === NONE_VALUE ? undefined : v)}
@@ -202,7 +202,7 @@ export function CurrencyFormDialog({ currency, open, onClose, onSuccess }: Curre
             </div>
 
             <div>
-              <label className="text-sm font-medium">{t('currencies.form.defaultRateSourceCode')}</label>
+              <Label>{t('currencies.form.defaultRateSourceCode')}</Label>
               <CmxSelectDropdown
                 value={defaultRateSourceCode ?? NONE_VALUE}
                 onValueChange={(v) => form.setValue('defaultRateSourceCode', v === NONE_VALUE ? undefined : v)}
@@ -218,7 +218,7 @@ export function CurrencyFormDialog({ currency, open, onClose, onSuccess }: Curre
             </div>
 
             <div>
-              <label className="text-sm font-medium">{t('currencies.form.rateMaxAgeDays')}</label>
+              <Label>{t('currencies.form.rateMaxAgeDays')}</Label>
               <CmxInput type="number" min={1} {...form.register('rateMaxAgeDays')} />
             </div>
 
@@ -237,14 +237,14 @@ export function CurrencyFormDialog({ currency, open, onClose, onSuccess }: Curre
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">{t('currencies.form.manualRateTolerancePct')}</label>
+                  <Label>{t('currencies.form.manualRateTolerancePct')}</Label>
                   <CmxInput type="number" min={0} max={100} step="0.01" {...form.register('manualRateTolerancePct')} />
                 </div>
               </>
             )}
 
             <div>
-              <label className="text-sm font-medium">{t('currencies.form.taxRateSourceCode')}</label>
+              <Label>{t('currencies.form.taxRateSourceCode')}</Label>
               <CmxSelectDropdown
                 value={taxRateSourceCode ?? NONE_VALUE}
                 onValueChange={(v) => form.setValue('taxRateSourceCode', v === NONE_VALUE ? undefined : v)}

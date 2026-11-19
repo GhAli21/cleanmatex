@@ -42,7 +42,11 @@ export default function DashboardContent() {
       {/* Welcome Section */}
       <div className="bg-card rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-foreground mb-2">
-          {t('welcome')}, {user?.user_metadata?.display_name || user?.email}!
+          {t('welcome')},{' '}
+          {user?.user_metadata?.display_name || (
+            <bdi dir="ltr">{user?.email}</bdi>
+          )}
+          !
         </h2>
         {currentTenant && (
           <div className="mt-4 p-4 bg-info-bg rounded-md">
@@ -72,21 +76,21 @@ export default function DashboardContent() {
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('activeCustomers')}
           </h3>
-          <p className="text-3xl font-bold text-foreground">0</p>
+          <p className="text-3xl font-bold text-foreground tabular-nums">0</p>
           <p className="mt-2 text-sm text-muted-foreground">{t('totalActiveCustomers')}</p>
         </div>
         <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('pendingDeliveries')}
           </h3>
-          <p className="text-3xl font-bold text-foreground">0</p>
+          <p className="text-3xl font-bold text-foreground tabular-nums">0</p>
           <p className="mt-2 text-sm text-muted-foreground">{t('readyForDelivery')}</p>
         </div>
         <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('todayRevenue')}
           </h3>
-          <p className="text-3xl font-bold text-foreground">{formatMoneyWithCode(0)}</p>
+          <p className="text-3xl font-bold text-foreground tabular-nums"><bdi dir="ltr">{formatMoneyWithCode(0)}</bdi></p>
           <p className="mt-2 text-sm text-muted-foreground">{t('revenue')}</p>
         </div>
       </div>

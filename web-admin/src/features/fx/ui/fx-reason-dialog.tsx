@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { CmxTextarea } from '@ui/primitives';
+import { CmxTextarea, Label } from '@ui/primitives';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 
 interface FxReasonDialogProps {
@@ -47,9 +47,9 @@ export function FxReasonDialog({ open, title, description, confirmLabel, destruc
         </CmxDialogHeader>
         <div className="space-y-3 p-4">
           <p className="text-sm text-muted-foreground">{description}</p>
-          <label className="mb-1.5 block text-sm font-medium text-foreground" htmlFor="fx-reason">
+          <Label className="mb-1.5 block text-sm font-medium text-foreground" htmlFor="fx-reason">
             {t('common.reason')}
-          </label>
+          </Label>
           <CmxTextarea id="fx-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
         </div>
         <CmxDialogFooter>

@@ -5,8 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import { createTerminalSchema, updateTerminalSchema, type CreateTerminalFormValues } from '../model/terminal-schema';
@@ -82,7 +81,7 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-3 py-2">
           {!isEdit && (
             <div>
-              <label className="text-sm font-medium">{t('terminals.code')}</label>
+              <Label>{t('terminals.code')}</Label>
               <CmxInput {...form.register('terminal_code')} placeholder="TRM-001" className="font-mono" />
               {form.formState.errors.terminal_code && (
                 <p className="text-xs text-destructive mt-1">{form.formState.errors.terminal_code.message}</p>
@@ -90,15 +89,15 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
             </div>
           )}
           <div>
-            <label className="text-sm font-medium">{t('terminals.name')}</label>
+            <Label>{t('terminals.name')}</Label>
             <CmxInput {...form.register('terminal_name')} />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.name2')}</label>
+            <Label>{t('terminals.name2')}</Label>
             <CmxInput {...form.register('terminal_name2')} dir="rtl" />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.type')}</label>
+            <Label>{t('terminals.type')}</Label>
             <CmxSelectDropdown value={terminalType} onValueChange={(v) => form.setValue('terminal_type', v as never)}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
@@ -109,7 +108,7 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
             </CmxSelectDropdown>
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.branch')}</label>
+            <Label>{t('terminals.branch')}</Label>
             <CmxSelectDropdown
               value={branchId ?? NO_BRANCH_VALUE}
               onValueChange={(value) => form.setValue('branch_id', value === NO_BRANCH_VALUE ? undefined : value)}
@@ -124,19 +123,19 @@ export function TerminalFormDialog({ terminal, branches, open, onClose, onSucces
             </CmxSelectDropdown>
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.gateway')}</label>
+            <Label>{t('terminals.gateway')}</Label>
             <CmxInput {...form.register('gateway_code')} placeholder="HYPERPAY" />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.serialNo')}</label>
+            <Label>{t('terminals.serialNo')}</Label>
             <CmxInput {...form.register('serial_no')} />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.merchantId')}</label>
+            <Label>{t('terminals.merchantId')}</Label>
             <CmxInput {...form.register('merchant_id')} />
           </div>
           <div>
-            <label className="text-sm font-medium">{t('terminals.externalId')}</label>
+            <Label>{t('terminals.externalId')}</Label>
             <CmxInput {...form.register('terminal_external_id')} />
           </div>
           <CmxDialogFooter>

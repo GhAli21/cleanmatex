@@ -10,7 +10,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { CmxCard, CmxButton, CmxInput } from '@ui/primitives'
+import { CmxCard, CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import { Calendar, Filter, Download, Clock, User, DollarSign } from 'lucide-react'
 
 interface PriceHistoryEntry {
@@ -154,20 +154,24 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1">From Date</label>
+            <Label className="block text-xs mb-1">From Date</Label>
             <CmxInput type="date" value={filters.fromDate} onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1">To Date</label>
+            <Label className="block text-xs mb-1">To Date</Label>
             <CmxInput type="date" value={filters.toDate} onChange={(e) => setFilters({ ...filters, toDate: e.target.value })} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-foreground mb-1">Entity Type</label>
-            <select value={filters.entityType} onChange={(e) => setFilters({ ...filters, entityType: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm">
-              <option value="">All Types</option>
-              <option value="price_list_item">Price List Item</option>
-              <option value="product_default">Product Default</option>
-            </select>
+            <CmxSelect
+              label="Entity Type"
+              value={filters.entityType}
+              onChange={(e) => setFilters({ ...filters, entityType: e.target.value })}
+              options={[
+                { value: '', label: 'All Types' },
+                { value: 'price_list_item', label: 'Price List Item' },
+                { value: 'product_default', label: 'Product Default' },
+              ]}
+            />
           </div>
           <div className="flex items-end">
             <CmxButton variant="outline" onClick={handleExport} className="w-full">

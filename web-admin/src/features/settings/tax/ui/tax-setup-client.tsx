@@ -6,8 +6,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxEmptyState } from '@ui/data-display';
 
@@ -311,7 +310,7 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
           <form onSubmit={exemptionForm.handleSubmit(handleSubmitExemption)} className="space-y-4 py-2">
 
             <div>
-              <label className="text-sm font-medium">{t('exemptionType')} *</label>
+              <Label>{t('exemptionType')} *</Label>
               <CmxSelectDropdown
                 value={exemptionType}
                 onValueChange={(v) => exemptionForm.setValue('exemption_type', v)}
@@ -333,22 +332,22 @@ export function TaxSetupClient({ initialExemptions }: TaxSetupClientProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium">{t('certificateNo')}</label>
+              <Label>{t('certificateNo')}</Label>
               <CmxInput {...exemptionForm.register('certificate_no')} />
             </div>
 
             <div>
-              <label className="text-sm font-medium">{t('serviceType')}</label>
+              <Label>{t('serviceType')}</Label>
               <CmxInput {...exemptionForm.register('service_type')} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">{t('validFrom')} *</label>
+                <Label>{t('validFrom')} *</Label>
                 <CmxInput type="date" {...exemptionForm.register('valid_from')} />
               </div>
               <div>
-                <label className="text-sm font-medium">{t('validTo')}</label>
+                <Label>{t('validTo')}</Label>
                 <CmxInput type="date" {...exemptionForm.register('valid_to')} />
               </div>
             </div>

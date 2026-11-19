@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Settings2 } from 'lucide-react';
-import { CmxButton, CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxSwitch, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxSkeletonTable } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
@@ -57,7 +57,7 @@ export function SettingsTab() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">{t('settings.resolutionPolicy')}</label>
+          <Label className="text-sm font-medium">{t('settings.resolutionPolicy')}</Label>
           <CmxSelectDropdown
             value={resolutionPolicy}
             onValueChange={(v) => setResolutionPolicy(v as FxResolutionPolicy)}

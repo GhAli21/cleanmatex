@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin, Lock } from 'lucide-react'
 import Link from 'next/link'
-import { CmxButton } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token'
 
 interface GeneralSettings {
@@ -199,21 +199,19 @@ export default function GeneralSettingsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label={`${t('businessName')} (English)`} error={fieldErrors.businessName}>
-            <input
+            <CmxInput
               type="text"
               value={settings.businessName}
               onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="My Laundry Business"
             />
           </Field>
 
           <Field label={`${t('businessName')} (العربية)`} error={fieldErrors.businessNameAr}>
-            <input
+            <CmxInput
               type="text"
               value={settings.businessNameAr}
               onChange={(e) => setSettings({ ...settings, businessNameAr: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="مغسلة الملابس"
               dir="rtl"
             />
@@ -228,11 +226,11 @@ export default function GeneralSettingsPage() {
             }
             error={fieldErrors.email}
           >
-            <input
+            <CmxInput
               type="email"
               value={settings.email}
               onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+              dir="ltr"
               placeholder="info@business.com"
             />
           </Field>
@@ -246,11 +244,12 @@ export default function GeneralSettingsPage() {
             }
             error={fieldErrors.phone}
           >
-            <input
+            <CmxInput
               type="tel"
               value={settings.phone}
               onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+              dir="ltr"
+              className="tabular-nums"
               placeholder="+968 9123 4567"
             />
           </Field>
@@ -265,21 +264,19 @@ export default function GeneralSettingsPage() {
             }
             error={fieldErrors.address}
           >
-            <input
+            <CmxInput
               type="text"
               value={settings.address}
               onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="123 Main Street"
             />
           </Field>
 
           <Field label={t('city')} error={fieldErrors.city}>
-            <input
+            <CmxInput
               type="text"
               value={settings.city}
               onChange={(e) => setSettings({ ...settings, city: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               placeholder="Muscat"
             />
           </Field>
@@ -294,19 +291,19 @@ export default function GeneralSettingsPage() {
             error={fieldErrors.country}
             hint={isLocked.country ? t('error.settingLocked') : undefined}
           >
-            <select
+            <CmxSelect
               value={settings.country}
               disabled={isLocked.country}
               onChange={(e) => setSettings({ ...settings, country: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:bg-muted disabled:text-muted-foreground"
-            >
-              <option value="OM">Oman</option>
-              <option value="SA">Saudi Arabia</option>
-              <option value="AE">United Arab Emirates</option>
-              <option value="KW">Kuwait</option>
-              <option value="BH">Bahrain</option>
-              <option value="QA">Qatar</option>
-            </select>
+              options={[
+                { value: 'OM', label: 'Oman' },
+                { value: 'SA', label: 'Saudi Arabia' },
+                { value: 'AE', label: 'United Arab Emirates' },
+                { value: 'KW', label: 'Kuwait' },
+                { value: 'BH', label: 'Bahrain' },
+                { value: 'QA', label: 'Qatar' },
+              ]}
+            />
           </Field>
         </div>
       </div>
@@ -328,18 +325,18 @@ export default function GeneralSettingsPage() {
             }
             error={fieldErrors.timezone}
           >
-            <select
+            <CmxSelect
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-            >
-              <option value="Asia/Muscat">Asia/Muscat (GMT+4)</option>
-              <option value="Asia/Riyadh">Asia/Riyadh (GMT+3)</option>
-              <option value="Asia/Dubai">Asia/Dubai (GMT+4)</option>
-              <option value="Asia/Kuwait">Asia/Kuwait (GMT+3)</option>
-              <option value="Asia/Bahrain">Asia/Bahrain (GMT+3)</option>
-              <option value="Asia/Qatar">Asia/Qatar (GMT+3)</option>
-            </select>
+              options={[
+                { value: 'Asia/Muscat', label: 'Asia/Muscat (GMT+4)' },
+                { value: 'Asia/Riyadh', label: 'Asia/Riyadh (GMT+3)' },
+                { value: 'Asia/Dubai', label: 'Asia/Dubai (GMT+4)' },
+                { value: 'Asia/Kuwait', label: 'Asia/Kuwait (GMT+3)' },
+                { value: 'Asia/Bahrain', label: 'Asia/Bahrain (GMT+3)' },
+                { value: 'Asia/Qatar', label: 'Asia/Qatar (GMT+3)' },
+              ]}
+            />
           </Field>
 
           <Field
@@ -353,30 +350,30 @@ export default function GeneralSettingsPage() {
             error={fieldErrors.currency}
             hint={isLocked.currency ? t('error.settingLocked') : undefined}
           >
-            <select
+            <CmxSelect
               value={settings.currency}
               disabled={isLocked.currency}
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:bg-muted disabled:text-muted-foreground"
-            >
-              <option value="SAR">SAR - Saudi Riyal</option>
-              <option value="OMR">OMR - Omani Rial</option>
-              <option value="AED">AED - UAE Dirham</option>
-              <option value="KWD">KWD - Kuwaiti Dinar</option>
-              <option value="BHD">BHD - Bahraini Dinar</option>
-              <option value="QAR">QAR - Qatari Riyal</option>
-            </select>
+              options={[
+                { value: 'SAR', label: 'SAR - Saudi Riyal' },
+                { value: 'OMR', label: 'OMR - Omani Rial' },
+                { value: 'AED', label: 'AED - UAE Dirham' },
+                { value: 'KWD', label: 'KWD - Kuwaiti Dinar' },
+                { value: 'BHD', label: 'BHD - Bahraini Dinar' },
+                { value: 'QAR', label: 'QAR - Qatari Riyal' },
+              ]}
+            />
           </Field>
 
           <Field label={t('language')} error={fieldErrors.defaultLanguage}>
-            <select
+            <CmxSelect
               value={settings.defaultLanguage}
               onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-            >
-              <option value="en">English</option>
-              <option value="ar">العربية (Arabic)</option>
-            </select>
+              options={[
+                { value: 'en', label: 'English' },
+                { value: 'ar', label: 'العربية (Arabic)' },
+              ]}
+            />
           </Field>
         </div>
       </div>
@@ -404,14 +401,17 @@ export default function GeneralSettingsPage() {
             ✓ {t('saveSuccess')}
           </span>
         )}
-        <button
+        <CmxButton
+          type="button"
+          variant="primary"
+          size="lg"
           onClick={handleSave}
+          loading={loading}
           disabled={loading || !isDirty}
-          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          <Save className="h-5 w-5" />
+          <Save className="h-5 w-5 me-2" aria-hidden="true" />
           {loading ? t('saving') : t('saveChanges')}
-        </button>
+        </CmxButton>
       </div>
     </div>
   )
@@ -434,7 +434,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
+      <Label className="mb-1 block">{label}</Label>
       {children}
       {error && <p className="mt-1 text-xs text-danger-text">{error}</p>}
       {!error && hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}

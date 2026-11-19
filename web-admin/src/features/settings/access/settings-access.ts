@@ -243,6 +243,62 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: SETTINGS_NOTES,
   },
   {
+    routePattern: '/dashboard/settings/extra-config',
+    label: 'Display & Formatting Preferences',
+    page: {
+      permissions: ['settings:read'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      update: {
+        label: 'Save or reset extra configuration',
+        requirement: {
+          permissions: ['settings:update'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Load extra configuration',
+        method: 'GET',
+        path: '/api/v1/settings/extra-config',
+        requirement: {
+          permissions: ['settings:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Save extra configuration batch',
+        method: 'PUT',
+        path: '/api/v1/settings/extra-config',
+        requirement: {
+          permissions: ['settings:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Reset all extra configuration overrides',
+        method: 'DELETE',
+        path: '/api/v1/settings/extra-config',
+        requirement: {
+          permissions: ['settings:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Reset single extra configuration key',
+        method: 'DELETE',
+        path: '/api/v1/settings/extra-config/[key]',
+        requirement: {
+          permissions: ['settings:update'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: SETTINGS_NOTES,
+  },
+  {
     routePattern: '/dashboard/settings/finance',
     label: 'Finance Settings',
     page: {

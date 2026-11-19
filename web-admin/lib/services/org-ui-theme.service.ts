@@ -12,7 +12,7 @@ import { prisma } from '@/lib/db/prisma'
 import { getFeatureFlags } from '@/lib/services/feature-flags.service'
 import type { OrgThemeInput } from '@/lib/validations/ui-theme'
 
-export type UiThemeErrorCode = 'NOT_FOUND' | 'FEATURE_NOT_IN_PLAN' | 'THEME_IN_USE' | 'INVALID_CATALOG_CODE'
+export type UiThemeErrorCode = 'NOT_FOUND' | 'FEATURE_NOT_IN_PLAN' | 'THEME_IN_USE' | 'INVALID_CATALOG_CODE' | 'SWITCH_CONFLICT'
 
 /** A refused theme operation; routes map `code` to an HTTP status. */
 export class UiThemeError extends Error {
@@ -27,6 +27,7 @@ export const uiThemeErrorStatus: Record<UiThemeErrorCode, number> = {
   NOT_FOUND: 404,
   FEATURE_NOT_IN_PLAN: 403,
   THEME_IN_USE: 409,
+  SWITCH_CONFLICT: 409,
   INVALID_CATALOG_CODE: 400,
 }
 
@@ -80,8 +81,11 @@ export async function listOrgThemes(tenantId: string) {
   })
 }
 
-/** Refuse what the plan does not include, and HQ codes that are unknown or inactive. */
-async function checkInput(tenantId: string, input: OrgThemeInput): Promise<void> {
+/** Catalog codes already stored on the row being edited: kept even if HQ has since deactivated them. */
+type StoredCodes = { ui_theme_code: string; ui_radius_code: string | null; ui_font_pair_code: string | null }
+
+/** Refuse what the plan does not include, and HQ codes that are unknown or inactive (a code the row already stores is not re-checked). */
+async function checkInput(tenantId: string, input: OrgThemeInput, stored?: StoredCodes | null): Promise<void> {
   const flags = await getFeatureFlags(tenantId)
   const overrides = [input.brand_color_primary, input.brand_color_secondary, input.ui_radius_code, input.ui_font_pair_code]
   if (overrides.some(Boolean) && flags.custom_branding !== true) {
@@ -93,9 +97,9 @@ async function checkInput(tenantId: string, input: OrgThemeInput): Promise<void>
 
   const live = { is_active: true, rec_status: 1 }
   const [theme, radius, font] = await Promise.all([
-    prisma.sys_ui_theme_cd.count({ where: { code: input.ui_theme_code, ...live } }),
-    input.ui_radius_code ? prisma.sys_ui_radius_cd.count({ where: { code: input.ui_radius_code, ...live } }) : 1,
-    input.ui_font_pair_code ? prisma.sys_ui_font_pair_cd.count({ where: { code: input.ui_font_pair_code, ...live } }) : 1,
+    stored?.ui_theme_code === input.ui_theme_code ? 1 : prisma.sys_ui_theme_cd.count({ where: { code: input.ui_theme_code, ...live } }),
+    input.ui_radius_code && input.ui_radius_code !== stored?.ui_radius_code ? prisma.sys_ui_radius_cd.count({ where: { code: input.ui_radius_code, ...live } }) : 1,
+    input.ui_font_pair_code && input.ui_font_pair_code !== stored?.ui_font_pair_code ? prisma.sys_ui_font_pair_cd.count({ where: { code: input.ui_font_pair_code, ...live } }) : 1,
   ])
   if (!theme || !radius || !font) {
     throw new UiThemeError('INVALID_CATALOG_CODE', 'Unknown or inactive theme, corner style or font.')
@@ -147,7 +151,11 @@ export async function createOrgTheme(tenantId: string, input: OrgThemeInput, act
  * @throws UiThemeError NOT_FOUND (not this Organization's), FEATURE_NOT_IN_PLAN, INVALID_CATALOG_CODE
  */
 export async function updateOrgTheme(tenantId: string, id: string, input: OrgThemeInput, actor: ThemeActor): Promise<void> {
-  await checkInput(tenantId, input)
+  const stored = await prisma.org_tenant_ui_theme_dtl.findFirst({
+    where: { id, tenant_org_id: tenantId, ...LIVE },
+    select: { ui_theme_code: true, ui_radius_code: true, ui_font_pair_code: true },
+  })
+  await checkInput(tenantId, input, stored)
   const columns: Partial<ReturnType<typeof toColumns>> = toColumns(input)
   for (const key of PLAN_GATED) if (input[key] === undefined) delete columns[key]
   const { count } = await prisma.org_tenant_ui_theme_dtl.updateMany({
@@ -160,7 +168,7 @@ export async function updateOrgTheme(tenantId: string, id: string, input: OrgThe
 /**
  * Make a saved theme the one in use: old off and new on in one transaction. The
  * partial unique index (one in use per Organization) refuses a concurrent second switch.
- * @throws UiThemeError NOT_FOUND
+ * @throws UiThemeError NOT_FOUND, SWITCH_CONFLICT
  */
 export async function activateOrgTheme(tenantId: string, id: string, actor: ThemeActor): Promise<void> {
   await prisma.$transaction(async (tx) => {
@@ -171,9 +179,13 @@ export async function activateOrgTheme(tenantId: string, id: string, actor: Them
       where: { tenant_org_id: tenantId, is_active: true, ...LIVE },
       data: { is_active: false, ...audit },
     })
+    // The loser of a concurrent switch is refused by the one-in-use unique index (P2002): a 409, not a 500.
     const { count } = await tx.org_tenant_ui_theme_dtl.updateMany({
       where: { id, tenant_org_id: tenantId, ...LIVE },
       data: { is_active: true, ...audit },
+    }).catch((e: { code?: string }) => {
+      if (e?.code === 'P2002') throw new UiThemeError('SWITCH_CONFLICT', 'Another theme was made active at the same time. Try again.')
+      throw e
     })
     // Deleted after the read: throwing rolls back the "old off" too, so one theme stays in use.
     if (count !== 1) throw new UiThemeError('NOT_FOUND', 'Theme not found.')

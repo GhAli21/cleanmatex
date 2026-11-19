@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CmxInput } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
-import { CmxButton } from '@ui/primitives'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table'
 import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 
 interface PriceList {
@@ -105,23 +105,31 @@ export default function PricingPage() {
         <form onSubmit={onCreate} className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <CmxInput placeholder={t('priceListName')} value={name} onChange={(e) => setName(e.target.value)} />
           <CmxInput placeholder={t('priceListNameAr')} value={name2} onChange={(e) => setName2(e.target.value)} />
-          <select value={type} onChange={(e) => setType(e.target.value as any)}>
-            <option value="standard">{t('standard')}</option>
-            <option value="express">{t('express')}</option>
-            <option value="vip">{t('vip')}</option>
-            <option value="seasonal">{t('seasonal')}</option>
-            <option value="b2b">{t('b2b')}</option>
-            <option value="promotional">{t('promotional')}</option>
-          </select>
+          <CmxSelect
+            value={type}
+            onChange={(e) => setType(e.target.value as any)}
+            options={[
+              { value: 'standard', label: t('standard') },
+              { value: 'express', label: t('express') },
+              { value: 'vip', label: t('vip') },
+              { value: 'seasonal', label: t('seasonal') },
+              { value: 'b2b', label: t('b2b') },
+              { value: 'promotional', label: t('promotional') },
+            ]}
+          />
           <div className="grid grid-cols-2 gap-2">
             <CmxInput type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             <CmxInput type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <CmxInput type="number" placeholder="Priority" value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
-          <select value={isDefault ? 'yes' : 'no'} onChange={(e) => setIsDefault(e.target.value === 'yes')}>
-            <option value="no">{t('no')}</option>
-            <option value="yes">{t('yes')}</option>
-          </select>
+          <CmxSelect
+            value={isDefault ? 'yes' : 'no'}
+            onChange={(e) => setIsDefault(e.target.value === 'yes')}
+            options={[
+              { value: 'no', label: t('no') },
+              { value: 'yes', label: t('yes') },
+            ]}
+          />
           <div className="flex gap-2">
             <CmxButton type="submit" disabled={creating} loading={creating}>{creating ? tCommon('loading') : tCommon('create')}</CmxButton>
           </div>
@@ -136,34 +144,34 @@ export default function PricingPage() {
           <div className="p-4 text-muted-foreground">{t('noPriceLists')}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-muted text-start">
-                  <th className="px-4 py-2">{t('priceListName')}</th>
-                  <th className="px-4 py-2">{t('priceListType')}</th>
-                  <th className="px-4 py-2">{t('effectiveFrom')}</th>
-                  <th className="px-4 py-2">{t('effectiveTo')}</th>
-                  <th className="px-4 py-2">Items</th>
-                  <th className="px-4 py-2">{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="min-w-full text-sm">
+              <TableHeader>
+                <TableRow className="bg-muted text-start">
+                  <TableHead className="px-4 py-2">{t('priceListName')}</TableHead>
+                  <TableHead className="px-4 py-2">{t('priceListType')}</TableHead>
+                  <TableHead className="px-4 py-2">{t('effectiveFrom')}</TableHead>
+                  <TableHead className="px-4 py-2">{t('effectiveTo')}</TableHead>
+                  <TableHead className="px-4 py-2">Items</TableHead>
+                  <TableHead className="px-4 py-2">{t('actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {lists.map((pl) => (
-                  <tr key={pl.id} className="border-t">
-                    <td className="px-4 py-2">{pl.name}</td>
-                    <td className="px-4 py-2">{pl.price_list_type}</td>
-                    <td className="px-4 py-2">{pl.effective_from ?? '-'}</td>
-                    <td className="px-4 py-2">{pl.effective_to ?? '-'}</td>
-                    <td className="px-4 py-2">{pl.item_count ?? 0}</td>
-                    <td className="px-4 py-2">
+                  <TableRow key={pl.id} className="border-t">
+                    <TableCell className="px-4 py-2">{pl.name}</TableCell>
+                    <TableCell className="px-4 py-2">{pl.price_list_type}</TableCell>
+                    <TableCell className="px-4 py-2 tabular-nums">{pl.effective_from ?? '-'}</TableCell>
+                    <TableCell className="px-4 py-2 tabular-nums">{pl.effective_to ?? '-'}</TableCell>
+                    <TableCell className="px-4 py-2 tabular-nums">{pl.item_count ?? 0}</TableCell>
+                    <TableCell className="px-4 py-2">
                       <CmxButton size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/pricing/${pl.id}`)}>
                         Edit
                       </CmxButton>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </CmxCard>

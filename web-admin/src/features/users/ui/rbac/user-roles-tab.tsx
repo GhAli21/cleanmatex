@@ -20,8 +20,9 @@ import {
   Check,
   ShieldOff,
 } from 'lucide-react'
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
 import { useUserRoleAssignments, useUserPermissionOverrides } from '@/lib/hooks/use-user-role-assignments'
 import { AssignRolesDialog } from './assign-roles-dialog'
 import { PermissionOverrideDialog } from './permission-override-dialog'
@@ -135,74 +136,82 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
             {t('noRolesAssigned')}
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-secondary">
-              <tr>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {tCommon('name')}
-                </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Perms
-                </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t('tenantRolesDesc').split(' ')[0]}
-                </th>
-                <th className="px-4 py-2.5 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {tCommon('actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {tenantRoles.map((role) => (
-                <tr key={role.role_code} className="hover:bg-secondary">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {isAr && role.name2 ? role.name2 : role.name}
-                        </p>
-                        <p className="text-xs font-mono text-muted-foreground">
-                          {role.role_code}
-                        </p>
-                      </div>
+          <CmxDataTable
+            columns={[
+              {
+                key: 'name',
+                header: tCommon('name'),
+                sortable: false,
+                render: (role) => (
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {isAr && role.name2 ? role.name2 : role.name}
+                      </p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        <bdi dir="ltr">{role.role_code}</bdi>
+                      </p>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {role.is_system ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-info-bg text-info-text">
-                        System
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-text">
-                        Custom
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  </div>
+                ),
+              },
+              {
+                key: 'type',
+                header: 'Type',
+                sortable: false,
+                render: (role) =>
+                  role.is_system ? (
+                    <CmxStatusBadge size="sm" tone="info" label="System" />
+                  ) : (
+                    <CmxStatusBadge size="sm" tone="success" label="Custom" />
+                  ),
+              },
+              {
+                key: 'perms',
+                header: 'Perms',
+                align: 'end',
+                sortable: false,
+                render: (role) => (
+                  <span className="text-sm text-muted-foreground tabular-nums">
                     {role.permission_count ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  </span>
+                ),
+              },
+              {
+                key: 'assigned_at',
+                header: t('tenantRolesDesc').split(' ')[0],
+                sortable: false,
+                render: (role) => (
+                  <span className="text-sm text-muted-foreground tabular-nums">
                     {formatDate(role.assigned_at)}
-                  </td>
-                  <td className="px-4 py-3 text-end">
-                    <CmxButton
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => handleRemoveRole(role.role_code)}
-                      disabled={removingRole === role.role_code}
-                      className="text-danger-text hover:text-danger-text/80 hover:bg-danger-bg"
-                    >
-                      {tCommon('delete')}
-                    </CmxButton>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: tCommon('actions'),
+                align: 'end',
+                sortable: false,
+                render: (role) => (
+                  <CmxButton
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleRemoveRole(role.role_code)}
+                    disabled={removingRole === role.role_code}
+                    className="text-danger-text hover:bg-danger-bg hover:text-danger-text/80"
+                  >
+                    {tCommon('delete')}
+                  </CmxButton>
+                ),
+              },
+            ] satisfies CmxDataTableSimpleColumn<(typeof tenantRoles)[number]>[]}
+            data={tenantRoles}
+            auditConfig={false}
+            scrollable={false}
+            paginationFooter="never"
+            className="border-0 shadow-none"
+          />
         )}
       </div>
 
@@ -214,63 +223,68 @@ export function UserRolesTab({ userId, userName }: UserRolesTabProps) {
               {t('resourceRoles')}
             </h3>
           </div>
-          <table className="min-w-full divide-y divide-border">
-            <thead className="bg-secondary">
-              <tr>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {tCommon('name')}
-                </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Resource
-                </th>
-                <th className="px-4 py-2.5 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Resource ID
-                </th>
-                <th className="px-4 py-2.5 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {tCommon('actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {resourceRoles.map((role, i) => (
-                <tr key={i} className="hover:bg-secondary">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {isAr && role.name2 ? role.name2 : role.name}
-                        </p>
-                        <p className="text-xs font-mono text-muted-foreground">
-                          {role.role_code}
-                        </p>
-                      </div>
+          <CmxDataTable
+            columns={[
+              {
+                key: 'name',
+                header: tCommon('name'),
+                sortable: false,
+                render: (role) => (
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {isAr && role.name2 ? role.name2 : role.name}
+                      </p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        <bdi dir="ltr">{role.role_code}</bdi>
+                      </p>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary text-xs font-mono text-foreground">
-                      <MapPin className="h-3 w-3" />
-                      {role.resource_type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs font-mono text-muted-foreground max-w-[160px] truncate">
-                    {role.resource_id}
-                  </td>
-                  <td className="px-4 py-3 text-end">
-                    <CmxButton
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => handleRemoveRole(role.role_code)}
-                      disabled={removingRole === role.role_code}
-                      className="text-danger-text hover:text-danger-text/80 hover:bg-danger-bg"
-                    >
-                      {tCommon('delete')}
-                    </CmxButton>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                ),
+              },
+              {
+                key: 'resource',
+                header: 'Resource',
+                sortable: false,
+                render: (role) => (
+                  <CmxStatusBadge size="sm" tone="neutral" icon={MapPin} label={role.resource_type} />
+                ),
+              },
+              {
+                key: 'resource_id',
+                header: 'Resource ID',
+                sortable: false,
+                render: (role) => (
+                  <span className="block max-w-[160px] truncate font-mono text-xs text-muted-foreground">
+                    <bdi dir="ltr">{role.resource_id}</bdi>
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: tCommon('actions'),
+                align: 'end',
+                sortable: false,
+                render: (role) => (
+                  <CmxButton
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleRemoveRole(role.role_code)}
+                    disabled={removingRole === role.role_code}
+                    className="text-danger-text hover:bg-danger-bg hover:text-danger-text/80"
+                  >
+                    {tCommon('delete')}
+                  </CmxButton>
+                ),
+              },
+            ] satisfies CmxDataTableSimpleColumn<(typeof resourceRoles)[number]>[]}
+            data={resourceRoles}
+            auditConfig={false}
+            scrollable={false}
+            paginationFooter="never"
+            className="border-0 shadow-none"
+          />
         </div>
       )}
 

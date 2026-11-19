@@ -63,7 +63,8 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] Implement UI components
 - [ ] Add i18n translations under `web-admin/messages/en/**` and `web-admin/messages/ar/**`
 - [ ] Support RTL layout
-- [ ] Use Cmx Design System components
+- [ ] Use Cmx Design System components and follow `docs/dev/rules/cmx-design-system.md`
+- [ ] Before done: run `npm run check:ui` (0 errors on changed files) and `/cmx-ui-design-review` on the changed UI
 - [ ] Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`)
 - [ ] For editable money fields, prevent invalid entry or explain inline; never rewrite typed money as a side effect
 

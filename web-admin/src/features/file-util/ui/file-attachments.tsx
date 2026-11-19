@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Camera, RotateCcw, X } from 'lucide-react';
-import { CmxButton, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
 import { CmxFileDropZone, type CmxFileRejectReason } from '@ui/forms';
 import { CmxFileGallery, formatFileSize, type CmxFileItem, type CmxFilePreviewMode } from '@ui/data-display';
 import { CmxCameraCaptureDialog, CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle, CmxFileViewerDialog } from '@ui/overlays';
@@ -88,9 +88,9 @@ export function FileAttachments({ title, readOnly = false, className, defaultPur
   const visible: FileView[] = fa.files.filter(
     (f) => (filter === ALL || f.purposeCode === filter) && (activeStage === ALL || f.stageCode === activeStage),
   );
+  // Stage and screen are often the same word ("Processing · Processing"): show each label once.
   const metaOf = (f: FileView) =>
-    [f.stageCode && labelOf('stage', f.stageCode), labelOf('source', f.sourceCode), f.refTypeCode && labelOf('ref', f.refTypeCode)]
-      .filter(Boolean)
+    [...new Set([f.stageCode && labelOf('stage', f.stageCode), labelOf('source', f.sourceCode), f.refTypeCode && labelOf('ref', f.refTypeCode)].filter(Boolean))]
       .join(' · ');
   const items: CmxFileItem[] = visible.map((f) => ({
     id: f.id,
@@ -152,15 +152,21 @@ export function FileAttachments({ title, readOnly = false, className, defaultPur
   return (
     <section className={className} aria-label={title ?? t('title')}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold">{title ?? t('title')}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-base font-semibold">{title ?? t('title')}</h3>
+          {fa.files.length > 0 && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{fa.files.length}</span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {stageOptions.length > 1 && (
             <CmxSelect
               aria-label={t('filterByStage')}
               value={activeStage}
               onChange={(e) => setStageFilter(e.target.value)}
+              size="sm"
               options={[{ value: ALL, label: t('allStages') }, ...stageOptions]}
-              className="w-44"
+              className="w-40"
             />
           )}
           {purposes.length > 1 && fa.files.length > 0 && (
@@ -168,18 +174,20 @@ export function FileAttachments({ title, readOnly = false, className, defaultPur
               aria-label={t('filterByPurpose')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
+              size="sm"
               options={[{ value: ALL, label: t('allPurposes') }, ...purposeOptions]}
-              className="w-44"
+              className="w-40"
             />
           )}
         </div>
       </div>
 
       {!readOnly && (
-        <div className="mb-4 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="mb-4 space-y-2.5 rounded-xl border border-border bg-muted/30 p-3">
+          <div className={purposes.length > 1 ? 'grid gap-2.5 sm:grid-cols-[14rem_1fr]' : 'grid gap-2.5'}>
             {purposes.length > 1 && (
               <CmxSelect
+                size="sm"
                 label={t('purpose')}
                 value={selected?.purposeCode ?? ''}
                 onChange={(e) => setPurpose(e.target.value)}
@@ -187,17 +195,14 @@ export function FileAttachments({ title, readOnly = false, className, defaultPur
                 disabled={fa.configLoading}
               />
             )}
-            <CmxTextarea
-              aria-label={t('notes')}
+            <CmxInput
+              label={t('notes')}
               placeholder={t('notesPlaceholder')}
               value={notes}
               maxLength={2000}
-              rows={2}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
-          {/* Type and note are not a form: they are applied to the next files added, so say so. */}
-          <p className="text-xs text-muted-foreground">{t('uploadSettingsHint')}</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <CmxFileDropZone
               className="flex-1"
@@ -206,15 +211,18 @@ export function FileAttachments({ title, readOnly = false, className, defaultPur
               maxSizeBytes={selected?.maxSizeBytes}
               onFiles={startUpload}
               onReject={onReject}
+              compact
               hint={selected ? t('dropHint', { size: formatFileSize(selected.maxSizeBytes) }) : undefined}
             />
             {canPhoto && (
-              <CmxButton variant="outline" onClick={() => setCameraOpen(true)} disabled={!fa.ready} className="sm:self-stretch sm:h-auto">
+              <CmxButton variant="outline" onClick={() => setCameraOpen(true)} disabled={!fa.ready} className="gap-2 sm:self-stretch sm:h-auto">
                 <Camera className="h-4 w-4" aria-hidden />
                 {t('takePhoto')}
               </CmxButton>
             )}
           </div>
+
+          <p className="text-[11px] leading-snug text-muted-foreground">{t('uploadSettingsHint')}</p>
 
           {fa.uploads.length > 0 && (
             <ul className="space-y-2" aria-live="polite">

@@ -28,7 +28,7 @@ import {
   CmxDialogFooter,
   CmxDialogDescription,
 } from '@ui/overlays';
-import { CmxButton, CmxMoneyFieldController, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxMoneyFieldController, CmxSelect } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Label } from '@ui/primitives';
 import { sellGiftCardWithTenderAction } from '@/app/actions/marketing/gift-card-actions';
@@ -370,7 +370,8 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                   <div className="h-9 flex items-center justify-center rounded-md border bg-muted/40 px-3">
                     <span className="font-mono text-sm font-semibold">{currencyCode}</span>
                   </div>
-                  <input type="hidden" {...form.register('currency_code')} />
+                    {/* cmx-ds-ignore UI001: RHF hidden field */}
+                    <input type="hidden" {...form.register('currency_code')} />
                 </div>
               </div>
 
@@ -445,20 +446,16 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                     </CmxButton>
                   )}
                 </div>
+                {/* cmx-ds-ignore UI001: RHF hidden field */}
                 <input type="hidden" {...form.register('purchased_by_cust_id')} />
               </div>
 
               {/* Same as buyer toggle */}
-              <div className="flex items-center gap-2">
-                <input
-                  id="sell-same-as-buyer"
-                  type="checkbox"
-                  {...form.register('same_as_buyer')}
-                />
-                <Label htmlFor="sell-same-as-buyer" className="cursor-pointer">
-                  {t('fields.sameAsBuyer')}
-                </Label>
-              </div>
+              <CmxCheckbox
+                id="sell-same-as-buyer"
+                {...form.register('same_as_buyer')}
+                label={t('fields.sameAsBuyer')}
+              />
 
               {/* Recipient — customer picker (hidden when sameAsBuyer) */}
               {!sameAsBuyer && (
@@ -493,6 +490,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                       </CmxButton>
                     )}
                   </div>
+                  {/* cmx-ds-ignore UI001: RHF hidden field */}
                   <input type="hidden" {...form.register('issued_to_customer_id')} />
                 </div>
               )}
@@ -509,17 +507,20 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                       dir="ltr"
                       placeholder={tCommon('optional')}
                     />
-                    <button
+                    <CmxButton
                       type="button"
-                      className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute end-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       onClick={() => setPinVisible((v) => !v)}
                       tabIndex={-1}
+                      aria-label={pinVisible ? tCommon('hide') : tCommon('show')}
                     >
                       {pinVisible
                         ? <EyeOff className="h-4 w-4" />
                         : <Eye className="h-4 w-4" />
                       }
-                    </button>
+                    </CmxButton>
                   </div>
                   <CmxButton type="button" variant="outline" size="sm" onClick={suggestPin}>
                     {t('actions.suggestPin')}

@@ -462,7 +462,6 @@ ALTER FUNCTION org_ord_transition_status(...) RENAME TO cmx_order_transition;
 
 - [Database Conventions](./database_conventions.md) - Naming rules
 - [Feature Abbreviations](./database_feature_abbreviations.md) - Abbreviation list
-- [Grandfathered Objects](./database_grandfathered_objects.md) - Existing objects registry
 
 ---
 

@@ -353,8 +353,51 @@
     "errors": {
       "notFound": "This theme no longer exists. The list has been refreshed.",
       "themeInUse": "The theme in use cannot be deleted. Make another theme active first.",
+      "switchConflict": "Another theme was made active at the same moment. Try again.",
       "notInPlan": "Your plan does not include this change.",
       "invalidCode": "That theme, corner style or font is no longer offered."
+    }
+  },
+  "extraConfig": {
+    "title": "Display & Formatting Preferences",
+    "subtitle": "Configure GCC numeral scripts, date digits, BiDi code isolation, table density defaults, and POS counter touch targets for your Organization.",
+    "saveCount": "Save {count} change(s)",
+    "saved": "Display & formatting settings saved",
+    "resetKey": "Reset to default",
+    "resetKeySuccess": "Setting restored to system default",
+    "resetAll": "Reset all to defaults",
+    "resetAllTitle": "Reset all display & formatting overrides?",
+    "resetAllDescription": "Every custom setting on this screen will return to the CleanMateX GCC-first system default.",
+    "resetAllConfirm": "Reset all",
+    "resetAllSuccess": "All settings restored to system defaults",
+    "loadErrorTitle": "Could not load configuration",
+    "loadError": "Unable to load display and formatting preferences. Please try again.",
+    "readOnlyNotice": "You have read-only access. Ask an Organization administrator with settings update permission to change these options.",
+    "systemDefault": "System Default",
+    "customOverride": "Custom Override",
+    "defaultTag": "Default",
+    "unsavedBadge": "Unsaved",
+    "planLocked": "Not in plan",
+    "hqLocked": "Managed by HQ",
+    "defaultValueLabel": "System default",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "rangeHint": "Allowed range: {min} to {max}",
+    "categories": {
+      "NUMBERS_AND_DATES": "Numbers, Currency & Dates",
+      "TABLES_AND_DENSITY": "Tables & Data Density",
+      "POS_ERGONOMICS": "POS & Counter Ergonomics",
+      "ACCESSIBILITY": "BiDi & Accessibility"
+    },
+    "preview": {
+      "title": "Live GCC Formatting Preview",
+      "liveBadge": "Live preview",
+      "subtitle": "Updates immediately as you select options below — save to apply across the Organization.",
+      "moneySample": "Monetary Amount",
+      "dateSample": "Formatted Date",
+      "codeAndPhoneSample": "Phone & Order Code",
+      "layoutSample": "Table & POS Target",
+      "rowsLabel": "{count} rows/page"
     }
   }
 }

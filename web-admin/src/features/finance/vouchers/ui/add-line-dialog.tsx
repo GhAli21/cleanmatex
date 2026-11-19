@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton, CmxMoneyField } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxMoneyField, CmxSelect, Label } from '@ui/primitives';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
@@ -262,9 +262,9 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
 
           {/* ── Line Role ── */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">
+            <Label className="mb-2 block">
               {t('lineRole')} <span className="text-danger-text">*</span>
-            </label>
+            </Label>
             {filteredGroups.map((group) => (
               <div key={group.groupKey} className="mb-3">
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -272,18 +272,15 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {group.roles.map((role) => (
-                    <button
+                    <CmxButton
                       key={role}
                       type="button"
+                      size="xs"
+                      variant={form.line_role === role ? 'primary' : 'outline'}
                       onClick={() => handleRoleChange(role)}
-                      className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
-                        form.line_role === role
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border bg-card text-muted-foreground hover:bg-muted'
-                      }`}
                     >
                       {t(`lineRoleLabels.${role}`)}
-                    </button>
+                    </CmxButton>
                   ))}
                 </div>
               </div>
@@ -294,9 +291,9 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
             <>
               {/* ── Amount ── */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-foreground">
+                <Label className="mb-1 block">
                   {t('amount')} <span className="text-danger-text">*</span>
-                </label>
+                </Label>
                 <CmxMoneyField
                   value={parseMoneyDraft(form.amount) || null}
                   draftValue={form.amount}
@@ -309,27 +306,25 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
 
               {/* ── Payment Method ── */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-foreground">
+                <Label className="mb-1 block">
                   {t('paymentMethod')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-                </label>
-                <select
+                </Label>
+                <CmxSelect
                   value={form.payment_method_code}
                   onChange={(e) => set('payment_method_code', e.target.value)}
-                  className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="">—</option>
-                  {COMMON_PAYMENT_METHODS.map((pm) => (
-                    <option key={pm} value={pm}>{pm}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: '—' },
+                    ...COMMON_PAYMENT_METHODS.map((pmOpt) => ({ value: pmOpt, label: pmOpt })),
+                  ]}
+                />
               </div>
 
               {/* ── Cash: tendered amount ── */}
               {showCash && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('tenderedAmount')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-                  </label>
+                  </Label>
                   <CmxMoneyField
                     value={parseMoneyDraft(form.tendered_amount) || null}
                     draftValue={form.tendered_amount}
@@ -345,33 +340,33 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {showCard && (
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">{t('cardBrand')}</label>
-                    <input
+                    <Label className="mb-1 block">{t('cardBrand')}</Label>
+                    <CmxInput
                       type="text"
                       value={form.card_brand_code}
                       onChange={(e) => set('card_brand_code', e.target.value)}
                       placeholder="VISA"
-                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">{t('cardLast4')}</label>
-                    <input
+                    <Label className="mb-1 block">{t('cardLast4')}</Label>
+                    <CmxInput
                       type="text"
                       maxLength={4}
                       value={form.card_last4}
                       onChange={(e) => set('card_last4', e.target.value)}
                       placeholder="1234"
-                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                      dir="ltr"
+                      className="tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">{t('authCode')}</label>
-                    <input
+                    <Label className="mb-1 block">{t('authCode')}</Label>
+                    <CmxInput
                       type="text"
                       value={form.auth_code}
                       onChange={(e) => set('auth_code', e.target.value)}
-                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                      dir="ltr"
                     />
                   </div>
                 </div>
@@ -380,14 +375,14 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {/* ── Bank transfer ── */}
               {showBankRef && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('bankReference')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={form.bank_reference}
                     onChange={(e) => set('bank_reference', e.target.value)}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                    dir="ltr"
                   />
                 </div>
               )}
@@ -396,36 +391,37 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {showCheck && (
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">
+                    <Label className="mb-1 block">
                       {t('checkNumber')} <span className="text-danger-text">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       value={form.check_number}
                       onChange={(e) => set('check_number', e.target.value)}
-                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                      dir="ltr"
+                      className="tabular-nums"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">
+                    <Label className="mb-1 block">
                       {t('checkBank')} <span className="text-danger-text">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="text"
                       value={form.check_bank}
                       onChange={(e) => set('check_bank', e.target.value)}
-                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-foreground">
+                    <Label className="mb-1 block">
                       {t('checkDate')} <span className="text-danger-text">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       type="date"
                       value={form.check_date}
                       onChange={(e) => set('check_date', e.target.value)}
-                      className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                      dir="ltr"
+                      className="tabular-nums"
                     />
                   </div>
                 </div>
@@ -434,88 +430,89 @@ export function AddLineDialog({ open, onClose, onAdd, isPending, allowedRoles }:
               {/* ── Role-required contextual fields ── */}
               {needsOrderId(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('orderId')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={form.order_id}
                     onChange={(e) => set('order_id', e.target.value)}
                     placeholder="UUID"
-                    className="w-full rounded-md border border-border px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                    dir="ltr"
+                    className="font-mono"
                   />
                 </div>
               )}
 
               {needsCustomerId(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('customerId')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={form.customer_id}
                     onChange={(e) => set('customer_id', e.target.value)}
                     placeholder="UUID"
-                    className="w-full rounded-md border border-border px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                    dir="ltr"
+                    className="font-mono"
                   />
                 </div>
               )}
 
               {needsPartyName(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('party')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={form.party_name}
                     onChange={(e) => set('party_name', e.target.value)}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               )}
 
               {needsExpenseCategory(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('expenseCategory')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={form.expense_category_code}
                     onChange={(e) => set('expense_category_code', e.target.value)}
                     placeholder="e.g. RENT, UTILITIES"
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                    dir="ltr"
                   />
                 </div>
               )}
 
               {needsEmployeeId(form.line_role) && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
+                  <Label className="mb-1 block">
                     {t('employeeId')} <span className="text-danger-text">*</span>
-                  </label>
-                  <input
+                  </Label>
+                  <CmxInput
                     type="text"
                     value={form.employee_id}
                     onChange={(e) => set('employee_id', e.target.value)}
                     placeholder="UUID"
-                    className="w-full rounded-md border border-border px-3 py-2 font-mono text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                    dir="ltr"
+                    className="font-mono"
                   />
                 </div>
               )}
 
               {/* ── Description & Notes ── */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-foreground">
+                <Label className="mb-1 block">
                   {t('description')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-                </label>
-                <input
+                </Label>
+                <CmxInput
                   type="text"
                   value={form.description}
                   onChange={(e) => set('description', e.target.value)}
-                  className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
             </>

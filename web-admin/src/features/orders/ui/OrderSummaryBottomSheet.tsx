@@ -1,13 +1,16 @@
 /**
  * Order Summary Bottom Sheet
  * Mobile/tablet replacement for sidebar: floating bar + slide-up sheet
- * Uses inset-inline-0 for RTL correctness.
+ * Uses inset-inline-0 for RTL correctness, focus trap, Escape dismiss, and CmxButton.
  */
 
 'use client';
 
+import { useEffect } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingCart, ChevronUp } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
@@ -73,6 +76,25 @@ export function OrderSummaryBottomSheet({
   const locale = useLocale();
   const { decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const trapRef = useFocusTrap(isOpen, { returnFocus: true });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
+
   const fmtTotal = (n: number) =>
     formatMoneyAmountWithCode(n, {
       currencyCode: currencyCode as string,
@@ -88,29 +110,31 @@ export function OrderSummaryBottomSheet({
       {isOpen && (
         <>
           {/* Backdrop */}
-          <button
-            type="button"
+          <div
             onClick={onClose}
+            aria-hidden="true"
             className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
-            aria-label={tCommon('close') || 'Close'}
           />
           {/* Sheet - slide up animation */}
           <div
+            ref={trapRef}
             className="fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-2xl shadow-2xl flex flex-col max-h-[85vh] transition-transform duration-300 ease-out"
             style={{ insetInline: 0 }}
             role="dialog"
             aria-modal="true"
             aria-label={t('title') || 'Order summary'}
           >
-            {/* Drag handle */}
-            <button
+            {/* Drag / dismiss handle */}
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={onClose}
-              className="flex justify-center py-3 touch-none cursor-grab active:cursor-grabbing"
+              className="flex w-full justify-center py-3 rounded-none touch-none cursor-grab active:cursor-grabbing"
               aria-label={tCommon('close') || 'Close'}
             >
               <div className="w-12 h-1 bg-border rounded-full" />
-            </button>
+            </CmxButton>
             {/* Content */}
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
               {children}
@@ -121,43 +145,42 @@ export function OrderSummaryBottomSheet({
 
       {/* Floating bar - visible when items exist and sheet is closed */}
       {hasItems && !isOpen && (
-        <div
-          className="fixed bottom-0 inset-inline-0 z-30 bg-card border-t border-border shadow-lg safe-area-pb"
-        >
-          <div
-            className="flex items-center justify-between gap-4 p-4"
-          >
-            <button
+        <div className="fixed bottom-0 inset-inline-0 z-30 bg-card border-t border-border shadow-lg safe-area-pb">
+          <div className="flex items-center justify-between gap-4 p-4">
+            <CmxButton
               type="button"
+              variant="outline"
               onClick={isOpen ? onClose : onOpen}
-              className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg border border-border bg-card hover:bg-muted transition-colors"
+              className="min-h-[44px] px-4 py-2 gap-2"
               aria-label={isOpen ? (tCommon('close') || 'Close') : (t('viewCart') || 'View cart')}
             >
               <ShoppingCart className="w-5 h-5" />
-              <span className="font-medium">
+              <span className="font-medium tabular-nums">
                 {tCommon('itemCount', { count: itemCount })}
               </span>
               <ChevronUp
                 className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
               />
-            </button>
+            </CmxButton>
             <div className="flex items-center gap-3">
               {total != null ? (
                 <div className="text-sm text-end">
                   <p className="text-xs text-muted-foreground">{t('total')}</p>
-                  <p className="font-bold text-foreground">
-                    {fmtTotal(total)}
+                  <p className="font-bold text-foreground tabular-nums">
+                    <bdi dir="ltr">{fmtTotal(total)}</bdi>
                   </p>
                 </div>
               ) : null}
-              <button
+              <CmxButton
                 type="button"
+                variant="primary"
                 onClick={onPrimaryAction}
                 disabled={primaryDisabled || loading}
-                className="min-h-[44px] px-6 py-3 bg-success hover:bg-success/90 disabled:bg-border disabled:cursor-not-allowed text-on-solid rounded-lg font-semibold transition-colors"
+                loading={loading}
+                className="min-h-[44px] px-6 py-3 bg-success hover:bg-success/90 text-on-solid font-semibold"
               >
                 {loading ? (t('processing') || 'Processing...') : primaryLabel}
-              </button>
+              </CmxButton>
             </div>
           </div>
         </div>

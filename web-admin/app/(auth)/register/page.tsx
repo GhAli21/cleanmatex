@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { validateRegisterForm } from '@/lib/auth/validation'
 import type { FormErrors } from '@/types/auth'
+import { CmxButton, CmxCheckbox, CmxInput, Label } from '@ui/primitives'
 
 /**
  *
@@ -165,32 +166,27 @@ export default function RegisterPage() {
           <div className="space-y-4 rounded-md shadow-sm">
             {/* Display Name Field */}
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-foreground mb-1">
+              <Label htmlFor="displayName" className="block mb-1">
                 Full Name *
-              </label>
-              <input
+              </Label>
+              <CmxInput
                 id="displayName"
                 name="displayName"
                 type="text"
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errors.displayName ? 'border-danger-border' : 'border-border'
-                } placeholder:text-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm`}
+                error={errors.displayName}
                 placeholder="John Doe"
               />
-              {errors.displayName && (
-                <p className="mt-1 text-sm text-danger-text">{errors.displayName}</p>
-              )}
             </div>
 
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+              <Label htmlFor="email" className="block mb-1">
                 Email address *
-              </label>
-              <input
+              </Label>
+              <CmxInput
                 id="email"
                 name="email"
                 type="email"
@@ -198,23 +194,18 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errors.email ? 'border-danger-border' : 'border-border'
-                } placeholder:text-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm`}
+                error={errors.email}
                 placeholder="you@example.com"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-danger-text">{errors.email}</p>
-              )}
             </div>
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+              <Label htmlFor="password" className="block mb-1">
                 Password *
-              </label>
+              </Label>
               <div className="relative">
-                <input
+                <CmxInput
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
@@ -222,15 +213,16 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`appearance-none relative block w-full px-3 py-2 border ${
-                    errors.password ? 'border-danger-border' : 'border-border'
-                  } placeholder:text-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm`}
+                  className={errors.password ? 'border-danger-border pe-10' : 'pe-10'}
                   placeholder="At least 8 characters"
                 />
-                <button
+                <CmxButton
                   type="button"
-                  className="absolute inset-y-0 end-0 pe-3 flex items-center"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute inset-y-0 end-0 h-full px-3"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -242,7 +234,7 @@ export default function RegisterPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   )}
-                </button>
+                </CmxButton>
               </div>
               {errors.password && (
                 <p className="mt-1 text-sm text-danger-text">{errors.password}</p>
@@ -254,11 +246,11 @@ export default function RegisterPage() {
 
             {/* Confirm Password Field */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-1">
+              <Label htmlFor="confirmPassword" className="block mb-1">
                 Confirm Password *
-              </label>
+              </Label>
               <div className="relative">
-                <input
+                <CmxInput
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -266,15 +258,16 @@ export default function RegisterPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`appearance-none relative block w-full px-3 py-2 border ${
-                    errors.confirmPassword ? 'border-danger-border' : 'border-border'
-                  } placeholder:text-muted-foreground text-foreground rounded-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm`}
+                  className={errors.confirmPassword ? 'border-danger-border pe-10' : 'pe-10'}
                   placeholder="Re-enter your password"
                 />
-                <button
+                <CmxButton
                   type="button"
-                  className="absolute inset-y-0 end-0 pe-3 flex items-center"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute inset-y-0 end-0 h-full px-3"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                 >
                   {showConfirmPassword ? (
                     <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,7 +279,7 @@ export default function RegisterPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   )}
-                </button>
+                </CmxButton>
               </div>
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-danger-text">{errors.confirmPassword}</p>
@@ -296,64 +289,36 @@ export default function RegisterPage() {
 
           {/* Terms & Conditions */}
           <div className="flex items-start">
-            <div className="flex items-center h-5">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 rounded border-border text-primary-text focus:ring-ring"
-              />
-            </div>
-            <div className="ms-3 text-sm">
-              <label htmlFor="terms" className="font-medium text-foreground">
-                I agree to the{' '}
-                <Link href="/terms" className="text-primary-text hover:text-primary-text/80">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link href="/privacy" className="text-primary-text hover:text-primary-text/80">
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
+            <CmxCheckbox
+              id="terms"
+              name="terms"
+              required
+              size="sm"
+              label={(
+                <span className="text-sm font-medium text-foreground">
+                  I agree to the{' '}
+                  <Link href="/terms" className="text-primary-text hover:text-primary-text/80">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="text-primary-text hover:text-primary-text/80">
+                    Privacy Policy
+                  </Link>
+                </span>
+              )}
+            />
           </div>
 
           {/* Submit Button */}
           <div>
-            <button
+            <CmxButton
               type="submit"
               disabled={isLoading}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-primary py-2 px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={isLoading}
+              className="w-full"
             >
-              {isLoading ? (
-                <>
-                  <svg
-                    className="animate-spin -ms-1 me-3 h-5 w-5 text-on-solid"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Creating account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
+              {isLoading ? 'Creating account...' : 'Create Account'}
+            </CmxButton>
           </div>
 
           {/* Sign in link */}

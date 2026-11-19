@@ -29,6 +29,7 @@ jest.mock('@/lib/services/workflow/semantic-workflow-artifact.service', () => ({
 import {
   canonicalStageWorklistScreens,
   listStageWorklistOrderPage,
+  listStageWorklistOrderPageWithSummary,
 } from '@/lib/services/workflow/stage-worklist-query.service'
 
 describe('stage worklist membership', () => {
@@ -154,6 +155,60 @@ describe('stage worklist membership', () => {
     })
 
     expect(result).toEqual({ orderIds: ['order-counter'], total: 1 })
+    expect(mockQueryRaw).toHaveBeenCalledTimes(3)
+  })
+
+  it('returns queue-wide summary totals with priority/issue/overdue filters and customer_name sort', async () => {
+    const snapshot = {
+      wf_profile_id: '33333333-3333-3333-3333-333333333333',
+      wf_version_no: 1,
+      wf_profile_version_id: '44444444-4444-4444-4444-444444444444',
+      wf_profile_artifact_id: '55555555-5555-5555-5555-555555555555',
+      wf_profile_revision: 1,
+      wf_profile_checksum: 'a'.repeat(64),
+      wf_profile_schema_version: 1,
+    }
+    mockQueryRaw
+      .mockResolvedValueOnce([snapshot])
+      .mockResolvedValueOnce([{ id: 'order-1' }])
+      .mockResolvedValueOnce([
+        {
+          total_orders: BigInt(4),
+          total_pieces: BigInt(15),
+          total_value: 120.5,
+          unpaid_outstanding: 45.25,
+          overdue_count: BigInt(2),
+          open_issues_count: BigInt(1),
+        },
+      ])
+    mockLoadSemanticArtifact.mockResolvedValue({
+      modules: [{ screen_key: 'processing', module_mode: 'primary_owner', is_enabled: true }],
+      module_statuses: [{ screen_key: 'processing', status_code: 'processing', visibility_mode: 'owner' }],
+    })
+
+    const result = await listStageWorklistOrderPageWithSummary('11111111-1111-1111-1111-111111111111', {
+      screen: 'processing',
+      page: 1,
+      pageSize: 20,
+      priority: ['express', 'urgent'],
+      hasIssue: true,
+      overdue: true,
+      sortBy: 'customer_name',
+      sortAscending: true,
+    })
+
+    expect(result).toEqual({
+      orderIds: ['order-1'],
+      total: 4,
+      summary: {
+        totalOrders: 4,
+        totalPieces: 15,
+        totalValue: 120.5,
+        unpaidOutstanding: 45.25,
+        overdueCount: 2,
+        openIssuesCount: 1,
+      },
+    })
     expect(mockQueryRaw).toHaveBeenCalledTimes(3)
   })
 })

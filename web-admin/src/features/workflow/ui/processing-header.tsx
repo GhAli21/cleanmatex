@@ -1,71 +1,111 @@
 /**
  * Processing Header Component
- * Top row with title, action button, and refresh icon
+ * Full-width operational header with New Order CTA, Refresh control, and Barcode Scan bar.
  */
 
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { CmxButton } from '@ui/primitives';
+import { CmxScanInput, type CmxScanStatus } from '@ui/forms';
 import { cn } from '@/lib/utils';
 
 interface ProcessingHeaderProps {
   onRefresh: () => void | Promise<void>;
   isRefreshing?: boolean;
+  totalOrders?: number;
+  onScanSearch?: (value: string) => void | Promise<unknown>;
+  scanStatus?: CmxScanStatus | null;
 }
 
 /**
- *
- * @param root0
- * @param root0.onRefresh
- * @param root0.isRefreshing
+ * Top header bar for `/dashboard/processing` with quick scan/search and primary actions.
+ * @param props Header actions and optional scan handler.
  */
-export function ProcessingHeader({ onRefresh, isRefreshing = false }: ProcessingHeaderProps) {
+export function ProcessingHeader(props: ProcessingHeaderProps) {
+  const {
+    onRefresh,
+    isRefreshing = false,
+    totalOrders,
+    onScanSearch,
+    scanStatus,
+  } = props;
   const t = useTranslations('processing');
   const tOrders = useTranslations('orders');
+  const [localScanStatus, setLocalScanStatus] = useState<CmxScanStatus | null>(null);
 
   const handleRefresh = async () => {
     await onRefresh();
   };
 
+  const handleScan = async (value: string) => {
+    setLocalScanStatus({
+      tone: 'info',
+      message: t('scan.matched', { query: value }),
+    });
+    await onScanSearch?.(value);
+  };
+
   return (
-    <div className="flex items-center justify-between">
-      {/* Title */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
+    <div className="space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {t('title')}
+            </h1>
+            {typeof totalOrders === 'number' && (
+              <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold tabular-nums text-foreground">
+                {totalOrders}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <CmxButton variant="primary" size="md" asChild>
+            <Link href="/dashboard/orders/new">
+              <Plus className="me-1.5 h-4 w-4" aria-hidden />
+              {tOrders('newOrder')}
+            </Link>
+          </CmxButton>
+
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={handleRefresh}
+            loading={isRefreshing}
+            aria-label={t('refresh')}
+            title={t('refresh')}
+          >
+            {!isRefreshing && (
+              <RefreshCw
+                className={cn('me-1.5 h-4 w-4', isRefreshing && 'animate-spin')}
+                aria-hidden
+              />
+            )}
+            <span className="hidden sm:inline">{t('refresh')}</span>
+          </CmxButton>
+        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard/orders/new"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover font-medium transition-colors"
-        >
-          {tOrders('newOrder')}
-        </Link>
-
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className={cn(
-            "p-2 rounded-lg transition-colors",
-            isRefreshing 
-              ? "opacity-50 cursor-not-allowed" 
-              : "hover:bg-muted"
-          )}
-          title={t('refresh')}
-          aria-label={t('refresh')}
-        >
-          <RefreshCw 
-            className={cn(
-              "h-5 w-5 text-muted-foreground transition-transform",
-              isRefreshing && "animate-spin"
-            )} 
+      {onScanSearch && (
+        <div className="rounded-lg border border-border bg-card p-3">
+          <CmxScanInput
+            label={t('scan.label')}
+            placeholder={t('scan.placeholder')}
+            submitLabel={t('scan.submit')}
+            emptyMessage={t('scan.empty')}
+            status={scanStatus ?? localScanStatus}
+            onScan={handleScan}
           />
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
 import { isSafeMdiIconClass } from '@/lib/utils/mdi-icon';
 import { STAIN_CONDITIONS, StainCondition } from '@/lib/types/order-creation';
+import { CmxButton } from '@ui/primitives';
 
 interface CatalogEntry {
   code: string;
@@ -102,39 +103,45 @@ export function StainConditionToggles({
 
           {/* Filter Buttons */}
           <div className="flex gap-1 rounded-lg bg-muted p-1">
-            <button
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setFilter('all')}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                 filter === 'all'
-                  ? 'bg-card text-foreground shadow-sm'
+                  ? 'bg-card text-foreground shadow-sm hover:bg-card'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('all')}
-            </button>
-            <button
+            </CmxButton>
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setFilter('stain')}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                 filter === 'stain'
-                  ? 'bg-card text-foreground shadow-sm'
+                  ? 'bg-card text-foreground shadow-sm hover:bg-card'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('stains')}
-            </button>
-            <button
+            </CmxButton>
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setFilter('damage')}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                 filter === 'damage'
-                  ? 'bg-card text-foreground shadow-sm'
+                  ? 'bg-card text-foreground shadow-sm hover:bg-card'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('damage')}
-            </button>
+            </CmxButton>
           </div>
         </div>
       )}
@@ -150,8 +157,8 @@ export function StainConditionToggles({
           const selected = isSelected(condition.code);
           const categoryColor = selected
             ? condition.category === 'stain'
-              ? 'border-warning bg-warning text-warning-foreground shadow-sm'
-              : 'border-destructive bg-destructive text-destructive-foreground shadow-sm'
+              ? 'border-warning bg-warning text-warning-foreground shadow-sm hover:bg-warning/90'
+              : 'border-destructive bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90'
             : disabled
               ? 'cursor-not-allowed border-transparent bg-muted text-muted-foreground'
               : 'border-border bg-muted text-foreground hover:border-muted-foreground hover:bg-card';
@@ -159,13 +166,14 @@ export function StainConditionToggles({
           const iconMuted = selected ? 'text-on-solid' : disabled ? 'text-muted-foreground' : 'text-muted-foreground';
 
           return (
-            <button
+            <CmxButton
               key={condition.code}
               type="button"
+              variant="ghost"
               onClick={() => !disabled && onConditionToggle(condition.code)}
               disabled={disabled}
               className={cn(
-                'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-3.5 py-2 text-start text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                'h-auto inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-3.5 py-2 text-start text-sm font-medium transition-all',
                 categoryColor,
                 false
               )}
@@ -177,7 +185,7 @@ export function StainConditionToggles({
                 />
               ) : null}
               <span className="min-w-0 break-words">{getLabel(condition)}</span>
-            </button>
+            </CmxButton>
           );
         })}
       </div>
@@ -209,17 +217,19 @@ export function StainConditionToggles({
                     />
                   ) : null}
                   <span className="min-w-0 break-words">{getLabel(condition)}</span>
-                  <button
+                  <CmxButton
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => onConditionToggle(code)}
                     className={cn(
-                      'shrink-0 rounded px-1.5 text-lg leading-none text-warning-text hover:bg-warning-border/80 hover:text-warning-text/80',
+                      'h-auto shrink-0 rounded px-1.5 py-0 text-lg leading-none text-warning-text hover:bg-warning-border/80 hover:text-warning-text/80',
                       'ms-0.5'
                     )}
                     aria-label={t('removeCondition')}
                   >
                     ×
-                  </button>
+                  </CmxButton>
                 </span>
               );
             })}

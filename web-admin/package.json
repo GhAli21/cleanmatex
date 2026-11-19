@@ -35,6 +35,7 @@
     "prisma:studio": "prisma studio",
     "prisma:generate:safe": "./scripts/generate-prisma.sh",
     "check:i18n": "node scripts/check-i18n-parity.js",
+    "check:ui": "node scripts/ui/check-design-system.js",
     "check:legacy": "node scripts/check-legacy-columns.js",
     "audit:tenant-guard": "node scripts/audit-tenant-guard.mjs --out ../docs/features/Tenant_Guard_Restoration/generated/STATIC_AUDIT.md",
     "audit:tenant-guard:strict": "node scripts/audit-tenant-guard.mjs --strict",

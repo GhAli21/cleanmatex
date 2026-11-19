@@ -5,7 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { useBilingual } from '@/lib/hooks/useBilingual'
 import { TAX_CLASS_FLOWS, type TaxClassFlow } from '@/lib/constants/tax'
-import { CmxButton, CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSelect, CmxSwitch, Label } from '@ui/primitives'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays'
 import { CmxStatusBadge, cmxMessage } from '@ui/feedback'
@@ -109,10 +109,10 @@ export function TaxClassesTab({ canManage }: { canManage: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm">
+        <Label className="flex items-center gap-2 text-sm font-normal">
           <CmxSwitch checked={includeInactive} onCheckedChange={setIncludeInactive} aria-label={t('showInactive')} />
           {t('showInactive')}
-        </label>
+        </Label>
         {canManage && <CmxButton onClick={() => setEditing('new')}>{t('add')}</CmxButton>}
       </div>
       {isError && <p className="text-sm text-destructive">{t('loadError')}</p>}

@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox, Label } from '@ui/primitives';
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { EditControlNotice } from '../order-change/edit-control-notice';
@@ -216,9 +216,9 @@ export function PreSubmissionPiecesManager({
             <div className="grid grid-cols-2 gap-3 px-3 pb-3 pt-0 border-t border-border">
               {/* Color */}
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
+                <Label className="block text-xs mb-1">
                   {t('color')}
-                </label>
+                </Label>
                 {readOnly ? (
                   <div className="text-sm text-muted-foreground">
                     {piece.color || t('notSet')}
@@ -235,9 +235,9 @@ export function PreSubmissionPiecesManager({
 
               {/* Brand */}
               <div>
-                <label className="block text-xs font-medium text-foreground mb-1">
+                <Label className="block text-xs mb-1">
                   {t('brand')}
-                </label>
+                </Label>
                 {readOnly ? (
                   <div className="text-sm text-muted-foreground">
                     {piece.brand || t('notSet')}
@@ -281,9 +281,9 @@ export function PreSubmissionPiecesManager({
 
               {/* Notes */}
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-foreground mb-1">
+                <Label className="block text-xs mb-1">
                   {t('notes')}
-                </label>
+                </Label>
                 {readOnly ? (
                   <div className="text-sm text-muted-foreground min-h-[32px]">
                     {piece.notes || t('noNotes')}
@@ -301,9 +301,9 @@ export function PreSubmissionPiecesManager({
 
               {/* Rack Location */}
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-foreground mb-1">
+                <Label className="block text-xs mb-1">
                   {t('rackLocation')}
-                </label>
+                </Label>
                 {readOnly ? (
                   <div className="text-sm text-muted-foreground">
                     {piece.rackLocation || t('notSet')}

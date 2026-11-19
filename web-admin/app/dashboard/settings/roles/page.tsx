@@ -19,6 +19,26 @@ import { useTranslations } from 'next-intl'
 import { RBAC_CATALOG_TENANT_WRITABLE } from '@/lib/constants/rbac-catalog'
 import { Plus, Shield, Edit, Trash2, Key, AlertCircle, X } from 'lucide-react'
 import {
+  CmxButton,
+  CmxInput,
+  CmxTextarea,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays'
+import { CmxConfirmDialog, CmxStatusBadge } from '@ui/feedback'
+import {
   getAllRoles,
   getRoleByCode,
   createCustomRole,
@@ -222,32 +242,34 @@ export default function RolesManagementPage() {
           </p>
         </div>
         {RBAC_CATALOG_TENANT_WRITABLE && (
-        <button
+        <CmxButton
+          type="button"
+          variant="primary"
+          size="sm"
           onClick={() => {
             setFormData({ code: '', name: '', name2: '', description: '' })
             setActionError(null)
             setShowCreateModal(true)
           }}
-          className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary-hover text-sm font-medium"
         >
           <Plus className="h-4 w-4 me-2" />
           {t('roles.create', { defaultValue: 'Create Role' })}
-        </button>
+        </CmxButton>
         )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-foreground">{roles.length}</div>
+          <div className="text-2xl font-bold text-foreground tabular-nums">{roles.length}</div>
           <div className="text-sm text-muted-foreground">Total Roles</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-primary-text">{systemRoles.length}</div>
+          <div className="text-2xl font-bold text-primary-text tabular-nums">{systemRoles.length}</div>
           <div className="text-sm text-muted-foreground">System Roles</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-success-text">{customRoles.length}</div>
+          <div className="text-2xl font-bold text-success-text tabular-nums">{customRoles.length}</div>
           <div className="text-sm text-muted-foreground">Custom Roles</div>
         </div>
       </div>
@@ -265,48 +287,48 @@ export default function RolesManagementPage() {
           <div className="flex-1">
             <p className="text-sm text-danger-text">{error}</p>
           </div>
-          <button onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80">
+          <CmxButton type="button" variant="ghost" size="xs" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80" aria-label="Dismiss error">
             <X className="h-4 w-4" />
-          </button>
+          </CmxButton>
         </div>
       )}
 
       {/* Roles Table */}
       <div className="bg-card shadow overflow-hidden rounded-lg">
-        <table className="min-w-full divide-y divide-border">
-          <thead className="bg-muted">
-            <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <Table className="min-w-full divide-y divide-border">
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Role
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Code
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Type
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Permissions
-              </th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Users
-              </th>
-              <th className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </TableHead>
+              <TableHead className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-card divide-y divide-border">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-card divide-y divide-border">
             {roles.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                   No roles found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               roles.map((role) => (
-                <tr key={role.code} className="hover:bg-muted">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <TableRow key={role.code} className="hover:bg-muted">
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Shield className="h-5 w-5 text-muted-foreground me-3 shrink-0" />
                       <div>
@@ -321,51 +343,59 @@ export default function RolesManagementPage() {
                         )}
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-mono font-semibold rounded-full bg-muted text-foreground">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
+                    <bdi dir="ltr" className="px-2 inline-flex text-xs leading-5 font-mono font-semibold rounded-full bg-muted text-foreground">
                       {role.code}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    </bdi>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap">
                     {role.is_system ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-info-bg text-info-text">
-                        System
-                      </span>
+                      <CmxStatusBadge size="sm" tone="info">System</CmxStatusBadge>
                     ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success-bg text-success-text">
-                        Custom
-                      </span>
+                      <CmxStatusBadge size="sm" tone="success">Custom</CmxStatusBadge>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                     {role.permission_count ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                     {role.user_count ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+                  </TableCell>
+                  <TableCell className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
                     {RBAC_CATALOG_TENANT_WRITABLE && (
                     <div className="flex items-center justify-end gap-2">
-                      <button
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleManagePermissions(role)}
-                        className="text-primary-text hover:text-primary-text/80 p-1 rounded"
+                        className="text-primary-text hover:text-primary-text/80 h-8 w-8"
+                        aria-label="Manage Permissions"
                         title="Manage Permissions"
                       >
                         <Key className="h-4 w-4" />
-                      </button>
-                      <button
+                      </CmxButton>
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleEdit(role)}
-                        className="text-primary-text hover:text-primary-text/80 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="text-primary-text hover:text-primary-text/80 h-8 w-8"
                         disabled={role.is_system}
+                        aria-label={role.is_system ? 'System roles cannot be edited' : 'Edit Role'}
                         title={role.is_system ? 'System roles cannot be edited' : 'Edit Role'}
                       >
                         <Edit className="h-4 w-4" />
-                      </button>
-                      <button
+                      </CmxButton>
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setDeleteConfirmRole(role)}
-                        className="text-danger-text hover:text-danger-text/80 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="text-danger-text hover:text-danger-text/80 h-8 w-8"
                         disabled={role.is_system || (role.user_count !== undefined && role.user_count > 0)}
+                        aria-label="Delete Role"
                         title={
                           role.is_system
                             ? 'System roles cannot be deleted'
@@ -375,208 +405,166 @@ export default function RolesManagementPage() {
                         }
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </CmxButton>
                     </div>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-md w-full shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-foreground">
-                {t('roles.createTitle', { defaultValue: 'Create New Role' })}
-              </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </button>
+      <CmxDialog open={showCreateModal} onOpenChange={(next) => { if (!next && !saving) setShowCreateModal(false) }}>
+        <CmxDialogContent className="max-w-md w-full p-6">
+          <CmxDialogHeader className="mb-4">
+            <CmxDialogTitle>
+              {t('roles.createTitle', { defaultValue: 'Create New Role' })}
+            </CmxDialogTitle>
+          </CmxDialogHeader>
+          {actionError && (
+            <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
+              {actionError}
             </div>
-            {actionError && (
-              <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
-                {actionError}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Code *</label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
-                  placeholder="e.g. warehouse_manager"
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (English) *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Warehouse Manager"
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (Arabic)</label>
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={formData.name2}
-                  onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
+          )}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="role-create-code" className="mb-1 block">Code *</Label>
+              <CmxInput
+                id="role-create-code"
+                type="text"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                placeholder="e.g. warehouse_manager"
+                dir="ltr"
+              />
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                disabled={saving}
-                className="px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={saving}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card" />}
-                Create
-              </button>
+            <div>
+              <Label htmlFor="role-create-name" className="mb-1 block">Name (English) *</Label>
+              <CmxInput
+                id="role-create-name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Warehouse Manager"
+              />
+            </div>
+            <div>
+              <Label htmlFor="role-create-name2" className="mb-1 block">Name (Arabic)</Label>
+              <CmxInput
+                id="role-create-name2"
+                type="text"
+                dir="rtl"
+                value={formData.name2}
+                onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role-create-desc" className="mb-1 block">Description</Label>
+              <CmxTextarea
+                id="role-create-desc"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <CmxDialogFooter className="mt-6">
+            <CmxButton type="button" variant="outline" onClick={() => setShowCreateModal(false)} disabled={saving}>
+              Cancel
+            </CmxButton>
+            <CmxButton type="button" variant="primary" onClick={handleCreate} loading={saving} disabled={saving}>
+              Create
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Edit Modal */}
-      {showEditModal && selectedRole && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-md w-full shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-foreground">
-                {t('roles.editTitle', { defaultValue: 'Edit Role' })}
-              </h3>
-              <button onClick={() => setShowEditModal(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </button>
+      <CmxDialog
+        open={Boolean(showEditModal && selectedRole)}
+        onOpenChange={(next) => { if (!next && !saving) setShowEditModal(false) }}
+      >
+        <CmxDialogContent className="max-w-md w-full p-6">
+          <CmxDialogHeader className="mb-4">
+            <CmxDialogTitle>
+              {t('roles.editTitle', { defaultValue: 'Edit Role' })}
+            </CmxDialogTitle>
+          </CmxDialogHeader>
+          {actionError && (
+            <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
+              {actionError}
             </div>
-            {actionError && (
-              <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
-                {actionError}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Code</label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  disabled
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm bg-muted text-muted-foreground cursor-not-allowed"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Role code cannot be changed</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (English) *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Name (Arabic)</label>
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={formData.name2}
-                  onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="block w-full rounded-md border-border border px-3 py-2 text-sm shadow-sm focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-              </div>
+          )}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="role-edit-code" className="mb-1 block">Code</Label>
+              <CmxInput
+                id="role-edit-code"
+                type="text"
+                value={formData.code}
+                disabled
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Role code cannot be changed</p>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowEditModal(false)}
-                disabled={saving}
-                className="px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdate}
-                disabled={saving}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary-hover disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card" />}
-                Update
-              </button>
+            <div>
+              <Label htmlFor="role-edit-name" className="mb-1 block">Name (English) *</Label>
+              <CmxInput
+                id="role-edit-name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role-edit-name2" className="mb-1 block">Name (Arabic)</Label>
+              <CmxInput
+                id="role-edit-name2"
+                type="text"
+                dir="rtl"
+                value={formData.name2}
+                onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="role-edit-desc" className="mb-1 block">Description</Label>
+              <CmxTextarea
+                id="role-edit-desc"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <CmxDialogFooter className="mt-6">
+            <CmxButton type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>
+              Cancel
+            </CmxButton>
+            <CmxButton type="button" variant="primary" onClick={handleUpdate} loading={saving} disabled={saving}>
+              Update
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmRole && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg p-6 max-w-sm w-full shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-danger-bg rounded-full">
-                <AlertCircle className="h-6 w-6 text-danger-text" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground">Delete Role</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Are you sure you want to delete the role{' '}
-              <strong>&quot;{deleteConfirmRole.name}&quot;</strong>? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setDeleteConfirmRole(null)}
-                disabled={saving}
-                className="px-4 py-2 border border-border rounded-md text-sm text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={saving}
-                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm hover:bg-destructive/90 disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-card" />}
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CmxConfirmDialog
+        open={Boolean(deleteConfirmRole)}
+        title="Delete Role"
+        description={
+          deleteConfirmRole
+            ? `Are you sure you want to delete the role "${deleteConfirmRole.name}"? This action cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmDisabled={saving}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => { if (!saving) setDeleteConfirmRole(null) }}
+      />
 
       {/* Permission Assignment Modal */}
       {showPermissionsModal && selectedRoleForPermissions && (

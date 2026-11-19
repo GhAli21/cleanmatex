@@ -26,6 +26,7 @@ import {
   CmxDialogClose,
 } from '@ui/overlays'
 import { cmxMessage } from '@ui/feedback'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table'
 
 interface TeamMember {
   id: string
@@ -442,30 +443,30 @@ export default function UsersSettingsPage() {
           <div className="p-8 text-center text-sm text-muted-foreground">{tCommon('noData')}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Table className="min-w-full divide-y divide-border">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('user')}
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('role')}
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('status')}
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('joined')}
-                  </th>
-                  <th className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  </TableHead>
+                  <TableHead className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-card divide-y divide-border">
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="bg-card divide-y divide-border">
                 {team.map((member) => (
-                  <tr key={member.id} className="hover:bg-muted">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <TableRow key={member.id} className="hover:bg-muted">
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-info-bg flex items-center justify-center">
                           <span className="text-primary-text font-medium">
@@ -477,65 +478,70 @@ export default function UsersSettingsPage() {
                           <div className="text-sm text-muted-foreground">{member.email}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadge(member.role)}`}
                       >
                         {member.role}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(member.status)}`}
                       >
                         {member.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {new Date(member.joinedAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
                       <div className="relative dropdown-menu inline-block text-start">
-                        <button
+                        <CmxButton
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setOpenMenuId(openMenuId === member.id ? null : member.id)}
                           disabled={actionLoading === member.id}
-                          className="text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
                           aria-expanded={openMenuId === member.id}
                           aria-haspopup="true"
+                          aria-label={t('actions')}
                         >
                           {actionLoading === member.id ? (
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-muted-foreground" />
                           ) : (
                             <MoreVertical className="h-5 w-5" />
                           )}
-                        </button>
+                        </CmxButton>
 
                         {openMenuId === member.id && (
                           <div className="absolute end-0 mt-2 w-48 bg-card rounded-md shadow-lg z-20 border border-border">
                             <div className="py-1">
-                              <button
+                              <CmxButton
                                 type="button"
+                                variant="ghost"
                                 onClick={() => handleEdit(member)}
-                                className="w-full text-start px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                                className="w-full justify-start rounded-none px-4 py-2 text-start text-sm font-normal text-foreground hover:bg-muted flex items-center gap-2"
                               >
                                 <Edit className="h-4 w-4" />
                                 {t('editUser')}
-                              </button>
+                              </CmxButton>
 
-                              <button
+                              <CmxButton
                                 type="button"
+                                variant="ghost"
                                 onClick={() => handleResetPassword()}
-                                className="w-full text-start px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2"
+                                className="w-full justify-start rounded-none px-4 py-2 text-start text-sm font-normal text-foreground hover:bg-muted flex items-center gap-2"
                               >
                                 <Mail className="h-4 w-4" />
                                 {t('resetPassword')}
-                              </button>
+                              </CmxButton>
 
                               {member.status === 'active' ? (
-                                <button
+                                <CmxButton
                                   type="button"
+                                  variant="ghost"
                                   onClick={() => {
                                     if (isSelfMember(member)) {
                                       cmxMessage.warning(t('cannotDeactivateSelf'))
@@ -546,33 +552,34 @@ export default function UsersSettingsPage() {
                                     setConfirm({ kind: 'deactivate', member })
                                   }}
                                   disabled={isSelfMember(member)}
-                                  className="w-full text-start px-4 py-2 text-sm text-danger-text hover:bg-danger-bg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="w-full justify-start rounded-none px-4 py-2 text-start text-sm font-normal text-danger-text hover:bg-danger-bg flex items-center gap-2"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   {t('deactivateUser')}
-                                </button>
+                                </CmxButton>
                               ) : (
-                                <button
+                                <CmxButton
                                   type="button"
+                                  variant="ghost"
                                   onClick={() => {
                                     setOpenMenuId(null)
                                     setConfirm({ kind: 'activate', member })
                                   }}
-                                  className="w-full text-start px-4 py-2 text-sm text-success-text hover:bg-success-bg flex items-center gap-2"
+                                  className="w-full justify-start rounded-none px-4 py-2 text-start text-sm font-normal text-success-text hover:bg-success-bg flex items-center gap-2"
                                 >
                                   <CheckCircle2 className="h-4 w-4" />
                                   {t('activateUser')}
-                                </button>
+                                </CmxButton>
                               )}
                             </div>
                           </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

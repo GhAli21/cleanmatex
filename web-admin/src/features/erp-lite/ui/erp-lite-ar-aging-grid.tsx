@@ -41,8 +41,12 @@ export function ErpLiteArAgingGrid({ rows, displayConfig }: ErpLiteArAgingGridPr
       header: t('columns.invoice'),
       cell: ({ row }) => (
         <div>
-          <div className="font-medium">{row.original.invoice_no}</div>
-          <div className="text-xs text-muted-foreground">{row.original.invoice_date ?? '-'}</div>
+          <div className="font-medium">
+            <bdi dir="ltr">{row.original.invoice_no}</bdi>
+          </div>
+          <div className="text-xs text-muted-foreground tabular-nums">
+            <bdi dir="ltr">{row.original.invoice_date ?? '-'}</bdi>
+          </div>
         </div>
       ),
     },

@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Chart of Accounts' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLiteCoaService } from '@/lib/services/erp-lite-coa.service';
@@ -159,9 +159,9 @@ export default async function ErpLiteCoaPage({
                   ]}
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-coa-account-description" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-coa-account-description" className="block text-sm font-medium text-foreground">
                     {t('forms.account.fields.description')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-coa-account-description"
                     name="description"

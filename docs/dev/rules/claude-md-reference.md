@@ -149,6 +149,7 @@ Skill: `.claude/skills/rebuild-platform-info-inventories/SKILL.md` · Cursor rul
 - `/explain-code` — Code explanations with diagrams
 - `/codebase-visualizer` — Interactive codebase tree
 - `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
+- `/cmx-ui-design-review` — Review (or, on request, fix) any web-admin component, screen or page against `docs/dev/rules/cmx-design-system.md`: target selection, `npm run check:ui` + ESLint + guard tests, manual checklist (tokens, dark mode, RTL, states, a11y, i18n), severity, report format. Run before UI work is called done.
 - `/update-rbac-role` — Create or refresh RBAC roles with intelligent permission mapping + migration generation
 - `/create-feature-flag` — Register a new feature flag via migration (`hq_ff_feature_flags_mst` + plan mappings) and sync the web-admin `FLAG_CATALOG`
 - `/manage-currency-setup-hq` — Create a currency and/or complete its seed data across `sys_currency_cd`, `sys_currency_rounding_rules_cf`, `sys_currency_denominations_cd` via migration; researches missing rounding/denomination facts (WebSearch, cited) rather than guessing
@@ -203,7 +204,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`, `order-fin.mdc` (path-scoped)
+   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`, `order-fin.mdc` (path-scoped), `cmx-design-system.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.
@@ -251,6 +252,7 @@ docs/         # All documentation
 - Maintain responsive behavior.
 - Preserve current i18n patterns.
 - Use `cmxMessage` / `useMessage()` for applicable user-facing feedback (`docs/dev/rules/cmx-message.md`).
+- Follow the design system rules (`docs/dev/rules/cmx-design-system.md`); `npm run check:ui` and `/cmx-ui-design-review` before done.
 - Preserve accessibility where present and improve it when directly relevant.
 - Keep UI changes visually consistent with existing screens.
 

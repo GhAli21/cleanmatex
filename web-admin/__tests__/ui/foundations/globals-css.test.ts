@@ -34,7 +34,7 @@ describe('app/globals.css (PR-05)', () => {
   })
 
   test('charts read the tokens, so tooltips, grid and axis text work in dark mode (PR-07 task 6)', () => {
-    for (const sel of ['.recharts-default-tooltip', '.recharts-cartesian-grid line', '.recharts-cartesian-axis-tick-value']) {
+    for (const sel of ['.recharts-default-tooltip', '.recharts-cartesian-grid line', '.recharts-cartesian-axis-tick-value', '.recharts-legend-item-text']) {
       const at = css.indexOf(sel)
       expect(at).toBeGreaterThan(-1)
       expect(css.slice(at, css.indexOf('}', at))).toContain('var(--cmx-')

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { PieceBaseCard } from './PieceBaseCard';
-import { CmxCheckbox } from '@ui/primitives';
+import { CmxCheckbox, Label } from '@ui/primitives';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -84,9 +84,9 @@ export function ProcessingPieceCard({
 
         {/* Processing Step Dropdown */}
         <div className="w-full sm:w-1/2 min-w-0 mt-2">
-          <label className="block text-xs font-medium text-foreground mb-1">
+          <Label className="block text-xs font-medium text-foreground mb-1">
             {t('step')}
-          </label>
+          </Label>
           {readOnly ? (
             <div className="text-sm text-muted-foreground font-medium">
               {piece.last_step

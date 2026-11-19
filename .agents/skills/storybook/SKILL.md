@@ -26,6 +26,7 @@ Use this skill only when the task explicitly matches **storybook**. Keep the act
 - Before editing, list exact files to touch.
 - Modify only files required by the task.
 - Preserve CleanMateX Tenant App rules from `CLAUDE.md`.
+- Stories follow `docs/dev/rules/cmx-design-system.md` (tokens only, no `dark:`, logical classes, an RTL story). After a new or changed Cmx component, run `/cmx-ui-design-review` on it.
 - Keep output concise.
 
 ## Workflow

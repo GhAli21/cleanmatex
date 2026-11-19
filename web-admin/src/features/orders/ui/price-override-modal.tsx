@@ -11,9 +11,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode, roundMoneyAmount } from '@/lib/money/format-money'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
-import { CmxButton, CmxMoneyField } from '@ui/primitives'
-import { CmxInput } from '@ui/primitives'
-import { CmxTextarea } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxMoneyField, CmxTextarea, Label } from '@ui/primitives'
 import { CmxKeypad, KEYPAD_NUMERIC_3COL } from '@ui/utilities'
 import { cmxMessage } from '@ui/feedback'
 import { parseMoneyDraft, applyKeypadInput } from '@/lib/money/money-draft'
@@ -175,9 +173,9 @@ export function PriceOverrideModal({
 
                     {/* Current Calculated Price (Read-only) */}
                     <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
+                        <Label className="block mb-1">
                             {t('calculatedPriceReadOnly')}
-                        </label>
+                        </Label>
                         <CmxInput
                             value={String(roundMoneyAmount(item.calculatedPrice, decimalPlaces))}
                             disabled
@@ -187,9 +185,9 @@ export function PriceOverrideModal({
 
                     {/* Override Price */}
                     <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
+                        <Label className="block mb-1">
                             {t('overridePriceLabel', { currency: currencyCode })}
-                        </label>
+                        </Label>
                         <CmxMoneyField
                             value={parseMoneyDraft(overridePrice) || null}
                             draftValue={overridePrice}
@@ -226,9 +224,9 @@ export function PriceOverrideModal({
 
                     {/* Reason */}
                     <div>
-                        <label className="block text-sm font-medium text-foreground mb-1">
+                        <Label className="block mb-1">
                             {t('reasonLabel')}
-                        </label>
+                        </Label>
                         <CmxTextarea
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}

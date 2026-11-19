@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Accounts Payable' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
@@ -180,9 +180,9 @@ export default async function ErpLiteApPage({
                 />
                 <CmxInput name="supplier_inv_no" label={t('forms.invoice.fields.supplierInvoiceNo')} />
                 <div className="space-y-1">
-                  <label htmlFor="erp-ap-invoice-description" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-ap-invoice-description" className="block text-sm font-medium text-foreground">
                     {t('forms.invoice.fields.description')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-ap-invoice-description"
                     name="description"

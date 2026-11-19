@@ -32,7 +32,8 @@ user-invocable: true
 4. **`parameters: { layout: 'centered' }`** for atomic components; `'fullscreen'` for layout/page components.
 5. **Never import from `@/components/ui` or `@ui/compat`** — use `@ui/primitives`, `@ui/feedback`, etc.
 6. **No real API calls, auth, or DB access in stories** — use static mock data and decorators.
-7. **Story file lives alongside the component** — `CmxButton.stories.tsx` next to `cmx-button.tsx`.
+7. **Design system rules apply to stories too:** `docs/dev/rules/cmx-design-system.md` (tokens only, no `dark:`, logical classes). Review a new or changed Cmx component with the `cmx-ui-design-review` skill.
+8. **Story file lives alongside the component** — `CmxButton.stories.tsx` next to `cmx-button.tsx`.
 
 ---
 

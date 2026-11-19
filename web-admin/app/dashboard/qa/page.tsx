@@ -24,7 +24,7 @@ interface QAOrder {
 }
 
 /**
- *
+ * QA List Page.
  */
 export default function QAPage() {
   const t = useTranslations('workflow');
@@ -90,9 +90,9 @@ export default function QAPage() {
                     href={`/dashboard/qa/${order.id}?returnUrl=${encodeURIComponent('/dashboard/qa')}`}
                     className="text-xl font-bold text-primary-text hover:underline"
                   >
-                    {order.order_no}
+                    <bdi dir="ltr">{order.order_no}</bdi>
                   </Link>
-                  <span className="px-2 py-1 bg-warning-bg text-warning-text rounded text-xs font-medium">
+                  <span className="px-2 py-1 bg-warning-bg text-warning-text rounded text-xs font-medium tabular-nums">
                     {order.total_items} {t('qa.items')}
                   </span>
                 </div>
@@ -104,7 +104,7 @@ export default function QAPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('labels.phone')}:</span>
-                    <span>{order.customer.phone}</span>
+                    <bdi dir="ltr">{order.customer.phone}</bdi>
                   </div>
                 </div>
 
@@ -124,29 +124,29 @@ export default function QAPage() {
 
       {pagination.totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
-          <button
+          <CmxButton
             type="button"
-            className="px-3 py-2 rounded border border-border bg-card disabled:opacity-50"
+            variant="outline"
+            size="sm"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             {t('labels.previous')}
-          </button>
-          <div className="text-sm text-muted-foreground">
+          </CmxButton>
+          <div className="text-sm text-muted-foreground tabular-nums">
             {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
           </div>
-          <button
+          <CmxButton
             type="button"
-            className="px-3 py-2 rounded border border-border bg-card disabled:opacity-50"
+            variant="outline"
+            size="sm"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
           >
             {t('labels.next')}
-          </button>
+          </CmxButton>
         </div>
       )}
     </div>
   );
 }
-
-

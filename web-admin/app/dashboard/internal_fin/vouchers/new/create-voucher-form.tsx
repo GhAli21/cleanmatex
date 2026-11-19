@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { createBizVoucherAction } from '@/app/actions/finance/voucher-actions';
 import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE } from '@/lib/constants/voucher';
 import type { VoucherDirection, VoucherType } from '@/lib/types/voucher';
@@ -83,104 +84,93 @@ export default function CreateVoucherForm() {
 
           {/* Voucher Type */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('voucherType')} <span className="text-danger-text">*</span>
-            </label>
+            </Label>
             <div className="flex flex-wrap gap-2">
               {VOUCHER_TYPE_OPTIONS.map(({ value, labelKey }) => (
-                <button
+                <CmxButton
                   key={value}
                   type="button"
+                  size="sm"
+                  variant={voucherType === value ? 'primary' : 'outline'}
                   onClick={() => handleTypeChange(value)}
-                  className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    voucherType === value
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-card text-foreground hover:bg-muted'
-                  }`}
                 >
                   {t(`voucherTypeLabels.${labelKey}`)}
-                </button>
+                </CmxButton>
               ))}
             </div>
           </div>
 
           {/* Direction */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('direction')}
-            </label>
+            </Label>
             <div className="flex gap-2">
               {([VOUCHER_DIRECTION.IN, VOUCHER_DIRECTION.OUT, VOUCHER_DIRECTION.NEUTRAL] as const).map((d) => (
-                <button
+                <CmxButton
                   key={d}
                   type="button"
+                  size="sm"
+                  variant={direction === d ? 'primary' : 'outline'}
                   onClick={() => setDirection(d)}
-                  className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    direction === d
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-card text-foreground hover:bg-muted'
-                  }`}
                 >
                   {t(`directionLabels.${d}`)}
-                </button>
+                </CmxButton>
               ))}
             </div>
           </div>
 
           {/* Party Type */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('partyType')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-            </label>
-            <select
+            </Label>
+            <CmxSelect
               value={partyType}
               onChange={(e) => setPartyType(e.target.value)}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">—</option>
-              {([PARTY_TYPE.CUSTOMER, PARTY_TYPE.SUPPLIER, PARTY_TYPE.EMPLOYEE, PARTY_TYPE.OTHER] as const).map((pt) => (
-                <option key={pt} value={pt}>{pt}</option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: '—' },
+                ...([PARTY_TYPE.CUSTOMER, PARTY_TYPE.SUPPLIER, PARTY_TYPE.EMPLOYEE, PARTY_TYPE.OTHER] as const).map((pt) => ({ value: pt, label: pt })),
+              ]}
+            />
           </div>
 
           {/* Party Name */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('party')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-            </label>
-            <input
+            </Label>
+            <CmxInput
               type="text"
               value={partyName}
               onChange={(e) => setPartyName(e.target.value)}
               maxLength={250}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('description')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-            </label>
-            <input
+            </Label>
+            <CmxInput
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('notes')} <span className="text-xs text-muted-foreground">({tCommon('optional')})</span>
-            </label>
-            <textarea
+            </Label>
+            <CmxTextarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
@@ -192,19 +182,14 @@ export default function CreateVoucherForm() {
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3">
-        <Link
-          href="/dashboard/internal_fin/vouchers"
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          {tCommon('cancel')}
-        </Link>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
-        >
+        <CmxButton type="button" variant="outline" asChild>
+          <Link href="/dashboard/internal_fin/vouchers">
+            {tCommon('cancel')}
+          </Link>
+        </CmxButton>
+        <CmxButton type="submit" variant="primary" loading={isPending} disabled={isPending}>
           {isPending ? tCommon('loading') : tCommon('create')}
-        </button>
+        </CmxButton>
       </div>
     </form>
   );

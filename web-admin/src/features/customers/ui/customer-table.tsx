@@ -7,7 +7,18 @@
 
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
+import {
+  CmxButton,
+  CmxCheckbox,
+  CmxSpinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives'
+import { CmxStatusBadge } from '@ui/feedback'
 import { useLocale } from '@/lib/hooks/useRTL'
 import type { CustomerListItem } from '@/lib/types/customer'
 
@@ -52,7 +63,6 @@ export default function CustomerTable({
   onSelectCustomer,
   onSelectAll,
   onPageChange,
-  onRefresh,
 }: CustomerTableProps) {
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
@@ -69,20 +79,19 @@ export default function CustomerTable({
     })
   }
 
-  const getTypeBadge = (type: string) => {
-    const badges = {
-      guest: 'bg-muted text-foreground',
-      stub: 'bg-warning-bg text-warning-text',
-      full: 'bg-success-bg text-success-text',
-    }
-    return badges[type as keyof typeof badges] || badges.guest
+  const getTypeTone = (type: string): 'neutral' | 'warning' | 'success' => {
+    if (type === 'stub') return 'warning'
+    if (type === 'full') return 'success'
+    return 'neutral'
   }
 
   if (loading) {
     return (
       <div className="bg-card rounded-lg shadow">
         <div className="p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="inline-flex justify-center">
+            <CmxSpinner size="lg" />
+          </div>
           <p className="mt-4 text-sm text-muted-foreground">{t('loadingCustomers')}</p>
         </div>
       </div>
@@ -119,72 +128,72 @@ export default function CustomerTable({
     <div className="bg-card rounded-lg shadow overflow-hidden">
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-border">
-          <thead className="bg-muted">
-            <tr>
-              <th scope="col" className="w-12 px-6 py-3">
-                <input
-                  type="checkbox"
+        <Table className="min-w-full divide-y divide-border">
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead scope="col" className="w-12 px-6 py-3">
+                <CmxCheckbox
+                  size="sm"
+                  aria-label={t('selectAll') || 'Select all customers'}
                   checked={allSelected}
                   onChange={(e) => onSelectAll(e.target.checked)}
-                  className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
                 />
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('customerName')}
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('contact')}
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('type')}
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('orders')}
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('points')}
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider text-start"
               >
                 {t('lastOrder')}
-              </th>
-              <th scope="col" className="relative px-6 py-3">
+              </TableHead>
+              <TableHead scope="col" className="relative px-6 py-3">
                 <span className="sr-only">{tCommon('actions')}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-card divide-y divide-border">
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-card divide-y divide-border">
             {customers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-muted">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <input
-                    type="checkbox"
+              <TableRow key={customer.id} className="hover:bg-muted">
+                <TableCell className="px-6 py-4 whitespace-nowrap">
+                  <CmxCheckbox
+                    size="sm"
+                    aria-label={customer.displayName || `${customer.firstName} ${customer.lastName || ''}`}
                     checked={selectedCustomers.includes(customer.id)}
                     onChange={(e) =>
                       onSelectCustomer(customer.id, e.target.checked)
                     }
-                    className="h-4 w-4 text-primary-text focus:ring-ring border-border rounded"
                   />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10">
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
@@ -199,73 +208,77 @@ export default function CustomerTable({
                         {customer.displayName ||
                           `${customer.firstName} ${customer.lastName || ''}`}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {customer.customerNumber || t('noNumber')}
+                      <div className="text-sm text-muted-foreground tabular-nums">
+                        {customer.customerNumber ? (
+                          <bdi dir="ltr">{customer.customerNumber}</bdi>
+                        ) : (
+                          t('noNumber')
+                        )}
                       </div>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-foreground">
-                    {customer.phone || t('noPhone')}
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-foreground tabular-nums">
+                    {customer.phone ? <bdi dir="ltr">{customer.phone}</bdi> : t('noPhone')}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {customer.email || t('noEmail')}
+                    {customer.email ? <bdi dir="ltr">{customer.email}</bdi> : t('noEmail')}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeBadge(
-                      customer.type
-                    )}`}
-                  >
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap">
+                  <CmxStatusBadge size="sm" tone={getTypeTone(customer.type)}>
                     {t(`types.${customer.type}`) || (customer.type.charAt(0).toUpperCase() + customer.type.slice(1))}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-start">
+                  </CmxStatusBadge>
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-start tabular-nums">
                   {customer.totalOrders || 0}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-start">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground text-start tabular-nums">
                   {customer.loyaltyPoints || 0}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                   {formatDate(customer.lastOrderAt)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-end">
-                  <Link
-                    href={`/dashboard/customers/${customer.id}`}
-                    className="text-primary-text hover:text-primary-text/80"
-                  >
-                    {t('view')}
-                  </Link>
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-end">
+                  <CmxButton variant="ghost" size="xs" className="px-0 h-auto" asChild>
+                    <Link href={`/dashboard/customers/${customer.id}`}>
+                      {t('view')}
+                    </Link>
+                  </CmxButton>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
       <div className="bg-card px-4 py-3 flex items-center border-t border-border sm:px-6 justify-between">
         <div className="flex-1 flex sm:hidden justify-between">
-          <button
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={() => onPageChange(pagination.page - 1)}
             disabled={pagination.page === 1}
-            className="relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50"
           >
             {t('previous')}
-          </button>
-          <button
+          </CmxButton>
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.totalPages}
-            className="relative inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted disabled:opacity-50 ms-3"
+            className="ms-3"
           >
             {t('next')}
-          </button>
+          </CmxButton>
         </div>
         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-foreground tabular-nums">
               {t('showing')}{' '}
               <span className="font-medium">
                 {(pagination.page - 1) * pagination.limit + 1}
@@ -282,17 +295,19 @@ export default function CustomerTable({
           </div>
           <div>
             <nav
-              className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+              className="relative z-0 inline-flex rounded-md shadow-sm gap-1"
               aria-label="Pagination"
             >
-              <button
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => onPageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
-                className="relative inline-flex items-center px-2 py-2 rounded-s-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+                aria-label={t('previous')}
               >
-                <span className="sr-only">Previous</span>
                 <svg
-                  className="h-5 w-5"
+                  className="h-5 w-5 rtl:rotate-180"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -302,7 +317,7 @@ export default function CustomerTable({
                     clipRule="evenodd"
                   />
                 </svg>
-              </button>
+              </CmxButton>
 
               {/* Page numbers */}
               {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
@@ -314,33 +329,34 @@ export default function CustomerTable({
                       page <= pagination.page + 2)
                 )
                 .map((page, index, array) => (
-                  <span key={page}>
+                  <span key={page} className="inline-flex items-center">
                     {index > 0 && array[index - 1] !== page - 1 && (
-                      <span className="relative inline-flex items-center px-4 py-2 border border-border bg-card text-sm font-medium text-foreground">
+                      <span className="px-2 text-sm font-medium text-foreground">
                         ...
                       </span>
                     )}
-                    <button
+                    <CmxButton
+                      type="button"
+                      variant={page === pagination.page ? 'primary' : 'outline'}
+                      size="sm"
                       onClick={() => onPageChange(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === pagination.page
-                          ? 'z-10 bg-info-bg border-primary text-info-text'
-                          : 'bg-card border-border text-muted-foreground hover:bg-muted'
-                      }`}
+                      className="tabular-nums"
                     >
                       {page}
-                    </button>
+                    </CmxButton>
                   </span>
                 ))}
 
-              <button
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => onPageChange(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
-                className="relative inline-flex items-center px-2 py-2 rounded-e-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+                aria-label={t('next')}
               >
-                <span className="sr-only">Next</span>
                 <svg
-                  className="h-5 w-5"
+                  className="h-5 w-5 rtl:rotate-180"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -350,7 +366,7 @@ export default function CustomerTable({
                     clipRule="evenodd"
                   />
                 </svg>
-              </button>
+              </CmxButton>
             </nav>
           </div>
         </div>

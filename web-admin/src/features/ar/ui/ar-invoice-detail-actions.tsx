@@ -14,7 +14,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { CmxSummaryMessage, useMessage } from '@ui/feedback';
-import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import {
   AR_SENSITIVE_APPROVAL_ACTIONS,
@@ -262,7 +262,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxInput label={t('fields.paymentTerms')} value={editPaymentTerms} onChange={(event) => setEditPaymentTerms(event.target.value)} />
             <CmxInput label={t('fields.paymentMethod')} value={editPaymentMethod} onChange={(event) => setEditPaymentMethod(event.target.value)} />
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.notes')}</label>
+              <Label className="mb-1 block">{t('fields.notes')}</Label>
               <CmxTextarea value={editNotes} onChange={(event) => setEditNotes(event.target.value)} />
             </div>
           </div>
@@ -301,7 +301,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
           <div className="grid gap-4">
             <CmxInput label={t('fields.issueDate')} type="date" value={issueDate} onChange={(event) => setIssueDate(event.target.value)} />
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.notes')}</label>
+              <Label className="mb-1 block">{t('fields.notes')}</Label>
               <CmxTextarea value={issueNotes} onChange={(event) => setIssueNotes(event.target.value)} />
             </div>
           </div>
@@ -342,7 +342,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
               }))}
             />
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.approvalNotes')}</label>
+              <Label className="mb-1 block">{t('fields.approvalNotes')}</Label>
               <CmxTextarea value={approvalNotes} onChange={(event) => setApprovalNotes(event.target.value)} />
             </div>
           </div>
@@ -377,7 +377,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxInput label={t('fields.allocationDate')} type="date" value={allocationDate} onChange={(event) => setAllocationDate(event.target.value)} />
             <CmxInput label={t('fields.voucherId')} value={voucherId} onChange={(event) => setVoucherId(event.target.value)} />
             <div className="md:col-span-2">
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.notes')}</label>
+              <Label className="mb-1 block">{t('fields.notes')}</Label>
               <CmxTextarea value={allocationNotes} onChange={(event) => setAllocationNotes(event.target.value)} />
             </div>
           </div>
@@ -422,7 +422,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             />
             <CmxInput label={t('fields.reverseDate')} type="date" value={reverseDate} onChange={(event) => setReverseDate(event.target.value)} />
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.reason')}</label>
+              <Label className="mb-1 block">{t('fields.reason')}</Label>
               <CmxTextarea value={reverseReason} onChange={(event) => setReverseReason(event.target.value)} />
             </div>
           </div>
@@ -461,7 +461,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
           <div className="grid gap-4">
             <CmxInput label={t('fields.adjustmentAmount')} type="number" min="0.0001" step="0.0001" value={creditAmount} onChange={(event) => setCreditAmount(event.target.value)} />
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.reason')}</label>
+              <Label className="mb-1 block">{t('fields.reason')}</Label>
               <CmxTextarea value={creditReason} onChange={(event) => setCreditReason(event.target.value)} />
             </div>
             <CmxCheckbox label={t('fields.requiresApproval')} checked={creditNeedsApproval} onChange={(event) => setCreditNeedsApproval(event.target.checked)} />
@@ -497,7 +497,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
           <div className="grid gap-4">
             <CmxInput label={t('fields.adjustmentAmount')} type="number" min="0.0001" step="0.0001" value={debitAmount} onChange={(event) => setDebitAmount(event.target.value)} />
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.reason')}</label>
+              <Label className="mb-1 block">{t('fields.reason')}</Label>
               <CmxTextarea value={debitReason} onChange={(event) => setDebitReason(event.target.value)} />
             </div>
             <CmxCheckbox label={t('fields.requiresApproval')} checked={debitNeedsApproval} onChange={(event) => setDebitNeedsApproval(event.target.checked)} />
@@ -533,7 +533,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
           <div className="grid gap-4">
             <CmxInput label={t('fields.adjustmentAmount')} type="number" min="0.0001" step="0.0001" value={writeOffAmount} onChange={(event) => setWriteOffAmount(event.target.value)} />
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.reason')}</label>
+              <Label className="mb-1 block">{t('fields.reason')}</Label>
               <CmxTextarea value={writeOffReason} onChange={(event) => setWriteOffReason(event.target.value)} />
             </div>
             <CmxCheckbox label={t('fields.requiresApproval')} checked={writeOffNeedsApproval} onChange={(event) => setWriteOffNeedsApproval(event.target.checked)} />
@@ -568,7 +568,7 @@ export function ArInvoiceDetailActions({ detail }: ArInvoiceDetailActionsProps) 
             <CmxDialogDescription>{t('void.description')}</CmxDialogDescription>
           </CmxDialogHeader>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">{t('fields.reason')}</label>
+            <Label className="mb-1 block">{t('fields.reason')}</Label>
             <CmxTextarea value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
           </div>
           <CmxDialogFooter>

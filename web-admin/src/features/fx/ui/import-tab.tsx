@@ -3,11 +3,8 @@
 import { useEffect, useId, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Download, FileSpreadsheet, FileText, Link as LinkIcon } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
-import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-
+import { CmxButton, CmxCard, CmxCardContent, CmxSkeletonTable, Label } from '@ui/primitives';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
-import { CmxSkeletonTable } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownContent, CmxSelectDropdownItem, CmxSelectDropdownTrigger, CmxSelectDropdownValue } from '@ui/forms';
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
@@ -225,7 +222,7 @@ function CsvImportCard({ canImport, onImported, renderRowErrors }: AdapterCardPr
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-sm font-medium">{t('import.csv.sourceLabel')}</label>
+            <Label>{t('import.csv.sourceLabel')}</Label>
             <CmxSelectDropdown value={sourceCode} onValueChange={setSourceCode}>
               <CmxSelectDropdownTrigger><CmxSelectDropdownValue placeholder={t('import.csv.selectSource')} /></CmxSelectDropdownTrigger>
               <CmxSelectDropdownContent>
@@ -238,7 +235,8 @@ function CsvImportCard({ canImport, onImported, renderRowErrors }: AdapterCardPr
             </CmxSelectDropdown>
           </div>
           <div>
-            <label htmlFor={fileInputId} className="text-sm font-medium">{t('import.csv.fileLabel')}</label>
+            <Label htmlFor={fileInputId}>{t('import.csv.fileLabel')}</Label>
+            {/* cmx-ds-ignore UI001: native file input required for CSV upload */}
             <input
               id={fileInputId}
               type="file"
@@ -357,7 +355,7 @@ function UrlImportCard({ canImport, onImported, renderRowErrors }: AdapterCardPr
         </div>
 
         <div className="max-w-sm">
-          <label className="text-sm font-medium">{t('import.url.providerLabel')}</label>
+          <Label>{t('import.url.providerLabel')}</Label>
           <CmxSelectDropdown value={providerCode} onValueChange={setProviderCode}>
             <CmxSelectDropdownTrigger><CmxSelectDropdownValue placeholder={t('import.url.selectProvider')} /></CmxSelectDropdownTrigger>
             <CmxSelectDropdownContent>

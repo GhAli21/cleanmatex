@@ -9,8 +9,7 @@ import {
   CmxDialogTitle,
   CmxDialogFooter,
 } from '@ui/overlays';
-import { CmxButton } from '@ui/primitives';
-import { CmxInput } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxRadio, CmxSelect, Label } from '@ui/primitives';
 import { ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import { stockAdjustmentSchema } from '@/lib/validations/inventory-schemas';
 import { adjustStockAction } from '@/app/actions/inventory/inventory-actions';
@@ -26,6 +25,7 @@ interface AdjustStockModalProps {
 }
 
 /**
+ * Adjust Stock Modal
  *
  * @param root0
  * @param root0.item
@@ -121,29 +121,24 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
             {/* Branch dropdown — always selectable */}
             {hasBranches ? (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
+                <Label className="block mb-1">
                   {t('filters.branch')} <span className="text-danger-text">*</span>
-                </label>
-                <select
+                </Label>
+                <CmxSelect
                   value={selectedBranchId}
                   onChange={(e) => {
                     setSelectedBranchId(e.target.value);
                     setFieldErrors((prev) => ({ ...prev, branch: undefined }));
                     setError(null);
                   }}
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder={t('filters.selectBranch') || 'Select branch...'}
+                  options={branches.map((b) => ({
+                    value: b.id,
+                    label: `${b.name}${b.is_main ? ' ★' : ''}`,
+                  }))}
+                  error={fieldErrors.branch}
                   required
-                >
-                  <option value="">{t('filters.selectBranch') || 'Select branch...'}</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}{b.is_main ? ' ★' : ''}
-                    </option>
-                  ))}
-                </select>
-                {fieldErrors.branch && (
-                  <p className="mt-1 text-xs text-danger-text">{fieldErrors.branch}</p>
-                )}
+                />
               </div>
             ) : (
               /* No branches configured */
@@ -158,31 +153,30 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
             {/* Current quantity */}
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">{t('labels.currentQty')}</p>
-              <p className="text-2xl font-semibold">{item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.product_unit}</span></p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.product_unit}</span>
+              </p>
             </div>
 
             {/* Action radio buttons */}
             <div>
               <p className="text-sm font-medium text-foreground mb-2">{t('labels.adjustmentType')}</p>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-4">
                 {actions.map((a) => (
-                  <label key={a.value} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="action"
-                      value={a.value}
-                      checked={action === a.value}
-                      onChange={() => setAction(a.value)}
-                      className="text-primary-text"
-                    />
-                    <span className="text-sm">{a.label}</span>
-                  </label>
+                  <CmxRadio
+                    key={a.value}
+                    name="action"
+                    value={a.value}
+                    checked={action === a.value}
+                    onChange={() => setAction(a.value)}
+                    label={a.label}
+                  />
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">{t('labels.quantity')} <span className="text-danger-text">*</span></label>
+              <Label className="block mb-1">{t('labels.quantity')} <span className="text-danger-text">*</span></Label>
               <CmxInput
                 type="number"
                 step="0.01"
@@ -196,7 +190,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">{t('labels.reason')} <span className="text-danger-text">*</span></label>
+              <Label className="block mb-1">{t('labels.reason')} <span className="text-danger-text">*</span></Label>
               <CmxInput
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

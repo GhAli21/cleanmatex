@@ -55,7 +55,7 @@ You validate proposed architectures and designs against established platform con
 
 **Database:**
 - Feature-grouped naming for NEW objects: {scope}_{feature}_{object}_{suffix}
-- Existing objects use grandfathered names (check registry)
+- Existing objects may keep old names: take them from the live DB or `web-admin/prisma/schema.prisma`, never from memory
 - Standard audit fields required (created_at, created_by, updated_at, updated_by, rec_status, is_active)
 - Bilingual fields (name/name2, description/description2)
 - Use Prisma for server-side, Supabase client for client-side

@@ -39,6 +39,9 @@ jest.mock('@/src/features/orders/ui/OrderPiecesManager', () => ({
   ),
 }));
 
+// Item photos need auth + react-query providers; this suite is about line/piece codes.
+jest.mock('@/src/features/orders/ui/pieces/piece-photos', () => ({ PiecePhotosControl: () => null }));
+
 import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
 import { isHighlightedPiece, lineCodeOfPieceRef, readPieceParam } from '@/src/features/orders/lib/piece-highlight';
 import { PieceList } from '@/src/features/orders/ui/PieceList';

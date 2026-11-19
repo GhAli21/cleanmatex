@@ -105,8 +105,12 @@ interface CookieWriter {
  */
 export async function writeLastBrandCookie(cookieStore: CookieWriter, tenantId: string): Promise<void> {
   try {
+    const started = Date.now()
     const theme = await getTenantTheme(tenantId)
-    cookieStore.set(LAST_BRAND_COOKIE, buildLastBrand(theme, theme.logoUrl), {
+    // Sign-in waits for this read (PR-07 M3): a slow one shows up in the logs instead of as a mystery delay.
+    const ms = Date.now() - started
+    if (ms > 300) logger.warn(`writeLastBrandCookie theme read took ${ms} ms; sign-in waited for it`, {})
+    cookieStore.set(LAST_BRAND_COOKIE, buildLastBrand(theme, theme.logoUrl, theme.logoDarkUrl), {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

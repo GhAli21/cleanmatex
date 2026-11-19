@@ -1,126 +1,132 @@
 /**
  * Processing Filters Bar Component
- * Dropdown filters and status search input
+ * Focus chips and compact Cmx filter toolbar wired to server-side worklist params.
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import type { ProcessingFilters } from '@/types/processing';
+import { RotateCcw, Search } from 'lucide-react';
+import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
+import { PRIORITY_LEVELS } from '@/lib/constants/order-types';
+import type { ProcessingFilters, ProcessingFocus } from '@/types/processing';
 
 interface ProcessingFiltersBarProps {
   filters: ProcessingFilters;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
   onFilterChange: (filters: ProcessingFilters) => void;
-  statusFilter: string;
-  onStatusFilterChange: (value: string) => void;
+  onResetFilters: () => void;
+  hasActiveFilters: boolean;
 }
 
-/**
- *
- * @param root0
- * @param root0.filters
- * @param root0.onFilterChange
- * @param root0.statusFilter
- * @param root0.onStatusFilterChange
- */
-export function ProcessingFiltersBar({
-  filters,
-  onFilterChange,
-  statusFilter,
-  onStatusFilterChange,
-}: ProcessingFiltersBarProps) {
-  const t = useTranslations('processing.filters');
-  const [localFilters, setLocalFilters] = useState<ProcessingFilters>(filters);
+const FOCUS_KEYS: ProcessingFocus[] = ['all', 'urgent', 'overdue', 'issues', 'ready'];
 
-  const handleFilterUpdate = (key: keyof ProcessingFilters, value: string) => {
-    const newFilters = { ...localFilters, [key]: value };
-    setLocalFilters(newFilters);
-    onFilterChange(newFilters);
+/**
+ * Compact filter bar with operational focus chips and server-backed controls.
+ * @param props Filter state and callbacks.
+ */
+export function ProcessingFiltersBar(props: ProcessingFiltersBarProps) {
+  const {
+    filters,
+    searchValue,
+    onSearchChange,
+    onFilterChange,
+    onResetFilters,
+    hasActiveFilters,
+  } = props;
+  const t = useTranslations('processing.filters');
+  const tFocus = useTranslations('processing.focus');
+  const tCommon = useTranslations('common');
+
+  const activeFocus: ProcessingFocus = filters.focus ?? 'all';
+
+  const priorityOptions = useMemo(
+    () => [
+      { value: '', label: t('allTypes') },
+      { value: PRIORITY_LEVELS.NORMAL, label: t('normal') },
+      { value: PRIORITY_LEVELS.EXPRESS, label: t('express') },
+      { value: PRIORITY_LEVELS.URGENT, label: t('urgent') },
+    ],
+    [t]
+  );
+
+  const handleFieldChange = <K extends keyof ProcessingFilters>(
+    key: K,
+    value: ProcessingFilters[K]
+  ) => {
+    onFilterChange({ ...filters, [key]: value });
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border p-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {/* Reports Filter */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            {t('reports')}
-          </label>
-          <select
-            value={localFilters.reports || ''}
-            onChange={(e) => handleFilterUpdate('reports', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
+    <div className="space-y-3 rounded-lg border border-border bg-card p-3">
+      {/* Quick Focus Chips */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('filterStatus')}>
+          {FOCUS_KEYS.map((focusKey) => {
+            const isActive = activeFocus === focusKey;
+            return (
+              <CmxButton
+                key={focusKey}
+                type="button"
+                size="sm"
+                variant={isActive ? 'primary' : 'outline'}
+                onClick={() => handleFieldChange('focus', focusKey)}
+                aria-pressed={isActive}
+              >
+                {tFocus(focusKey)}
+              </CmxButton>
+            );
+          })}
+        </div>
+
+        {hasActiveFilters && (
+          <CmxButton
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onResetFilters}
           >
-            <option value="">{t('allReports')}</option>
-            <option value="daily">{t('daily')}</option>
-            <option value="weekly">{t('weekly')}</option>
-            <option value="monthly">{t('monthly')}</option>
-          </select>
-        </div>
+            <RotateCcw className="me-1.5 h-3.5 w-3.5" aria-hidden />
+            {t('clearFilters')}
+          </CmxButton>
+        )}
+      </div>
 
-        {/* Sections Filter */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            {t('sections')}
-          </label>
-          <select
-            value={localFilters.sections || ''}
-            onChange={(e) => handleFilterUpdate('sections', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
-          >
-            <option value="">{t('allSections')}</option>
-            <option value="washing">{t('washing')}</option>
-            <option value="drying">{t('drying')}</option>
-            <option value="finishing">{t('finishing')}</option>
-            <option value="assembly">{t('assembly')}</option>
-            <option value="qa">{t('qa')}</option>
-          </select>
-        </div>
+      {/* Compact Toolbar */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <CmxInput
+          type="search"
+          label={tCommon('search')}
+          placeholder={tCommon('quickSearch')}
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          leftIcon={<Search className="h-4 w-4" aria-hidden />}
+          aria-label={tCommon('search')}
+        />
 
-        {/* Order Type Filter */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            {t('orderType')}
-          </label>
-          <select
-            value={localFilters.orderType || ''}
-            onChange={(e) => handleFilterUpdate('orderType', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
-          >
-            <option value="">{t('allTypes')}</option>
-            <option value="normal">{t('normal')}</option>
-            <option value="express">{t('express')}</option>
-            <option value="urgent">{t('urgent')}</option>
-          </select>
-        </div>
+        <CmxSelect
+          label={t('orderType')}
+          value={filters.priority || ''}
+          onChange={(e) => handleFieldChange('priority', e.target.value || undefined)}
+          options={priorityOptions}
+        />
 
-        {/* Date Filter */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            {t('date')}
-          </label>
-          <input
-            type="date"
-            value={localFilters.date || ''}
-            onChange={(e) => handleFilterUpdate('date', e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
-          />
-        </div>
+        <CmxInput
+          type="date"
+          label={t('date')}
+          value={filters.readyByDate || ''}
+          onChange={(e) => handleFieldChange('readyByDate', e.target.value || undefined)}
+        />
 
-        {/* Status Filter (positioned above status column in table) */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            {t('filterStatus')}
-          </label>
-          <input
-            type="text"
-            placeholder={t('typeToFilter')}
-            value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
-          />
-        </div>
+        <CmxInput
+          type="text"
+          label={t('filterStatus')}
+          placeholder={t('typeToFilter')}
+          value={filters.statusFilter || ''}
+          onChange={(e) => handleFieldChange('statusFilter', e.target.value || undefined)}
+        />
       </div>
     </div>
   );

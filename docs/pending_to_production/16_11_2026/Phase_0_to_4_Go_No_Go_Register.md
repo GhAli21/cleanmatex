@@ -47,7 +47,7 @@
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Owner applied `0755_ops_job_action_contract.sql` locally and remotely. Remote evidence confirms V2 functions, the unchanged single active `tax-kit-update` scheduler, and observation-only registry capability. HQ source uses V2 capability gates; no mutation or enablement is authorized until per-executor contracts, tests, and rollback proof are complete. |
+| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Owner applied `0755_ops_job_action_contract.sql` locally and remotely. Remote evidence confirms V2 functions, the unchanged single active `tax-kit-update` scheduler, and observation-only registry capability. The notification worker/API path is in controlled canary hardening with delivery disabled pending remote Disk I/O attribution, one-instance verification, and canary/soak proof. See [I11 runbook](I11_background_execution_RUNBOOK.md). |
 | 1.2 | Decide trial-expiry outcome, implement it under the approved scheduler model, and prove an expired demo trial changes state. | Owner → Dev | B1 | 27 Nov | Not started | — |
 | 1.3 | Cancel/resolve old demo queued notifications before sender enablement. | Owner | D13 | 27 Nov | Not started | — |
 | 1.4 | Deploy Sentry or equivalent to web-admin and platform-web with PII scrubbing; prove a controlled error appears. | Dev | I4 | 28 Nov | Not started | — |
@@ -120,6 +120,7 @@
 | QA | [12_manual_qa_backlog.md](12_manual_qa_backlog.md) |
 | Data cleanup | [13_data_cleanup_before_go_live.md](13_data_cleanup_before_go_live.md) |
 | Background jobs execution plan | [I11_background_execution_redesign_PLAN.md](I11_background_execution_redesign_PLAN.md) |
+| Background jobs operator runbook | [I11_background_execution_RUNBOOK.md](I11_background_execution_RUNBOOK.md) |
 
 ## Change log
 
@@ -127,6 +128,7 @@
 |---|---|---|
 | 2026-11-17 | Created from ROADMAP phases 0–4; all execution rows start unverified. | Dev |
 | 2026-11-17 | Phase 0 set to GO. Leaked-password protection and S12 moved to `future_check.md`. Row 0.5 is N/A (approved) until the Supabase Pro upgrade. Row 0.4 is Pass; `supabase_admin` defaults are reported, not a failure. | Dev |
+| 2026-11-19 | Added the I11 operator runbook and synchronized the I11 execution-model wording. Phase 1.1 remains In progress: notification delivery stays disabled until remote capacity attribution, one-instance evidence, and controlled canary/soak proof are recorded. | Dev |
 | 2026-11-17 | Rows 0.1–0.3 and 0.6 set to Pass after remote recount and the owner smoke test. 0.4 stays In progress because the live privilege check still raises on 24 `supabase_admin` default grants. 0.5 stays Not started. Phase 0 is not a GO. | Dev |
 | 2026-11-17 | Rows 0.1–0.4 moved to In progress. Migrations 0745–0747 and the privilege invariant are drafted and not applied. Not a Pass. | Dev |
 | 2026-11-17 | Linked the S0 privilege-lockdown plan for rows 0.1–0.4. Status stays Not started. | Dev |

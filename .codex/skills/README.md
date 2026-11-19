@@ -17,6 +17,7 @@ Each skill is organized in its own directory with:
 | **multitenancy** | Reference | RLS policies, tenant isolation (CRITICAL for security) |
 | **database** | Reference | Schema conventions, naming patterns, table workflow |
 | **frontend** | Reference | Next.js 15, React 19, Cmx Design System |
+| **cmx-ui-design-review** | Task | Review (or fix on request) web-admin UI against `docs/dev/rules/cmx-design-system.md` |
 | **debugging** | Task | Common issues, build fixes, troubleshooting |
 
 ### Priority 2: Foundation & Architecture
@@ -90,7 +91,6 @@ Claude automatically invokes relevant skills based on context:
 │   ├── SKILL.md
 │   ├── conventions.md
 │   ├── feature-abbreviations.md
-│   ├── grandfathered-objects.md
 │   ├── migration-plan.md
 │   ├── postgresql-prisma.md
 │   └── table-check-workflow.md

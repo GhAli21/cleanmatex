@@ -188,7 +188,7 @@ status: Active - Grandfathered Objects
 | Current Name | Feature | Would Become | Status | Notes |
 |-------------|---------|--------------|--------|-------|
 | `generate_customer_number(p_tenant_org_id UUID)` | `cust` | `org_cust_generate_customer_number(p_tenant_org_id UUID)` | Grandfathered | Generate customer number |
-| `update_customer_address_timestamp()` | `cust` | `org_cust_update_address_timestamp()` | Grandfathered | Update address timestamp |
+| `update_customer_address_TIMESTAMPTZ()` | `cust` | `org_cust_update_address_TIMESTAMPTZ()` | Grandfathered | Update address TIMESTAMPTZ |
 | `ensure_single_default_address()` | `cust` | `org_cust_ensure_single_default_address()` | Grandfathered | Ensure single default address |
 
 #### Catalog Functions
@@ -217,7 +217,7 @@ status: Active - Grandfathered Objects
 | Current Name | Feature | Would Become | Status | Notes |
 |-------------|---------|--------------|--------|-------|
 | `trg_after_tenant_insert` | `tnt` | `sys_tnt_after_tenant_insert_trg` | Grandfathered | After tenant insert |
-| `trg_update_customer_address_timestamp` | `cust` | `org_cust_update_address_timestamp_trg` | Grandfathered | Update address timestamp |
+| `trg_update_customer_address_TIMESTAMPTZ` | `cust` | `org_cust_update_address_TIMESTAMPTZ_trg` | Grandfathered | Update address TIMESTAMPTZ |
 | `trg_ensure_single_default_address` | `cust` | `org_cust_ensure_single_default_address_trg` | Grandfathered | Ensure single default |
 | `trg_order_auto_log_created` | `ord` | `org_ord_order_auto_log_created_trg` | Grandfathered | Auto-log order created |
 | `trg_set_order_item_srno` | `ord` | `org_ord_set_order_item_srno_trg` | Grandfathered | Set order item serial |

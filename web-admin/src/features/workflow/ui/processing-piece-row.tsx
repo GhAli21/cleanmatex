@@ -11,7 +11,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
-import { CmxCheckbox, CmxInput, CmxTextarea, CmxButton, CmxCard } from '@ui/primitives';
+import { CmxCheckbox, CmxInput, CmxTextarea, CmxButton, CmxCard, Label } from '@ui/primitives';
 import { X, Package, Check } from 'lucide-react';
 import type { ItemPiece, ProcessingStep, ProcessingStepConfig } from '@/types/order';
 import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';
@@ -285,9 +285,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       {/* Interactive Step Timeline */}
       <div className="mb-4 pb-4 border-b">
         <div className="mb-2">
-          <label className="block text-sm font-medium text-foreground mb-2">
+          <Label className="block mb-2">
             {t('modal.step')} / {t('modal.lastStep') || 'Last Step'}
-          </label>
+          </Label>
           <p className="text-xs text-muted-foreground mb-3">
             {t('modal.clickStepToChange') || 'Click on a step to change the processing stage'}
           </p>
@@ -312,9 +312,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
       {/* Barcode (editable); color/brand are preference tags only */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-foreground mb-1.5">
+        <Label className="block mb-1.5">
           {t('modal.barcode') || 'Barcode'}
-        </label>
+        </Label>
         <CmxInput
           value={piece.barcode || ''}
           onChange={handleBarcodeChange}
@@ -327,9 +327,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Piece Status Display */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
+          <Label className="block mb-1.5">
             {t('modal.pieceStatus') || 'Status'}
-          </label>
+          </Label>
           <div className="h-10 px-3 py-2 text-sm bg-muted border border-border rounded flex items-center">
             <CmxStatusBadge
               label={piece.piece_status || 'processing'}
@@ -348,9 +348,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
         {/* Piece Stage */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
+          <Label className="block mb-1.5">
             {t('modal.pieceStage') || 'Piece Stage'}
-          </label>
+          </Label>
           <CmxInput
             value={piece.piece_stage || ''}
             onChange={handlePieceStageChange}
@@ -361,9 +361,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
         {/* Rack Location */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">
+          <Label className="block mb-1.5">
             {t('modal.rackLocation')}
-          </label>
+          </Label>
           <CmxInput
             value={piece.rackLocation || ''}
             onChange={handleRackChange}
@@ -374,9 +374,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
         {/* Notes */}
         <div className="sm:col-span-2 lg:col-span-3">
-          <label className="block text-sm font-medium text-foreground mb-1.5">
+          <Label className="block mb-1.5">
             {t('modal.notes')}
-          </label>
+          </Label>
           <CmxTextarea
             value={piece.notes || ''}
             onChange={handleNotesChange}

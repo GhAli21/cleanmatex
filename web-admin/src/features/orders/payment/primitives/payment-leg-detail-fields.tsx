@@ -23,6 +23,7 @@ import { ShieldCheck } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
+import { Label } from '@ui/primitives';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import {
   GATEWAY_METHOD_CODES,
@@ -169,7 +170,7 @@ export function PaymentLegDetailFields({
       ) : null}
       {option?.requires_terminal && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          <Label className="mb-1 block text-xs text-muted-foreground">
             {t('splitPayment.paymentTerminal')}
             {!disabled ? (
               <>
@@ -177,7 +178,7 @@ export function PaymentLegDetailFields({
                 <span className="sr-only">{t('workspace.requiredField')}</span>
               </>
             ) : null}
-          </label>
+          </Label>
           <CmxSelectDropdown
             value={leg.terminalId ?? ''}
             disabled={disabled}
@@ -218,9 +219,9 @@ export function PaymentLegDetailFields({
       {leg.method === PAYMENT_METHODS.CARD && (
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            <Label className="mb-1 block text-xs text-muted-foreground">
               {t('splitPayment.cardBrand')}
-            </label>
+            </Label>
             <CmxSelectDropdown
               value={leg.card_brand_code ?? ''}
               disabled={disabled}

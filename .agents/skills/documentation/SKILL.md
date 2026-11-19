@@ -31,6 +31,7 @@ Do not load those workflows for simple doc edits.
 - Reflect repository truth only. Do not invent routes, permissions, settings, migrations, or APIs.
 - Mark unknown items as `TBD`, `Pending`, or `N/A` instead of guessing.
 - Preserve meaningful existing content and fill gaps rather than replacing everything.
+- Before editing a file or cross-linking to one, check it doesn't already carry a `**Doc Status:**` marker (`/documentation-archive-migration` reference.md §1). Never edit or link to a marked file as if it's still active — link to the canonical replacement named in its header instead.
 
 ## Default Pack Expectation
 
@@ -57,7 +58,7 @@ Read [reference.md](./reference.md) only when the task needs pack details, routi
 
 1. Confirm the documentation scope and whether the canonical folder is already clear.
 2. If the folder or source of truth is unclear, stop and use `/documentation-canonicalization`.
-3. Inspect the target folder and identify only the missing or stale files needed for this task.
+3. Inspect the target folder and identify only the missing or stale files needed for this task. If the specific file the task targets already carries a `**Doc Status:**` marker, stop and ask the user: revive it (remove the marker as part of this edit) or redirect the work to its named canonical replacement.
 4. Update the pack with minimal churn.
 5. Cross-link the docs so contributors can move from overview to implementation detail.
 6. Validate naming, consistency, and status/progress alignment.

@@ -1180,23 +1180,25 @@ export function NewOrderContent() {
                   <div
                     className="flex gap-2"
                   >
-                    <button
+                    <CmxButton
                       type="button"
+                      variant={activeTab === 'select' ? 'primary' : 'ghost'}
                       role="tab"
                       aria-selected={activeTab === 'select'}
                       tabIndex={activeTab === 'select' ? 0 : -1}
                       onClick={() => setRequestedActiveTab('select')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${activeTab === 'select' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'select' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                     >
                       1) {t('itemsGrid.selectItems') || 'Select Items'}
-                    </button>
-                    <button
+                    </CmxButton>
+                    <CmxButton
                       type="button"
+                      variant={activeTab === 'details' ? 'primary' : 'ghost'}
                       role="tab"
                       aria-selected={activeTab === 'details'}
                       tabIndex={activeTab === 'details' ? 0 : -1}
                       onClick={() => setRequestedActiveTab('details')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center gap-1.5  ${activeTab === 'details' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                     >
                       {state.state.items.length > 0 && (
                         <Check
@@ -1206,42 +1208,45 @@ export function NewOrderContent() {
                       )}
                       2) {t('itemsGrid.orderItems') || 'Order Items'} (
                       {state.state.items.length})
-                    </button>
+                    </CmxButton>
                     {trackByPiece && state.state.items.length > 0 && (
                       <>
-                        <button
+                        <CmxButton
                           type="button"
+                          variant={activeTab === 'piecePreferences' ? 'primary' : 'ghost'}
                           role="tab"
                           aria-selected={activeTab === 'piecePreferences'}
                           tabIndex={activeTab === 'piecePreferences' ? 0 : -1}
                           onClick={() =>
                             setRequestedActiveTab('piecePreferences')
                           }
-                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${activeTab === 'piecePreferences' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'piecePreferences' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                         >
                           3) {t('pieces.editItemPreferences')} ({totalPieces})
-                        </button>
-                        <button
+                        </CmxButton>
+                        <CmxButton
                           type="button"
+                          variant={activeTab === 'pieces' ? 'primary' : 'ghost'}
                           role="tab"
                           aria-selected={activeTab === 'pieces'}
                           tabIndex={activeTab === 'pieces' ? 0 : -1}
                           onClick={() => setRequestedActiveTab('pieces')}
-                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${activeTab === 'pieces' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'pieces' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                         >
                           4) {t('pieces.editItemNotes') || 'Edit Item Notes'} (
                           {totalPieces})
-                        </button>
+                        </CmxButton>
                       </>
                     )}
                     {state.state.customer !== null && (
-                      <button
+                      <CmxButton
                         type="button"
+                        variant={activeTab === 'customer' ? 'primary' : 'ghost'}
                         role="tab"
                         aria-selected={activeTab === 'customer'}
                         tabIndex={activeTab === 'customer' ? 0 : -1}
                         onClick={() => setRequestedActiveTab('customer')}
-                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex items-center justify-center gap-1.5  ${activeTab === 'customer' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 ${activeTab === 'customer' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                       >
                         <Check
                           className="w-4 h-4 shrink-0"
@@ -1249,7 +1254,7 @@ export function NewOrderContent() {
                         />
                         {trackByPiece ? '5)' : '3)'}{' '}
                         {t('customerDetails.title') || 'Customer Details'}
-                      </button>
+                      </CmxButton>
                     )}
                   </div>
                 </div>
@@ -1373,13 +1378,15 @@ export function NewOrderContent() {
               <div
                 className="shrink-0 px-4 pt-3 pb-2 border-b border-border text-end"
               >
-                <button
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={handleAddNewOrder}
-                  className="text-sm text-primary-text hover:text-primary-text/80 hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 rounded"
+                  className="h-auto px-1 py-0.5 text-sm text-primary-text hover:bg-transparent hover:text-primary-text/80 hover:underline"
                 >
                   + {t('addNewOrder')}
-                </button>
+                </CmxButton>
               </div>
             )}
             <OrderSummaryPanel {...sharedSummaryPanelProps} />
@@ -1431,13 +1438,15 @@ export function NewOrderContent() {
               <div
                 className="shrink-0 px-4 pt-2 pb-2 border-b border-border text-end"
               >
-                <button
+                <CmxButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={handleAddNewOrder}
-                  className="text-sm text-primary-text hover:text-primary-text/80 hover:underline"
+                  className="h-auto px-1 py-0.5 text-sm text-primary-text hover:bg-transparent hover:text-primary-text/80 hover:underline"
                 >
                   + {t('addNewOrder')}
-                </button>
+                </CmxButton>
               </div>
             )}
             <OrderSummaryPanel {...sharedSummaryPanelProps} />

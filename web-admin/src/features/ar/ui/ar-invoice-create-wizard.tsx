@@ -4,8 +4,7 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { CmxSummaryMessage } from '@ui/feedback';
-import { CmxButton, CmxInput, CmxMoneyField, CmxSelect } from '@ui/primitives';
-import { CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxMoneyField, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
 
@@ -362,9 +361,9 @@ export function ArInvoiceCreateWizard() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('fields.notes')}
-            </label>
+            </Label>
             <CmxTextarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
@@ -498,9 +497,9 @@ export function ArInvoiceCreateWizard() {
             <p className="text-sm text-muted-foreground">{t('orderBatch.subtitle')}</p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">
+            <Label className="mb-1 block">
               {t('fields.orderIds')}
-            </label>
+            </Label>
             <CmxTextarea
               value={orderIdsDraft}
               onChange={(event) => setOrderIdsDraft(event.target.value)}

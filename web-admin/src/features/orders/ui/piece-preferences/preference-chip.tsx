@@ -7,6 +7,7 @@
 import type { CSSProperties } from 'react';
 import { useLocale } from 'next-intl';
 import { Copy, X } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
 import { cn } from '@/lib/utils';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { catalogColorChipStyle, parseKindBgHex } from './piece-pref-kind-styles';
@@ -82,19 +83,21 @@ export function PreferenceChip({
           )}
           lang={locale === 'ar' ? 'ar' : 'en'}
         >
-          {priceText}
+          <bdi dir="ltr">{priceText}</bdi>
         </span>
       )}
       <span className="inline-flex shrink-0 items-center gap-0.5 ps-1">
         {onCopy && (
-          <button
+          <CmxButton
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={(e) => {
               e.stopPropagation();
               onCopy();
             }}
             className={cn(
-              'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-ring',
+              'h-auto min-h-9 min-w-9 p-0 rounded-full',
               swatchStyle
                 ? 'text-on-solid/90 hover:bg-on-solid/15'
                 : 'text-muted-foreground hover:bg-border hover:text-foreground'
@@ -103,16 +106,18 @@ export function PreferenceChip({
             title={copyLabel}
           >
             <Copy className="h-3.5 w-3.5" aria-hidden />
-          </button>
+          </CmxButton>
         )}
-        <button
+        <CmxButton
           type="button"
+          variant="ghost"
+          size="xs"
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
           }}
           className={cn(
-            'inline-flex min-h-9 min-w-9 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-destructive',
+            'h-auto min-h-9 min-w-9 p-0 rounded-full',
             swatchStyle
               ? 'text-on-solid/85 hover:bg-destructive/35 hover:text-on-solid'
               : 'text-muted-foreground hover:bg-danger-bg hover:text-danger-text'
@@ -121,7 +126,7 @@ export function PreferenceChip({
           title={removeLabel}
         >
           <X className="h-3.5 w-3.5" aria-hidden />
-        </button>
+        </CmxButton>
       </span>
     </span>
   );

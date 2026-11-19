@@ -1,6 +1,6 @@
 'use client'
 
-import { CmxInput, CmxSwitch } from '@ui/primitives'
+import { CmxInput, CmxSwitch, Label } from '@ui/primitives'
 import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
@@ -58,7 +58,7 @@ export function SelectField({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium">{label}</label>
+      <Label>{label}</Label>
       <CmxSelectDropdown value={value} onValueChange={onChange}>
         <CmxSelectDropdownTrigger>
           <CmxSelectDropdownValue />
@@ -89,7 +89,7 @@ export function NumberField({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium">{label}</label>
+      <Label>{label}</Label>
       <CmxInput
         type="number"
         step="0.001"

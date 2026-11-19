@@ -198,6 +198,7 @@ Tenant app, user with `orders:transition` or `orders:update`. Use one order and 
 | K4 | **Assembly** → open an order's assembly task | Collapsed **Files** panel in the task window; uploads tagged "Assembly · Assembly task". They show in the order's Files tab, not in other tasks. |
 | K5 | User without `orders:read` | No item photo buttons, no Files panel in the task window, no error. |
 | K6 | Arabic | Texts in Arabic, RTL. |
+| K8 | Open any order's **Files** tab or a stage Files panel, English then Arabic (RTL), light then dark | Count badge by the title; type + note on one row; slim "Drop files…" bar with Take photo beside it; tiles are cards: file type chip on the image, note under it (max 2 lines), source line without repeated words, file name + size at the bottom; locked proof shows a lock and no pencil/trash; on desktop pencil/trash appear on hover, on a phone they are always visible; PDF/other files show an icon with PDF/XLSX badge; empty order shows a dashed box with an image icon. |
 | K7 | **QA** detail → a Files panel or piece photos → look at "File type" before adding a photo; type a note, then add a photo | File type already "Quality check" (Packing and Ready: "After processing"). A line under the fields says type and note apply to the next files added. After the upload the note box is empty and the tile shows the note. To change a saved file: pencil on the tile → Save. |
 
 ## G. Not testable yet
@@ -345,3 +346,306 @@ Tenant app, user with `orders:transition` or `orders:update`. Use one order and 
 - Supabase: bucket `qa-test-bucket` still exists — owner to delete in the Supabase dashboard.
 - Demo Laundry: ORD-20261117-00003 was deleted through HQ Maintenance (approved; its file row is DELETED). All other QA files (orders, product Sweatpants, customer "Jh Test dev21") are deleted; failed-upload rows (HEIC, fake JPG) were never stored.
 - Demo Laundry theme Ocean is still in use (see the UI Design System guide).
+
+### Retest r2 2026-11-19 — File Util
+
+**Retest r2 — 2026-11-19, 16:14 to 20:29 Asia/Muscat (UTC+4).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: the owner deployed new updates at 16:14 and asked to retest the FAILED, BLOCKED and PENDING (PARTIAL / NOT RUN) rows of this guide and the other QA guide. Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch; admin, plus viewer and operator for the role rows) and HQ https://hqsaas.cleanmatex.com (Incognito). Real mouse and keyboard, no direct API calls, no page scripts, no Jest. Credentials: see the credentials file, none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\retest2\shots\` (names in the Shot column; the Round 1 shots stay in `C:\Users\JHNLP\qa-20261119\shots\`). Notes: Round 1 text above is untouched. Rows needing a write the owner has not approved, and the HIGH-IMPACT rows, were not run and are marked NOT RUN, or BLOCKED where a missing screen is the reason. No order was paid or submitted in r2.
+
+**Guide changes found while writing back.** The guide I tested from (41,254 B, 09:49) was edited again by the owner at 20:01 during the retest: new section K "Item photos and assembly task files" (K1 to K8, 8 rows). They are listed below as NOT RUN. Only text above this section changed in that edit; Round 1 results and all other rows are unchanged, and there are no Dev notes.
+
+#### Retest r2 results
+
+Columns: r1 = Round 1 result (or "- (new row)"), r2 = this retest. Rows that passed in Round 1 and were not re-run keep PASS.
+
+| Row | r1 | r2 | Evidence | Shot |
+|---|---|---|---|---|
+| A1 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A2 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A3 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A4 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A5 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A6 | FAIL | FAIL | qa_photo.heic (526-byte stub) is still refused: "An image file qa_photo.heic was refused because it is not an allowed file type here." Message changed from r1 (extension mismatch). A real iPhone HEIC was not available. | T2-7 |
+| A7 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A8 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A9 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A10 | PARTIAL | PARTIAL | docx opens as a document tile (PASS); the PDF viewer area is still tiny and unreadable. | T2-8-pdf, T2-8-docx |
+| A11 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A12 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A13 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A14 | PARTIAL | PARTIAL | Take photo opens a modal that says camera access was denied; the box has no camera. | T2-10 |
+| A15 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A16 | PARTIAL | PASS | Viewer opens the order Files tab read-only (no drop zone, no edit or delete). Same viewer still sees Start Preparation, Edit, Print Label and the public tracking link on the order page. | - |
+| A17 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| A18 | NOT RUN | FAIL | After about 5.5 minutes idle, opening a file shows a broken image (signed URL expired and not refreshed). | - |
+| B1 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| B2 | BLOCKED | BLOCKED | No camera on the box: "The camera is not available. Allow camera access in the browser, or choose a file instead."; Capture is disabled. | T8-B2-camera |
+| B3 | BLOCKED | NOT RUN | HIGH-IMPACT: new order with payment. Awaiting an explicit owner yes (also needs photos, so a camera). | - |
+| B4 | BLOCKED | BLOCKED | Depends on B3. | - |
+| B5 | BLOCKED | BLOCKED | No camera on the box. | T8-B2-camera |
+| B6 | BLOCKED | BLOCKED | No camera on the box; also a NEW write (order edit) awaiting owner approval. | - |
+| C1 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| C2 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| C3 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| C4 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| C5 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| C6 | PARTIAL | FAIL | Gallery to Main: "The maximum number of files is reached. Delete one first." and an "invalid option" banner on the pencil. | T2-11 |
+| C7 | PARTIAL | BLOCKED | Viewer: Catalog & Pricing lists only Speed Pricing and Service Preferences; /dashboard/catalog redirects with insufficient_permissions; services and pricing pages say "You need the admin:manage permission". Product page still not reachable. | T12-C7 |
+| C8 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| C9 | FAIL | FAIL | Branding logo list and upload still fail with "The request was not valid." (HTTP 400). | T2-2 |
+| C10 | BLOCKED | PARTIAL | Adapted, view only: Branding has no colour inputs or logo to compare (moved to Themes by PR-07). | T2-3 |
+| C11 | PARTIAL | PASS | SVG and PDF are refused client-side as a logo. | T2-12-svg |
+| C12 | NOT RUN | NOT RUN | Supabase dashboard is the owner's; deleting buckets is human-only. | - |
+| D1 | BLOCKED | FAIL | No Issues tab on ORD-20261119-00001 and no Report issue control on /dashboard/issues (All status). Still missing after the 16:14 deploy. | - |
+| D2 | BLOCKED | BLOCKED | Depends on D1: no Issues UI to open or report from. | - |
+| D3 | BLOCKED | BLOCKED | Depends on D1: no Issues UI to open or report from. | - |
+| D3b | BLOCKED | BLOCKED | Depends on D1: no Issues UI to open or report from. | - |
+| D4 | BLOCKED | BLOCKED | Depends on D1: no Issues UI to open or report from. | - |
+| D5 | BLOCKED | BLOCKED | Needs Report issue (missing) and a NEW write approval. | - |
+| D6 | BLOCKED | BLOCKED | Operator has both orders:transition and orders:update (88 permissions); no transition-only user exists. | T12-D6 |
+| D7 | BLOCKED | BLOCKED | /dashboard/assembly now loads in 3-6 s with no error but has no orders (Pending 0, In Progress 0, QA Pending 0, Open Exceptions 0), so Record exception cannot be run. | T4-D7 |
+| D8 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| D9 | PARTIAL | BLOCKED | Depends on D1: no Issues UI to open or report from. | - |
+| E1 | NOT RUN | NOT RUN | NEW write; needs an out-for-delivery QA order, route and active stop. Awaiting owner approval. | - |
+| E2 | NOT RUN | NOT RUN | NEW write; needs an out-for-delivery QA order, route and active stop. Awaiting owner approval. | - |
+| E3 | NOT RUN | NOT RUN | NEW write; needs an out-for-delivery QA order, route and active stop. Awaiting owner approval. | - |
+| E4 | NOT RUN | NOT RUN | NEW write; needs an out-for-delivery QA order, route and active stop. Awaiting owner approval. | - |
+| E5 | NOT RUN | NOT RUN | NEW write; needs an out-for-delivery QA order, route and active stop. Awaiting owner approval. | - |
+| E6 | NOT RUN | NOT RUN | NEW write; needs an out-for-delivery QA order, route and active stop. Awaiting owner approval. | - |
+| E7 | PARTIAL | PARTIAL | HQ file health re-check (read only, no delete): banner "No problems found"; uploads in progress 0; "Deleted, bytes not removed" 8 (oldest Nov 19 4:43 PM); "Last bytes removed" Nov 19 3:47 AM. The purge job (platform-workers) shows "No runs yet" and a Sunday schedule, so the byte removal is not proven. | H3-E7 |
+| F1 | PASS | PASS | Sidebar File Setup shows 7 cards in groups SETUP (Storage buckets, File categories, File purposes, Media kinds, File types) and MONITORING (Storage usage, File health). Quick-find "Media" lists only File Setup > Media Kinds. | H1-F1-hub-en, H1-F1-quickfind |
+| F2 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F3 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F4 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F5 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F6 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F7 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F8 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F9 | PARTIAL | PASS | QA_DOCS/MAIN (inactive): PDF and JPEG ticks survive a reload; list shows only safe types (no SVG, no HTML). Found at start with JPEG + PDF ticked (left by r1 run); restored to none, toast "File types saved", header "No type allowed yet". | H1-F9-reload, H1-F9-toast |
+| F10 | NOT RUN | NOT RUN | HIGH-IMPACT: could deactivate the live ORDER_FILE/DAMAGE purpose if the refusal were missing. Awaiting an explicit owner yes. | - |
+| F11 | NOT RUN | NOT RUN | No HQ account with only *.view exists; creating one needs owner OK. | - |
+| F12 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| Cleanup (F) | PARTIAL | PARTIAL | HQ QA objects (bucket QA_TEST, category QA_DOCS, purpose QA_DOCS/MAIN) are all Inactive. Supabase bucket qa-test-bucket still needs the owner to delete it. | H1-F9-reload |
+| F13 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F14 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F15 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F16 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F17 | PASS | PASS | Round 1 PASS stands; not re-run in r2. | - |
+| F18 | NOT RUN (new) | PASS | Arabic /ar/file-util-config: RTL, 7 cards (حاويات التخزين, فئات الملفات, أغراض الملفات, أنواع الوسائط, أنواع الملفات, استخدام التخزين, حالة الملفات) in groups الإعداد (5) and المتابعة (2). | H1-F18-hub-ar |
+| F19 | NOT RUN (new) | PASS | Media kinds: 12 kinds, sizes shown as "10 MB". Max size is a pick list; emptied via Custom value then Save is refused ("Fix 1 field - Max file size: Required"). IMAGE stays 10 MB. Extra: the pencil from /en goes to /ar/.../media-kinds/IMAGE and the page stays English. | H1-F19-required, H1-F19-after-back |
+| F20 | NOT RUN (new) | FAIL | Allowed = Yes gives 34 rows. Pencil on image/jpeg (URL /en/file-util-config/mime-types/image%2Fjpeg) shows "Not found - This record does not exist or could not be loaded." Same for image/png and after Ctrl+Shift+R: every file-type edit page fails. | H1-F20-notfound |
+| F21 | NOT RUN (new) | NOT RUN | HIGH-IMPACT, platform-wide upload limit. Awaiting an explicit owner yes. | - |
+| F22 | NOT RUN (new) | NOT RUN | HIGH-IMPACT, platform-wide upload limit. Awaiting an explicit owner yes. | - |
+| F23 | NOT RUN (new) | NOT RUN | HIGH-IMPACT, switches VIDEO off for all tenants. Awaiting an explicit owner yes. | - |
+| F24 | NOT RUN (new) | PASS | New model/gltf-binary (OTHER, ext glb): Active + Allowed off is refused with "A blocked file type stays inactive". Active off saves; list 52 to 53, row Inactive. After Create the redirect lands on the broken "Not found" edit page (see F20). | H1-F24-refused-active, H1-F24-list-inactive, H1-F24-saved-redirect-notfound |
+| F25 | NOT RUN (new) | PARTIAL | New text/html with Allowed on is refused with the toast "mime-types 'text/html' already exists" (already seeded: Allowed No, Inactive), so the duplicate check fires first and the never-allow rule cannot be seen. No duplicate created. | H1-F25-refused, H1-F25-html-unchanged |
+| F26 | NOT RUN (new) | PASS | Arabic Media kinds and File types: titles correct, RTL layout, 12 kinds (5 per page) and 52 types (11 pages). Minor: filter chevrons detached from the select boxes (also in English). | H1-F26-mediakinds-ar, H1-F26-mimetypes-ar |
+| Cleanup (F-ter) | NOT RUN (new) | PASS | image/jpeg max size is empty ("-"), IMAGE 10 MB, model/gltf-binary Inactive, QA_DOCS 1 MB Inactive, QA_DOCS/MAIN Inactive, QA_TEST bucket Inactive. | H1-F27-sizelist |
+| F27 | NOT RUN (new) | PASS | Category form: Max file size list (Choose..., 512 KB, 1 MB ... 1 GB, Custom value...), Max files (None, 1, 2, 3, 5, 10, 20, 50, 100, Custom), Image max side (None, 640 ... 8192, Custom). ORDER_FILE shows 10 MB / 100 / 2,048 and "owned by the platform: can be edited but not deactivated". Opened, not saved. | H1-F27, H1-F27-imageside, H1-F27-ORDER_FILE |
+| F28 | NOT RUN (new) | PASS | QA_DOCS: custom 7.5 saved and shows "= 7.5 MB"; 2000 MB is refused ("Max file size: Too large"). Restored to 1 MB ("Changes saved successfully"); it was found at 7.5 MB, left by the r1 run. | H1-F28, H1-F28-restored |
+| F29 | NOT RUN (new) | NOT RUN | HIGH-IMPACT, platform-wide purpose limit. Awaiting an explicit owner yes. | - |
+| H1 | NOT RUN (new) | PASS | /en/ops/jobs: "File Util: purge deleted file bytes" (file-util-purge, module file_util), badge "HQ worker", actual 47 3 * * 0, Enabled, "In sync", Last run "No runs yet"; History says "No runs recorded yet." Edit dialog: "Runs every week on Sunday at 03:47 UTC." Cosmetic: History headers show raw "STARTED - [STARTED_AT]". | H3-H1-list, H3-H1-history |
+| H2 | NOT RUN (new) | NOT RUN | HIGH-IMPACT: changes the platform purge schedule. Awaiting an explicit owner yes. | - |
+| H3 | NOT RUN (new) | PASS | Typing 99 * * * * shows "One of the fields is outside its allowed range."; Save is greyed; "Use default schedule" appears. Cancelled, nothing saved. | H3-H3 |
+| H4 | NOT RUN (new) | NOT RUN | NEW write (Run now plus a tenant file delete). Awaiting owner approval. | - |
+| H5 | NOT RUN (new) | NOT RUN | NEW write (Run now twice). Awaiting owner approval. | - |
+| H6 | NOT RUN (new) | NOT RUN | HIGH-IMPACT: disables the platform job. Awaiting an explicit owner yes. | - |
+| H7 | NOT RUN (new) | NOT RUN | Needs the Render platform-workers service stopped for 15+ minutes (owner or infra only). | - |
+| H8 | NOT RUN (new) | PASS | /ar/ops/jobs: lang ar, dir rtl, sidebar right, badge "عامل المنصة", Arabic title, description, buttons, status and schedule list. Minor: "1 row" untranslated; cron cell reads "0 * * 3 47" in RTL (bidi reorder of 47 3 * * 0). | H3-H8-list, H3-H8-picklist |
+| I1 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| I2 | NOT RUN (new) | NOT RUN | NEW write (QA order status transitions). Awaiting owner approval. | - |
+| I3 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| I4 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| I5 | NOT RUN (new) | BLOCKED | Needs Report issue, which does not exist (see D1); also a NEW write. | - |
+| I6 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| I7 | NOT RUN (new) | PASS | Viewer on order ORD-20261119-00002 ?tab=files: Files panel read-only (no drop zone, 0 file inputs, no upload, edit or delete). Limited reach: no files exist, and Processing/Assembly lists are empty so no stage panel could be opened. | T12-I7-files, T12-I7 |
+| I8 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| I9 | NOT RUN (new) | NOT RUN | Optional direct API call; forbidden by the no-direct-API rule. | - |
+| J1 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| J2 | NOT RUN (new) | NOT RUN | NEW write (QA reject or pickup on a QA order). Awaiting owner approval. | - |
+| J3 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| J4 | NOT RUN (new) | PARTIAL | Viewer: Items & Pieces > View Pieces shows piece buttons labelled "Add photos" with no count; the dialog "Photos of ORD-20261119-00001-1-1" is read-only (No files yet, no drop zone). No piece with photos exists. Button label "Add photos" for a read-only user is misleading. | T12-J4 |
+| J5 | NOT RUN (new) | NOT RUN | NEW write (QA reject or pickup on a QA order). Awaiting owner approval. | - |
+| J6 | NOT RUN (new) | NOT RUN | NEW write (QA reject or pickup on a QA order). Awaiting owner approval. | - |
+| J7 | NOT RUN (new) | NOT RUN | NEW write (QA reject or pickup on a QA order). Awaiting owner approval. | - |
+| J8 | NOT RUN (new) | NOT RUN | NEW write; needs a delivery route and active stop fixture. Awaiting owner approval. | - |
+| J9 | NOT RUN (new) | NOT RUN | Batch T5/T6 not run: depends on the stage fixture (QA order moved through stages), which needs NEW write approval from the owner. | - |
+| K1 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K2 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K3 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K4 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K5 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K6 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K8 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| K7 | - (new row) | NOT RUN | Section K added to the guide at 20:01, after the retest plan was built. Not run. | - |
+| G | NOT RUN | NOT RUN | Informational row (Phase 8 documentation only). | - |
+
+#### Retest r2 — prior findings
+
+Each Round 1 finding is kept as written above; this is its status after the 16:14 deploy.
+
+- **FET-FU-Nov19-HeicRejected** — Retest r2 2026-11-19: **STILL BROKEN.** qa_photo.heic (526-byte stub with a valid ftyp heic header) is still refused; the message is now "An image file qa_photo.heic was refused because it is not an allowed file type here." Retest with a real iPhone HEIC. T2-7.
+- **FET-FU-Nov19-TenantLogoInvalidRequest** — Retest r2 2026-11-19: **STILL BROKEN.** Logo list and upload still return "The request was not valid." (C9, C10). T2-2.
+- **FET-FU-Nov19-IssuesUiMissing** — Retest r2 2026-11-19: **STILL BROKEN.** No Issues tab on the order and no Report issue control on /dashboard/issues; D1 FAIL and D2-D5, D3b, D9, I5 and UIDS PR-02 #15 stay BLOCKED. One-line fix: surface the Issues tab and Report issue (confirm the 0751 UI is in the 16:14 deploy and the permission gate).
+- **FET-FU-Nov19-ProcessingPermissionDenied** — Retest r2 2026-11-19: **FIXED.** /dashboard/processing loads with no sys_order_sources_cd error. T4-PR02-12b.
+- **FET-FU-Nov19-ProductPageAccessFlash** — Retest r2 2026-11-19: **NOT RE-CHECKED.** The product page was not opened as admin in r2; as a viewer the catalog services and pricing pages show "Access not granted ... admin:manage". T12-C7.
+- **FET-FU-Nov19-OrderFilesTabMissingInFullView** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Not repeated in r2.
+- **FET-FU-Nov19-AssemblyNoData** — Retest r2 2026-11-19: **STILL BROKEN.** /dashboard/assembly loads without error but has no orders, so D7 cannot be run. T4-D7.
+- **FET-FU-Nov19-ViewerCatalogDenied** — Retest r2 2026-11-19: **STILL BROKEN.** A viewer still cannot reach a product page (needs admin:manage), so C7 stays BLOCKED. T12-C7.
+- **FET-FU-Nov19-FileListLag** — Retest r2 2026-11-19: **STILL SEEN.** Tab clicks and list updates arrive seconds later (viewer tabs, Add item about 4 s); upload-to-tile lag not re-measured.
+- **FET-FU-Nov19-ViewerKeyboardAfterZoom** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Not repeated in r2.
+- **FET-FU-Nov19-MaintenanceRemainingCountWrong** — Retest r2 2026-11-19: **NOT RE-CHECKED.** No order was deleted in r2 (E7 was a read-only re-check).
+- **FET-FU-Nov19-FileSetupRefusalAsToast** — Retest r2 2026-11-19: **STILL SEEN.** F24 refusal "A blocked file type stays inactive" and the F25 duplicate refusal appear only as toasts. H1-F24-refused-active, H1-F25-refused.
+- **FET-FU-Nov19-GuideStaleBranding** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Not repeated in r2 (C10 re-run as view only).
+- **FET-FU-Nov19-ArabicFileUiBidi** — Retest r2 2026-11-19: **NOT RE-CHECKED.** Not repeated in r2.
+- **FET-FU-Nov19-ArabicFileSetupLeftovers** — Retest r2 2026-11-19: **PARTLY FIXED.** Arabic hub, Media kinds and File types titles and layout are correct (F18, F26). Plan codes and job names in Arabic were not re-checked. H1-F18-hub-ar.
+
+#### Retest r2 — new findings (Financial_Expert_Tester, 2026-11-19)
+
+Code locations were not inspected (remote-only run); fixes are the likely place to look.
+
+- **P1 FET-FU-Nov19-MimeTypeEditNotFound** — Every File type edit page fails: image/jpeg (/en/file-util-config/mime-types/image%2Fjpeg) and image/png show "Not found - This record does not exist or could not be loaded.", also after Ctrl+Shift+R. After creating model/gltf-binary the redirect lands on the same broken page. File types cannot be edited at all (F20, F24). Evidence: H1-F20-notfound, H1-F24-saved-redirect-notfound. Fix: the detail loader probably does not decode the encoded slash in the mime code; decode the id or route by a safe key.
+- **P2 FET-FU-Nov19-PurgeJobNeverRan** — File health shows 8 deleted files whose bytes are not removed (oldest Nov 19 4:43 PM) and "Last bytes removed Nov 19 3:47 AM", yet the purge job (Sunday 03:47 UTC) says "No runs yet". Cannot prove the purge works (E7, H1). Evidence: H3-E7, H3-H1-history. Fix: run the job once (needs owner approval, H4) and explain the 3:47 AM timestamp.
+- **P2 FET-FU-Nov19-FileUrlExpiresIdle** — After about 5.5 minutes idle on the Files tab, opening a file shows a broken image because the signed URL expired and is not refreshed (A18). Fix: refresh the URL on open or on error.
+- **P2 FET-FU-Nov19-GalleryToMainBlocked** — Changing a Gallery image to Main shows "The maximum number of files is reached. Delete one first." and an "invalid option" banner on the pencil (C6). Fix: allow a type swap that does not add a file.
+- **P2 FET-FU-Nov19-ViewerSeesWriteActions** — A viewer (orders:read) still sees New Order, Edit, Start Preparation, Print Label and the public tracking link on the order page, and the piece button says "Add photos" (A16, J4). Evidence: T12-J4. Fix: hide or disable actions the user cannot perform.
+- **P2 FET-FU-Nov19-StageQueuesEmptyForViewer** — As viewer, Processing and Assembly show empty queues ("No orders in processing queue") while five orders are in PROCESSING; Processing first sat on "Loading orders..." for about 20 s (I7). Evidence: T12-I7. Fix: check the read permission scope of the queue endpoints.
+- **P3 FET-FU-Nov19-PdfViewerTiny** — The PDF tile opens in a very small, unreadable viewer area (A10). Evidence: T2-8-pdf.
+- **P3 FET-FU-Nov19-NeverAllowRuleNotObservable** — Creating text/html with Allowed on is stopped by the duplicate check ("mime-types 'text/html' already exists"), so the never-allow rule (F25) cannot be seen in the UI. Fix: test it with a not-yet-seeded dangerous type or run the never-allow check first.
+- **P3 FET-FU-Nov19-MediaKindsEditLocaleMismatch** — The Media kinds pencil from /en opens /ar/file-util-config/media-kinds/IMAGE with English text, and after Back the URL stays /ar with English LTR content (F19). Evidence: H1-F19-after-back. Fix: build edit links with the current locale.
+- **P3 FET-FU-Nov19-FilterChevronDetached** — File types list: the Media kind and Allowed filter chevrons sit detached from their select boxes in English and Arabic (F1, F26). Evidence: H1-F26-mimetypes-ar.
+- **P3 FET-FU-Nov19-FileSetupSaveNoToast** — Saving ticks on a purpose and re-typing a category size gave no visible toast on several saves (the "File types saved" toast showed only on the restore save), so the user cannot tell the save worked (F9, F28).
+- **P3 FET-FU-Nov19-JobHistoryRawHeaders** — Job history dialog shows raw column headers "STARTED - [STARTED_AT]", "STATUS - [STATUS]", "TRIGGER - [TRIGGER_TYPE]", "MESSAGE - [M...". Evidence: H3-H1-history.
+- **P3 FET-FU-Nov19-JobsArabicLeftovers** — Arabic job list: "1 row" in the Last run cells is untranslated and the cron cell reads "0 * * 3 47" (bidi reorder of "47 3 * * 0"). Evidence: H3-H8-list.
+- **P3 FET-FU-Nov19-GuideRowOrderK** — Guide section K lists K8 before K7 and was added after r1 and the r2 plan; new K1-K8 rows are NOT RUN.
+
+#### Retest r2 — recount, leftovers, caveats
+
+**Recount r2 (File Util, 111 rows of Round 1/the 2026-11-19 pull):** PASS 49 / FAIL 6 / PARTIAL 7 / BLOCKED 14 / NOT RUN 35 / NOT PRESENT 0 (total 111).
+
+**Including the 8 rows the owner added after the pull (119 rows now):** PASS 49 / FAIL 6 / PARTIAL 7 / BLOCKED 14 / NOT RUN 43 / NOT PRESENT 0 (total 119).
+
+**By section (PASS / FAIL / PARTIAL / BLOCKED / NOT RUN / NOT PRESENT, incl. new rows):** A: 14/2/2/0/0/0; B: 1/0/0/4/1/0; C: 7/2/1/1/1/0; D: 1/1/0/8/0/0; E: 0/0/1/0/6/0; F: 10/0/1/0/2/0; F-bis: 5/0/0/0/0/0; F-ter: 7/1/1/0/4/0; H: 3/0/0/0/5/0; I: 1/0/0/1/7/0; J: 0/0/1/0/8/0; K: 0/0/0/0/8/0.
+
+**Round 1 for comparison:** PASS 35 / FAIL 2 / PARTIAL 10 / BLOCKED 14 / NOT RUN 11 (72 rows); the 39 rows added between Round 1 and the deploy started as NOT RUN.
+
+**Caveats:** one browser run at a time; several runs were interrupted and were recovered from run notes and screenshots (T3 at the QA-Alt delete, T4, H1). Input lag dropped characters, so fields were re-checked before saving. No camera, no touch emulation, no DevTools, no Arabic keyboard layout on the box. A dark device setting was not tested. Rows marked "awaiting owner approval" are writes that were not on the morning approval list; the owner-approved items (HQ H8 Ocean deactivate and re-activate for about 18 s, E7 read-only re-check) were run.
+
+**Test data left behind (r2):**
+- HQ: file type model/gltf-binary ("QA GLB model", kind OTHER, Allowed No) was created and left Inactive (list 52 to 53 types). Category QA_DOCS was found at 7.5 MB (left by Round 1) and reset to its original 1 MB. Purpose QA_DOCS/MAIN was found with JPEG and PDF ticked (left by Round 1) and reset to none ticked. Bucket QA_TEST, QA_DOCS, QA_DOCS/MAIN and model/gltf-binary are all Inactive. Nothing was deleted (HQ only deactivates).
+- HQ jobs: no schedule was saved and no job was run; the cron field edit (99 * * * *) was cancelled.
+- Supabase: bucket `qa-test-bucket` still exists, and the owner follow-ups for the empty buckets `product-images` and `delivery-pod-evidence` are still open (owner only).
+- Demo Laundry: files uploaded in the T2 run were removed again. That run also deleted 5 older QA files on ORD-20261119-00001 (id e8ec6931-c1a1-4178-8ded-a4320b674bb2) that it had not uploaded, including an earlier qa_logo.png; the owner was told.
+- Orders: nothing was paid or submitted and no status was changed. ORD-20261119-00005 (created 07:39, partly paid) is not from this tester.
+
+### Retest r3 (2026-11-19 20:56–22:30 Asia/Muscat) — File Util
+
+**Retest r3 (2026-11-19 20:56–22:30 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: on 2026-11-19 at 20:47 the owner answered "Yes for all those" to the writes and high-impact items held back in Retest r2 (order-flow writes, F21, F22, F23, F29, H2, H6, F10, K8, B3, PR-07 #19) and the rows the owner added since. Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch; admin and operator) and HQ https://hqsaas.cleanmatex.com (Incognito). Real mouse and keyboard, no direct API calls, no page scripts, no Jest. Credentials: see the credentials file, none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\retest3\shots\` (file names in the Shot column, all `.webp`). Notes: Round 1 and Retest r2 text above is untouched. The last cmx sign-in attempt ended at 22:35 (the 22:30 end of the window is the label given for this round). Only rows with r3 evidence are listed; every other row keeps its r2 status.
+
+**Guide changes found while writing back.** The guide was not edited between the Retest r2 write-back (70,350 B, SHA 9D12D5C6…, 20:38:41) and this write-back; it was re-pulled at 22:37 and was byte-identical to my r2 result. There are no Dev notes.
+
+#### Retest r3 results
+
+Columns: r2 = Retest r2 result, r3 = this retest. Only rows touched in r3 are listed; all other rows keep their r2 result.
+
+| Row | r2 | r3 | Evidence | Shot |
+|---|---|---|---|---|
+| B3 | NOT RUN | BLOCKED | QA order ORD-20261119-00006 (customer Jh Test dev21, Fitness Leggings, item note "QA-20261119-PHOTOS") was created once and paid 1.070 OMR cash (subtotal 1.000 + tax 0.070); it shows Processing, Paid CASH. The photo half is blocked: The New Order "Photo" button opens a "Take a photo" modal that says "The camera is not available. Allow camera access in the browser, or choose a file instead."; Capture is disabled and there is no file chooser (no file input in the page). | O-2.webp |
+| B4 | BLOCKED | BLOCKED | Depends on B3: no photos could be added, so "2 photos saved" was never seen and the order detail has no Files tab among its tabs (Order Master Data … Notes). | O-2.webp |
+| B6 | BLOCKED | BLOCKED | Camera only, same as B3; no file chooser on New Order. | O-2.webp |
+| D2 | BLOCKED | BLOCKED | Still no Issues tab on the order detail and no "Report issue" control on /dashboard/issues ("Order Issues": Open 0 / Issues 0, "No issues yet"); /dashboard/qa shows "No orders pending QA", so there is nothing to reject. | J-3.webp |
+| D5 | BLOCKED | BLOCKED | Still no Issues tab on the order detail and no "Report issue" control on /dashboard/issues ("Order Issues": Open 0 / Issues 0, "No issues yet"); /dashboard/qa shows "No orders pending QA", so there is nothing to reject. | J-3.webp |
+| D6 | BLOCKED | BLOCKED | No transition-only user exists (the operator has both orders:transition and orders:update); not run. | - |
+| D7 | BLOCKED | BLOCKED | /dashboard/assembly shows Pending 0, In Progress 0, QA Pending 0, "No orders in assembly" while /dashboard/processing shows Orders 12, so Record exception cannot be run. | O-5.webp |
+| E1 | NOT RUN | BLOCKED | No orders are out for delivery ("No orders out for delivery", Out for delivery 0, Completed today 0) and the routes show blank or malformed data (see FET-FU-Nov19-DeliveryRoutesMalformed), so no stop could be opened. | J-3.webp |
+| E2 | NOT RUN | BLOCKED | No orders are out for delivery ("No orders out for delivery", Out for delivery 0, Completed today 0) and the routes show blank or malformed data (see FET-FU-Nov19-DeliveryRoutesMalformed), so no stop could be opened. | J-3.webp |
+| E3 | NOT RUN | BLOCKED | No orders are out for delivery ("No orders out for delivery", Out for delivery 0, Completed today 0) and the routes show blank or malformed data (see FET-FU-Nov19-DeliveryRoutesMalformed), so no stop could be opened. | J-3.webp |
+| E4 | NOT RUN | BLOCKED | No orders are out for delivery ("No orders out for delivery", Out for delivery 0, Completed today 0) and the routes show blank or malformed data (see FET-FU-Nov19-DeliveryRoutesMalformed), so no stop could be opened. | J-3.webp |
+| E5 | NOT RUN | BLOCKED | No orders are out for delivery ("No orders out for delivery", Out for delivery 0, Completed today 0) and the routes show blank or malformed data (see FET-FU-Nov19-DeliveryRoutesMalformed), so no stop could be opened. | J-3.webp |
+| E6 | NOT RUN | BLOCKED | No orders are out for delivery ("No orders out for delivery", Out for delivery 0, Completed today 0) and the routes show blank or malformed data (see FET-FU-Nov19-DeliveryRoutesMalformed), so no stop could be opened. | J-3.webp |
+| E7 | PARTIAL | PASS | After the purge run (H4) and a reload, HQ File health shows "Deleted, bytes not removed" 0 (was 8) and "Oldest: never"; "Last bytes removed" Nov 19 2026 8:58 PM by platform-workers purge job. | H-3.webp |
+| F10 | NOT RUN | PASS | Deactivate on ORDER_FILE/DAMAGE confirmed: refused with the toast "This purpose is used by the applications and cannot be deactivated"; the badge stays Active. Final state DAMAGE Active. | F-10-refused.webp, F-10-still-active.webp, F-final-damage-active.webp |
+| F11 | NOT RUN | BLOCKED | No HQ account with only *.view exists (no HQ viewer); not run. | - |
+| F21 | NOT RUN | BLOCKED | HQ File types list shows image/jpeg max size "—"; its edit page /en/file-util-config/mime-types/image%2Fjpeg shows "Not found - This record does not exist or could not be loaded." No change was made. FET-FU-Nov19-MimeTypeEditNotFound is still broken. | F-21-notfound.webp |
+| F22 | NOT RUN | PASS | HQ IMAGE max original 10 MB set to 1 MB ("Changes saved successfully"). Tenant (after a hard refresh) dropzone says "Up to 1.0 MB per file"; QA-2MB.jpg and QA-2MB.png were both refused with the toast "QA-2MB.jpg" / "QA-2MB.png" is larger than 1.0 MB; nothing uploaded. IMAGE restored to 10 MB (10485760). | F-22-hq-set.webp, F-22-jpg-refused.webp, F-22-png-refused.webp, F-22-restored.webp, F-final-image-10mb.webp |
+| F23 | NOT RUN | PASS | HQ VIDEO (was Active, 100 MB) toggled off, Inactive. Tenant purpose "Item video" (dropzone "Up to 50.0 MB"): QA-video.mp4 refused with the row text "This kind of file is not allowed here."; not uploaded. VIDEO reactivated (Active, 100 MB). | F-23-hq-off.webp, F-23-video-refused.webp, F-23-restored.webp, F-final-video-active.webp |
+| F29 | NOT RUN | PASS | QA-9MB.jpg uploaded as Before processing (limit label "Up to 10.0 MB"). HQ AFTER_IMAGE max file size (was None) set to 1 MB. Moving the 9 MB file Before to After processing saved and kept the tile, labelled After processing. A new upload of QA-9MB.jpg as After processing was refused: "QA-9MB.jpg is larger than 1.0 MB." (label "Up to 1.0 MB per file"). AFTER_IMAGE restored to None; QA-9MB.jpg deleted ("File deleted"). | F-29-pre-upload.webp, F-29-hq-set.webp, F-29-moved.webp, F-29-after-refused.webp, F-29-restored.webp, F-cleanup-deleted.webp |
+| H2 | NOT RUN | PARTIAL | Pencil, Common schedules "Every day at 03:00 UTC" (0 3 * * *), Save: toast "Schedule of File Util: purge deleted file bytes was updated."; the row first showed Actual 47 3 * * 0 / Intended 0 3 * * * "Schedule drift", then Actual 0 3 * * * "In sync" about 1 minute later. The audit entry "Schedule or state changed" (Success, System Administrator, Nov 19 2026 9:00:59 PM) has the right actor but its body says "No visible schedule or enabled-state difference was recorded." instead of the old and new cron (FET-FU-Nov19-PurgeAuditNoDiff). Reverted with "Use default schedule" (47 3 * * 0), In sync after about 1 minute. | H-5.webp, H-5b.webp, H-6.webp, H-7a.webp, H-7.webp |
+| H4 | NOT RUN | PASS | Run now, confirm dialog "Run File Util: purge deleted file bytes now?", result "Queued. The HQ worker starts it within about a minute; the result appears in the run history." History: Nov 19 2026 8:58:10 PM, SUCCESS, Manual, "Purged 8 deleted file(s) in 2 batch(es)". | H-1.webp, H-2.webp |
+| H5 | NOT RUN | PASS | With the first Run now still waiting, a second Run now plus confirm was refused with the toast "The job could not be run. A manual run of this job is already waiting or running." The first run then finished at 9:00 PM, Manual, SUCCESS, "Purged 0 deleted file(s) in 1 batch(es)". | H-4.webp |
+| H6 | NOT RUN | PASS | Cron set to * * * * * ("Runs every minute."), then Disable (dialog "Future scheduled runs on * * * * * will stop until the job is enabled again. An execution already in progress will not be cancelled.", toast "File Util: purge deleted file bytes was disabled." about 21:05). About 3 minutes later the row showed Disabled and History had only the 2 Manual runs, no Scheduled run. Run now while Disabled still worked ("Queued…", then Manual SUCCESS 9:10 PM "Purged 0 deleted file(s) in 1 batch(es)"). Caveat: the every-minute cron never showed as Actual while the job was enabled (it synced only after Disable), so "no scheduled run while disabled" is weak evidence. Enabled again, then "Use default schedule". Final state: Enabled, 47 3 * * 0, In sync; History has 3 Manual SUCCESS rows (9:10:11, 9:00:11, 8:58:10 PM), no Scheduled rows. | H-8a.webp, H-8.webp, H-9a.webp, H-9.webp, H-9b.webp, H-9c.webp, H-10.webp, H-FINAL.webp |
+| I2 | NOT RUN | PARTIAL | Processing PASS and Ready PASS. Processing Files panel ("All files of this order", type "Before processing"): qa_photo2.jpg tile "Before processing / Processing · Processing". After "Mark Order Ready" (rack QA-A1; the button showed "Processing…", then toast "Order transitioned successfully") the Ready detail Files panel tile reads "After processing / Ready · Ready for pickup", next to the earlier Processing tile. Assembly, QA and Packing are BLOCKED: Processing only offers "Complete processing (Usual next step · Moves to Ready)", "Hold order work" and "Mark Order Ready" (FET-FU-Nov19-NoAssemblyQaPackingPath). | O-3.webp, O-5.webp, O-4.webp |
+| I5 | BLOCKED | BLOCKED | Still no Issues tab on the order detail and no "Report issue" control on /dashboard/issues ("Order Issues": Open 0 / Issues 0, "No issues yet"); /dashboard/qa shows "No orders pending QA", so there is nothing to reject. | J-3.webp |
+| J2 | NOT RUN | BLOCKED | Still no Issues tab on the order detail and no "Report issue" control on /dashboard/issues ("Order Issues": Open 0 / Issues 0, "No issues yet"); /dashboard/qa shows "No orders pending QA", so there is nothing to reject. | J-3.webp |
+| J5 | NOT RUN | BLOCKED | Ready detail of ORD-20261119-00006 (Ready, rack QA-A1, 1.070 OMR, Paid in full): "Not yet available for pickup". Pickup and collection card: "Customer pickup — Counter pickup is not configured for this workflow profile. Enable its pickup handover action before recording the handover." No pickup or handover button and no photo dialog; the only next step is "Release for delivery (Moves to Out for delivery)", not clicked. A red toast showed `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. The Files panel showed 4 skeleton tiles and no "Pickup proof" tiles. The order stays READY. (FET-FU-Nov19-CounterPickupNotConfigured) | J-1.webp, J-2.webp |
+| J6 | NOT RUN | BLOCKED | Depends on pickup (J5): "Counter pickup is not configured for this workflow profile", so no handover could be started on ORD-20261119-00006. | J-1.webp |
+| J7 | NOT RUN | BLOCKED | Depends on pickup (J5): "Counter pickup is not configured for this workflow profile", so no handover could be started on ORD-20261119-00006. | J-1.webp |
+| J8 | NOT RUN | BLOCKED | /dashboard/delivery: Out for delivery 0, Completed today 0, "No orders out for delivery". Routes: 3 cards each reading "Status: / Stops: / Invalid Date / Driver: Unassigned / Open manifest" (blank data). RT-2026-002 opens as Completed, 1 of 1 stops, Driver Two, Second Branch, Sep 5 2026, with a "Stops" heading and no stop rows and no Files panel. No active stop, so no delivery-proof test. | J-3.webp |
+| K1 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K2 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K3 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K4 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K5 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K6 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K7 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+| K8 | NOT RUN | NOT RUN | Not run: cmx returned Cloudflare 524 timeouts from 22:09, and admin sign-in failed twice with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. Stopped after 2 attempts per the sign-in rule (FET-FU-Nov19-Cmx524SignInHtml). | 8-signin-fail2.webp |
+
+#### Retest r3 — prior findings
+
+- **FET-FU-Nov19-PurgeJobNeverRan** — Retest r3 2026-11-19: **PARTLY FIXED.** Run now works: the 20:58 run purged 8 deleted files and File health fell from 8 to 0, and 3 Manual runs are in the history. A Scheduled run was never observed (H6 caveat), so the weekly schedule itself is unproven. H-1, H-2, H-3, H-10.
+- **FET-FU-Nov19-MimeTypeEditNotFound** — Retest r3 2026-11-19: **STILL BROKEN.** The image/jpeg edit page still shows "Not found - This record does not exist or could not be loaded." (F21). F-21-notfound.
+- **FET-FU-Nov19-IssuesUiMissing** — Retest r3 2026-11-19: **STILL BROKEN.** No Issues tab on the order and no Report issue control; D2, D5, I5 and J2 stay BLOCKED.
+- **FET-FU-Nov19-AssemblyNoData** — Retest r3 2026-11-19: **STILL BROKEN.** /dashboard/assembly shows 0, 0, 0 and "No orders in assembly" while Processing shows 12 orders (D7).
+- **FET-FU-Nov19-FileListLag** — Retest r3 2026-11-19: **STILL SEEN.** The site was very slow: the Ready list was empty on first load, and the Ready detail Files panel showed skeleton tiles.
+
+#### Retest r3 — new findings (Financial_Expert_Tester, 2026-11-19)
+
+- **P1 FET-FU-Nov19-CounterPickupNotConfigured** — On a paid READY order the pickup card says "Counter pickup is not configured for this workflow profile. Enable its pickup handover action before recording the handover." and offers no handover button, so pickup with proof photos, the pickup lock and the reject path cannot be used (J5, J6, J7). Evidence: J-1. Fix: enable the pickup handover action in the Demo Laundry workflow profile (or add it to the default profile).
+- **P1 FET-FU-Nov19-Cmx524SignInHtml** — From 22:09 cmx requests hung with Cloudflare "A timeout occurred", error 524, for about 9 minutes (an anonymous /login still answered in 0.4 s); the admin session was lost (22:18 "session expired") and two admin sign-ins in a row spun on "Signing in…" for about 4 minutes and ended in the banner `Unexpected token '<', "<!DOCTYPE "... is not valid JSON` (the sign-in POST returned the HTML error page). A similar red toast appeared on the Ready detail at 21:53. It may be deploy-related. Evidence: 8-signin-fail2. Fix: handle a non-JSON response with a readable error, and find what stalls the origin.
+- **P2 FET-FU-Nov19-NoAssemblyQaPackingPath** — A new POS order goes straight to Processing, and the Processing page only offers "Complete processing (Moves to Ready)", "Hold order work" and "Mark Order Ready". There is no step into Assembly, QA or Packing, so those I2 stages and the QA queue cannot be reached from the UI. Evidence: O-3, O-5.
+- **P2 FET-FU-Nov19-DeliveryRoutesMalformed** — /dashboard/delivery route cards read "Status: / Stops: / Invalid Date / Driver: Unassigned / Open manifest" with blank values, and an opened completed route (RT-2026-002) shows the "Stops" heading with no stop rows and no Files panel (E1 to E6, J8). Evidence: J-3.
+- **P2 FET-FU-Nov19-NewOrderPhotoCameraOnly** — The New Order "Photo" button opens "Take a photo" and says "The camera is not available. Allow camera access in the browser, or choose a file instead.", but there is no file chooser, so photos cannot be added without a camera (B3, B4, B6). Evidence: O-2. Fix: add the "choose a file" input the message promises.
+- **P3 FET-FU-Nov19-PurgeAuditNoDiff** — The audit entry for a purge-job schedule change shows the actor but the body "No visible schedule or enabled-state difference was recorded." instead of the old and new cron (H2). Evidence: H-6.
+- **P3 FET-FU-Nov19-PosSessionCheckFirstLoad** — The first load of New Order showed the red message "POS session could not be checked / Refresh the Session Hub, then start or resume an open POS session before creating an order." After a hard refresh it asked for a branch instead and the Session Hub chip read "Open". Evidence: ORD notes 21:35.
+- **P3 FET-FU-Nov19-StartPrepNotAvailable** — The order opened from the Processing queue shows a "Preparation" page that says "This order is not available for preparation / Preparation is only available for orders in intake or preparing status. Current status: Processing." for an order the POS already put in Processing. Evidence: O-3.
+
+#### Retest r3 — recount, leftovers, caveats
+
+**Recount r3 (File Util, 119 rows now; r3 status changes applied on top of the r2 counts):** PASS 57 / FAIL 6 / PARTIAL 8 / BLOCKED 28 / NOT RUN 20 / NOT PRESENT 0 (total 119).
+
+**Changes from r2 (PASS 49 / FAIL 6 / PARTIAL 7 / BLOCKED 14 / NOT RUN 43):** to PASS: H4, H5, H6, F10, F22, F23, F29 (from NOT RUN) and E7 (from PARTIAL), 8 rows; to PARTIAL: H2, I2 (from NOT RUN), 2 rows, minus E7; to BLOCKED (from NOT RUN): B3, E1 to E6, F11, F21, J2, J5, J6, J7, J8, 14 rows. Unchanged: B4, B6, D2, D5, D6, D7, I5 stay BLOCKED; the 6 FAIL rows stay FAIL; K1 to K8 stay NOT RUN. The r2 by-section table was not re-tallied.
+
+**Caveats:** one browser run at a time; site input lag dropped characters, so fields were re-checked before saving; uploads used the file-upload tool because the native chooser was not visible on the box desktop. No camera on the box. The H6 and H2 timings come from screenshots about a minute apart.
+
+**Test data left behind (r3):**
+- HQ settings were all restored to their original values and verified: IMAGE max original 10 MB, VIDEO Active (100 MB), AFTER_IMAGE max size None, DAMAGE Active. image/jpeg was never changed.
+- HQ jobs: file-util-purge is Enabled, schedule 47 3 * * 0, In sync. Its history now has 3 Manual SUCCESS runs (8:58:10, 9:00:11 and 9:10:11 PM) and the audit has the manual runs, the schedule changes and the Disable and Enable entries. The first run purged the 8 deleted files that were waiting (their bytes are gone).
+- Demo Laundry: QA order ORD-20261119-00006 (customer Jh Test dev21, Fitness Leggings, 1.070 OMR paid in cash, no refund) is now READY on rack QA-A1 with 2 files (qa_photo2.jpg as Before processing and as After processing). It was not handed over. QA-9MB.jpg (F29) was deleted again. The operator appearance was set to Light at 21:59 and restored to "Same as this device" at 22:03; Chrome's appearance mode was set to Dark and Light for M14 and restored to Device.
+- Sign-ins: the operator signed in OK twice with no failures; the admin had 2 failed attempts at 22:25 to 22:35 (server returned HTML, not a credential rejection) and the account was left alone. The admin is not signed in on the box; K1 to K8 and the rest of the owner's new rows are still to run once cmx answers again.
+
+### Retest r4 (2026-11-20 00:52–01:12 Asia/Muscat) — File Util
+
+**Retest r4 (2026-11-20 00:52–01:12 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: at 00:51 the owner said "try now" after the cmx outage that stopped Retest r3 (Cloudflare 524 from 22:09). This round runs the rows Retest r3 could not reach. Environment: remote only, https://cmx.cleanmatex.com (Demo Laundry, Main Branch, admin). Signed in on the first attempt; no 524 errors. Real mouse and keyboard, no direct API calls, no page scripts, no Jest. Credentials: none recorded here. Screenshots: `C:\Users\JHNLP\qa-20261119\retest4\shots\` (`.webp`). Writes in this round: one photo (qa_photo2.jpg, note "QA r4 note") added to QA order ORD-20261119-00006; Appearance set to Dark and Light and restored to its original "Same as this device" / "Same as the Organization" / "Medium"; a New Order cart opened to the payment view and cancelled without paying (no order created). Branding, settings and other orders were not changed. Earlier rounds above are untouched.
+
+**Guide changes found while writing back.** The guide was not edited since my Retest r3 write-back (91,127 B, SHA 3FB15565…, 22:40:13); re-pulled at 01:15 it is byte-identical. There are no Dev notes. This section is appended after the existing text.
+
+#### Retest r4 results
+
+Columns: r3 = Retest r3 result, r4 = this retest. Only rows touched in r4 are listed.
+
+| Row | r3 | r4 | Evidence | Shot |
+|---|---|---|---|---|
+| K1 | NOT RUN | PASS | Demo Laundry has piece tracking ON, so the piece-tracking-off case is not available here: on ORD-20261119-00006 Ready detail and Items & Pieces, and on Processing items, there is only "View Pieces" and no item-level "Add photos". Consistent with K3; the off case needs a tenant with tracking off. | - |
+| K2 | NOT RUN | NOT RUN | Needs a tenant with piece tracking off (no item-level "Add photos" in Demo Laundry). | - |
+| K3 | NOT RUN | PASS | Ready detail piece "Piece 1 ORD-20261119-00006-1-1" has its own "Add photos" button and the item has none; same on Processing detail of ORD-20261119-00003 (3 pieces, each with "Add photos"). | - |
+| K4 | NOT RUN | BLOCKED | Assembly shows all counters 0 and "لا توجد طلبات في التجميع" (no orders in assembly). Same blocker as I2 (no path into Assembly). | - |
+| K5 | NOT RUN | NOT RUN | Needs a user without `orders:read`. | - |
+| K6 | NOT RUN | PARTIAL | Arabic piece button "إضافة صور"; dialog title "صور ORD-20261119-00006-1-1", RTL, with "الملفات", "نوع الملف", "التقاط صورة", "لا توجد ملفات بعد". The item-level dialog does not exist with tracking on. | R4-K6-1-ar-piece-dialog.webp |
+| K7 | NOT RUN | PARTIAL | QA screen: "No orders pending QA", so the "Quality check" default was not checked. Ready Files panel on ORD-20261119-00006: default type "After processing"; line "The file type and note are used for the files you add next; they are saved when you drop, choose or photograph a file. To change a saved file, use the pencil on its tile." Typed "QA r4 note", added qa_photo2.jpg: the note box emptied and the tile reads "After processing / Ready · Ready for pickup / QA r4 note". Pencil and red trash on hover. A real click on the drop zone did not open the file picker (file chooser tool used, as in r3). | R4-K7-1-before.webp, R4-K7-2-after.webp |
+| K8 | NOT RUN | PARTIAL | Checked EN and AR (RTL), Light and Dark. OK: type select and note on one row; "Take photo" beside the drop zone; tiles are bordered cards; pencil (white) and trash (red) on hover; dark tiles fine. Not as described: no count badge by "Files"; the drop zone is a ~90 px dashed box, not a slim bar; the file type is plain text under the image, not a chip on it; no file size on any tile; when a note is set it replaces the file name (P3 FET-FU-Nov20-TileNoNameSize). PDF/other-file tile not checked (none on this order). The order Files tab defaults to "Before processing". | R4-K8-1-en-light-hover.webp, R4-K8-2-ar-light.webp, R4-K8-3-en-dark.webp, R4-K8-4-ar-dark.webp |
+
+**New findings in r4**
+
+- **P3 FET-FU-Nov20-TileNoNameSize** — File tiles show no file size, and a note replaces the file name; no count badge by the Files title; type is not a chip on the image (K8).
+- **P3 FET-FU-Nov20-DropZoneClickNoPicker** — A real click on the Files drop zone did not open the file picker (K7); still seen after r3.
+
+**r4 tally for K1–K8:** PASS 2 (K1, K3) · PARTIAL 3 (K6, K7, K8) · BLOCKED 1 (K4) · NOT RUN 2 (K2, K5).

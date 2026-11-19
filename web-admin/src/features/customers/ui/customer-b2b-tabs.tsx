@@ -59,7 +59,7 @@ export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabPro
               <div>
                 <p className="font-medium">{c.contactName || c.contactName2 || '—'}</p>
                 <p className="text-sm text-muted-foreground">
-                  {c.email || c.phone || '—'}
+                  <bdi dir="ltr" className="tabular-nums">{c.email || c.phone || '—'}</bdi>
                   {c.isPrimary && (
                     <span className="ms-2 text-primary-text">({t('primaryContact')})</span>
                   )}

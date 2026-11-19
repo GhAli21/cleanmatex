@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxButton, CmxTextarea, Label } from '@ui/primitives';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 
 interface VoucherCancelDialogProps {
@@ -38,11 +38,10 @@ export function VoucherCancelDialog({ open, onClose, onConfirm }: VoucherCancelD
           <CmxDialogTitle>{t('actions.cancel')}</CmxDialogTitle>
         </CmxDialogHeader>
         <div className="p-4">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">
+          <Label className="mb-1.5 block">
             {t('cancellationReason')}
-          </label>
-          <textarea
-            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          </Label>
+          <CmxTextarea
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}

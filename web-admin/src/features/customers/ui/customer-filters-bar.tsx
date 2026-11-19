@@ -7,6 +7,8 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { Search, X } from 'lucide-react'
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import { useRTL } from '@/lib/hooks/useRTL'
 import type { CustomerSearchParams, CustomerType } from '@/lib/types/customer'
 
@@ -76,130 +78,103 @@ export default function CustomerFiltersBar({
   // No frame or margin of its own: CmxCrudPageShell frames the filters slot.
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         {/* Search */}
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-              <svg
-                className="h-5 w-5 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t('search')}
-              dir={isRTL ? 'rtl' : 'ltr'}
-              className="block w-full ps-10 pe-3 py-2 border border-border rounded-md leading-5 bg-card placeholder:text-muted-foreground focus:outline-none focus:placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:border-ring sm:text-sm"
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput('')}
-                className="absolute inset-y-0 end-0 pe-3 flex items-center"
-              >
-                <svg
-                  className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        <div className="flex-1 max-w-md relative">
+          <CmxInput
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder={t('search')}
+            dir={isRTL ? 'rtl' : 'ltr'}
+            leftIcon={<Search className="h-5 w-5" />}
+            rightIcon={
+              searchInput ? (
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setSearchInput('')}
+                  className="h-6 w-6 p-0 pointer-events-auto"
+                  aria-label={t('clear')}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
+                  <X className="h-4 w-4" />
+                </CmxButton>
+              ) : undefined
+            }
+          />
         </div>
 
         {/* Filters */}
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-4">
           {/* Type Filter */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-foreground">{t('type')}:</label>
-            <select
-              value={filters.type || 'all'}
-              onChange={(e) =>
-                handleTypeFilter(e.target.value as CustomerType | 'all')
-              }
-              dir={isRTL ? 'rtl' : 'ltr'}
-              className="block w-32 ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
-            >
-              <option value="all">{t('all')}</option>
-              <option value="guest">{t('types.guest')}</option>
-              <option value="stub">{t('types.stub')}</option>
-              <option value="walk_in">{t('types.walk_in')}</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <Label className="shrink-0">{t('type')}:</Label>
+            <div className="w-32">
+              <CmxSelect
+                value={filters.type || 'all'}
+                onChange={(e) =>
+                  handleTypeFilter(e.target.value as CustomerType | 'all')
+                }
+                dir={isRTL ? 'rtl' : 'ltr'}
+                options={[
+                  { value: 'all', label: t('all') },
+                  { value: 'guest', label: t('types.guest') },
+                  { value: 'stub', label: t('types.stub') },
+                  { value: 'walk_in', label: t('types.walk_in') },
+                ]}
+              />
+            </div>
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-foreground">{t('status')}:</label>
-            <select
-              value={filters.status || 'all'}
-              onChange={(e) =>
-                handleStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
-              }
-              dir={isRTL ? 'rtl' : 'ltr'}
-              className="block w-32 ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
-            >
-              <option value="all">{t('all')}</option>
-              <option value="active">{t('active')}</option>
-              <option value="inactive">{t('inactive')}</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <Label className="shrink-0">{t('status')}:</Label>
+            <div className="w-32">
+              <CmxSelect
+                value={filters.status || 'all'}
+                onChange={(e) =>
+                  handleStatusFilter(e.target.value as 'active' | 'inactive' | 'all')
+                }
+                dir={isRTL ? 'rtl' : 'ltr'}
+                options={[
+                  { value: 'all', label: t('all') },
+                  { value: 'active', label: t('active') },
+                  { value: 'inactive', label: t('inactive') },
+                ]}
+              />
+            </div>
           </div>
 
           {/* Sort By */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-foreground">{t('sortBy')}</label>
-            <select
-              value={filters.sortBy || 'createdAt'}
-              onChange={(e) => handleSortChange(e.target.value)}
-              dir={isRTL ? 'rtl' : 'ltr'}
-              className="block w-40 ps-3 pe-10 py-2 text-base border-border focus:outline-none focus:ring-ring focus:border-ring sm:text-sm rounded-md"
-            >
-              <option value="createdAt">{t('newestFirst')}</option>
-              <option value="name">{t('nameAZ')}</option>
-              <option value="lastOrderAt">{t('recentOrder')}</option>
-              <option value="totalOrders">{t('mostOrders')}</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <Label className="shrink-0">{t('sortBy')}</Label>
+            <div className="w-40">
+              <CmxSelect
+                value={filters.sortBy || 'createdAt'}
+                onChange={(e) => handleSortChange(e.target.value)}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                options={[
+                  { value: 'createdAt', label: t('newestFirst') },
+                  { value: 'name', label: t('nameAZ') },
+                  { value: 'lastOrderAt', label: t('recentOrder') },
+                  { value: 'totalOrders', label: t('mostOrders') },
+                ]}
+              />
+            </div>
           </div>
 
           {/* Clear Filters */}
           {hasActiveFilters && (
-            <button
+            <CmxButton
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={handleClearFilters}
-              className="inline-flex items-center px-3 py-2 border border-border shadow-sm text-sm leading-4 font-medium rounded-md text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring"
             >
-              <svg
-                className="h-4 w-4 -ms-0.5 me-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="h-4 w-4 me-1.5" aria-hidden="true" />
               {t('clear')}
-            </button>
+            </CmxButton>
           )}
         </div>
       </div>

@@ -40,6 +40,8 @@ export const ImagesOnly: Story = {
   args: { acceptMimeTypes: ['image/jpeg', 'image/png', 'image/webp'], maxSizeBytes: 5 * 1048576, hint: 'JPEG, PNG or WebP · up to 5 MB' },
 }
 export const SingleFile: Story = { args: { multiple: false } }
+// Slim one-row bar, as used inside the File Util panel.
+export const Compact: Story = { args: { compact: true } }
 export const Disabled: Story = { args: { disabled: true } }
 // RTL variant — verifies Arabic layout direction
 export const Arabic: Story = { parameters: { rtl: true } }

@@ -7,10 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
 import { ShieldCheck } from 'lucide-react'
 
-import { CmxButton } from '@ui/primitives'
-import { CmxInput } from '@ui/primitives'
-import { CmxSwitch } from '@ui/primitives'
-import { CmxSkeleton } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSkeleton, CmxSwitch, Label } from '@ui/primitives'
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card'
 import {
   CmxSelectDropdown,
@@ -419,7 +416,7 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium">{label}</label>
+      <Label>{label}</Label>
       <CmxSelectDropdown value={value} onValueChange={onChange}>
         <CmxSelectDropdownTrigger>
           <CmxSelectDropdownValue />
@@ -450,7 +447,7 @@ function NumberField({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium">{label}</label>
+      <Label>{label}</Label>
       <CmxInput
         type="number"
         step="0.001"

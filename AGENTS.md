@@ -236,6 +236,7 @@ npm run prisma:pull                # Sync Prisma from repo root (no cd web-admin
 
 ## UI Quick Rules
 
+- **Design system rules:** `docs/dev/rules/cmx-design-system.md` (tokens, dark mode, RTL, components, states, a11y, how to check and fix). Check with `cd web-admin && npm run check:ui`; review with the `/cmx-ui-design-review` skill before UI work is done.
 - **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`, `@ui/patterns`. Do **not** use `@ui/compat` (removed).
 - **Do NOT use raw `<button>`, `<input>`, `<select>`, `<form>`, `<dialog>`, `<table>`** in feature code — always use the Cmx wrapper.
 - **Do NOT import from `@/components/ui` or `@ui/compat`** — ESLint will fail the build.

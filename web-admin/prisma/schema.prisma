@@ -1796,6 +1796,7 @@ model org_tenants_mst {
   org_tax_lines_tr                 org_tax_lines_tr[]
   org_tax_periods_mst              org_tax_periods_mst[]
   org_tax_rules_cf                 org_tax_rules_cf[]
+  org_tenant_extra_config_cf       org_tenant_extra_config_cf[]
   org_tenant_order_sources_cf      org_tenant_order_sources_cf[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
   org_tenant_ui_theme_dtl          org_tenant_ui_theme_dtl[]
@@ -18976,6 +18977,101 @@ model sys_ops_job_req_tr {
   sys_ops_job_cf sys_ops_job_cf @relation(fields: [job_code], references: [job_code], onUpdate: NoAction, map: "fk_ojr_job")
 
   @@index([job_code, status, created_at], map: "idx_ojr_job_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ntf_wkr_canary_run_cf {
+  run_id                String    @id @db.Uuid
+  status                String    @default("ARMED")
+  claims_used           Int       @default(0) @db.SmallInt
+  claimed_tenant_org_id String?   @db.Uuid
+  claimed_outbox_id     String?   @db.Uuid
+  claimed_claim_token   String?   @db.Uuid
+  claimed_by            String?
+  claimed_at            DateTime? @db.Timestamptz(6)
+  closed_at             DateTime? @db.Timestamptz(6)
+  close_reason          String?
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  created_by            String?
+  created_info          String?
+  updated_at            DateTime? @db.Timestamptz(6)
+  updated_by            String?
+  updated_info          String?
+  rec_status            Int       @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?
+  is_active             Boolean   @default(true)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_tenant_extra_config_cf {
+  id                         String                     @id(map: "pk_org_tnt_extra_cfg_cf") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id              String                     @db.Uuid
+  config_key                 String
+  config_value               String
+  created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                  @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                        @default(0)
+  deleted_at                 DateTime?                  @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_status                 Int                        @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                    @default(true)
+  sys_tenant_extra_config_cf sys_tenant_extra_config_cf @relation(fields: [config_key], references: [config_key], onUpdate: Restrict, map: "fk_otec_sys_key")
+  org_tenants_mst            org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_otec_tenant")
+
+  @@unique([id, tenant_org_id], map: "uq_otec_id_tenant")
+  @@index([config_key], map: "idx_otec_sys_key")
+  @@index([tenant_org_id, rec_status, config_key], map: "idx_otec_tnt_list")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_tenant_extra_config_cf {
+  config_key                 String                       @id(map: "pk_sys_tnt_extra_cfg_cf")
+  category_code              String
+  name                       String
+  name2                      String?
+  description                String?
+  description2               String?
+  value_type                 String
+  default_value              String
+  allowed_values_json        Json?
+  validation_regex           String?
+  min_num                    Decimal?                     @db.Decimal
+  max_num                    Decimal?                     @db.Decimal
+  is_editable_by_tenant      Boolean                      @default(true)
+  plan_flag_key              String?
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                    @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                          @default(0)
+  deleted_at                 DateTime?                    @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_status                 Int                          @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                      @default(true)
+  org_tenant_extra_config_cf org_tenant_extra_config_cf[]
+
   @@schema("public")
 }
 

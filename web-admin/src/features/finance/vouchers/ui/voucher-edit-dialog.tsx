@@ -4,7 +4,20 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
-import { CmxButton, CmxMoneyField } from '@ui/primitives';
+import {
+  CmxButton,
+  CmxInput,
+  CmxMoneyField,
+  CmxTextarea,
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives';
 import { CmxAuditInfoCard } from '@ui/data-display';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { parseMoneyDraft } from '@/lib/money/money-draft';
@@ -446,33 +459,33 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                       <>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                            <Label className="mb-1.5 block">
                               {t('voucherDate')}
-                            </label>
-                            <input
+                            </Label>
+                            <CmxInput
                               type="date"
                               value={form.voucher_date}
                               onChange={setField('voucher_date')}
-                              className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                              dir="ltr"
+                              className="tabular-nums"
                             />
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                            <Label className="mb-1.5 block">
                               {t('party')}
-                            </label>
-                            <input
+                            </Label>
+                            <CmxInput
                               type="text"
                               value={form.party_name}
                               onChange={(e) => { setField('party_name')(e); setFieldErrors((p) => ({ ...p, party_name: undefined })); }}
                               maxLength={250}
-                              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-destructive focus:border-destructive focus:ring-destructive' : 'border-border focus:border-ring focus:ring-ring'}`}
+                              error={fieldErrors.party_name}
                             />
-                            {fieldErrors.party_name && <p className="mt-1 text-xs text-danger-text">{fieldErrors.party_name}</p>}
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                            <Label className="mb-1.5 block">
                               {t('declaredTotal')}
-                            </label>
+                            </Label>
                             <CmxMoneyField
                               value={parseMoneyDraft(form.total_amount) || null}
                               draftValue={form.total_amount}
@@ -485,26 +498,24 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                           </div>
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-sm font-medium text-foreground">
+                          <Label className="mb-1.5 block">
                             {t('description')}
-                          </label>
-                          <input
+                          </Label>
+                          <CmxInput
                             type="text"
                             value={form.description}
                             onChange={setField('description')}
                             maxLength={500}
-                            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </div>
                         <div>
-                          <label className="mb-1.5 block text-sm font-medium text-foreground">
+                          <Label className="mb-1.5 block">
                             {t('notes')}
-                          </label>
-                          <textarea
+                          </Label>
+                          <CmxTextarea
                             value={form.notes}
                             onChange={setField('notes')}
                             rows={2}
-                            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </div>
                         <div className="flex justify-end">
@@ -568,61 +579,63 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-border text-sm">
-                          <thead className="bg-muted">
-                            <tr>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Table className="min-w-full divide-y divide-border text-sm">
+                          <TableHeader className="bg-muted">
+                            <TableRow>
+                              <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 #
-                              </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              </TableHead>
+                              <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('lineRole')}
-                              </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              </TableHead>
+                              <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('paymentMethod')}
-                              </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              </TableHead>
+                              <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('direction')}
-                              </th>
-                              <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              </TableHead>
+                              <TableHead className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('amount')}
-                              </th>
-                              <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              </TableHead>
+                              <TableHead className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 {t('description')}
-                              </th>
-                              {isDraft && <th className="w-12 px-4 py-3" />}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border bg-card">
+                              </TableHead>
+                              {isDraft && <TableHead className="w-12 px-4 py-3" />}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border bg-card">
                             {lines.map((line) => (
-                              <tr key={line.id} className="hover:bg-muted">
-                                <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                              <TableRow key={line.id} className="hover:bg-muted">
+                                <TableCell className="px-4 py-3 tabular-nums text-muted-foreground">
                                   {line.line_no}
-                                </td>
-                                <td className="px-4 py-3 font-medium text-foreground">
+                                </TableCell>
+                                <TableCell className="px-4 py-3 font-medium text-foreground">
                                   {getRoleLabel(line.line_role)}
-                                </td>
-                                <td className="px-4 py-3 text-muted-foreground">
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-muted-foreground">
                                   {line.payment_method_code ?? '—'}
-                                </td>
-                                <td className="px-4 py-3">
+                                </TableCell>
+                                <TableCell className="px-4 py-3">
                                   <VoucherDirectionBadge direction={line.direction} />
-                                </td>
-                                <td
+                                </TableCell>
+                                <TableCell
                                   className={`px-4 py-3 text-end font-mono font-medium tabular-nums ${
                                     line.direction === 'OUT'
                                       ? 'text-danger-text'
                                       : 'text-success-text'
                                   }`}
                                 >
-                                  {line.amount.toLocaleString(isRtl ? 'ar' : 'en', {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </td>
-                                <td className="max-w-[12rem] truncate px-4 py-3 text-muted-foreground">
+                                  <bdi dir="ltr">
+                                    {line.amount.toLocaleString(isRtl ? 'ar' : 'en', {
+                                      minimumFractionDigits: 2,
+                                    })}
+                                  </bdi>
+                                </TableCell>
+                                <TableCell className="max-w-[12rem] truncate px-4 py-3 text-muted-foreground">
                                   {line.description ?? '—'}
-                                </td>
+                                </TableCell>
                                 {isDraft && (
-                                  <td className="px-4 py-3">
+                                  <TableCell className="px-4 py-3">
                                     <CmxConfirmDialog
                                       title={tCommon('delete')}
                                       description={t('deleteLineConfirm', { no: line.line_no })}
@@ -642,17 +655,19 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                                         </CmxButton>
                                       }
                                     />
-                                  </td>
+                                  </TableCell>
                                 )}
-                              </tr>
+                              </TableRow>
                             ))}
-                          </tbody>
-                          <tfoot className="border-t border-border bg-muted">
-                            <tr>
-                              <td colSpan={4} className="px-4 py-3" />
-                              <td className="px-4 py-3 text-end tabular-nums">
+                          </TableBody>
+                          <TableFooter className="border-t border-border bg-muted">
+                            <TableRow>
+                              <TableCell colSpan={4} className="px-4 py-3" />
+                              <TableCell className="px-4 py-3 text-end tabular-nums">
                                 <div className="font-mono font-semibold text-foreground">
-                                  {linesTotal.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
+                                  <bdi dir="ltr">
+                                    {linesTotal.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
+                                  </bdi>
                                 </div>
                                 {declaredAmt > 0 && (
                                   <div className={`mt-0.5 text-xs font-medium ${isBalanced ? 'text-success-text' : 'text-warning-text'}`}>
@@ -661,11 +676,11 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                                       : `⚠ ${t('balanceOff', { diff: Math.abs(linesTotal - declaredAmt).toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 }) })}`}
                                   </div>
                                 )}
-                              </td>
-                              <td colSpan={isDraft ? 2 : 1} className="px-4 py-3" />
-                            </tr>
-                          </tfoot>
-                        </table>
+                              </TableCell>
+                              <TableCell colSpan={isDraft ? 2 : 1} className="px-4 py-3" />
+                            </TableRow>
+                          </TableFooter>
+                        </Table>
                       </div>
                     )}
                   </CmxCardContent>

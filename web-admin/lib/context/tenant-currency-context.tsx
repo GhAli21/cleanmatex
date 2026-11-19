@@ -16,6 +16,7 @@ import {
 } from 'react';
 import { useLocale } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantExtraConfig } from '@/lib/context/tenant-extra-config-context';
 import { getCurrencyConfigOutcomeAction } from '@/app/actions/tenant/get-currency-config';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import {
@@ -79,6 +80,7 @@ function toMoneyLocale(locale: string): MoneyLocale {
  */
 export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
   const { currentTenant, user, isLoading } = useAuth();
+  const extraConfig = useTenantExtraConfig();
   const tenantId = currentTenant?.tenant_id;
   const userId = user?.id;
   const intlLocale = useLocale();
@@ -153,8 +155,10 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
         currencyCode: overrideCurrencyCode || currencyCode,
         decimalPlaces,
         locale: moneyLocale,
+        numberScript: extraConfig.numberScript,
+        groupingLocale: extraConfig.numberGroupingLocale,
       }),
-    [currencyCode, decimalPlaces, moneyLocale],
+    [currencyCode, decimalPlaces, moneyLocale, extraConfig.numberScript, extraConfig.numberGroupingLocale],
   );
 
   const formatMoneyWithCodeCb = useCallback(
@@ -163,8 +167,10 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
         currencyCode: overrideCurrencyCode || currencyCode,
         decimalPlaces,
         locale: moneyLocale,
+        numberScript: extraConfig.numberScript,
+        groupingLocale: extraConfig.numberGroupingLocale,
       }),
-    [currencyCode, decimalPlaces, moneyLocale],
+    [currencyCode, decimalPlaces, moneyLocale, extraConfig.numberScript, extraConfig.numberGroupingLocale],
   );
 
   const roundMoney = useCallback(

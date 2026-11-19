@@ -12,6 +12,8 @@ Copy these files to other React 19 + Next.js + ESLint projects. Names are **fram
 | `no-silent-money-mutation.md` | Canonical money-field behavior rule: prevent first, explain inline, never rewrite typed money as a side effect |
 | `order-fin-rules.md` | Order money: snapshot is the source of truth, one calculator, one outstanding formula, no UI arithmetic, `OrderFinancialView` for every display, public data only via the server projection |
 | `integration-contracts.md` | CleanMateX-specific (do not copy unless needed) |
+| `cmx-design-system.md` | CleanMateX web-admin design system: tokens, dark mode, RTL, components, states, a11y, how to check (`npm run check:ui`) and fix; review skill `/cmx-ui-design-review` |
+| `cmx-shared-components.md` / `cmx-message.md` | Reuse shared Cmx components; user feedback through `cmxMessage` |
 
 ## Cursor rules (`.cursor/rules/`)
 

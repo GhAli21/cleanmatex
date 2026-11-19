@@ -10,6 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Info, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { CmxButton, CmxCard } from '@ui/primitives';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { settingsClient, type ExplainTrace } from '@/lib/api/settings-client';
 import { SourceBadge } from './source-badge';
 
@@ -44,6 +45,25 @@ export function ExplainDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const trapRef = useFocusTrap(isOpen, { returnFocus: true });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (isOpen && settingCode) {
       fetchExplainTrace();
@@ -70,15 +90,16 @@ export function ExplainDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-label="Setting Resolution Trace">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 transition-opacity"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Drawer */}
-      <div className="absolute inset-y-0 end-0 max-w-2xl w-full bg-card shadow-xl flex flex-col">
+      <div ref={trapRef} className="absolute inset-y-0 end-0 max-w-2xl w-full bg-card shadow-xl flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-muted border-b border-border">
           <div className="flex items-center justify-between">

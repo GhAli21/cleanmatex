@@ -7,15 +7,20 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
-import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useKeyboardNavigation, useFocusTrap } from '@/lib/hooks/use-keyboard-navigation';
 import { sanitizeInput, sanitizeOrderNotes } from '@/lib/utils/security-helpers';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxButton, CmxInput, CmxTextarea, Label } from '@ui/primitives';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
 import { cmxMessage } from '@ui/feedback';
 import type { OrderItem } from '../../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
@@ -91,40 +96,11 @@ export function CustomItemModal({
     mode: 'onChange',
   });
 
-  const modalRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-
   // Reset form when modal opens/closes
   const handleClose = useCallback(() => {
     reset();
     onClose();
   }, [reset, onClose]);
-
-  // Focus trap
-  useFocusTrap(modalRef, open);
-
-  // Keyboard navigation
-  useKeyboardNavigation({
-    enabled: open,
-    onEscape: handleClose,
-  });
-
-  // Save previous focus and focus first element when modal opens
-  useEffect(() => {
-    if (open) {
-      previousFocusRef.current = document.activeElement as HTMLElement;
-      // Focus first input after a short delay
-      setTimeout(() => {
-        const firstInput = modalRef.current?.querySelector<HTMLElement>('input, textarea, button');
-        firstInput?.focus();
-      }, ORDER_DEFAULTS.FOCUS_DELAY);
-    } else {
-      // Restore focus when modal closes
-      if (previousFocusRef.current) {
-        previousFocusRef.current.focus();
-      }
-    }
-  }, [open, handleClose]);
 
   const onSubmit = async (data: CustomItemFormData) => {
     // Validate form data
@@ -168,37 +144,14 @@ export function CustomItemModal({
     setIsSubmitting(false);
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="custom-item-modal-title"
-    >
-      <div
-        ref={modalRef}
-        className="bg-card rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between p-6 border-b border-border"
-        >
-          <h2
-            id="custom-item-modal-title"
-            className="text-2xl font-bold text-foreground text-start"
-          >
+    <CmxDialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <CmxDialogContent className="max-w-md w-full" scrollBody>
+        <CmxDialogHeader>
+          <CmxDialogTitle id="custom-item-modal-title">
             {t('title') || 'Add Custom Item'}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-            aria-label={tCommon('close')}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          </CmxDialogTitle>
+        </CmxDialogHeader>
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -210,16 +163,15 @@ export function CustomItemModal({
                 control={control}
                 render={({ field }) => (
                   <>
-                    <label
+                    <Label
                       className="block text-sm font-medium text-foreground mb-2 text-start"
                     >
                       {t('name') || 'Item Name'} *
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       {...field}
                       type="text"
-                      className={`w-full px-4 py-2 border ${errors.name ? 'border-destructive' : 'border-border'
-                        } rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start`}
+                      className={`px-4 py-2 ${errors.name ? 'border-destructive' : ''}`}
                       placeholder={t('namePlaceholder') || 'Enter item name'}
                     />
                     {errors.name && (
@@ -239,16 +191,16 @@ export function CustomItemModal({
                 control={control}
                 render={({ field }) => (
                   <>
-                    <label
+                    <Label
                       className="block text-sm font-medium text-foreground mb-2 text-start"
                     >
                       {t('name2') || 'Item Name (Arabic)'}
-                    </label>
-                    <input
+                    </Label>
+                    <CmxInput
                       {...field}
                       type="text"
                       dir="rtl"
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start"
+                      className="px-4 py-2 text-start"
                       placeholder={t('name2Placeholder') || 'Enter item name in Arabic'}
                     />
                   </>
@@ -265,12 +217,12 @@ export function CustomItemModal({
                   control={control}
                   render={({ field }) => (
                     <>
-                      <label
+                      <Label
                         className="block text-sm font-medium text-foreground mb-2 text-start"
                       >
                         {t('price') || 'Price'} ({currencyCode}) *
-                      </label>
-                      <input
+                      </Label>
+                      <CmxInput
                         {...field}
                         type="number"
                         step={priceStep}
@@ -280,8 +232,7 @@ export function CustomItemModal({
                           field.onChange(parseFloat(e.target.value) || 0)
                         }
                         dir="ltr"
-                        className={`w-full px-4 py-2 border ${errors.price ? 'border-destructive' : 'border-border'
-                          } rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-center`}
+                        className={`px-4 py-2 text-center ${errors.price ? 'border-destructive' : ''}`}
                         placeholder={`0.${'0'.repeat(Math.max(0, decimalPlaces - 1))}1`}
                       />
                       {errors.price && (
@@ -302,12 +253,12 @@ export function CustomItemModal({
                   control={control}
                   render={({ field }) => (
                     <>
-                      <label
+                      <Label
                         className="block text-sm font-medium text-foreground mb-2 text-start"
                       >
                         {t('quantity') || 'Quantity'} *
-                      </label>
-                      <input
+                      </Label>
+                      <CmxInput
                         {...field}
                         type="number"
                         min={ORDER_DEFAULTS.LIMITS.QUANTITY_MIN}
@@ -317,8 +268,7 @@ export function CustomItemModal({
                           field.onChange(parseInt(e.target.value) || 1)
                         }
                         dir="ltr"
-                        className={`w-full px-4 py-2 border ${errors.quantity ? 'border-destructive' : 'border-border'
-                          } rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-center`}
+                        className={`px-4 py-2 text-center ${errors.quantity ? 'border-destructive' : ''}`}
                         placeholder="1"
                       />
                       {errors.quantity && (
@@ -339,15 +289,15 @@ export function CustomItemModal({
                 control={control}
                 render={({ field }) => (
                   <>
-                    <label
+                    <Label
                       className="block text-sm font-medium text-foreground mb-2 text-start"
                     >
                       {t('notes') || 'Notes'}
-                    </label>
-                    <textarea
+                    </Label>
+                    <CmxTextarea
                       {...field}
                       rows={3}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent text-start"
+                      className="w-full text-start"
                       placeholder={t('notesPlaceholder') || 'Add any special instructions...'}
                       dir={isRTL ? 'rtl' : 'ltr'}
                     />
@@ -357,8 +307,7 @@ export function CustomItemModal({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="p-6 border-t border-border bg-muted flex gap-3">
+          <CmxDialogFooter className="gap-3 pt-4">
             <CmxButton
               type="button"
               variant="secondary"
@@ -375,10 +324,10 @@ export function CustomItemModal({
             >
               {t('add') || 'Add Item'}
             </CmxButton>
-          </div>
+          </CmxDialogFooter>
         </form>
-      </div>
-    </div>
+      </CmxDialogContent>
+    </CmxDialog>
   );
 }
 

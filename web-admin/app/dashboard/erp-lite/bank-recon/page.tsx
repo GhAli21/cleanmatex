@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Bank Reconciliation' };
 
 import { getLocale, getTranslations } from 'next-intl/server';
-import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea } from '@ui/primitives';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
@@ -264,9 +264,9 @@ export default async function ErpLiteBankReconPage({
                   required
                 />
                 <div className="space-y-1">
-                  <label htmlFor="erp-bank-recon-import-rows" className="block text-sm font-medium text-foreground">
+                  <Label htmlFor="erp-bank-recon-import-rows" className="block text-sm font-medium text-foreground">
                     {t('forms.statementImport.fields.rows')}
-                  </label>
+                  </Label>
                   <CmxTextarea
                     id="erp-bank-recon-import-rows"
                     name="import_rows"
@@ -379,6 +379,7 @@ export default async function ErpLiteBankReconPage({
                     </div>
                     {item.status_code === 'OPEN' ? (
                       <form action={closeErpLiteBankReconAction} className="mt-3">
+                        {/* cmx-ds-ignore UI001: Server Action hidden form field */}
                         <input type="hidden" name="bank_recon_id" value={item.id} />
                         <CmxButton type="submit" variant="outline" className="w-full">
                           {t('lists.recons.close')}
@@ -387,6 +388,7 @@ export default async function ErpLiteBankReconPage({
                     ) : null}
                     {item.status_code === 'CLOSED' ? (
                       <form action={lockErpLiteBankReconAction} className="mt-3">
+                        {/* cmx-ds-ignore UI001: Server Action hidden form field */}
                         <input type="hidden" name="bank_recon_id" value={item.id} />
                         <CmxButton type="submit" variant="outline" className="w-full">
                           {t('lists.recons.lock')}
@@ -440,6 +442,7 @@ export default async function ErpLiteBankReconPage({
                     </div>
                     {item.status_code === 'CONFIRMED' ? (
                       <form action={reverseErpLiteBankMatchAction} className="mt-3">
+                        {/* cmx-ds-ignore UI001: Server Action hidden form field */}
                         <input type="hidden" name="bank_match_id" value={item.id} />
                         <CmxButton type="submit" variant="outline" className="w-full">
                           {t('lists.matches.reverse')}
