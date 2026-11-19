@@ -93,7 +93,7 @@ export interface SignOutOptions {
 
 export interface AuthContextType extends AuthState {
   // Authentication methods
-  signIn: (identifier: string, password: string, rememberMe?: boolean, redirectTo?: string) => Promise<TenantChoiceResult | void>
+  signIn: (identifier: string, password: string, rememberMe?: boolean, redirectTo?: string) => Promise<TenantChoiceResult | undefined>
   chooseTenant: (orgUserId: string, redirectTo?: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: (reason?: LogoutReason, options?: SignOutOptions) => Promise<void>

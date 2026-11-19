@@ -10,9 +10,12 @@ export type CurrencyMinorUnitRow = {
   minor_unit: number
 }
 
-export type CurrencyMinorUnitResult =
-  | { ok: true; rows: CurrencyMinorUnitRow[] }
-  | { ok: false; message: string }
+// Flat, not a union: with `strict: false` a union on `ok` does not narrow.
+export type CurrencyMinorUnitResult = {
+  ok: boolean
+  rows?: CurrencyMinorUnitRow[]
+  message?: string
+}
 
 /**
  * Reads `sys_currency_cd.minor_unit` for the given codes.

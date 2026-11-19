@@ -77,7 +77,7 @@ export async function GET(request: Request) {
 
     const userPermissions: string[] = permsError
       ? []
-      : [...new Set(
+      : [...new Set<string>(
           (permissionsData ?? [])
             .filter((permission) => permission.resource_id == null && permission.permission_code)
             .map((permission) => permission.permission_code as string),

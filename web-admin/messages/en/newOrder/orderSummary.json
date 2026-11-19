@@ -60,5 +60,11 @@
       "INVALID_ADJUSTMENT": "A discount value is not valid. Check the line discounts.",
       "PIECE_PRICING_UNAVAILABLE": "This line is priced as a whole, so a piece cannot have its own discount or speed."
     }
-  }
+  },
+  "quickDropDecrease": "Remove one Quick Drop item",
+  "quickDropIncrease": "Add one Quick Drop item",
+  "showNotes": "Show order notes",
+  "retailOrder": "Retail order",
+  "notRetail": "Not a retail order",
+  "openReadyBy": "Choose ready by date and time"
 }

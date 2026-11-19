@@ -62,4 +62,23 @@ Removed: `settings.logo`, `logoGuidelines`, `brandColors`, `accentColor`, `accen
 ## Not here yet
 
 - Dark mode: `mode` is always `LIGHT` until PR-07 task 6, after PR-05.
-- HQ screens for the catalogs: `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`, waiting for owner approval.
+- HQ token sync and the accent rename (HQ package B, its own plan later).
+
+## HQ catalog screens (2026-11-19)
+
+HQ (the SaaS Backoffice) edits the three catalogs in Products & Items Config → Appearance (`/products-items-config/ui-themes`, `ui-radius`, `ui-font-pairs`). Permissions are `catalog.view` / `catalog.manage`. `STANDARD` cannot be deactivated. Font pairs cannot be created there, and their families cannot be changed. Before a deactivation, the prompt shows how many Organizations have a live saved theme that uses the code (`GET /products-items-config/code-usage/:entity/:code`). Plan and rulings: `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`.
+
+## POS keyboard shortcuts (PR-04, 2026-11-19)
+
+New Order and the Order Workspace. One listener: the existing `useKeyboardNavigation` `onKey` in `new-order-content.tsx` calls the pure `resolvePosHotkey` (`src/features/orders/hooks/use-pos-hotkeys.ts`). The cheat sheet is `pos-shortcuts-dialog.tsx`, and its labels are in `newOrder.shortcuts.*`.
+
+| Key | Does | Not active when |
+|---|---|---|
+| `/` | Focus the item search (`#new-order-product-search`) | Focus is in a field (the character is typed) |
+| `?` | Open the shortcuts list | Focus is in a field |
+| F2 | Open the customer picker | Order Workspace (the customer is fixed) |
+| F9 | Pay: the same gate as the Submit button | Edit mode (no payment step) |
+| Ctrl/⌘+Enter, Ctrl/⌘+S | Submit (New Order) or Review (Workspace) | — |
+| Alt+1 … Alt+5 | Switch tabs (the tab rules are unchanged) | — |
+
+Every key is off while any dialog is open: the `state.state.modals` flags, focus inside a `[role=dialog]` or `[role=alertdialog]`, or the shortcuts list itself. So the payment view keeps its own F2, Enter and Ctrl+Enter (`use-payment-shortcuts.ts`). Keys match on `event.key`, so `/` and `?` work on an Arabic layout. `Ctrl+S` on an Arabic layout does not match (`event.key` is `س`).

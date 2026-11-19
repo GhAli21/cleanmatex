@@ -88,6 +88,9 @@ export function useKeyboardNavigation(options: KeyboardNavigationOptions = {}) {
                             preventDefault();
                             onEnter();
                         }
+                    } else if (onKey && (event.ctrlKey || event.metaKey)) {
+                        // Ctrl/⌘+Enter is a command, not an activation: let onKey see it.
+                        onKey(event.key, event);
                     }
                     break;
                 case 'ArrowUp':

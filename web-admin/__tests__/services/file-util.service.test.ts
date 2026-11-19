@@ -97,7 +97,9 @@ beforeEach(() => {
     sys_file_bucket_cd: { bucket_code: 'TENANT_FILES', storage_bucket_id: 'tenants-cmx-files', is_public: false, scope_code: 'TENANT', is_active: true },
   });
   m.purposeFindFirst.mockResolvedValue({ purpose_code: 'BEFORE_IMAGE', max_files: null, max_size_bytes: null });
-  m.linkFindFirst.mockResolvedValue({ sys_file_mime_types_cd: { extensions: ['jpg', 'jpeg', 'jfif'] } });
+  m.linkFindFirst.mockResolvedValue({
+    sys_file_mime_types_cd: { extensions: ['jpg', 'jpeg', 'jfif'], max_size_bytes: null, sys_file_media_kind_cd: { max_size_bytes: BigInt(10485760) } },
+  });
   m.bucketFind.mockResolvedValue({ storage_bucket_id: 'tenants-cmx-files', is_public: false });
   m.orderFindFirst.mockResolvedValue({ id: ORDER });
   m.fileCount.mockResolvedValue(0);
@@ -145,6 +147,21 @@ describe('initFileUpload', () => {
 
   it('refuses a file over the limit', async () => {
     await expectCode(initFileUpload({ ...BASE, sizeBytes: 10485761 }), 'FILE_TOO_LARGE');
+  });
+
+  it('uses the smaller of the type/kind limit and the purpose/category limit', async () => {
+    // Kind limit 1 MB < category 10 MB → 1 MB wins.
+    m.linkFindFirst.mockResolvedValue({
+      sys_file_mime_types_cd: { extensions: ['jpg'], max_size_bytes: null, sys_file_media_kind_cd: { max_size_bytes: BigInt(1048576) } },
+    });
+    await expectCode(initFileUpload({ ...BASE, sizeBytes: 1048577 }), 'FILE_TOO_LARGE');
+    // Type override 2 MB beats the kind; purpose 1.5 MB is smaller still.
+    m.linkFindFirst.mockResolvedValue({
+      sys_file_mime_types_cd: { extensions: ['jpg'], max_size_bytes: BigInt(2097152), sys_file_media_kind_cd: { max_size_bytes: BigInt(1048576) } },
+    });
+    m.purposeFindFirst.mockResolvedValue({ purpose_code: 'BEFORE_IMAGE', max_files: null, max_size_bytes: BigInt(1572864) });
+    await expectCode(initFileUpload({ ...BASE, sizeBytes: 1572865 }), 'FILE_TOO_LARGE');
+    await expect(initFileUpload({ ...BASE, sizeBytes: 1572864 })).resolves.toBeDefined();
   });
 
   it('refuses when the purpose is full', async () => {
@@ -283,6 +300,15 @@ describe('deleteFile', () => {
 });
 
 describe('updateFile', () => {
+  it('does not re-check the size of a saved file when it moves purpose (limits apply to new uploads only)', async () => {
+    m.fileFindFirst.mockResolvedValueOnce({ mime_type: 'image/jpeg', purpose_code: 'BEFORE_IMAGE', entity_id: ORDER, locked_at: null, size_bytes: BigInt(9 * 1048576) });
+    // Target purpose allows only 1 MB now; the 9 MB file was valid when it was uploaded.
+    m.purposeFindFirst.mockResolvedValue({ purpose_code: 'AFTER_IMAGE', max_files: null, max_size_bytes: BigInt(1048576) });
+    m.fileFindFirst.mockResolvedValueOnce(null); // view after update (not needed for this check)
+    await updateFile({ tenantId: T1, userId: 'user-1', categoryCode: 'ORDER_FILE', fileId: FILE, purposeCode: 'AFTER_IMAGE' }).catch(() => undefined);
+    expect(m.fileUpdateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ purpose_code: 'AFTER_IMAGE' }) }));
+  });
+
   it('refuses to edit a locked file', async () => {
     m.fileFindFirst.mockResolvedValueOnce({ mime_type: 'image/jpeg', purpose_code: 'DELIVERY_PROOF', entity_id: ORDER, locked_at: new Date() });
     await expectCode(updateFile({ tenantId: T1, userId: 'user-1', categoryCode: 'ORDER_FILE', fileId: FILE, notes: 'x' }), 'FILE_LOCKED');

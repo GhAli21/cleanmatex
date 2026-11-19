@@ -7,8 +7,8 @@
 
 1. Vercel/tenant `web-admin` is limited to user-request-driven work. No supported `pg_cron` or `pg_net` path may invoke a tenant API route for scheduled execution.
 2. Supabase PostgreSQL owns database-native schedules and fixed database functions. A database job has bounded work, explicit grants/search path, idempotency/overlap behavior, tenant-safe queries, durable outcome facts, and no provider call.
-3. Render HQ `platform-workers` owns external-provider delivery/reconciliation and storage-byte work. PostgreSQL remains the durable source for claim, outcome, retry, and audit state; BullMQ/Redis is not business-record authority.
-4. `platform-api/src/modules/jobs-need-api` remains absent. It may be created only for an Owner-approved exception that proves neither a fixed DB function nor a direct worker contract can satisfy the external requirement.
+3. Render HQ `platform-workers` owns scheduling, durable outbox claim/finalize/reconciliation, and storage-byte work. PostgreSQL remains the durable source for claim, outcome, retry, and audit state; BullMQ/Redis is not business-record authority.
+4. **Owner-approved notification exception:** `platform-api/src/modules/jobs-need-api/notifications/outbox-delivery` is the only approved initial `jobs-need-api` boundary. A Render worker may invoke its one typed, private operation after claiming a canonical outbox row. The API owns notification policy and provider submission because it is the controlled credential, route, quota, and audit boundary; it is not a generic worker proxy or command runner.
 5. `sys_ops_job_cf` is the HQ operator control plane. It records desired state and safe metadata, never arbitrary command text, URLs, secrets, or SQL. A scheduler may not be silently duplicated to make registry state look healthy.
 6. **Owner-approved notification convergence:** `org_ntf_outbox_dtl` remains the canonical tenant delivery state. HQ workers may claim and finalize only that tenant record through fixed database contracts. `hq_ntf_dispatch_log` is an operational/audit projection and cannot independently authorize or finalize a customer delivery.
 
@@ -17,14 +17,15 @@
 | Target | Handler families |
 |---|---|
 | `DATABASE` | Session, extension cleanup, File pending-upload expiry, finance idempotency, notification retry/quota/retention/push-subscription, operations capture, Setup Health, tax-kit update, campaigns, and financial domain transitions. |
-| `HQ_WORKER` | Notification provider dispatch/reconciliation and File Util storage-byte purge. |
-| `HQ_JOB_API` | None. |
+| `HQ_WORKER` | Notification claim/finalize/reconciliation orchestration and File Util storage-byte purge. |
+| `HQ_JOB_API` | Notification outbox policy and provider submission only, reached by the claimed Render worker through a dedicated machine identity. |
 
 ## Non-negotiable execution contracts
 
 - Every `org_*` access has an explicit `tenant_org_id` predicate, except a documented global discovery that immediately partitions work by tenant.
 - Scheduled work uses fixed allowlisted function/action identities. Run-now uses the same executor and idempotency boundary; it never executes stored command text.
 - Claims are durable and bounded. An expired lease is recoverable; a provider timeout is an unknown result requiring reconciliation or provider idempotency, never blind resend.
+- The notification API accepts only `tenantOrgId`, `outboxId`, and the opaque claim token. It verifies the current unexpired claim before reading tenant data or making a provider call; it never trusts a URL segment or caller-supplied recipient/provider payload as scope authority.
 - Financial transitions retain their reviewed transaction and lock order, ledger/audit writes, replay protection, and per-unit failure isolation.
 - Operator UI shows dispatch separately from completion, supports only least-privilege confirmed actions, and is EN/AR/RTL safe.
 

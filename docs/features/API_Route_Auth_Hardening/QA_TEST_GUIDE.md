@@ -68,3 +68,29 @@ Owner-runnable scenarios for the session/permission guards added across BF-23 (3
 
 ### Test data left behind
 - None: both temporary addresses deleted (only "My house" remains on Jh Test dev21); Leather Care unchanged (Save failed). Operator Incognito session left signed in on the tester box.
+
+### Retest r1 2026-11-19 (remote; order-dependent rows #3, #4, #10 still BLOCKED)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals), Demo Laundry admin account (shows role `super_admin`; no passwords or test contact details are recorded here — see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes; Jest skipped. Run window 2026-11-19 ~04:00–05:00 Asia/Muscat (UTC+4). This is the retest of the order-dependent rows from the 17-Nov backlog after the `photo_urls` fix. Source ledgers on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (existing QA orders), `B.md` (New Order), `C.md` (Order Edit / collect), `D.md` (POS / cash drawer); screenshots `/workspace/qa-20261119/retest/shots/` (file names cited below). Original steps, earlier rounds and Dev notes above are unchanged.
+**Fixed since 17-Nov:** the `photo_urls` P0 (FET-HFC-Nov17-PhotoUrlsColumnDropped) — All Orders list, order detail, `/full` and `/workspace` load again (no `photo_urls` banner, no "Order not found"), and New Order submit works for cash and Pay on Collection orders (no `ORDER_SUBMIT_FAILED`, no 422).
+**Still blocked platform-wide:** `/dashboard/processing` still shows the red banner "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19 after the `photo_urls` fix; ledger `/workspace/qa-20261119/obs/U-pr0102.md`, shot `PR02-4-processing`). Every QA order therefore stays at Processing / preparation Pending, so Ready, Delivery, Split and rack rows cannot be reached.
+**Why only these rows:** only rows #3, #4 and #10 were blocked by the broken order pages on 17-Nov. The `photo_urls` break is fixed, but they still need a Processing / Ready order and Processing returns `permission denied for table sys_order_sources_cd` ("No orders in processing queue", re-observed 2026-11-19). No new role accounts exist (still no `laundry_worker`, plain `admin` or credentialed cashier), and none was created or changed. Rows above are unchanged.
+
+**Recount (this retest, 3 rows): PASS 0 / FAIL 0 / PARTIAL 0 / BLOCKED 3 / NOT RUN 0.**
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 3 laundry_worker Processing | BLOCKED | No `laundry_worker` account; Processing still fails with `permission denied for table sys_order_sources_cd`. |
+| 4 operator Split | BLOCKED | Split is reached from Processing → row → Simple processing → Split; the Processing queue is empty behind the same error. |
+| 10 Revoked session → Ready | BLOCKED | Needs a disposable signed-in user and a Ready order; Ready unreachable. |
+
+Prior findings, Retest r1 2026-11-19: **FET-AUTH-Nov17-*** not rechecked (no roles/fixtures changed). Order-detail pages now open for admin, so rows 4 and 5 are no longer blocked by `photo_urls` — row 4 is blocked only by Processing, row 5 also still lacks cashier credentials.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r1 2026-11-19)
+- **P1 FET-AUTH-Nov19-ProcessingGrantBlocksRoleChecks:** The Processing grant error (`sys_order_sources_cd`) also blocks the role checks for #3 and #4 and shows a raw database message to every role. Grant SELECT (or read through a definer function) and show a plain error; then re-run #3/#4/#10 with a `laundry_worker`, an operator and a disposable user.
+
+### Blocked
+- #3, #4, #10: Processing grant error; also no `laundry_worker` account and no disposable signed-in user.
+
+### Test data left behind
+- None from this guide.

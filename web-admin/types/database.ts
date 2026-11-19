@@ -11688,26 +11688,26 @@ isOneToOne: false
                   ]
                 },"sys_file_media_kind_cd": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"kind_code": string,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"is_active": boolean,"kind_code": string,"max_size_bytes": number,"name": string,"name2": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"kind_code": string,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"kind_code": string,"max_size_bytes": number,"name": string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"kind_code"?: string,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"is_active"?: boolean,"kind_code"?: string,"max_size_bytes"?: number,"name"?: string,"name2"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Relationships: [
                     
                   ]
                 },"sys_file_mime_types_cd": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"extensions": (string)[],"is_active": boolean,"is_allowed": boolean,"kind_code": string,"mime_type": string,"name": string,"name2": string | null,"preview_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                    "created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"description": string | null,"description2": string | null,"extensions": (string)[],"is_active": boolean,"is_allowed": boolean,"kind_code": string,"max_size_bytes": number | null,"mime_type": string,"name": string,"name2": string | null,"preview_code": string,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"extensions": (string)[],"is_active"?: boolean,"is_allowed"?: boolean,"kind_code": string,"mime_type": string,"name": string,"name2"?: string | null,"preview_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"extensions": (string)[],"is_active"?: boolean,"is_allowed"?: boolean,"kind_code": string,"max_size_bytes"?: number | null,"mime_type": string,"name": string,"name2"?: string | null,"preview_code": string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"extensions"?: (string)[],"is_active"?: boolean,"is_allowed"?: boolean,"kind_code"?: string,"mime_type"?: string,"name"?: string,"name2"?: string | null,"preview_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"description"?: string | null,"description2"?: string | null,"extensions"?: (string)[],"is_active"?: boolean,"is_allowed"?: boolean,"kind_code"?: string,"max_size_bytes"?: number | null,"mime_type"?: string,"name"?: string,"name2"?: string | null,"preview_code"?: string,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
                   }
                   Relationships: [
                     {
@@ -13436,16 +13436,35 @@ isOneToOne: false
                   ]
                 },"sys_ops_job_cf": {
                   Row: {
-                    "category": string,"completion_mode": string,"created_at": string,"created_by": string | null,"created_info": string | null,"cron_job_name": string,"default_schedule": string,"description": string | null,"description2": string | null,"desired_enabled": boolean,"id": string,"is_active": boolean,"job_code": string,"kind": string,"module": string,"name": string,"name2": string | null,"notes": string | null,"operator_actions": (string)[],"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"restore_command": string | null,"run_now_allowed": boolean,"schedule": string | null,"source_migration": string | null,"sub_system": string | null,"updated_at": string,"updated_by": string | null,"updated_info": string | null
+                    "applied_at": string | null,"applied_by": string | null,"applied_enabled": boolean | null,"applied_schedule": string | null,"category": string,"completion_mode": string,"created_at": string,"created_by": string | null,"created_info": string | null,"cron_job_name": string,"default_schedule": string,"description": string | null,"description2": string | null,"desired_enabled": boolean,"id": string,"is_active": boolean,"job_code": string,"kind": string,"module": string,"name": string,"name2": string | null,"notes": string | null,"operator_actions": (string)[],"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"restore_command": string | null,"run_now_allowed": boolean,"schedule": string | null,"source_migration": string | null,"sub_system": string | null,"updated_at": string,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "category": string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name": string,"default_schedule": string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code": string,"kind"?: string,"module": string,"name": string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
+                    "applied_at"?: string | null,"applied_by"?: string | null,"applied_enabled"?: boolean | null,"applied_schedule"?: string | null,"category": string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name": string,"default_schedule": string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code": string,"kind"?: string,"module": string,"name": string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "category"?: string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name"?: string,"default_schedule"?: string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code"?: string,"kind"?: string,"module"?: string,"name"?: string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
+                    "applied_at"?: string | null,"applied_by"?: string | null,"applied_enabled"?: boolean | null,"applied_schedule"?: string | null,"category"?: string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name"?: string,"default_schedule"?: string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code"?: string,"kind"?: string,"module"?: string,"name"?: string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     
+                  ]
+                },"sys_ops_job_req_tr": {
+                  Row: {
+                    "claimed_at": string | null,"claimed_by": string | null,"created_at": string,"created_by": string | null,"created_info": string | null,"deleted_at": string | null,"deleted_by": string | null,"deleted_info": string | null,"due_slot": string | null,"finished_at": string | null,"id": string,"is_active": boolean,"job_code": string,"message": string | null,"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"requested_by": string | null,"run_id": string | null,"status": string,"trigger_type": string,"updated_at": string | null,"updated_by": string | null,"updated_count": number,"updated_info": string | null
+                  }
+                  Insert: {
+                    "claimed_at"?: string | null,"claimed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"due_slot"?: string | null,"finished_at"?: string | null,"id"?: string,"is_active"?: boolean,"job_code": string,"message"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"requested_by"?: string | null,"run_id"?: string | null,"status"?: string,"trigger_type": string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Update: {
+                    "claimed_at"?: string | null,"claimed_by"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"deleted_at"?: string | null,"deleted_by"?: string | null,"deleted_info"?: string | null,"due_slot"?: string | null,"finished_at"?: string | null,"id"?: string,"is_active"?: boolean,"job_code"?: string,"message"?: string | null,"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"requested_by"?: string | null,"run_id"?: string | null,"status"?: string,"trigger_type"?: string,"updated_at"?: string | null,"updated_by"?: string | null,"updated_count"?: number,"updated_info"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fk_ojr_job"
+      columns: ["job_code"]
+isOneToOne: false
+      referencedRelation: "sys_ops_job_cf"
+      referencedColumns: ["job_code"]
+    }
                   ]
                 },"sys_ops_job_run_dtl": {
                   Row: {
@@ -15937,6 +15956,19 @@ isOneToOne: false
 "fn_hq_doc_seq_next":
 { Args: { "p_at"?: string,"p_doc_type": string }; Returns: string
                            },
+"fn_hq_file_health":
+{ Args: { "p_stuck_hours"?: number }; Returns: Json
+                           },
+"fn_hq_file_storage_by_category":
+{ Args: { "p_tenant_org_id": string }; Returns: {
+              "category_code": string,"file_count": number,"name": string,"name2": string,"used_bytes": number
+            }[]
+                           },
+"fn_hq_file_storage_usage":
+{ Args: { "p_limit"?: number,"p_offset"?: number,"p_search"?: string }; Returns: {
+              "file_count": number,"plan_code": string,"storage_mb_limit": number,"tenant_is_active": boolean,"tenant_name": string,"tenant_name2": string,"tenant_org_id": string,"total_count": number,"unpurged_bytes": number,"used_bytes": number
+            }[]
+                           },
 "fn_is_setting_allowed":
 { Args: { "p_setting_code": string,"p_tenant_org_id": string }; Returns: boolean
                            },
@@ -16039,6 +16071,9 @@ isOneToOne: false
 "fn_ntf_worker_finalize_claim":
 { Args: { "p_claim_token": string,"p_error_message"?: string,"p_outbox_id": string,"p_provider_message_id"?: string,"p_status": string,"p_tenant_org_id": string }; Returns: boolean
                            },
+"fn_ntf_worker_mark_uncertain":
+{ Args: { "p_claim_token": string,"p_error_message": string,"p_outbox_id": string,"p_tenant_org_id": string }; Returns: boolean
+                           },
 "fn_ops_config_apps_valid":
 { Args: { "p_apps": Json }; Returns: boolean
                            },
@@ -16082,6 +16117,12 @@ isOneToOne: false
 "fn_ops_job_capture_runs":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"fn_ops_job_claim":
+{ Args: { "p_job_code": string,"p_worker": string }; Returns: Json
+                           },
+"fn_ops_job_finish":
+{ Args: { "p_message": string,"p_request_id": string,"p_success": boolean,"p_worker": string }; Returns: Json
+                           },
 "fn_ops_job_list":
 { Args: Record<PropertyKey, never>; Returns: {
               "actual_active": boolean,"actual_schedule": string,"category": string,"command_present": boolean,"completion_mode": string,"cron_job_name": string,"cron_jobid": number,"default_schedule": string,"description": string,"description2": string,"desired_enabled": boolean,"drift_flags": (string)[],"effective_schedule": string,"is_active": boolean,"job_code": string,"kind": string,"last_run_actor": string,"last_run_at": string,"last_run_message": string,"last_run_source": string,"last_run_status": string,"last_run_trigger": string,"module": string,"name": string,"name2": string,"notes": string,"run_now_allowed": boolean,"schedule_override": string,"source_migration": string,"sub_system": string
@@ -16091,6 +16132,9 @@ isOneToOne: false
 { Args: Record<PropertyKey, never>; Returns: {
               "actual_active": boolean,"actual_schedule": string,"category": string,"command_present": boolean,"completion_mode": string,"cron_job_name": string,"cron_jobid": number,"default_schedule": string,"description": string,"description2": string,"desired_enabled": boolean,"drift_flags": (string)[],"effective_schedule": string,"is_active": boolean,"job_code": string,"kind": string,"last_run_actor": string,"last_run_at": string,"last_run_message": string,"last_run_source": string,"last_run_status": string,"last_run_trigger": string,"module": string,"name": string,"name2": string,"notes": string,"operator_actions": (string)[],"run_now_allowed": boolean,"schedule_override": string,"source_migration": string,"sub_system": string
             }[]
+                           },
+"fn_ops_job_request_slot":
+{ Args: { "p_job_code": string,"p_slot": string,"p_worker": string }; Returns: boolean
                            },
 "fn_ops_job_restore":
 { Args: { "p_actor": string,"p_job_code": string }; Returns: Json
@@ -16120,6 +16164,9 @@ isOneToOne: false
                            },
 "fn_ops_operation_run":
 { Args: { "p_actor": string,"p_code": string,"p_confirm": string,"p_params": Json }; Returns: Json
+                           },
+"fn_ops_worker_job_sync":
+{ Args: { "p_job_code": string,"p_worker": string }; Returns: Json
                            },
 "fn_ord_next_sub_order_no":
 { Args: { "p_parent_order_id": string,"p_tenant": string }; Returns: string

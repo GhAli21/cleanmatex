@@ -12,6 +12,7 @@
  */
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { CmxPagination } from '@ui/navigation/cmx-pagination';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -67,9 +68,6 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
     );
   }
 
-  const isFirstPage = pagination.page <= 1;
-  const isLastPage = pagination.page >= pagination.totalPages;
-
   const goToPage = (nextPage: number) => {
     const params = new URLSearchParams(window.location.search);
     params.set('page', String(nextPage));
@@ -123,7 +121,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 </td>
                 <td className="px-4 py-3">
                   <div className="font-medium">{order.customer?.name || '—'}</div>
-                  <div className="text-xs text-gray-500">{order.customer?.phone || '—'}</div>
+                  <div className="text-xs text-gray-500">{order.customer?.phone ? <bdi className="tabular-nums">{order.customer.phone}</bdi> : '—'}</div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-1">
@@ -156,21 +154,23 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 </td>
                 <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
                   <div className={`flex flex-col ${isRTL ? 'items-start' : 'items-end'}`}>
-                    <span>{order.total_items}</span>
+                    <bdi className="tabular-nums">{order.total_items}</bdi>
                     {trackByPiece && order.total_pieces !== null && order.total_pieces !== undefined && (
                       <span className="text-xs text-gray-500 mt-0.5">
-                        {order.total_pieces} {tPieces('totalPieces') || 'pieces'}
+                        <bdi className="tabular-nums">{order.total_pieces}</bdi> {tPieces('totalPieces') || 'pieces'}
                       </span>
                     )}
                   </div>
                 </td>
                 <td className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}>
-                  {formatPrice(
-                    order.total,
-                    currencyCode,
-                    resolveMoneyIntlLocale(uiLocale),
-                    decimalPlaces,
-                  )}
+                  <bdi className="tabular-nums">
+                    {formatPrice(
+                      order.total,
+                      currencyCode,
+                      resolveMoneyIntlLocale(uiLocale),
+                      decimalPlaces,
+                    )}
+                  </bdi>
                 </td>
                 <td className="px-4 py-3">
                   {order.ready_by ? (
@@ -212,39 +212,18 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination: the page reads only ?page=, so no page-size selector (PR-04 ruling 10). */}
       {pagination.totalPages > 1 && (
-        <div
-          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 ${
-            isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
-          }`}
-        >
-          <div>
-            {t('showing')}{' '}
-            {(pagination.page - 1) * pagination.limit + 1}{' '}
-            {t('to')}{' '}
-            {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
-            {t('of')}{' '}
-            {pagination.total} {t('orders').toLowerCase()}
-          </div>
-          <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <button
-              type="button"
-              onClick={() => goToPage(pagination.page - 1)}
-              disabled={isFirstPage}
-              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50"
-            >
-              {t('previous')}
-            </button>
-            <button
-              type="button"
-              onClick={() => goToPage(pagination.page + 1)}
-              disabled={isLastPage}
-              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50"
-            >
-              {t('next')}
-            </button>
-          </div>
+        <div className="border-t border-gray-200 px-4 py-3">
+          <CmxPagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            pageSize={pagination.limit}
+            totalItems={pagination.total}
+            onPageChange={goToPage}
+            onPageSizeChange={() => {}}
+            showPageSizeSelector={false}
+          />
         </div>
       )}
     </div>

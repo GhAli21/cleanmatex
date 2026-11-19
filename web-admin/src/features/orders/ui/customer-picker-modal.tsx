@@ -8,7 +8,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useDeferredValue } from 'react';
-import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -19,6 +18,14 @@ import {
 import { searchCustomersForPicker } from '@/lib/api/customers';
 import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxSkeleton } from '@ui/primitives/cmx-skeleton';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays/cmx-dialog';
 import { CustomerCreateModal } from './customer-create-modal';
 import type { Customer as CustomerType } from '@/lib/types/customer';
 import type { CustomerSearchItem } from '@/lib/api/customers';
@@ -135,7 +142,6 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const [focusedIndex, setFocusedIndex] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
   // Fetch default guest customer when modal opens
   const { data: defaultGuest, isLoading: defaultGuestLoading } = useQuery({
@@ -238,12 +244,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         e.preventDefault();
         const customer = customers[focusedIndex];
         if (customer) handleCustomerClick(customer);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
       }
     },
-    [customers, focusedIndex, handleCustomerClick, onClose]
+    [customers, focusedIndex, handleCustomerClick]
   );
 
   const handleLinkCustomer = async () => {
@@ -332,60 +335,29 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const canSearch = search.trim().length >= CUSTOMER_SEARCH_MIN_CHARS || hasFieldSearch;
   const showResults = canSearch && isReady && !displayError;
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="customer-picker-title"
-      aria-describedby="customer-picker-desc"
+    <CmxDialog
+      open={open}
+      // The nested link-confirm and create overlays own the keyboard while open.
+      onOpenChange={(next) => { if (!next && !showConfirmDialog && !createModalOpen) handleClose(); }}
+      // The search box takes focus itself (effect below), not the first control.
+      autoFocus={false}
     >
-      <div
-        ref={focusTrapRef}
-        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+      <CmxDialogContent
+        bodyPadding="none"
+        draggable={false}
+        className="max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden rounded-xl"
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-200">
-          <div className={`flex items-start justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <div className="flex-1">
-              <h2
-                id="customer-picker-title"
-                className={`text-2xl font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
-              >
-                {t('title')}
-              </h2>
-              <p
-                id="customer-picker-desc"
-                className={`text-gray-500 text-sm mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
-              >
-                {t('description')}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label={tCommon('close') || 'Close'}
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <CmxDialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 text-start">
+          <CmxDialogTitle className="text-2xl font-semibold text-gray-900 text-start">
+            {t('title')}
+          </CmxDialogTitle>
+          <CmxDialogDescription className="text-gray-500 text-sm mt-1 text-start">
+            {t('description')}
+          </CmxDialogDescription>
+        </CmxDialogHeader>
 
         {/* Default Guest Customer - Quick Action Banner (only if exists) */}
         {!defaultGuestLoading && defaultGuest && (
@@ -446,33 +418,6 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 aria-controls="customer-results-list"
                 aria-expanded={customers.length > 0}
               />
-              {isFetching && (
-                <div
-                  className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'}`}
-                  aria-hidden="true"
-                >
-                  <svg
-                    className="animate-spin h-5 w-5 text-blue-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                </div>
-              )}
             </div>
             <p
               id="customer-search-hint"
@@ -593,6 +538,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           className="flex-1 min-h-0 overflow-y-auto px-6 py-4"
           role="listbox"
           aria-label={t('title')}
+          aria-busy={isLoading || isFetching}
         >
           {displayError ? (
             <div className="flex flex-col items-center justify-center py-12" role="alert">
@@ -634,9 +580,18 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
               <p className="text-gray-500 text-sm text-center max-w-sm">{t('searchHint')}</p>
             </div>
           ) : isLoading ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-blue-500 animate-spin mb-4" />
-              <p className="text-gray-500 text-sm">{tCommon('loading') || 'Searching...'}</p>
+            <div className="space-y-2">
+              <span className="sr-only">{tCommon('loading')}</span>
+              {/* Same height as a result row, so the list does not jump when results arrive. */}
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} data-testid="customer-skeleton-row" className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                  <CmxSkeleton className="h-10 w-10 shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <CmxSkeleton className="h-4 w-1/3" />
+                    <CmxSkeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : customers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -703,9 +658,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                         <div
                           className={`text-sm text-gray-600 mt-0.5 truncate ${isRTL ? 'text-right' : 'text-left'}`}
                         >
-                          {customer.phone && <span>{customer.phone}</span>}
+                          {customer.phone && <bdi className="tabular-nums">{customer.phone}</bdi>}
                           {customer.phone && customer.email && <span className="mx-1">•</span>}
-                          {customer.email && <span>{customer.email}</span>}
+                          {customer.email && <bdi>{customer.email}</bdi>}
                         </div>
                       )}
                     </div>
@@ -740,9 +695,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
             </CmxButton>
           </div>
         </div>
-      </div>
+      </CmxDialogContent>
 
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog: a sibling of the content (its transform would break `fixed`), inside the focus trap */}
       {showConfirmDialog && linkingCustomer && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
@@ -848,6 +803,6 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           }
         }}
       />
-    </div>
+    </CmxDialog>
   );
 }

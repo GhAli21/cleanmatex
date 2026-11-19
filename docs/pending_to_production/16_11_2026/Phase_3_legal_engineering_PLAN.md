@@ -18,10 +18,10 @@ These are the shapes to build. A wider acceptance row, a consent-history scan on
 | Concern | Solution |
 |---|---|
 | HQ menu | New child of `dp_developer_portal`: `nav_code` `dp_legal_docs`, path `/developer-portal/legal-docs`, `nav_level` 2, `display_order` 304. Seed `hq_navigation_cd` in the migration. Mirror it in `FALLBACK_SECTIONS`, breadcrumbs, the command palette source, the hub card, and `layout.json` in both languages. Do not write `sys_components_cd`. |
-| Published text | `sys_cmx_terms_docs_mst` plus immutable `sys_cmx_terms_docs_dtl`. `doc_kind` is `PUBLIC`, `ACCEPTANCE`, or `NOTICE`. A version is current only when both locales exist and neither body contains `[` or `]`. A trigger rejects updates of `body` and `body_sha256`. |
+| Published text | `sys_cmx_terms_docs_mst` plus immutable `sys_cmx_terms_docs_dtl`. Each catalog row carries `mandatory_level` and the handling columns below. Screens obey those columns. A version is current only when both locales exist and neither body contains `[` or `]`. A trigger rejects updates of `body` and `body_sha256`. |
 | Public read | Two HQ routes, no session, service-role read. `GET .../public/{docCode}/{locale}` is the current pointer: `Cache-Control: public, max-age=60, stale-while-revalidate=300`, `ETag` = `body_sha256`. `GET .../public/{docCode}/{versionCode}/{locale}` is immutable: `max-age=31536000, immutable`. 404 when that locale is not published. No `anon` SELECT. Marketing and the Tenant app fetch on the server and keep no second copy of the body. |
-| Acceptance | One event in `org_legal_accept_mst`, one line per document in `org_legal_accept_dtl` (`doc_code`, `version_code`, `body_sha256`). One current pointer `org_legal_accept_cur`, primary key `tenant_org_id`. Adding a document later adds a line. It does not add a column. |
-| Re-accept | Order create reads `org_legal_accept_cur` by primary key and compares TOS, DPA, and AUP with the current codes. Missing or older returns 409. Reads of old orders stay open. The banner uses the same read. |
+| Acceptance | One event in `org_legal_accept_mst`, one line per document whose row has `record_version = true`. One current pointer `org_legal_accept_cur`, primary key `tenant_org_id`, with `accepted_versions` (jsonb, `doc_code` to `version_code`). Adding a document later adds a catalog row and a line. It does not add a column. |
+| Re-accept | Order create reads `org_legal_accept_cur` by primary key and compares it with the cached catalog rows where `blocks_new_orders = true`. Missing or older returns 409. Reads of old orders stay open. The banner uses the same read. |
 | Consent | `org_cust_consent_cur` is the hot row: unique `(tenant_org_id, customer_id, channel_code, purpose_code)`. `org_cust_consent_dtl` is append-only proof. Dispatch and the intake screen read the current row only. A save updates the current row and inserts history only when a value or `notice_version` changed. |
 | Marketing vs staff | Walk-in consent never writes `org_ntf_user_prefs_dtl`. Every send to a customer calls one gate: `assertCustomerMayReceive(tenant, customer, channel, purpose)`. Missing marketing consent is deny. WhatsApp service sends only when the current value is granted. SMS and email service send unless the current value is exactly refused. Staff campaigns keep the user-prefs table. |
 | Anonymize | One database function, one transaction, this `tenant_org_id` only. `org_customers_mst.customer_id` points at global `sys_customers_mst`. If any other Tenant row still points at that global id, set this row's `customer_id` to null and do not touch the global row. If no other row points at it, clear the global contact fields in the same transaction. Never `DELETE` the global row: the FK is `ON DELETE CASCADE` into Tenant customers. |
@@ -57,40 +57,113 @@ Building may proceed while brackets remain in `Lawyer_docs`. A version with a br
 3. The Owner has adopted the N4 rule, the U4 rule, and the liability cap.
 4. The seeded rows are current and both locales return from the read API.
 
-## Version codes
+## Version codes and handling
 
-From `Lawyer_docs/18_SUBPROCESSORS_AND_VERSIONS_en.txt`. Do not invent codes.
+From `Lawyer_docs/18_SUBPROCESSORS_AND_VERSIONS_en.txt`. Do not invent codes. Behavior comes from the columns, not from the document code.
 
-| `doc_code` | `doc_kind` | Version | Source |
-|---|---|---|---|
-| `TOS` | `PUBLIC` | `tos-2026-11-17` | `02_TERMS_OF_SERVICE_en.txt`, `_ar.txt` |
-| `PRIVACY` | `PUBLIC` | `privacy-2026-11-17` | `04_PRIVACY_POLICY_en.txt`, `_ar.txt` |
-| `DPA` | `PUBLIC` | `dpa-2026-11-17` | `06_DATA_PROCESSING_AGREEMENT_en.txt`, `_ar.txt` |
-| `DPP` | `PUBLIC` | `dpp-2026-11-17` | `08_DATA_PROCESSING_PAGE_en.txt`, `_ar.txt` |
-| `COOKIE` | `PUBLIC` | `cookie-2026-11-17` | `10_COOKIE_NOTICE_en.txt`, `_ar.txt` |
-| `AUP` | `PUBLIC` | `aup-2026-11-17` | `12_ACCEPTABLE_USE_POLICY_en.txt`, `_ar.txt` |
-| `SIGNUP` | `ACCEPTANCE` | `signup-2026-11-17` | file 14, checkbox label, helper line, and lead-form line |
-| `N4_NOTICE` | `NOTICE` | `n4-notice-2026-11-17` | file 15 section 3 |
-| `COUNTER` | `NOTICE` | `n4-notice-2026-11-17` | file 17 |
-| Pack | — | `legal-pack-2026-11-17` | column on every detail row of this seed |
+`mandatory_level`: `BLOCKING`, `ACKNOWLEDGED`, `PUBLIC`, `IN_FLOW`, `CONDITIONAL`, `INTERNAL`.
 
-The anonymize confirm text stays in Tenant i18n, version constant `u4-spec-2026-11-17`. The rule it carries is file 16. Only `PUBLIC` documents get a marketing route. `ACCEPTANCE` and `NOTICE` are loaded by the screen that shows them.
+Handling columns on `sys_cmx_terms_docs_mst`:
+
+| Column | Values | What it does |
+|---|---|---|
+| `is_public` | boolean | Public read API, marketing route, and Tenant-app route |
+| `acceptance_mode` | `ACCEPT`, `ACKNOWLEDGE`, or null | `ACCEPT` is the contract. `ACKNOWLEDGE` is stored and is not the contract |
+| `blocks_signup` | boolean | Sign-up stays closed until this current version is stored |
+| `blocks_new_orders` | boolean | A newer current version returns 409 on order create |
+| `present_in` | `SIGNUP`, `ORDER_INTAKE`, `COUNTER`, `INVOICE`, or null | The screen that loads this body |
+| `record_version` | boolean | Write a line with `version_code` and `body_sha256` when the flow saves |
+| `audience` | `TENANT` or `END_CUSTOMER` | Who the text is written for |
+| `subject_party` | `TENANT`, `TENANT_USER`, `END_CUSTOMER`, or null | Who the acceptance binds. Null means nobody accepts it |
+
+A check constraint keeps the level and the flags aligned. `BLOCKING` requires `acceptance_mode = ACCEPT` and at least one block flag. `ACKNOWLEDGED` requires `ACKNOWLEDGE`, `is_public`, and `record_version`. `PUBLIC` is public and has no acceptance and no block. `IN_FLOW` and `CONDITIONAL` are not public, have `present_in`, and do not block. `INTERNAL` is none of those and is not seeded from the lawyer drafts.
+
+| `doc_code` | Level | Public | Mode | Blocks sign-up | Blocks orders | Shown in | Record | Audience | Version |
+|---|---|---|---|---|---|---|---|---|---|
+| `TOS` | `BLOCKING` | yes | `ACCEPT` | yes | yes | — | yes | `TENANT` | `tos-2026-11-17` |
+| `DPA` | `BLOCKING` | yes | `ACCEPT` | yes | yes | — | yes | `TENANT` | `dpa-2026-11-17` |
+| `AUP` | `BLOCKING` | yes | `ACCEPT` | yes | yes | — | yes | `TENANT` | `aup-2026-11-17` |
+| `PRIVACY` | `ACKNOWLEDGED` | yes | `ACKNOWLEDGE` | yes | no | — | yes | `TENANT` | `privacy-2026-11-17` |
+| `DPP` | `PUBLIC` | yes | — | no | no | — | no | `TENANT` | `dpp-2026-11-17` |
+| `COOKIE` | `PUBLIC` | yes | — | no | no | — | no | `TENANT` | `cookie-2026-11-17` |
+| `SIGNUP` | `IN_FLOW` | no | — | no | no | `SIGNUP` | yes | `TENANT` | `signup-2026-11-17` |
+| `N4_NOTICE` | `IN_FLOW` | no | — | no | no | `ORDER_INTAKE` | yes | `END_CUSTOMER` | `n4-notice-2026-11-17` |
+| `COUNTER` | `IN_FLOW` | no | — | no | no | `COUNTER` | yes | `END_CUSTOMER` | `n4-notice-2026-11-17` |
+| Pack | — | — | — | — | — | — | — | — | `legal-pack-2026-11-17` |
+
+`subject_party` on the seed: Terms, DPA, Acceptable Use, Privacy, and the sign-up sentence bind the `TENANT`. The intake notice and the counter notice bind the `END_CUSTOMER`. The data-processing page and the cookie notice bind nobody.
+
+## World-class pattern
+
+This is the shape used by Stripe, Atlassian, Slack, and Twilio. One signup act by a person allowed to bind the business. Public notices stay public. End-customer consent is the customer's own act.
+
+| What they do | Where it shows | How this plan does it |
+|---|---|---|
+| Stripe Services Agreement and Atlassian Customer Agreement: the person clicking says they have authority to bind the business. Stripe also requires that representative to be an executive, senior manager, or someone with real control. Shopify is stricter and closer to this product: before signup the merchant must accept the Terms, and those Terms incorporate the Acceptable Use Policy, the Privacy Policy, and the Data Processing Addendum. Only the Store Owner is the contracting party. If the person signs up for an employer, the employer is the Store Owner, the person must use the employer email, and the person warrants authority to bind that employer. The Store Owner is responsible for the actions of everyone else on the account. The sale to an end customer is between the merchant and that customer. Shopify is not the seller. | One unchecked checkbox at signup, accepted only by the Store Owner role | One checkbox. It accepts Terms, the DPA, and Acceptable Use, and acknowledges Privacy. The first user is `tenant_admin`, which migration `0035` describes as the Tenant owner. Only that role may accept or re-accept for the Tenant. The mid-level `admin` role cannot bind the organization. The Tenant remains responsible for its staff and for the relationship with its own customers. |
+| Stripe incorporates the DPA into the services agreement. Atlassian incorporates the privacy policy and the acceptable use policy. | The same checkbox, with each document still stored as its own line, version, and hash | `blocks_signup` documents share one checkbox. Each still gets an acceptance line. |
+| Slack splits Customer Terms from User Terms. The Primary Owner represents the customer. A member does not sign the customer contract, and an admin does not sign it instead of a member. Twilio makes the customer responsible for its users' compliance. | No per-user signature on the organization contract | Staff are bound because the Tenant accepted. This pack has no `FOR_USER` act. A later staff notice, if added, is `SELF` only. |
+| Slack and Twilio publish a privacy notice and a DPA page. The DPA is also the processor contract. A cookie notice is a disclosure. | Public legal pages, no second signature | `is_public` rows. Privacy is acknowledged once at signup. The data-processing page and the cookie notice have no acceptor. |
+| Twilio Messaging Policy: consent is freely given by the recipient for that sender and that subject. Consent on behalf of a third party is not valid. The customer must keep proof of who consented, when, and by which method. Staff may record a choice the customer made at the counter. | Order intake | The end customer is `SELF`. Staff store `RECORDED`, plus the staff user id and the method (`COUNTER_TABLET` or `VERBAL_RECORDED_BY_STAFF`). `RECORDED` is evidence of the customer's act. It is not the Tenant consenting in the customer's place. |
+
+## Who may accept
+
+`sys_cmx_doc_acpt_rule` is the allow-list, one row per allowed act. Unique on `(doc_code, acceptor_scope, representation)`.
+
+| Column | Values |
+|---|---|
+| `acceptor_scope` | `TENANT_OWNER`, `TENANT_ADMIN`, `TENANT_USER`, `END_CUSTOMER` |
+| `representation` | `FOR_TENANT`, `SELF`, `RECORDED` |
+
+The check constraint pairs them with `subject_party`:
+
+| Bound party | Allowed act |
+|---|---|
+| `TENANT` | Store Owner only, `FOR_TENANT`. The `admin` role, a cashier, a customer, and a recording of someone else's choice cannot bind the organization. |
+| `TENANT_USER` | That user, `SELF` only. Not seeded in this pack. |
+| `END_CUSTOMER` | That customer, `SELF`. Owner, admin, or staff, `RECORDED`, and only for the notice the customer was shown. |
+| null | No rule rows. |
+
+Scope resolves to existing role codes in one service, not in the legal text:
+
+| Scope | Roles that satisfy it |
+|---|---|
+| `TENANT_OWNER` | `tenant_admin`. Migration `0035` describes this role as the Tenant owner. |
+| `TENANT_ADMIN` | `tenant_admin` and `admin`. |
+| `TENANT_USER` | Any active staff role of this Tenant. `b2b_customer` is a customer portal role and does not qualify. |
+| `END_CUSTOMER` | The customer record. It is not a staff role. |
+
+`super_admin` is the platform-wide role from `0035`. It does not satisfy `TENANT_OWNER`.
+
+Seed rules:
+
+| Documents | Subject | Who may act |
+|---|---|---|
+| Terms, DPA, Acceptable Use, Privacy | `TENANT` | `TENANT_OWNER` only, `FOR_TENANT` |
+| Intake notice, counter notice | `END_CUSTOMER` | `END_CUSTOMER` as `SELF`; `TENANT_OWNER`, `TENANT_ADMIN`, and `TENANT_USER` as `RECORDED` |
+
+No current document binds a staff user personally. The sign-up sentence has no rules of its own. The person who ticks it must pass the rules of every `blocks_signup` document. The data-processing page and the cookie notice have no rules.
+
+Every stored act writes `subject_party`, `acceptor_scope`, and `representation`. The server rejects the write when no active rule matches. A hidden button is not the control.
+
+The counsel memo, the README, the subprocessors register, and the anonymize spec are not catalog rows. A later pilot order form would be one `CONDITIONAL` row with `present_in = INVOICE`. The anonymize confirm text stays in Tenant i18n, version constant `u4-spec-2026-11-17`.
 
 ## Step 1 — Database
 
 One new migration in `cleanmatex/supabase/migrations/`. List the folder and take the next number. Do not edit an old migration. Do not apply this one.
 
-**`sys_cmx_terms_docs_mst`** — one row per `doc_code`. Columns: `doc_code` (PK), `doc_kind`, `name`, `name2`, `current_version_code`, `is_active`, audit columns. No `tenant_org_id`.
+**`sys_cmx_terms_docs_mst`** — one row per `doc_code`. Columns: `doc_code` (PK), `name`, `name2`, `current_version_code`, `mandatory_level`, `is_public`, `acceptance_mode`, `blocks_signup`, `blocks_new_orders`, `present_in`, `record_version`, `audience`, `subject_party`, `is_active`, audit columns. No `tenant_org_id`. Check constraint as in the handling section. All codes are TEXT and match the constants exactly.
+
+**`sys_cmx_doc_acpt_rule`** — allow-list. Columns: `doc_code`, `acceptor_scope`, `representation`, `is_active`, audit columns. Unique on the three business columns. Check constraint as in "Who may accept". A `BLOCKING` or `ACKNOWLEDGED` document has at least one active rule. A public page with a null subject has none.
 
 **`sys_cmx_terms_docs_dtl`** — one row per `doc_code` + `version_code` + `locale`. Unique on those three. Columns: `body` (TEXT), `body_sha256`, `published_at`, `pack_version`, `is_active`, audit columns. Trigger rejects an update of `body` or `body_sha256`.
 
-**`org_legal_accept_mst`** — one acceptance event. `tenant_org_id`, `user_id`, `acceptance_method`, `pack_version`, `accepted_at` from the database clock, `locale`, `checkbox_was_preselected`, `source_ip`, `user_agent`. Index `(tenant_org_id, accepted_at desc)`.
+**`org_legal_accept_mst`** — one acceptance event. `tenant_org_id`, `user_id`, `subject_party`, `acceptor_scope`, `representation`, `acceptance_method`, `pack_version`, `accepted_at` from the database clock, `locale`, `checkbox_was_preselected`, `source_ip`, `user_agent`. Index `(tenant_org_id, accepted_at desc)`. For this pack the subject is `TENANT` and the representation is `FOR_TENANT`.
 
 **`org_legal_accept_dtl`** — lines of that event. `doc_code`, `version_code`, `body_sha256`. Composite FK to the event uses the parent key column order. RLS on. No password. No full body.
 
-**`org_legal_accept_cur`** — one row per Tenant, primary key `tenant_org_id`. Holds the pack version and the TOS, DPA, and AUP version codes from the latest event. Written in the same transaction as the event.
+**`org_legal_accept_cur`** — one row per Tenant, primary key `tenant_org_id`. Holds `pack_version` and `accepted_versions` jsonb (`doc_code` to `version_code`) for every line of the latest event. Written in the same transaction as the event. No per-document columns.
 
-**`org_cust_consent_cur`** — unique `(tenant_org_id, customer_id, channel_code, purpose_code)`. Holds the current value, basis, notice version, and time.
+**`org_cust_consent_cur`** — unique `(tenant_org_id, customer_id, channel_code, purpose_code)`. Holds the current value, basis, notice version, `acceptor_scope`, `representation`, and time. `SELF` means the customer acted. `RECORDED` means staff stored the customer's own choice, and the staff user id is stored with the method.
 
 **`org_cust_consent_dtl`** — append-only proof. Fields from file 15 section 5, plus `tenant_org_id` on the row and in every index that leads. Index `(tenant_org_id, customer_id, shown_at desc)`. RLS on.
 
@@ -110,7 +183,7 @@ Route: `/developer-portal/legal-docs/`. Page file: `platform-web/app/(dashboard)
 
 Screens, in `platform-web/src/features/developer-portal/`:
 
-- List: document code, kind, English name, Arabic name, current version, missing-locale warning.
+- List: document code, mandatory level, who it binds, who may accept, public flag, block flags, where it is shown, English name, Arabic name, current version, missing-locale warning. Handling columns and allow-list rows may be updated. A published body stays immutable.
 - Version screen: both locales side by side, hash, published time. Insert a new version. Set current only when both locales pass the bracket check and the hash matches the body.
 - Preview uses the locale direction: `ltr` for English, `rtl` for Arabic.
 
@@ -120,7 +193,7 @@ API on `platform-api`, module shape of `developer-portal`, under `/api/hq/v1/leg
 - `POST` a version. Reject a body containing `[` or `]`. Compute `body_sha256` on the server.
 - `POST` set current. Reject when either locale is missing.
 - No `PATCH` of `body`.
-- Public current and public immutable routes as in the chosen design. Rate-limit the public routes. Return the legal text only.
+- Public current and public immutable routes as in the chosen design. They return a row only when `is_public` is true. Rate-limit the public routes. Return the legal text only.
 
 Navigation, all of these together:
 
@@ -138,13 +211,13 @@ Setting a version current changes the pointer. The immutable URL does not need t
 
 ## Step 3 — Public pages, sign-up, and re-accept (B4)
 
-**Marketing site.** Locale routes for the six `PUBLIC` documents. Footer links in `marketing-web/src/components/layout/site-footer.tsx`. The page fetches the current public route on the server. Early-access and contact forms use the `SIGNUP` lead line and store the privacy version, hash, and time on the lead row. That store does not create a Tenant.
+**Marketing site.** One locale route per catalog row with `is_public = true`. Footer links in `marketing-web/src/components/layout/site-footer.tsx` are built from that list. The page fetches the current public route on the server. Early-access and contact forms use the row with `present_in = SIGNUP` for the lead line, and store the privacy version, hash, and time on the lead row. That store does not create a Tenant.
 
-**Tenant app.** The same six routes are public, so sign-up can open them before an account exists. Signed-in footer links to the same routes. Fetch on the server.
+**Tenant app.** The same public rows are available before an account exists. Signed-in footer links come from the same list. Fetch on the server.
 
-**Sign-up.** `web-admin/app/register/tenant/page.tsx`. One checkbox, unchecked on load. The label and helper come from `SIGNUP` for the screen locale. Submit stays disabled until it is checked. `POST /api/v1/tenants/register` writes `org_legal_accept_mst`, one line per accepted document, and `org_legal_accept_cur` in the same transaction, after the Tenant and the user exist, and rolls back if the current versions cannot be read or a row cannot be inserted. `checkbox_was_preselected` is stored as false.
+**Sign-up.** `web-admin/app/register/tenant/page.tsx`. One checkbox, unchecked on load. The label and helper come from the row with `present_in = SIGNUP` for the screen locale. Submit stays disabled until it is checked. `POST /api/v1/tenants/register` creates the Tenant and the first user as `tenant_admin` in the same transaction, then checks that this user matches `TENANT_OWNER` + `FOR_TENANT` for every `blocks_signup` document. It writes one acceptance line per row with `record_version = true`, and writes `org_legal_accept_cur`. It rolls back if a required current version cannot be read, the allow-list does not match, or a row cannot be inserted. `checkbox_was_preselected` is stored as false. A later re-accept uses the same allow-list, so only `tenant_admin` can clear the block.
 
-**Re-accept.** When the current TOS, DPA, or AUP version differs from `org_legal_accept_cur`, the next admin session sees an unchecked box. The order-create API returns 409 until the pointer is updated. Reading existing orders stays allowed. The lookup is the primary key. There is no history scan on the order path.
+**Re-accept.** The server loads the cached catalog rows with `blocks_new_orders = true` and compares each `current_version_code` with `org_legal_accept_cur.accepted_versions`. Any miss shows an unchecked box on the next admin session. The order-create API returns 409 until the pointer is updated. Reading existing orders stays allowed. The Tenant lookup is the primary key. There is no history scan on the order path.
 
 Cookie page states that non-essential analytics are off. Do not load an analytics script.
 
@@ -154,7 +227,7 @@ Cookie page states that non-essential analytics are off. Do not load an analytic
 
 Screen: `web-admin/app/dashboard/orders/new/page.tsx` and the customer block on that flow. Also the customer profile, for a later change.
 
-Load `N4_NOTICE` and `COUNTER` for the screen locale. Show the counter notice on the block.
+Load the current row with `present_in = ORDER_INTAKE` and the current row with `present_in = COUNTER` for the screen locale. Show the counter notice on the block. Store `notice_version` from the intake row because `record_version` is true.
 
 - New customer: every box starts unticked. No current row exists.
 - Existing customer: load `org_cust_consent_cur` for this Tenant and customer. Do not display a granted choice as off.
@@ -162,7 +235,7 @@ Load `N4_NOTICE` and `COUNTER` for the screen locale. Show the counter notice on
 - No email: hide email, store `NOT_APPLICABLE`, do not send.
 - Channel off for the Tenant: hide that marketing box.
 
-On save, upsert the current rows that changed and append one history row for each change, including a notice-version change. One transaction. Map exactly as file 15:
+On save, the server checks `sys_cmx_doc_acpt_rule` for the intake document. Customer self is `END_CUSTOMER` + `SELF`. Staff recording a choice the customer made is `RECORDED` and requires `TENANT_OWNER`, `TENANT_ADMIN`, or `TENANT_USER`. `b2b_customer` cannot record it. Upsert the current rows that changed and append one history row for each change, including a notice-version change. One transaction. Store the scope and the representation on the current row and the history row. Map exactly as file 15:
 
 | Choice | Current value | Basis |
 |---|---|---|
@@ -209,7 +282,7 @@ One transaction, this Tenant only:
 - i18n chrome in both apps and both languages. Legal bodies stay in the document table. Run `npm run check:i18n` where message files change.
 - Cmx components, `cmxMessage`, visible labels, keyboard access, and RTL on the Arabic preview and the intake block.
 - Proof of cost: order create reads one current-acceptance row by primary key. A send reads one consent row by unique key. Public current responses are cacheable for 60 seconds. Immutable version responses are cacheable for a year. Anonymize is one function call.
-- Tests: sign-up with the box off creates no Tenant; sign-up with the box on stores the event, the lines, and the pointer; re-accept returns 409 until the pointer moves; an existing current consent row is not cleared by a later order; WhatsApp left off does not send; marketing off does not send; anonymize cases in file 16 section 11; a second Tenant is unchanged; a shared `sys_customers_mst` row is not edited; an unshared global row is cleared and not deleted; an issued invoice keeps its snapshot and its totals; a body update is rejected; set-current fails with one locale; public GET does not return a draft.
+- Tests: sign-up with the box off creates no Tenant; sign-up with the box on stores the event, the lines, the pointer, and `FOR_TENANT`; a cashier cannot clear a re-accept block; `b2b_customer` cannot record end-customer consent; an existing current consent row is not cleared by a later order; WhatsApp left off does not send; marketing off does not send; anonymize cases in file 16 section 11; a second Tenant is unchanged; a shared `sys_customers_mst` row is not edited; an unshared global row is cleared and not deleted; an issued invoice keeps its snapshot and its totals; a body update is rejected; set-current fails with one locale; public GET does not return a draft.
 - `npm run build` in `web-admin`, `platform-web`, `platform-api`, and `marketing-web` for the apps this step touched.
 
 **Step 6 close:** update the Progress Log, then the register rows 3.2, 3.6, and 3.7 only with the evidence above.

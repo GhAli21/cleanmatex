@@ -85,3 +85,32 @@
 
 ### Test data left behind
 - None from this guide. (Run-wide QA orders `ORD-20261117-00001..00006` sit at Processing; see Q3/Q4/Q7 guides.)
+
+### Retest r1 2026-11-19 (remote; all scenarios still BLOCKED)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals), Demo Laundry admin account (shows role `super_admin`; no passwords or test contact details are recorded here — see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes; Jest skipped. Run window 2026-11-19 ~04:00–05:00 Asia/Muscat (UTC+4). This is the retest of the order-dependent rows from the 17-Nov backlog after the `photo_urls` fix. Source ledgers on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (existing QA orders), `B.md` (New Order), `C.md` (Order Edit / collect), `D.md` (POS / cash drawer); screenshots `/workspace/qa-20261119/retest/shots/` (file names cited below). Original steps, earlier rounds and Dev notes above are unchanged.
+**Fixed since 17-Nov:** the `photo_urls` P0 (FET-HFC-Nov17-PhotoUrlsColumnDropped) — All Orders list, order detail, `/full` and `/workspace` load again (no `photo_urls` banner, no "Order not found"), and New Order submit works for cash and Pay on Collection orders (no `ORDER_SUBMIT_FAILED`, no 422).
+**Still blocked platform-wide:** `/dashboard/processing` still shows the red banner "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19 after the `photo_urls` fix; ledger `/workspace/qa-20261119/obs/U-pr0102.md`, shot `PR02-4-processing`). Every QA order therefore stays at Processing / preparation Pending, so Ready, Delivery, Split and rack rows cannot be reached.
+**Why nothing ran:** every scenario needs an order in `ready` (or Processing/Packing with a rack-blocked action). Half of the 17-Nov blocker is fixed — the `photo_urls` break (order pages) is gone — but orders still cannot reach Ready: `/dashboard/processing` shows "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19), so the new QA orders `ORD-20261119-00001..00004` and `ORD-20261117-00001..00006` all stay at Processing / preparation Pending. Migration `0497` (rack fields) was not checked. Rows above are unchanged.
+
+**Recount (this retest, 6 rows): PASS 0 / FAIL 0 / PARTIAL 0 / BLOCKED 5 / NOT RUN 1.**
+
+| # | Verdict | Evidence |
+|---|---|---|
+| Scenario 1 — Ready Details modal + auto-release | BLOCKED | No `ready` order; Processing error `permission denied for table sys_order_sources_cd`. |
+| Scenario 2 — Proactive Rack & Bags button | BLOCKED | No `ready` order with a rack. |
+| Scenario 3 — Cross-order conflict banner | BLOCKED | Needs two racked orders for one customer; none can reach Ready. |
+| Scenario 4 — WorkflowActionBar on Processing/Packing | BLOCKED | Processing queue empty with the raw error. |
+| Scenario 5 — Arabic / RTL | BLOCKED | Depends on Scenario 1. |
+| Scenario 6 — Cross-tenant GET rack-bags | NOT RUN | API / devtools check (UI-only scope). |
+
+Prior findings, Retest r1 2026-11-19: **FET-RACK-Nov17-NoReadyPath (P0) PARTLY FIXED:** the order-page / `photo_urls` half is fixed; the Processing `sys_order_sources_cd` half is still open, so there is still no path to Ready. **FET-RACK-Nov17-FixtureNote** unchanged.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r1 2026-11-19)
+- **P0 FET-RACK-Nov19-ProcessingGrantStillBlocksReady:** Grant SELECT on `sys_order_sources_cd` to the app role (or read it through a definer function) and show a plain error on Processing; until then Ready, Packing, Delivery, Split and rack scenarios cannot run. This is the single remaining blocker for Q3 RV-05/07, Q4 S8/S9, Q8 §8, Q11 S4/S14, Q15 and Q16 #3/#4/#10.
+
+### Blocked
+- Scenarios 1–5: no `ready` order is reachable (Processing grant error).
+
+### Test data left behind
+- None from this guide. QA orders are listed in the Q3/Q4 guides; all sit at Processing.

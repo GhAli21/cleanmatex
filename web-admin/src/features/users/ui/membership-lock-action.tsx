@@ -81,7 +81,9 @@ export function MembershipLockAction({ userId }: MembershipLockActionProps) {
         confirmLabel={tCommon('confirm')}
         cancelLabel={tCommon('cancel')}
         onCancel={() => setOpen(false)}
-        onConfirm={() => mutation.mutateAsync(nextLocked)}
+        onConfirm={async () => {
+          await mutation.mutateAsync(nextLocked)
+        }}
       />
     </>
   )

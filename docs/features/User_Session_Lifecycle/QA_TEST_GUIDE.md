@@ -387,3 +387,27 @@ Prior findings, Retest r3 2026-11-17: **FET-USL-S32 (255-minute lockout) FIXED**
 - Tenant user `qa.sess1117` (`qa.sess1117@example.com`, code U000008, operator) — **inactive**; its code was briefly `QAHQ1117` and restored to U000008.
 - HQ user `QA Sess HQ 1117` (code QAHQ1117, operator, no email) — **inactive**.
 - HQ `AUTH_IDLE_TIMEOUT_MIN` back at 30. Language English. No shared account changed.
+
+## Financial_Expert_Tester Results — Retest r4 2026-11-19 (remote; row 2.2 only, return-to-page on the orders route)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals), Demo Laundry admin account (shows role `super_admin`; no passwords or test contact details are recorded here — see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes; Jest skipped. Run window 2026-11-19 ~04:00–05:00 Asia/Muscat (UTC+4). This is the retest of the order-dependent rows from the 17-Nov backlog after the `photo_urls` fix. Source ledgers on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (existing QA orders), `B.md` (New Order), `C.md` (Order Edit / collect), `D.md` (POS / cash drawer); screenshots `/workspace/qa-20261119/retest/shots/` (file names cited below). Original steps, earlier rounds and Dev notes above are unchanged.
+**Fixed since 17-Nov:** the `photo_urls` P0 (FET-HFC-Nov17-PhotoUrlsColumnDropped) — All Orders list, order detail, `/full` and `/workspace` load again (no `photo_urls` banner, no "Order not found"), and New Order submit works for cash and Pay on Collection orders (no `ORDER_SUBMIT_FAILED`, no 422).
+**Still blocked platform-wide:** `/dashboard/processing` still shows the red banner "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19 after the `photo_urls` fix; ledger `/workspace/qa-20261119/obs/U-pr0102.md`, shot `PR02-4-processing`). Every QA order therefore stays at Processing / preparation Pending, so Ready, Delivery, Split and rack rows cannot be reached.
+**Writes used:** none (sign-ins only). One sign-in in the normal browser profile (the session had expired) and two in an Incognito window; none failed, no account was locked, no password was changed. Source ledger on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (A9). Rows above are unchanged; all other rows of this guide were not run today.
+
+**Recount (this retest, 1 row): PASS 1 / FAIL 0 / PARTIAL 0 / BLOCKED 0 / NOT RUN 0.**
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 2.2 | PASS | Incognito, signed out: `https://cmx.cleanmatex.com/dashboard/orders` → `/login?redirect=%2Fdashboard%2Forders`; after sign-in the browser landed on `/dashboard/orders` (the list loaded with 7 orders; the 17-Nov run had avoided this route because of `photo_urls`). Signed out again → `/login`. `/login?redirect=//evil.com` → after sign-in landed on `https://cmx.cleanmatex.com/dashboard` (stayed on the tenant, not on the external host). Shots `A-A9-landed-orders`, `A-A9-evil-redirect-result`. |
+
+Prior findings, Retest r4 2026-11-19: the 17-Nov "order route avoided" gap for 2.2 is closed. Other FET-USL findings not rechecked today.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r4 2026-11-19)
+- None new from row 2.2 (the 2.2 return-to-page and open-redirect checks behave as expected).
+
+### Blocked
+- None for 2.2.
+
+### Test data left behind
+- None from this retest. Incognito window closed; the normal profile is signed in as the Demo Laundry admin.

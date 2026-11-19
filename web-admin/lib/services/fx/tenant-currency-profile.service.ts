@@ -141,7 +141,7 @@ export class TenantCurrencyProfileService {
         `tenant ${tenantId}: currency catalog`,
       );
     }
-    for (const row of catalog.rows) {
+    for (const row of catalog.rows ?? []) {
       map.set(row.code, row.minor_unit);
     }
     if (codes.some((code) => !map.has(code))) {

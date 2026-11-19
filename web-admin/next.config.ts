@@ -41,9 +41,9 @@ const nextConfig: NextConfig = {
     '/api/dev/platform-inventories/route': ['./data/platform/platform-info-inventory.json'],
   },
 
-  // Temporarily ignore TypeScript errors to get build working
+  // ignoreBuildErrors: true = Temporarily ignore TypeScript errors to get build working
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Keep TypeScript errors - only ignore ESLint
   },
 
   // Turbopack root must match outputFileTracingRoot
@@ -55,10 +55,14 @@ const nextConfig: NextConfig = {
   // The production builder is 2 cores / 8 GB. A custom webpack() function
   // disables Next's compile worker, so one process holds the whole graph and
   // the container is SIGKILL'd once RAM is full.
+  // One experimental block: a second key would silently replace this one.
   experimental: {
     webpackBuildWorker: true,
     webpackMemoryOptimizations: true,
     cpus: 1,
+    // Requested by the Next.js 16.4.6 security upgrade: let the agent apply
+    // security-only upgrades automatically in the future.
+    agentUpgrade: "security",
   },
 
   // Use webpack instead of Turbopack for more stable builds

@@ -1178,3 +1178,44 @@ Preview Order Fin is **not VERIFIED** end-to-end while P0 items 1–6 remain ope
 
 ### Test data left behind
 - No new Q6 data. Tax documents `SIM-2026-000002` / `SIM-2026-000003` belong to QA orders `ORD-20261117-00002` / `-00005` (see Q3/Q7 guides); issued tax documents are permanent.
+
+### Retest r1 2026-11-19 (remote; order-dependent rows 24.1–24.13, 26.12; 20.24 and 30.2 not run)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals), Demo Laundry admin account (shows role `super_admin`; no passwords or test contact details are recorded here — see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes; Jest skipped. Run window 2026-11-19 ~04:00–05:00 Asia/Muscat (UTC+4). This is the retest of the order-dependent rows from the 17-Nov backlog after the `photo_urls` fix. Source ledgers on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (existing QA orders), `B.md` (New Order), `C.md` (Order Edit / collect), `D.md` (POS / cash drawer); screenshots `/workspace/qa-20261119/retest/shots/` (file names cited below). Original steps, earlier rounds and Dev notes above are unchanged.
+**Fixed since 17-Nov:** the `photo_urls` P0 (FET-HFC-Nov17-PhotoUrlsColumnDropped) — All Orders list, order detail, `/full` and `/workspace` load again (no `photo_urls` banner, no "Order not found"), and New Order submit works for cash and Pay on Collection orders (no `ORDER_SUBMIT_FAILED`, no 422).
+**Still blocked platform-wide:** `/dashboard/processing` still shows the red banner "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19 after the `photo_urls` fix; ledger `/workspace/qa-20261119/obs/U-pr0102.md`, shot `PR02-4-processing`). Every QA order therefore stays at Processing / preparation Pending, so Ready, Delivery, Split and rack rows cannot be reached.
+**Writes used (approved 2026-11-19):** `ORD-20261119-00001` (cash order with a whole-order preference). Source ledger on the tester box: `/workspace/qa-20261119/retest/obs/B.md` (section "O2 (PREFS)") and `A.md` (A6). Earlier rounds and sections above are unchanged.
+
+**Recount (this retest, 16 rows): PASS 9 / FAIL 0 / PARTIAL 2 / BLOCKED 0 / NOT RUN 5.**
+
+| # | Verdict | Evidence |
+|---|---|---|
+| 20.24 | NOT RUN | Needs a loyalty redemption on an order plus a read-only SELECT on `org_loyalty_txn_allocs_dtl`; not run (needs owner OK / fixture). Related: no new EARN rows are being written (see Q4 FET-LLMS-Nov19-LoyaltyNoEarn). |
+| 24.1 | PASS | New Order, Blouse + Pants: sticky top bar shows a "Preferences" pill at step 1 (before any preference) and at steps 3 and 5. |
+| 24.2 | PASS | Pill → dialog "Whole Order" ("Applies to the whole order regardless of which items are added.") with one kind button: "Service Preferences". Shot `B-O2-whole-order-pref`. |
+| 24.3 | PASS | Service Preferences → WASHING list (Anti-Bacterial Wash +0.400, Delicate Handling +0.300, Hand Wash Only +0.500, Separate Wash +0.500 …) → ticked "Separate Wash" +0.500: chip "Separate Wash +0.500 OMR" in the dialog; cart Subtotal 3.200, "Order charges 0.500", Tax 0.259, Total 3.959 (live). |
+| 24.4 | PASS | Pill shows badge "1" and persists when switching to steps 1, 3 and 5. |
+| 24.5 | NOT RUN | Removing the chip via × not exercised. |
+| 24.6 | NOT RUN | Step 2 "Service Preferences" tab (no Whole Order section) not opened separately. |
+| 24.7 | PASS | Step 3 "Edit Items Preferences (2)": each piece toolbar offers Service Preferences, Packing Preferences, Stains, Damage, Material, Colors, Notes; Packing dialog None/Box/Fold/Fold with Tissue/Garment Bag/Hang on Hanger +0.100/Roll/Vacuum Seal; chose Fold on Blouse → chip "Fold" with copy/remove buttons and a "Fold" tag on the cart line. Shot `B-O2-packing-fold`. |
+| 24.8 | PARTIAL | "Whole item" toolbar label not seen on the step-3 piece toolbars (quantity-1 lines; chip has only a copy icon); no per-piece checkbox list seen. The step-2 tab was not opened. |
+| 24.9 | PASS | Payment modal, Simple face: "Gross Value Subtotal OMR 3.200", "Extra Charges OMR 0.500", Taxes VAT 5.00% 0.185 + Municipal Fee 2% 0.074 = Total Tax 0.259, "Order Total OMR 3.959" (label is "Gross Value Subtotal", not "Subtotal"). Shot `B-O2-payment-simple`. |
+| 24.10 | PASS | Cash 5.000 tendered → "Change Returned OMR 1.050 … from OMR 1.041 to OMR 1.050", "✓ Fully Settled"; Confirm & Submit → order created, **no** "Amount Mismatch" dialog. `ORD-20261119-00001`. Shot `B-O2-payment-cash`. |
+| 24.11 | PASS | Plain order (no discount, preference or promo; draft Blouse + custom item, not submitted): Simple payment modal shows "Gross Value Subtotal OMR 7.750", VAT 5.00% 0.388 + Municipal Fee 2% 0.155 = Total Tax 0.543, "Order Total OMR 8.293" — the breakdown is shown even with nothing to discount. The same modal for the plain Blouse + Pants order (`-00003`) showed the VAT / Municipal rows and "Order Total OMR 3.424". |
+| 24.12 | PARTIAL | Order-level preference (Separate Wash) + step-3 packing (Fold on Blouse) submitted without error; Financial Summary: Items & extras 3.200 (Blouse 2.200, Pants 1.000), Charges SEPARATE_WASH +0.500, Payments CASH −3.959, Settled — total matches the preview 3.959. No item-level (step 2) preference and no priced piece-level service preference were part of the order. Shot `B-O2-detail`. |
+| 24.13 | NOT RUN | Reconciliation (owner/finance) not run. |
+| 26.12 | PASS (UI half) | `ORD-20261117-00002` and `-00005` show "Tax Document Issued" (`SIM-2026-000002` / `SIM-2026-000003`) with View / Print and **no** "Issue tax document" button; `-00001`, `-00004`, `-00006` (no document) still show the button. API `TAX_DOCUMENT_ALREADY_EXISTS` half not run (curl). |
+| 30.2 | NOT RUN | **H:** HQ `order_fin_voucher_unwind` flag change + reversal of a posted cash receipt needs a separate owner OK; flag not touched. |
+
+Prior findings, Retest r1 2026-11-19: **FET-RWP-Nov17-TaxDocPrintWrong / NoTaxDocList / CronsInactive** not rechecked. Rows 24.1–24.13 were all BLOCKED on 17-Nov by the `photo_urls` break; 24.1–24.4, 24.7, 24.9–24.11 are PASS again today.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r1 2026-11-19)
+- **P3 FET-RWP-Nov19-WholeOrderSingleKind:** The Whole Order dialog offers only "Service Preferences" (no Packing / other kinds), so the guide's "row of kind buttons" shows one button. Confirm intended, or update the guide wording.
+- **P3 FET-RWP-Nov19-ExtraChargesLabel:** Payment modal uses "Gross Value Subtotal" where the guide says "Subtotal"; align guide and UI.
+- **P3 FET-RWP-Nov19-CashBannerDoubleMessage:** see Q5 FET-POS-Nov19-CashBannerDoubleMessage (blue "no coin" hint plus red "Amount to pay must be greater than 0" when Cash is clicked).
+
+### Blocked
+- None this retest. 20.24, 24.5, 24.6, 24.13 and 30.2 were not run (see rows).
+
+### Test data left behind
+- `ORD-20261119-00001` — 3.959 cash (tendered 5.000, change 1.050), whole-order preference Separate Wash +0.500, Fold packing on Blouse; Processing. Other run-wide QA orders `ORD-20261119-00002..00004` are listed in the Q3/Q4 guides.

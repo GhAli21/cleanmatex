@@ -2,12 +2,17 @@
  * Seed invariants that mirror catalog `seed_must_pass` structural errors.
  * Tenant cannot run HQ Check policy here; these SQL checks catch the 0475 class of seed bugs.
  *
+ * Assert against WF_V2_SIMPLE v4 (`…014`), the current platform-shipped SIMPLE
+ * that later migrations keep structurally valid. Historical 0472 SIMPLE v2
+ * (`…013`) never received a `stage_sequence` and is not the live seed.
+ *
  * @jest-environment node
  */
 
 import { prisma } from '@/lib/db/prisma';
 
-const SIMPLE_PUBLISHED = 'a1000000-0000-4000-8000-000000000013';
+/** WF_V2_SIMPLE v4 — same id as 0475 / quick-drop DB integration tests. */
+const SIMPLE_V4 = 'a1000000-0000-4000-8000-000000000014';
 
 interface CountRow {
   n: number;
@@ -156,11 +161,11 @@ describe('wf policy issue catalog seed_must_pass invariants', () => {
     await prisma.$disconnect();
   });
 
-  it('holds for 0472 SIMPLE published live policy when present', async () => {
-    if (!(await versionExists(SIMPLE_PUBLISHED))) {
-      console.warn('[wf-policy-issue-catalog] 0472 SIMPLE v2 not in this database — skipping');
+  it('holds for WF_V2_SIMPLE v4 when present', async () => {
+    if (!(await versionExists(SIMPLE_V4))) {
+      console.warn('[wf-policy-issue-catalog] WF_V2_SIMPLE v4 not in this database — skipping');
       return;
     }
-    await assertWfSeedMustPassInvariants(SIMPLE_PUBLISHED);
+    await assertWfSeedMustPassInvariants(SIMPLE_V4);
   });
 });

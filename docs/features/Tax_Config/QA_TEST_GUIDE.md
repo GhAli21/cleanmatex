@@ -309,3 +309,34 @@ Prior findings, Retest r3 2026-11-17: **FET-TX-Nov13-ViewerTaxBlank STILL BROKEN
 - `ORD-20261117-00006` — paid 2.996 cash, `RV-2026-000121`, note QA-20261117-TAX, no tax document.
 - Demo tax **Advanced mode left ON** (app refuses Basic while inactive rule `QA_20261117` exists) — owner action needed.
 - HQ: OM VAT v3 draft **discarded**; OM_VAT v2 still live. QA org `QA-20261117 Catalog Org` has OM_SME applied with Activate off (audit #883). No other org touched.
+
+### Financial_Expert_Tester Results — Retest r4 2026-11-19 (remote; QA orders only)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals), Demo Laundry admin account (shows role `super_admin`; no passwords or test contact details are recorded here — see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes; Jest skipped. Run window 2026-11-19 ~04:00–05:00 Asia/Muscat (UTC+4). This is the retest of the order-dependent rows from the 17-Nov backlog after the `photo_urls` fix. Source ledgers on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (existing QA orders), `B.md` (New Order), `C.md` (Order Edit / collect), `D.md` (POS / cash drawer); screenshots `/workspace/qa-20261119/retest/shots/` (file names cited below). Original steps, earlier rounds and Dev notes above are unchanged.
+**Fixed since 17-Nov:** the `photo_urls` P0 (FET-HFC-Nov17-PhotoUrlsColumnDropped) — All Orders list, order detail, `/full` and `/workspace` load again (no `photo_urls` banner, no "Order not found"), and New Order submit works for cash and Pay on Collection orders (no `ORDER_SUBMIT_FAILED`, no 422).
+**Still blocked platform-wide:** `/dashboard/processing` still shows the red banner "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19 after the `photo_urls` fix; ledger `/workspace/qa-20261119/obs/U-pr0102.md`, shot `PR02-4-processing`). Every QA order therefore stays at Processing / preparation Pending, so Ready, Delivery, Split and rack rows cannot be reached.
+**Writes used (approved 2026-11-19):** edit +Blouse on `ORD-20261117-00006` (Applied), edit Review only (not applied) on `ORD-20261117-00002`. Not run (needs a separate owner OK): #22 (item tax class change) and #24 (deactivate every sales rule). Source ledger on the tester box: `/workspace/qa-20261119/retest/obs/C.md` (§C7, §C8) and `A.md` (A7). Rows above are unchanged.
+
+**Recount (this retest, 6 rows): PASS 0 / FAIL 1 / PARTIAL 3 / BLOCKED 0 / NOT RUN 2.**
+
+| # | Verdict | Evidence |
+|---|---|---|
+| #21 Order discount | FAIL (still) | `ORD-20261117-00006` (manual discount 0.100): order Tax 0.196 vs per-code item rows Blouse 0.044 + 0.110, Standard Bra 0.014 + 0.035 = 0.203 — unchanged since 17-Nov. |
+| #22 Item tax class change | NOT RUN | Needs a catalog change (H); not run. |
+| #24 Rule deactivation (no-coverage cart) | NOT RUN | Needs deactivating every sales rule on Demo (H); not run. |
+| #25 Edit a taxed order (add item) | PARTIAL | `-00006` (no tax doc), Rev 2: Blouse qty 1→2 → card "New total 5.268, Was 2.996 +2.272, Balance after change 2.272, To collect"; Review (Reason entered → READY) "Discounts recalculated — Each discount on the order was applied again to the new total. Manual Discount: −OMR 0.100 → −OMR 0.176", line Total 2.996→5.268, Tax 0.196→0.344; Apply → saved (Total 5.268, Subtotal 5.100, Paid 2.996, Balance Due 2.272). Detailed financial rows after Apply: Blouse LEGACY_05 2% 0.088 + VAT_STD 5% 0.220, Standard Bra 0.014 + 0.035 — rows replaced, not doubled. Review has **no** per-tax-code breakdown. Shot `C-C6-*` (ledger §C7). |
+| #27 Edit after tax invoice | PARTIAL | `ORD-20261117-00002` (tax document `SIM-2026-000002`, Rev 1): Add Blouse → card "New total 5.029, Was 2.675 +2.354"; Review "Review result: REASON_REQUIRED, Current 2.675, Estimated 5.0290, Financial OUTSTANDING; Add an item · Blouse … Tax OMR 0.329 … CAPABILITY_POLICY_OVERRIDE_REQUIRED". The Review shows **no** reversal rows / new FINAL rows / "tax document will be reversed" notice. Not applied (the extra 2.354 cannot be collected on a paid PAY_IN_ADVANCE order — see Q4 FET-LLMS-Nov19-PrepaidEditUncollectable), Review cancelled, edit unsaved; `SIM-2026-000002` untouched. |
+| #31b Per-code tax after quantity change | PARTIAL | After the qty change per-code rows follow the new quantity (Blouse 0.088 / 0.220, i.e. doubled), but their sum 0.088 + 0.220 + 0.014 + 0.035 = **0.357** ≠ order tax **0.344** (after the discount was re-applied, −0.176): mismatch 0.013. `/full` Payment Details still shows "Tax (VAT) 0.098" (only the municipal part, not 0.344). |
+
+Prior findings, Retest r4 2026-11-19: **FET-TX-Nov17-DiscountTaxMismatch STILL BROKEN** (0.196 vs 0.203 before the edit, 0.344 vs 0.357 after). The 17-Nov "needs an override, no Apply" blocker for #25 / #31b is **not reproduced**: Apply works once a Reason is typed in Review. **FET-TX-Nov17-TaxDocPrint / TrackingWrongCustomer** not rechecked (tracking still shows another customer's name: see Q3 RV-10).
+
+### Financial_Expert_Tester suggestions — Retest r4 2026-11-19
+- **P1 FET-TX-Nov19-EditTaxVsItemCodes:** After an edit with a discount the per-code tax lines (0.357) no longer add up to the order tax (0.344) — same root as FET-TX-Nov17-DiscountTaxMismatch: the discount is re-spread on the order tax but not on the item-code rows. Compute the per-code rows after the discount spread (or show the discount per line) so rows = order tax.
+- **P2 FET-TX-Nov19-EditReviewNoTaxDocImpact:** Editing an order that already has a tax document (`ORD-20261117-00002`, `SIM-2026-000002`) shows no warning or reversal/FINAL rows in Review. Add a "This order has a tax document; saving will issue a reversal and a new document" notice and list the rows.
+- **P2 FET-TX-Nov19-PaymentsTabTaxStale:** `/full` Payment Details "Tax (VAT) 0.098" after the edit while the order tax is 0.344 (it shows only the municipal part, as on 17-Nov at 0.115 vs 0.403). Read it from the financial snapshot.
+
+### Blocked
+- None this retest. #22 and #24 not run (high-impact catalog / rule changes, need a separate owner OK).
+
+### Test data left behind
+- `ORD-20261117-00006` — edited +Blouse to 5.268 (paid 2.996, **2.272 owing, uncollectable**; discount re-applied 0.100 → 0.176). `ORD-20261117-00002` — Review opened and cancelled, not saved. No tax rules, classes or catalog items were changed; Demo tax **Advanced mode is still ON** (unchanged since 17-Nov).

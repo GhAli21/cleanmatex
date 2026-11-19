@@ -218,3 +218,32 @@ Prior findings, Retest r2 2026-11-17: **FET-HFC-S17 (STOCK_TRANSACTION duplicate
 
 ### Test data left behind
 - None from this retest (both submits failed with no order number; the ORDER counter was last read at 07:56, next `-00007`, and was not rechecked after the failed submits). Run-wide QA orders `ORD-20261117-00001..00006` are listed in the Q3/Q4/Q7 guides.
+
+## Financial_Expert_Tester Results — Retest r3 2026-11-19 (remote; tenant order create + receipt)
+
+**Environment:** remote only — tenant `https://cmx.cleanmatex.com` (Demo Laundry LLC, OMR 3 decimals), Demo Laundry admin account (shows role `super_admin`; no passwords or test contact details are recorded here — see `CREDENTIALS_AND_ENVIRONMENTS.md` / vault). UI only (mouse/keyboard and browser page tools); no direct API calls, no page JS that changes data, no DB writes; Jest skipped. Run window 2026-11-19 ~04:00–05:00 Asia/Muscat (UTC+4). This is the retest of the order-dependent rows from the 17-Nov backlog after the `photo_urls` fix. Source ledgers on the tester box: `/workspace/qa-20261119/retest/obs/A.md` (existing QA orders), `B.md` (New Order), `C.md` (Order Edit / collect), `D.md` (POS / cash drawer); screenshots `/workspace/qa-20261119/retest/shots/` (file names cited below). Original steps, earlier rounds and Dev notes above are unchanged.
+**Fixed since 17-Nov:** the `photo_urls` P0 (FET-HFC-Nov17-PhotoUrlsColumnDropped) — All Orders list, order detail, `/full` and `/workspace` load again (no `photo_urls` banner, no "Order not found"), and New Order submit works for cash and Pay on Collection orders (no `ORDER_SUBMIT_FAILED`, no 422).
+**Still blocked platform-wide:** `/dashboard/processing` still shows the red banner "permission denied for table sys_order_sources_cd" and "No orders in processing queue" (re-observed 2026-11-19 after the `photo_urls` fix; ledger `/workspace/qa-20261119/obs/U-pr0102.md`, shot `PR02-4-processing`). Every QA order therefore stays at Processing / preparation Pending, so Ready, Delivery, Split and rack rows cannot be reached.
+**Writes used (approved 2026-11-19):** four QA orders, `ORD-20261119-00001..00004`. Source ledger on the tester box: `/workspace/qa-20261119/retest/obs/B.md`, `C.md`, `D.md`, `A.md`. Rows above are unchanged.
+
+**Recount (this retest, 5 rows): PASS 2 / FAIL 0 / PARTIAL 1 / BLOCKED 2 / NOT RUN 0.**
+
+| # | Verdict | Evidence |
+|---|---|---|
+| S1 Cash order | PASS | ~04:18 and ~04:22: cash orders submitted from New Order; toast "Order ORD-20261119-00002 created successfully" (the `-00001` submit showed no toast, the form just reset). List shows `ORD-20261119-00001` and `-00002` as "Processing / POS (counter) / 3.959 and 3.692"; detail header shows the order number; format `ORD-YYYYMMDD-NNNNN`. Numbers are consecutive — the earlier failed submit consumed no number. Shots `B-O2-detail`, `B-O3-detail`. |
+| S1 Pay on Collection | PASS | `ORD-20261119-00003` (Blouse + Pants, "Pay later Applied", Remaining 3.424 · Pay on Collection) and `ORD-20261119-00004` (Blouse, 2.354) submitted with no 422 `SETTLEMENT_LEGS_REQUIRE_RECEIPT_VOUCHER` and no `ORDER_SUBMIT_FAILED`; detail "Balance Owing", method PAY_ON_COLLECTION, badge "Pending Payment". Shot `C-C0`. |
+| S4 Split | BLOCKED | Split is reached via Processing, which still fails (`permission denied for table sys_order_sources_cd`). |
+| S13 Receipt | PARTIAL | `/dashboard/receipts/<orderId>` for `ORD-20261117-00001` now shows "Order ORD-20261117-00001" (the raw UUID is gone) but the page is only a "Send Receipt" form: no receipt preview and no tracking QR code. |
+| S14 Sub-order numbers (`-S1`, `-S2`) | BLOCKED | Depends on S4 (Split). |
+
+Prior findings, Retest r3 2026-11-19: **FET-HFC-Nov17-PhotoUrlsColumnDropped (P0) FIXED** — All Orders, order detail, `/full` and `/workspace` load, New Order submit works. **FET-HFC-S1 FIXED** (cash and Pay on Collection both submit; no 422). **FET-HFC-S13 / S13b PARTIALLY FIXED** (order number shown instead of the UUID; QR/preview missing). **FET-HFC-Nov17-GenericSubmitError** — a different submit failure now shows a plain message ("Some products have invalid IDs. Please refresh the page and try again.") for orders with a custom item; see Q4 FET-LLMS-Nov17-CustomItemInvalidIds. **FET-HFC-Nov17-UserCodeDuplicates, ArabicShortDescription** not rechecked.
+
+### Tester suggestions — Financial_Expert_Tester (Retest r3 2026-11-19)
+- **P2 FET-HFC-Nov19-NoOrderNumberAfterSubmit:** After a successful cash submit the form just resets (no toast on `-00001`, a toast on `-00002`); the cashier never sees the new order number or a "Print receipt / Open order" action. Always show the number with links to the order and its receipt.
+- **P2 FET-HFC-Nov19-ReceiptNoQrNoPreview:** The receipt page has no preview and no tracking QR (guide S13 expects the order number and a tracking QR on the receipt template). Add the preview/QR or update the guide (see Q3 FET-RV-Nov19-ReceiptNoPreview).
+
+### Blocked
+- S4 and S14: Processing (`sys_order_sources_cd`) must be fixed before an order can be split.
+
+### Test data left behind
+- `ORD-20261119-00001` (3.959 cash), `-00002` (3.692 cash), `-00003` (POC, edited to 11.182, collected, refunded 10.003), `-00004` (2.354 POC, collected).

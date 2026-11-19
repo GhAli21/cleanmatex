@@ -17,7 +17,7 @@ import { ItemCartList, type ItemCartListQuoteProps } from './item-cart-list';
 import { ServiceSpeedSelect } from './service-speed-select';
 import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxSwitch } from '@ui/primitives';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { CartQuoteTotals, type CartQuoteTotalsProps } from './cart-quote-totals';
 import { EditControlNotice } from '../order-change/edit-control-notice';
@@ -135,6 +135,9 @@ interface OrderSummaryPanelProps {
   paymentModalVersion?: PaymentModalVersion;
   onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
 }
+
+/** Theming design: 44px targets only on touch screens; mouse users keep the compact size. */
+const TOUCH_MIN = 'pointer-coarse:min-h-[var(--cmx-touch-min)] pointer-coarse:min-w-[var(--cmx-touch-min)]';
 
 function OrderSummaryPanelComponent({
   items = [],
@@ -254,42 +257,46 @@ function OrderSummaryPanelComponent({
     <div className="flex flex-col bg-white overflow-hidden" style={{ height: '100%', maxHeight: '100vh' }}>
 
       {/* Customer Header */}
-      <div className={`flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <div className={`flex-1 min-w-0 flex items-center gap-2 bg-white border border-gray-300 rounded px-2 py-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <span className={`flex-1 text-sm font-medium truncate ${customerName ? 'text-gray-900' : 'text-gray-400'} ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
+        <div className="flex-1 min-w-0 flex items-center gap-2 bg-white border border-gray-300 rounded px-2 py-1.5">
+          <span className={`flex-1 text-sm font-medium truncate text-start ${customerName ? 'text-gray-900' : 'text-gray-400'}`}>
             {customerName || (tNewOrder('selectCustomer') || 'Select customer')}
           </span>
           {customerName && onClearCustomer && (
-            <button
+            <CmxButton
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onClearCustomer}
-              className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+              className={`shrink-0 h-6 w-6 ${TOUCH_MIN}`}
               aria-label={tCommon('clear') || 'Clear'}
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
+              <X className="w-3.5 h-3.5" aria-hidden />
+            </CmxButton>
           )}
         </div>
-        <button
+        <CmxButton
           type="button"
+          size="icon"
           onClick={onSelectCustomer}
-          className="shrink-0 p-1.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded transition-colors"
+          className={`shrink-0 h-8 w-8 ${TOUCH_MIN}`}
           aria-label={tNewOrder('selectCustomer') || 'Select customer'}
         >
-          <User className="w-4 h-4" />
-        </button>
-        <button
+          <User className="w-4 h-4" aria-hidden />
+        </CmxButton>
+        <CmxButton
           type="button"
+          size="icon"
           onClick={onEditCustomer}
-          className="shrink-0 p-1.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded transition-colors"
+          className={`shrink-0 h-8 w-8 ${TOUCH_MIN}`}
           aria-label={tCommon('edit') || 'Edit'}
         >
-          <Pencil className="w-4 h-4" />
-        </button>
+          <Pencil className="w-4 h-4" aria-hidden />
+        </CmxButton>
       </div>
 
       {/* Order speed (§5.4): new lines follow it; "Apply to all lines" resets line overrides */}
-      <div className={`flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
         <span className="shrink-0 text-sm font-medium text-gray-700">{tNewOrder('serviceSpeed.label')}</span>
         <ServiceSpeedSelect
           className="flex-1 min-w-0"
@@ -357,22 +364,24 @@ function OrderSummaryPanelComponent({
         {/* Ready By Row (compact, above footer grid) */}
         <div className="px-3 pt-2 pb-1 space-y-1">
           <EditControlNotice codes={['CHANGE_READY_BY']} />
-          <div className={`flex items-stretch gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex items-stretch gap-2">
             {onCalculateReadyBy && (
-              <button
+              <CmxButton
                 type="button"
+                size="icon"
                 onClick={handleCalculateReadyBy}
                 disabled={!readyByCapability.interactive || isCalculating || items.length === 0}
-                className={`px-2 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs rounded transition-colors flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}
+                className={`shrink-0 h-auto min-h-7 w-8 ${TOUCH_MIN}`}
+                aria-label={tNewOrder('calculateReadyBy')}
               >
-                <Calculator className="w-3 h-3" />
-              </button>
+                <Calculator className="w-3 h-3" aria-hidden />
+              </CmxButton>
             )}
             <div
               role="button"
               tabIndex={readyByCapability.interactive ? 0 : -1}
               aria-disabled={!readyByCapability.interactive}
-              className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-white text-xs ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${isRTL ? 'flex-row-reverse' : ''} ${readyByCapability.interactive ? 'cursor-pointer hover:border-blue-400' : 'cursor-not-allowed opacity-60'} transition-colors min-w-0`}
+              className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-white text-xs ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${readyByCapability.interactive ? 'cursor-pointer hover:border-blue-400' : 'cursor-not-allowed opacity-60'} transition-colors min-w-0`}
               onClick={() => {
                 if (!readyByCapability.interactive) return;
                 onOpenReadyByModal?.();
@@ -385,36 +394,42 @@ function OrderSummaryPanelComponent({
               <Calendar className="w-3 h-3 text-gray-500 shrink-0" />
               {readyByAt ? (
                 <>
-                  <span className={`flex-1 text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {(() => {
-                      const d = new Date(readyByAt);
-                      const day = String(d.getDate()).padStart(2, '0');
-                      const month = String(d.getMonth() + 1).padStart(2, '0');
-                      const year = d.getFullYear();
-                      return `${day}/${month}/${year}`;
-                    })()}
+                  <span className="flex-1 text-gray-900 min-w-0 text-start">
+                    <bdi className="tabular-nums">
+                      {(() => {
+                        const d = new Date(readyByAt);
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        return `${day}/${month}/${year}`;
+                      })()}
+                    </bdi>
                   </span>
                   <Clock className="w-3 h-3 text-gray-500 shrink-0" />
-                  <span className={`text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar' : 'en-US', {
-                      hour: '2-digit', minute: '2-digit', hour12: true,
-                    })}
+                  <span className="text-gray-900 min-w-0 text-start">
+                    <bdi className="tabular-nums">
+                      {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar' : 'en-US', {
+                        hour: '2-digit', minute: '2-digit', hour12: true,
+                      })}
+                    </bdi>
                   </span>
                 </>
               ) : (
-                <span className={`flex-1 text-gray-400 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>{tNewOrder('readyBy') || 'Ready by'}</span>
+                <span className="flex-1 text-gray-400 min-w-0 text-start">{tNewOrder('readyBy') || 'Ready by'}</span>
               )}
             </div>
-            <button
-              onClick={onOpenReadyByModal}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center justify-center shrink-0"
+            <CmxButton
               type="button"
+              size="icon"
+              onClick={onOpenReadyByModal}
+              className={`shrink-0 h-auto min-h-7 w-8 ${TOUCH_MIN}`}
+              aria-label={t('openReadyBy')}
             >
               <Calendar className="w-3 h-3" aria-hidden />
-            </button>
+            </CmxButton>
           </div>
           {readyByAt && !readyByValidation.isFuture && (
-            <div role="alert" className={`flex items-center gap-1.5 p-1.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div role="alert" className="flex items-center gap-1.5 p-1.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
               <AlertCircle className="w-3 h-3 shrink-0" />
               <span>{readyByValidation.message}</span>
             </div>
@@ -425,12 +440,12 @@ function OrderSummaryPanelComponent({
         <div className="border-t border-gray-200">
 
           {/* Row 1: Pieces | Bags */}
-          <div className={`grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200 ${isRTL ? 'divide-x-reverse' : ''}`}>
-            <div className={`flex items-center gap-2 px-3 py-2 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
               <span className="text-xs font-medium text-gray-600">{tCommon('pieces') || t('pieces') || 'Pieces'}</span>
-              <span className="text-sm font-bold text-gray-900">{totalPieces}</span>
+              <bdi className="text-sm font-bold text-gray-900 tabular-nums">{totalPieces}</bdi>
             </div>
-            <div className={`flex items-center gap-2 px-3 py-2 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50">
               <span className="text-xs font-medium text-gray-600">{t('bags') || 'Bags'}</span>
               {onBagsChange ? (
                 <input
@@ -438,11 +453,11 @@ function OrderSummaryPanelComponent({
                   min={0}
                   value={bags}
                   onChange={(e) => onBagsChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  className="w-12 text-sm font-bold text-gray-900 bg-transparent border-none outline-none p-0 text-center"
+                  className="w-12 text-sm font-bold text-gray-900 bg-transparent border-none outline-none p-0 text-center tabular-nums"
                   dir="ltr"
                 />
               ) : (
-                <span className="text-sm font-bold text-gray-900">{bags}</span>
+                <bdi className="text-sm font-bold text-gray-900 tabular-nums">{bags}</bdi>
               )}
             </div>
           </div>
@@ -451,28 +466,18 @@ function OrderSummaryPanelComponent({
             <EditControlNotice codes={['CHANGE_ORDER_NOTES']} />
           </div>
           {/* Row 2: Notes | Save toggle */}
-          <div className={`grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200 ${isRTL ? 'divide-x-reverse' : ''}`}>
-            <div className={`flex items-center px-3 py-2 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
+            <div className="flex items-center px-3 py-2 bg-gray-50">
               <span className="text-xs font-medium text-gray-600">{t('notes') || 'Notes'}</span>
             </div>
-            <div className={`flex items-center justify-between px-3 py-2 bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center justify-between px-3 py-2 bg-gray-50">
               <span className="text-xs font-medium text-gray-600">{tCommon('save') || 'Save'}</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={showNotes}
-                onClick={() => setShowNotes(!showNotes)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
-                  showNotes ? 'bg-blue-500' : 'bg-gray-300'
-                }`}
-                aria-label={showNotes ? 'Hide notes' : 'Show notes'}
-              >
-                <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-                    showNotes ? (isRTL ? '-translate-x-4' : 'translate-x-4') : (isRTL ? '-translate-x-1' : 'translate-x-1')
-                  }`}
-                />
-              </button>
+              <CmxSwitch
+                size="sm"
+                checked={showNotes}
+                onCheckedChange={setShowNotes}
+                aria-label={t('showNotes')}
+              />
             </div>
           </div>
 
@@ -483,7 +488,7 @@ function OrderSummaryPanelComponent({
                 value={notes}
                 onChange={(e) => onNotesChange(e.target.value)}
                 rows={2}
-                className={`w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${isRTL ? 'text-right' : 'text-left'}`}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-start"
                 placeholder={t('addSpecialInstructions') || 'Add special instructions...'}
                 dir={isRTL ? 'rtl' : 'ltr'}
               />
@@ -491,37 +496,41 @@ function OrderSummaryPanelComponent({
           )}
 
           {/* Row 3: Quick Drop | Retail */}
-          <div className={`grid grid-cols-2 divide-x divide-gray-200 ${isRTL ? 'divide-x-reverse' : ''}`}>
-            <div className={`flex items-center gap-2 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <button
+          <div className="grid grid-cols-2 divide-x divide-gray-200">
+            <div className="flex items-center gap-2 px-3 py-2">
+              <CmxButton
                 type="button"
+                variant="outline"
+                size="icon"
                 onClick={() => {
                   const next = Math.max(0, quickDropQuantity - 1);
                   onQuickDropQuantityChange(next);
                   if (next === 0 && isQuickDrop) _onQuickDropToggle(false);
                 }}
-                className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded text-gray-600 hover:bg-gray-100 font-bold text-sm transition-colors"
-                aria-label="Decrease quick drop"
+                className={`h-6 w-6 font-bold text-sm ${TOUCH_MIN}`}
+                aria-label={t('quickDropDecrease')}
               >
                 -
-              </button>
+              </CmxButton>
               <span className="text-xs font-medium text-gray-600 flex-1 text-center">
                 {t('quickDrop') || 'Quick Drop'}
               </span>
-              <button
+              <CmxButton
                 type="button"
+                variant="outline"
+                size="icon"
                 onClick={() => {
                   const next = quickDropQuantity + 1;
                   onQuickDropQuantityChange(next);
                   if (next > 0 && !isQuickDrop) _onQuickDropToggle(true);
                 }}
-                className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded text-gray-600 hover:bg-gray-100 font-bold text-sm transition-colors"
-                aria-label="Increase quick drop"
+                className={`h-6 w-6 font-bold text-sm ${TOUCH_MIN}`}
+                aria-label={t('quickDropIncrease')}
               >
                 +
-              </button>
+              </CmxButton>
             </div>
-            <div className={`flex items-center justify-between px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center justify-between px-3 py-2">
               <span className="text-xs font-medium text-gray-600">{t('retail') || 'Retail'}</span>
               {/* Retail is auto-derived, shown as read-only indicator */}
               <div
@@ -529,11 +538,11 @@ function OrderSummaryPanelComponent({
                   isRetailOnlyOrder ? 'bg-blue-500' : 'bg-gray-300'
                 }`}
                 role="img"
-                aria-label={isRetailOnlyOrder ? 'Retail order' : 'Not retail'}
+                aria-label={isRetailOnlyOrder ? t('retailOrder') : t('notRetail')}
               >
                 <span
                   className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-                    isRetailOnlyOrder ? (isRTL ? '-translate-x-4' : 'translate-x-4') : (isRTL ? '-translate-x-1' : 'translate-x-1')
+                    isRetailOnlyOrder ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
                   }`}
                 />
               </div>
@@ -544,12 +553,12 @@ function OrderSummaryPanelComponent({
         {showPaymentModalVersionSelector && onPaymentModalVersionChange && (
           <div className="px-3 pt-3">
             <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
-              <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className="space-y-2 text-start">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
                     {t('paymentModalVersionLabel')}
                   </p>
-                  <p className="text-[11px] text-sky-700/90">
+                  <p className="text-xs text-sky-700/90">
                     {t('paymentModalVersionHint')}
                   </p>
                 </div>
@@ -579,11 +588,14 @@ function OrderSummaryPanelComponent({
 
         {/* Submit Button — carries no money (D33); the only total is the server one above */}
         <div className="p-3 bg-white border-t border-gray-200">
-          <button
+          {/* Ruling 7 (PR-04): primary follows the Organization theme, no fixed green. */}
+          <CmxButton
             ref={saveButtonRef}
+            type="button"
+            size="lg"
             onClick={primaryAction ? primaryAction.onClick : (onOpenPaymentModal || onSubmit)}
             disabled={primaryAction ? primaryAction.disabled : (loading || !canSubmit)}
-            className="w-full min-h-11 py-2.5 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-md flex items-center justify-center"
+            className="w-full min-h-11 font-semibold shadow-md"
           >
             <span className="text-base">
               {primaryAction
@@ -592,7 +604,7 @@ function OrderSummaryPanelComponent({
                   ? t('processing')
                   : tNewOrder('submitOrder'))}
             </span>
-          </button>
+          </CmxButton>
 
           {/* Validation hints */}
           {isEditMode && !primaryAction ? (

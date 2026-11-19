@@ -77,7 +77,7 @@ export function OrderStatsCards({ stats }: OrderStatsCardsProps) {
         >
           <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
             <span className="text-2xl">{card.icon}</span>
-            <span className="text-2xl font-bold">{card.value}</span>
+            <bdi className="text-2xl font-bold tabular-nums">{card.value}</bdi>
           </div>
           <div className={`mt-2 text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{card.label}</div>
         </div>

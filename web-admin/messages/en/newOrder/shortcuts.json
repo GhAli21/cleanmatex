@@ -1,0 +1,10 @@
+{
+  "title": "Keyboard shortcuts",
+  "focusSearch": "Search items",
+  "pickCustomer": "Select customer",
+  "pay": "Go to payment",
+  "save": "Submit order (Review in Order Edit)",
+  "tabs": "Switch tabs",
+  "showHelp": "Show this list",
+  "onlyNewOrder": "F2 and F9 work only on a new order. Shortcuts are off while a dialog is open."
+}

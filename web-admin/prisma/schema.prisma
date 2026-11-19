@@ -16242,6 +16242,11 @@ model sys_ops_job_cf {
   rec_notes           String?
   restore_command     String?
   operator_actions    String[]              @default(["OBSERVE"])
+  applied_schedule    String?
+  applied_enabled     Boolean?
+  applied_at          DateTime?             @db.Timestamptz(6)
+  applied_by          String?
+  sys_ops_job_req_tr  sys_ops_job_req_tr[]
   sys_ops_job_run_dtl sys_ops_job_run_dtl[]
 
   @@index([module, category], map: "idx_sys_ops_job_cf_mod_cat")
@@ -18550,6 +18555,7 @@ model sys_file_media_kind_cd {
   rec_order              Int?
   rec_notes              String?
   is_active              Boolean                  @default(true)
+  max_size_bytes         BigInt
   sys_file_mime_types_cd sys_file_mime_types_cd[]
 
   @@schema("public")
@@ -18582,6 +18588,7 @@ model sys_file_mime_types_cd {
   rec_order                 Int?
   rec_notes                 String?
   is_active                 Boolean                     @default(true)
+  max_size_bytes            BigInt?
   org_file_mst              org_file_mst[]
   sys_file_media_kind_cd    sys_file_media_kind_cd      @relation(fields: [kind_code], references: [kind_code], onUpdate: NoAction, map: "fk_sfmt_kind")
   sys_file_preview_mode_cd  sys_file_preview_mode_cd    @relation(fields: [preview_code], references: [preview_code], onUpdate: NoAction, map: "fk_sfmt_preview")
@@ -18932,6 +18939,41 @@ model org_tenant_ui_theme_dtl {
   @@unique([id, tenant_org_id], map: "uq_otut_id_tenant")
   @@index([tenant_org_id, rec_status, theme_name], map: "idx_otut_tenant_list")
   @@index([ui_theme_code], map: "idx_otut_theme")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ops_job_req_tr {
+  id             String         @id(map: "pk_sys_ops_job_req_tr") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_code       String
+  trigger_type   String
+  due_slot       DateTime?      @db.Timestamptz(6)
+  status         String         @default("REQUESTED")
+  requested_by   String?
+  claimed_at     DateTime?      @db.Timestamptz(6)
+  claimed_by     String?
+  finished_at    DateTime?      @db.Timestamptz(6)
+  run_id         String?        @db.Uuid
+  message        String?
+  created_at     DateTime       @default(now()) @db.Timestamptz(6)
+  created_by     String?
+  created_info   String?
+  updated_at     DateTime?      @db.Timestamptz(6)
+  updated_by     String?
+  updated_info   String?
+  updated_count  Int            @default(0)
+  deleted_at     DateTime?      @db.Timestamptz(6)
+  deleted_by     String?
+  deleted_info   String?
+  rec_status     Int            @default(1) @db.SmallInt
+  rec_order      Int?
+  rec_notes      String?
+  is_active      Boolean        @default(true)
+  sys_ops_job_cf sys_ops_job_cf @relation(fields: [job_code], references: [job_code], onUpdate: NoAction, map: "fk_ojr_job")
+
+  @@index([job_code, status, created_at], map: "idx_ojr_job_status")
   @@schema("public")
 }
 

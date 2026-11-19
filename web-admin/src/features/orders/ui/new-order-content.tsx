@@ -51,6 +51,9 @@ import { useNewOrderPosSessionGate } from '../hooks/use-new-order-pos-session';
 import { EditControlNotice } from '../order-change/edit-control-notice';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
 import { ProductGrid } from './product-grid';
+import { PosShortcutsDialog } from './pos-shortcuts-dialog';
+import { resolvePosHotkey } from '../hooks/use-pos-hotkeys';
+import { isEditableEventTarget } from '../hooks/use-payment-shortcuts';
 import { useProductSpeedPrices } from '../hooks/use-product-speed-prices';
 import { OrderSummaryPanel } from './order-summary-panel';
 import { OrderSummaryBottomSheet } from './OrderSummaryBottomSheet';
@@ -69,6 +72,7 @@ import type {
   PreSubmissionPiece,
 } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
+import { readyByBlockReason } from '@/lib/utils/ready-by-calculator';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import {
   orderItemLinePackingCharge,
@@ -171,6 +175,7 @@ export function NewOrderContent() {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [orderPrefsDialogOpen, setOrderPrefsDialogOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [currencyCode, setCurrencyCode] = useState<string>('');
@@ -665,8 +670,15 @@ export function NewOrderContent() {
       cmxMessage.error(t('errors.addItems'));
       return;
     }
+    // Keyboard paths (F9, Ctrl+Enter) reach here even when the button is disabled for these.
+    const readyByBlock = readyByBlockReason(state.state.readyByAt, isRetailOnlyOrder);
+    if (readyByBlock) {
+      cmxMessage.error(t(`validation.${readyByBlock}`));
+      return;
+    }
+    if (state.state.loading) return;
     state.openModal('payment');
-  }, [state, t, tPos, hasErrors, warnings, orderEntryLocked, posGuide]);
+  }, [state, t, tPos, hasErrors, warnings, orderEntryLocked, posGuide, isRetailOnlyOrder]);
 
   const handleNavigateToOrder = useCallback(() => {
     if (!state.state.createdOrderId) return;
@@ -808,17 +820,10 @@ export function NewOrderContent() {
       state.state.loading ||
       isSubmitting ||
       !state.state.customerName ||
-      state.state.items.length === 0 ||
-      !state.state.readyByAt
+      state.state.items.length === 0
     )
       return true;
-    const readyByDate = new Date(state.state.readyByAt);
-    const now = new Date();
-    const threshold = isRetailOnlyOrder ? now.getTime() - 60000 : now.getTime();
-    const isFuture = isRetailOnlyOrder
-      ? readyByDate.getTime() >= threshold
-      : readyByDate > now;
-    return !isFuture;
+    return readyByBlockReason(state.state.readyByAt, isRetailOnlyOrder) !== null;
   }, [
     state.state.isEditMode,
     isDirty,
@@ -844,15 +849,40 @@ export function NewOrderContent() {
   useKeyboardNavigation({
     enabled: true,
     onKey: (key, event) => {
-      if (
-        key === 's' &&
-        (event.ctrlKey || event.metaKey) &&
-        !isSubmitting &&
-        state.state.items.length > 0
-      ) {
-        event.preventDefault();
-        if (workspace) workspace.onReview();
-        else if (!state.state.isEditMode) handleSubmitOrderClick();
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const action = resolvePosHotkey(event, {
+        // Dialogs outside `modals` (discount, preferences, this cheat sheet) trap focus, so the key comes from inside them.
+        anyModalOpen:
+          shortcutsOpen ||
+          Object.values(state.state.modals).some(Boolean) ||
+          !!target?.closest('[role="dialog"],[role="alertdialog"]'),
+        editableTarget: isEditableEventTarget(event.target),
+        isWorkspace: !!workspace,
+        isEditMode: state.state.isEditMode,
+      });
+      if (!action) return;
+      // Tab keys keep their own conditions below and prevent the default only when they switch.
+      if (action !== 'tab') event.preventDefault();
+      if (action === 'block') return;
+      if (action === 'focusSearch') {
+        document.getElementById('new-order-product-search')?.focus();
+        return;
+      }
+      if (action === 'showHelp') {
+        setShortcutsOpen(true);
+        return;
+      }
+      if (action === 'pickCustomer') {
+        state.openModal('customerPicker');
+        return;
+      }
+      if (action === 'pay' || action === 'save') {
+        // Same gate as the button (ruling 4): it shows the reason when the order is not ready.
+        if (isSubmitting) return;
+        if (workspace) {
+          // Same conditions as the disabled Review button.
+          if (state.state.items.length > 0 && !workspace.accessBlocked && !workspace.reviewing) workspace.onReview();
+        } else if (!state.state.isEditMode) handleSubmitOrderClick();
         return;
       }
       if (event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -1457,6 +1487,7 @@ export function NewOrderContent() {
         onConfirm={handleConfirmCancelEdit}
         onCancel={() => setShowCancelConfirm(false)}
       />
+      <PosShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       {discountItem && discountPiece ? (
         <LineDiscountDialog
           key={discountPiece.id}

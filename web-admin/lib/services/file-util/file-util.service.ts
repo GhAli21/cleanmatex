@@ -219,9 +219,9 @@ async function resolveRules(categoryCode: string, purposeCode: string | undefine
       mime_type: mimeType,
       is_active: true,
       rec_status: 1,
-      sys_file_mime_types_cd: { is_allowed: true, is_active: true, rec_status: 1 },
+      sys_file_mime_types_cd: { is_allowed: true, is_active: true, rec_status: 1, sys_file_media_kind_cd: { is_active: true, rec_status: 1 } },
     },
-    select: { sys_file_mime_types_cd: { select: { extensions: true } } },
+    select: { sys_file_mime_types_cd: { select: { extensions: true, max_size_bytes: true, sys_file_media_kind_cd: { select: { max_size_bytes: true } } } } },
   });
   if (!link || !canVerifyMime(mimeType)) {
     throw new FileUtilError('TYPE_NOT_ALLOWED', 'This file type is not allowed here.', 422);
@@ -234,9 +234,20 @@ async function resolveRules(categoryCode: string, purposeCode: string | undefine
     purposeCode: purpose.purpose_code,
     purposeMaxFiles: purpose.max_files,
     categoryMaxFiles: category.max_files_per_entity,
-    maxSizeBytes: Number(purpose.max_size_bytes ?? category.max_size_bytes),
+    maxSizeBytes: effectiveMaxSize(purpose.max_size_bytes ?? category.max_size_bytes, link.sys_file_mime_types_cd),
     extensions: link.sys_file_mime_types_cd.extensions,
   };
+}
+
+/**
+ * Effective size limit (0765): the smaller of the place limit (purpose, else category) and the
+ * type limit (type override, else its media kind). Kind/type = technical, place = business.
+ */
+export function effectiveMaxSize(
+  placeBytes: bigint | number,
+  type: { max_size_bytes: bigint | number | null; sys_file_media_kind_cd: { max_size_bytes: bigint | number } },
+): number {
+  return Math.min(Number(placeBytes), Number(type.max_size_bytes ?? type.sys_file_media_kind_cd.max_size_bytes));
 }
 
 /** The owning record must exist in the caller's organization. */
@@ -703,6 +714,7 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
   await prisma.$transaction(async (tx) => {
     if (cmd.purposeCode && cmd.purposeCode !== file.purpose_code) {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`file-util:${cmd.tenantId}:${cmd.categoryCode}:${file.entity_id}`}::text, 0))`;
+      // Type and room only: size limits apply to new uploads (initFileUpload), never to saved files.
       const rules = await resolveRules(cmd.categoryCode, cmd.purposeCode, file.mime_type);
       if (rules.purposeMaxFiles !== null) {
         const used = await tx.org_file_mst.count({
@@ -772,7 +784,7 @@ export interface FileCategoryConfig {
     isDefault: boolean;
     maxFiles: number | null;
     maxSizeBytes: number;
-    mimeTypes: { mimeType: string; kindCode: string; previewCode: string; extensions: string[] }[];
+    mimeTypes: { mimeType: string; kindCode: string; previewCode: string; extensions: string[]; maxSizeBytes: number }[];
   }[];
 }
 
@@ -799,9 +811,16 @@ export async function getCategoryConfig(categoryCode: FileCategoryCode): Promise
         select: {
           purpose_code: true, name: true, name2: true, is_default: true, max_files: true, max_size_bytes: true,
           sys_file_purpose_mime_dtl: {
-            where: { is_active: true, rec_status: 1, sys_file_mime_types_cd: { is_allowed: true, is_active: true, rec_status: 1 } },
+            where: { is_active: true, rec_status: 1, sys_file_mime_types_cd: { is_allowed: true, is_active: true, rec_status: 1, sys_file_media_kind_cd: { is_active: true, rec_status: 1 } } },
             orderBy: [{ rec_order: 'asc' }],
-            select: { sys_file_mime_types_cd: { select: { mime_type: true, kind_code: true, preview_code: true, extensions: true } } },
+            select: {
+              sys_file_mime_types_cd: {
+                select: {
+                  mime_type: true, kind_code: true, preview_code: true, extensions: true, max_size_bytes: true,
+                  sys_file_media_kind_cd: { select: { max_size_bytes: true } },
+                },
+              },
+            },
           },
         },
       },
@@ -815,18 +834,26 @@ export async function getCategoryConfig(categoryCode: FileCategoryCode): Promise
     maxFilesPerEntity: category.max_files_per_entity,
     imageMaxDimension: category.image_max_dimension,
     isPublic: category.sys_file_bucket_cd.is_public,
-    purposes: category.sys_file_purpose_cd.map((p) => ({
-      purposeCode: p.purpose_code,
-      name: p.name,
-      name2: p.name2,
-      isDefault: p.is_default,
-      maxFiles: p.max_files,
-      maxSizeBytes: Number(p.max_size_bytes ?? category.max_size_bytes),
-      mimeTypes: p.sys_file_purpose_mime_dtl
+    purposes: category.sys_file_purpose_cd.map((p) => {
+      const place = p.max_size_bytes ?? category.max_size_bytes;
+      const mimeTypes = p.sys_file_purpose_mime_dtl
         .map((l) => l.sys_file_mime_types_cd)
         // Types the server cannot verify would be refused at upload; do not offer them.
         .filter((m) => canVerifyMime(m.mime_type))
-        .map((m) => ({ mimeType: m.mime_type, kindCode: m.kind_code, previewCode: m.preview_code, extensions: m.extensions })),
-    })),
+        .map((m) => ({
+          mimeType: m.mime_type, kindCode: m.kind_code, previewCode: m.preview_code, extensions: m.extensions,
+          maxSizeBytes: effectiveMaxSize(place, m),
+        }));
+      return {
+        purposeCode: p.purpose_code,
+        name: p.name,
+        name2: p.name2,
+        isDefault: p.is_default,
+        maxFiles: p.max_files,
+        // Upper bound for the drop zone (largest of its types); the server checks each type exactly.
+        maxSizeBytes: mimeTypes.length ? Math.max(...mimeTypes.map((t) => t.maxSizeBytes)) : Number(place),
+        mimeTypes,
+      };
+    }),
   };
 }
