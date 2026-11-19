@@ -42,12 +42,15 @@ const input = (over: Partial<ResolveThemeInput> = {}): ResolveThemeInput => ({
   whiteLabel: false,
   user: null,
   logoUrl: null,
+  logoDarkUrl: null,
   ...over,
 })
 
 test('the published logo is passed through on every plan', () => {
   expect(resolveTheme(input({ logoUrl: 'https://x/l.webp' })).logoUrl).toBe('https://x/l.webp')
   expect(resolveTheme(input()).logoUrl).toBeNull()
+  expect(resolveTheme(input({ logoDarkUrl: 'https://x/d.webp' })).logoDarkUrl).toBe('https://x/d.webp')
+  expect(resolveTheme(input()).logoDarkUrl).toBeNull()
 })
 
 test('an Organization with no theme in use gets STANDARD', () => {

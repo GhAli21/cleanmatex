@@ -2,7 +2,7 @@
 
 **Purpose:** let any assistant or developer continue this feature without the chat history.
 **Authoritative docs:** [PLAN.md](PLAN.md) (design, decisions, task checklist) · [STATUS.md](STATUS.md) (dated log).
-**Last updated:** 2026-11-19 — **PLAN DONE in code (Phases 1–8).** All migrations `0743`–`0768` applied by owner. Phase 8: [ADR_001](ADR_001_file_util_storage_model.md), [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md), [FEATURE_REFERENCE.md](FEATURE_REFERENCE.md); inventories drift 0. Phase 10 (2026-11-19, `0771` applied): QA reject with photos, per-piece photos, locked pickup proof, delivery Files panels — see STATUS log. `npm run build` green 2026-11-19. Phase 9 (2026-11-19, `0770` applied): files record the order stage at upload (`stage_code`), stage filter + "stage · screen" line in the widget, Files panel on the 6 stage screens — see STATUS log. NEXT: nothing for dev — only the owner follow-ups in §5. New File Util work starts from DEVELOPER_GUIDE.md.
+**Last updated:** 2026-11-19 — **PLAN DONE in code (Phases 1–8).** All migrations `0743`–`0768` applied by owner. Phase 8: [ADR_001](ADR_001_file_util_storage_model.md), [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md), [FEATURE_REFERENCE.md](FEATURE_REFERENCE.md); inventories drift 0. Phase 10 follow-up (2026-11-19, no migration): item photos when pieces are off, assembly task Files panel; QA_DECISION and mobile endpoints not built on purpose — see STATUS log. Phase 10 (2026-11-19, `0771` applied): QA reject with photos, per-piece photos, locked pickup proof, delivery Files panels — see STATUS log. `npm run build` green 2026-11-19. Phase 9 (2026-11-19, `0770` applied): files record the order stage at upload (`stage_code`), stage filter + "stage · screen" line in the widget, Files panel on the 6 stage screens — see STATUS log. NEXT: nothing for dev — only the owner follow-ups in §5. New File Util work starts from DEVELOPER_GUIDE.md.
 
 ## 1. Where we are
 
@@ -164,6 +164,6 @@ No code work open: all 10 phases are done in code (2026-11-19). Only the owner f
 
 - Deploy HQ `platform-workers`; Job Manager `/ops/jobs` then shows the purge job "In sync".
 - Supabase dashboard: delete the empty, locked buckets `product-images` and `delivery-pod-evidence` with their 4 policies each (a migration cannot drop `storage.objects` policies).
-- Browser QA in `QA_TEST_GUIDE.md`: A–E (tenant), F incl. F18–F29 (HQ File Setup), H (purge schedule; needs the worker deployed), I (stage of each file, stage screens), J (QA reject, piece photos, pickup proof, delivery).
+- Browser QA in `QA_TEST_GUIDE.md`: A–E (tenant), F incl. F18–F29 (HQ File Setup), H (purge schedule; needs the worker deployed), I (stage of each file, stage screens), J (QA reject, piece photos, pickup proof, delivery), K (item photos, assembly task files).
 - Data gap: only 2 of 4 organizations have a subscription → others get `PLAN_UNAVAILABLE` on upload (fix the data, not the code).
 - Commit both repos (`cleanmatex`, `cleanmatexsaas`).

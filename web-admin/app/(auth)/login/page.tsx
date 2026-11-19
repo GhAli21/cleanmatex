@@ -62,7 +62,7 @@ function LoginLanguageSwitcher() {
   }
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-on-solid/70 bg-card/72 p-1 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-md">
+    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card/72 p-1 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-md">
       <CmxButton
         type="button"
         size="sm"
@@ -221,7 +221,7 @@ export default function LoginPage() {
         className="absolute inset-0 opacity-70"
         style={{
           backgroundImage:
-            'linear-gradient(115deg, rgba(255,255,255,0.82) 0%, transparent 24%, rgba(255,255,255,0.3) 42%, transparent 62%, rgba(255,255,255,0.26) 100%)',
+            'linear-gradient(115deg, rgb(var(--cmx-surface-rgb) / 0.82) 0%, transparent 24%, rgb(var(--cmx-surface-rgb) / 0.3) 42%, transparent 62%, rgb(var(--cmx-surface-rgb) / 0.26) 100%)',
         }}
       />
 
@@ -286,14 +286,14 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <CmxCard className="relative w-full overflow-hidden border-on-solid/70 bg-card/82 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+            <CmxCard className="relative w-full overflow-hidden border-border bg-card/82 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl">
               <div
                 aria-hidden="true"
                 className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-card to-transparent"
               />
 
               <CmxCardHeader className="space-y-6 px-6 pb-6 pt-8 text-center sm:px-8">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-on-solid/80 bg-card/75 shadow-[0_12px_30px_rgba(15,23,42,0.08)] lg:hidden">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-border bg-card/75 shadow-[0_12px_30px_rgba(15,23,42,0.08)] lg:hidden">
                   <div className="relative h-20 w-20">
                     <Image
                       src="/brand/cleanmatex-login-mascot.png"
@@ -384,7 +384,7 @@ export default function LoginPage() {
                         aria-describedby={describedBy}
                         placeholder={t('login.identifierPlaceholder')}
                         leftIcon={<User className="h-4 w-4" />}
-                        className="h-12 rounded-xl border-on-solid/70 bg-card/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                        className="h-12 rounded-xl border-border bg-card/78 shadow-[inset_0_1px_0_rgb(var(--cmx-surface-rgb)/0.9)]"
                       />
                     )}
                   </CmxFormField>
@@ -413,7 +413,7 @@ export default function LoginPage() {
                           aria-describedby={describedBy}
                           placeholder={t('login.passwordPlaceholder')}
                           leftIcon={<LockKeyhole className="h-4 w-4" />}
-                          className="h-12 rounded-xl border-on-solid/70 bg-card/78 pe-12 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                          className="h-12 rounded-xl border-border bg-card/78 pe-12 shadow-[inset_0_1px_0_rgb(var(--cmx-surface-rgb)/0.9)]"
                         />
                         <CmxButton
                           type="button"

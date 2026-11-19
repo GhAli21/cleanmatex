@@ -27,6 +27,12 @@ describe('app/globals.css (PR-05)', () => {
     expect(css).toMatch(/--color-on-solid:\s*rgb\(255 255 255\)/)
   })
 
+  test('the dark logo shows only in dark mode, chosen or followed from the device (PR-07 task 6)', () => {
+    expect(css).toMatch(/\.cmx-logo-dark\s*\{\s*display:\s*none/)
+    expect(css).toMatch(/@media screen \{\s*\[data-mode=DARK\] \.cmx-logo-light\s*\{\s*display:\s*none;?\s*\}\s*\[data-mode=DARK\] \.cmx-logo-dark\s*\{\s*display:\s*block/)
+    expect(css).toMatch(/@media screen and \(prefers-color-scheme: dark\) \{\s*\[data-mode=SYSTEM\] \.cmx-logo-light\s*\{\s*display:\s*none;?\s*\}\s*\[data-mode=SYSTEM\] \.cmx-logo-dark\s*\{\s*display:\s*block/)
+  })
+
   test('charts read the tokens, so tooltips, grid and axis text work in dark mode (PR-07 task 6)', () => {
     for (const sel of ['.recharts-default-tooltip', '.recharts-cartesian-grid line', '.recharts-cartesian-axis-tick-value']) {
       const at = css.indexOf(sel)

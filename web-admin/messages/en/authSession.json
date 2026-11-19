@@ -269,6 +269,8 @@
     },
     "saved": "Appearance saved",
     "loadError": "Could not load your appearance settings.",
-    "saveError": "Could not save. Please try again."
+    "saveError": "Could not save. Please try again.",
+    "elsewhereHint": "Light or dark, spacing and text size are set on your own Appearance page.",
+    "openLink": "Open Appearance"
   }
 }

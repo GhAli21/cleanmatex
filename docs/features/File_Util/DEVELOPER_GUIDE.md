@@ -23,6 +23,9 @@ import { FileAttachments } from '@features/file-util';
 - A record that does not exist yet (new order, new issue): collect files with `PendingFilesPicker`, save the record, then call `uploadFilesToRecord()` with the new id. Pass `ref` / `notes` for an order sub-record (`ORDER_ISSUE`, `ASM_EXCEPTION`, …).
 - One image in a list row: no component yet (`CmxFileThumb` was planned, not built). If you build it, feed it from one batch `GET /api/v1/file-util?entityIds=…` call per page, never one call per row.
 - Pieces: pass `fileSource={FILE_SOURCES.X}` to `OrderPiecesManager`; each piece gets a "Photos (n)" button (ref `ORDER_PIECE`). Counts share one order-wide list call.
+- Items when pieces are not tracked: `<PiecePhotosControl refType={FILE_REF_TYPES.ORDER_ITEM} refId={item.id} label={name} …/>` under the item, only when `!trackByPiece`.
+- Preselect a file type for a screen: add its source to `ORDER_FILE_DEFAULT_PURPOSE_BY_SOURCE` (`lib/constants/file-util.ts`); or pass `defaultPurpose` to `FileAttachments`.
+- One sub-record's files in a panel (e.g. an assembly task): `OrderStageFiles` with `refType` + `refId`.
 - Reject or issue with photos: `OrderIssueReportDialog` (`qaReject` for QA reject: also rejects, saves QA_EVIDENCE from ORDER_QA).
 - Proof that must not change (delivery, pickup): upload first, send the file ids to the completion command, lock them in its transaction (see `lockPickupProofFiles`).
 - Order workflow stage screens: use `<OrderStageFiles orderId={id} source={FILE_SOURCES.ORDER_QA} />` (`src/features/orders/ui/order-stage-files.tsx`). It is collapsed until opened and sets read-only from `orders:update` / `orders:transition`.

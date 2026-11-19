@@ -1633,6 +1633,7 @@ model org_tenants_mst {
   ready_time                       DateTime?                          @db.Time(6)
   calendar_template_code           String?
   starter_pkg_code                 String?
+  logo_dark_url                    String?
   cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_advance_txn_dtl              org_advance_txn_dtl[]

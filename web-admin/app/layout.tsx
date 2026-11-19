@@ -68,8 +68,8 @@ export default async function RootLayout({
       >
         {/* After the head stylesheets, so these values override tokens.css; empty for the plain STANDARD theme. */}
         {themeCss ? <style id="cmx-theme" dangerouslySetInnerHTML={{ __html: themeCss }} /> : null}
-        <AppProviders locale={locale} messages={messages} timeZone={timeZone}>
-          <TenantBrandProvider value={{ appName: theme.appName, appName2: theme.appName2, logoUrl: theme.logoUrl }}>
+        <AppProviders locale={locale} messages={messages} timeZone={timeZone} mode={theme.mode}>
+          <TenantBrandProvider value={{ appName: theme.appName, appName2: theme.appName2, logoUrl: theme.logoUrl, logoDarkUrl: theme.logoDarkUrl }}>
             {children}
           </TenantBrandProvider>
         </AppProviders>

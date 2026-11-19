@@ -74,7 +74,7 @@ Every route goes through `guardFileRequest` (`lib/services/file-util/file-util-h
 - **Jobs:**
   - pg_cron `file-util-expire` (`17 * * * *`, `fn_file_util_expire_pending()`).
   - HQ worker job `file-util-purge` (`sys_ops_job_cf`, `HQ_WORKER`, default `47 3 * * 0`).
-- **URL columns kept as copies of the file row:** `org_product_data_mst.product_image`, `org_tenants_mst.logo_url`.
+- **URL columns kept as copies of the file row:** `org_product_data_mst.product_image` (PRODUCT_IMAGE/MAIN), `org_tenants_mst.logo_url` (TENANT_LOGO/MAIN), `org_tenants_mst.logo_dark_url` (TENANT_LOGO/DARK, from `0773`).
 
 ## Migrations (all applied by the owner)
 
@@ -115,7 +115,8 @@ Also used: `0757` (theme runtime) added `TENANT_LOGO` purposes `DARK` and `FAVIC
 - Constants: `lib/constants/file-util.ts`.
 - Feature: `src/features/file-util/` (`FileAttachments`, `PendingFilesPicker`, hooks, image prep).
 - Order stage screens: `src/features/orders/ui/order-stage-files.tsx` (`OrderStageFiles`), on preparation, processing, assembly, QA, packing, ready, delivery order and route stop pages.
-- Piece photos: `src/features/orders/ui/pieces/piece-photos.tsx` (`PiecePhotosControl`), via `OrderPiecesManager fileSource`.
+- Piece photos: `src/features/orders/ui/pieces/piece-photos.tsx` (`PiecePhotosControl`), via `OrderPiecesManager fileSource`. Same control with `refType=ORDER_ITEM` under each item when piece tracking is off.
+- Assembly task files: `assembly-task-modal.tsx` → `OrderStageFiles` with `refType=ASM_TASK`, `refId=taskId`.
 - QA reject photos: `OrderIssueReportDialog qaReject`. Pickup proof: `pickup-handover-card.tsx` → `completePickup({ proofFileIds })` locks them.
 - Locked proof: delivery (`delivery-completion.service.ts`, DELIVERY_STOP) and pickup (`pickup-completion.service.ts`, PICKUP_PROOF).
 - Shared UI: `CmxFileDropZone`, `CmxCameraCaptureDialog`, `CmxFileGallery`, `CmxFileViewerDialog` in `src/ui/` (the planned `CmxFileThumb` was not built; add it when a list screen needs one image per row).

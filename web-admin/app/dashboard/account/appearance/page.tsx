@@ -7,8 +7,13 @@
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { AccountAppearanceScreen } from '@features/auth-session/ui/account-appearance-screen';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata: Metadata = { title: 'Appearance' };
+/** Page title in the person's language. */
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('authSession.appearance');
+  return { title: t('title') };
+}
 
 /** Renders the appearance screen for the signed-in user. */
 export default async function AccountAppearanceRoutePage() {

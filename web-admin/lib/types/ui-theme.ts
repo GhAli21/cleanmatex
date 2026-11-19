@@ -24,4 +24,6 @@ export interface ResolvedTheme {
   appName2: string | null
   /** Published MAIN logo (`org_tenants_mst.logo_url`, kept by File Util); null = no logo. All plans. */
   logoUrl: string | null
+  /** Published DARK logo (`org_tenants_mst.logo_dark_url`, kept by File Util); null = use `logoUrl` in dark mode too. */
+  logoDarkUrl: string | null
 }

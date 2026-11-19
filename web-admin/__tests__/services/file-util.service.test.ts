@@ -290,6 +290,17 @@ describe('deleteFile', () => {
       .mockResolvedValueOnce(null); // slot is now empty
     await deleteFile(T1, 'user-1', 'TENANT_LOGO', FILE);
     expect(m.tenantUpdateMany).toHaveBeenCalledWith({ where: { id: T1 }, data: expect.objectContaining({ logo_url: null }) });
+    expect(m.tenantUpdateMany.mock.calls[0][0].data).not.toHaveProperty('logo_dark_url');
+  });
+
+  it('clears only the dark logo URL when the dark logo is deleted', async () => {
+    m.fileFindFirst
+      .mockResolvedValueOnce({ entity_id: T1, purpose_code: 'DARK', status_code: 'READY' })
+      .mockResolvedValueOnce(null); // slot is now empty
+    await deleteFile(T1, 'user-1', 'TENANT_LOGO', FILE);
+    expect(m.fileFindFirst.mock.calls[1][0].where).toMatchObject({ tenant_org_id: T1, purpose_code: 'DARK' });
+    expect(m.tenantUpdateMany).toHaveBeenCalledWith({ where: { id: T1 }, data: expect.objectContaining({ logo_dark_url: null }) });
+    expect(m.tenantUpdateMany.mock.calls[0][0].data).not.toHaveProperty('logo_url');
   });
 
   it('refuses to delete a locked file (proof of a completed record)', async () => {
@@ -320,6 +331,18 @@ describe('updateFile', () => {
     m.fileFindFirst.mockResolvedValueOnce(null); // view after update (not needed for this check)
     await updateFile({ tenantId: T1, userId: 'user-1', categoryCode: 'ORDER_FILE', fileId: FILE, purposeCode: 'AFTER_IMAGE' }).catch(() => undefined);
     expect(m.fileUpdateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ purpose_code: 'AFTER_IMAGE' }) }));
+  });
+
+  it('moving the main logo to the dark slot rewrites both logo URLs', async () => {
+    m.fileFindFirst
+      .mockResolvedValueOnce({ mime_type: 'image/png', purpose_code: 'MAIN', entity_id: T1, locked_at: null })
+      .mockResolvedValueOnce(null) // MAIN slot is now empty
+      .mockResolvedValueOnce(null) // DARK slot (no public URL in this mock)
+      .mockResolvedValueOnce(null); // view after update
+    m.purposeFindFirst.mockResolvedValue({ purpose_code: 'DARK', max_files: 1, max_size_bytes: null });
+    await updateFile({ tenantId: T1, userId: 'user-1', categoryCode: 'TENANT_LOGO', fileId: FILE, purposeCode: 'DARK' }).catch(() => undefined);
+    const data = m.tenantUpdateMany.mock.calls.map((c: [{ data: object }]) => c[0].data);
+    expect(data).toEqual([expect.objectContaining({ logo_url: null }), expect.objectContaining({ logo_dark_url: null })]);
   });
 
   it('refuses to edit a locked file', async () => {

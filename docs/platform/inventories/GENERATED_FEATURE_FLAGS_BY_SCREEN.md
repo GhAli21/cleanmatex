@@ -3,18 +3,18 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T05:41:09.314Z
+Generated: 2026-11-19T13:02:08.496Z
 
 | Flag key | File | Line | Context |
 | --- | --- | --- | --- |
-| advanced_analytics | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 676 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>} |
-| api_access | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 547 | {plan.feature_flags.api_access && ( |
-| api_access | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 677 | {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>} |
+| advanced_analytics | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 677 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>} |
+| api_access | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 548 | {plan.feature_flags.api_access && ( |
+| api_access | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 678 | {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>} |
 | b2b_contracts | src/features/customers/ui/customer-create-modal.tsx | 43 | const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS) |
-| driver_app | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 541 | {plan.feature_flags.driver_app && ( |
-| driver_app | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 674 | {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>} |
-| multi_branch | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 544 | {plan.feature_flags.multi_branch && ( |
-| multi_branch | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
+| driver_app | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 542 | {plan.feature_flags.driver_app && ( |
+| driver_app | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>} |
+| multi_branch | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 545 | {plan.feature_flags.multi_branch && ( |
+| multi_branch | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 676 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
 | multi_currency_fx | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
 | order_fin_refund_execution | app/dashboard/internal_fin/refunds/page.tsx | 46 | currentTenantCan('order_fin_refund_execution').catch(() => false), |
 | order_fin_refund_execution | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 196 | const refundExecutionEnabled = useFeature('order_fin_refund_execution'); |
@@ -22,8 +22,8 @@ Generated: 2026-11-19T05:41:09.314Z
 | order_fin_refund_ui | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 90 | const refundUiEnabled = useFeature('order_fin_refund_ui'); |
 | order_fin_sv_funding_capture | src/features/customers/ui/customer-stored-value-tab.tsx | 104 | const fundingCaptureEnabled = useFeature('order_fin_sv_funding_capture'); |
 | order_fin_voucher_unwind | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 91 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
-| pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
-| pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
+| pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 536 | {plan.feature_flags.pdf_invoices && ( |
+| pdf_invoices | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
 | usePlanFlags | src/features/orders/ui/new-order-content.tsx | 110 | usePlanFlags(); |
-| whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |
-| whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |
+| whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 539 | {plan.feature_flags.whatsapp_receipts && ( |
+| whatsapp_receipts | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 674 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

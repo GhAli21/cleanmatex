@@ -56,7 +56,7 @@ Get these right:
 - **`source`** is the screen the upload comes from. Pick the closest `FILE_SOURCES` value; add a new one through §6 when none fits. It is stored for audit and shown on each tile.
 - **Stage is not a prop.** The server stores the record's stage at upload (`stage_code`; orders: the order status). The widget shows "stage · screen · sub-record" and a stage filter by itself.
 - **Order workflow stage screen** (preparation, processing, assembly, QA, packing, ready, delivery, or a new one): use `OrderStageFiles` from `src/features/orders/ui/order-stage-files.tsx` with that screen's source, not a new wrapper. It hides itself without `orders:read`.
-- **Pieces on a screen:** pass `fileSource` to `OrderPiecesManager` (per-piece photos, ref `ORDER_PIECE`). Never add a per-piece list call; `PiecePhotosControl` shares one.
+- **Pieces on a screen:** pass `fileSource` to `OrderPiecesManager` (per-piece photos, ref `ORDER_PIECE`). Never add a per-piece list call; `PiecePhotosControl` shares one. Items without piece tracking: the same control with `refType={FILE_REF_TYPES.ORDER_ITEM}`, shown only when `!trackByPiece`.
 - **Proof that is locked** (delivery, pickup): upload first, pass the file ids to the completion command, lock them in its transaction with `tenant_org_id` + order + purpose + READY + unlocked filters; fewer locked than sent = roll back.
 - **Placement:** put it in a tab or section that mounts only when it is shown (for example `activeTab === 'files' && …`), so a page does not fetch files nobody looks at.
 - **Lists:** never render `FileAttachments` or `useFileAttachments` once per row. There is no list thumbnail component yet (`CmxFileThumb` was planned, not built). If a list needs one image per row, build it on one batch `GET /api/v1/file-util?category=…&entityIds=a,b,…` (≤ 100 ids) per page and add it to `src/ui/` with a story (load `/storybook`).
@@ -94,7 +94,7 @@ Get these right:
 ## 3. Single published slot (logo, product main image)
 
 - Purposes with `max_files = 1` are single slots.
-- `PRODUCT_IMAGE/MAIN` and `TENANT_LOGO/MAIN` also write a public URL into `org_product_data_mst.product_image` and `org_tenants_mst.logo_url`. The service does this in `PUBLISHED_URL_PURPOSE` / `syncPublishedUrl`, in the same transaction as the file change.
+- `PRODUCT_IMAGE/MAIN`, `TENANT_LOGO/MAIN` and `TENANT_LOGO/DARK` also write a public URL into `org_product_data_mst.product_image`, `org_tenants_mst.logo_url` and `org_tenants_mst.logo_dark_url`. The service does this in `PUBLISHED_URL_PURPOSES` / `syncPublishedUrl(…, purposeCode)`, in the same transaction as the file change.
 - Old readers keep reading that column. **No screen or API may write the column itself.** Remove any old upload route, form field or PUT body field that did; the branding PUT, for example, now ignores `logo`.
 - To show the current image on the edit form, use `useFileAttachments` with `purposes: ['MAIN']`, as `product-form.tsx` does.
 - A new published slot needs service code: §6 step 3, and only for a public bucket.

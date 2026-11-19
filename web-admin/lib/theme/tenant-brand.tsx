@@ -15,6 +15,8 @@ export interface TenantBrandValue {
   appName: string | null
   appName2: string | null
   logoUrl: string | null
+  /** Dark-mode logo; null = none (the light logo shows in dark too). */
+  logoDarkUrl?: string | null
 }
 
 const PRODUCT_NAME = 'CleanMateX'
@@ -31,10 +33,10 @@ export function TenantBrandProvider({ value, children }: { value: TenantBrandVal
 
 /**
  * The name to show for the app (white-label name in the current language, else CleanMateX) and the logo.
- * @returns name and logoUrl (null = none)
+ * @returns name, logoUrl and logoDarkUrl (null = none)
  */
-export function useTenantBrand(): { name: string; logoUrl: string | null } {
+export function useTenantBrand(): { name: string; logoUrl: string | null; logoDarkUrl: string | null } {
   const brand = useContext(TenantBrandContext)
   const localized = useLocale() === 'ar' ? brand?.appName2 ?? brand?.appName : brand?.appName
-  return { name: localized || PRODUCT_NAME, logoUrl: brand?.logoUrl ?? null }
+  return { name: localized || PRODUCT_NAME, logoUrl: brand?.logoUrl ?? null, logoDarkUrl: brand?.logoDarkUrl ?? null }
 }

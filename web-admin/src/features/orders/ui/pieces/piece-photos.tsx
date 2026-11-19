@@ -17,7 +17,12 @@ import { FileAttachments } from '@features/file-util';
 import { fetchFiles } from '@features/file-util/api/file-util-api';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useHasPermission } from '@/lib/hooks/use-has-permission';
-import { FILE_CATEGORIES, FILE_REF_TYPES, type FileSourceCode } from '@/lib/constants/file-util';
+import {
+  FILE_CATEGORIES,
+  FILE_REF_TYPES,
+  ORDER_FILE_DEFAULT_PURPOSE_BY_SOURCE,
+  type FileSourceCode,
+} from '@/lib/constants/file-util';
 
 /** Sub-records that can carry their own photos on the pieces screens. */
 export type PhotoRefType = typeof FILE_REF_TYPES.ORDER_PIECE | typeof FILE_REF_TYPES.ORDER_ITEM;
@@ -118,6 +123,7 @@ export function PiecePhotosDialog({
             category={FILE_CATEGORIES.ORDER_FILE}
             entityId={orderId}
             source={source}
+            defaultPurpose={ORDER_FILE_DEFAULT_PURPOSE_BY_SOURCE[source]}
             refType={refType}
             refId={refId}
             title={t('title')}

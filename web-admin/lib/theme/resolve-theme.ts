@@ -51,6 +51,8 @@ export interface ResolveThemeInput {
   user: { ui_color_mode: string; ui_density: string | null; ui_font_scale: string } | null
   /** `org_tenants_mst.logo_url` (File Util's published MAIN logo), or null. */
   logoUrl: string | null
+  /** `org_tenants_mst.logo_dark_url` (File Util's published DARK logo), or null. */
+  logoDarkUrl: string | null
 }
 
 /**
@@ -85,5 +87,6 @@ export function resolveTheme(input: ResolveThemeInput): ResolvedTheme {
     appName: input.whiteLabel ? org?.app_display_name ?? null : null,
     appName2: input.whiteLabel ? org?.app_display_name2 ?? null : null,
     logoUrl: input.logoUrl || null,
+    logoDarkUrl: input.logoDarkUrl || null,
   }
 }

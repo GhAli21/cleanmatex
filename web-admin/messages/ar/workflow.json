@@ -84,6 +84,7 @@
     "items": "أصناف",
     "unknownCustomer": "عميل غير معروف",
     "phoneUnavailable": "غير متوفر",
+    "backToAssembly": "العودة إلى التجميع",
     "actions": {
       "assembleOrder": "تجميع الطلب"
     },
@@ -185,6 +186,13 @@
         }
       }
     }
+  },
+  "assemblyDetail": {
+    "verifyItems": "تحقق من الأصناف",
+    "quantity": "الكمية",
+    "ready": "جاهز",
+    "hint": "تأكد من وجود جميع الأصناف وصحتها، ثم افتح «تجميع الطلب» للمسح وإكمال التجميع.",
+    "actionsTitle": "إجراءات"
   },
   "qa": {
     "description": "طلبات بانتظار فحص الجودة",

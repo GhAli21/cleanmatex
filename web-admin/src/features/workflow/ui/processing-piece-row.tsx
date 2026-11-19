@@ -20,6 +20,7 @@ import { PiecePreferenceReadonlyChips } from '@/src/features/orders/ui/piece-pre
 import { cn } from '@/lib/utils';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import { readableTextOn } from '@/lib/theme/brand-palette';
 
 interface ProcessingPieceRowProps {
   piece: ItemPiece;
@@ -262,7 +263,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                 className="font-medium"
                 style={{
                   backgroundColor: rejectColor,
-                  color: 'white',
+                  color: readableTextOn(rejectColor),
                   borderColor: rejectColor,
                 }}
               />

@@ -24,6 +24,8 @@ export interface FileAttachmentsProps extends UseFileAttachmentsOptions {
   title?: string;
   /** View only: no upload, edit or delete. */
   readOnly?: boolean;
+  /** File type preselected for new uploads (e.g. QA_EVIDENCE on the QA screen); ignored when not offered. */
+  defaultPurpose?: string;
   className?: string;
 }
 
@@ -33,7 +35,7 @@ const ALL = '__all__';
  * Connected files section for one record.
  * @param props record, purposes and source; see FileAttachmentsProps
  */
-export function FileAttachments({ title, readOnly = false, className, ...opts }: FileAttachmentsProps) {
+export function FileAttachments({ title, readOnly = false, className, defaultPurpose, ...opts }: FileAttachmentsProps) {
   const t = useTranslations('fileUtil');
   const tCommon = useTranslations('common');
   const locale = useLocale();
@@ -63,7 +65,8 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
   }, [fa.config]);
 
   const [purpose, setPurpose] = useState<string | null>(null);
-  const selected = purposes.find((p) => p.purposeCode === purpose) ?? purposes.find((p) => p.isDefault) ?? purposes[0];
+  const selected =
+    purposes.find((p) => p.purposeCode === (purpose ?? defaultPurpose)) ?? purposes.find((p) => p.isDefault) ?? purposes[0];
   const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState(ALL);
   const [stageFilter, setStageFilter] = useState(ALL);
@@ -193,6 +196,8 @@ export function FileAttachments({ title, readOnly = false, className, ...opts }:
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+          {/* Type and note are not a form: they are applied to the next files added, so say so. */}
+          <p className="text-xs text-muted-foreground">{t('uploadSettingsHint')}</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <CmxFileDropZone
               className="flex-1"

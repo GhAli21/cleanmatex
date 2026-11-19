@@ -215,6 +215,16 @@ function buildMode(mode: ThemeMode, primary: Oklch, secondary: Oklch): Record<Br
   }
 }
 
+/**
+ * Readable text colour for a solid fill an Organization picked (e.g. the reject colour setting).
+ * @param hex - Fill as `#RRGGBB`; anything else gives white (the old fixed value)
+ * @returns CSS colour, e.g. `rgb(255 255 255)`
+ */
+export function readableTextOn(hex: string): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return `rgb(${WHITE})`
+  return `rgb(${readableOn(parseHex(hex).join(' '))})`
+}
+
 /** White if readable on `solid`, else a dark navy, else whichever of black/white contrasts more. */
 function readableOn(solid: RgbTriplet): RgbTriplet {
   if (contrastRatio(WHITE, solid) >= MIN_TEXT_CONTRAST) return WHITE

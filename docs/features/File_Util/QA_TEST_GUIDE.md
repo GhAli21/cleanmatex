@@ -188,6 +188,18 @@ Tenant app, user with `orders:transition` or `orders:update`. Use one order and 
 | J8 | **Delivery** → open an order (delivery detail) and a route stop | A collapsed **Files** panel on both; uploads tagged "Out for delivery · Delivery". Driver without `orders:read`: no panel, no error. |
 | J9 | Arabic | All new texts in Arabic, RTL; Arabic plural forms on the piece photo count. |
 
+## K. Item photos and assembly task files (no migration)
+
+| # | Where / do | Expect |
+|---|---|---|
+| K1 | Tenant with **piece tracking off** → Processing (or Assembly, QA, Packing, Ready, order detail items, Preparation) detail | Under each item: **Add photos**. No "View pieces" section. |
+| K2 | Press it → upload 1 photo → close | Dialog "Photos of <item name>". Button now **1 photo**. Order Files tab: tile line ends with "Order item". |
+| K3 | Tenant with **piece tracking on** | No item button; each piece has its own button (§J3). |
+| K4 | **Assembly** → open an order's assembly task | Collapsed **Files** panel in the task window; uploads tagged "Assembly · Assembly task". They show in the order's Files tab, not in other tasks. |
+| K5 | User without `orders:read` | No item photo buttons, no Files panel in the task window, no error. |
+| K6 | Arabic | Texts in Arabic, RTL. |
+| K7 | **QA** detail → a Files panel or piece photos → look at "File type" before adding a photo; type a note, then add a photo | File type already "Quality check" (Packing and Ready: "After processing"). A line under the fields says type and note apply to the next files added. After the upload the note box is empty and the tile shows the note. To change a saved file: pencil on the tile → Save. |
+
 ## G. Not testable yet
 
 - Storage purge of deleted files runs in the HQ `platform-workers` job `file-util-purge` — needs that worker deployed.

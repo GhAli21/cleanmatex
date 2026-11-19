@@ -229,7 +229,8 @@ Any migration this phase needs is still written in `cleanmatex`. Not in v1: brow
 - [x] 10.3 Pickup proof: `0771` purpose PICKUP_PROOF (applied by owner), locked by `completePickup`.
 - [x] 10.4 Files panel on delivery order and stop pages.
 - [x] 10.5 Contracts (incl. order detail File Util deps missing since Phase 4), tests, docs, QA §J.
-- Not done: `QA_DECISION` / `ASM_TASK` refs stay unused (no screen creates assembly-task QA decisions); `ORDER_ITEM` photos (pieces cover it); `MOBILE_APP` / `API` upload endpoints (§8).
+- [x] 10.6 (owner go-ahead 2026-11-19) `ORDER_ITEM` photos when pieces are not tracked; `ASM_TASK` Files panel in the assembly task modal.
+- Not done, by decision: `QA_DECISION` (only an API no screen calls writes QA decisions; live QA evidence is on the reject issue); `MOBILE_APP` / `API` upload endpoints (no mobile client yet, §8).
 
 ## 8. Not in this plan
 

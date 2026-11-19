@@ -3,11 +3,11 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T05:41:09.314Z
+Generated: 2026-11-19T13:02:08.496Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
-| advanced_analytics | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 676 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>} |
+| advanced_analytics | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 677 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>} |
 | advanced_analytics | navigation | config/navigation.ts | 618 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 625 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 632 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
@@ -15,16 +15,16 @@ Generated: 2026-11-19T05:41:09.314Z
 | advanced_analytics | navigation | config/navigation.ts | 646 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 655 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 664 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
-| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 547 | {plan.feature_flags.api_access && ( |
-| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 677 | {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>} |
+| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 548 | {plan.feature_flags.api_access && ( |
+| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 678 | {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>} |
 | b2b_contracts | screen | src/features/customers/ui/customer-create-modal.tsx | 43 | const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS) |
 | b2b_contracts | navigation | config/navigation.ts | 317 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 325 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 333 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 341 | //featureFlag: 'b2b_contracts', |
 | campaigns_enabled | navigation | config/navigation.ts | 884 | featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED, |
-| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 541 | {plan.feature_flags.driver_app && ( |
-| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 674 | {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>} |
+| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 542 | {plan.feature_flags.driver_app && ( |
+| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>} |
 | erp_lite_ap_enabled | navigation | config/navigation.ts | 796 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
 | erp_lite_ar_enabled | navigation | config/navigation.ts | 788 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
 | erp_lite_bank_recon_enabled | navigation | config/navigation.ts | 820 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
@@ -74,8 +74,8 @@ Generated: 2026-11-19T05:41:09.314Z
 | getFeatureFlags | service | lib/services/ui-theme.service.ts | 62 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 227 | const featureFlags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 448 | const flags = await getFeatureFlags(tenantId); |
-| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 544 | {plan.feature_flags.multi_branch && ( |
-| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 675 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
+| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 545 | {plan.feature_flags.multi_branch && ( |
+| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 676 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
 | multi_currency_fx | screen | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 382 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 711 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
@@ -90,9 +90,9 @@ Generated: 2026-11-19T05:41:09.314Z
 | order_fin_voucher_unwind | screen | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 91 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
 | order_fin_voucher_unwind | service | lib/services/voucher-reversal.service.ts | 88 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | service | lib/services/feature-flags.service.ts | 402 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |
-| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 535 | {plan.feature_flags.pdf_invoices && ( |
-| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 672 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
+| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 536 | {plan.feature_flags.pdf_invoices && ( |
+| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
 | usePlanFlags | hook | src/features/orders/hooks/use-plan-flags.ts | 30 | export function usePlanFlags() { |
 | usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 110 | usePlanFlags(); |
-| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 538 | {plan.feature_flags.whatsapp_receipts && ( |
-| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 673 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |
+| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 539 | {plan.feature_flags.whatsapp_receipts && ( |
+| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 674 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |

@@ -2548,6 +2548,83 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
     page: {},
     apiDependencies: [
       {
+        label: 'List files',
+        method: 'GET',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'File upload rules',
+        method: 'GET',
+        path: '/api/v1/file-util/config',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Refresh file links',
+        method: 'POST',
+        path: '/api/v1/file-util/sign',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Start file upload',
+        method: 'POST',
+        path: '/api/v1/file-util',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Finish file upload',
+        method: 'POST',
+        path: '/api/v1/file-util/[id]/complete',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Edit file',
+        method: 'PATCH',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
+        label: 'Delete file',
+        method: 'DELETE',
+        path: '/api/v1/file-util/[id]',
+        requirement: {
+          permissions: ['orders:transition'],
+          requireAllPermissions: true,
+        },
+        enforcement: 'external',
+        notes: ['Assembly task modal: task Files panel (OrderStageFiles, ref ASM_TASK) and exception photos. File Util picks the permission from ?category=ORDER_FILE (read: orders:read; write: orders:update or orders:transition); see lib/services/file-util/file-util-http.ts.'],
+      },
+      {
         label: 'Floor worklist',
         method: 'GET',
         path: '/api/v1/orders',

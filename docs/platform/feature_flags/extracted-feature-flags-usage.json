@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-19T05:41:04.915Z",
+  "extractedAt": "2026-11-19T13:02:05.636Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -397,14 +397,14 @@
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 535,
+        "line": 536,
         "context": "{plan.feature_flags.pdf_invoices && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 672,
+        "line": 673,
         "context": "{selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -475,14 +475,14 @@
     "whatsapp_receipts": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 538,
+        "line": 539,
         "context": "{plan.feature_flags.whatsapp_receipts && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 673,
+        "line": 674,
         "context": "{selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -491,14 +491,14 @@
     "driver_app": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 541,
+        "line": 542,
         "context": "{plan.feature_flags.driver_app && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 674,
+        "line": 675,
         "context": "{selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -507,14 +507,14 @@
     "multi_branch": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 544,
+        "line": 545,
         "context": "{plan.feature_flags.multi_branch && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 675,
+        "line": 676,
         "context": "{selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -523,14 +523,14 @@
     "api_access": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 547,
+        "line": 548,
         "context": "{plan.feature_flags.api_access && (",
         "surface": "screen",
         "pattern": "feature_flags"
       },
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 677,
+        "line": 678,
         "context": "{selectedPlan.feature_flags.api_access && <li>✓ API Access</li>}",
         "surface": "screen",
         "pattern": "feature_flags"
@@ -539,7 +539,7 @@
     "advanced_analytics": [
       {
         "path": "src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx",
-        "line": 676,
+        "line": 677,
         "context": "{selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>}",
         "surface": "screen",
         "pattern": "feature_flags"

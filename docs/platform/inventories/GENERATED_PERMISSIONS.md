@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T05:41:09.314Z
+Generated: 2026-11-19T13:02:08.496Z
 
 ## By surface (counts)
 
@@ -56,7 +56,7 @@ Generated: 2026-11-19T05:41:09.314Z
 | ar_stmt_cycles:view | api | app/api/v1/ar/statement-cycles/[id]/preview/route.ts | 17 | /api/v1/ar/statement-cycles/[id]/preview |
 | audit:read | screen | src/features/users/access/users-access.ts | 98 | src/features/users/access/users-access.ts |
 | audit:read | api | app/api/users/[userId]/activity/route.ts | 33 | /api/users/[userId]/activity |
-| auth_config:update | screen | src/features/auth-session/ui/security-settings-screen.tsx | 37 | src/features/auth-session/ui/security-settings-screen.tsx |
+| auth_config:update | screen | src/features/auth-session/ui/security-settings-screen.tsx | 38 | src/features/auth-session/ui/security-settings-screen.tsx |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/route.ts | 60 | /api/v1/b2b-contacts |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/[id]/route.ts | 101 | /api/v1/b2b-contacts/[id] |
 | b2b_contacts:create | api | app/api/v1/b2b-contacts/[id]/route.ts | 143 | /api/v1/b2b-contacts/[id] |
@@ -181,7 +181,7 @@ Generated: 2026-11-19T05:41:09.314Z
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/cancel/route.ts | 34 | /api/v1/delivery/routes/[id]/cancel |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/orders/route.ts | 32 | /api/v1/delivery/routes/[id]/orders |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/stops/[stopId]/route.ts | 26 | /api/v1/delivery/routes/[id]/stops/[stopId] |
-| drivers:read | screen | app/dashboard/delivery/page.tsx | 119 | /dashboard/delivery |
+| drivers:read | screen | app/dashboard/delivery/page.tsx | 120 | /dashboard/delivery |
 | drivers:read | api | app/api/v1/delivery/routes/route.ts | 23 | /api/v1/delivery/routes |
 | fin_voucher_lines:delete_draft | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 43 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
 | fin_voucher_lines:update | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 17 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
@@ -273,7 +273,7 @@ Generated: 2026-11-19T05:41:09.314Z
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 73 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 77 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 120 | /dashboard/delivery |
+| orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 121 | /dashboard/delivery |
 | orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 51 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
 | orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 205 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 41 | /api/v1/orders/[id]/collect-payment |
@@ -303,8 +303,8 @@ Generated: 2026-11-19T05:41:09.314Z
 | orders:process_refund | api | app/api/v1/orders/refunds/[refundId]/process/route.ts | 34 | /api/v1/orders/refunds/[refundId]/process |
 | orders:process_refund | api | app/api/v1/orders/[id]/refund/route.ts | 66 | /api/v1/orders/[id]/refund |
 | orders:process_refund | api | app/api/v1/orders/[id]/refunds/route.ts | 108 | /api/v1/orders/[id]/refunds |
-| orders:read | screen | src/features/orders/ui/order-stage-files.tsx | 34 | src/features/orders/ui/order-stage-files.tsx |
-| orders:read | screen | src/features/orders/ui/pieces/piece-photos.tsx | 51 | src/features/orders/ui/pieces/piece-photos.tsx |
+| orders:read | screen | src/features/orders/ui/order-stage-files.tsx | 37 | src/features/orders/ui/order-stage-files.tsx |
+| orders:read | screen | src/features/orders/ui/pieces/piece-photos.tsx | 152 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:read | service | lib/constants/permissions/orders-perm.ts | 5 | lib/constants/permissions/orders-perm.ts |
 | orders:read | api | app/api/orders/[orderId]/status/route.ts | 59 | /api/orders/[orderId]/status |
 | orders:read | api | app/api/orders/[orderId]/status-history/route.ts | 25 | /api/orders/[orderId]/status-history |
@@ -353,8 +353,8 @@ Generated: 2026-11-19T05:41:09.314Z
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |
 | orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 73 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:transition | screen | src/features/orders/ui/order-actions.tsx | 49 | src/features/orders/ui/order-actions.tsx |
-| orders:transition | screen | src/features/orders/ui/order-stage-files.tsx | 32 | src/features/orders/ui/order-stage-files.tsx |
-| orders:transition | screen | src/features/orders/ui/pieces/piece-photos.tsx | 99 | src/features/orders/ui/pieces/piece-photos.tsx |
+| orders:transition | screen | src/features/orders/ui/order-stage-files.tsx | 35 | src/features/orders/ui/order-stage-files.tsx |
+| orders:transition | screen | src/features/orders/ui/pieces/piece-photos.tsx | 109 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:transition | api | app/api/v1/assembly/exceptions/[id]/resolve/route.ts | 19 | /api/v1/assembly/exceptions/[id]/resolve |
 | orders:transition | api | app/api/v1/assembly/tasks/route.ts | 15 | /api/v1/assembly/tasks |
 | orders:transition | api | app/api/v1/assembly/tasks/[taskId]/complete/route.ts | 19 | /api/v1/assembly/tasks/[taskId]/complete |
@@ -375,8 +375,8 @@ Generated: 2026-11-19T05:41:09.314Z
 | orders:update | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 74 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
 | orders:update | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 56 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
-| orders:update | screen | src/features/orders/ui/order-stage-files.tsx | 31 | src/features/orders/ui/order-stage-files.tsx |
-| orders:update | screen | src/features/orders/ui/pieces/piece-photos.tsx | 98 | src/features/orders/ui/pieces/piece-photos.tsx |
+| orders:update | screen | src/features/orders/ui/order-stage-files.tsx | 34 | src/features/orders/ui/order-stage-files.tsx |
+| orders:update | screen | src/features/orders/ui/pieces/piece-photos.tsx | 108 | src/features/orders/ui/pieces/piece-photos.tsx |
 | orders:update | screen | src/features/workflow/ui/FastItemizer.tsx | 53 | src/features/workflow/ui/FastItemizer.tsx |
 | orders:update | api | app/api/orders/bulk-status/route.ts | 16 | /api/orders/bulk-status |
 | orders:update | api | app/api/orders/[orderId]/status/route.ts | 21 | /api/orders/[orderId]/status |
@@ -516,8 +516,8 @@ Generated: 2026-11-19T05:41:09.314Z
 | tax:view_reports | api | app/api/v1/tax/returns/lines/route.ts | 9 | /api/v1/tax/returns/lines |
 | tax:view_reports | api | app/api/v1/tax/returns/route.ts | 9 | /api/v1/tax/returns |
 | user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 41 | src/features/users/ui/user-detail-screen.tsx |
-| user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 31 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
-| user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 40 | src/features/auth-session/ui/user-sessions-tab.tsx |
+| user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
+| user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |
 | users:read | screen | src/features/users/access/users-access.ts | 106 | src/features/users/access/users-access.ts |
 | users:read | screen | src/features/users/access/users-access.ts | 122 | src/features/users/access/users-access.ts |
 | users:read | api | app/api/users/[userId]/membership-lock/route.ts | 26 | /api/users/[userId]/membership-lock |

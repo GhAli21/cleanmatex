@@ -10,6 +10,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Globe, Palette, Clock, Bell } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
@@ -19,6 +21,7 @@ import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-fie
  *
  */
 export default function UserPreferencesPage() {
+  const tAppearance = useTranslations('authSession.appearance');
   const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -167,44 +170,18 @@ export default function UserPreferencesPage() {
         </div>
       </CmxCard>
 
-      {/* Theme & Appearance */}
+      {/* Theme & Appearance: set on the Appearance page (sys_users_mst), not in settings */}
       <CmxCard className="mb-6 p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-2">
           <Palette className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">
-            Theme & Appearance
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">{tAppearance('title')}</h2>
         </div>
-
-        <div className="space-y-4">
-          <UserPreference
-            settingCode="user.theme"
-            label="Theme"
-            description="Light or dark mode"
-            effectiveSettings={effectiveSettings}
-            onSave={handleSave}
-          >
-            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="system">System</option>
-            </select>
-          </UserPreference>
-
-          <UserPreference
-            settingCode="user.density"
-            label="Display Density"
-            description="Spacing between UI elements"
-            effectiveSettings={effectiveSettings}
-            onSave={handleSave}
-          >
-            <select className="block w-full px-3 py-2 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring bg-card">
-              <option value="compact">Compact</option>
-              <option value="comfortable">Comfortable</option>
-              <option value="spacious">Spacious</option>
-            </select>
-          </UserPreference>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {tAppearance('elsewhereHint')}{' '}
+          <Link href="/dashboard/account/appearance" className="font-medium text-primary-text underline">
+            {tAppearance('openLink')}
+          </Link>
+        </p>
       </CmxCard>
 
       {/* Notifications */}

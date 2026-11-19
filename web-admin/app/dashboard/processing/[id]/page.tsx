@@ -5,50 +5,32 @@
  * Enhanced UI/UX with modern components and visual progress indicators
  */
 
-"use client";
+'use client';
 
-import { CmxCodeChip } from "@ui/data-display/cmx-code-chip";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { OrderStageFiles } from "@features/orders/ui/order-stage-files";
-import { FILE_REF_TYPES, FILE_SOURCES } from "@/lib/constants/file-util";
-import { PiecePhotosControl } from "@features/orders/ui/pieces/piece-photos";
-import { useTranslations } from "next-intl";
-import { useAuth } from "@/lib/auth/auth-context";
-import { useTenantSettingsWithDefaults } from "@/lib/hooks/useTenantSettings";
-import {
-  ChevronLeft,
-  CheckCircle2,
-  Circle,
-  Loader2,
-  AlertCircle,
-  MapPin,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
+import { PiecePhotosControl } from '@features/orders/ui/pieces/piece-photos';
+import { useTranslations } from 'next-intl';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 
-import { CmxInput } from "@ui/primitives";
-import {
-  CmxCard,
-  CmxCardHeader,
-  CmxCardTitle,
-  CmxCardDescription,
-  CmxCardContent,
-} from "@ui/primitives/cmx-card";
-import { CmxButton } from "@ui/primitives";
+import { CmxInput } from '@ui/primitives';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent } from '@ui/primitives/cmx-card';
+import { CmxButton } from '@ui/primitives';
 
-import { OrderPiecesManager } from "@features/orders/ui/OrderPiecesManager";
-import { OrderDetailsLink } from "@features/orders/ui/order-details-link";
-import { PiecesErrorBoundary } from "@features/orders/ui/PiecesErrorBoundary";
-import { useOrderTransition } from "@/lib/hooks/use-order-transition";
-import { useWorkflowSystemMode } from "@/lib/config/workflow-config";
-import { useMessage, CmxStatusBadge } from "@ui/feedback";
-import {
-  getOrderFromStateResponse,
-  mapOrderCustomerFromStateRow,
-} from "@/lib/utils/order-state-response";
-import { WorkflowActionBar } from "@features/workflow/ui/WorkflowActionBar";
-import { resolveSafeDashboardReturnUrl } from "@/lib/utils/safe-dashboard-return-url";
+import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
+import { OrderDetailsLink } from '@features/orders/ui/order-details-link';
+import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
+import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useMessage, CmxStatusBadge } from '@ui/feedback';
+import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
+import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { resolveSafeDashboardReturnUrl } from '@/lib/utils/safe-dashboard-return-url';
 
 interface ProcessingItem {
   id: string;
@@ -72,11 +54,11 @@ interface ProcessingOrder {
 }
 
 const PROCESSING_STEPS = [
-  { code: "sorting", labelKey: "steps.sorting" },
-  { code: "pretreatment", labelKey: "steps.pretreatment" },
-  { code: "washing", labelKey: "steps.washing" },
-  { code: "drying", labelKey: "steps.drying" },
-  { code: "finishing", labelKey: "steps.finishing" },
+  { code: 'sorting', labelKey: 'steps.sorting' },
+  { code: 'pretreatment', labelKey: 'steps.pretreatment' },
+  { code: 'washing', labelKey: 'steps.washing' },
+  { code: 'drying', labelKey: 'steps.drying' },
+  { code: 'finishing', labelKey: 'steps.finishing' },
 ];
 
 /**
@@ -86,83 +68,66 @@ export default function ProcessingDetailPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const t = useTranslations("processing");
-  const tTable = useTranslations("processing.table");
-  const tModal = useTranslations("processing.modal");
-  const tPieces = useTranslations("newOrder.pieces");
-  const tCommon = useTranslations("common");
+  const t = useTranslations('processing');
+  const tTable = useTranslations('processing.table');
+  const tModal = useTranslations('processing.modal');
+  const tPieces = useTranslations('newOrder.pieces');
+  const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
-  const { trackByPiece } = useTenantSettingsWithDefaults(
-    currentTenant?.tenant_id || "",
-  );
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const [order, setOrder] = useState<ProcessingOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [rackLocation, setRackLocation] = useState("");
-  const [rackLocationError, setRackLocationError] = useState("");
-  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [rackLocation, setRackLocation] = useState('');
+  const [rackLocationError, setRackLocationError] = useState('');
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const orderId = (params as any)?.id as string | undefined;
-  const returnUrl = resolveSafeDashboardReturnUrl(
-    searchParams.get("returnUrl"),
-    "/dashboard/processing",
-  );
+  const returnUrl = resolveSafeDashboardReturnUrl(searchParams.get('returnUrl'), '/dashboard/processing');
   const orderDetailsReturnUrl = orderId
     ? `/dashboard/processing/${orderId}`
-    : "/dashboard/processing";
+    : '/dashboard/processing';
 
   const loadOrder = useCallback(async () => {
     if (!currentTenant || !orderId) return;
 
     setLoading(true);
-    setError("");
+    setError('');
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
       const rawOrder = getOrderFromStateResponse(json);
-      if (!rawOrder || typeof rawOrder !== "object") {
-        setError(
-          json.error || t("error.loadingFailed") || "Failed to load order",
-        );
+      if (!rawOrder || typeof rawOrder !== 'object') {
+        setError(json.error || t('error.loadingFailed') || 'Failed to load order');
         return;
       }
       const raw = rawOrder as Record<string, unknown>;
-      const items: ProcessingItem[] = (json.items || []).map(
-        (item: Record<string, unknown>) => ({
-          id: String(item.id),
-          product_name:
-            (item.org_product_data_mst as { product_name?: string } | undefined)
-              ?.product_name ||
-            (item.product_name as string) ||
-            "Unknown Product",
-          quantity: Number(item.quantity ?? 0),
-          item_status:
-            (item.item_status as string) ||
-            (item.item_last_step as string) ||
-            "pending",
-          item_last_step: (item.item_last_step as string) || "sorting",
-        }),
-      );
+      const items: ProcessingItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
+        id: String(item.id),
+        product_name:
+          (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
+          (item.product_name as string) ||
+          'Unknown Product',
+        quantity: Number(item.quantity ?? 0),
+        item_status: (item.item_status as string) || (item.item_last_step as string) || 'pending',
+        item_last_step: (item.item_last_step as string) || 'sorting',
+      }));
       setOrder({
         id: String(raw.id),
-        order_no: String(raw.order_no ?? ""),
+        order_no: String(raw.order_no ?? ''),
         branch_id: (raw.branch_id as string | null | undefined) ?? null,
         status: (raw.current_status as string) || (raw.status as string),
         customer: mapOrderCustomerFromStateRow(raw),
         items,
-        rack_location: String(raw.rack_location ?? ""),
+        rack_location: String(raw.rack_location ?? ''),
       });
-      setRackLocation(String(raw.rack_location ?? ""));
+      setRackLocation(String(raw.rack_location ?? ''));
     } catch (err: any) {
-      setError(
-        err.message || t("error.loadingFailed") || "Failed to load order",
-      );
+      setError(err.message || t('error.loadingFailed') || 'Failed to load order');
     } finally {
       setLoading(false);
     }
@@ -172,96 +137,83 @@ export default function ProcessingDetailPage() {
     void loadOrder();
   }, [loadOrder]);
 
-  const handleRecordStep = async (
-    itemId: string,
-    stepCode: string,
-    stepSeq: number,
-  ) => {
+  const handleRecordStep = async (itemId: string, stepCode: string, stepSeq: number) => {
     if (!orderId) return;
     setSubmitting(true);
-    setError("");
+    setError('');
     try {
-      const res = await fetch(
-        `/api/v1/orders/${orderId}/items/${itemId}/step`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            stepCode,
-            stepSeq,
-          }),
-        },
-      );
+      const res = await fetch(`/api/v1/orders/${orderId}/items/${itemId}/step`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepCode,
+          stepSeq,
+        }),
+      });
       const json = await res.json();
       if (json.success) {
         // Reload order
         await loadOrder();
       } else {
-        setError(json.error || "Failed to record step");
+        setError(json.error || 'Failed to record step');
       }
     } catch (err: any) {
-      setError(err.message || "Failed to record step");
+      setError(err.message || 'Failed to record step');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleMarkReady = async () => {
-    setRackLocationError("");
+    setRackLocationError('');
 
     if (!orderId) return;
 
     setSubmitting(true);
-    setError("");
+    setError('');
     try {
       const result = await transition.mutateAsync({
         orderId,
         input: {
-          screen: "processing",
-          notes: "Processing complete",
+          screen: 'processing',
+          notes: 'Processing complete',
           useOldWfCodeOrNew: useNewWorkflowSystem,
           rackLocation: rackLocation.trim() || undefined,
         },
       });
 
       if (result.success) {
-        showSuccess(t("success.transitioned") || "Transitioned");
+        showSuccess(t('success.transitioned') || 'Transitioned');
         // Stay on processing worklist — next stage is opened by the user when ready.
         router.replace(returnUrl);
       } else {
-        setError(
-          result.error || t("error.transitionFailed") || "Transition failed",
-        );
+        setError(result.error || t('error.transitionFailed') || 'Transition failed');
       }
     } catch (err) {
-      showErrorFrom(err, {
-        fallback: t("error.transitionFailed") || "Transition failed",
-      });
+      showErrorFrom(err, { fallback: t('error.transitionFailed') || 'Transition failed' });
     } finally {
       setSubmitting(false);
     }
   };
 
   const getStepStatus = (item: ProcessingItem, stepIndex: number) => {
-    const currentStepIndex = PROCESSING_STEPS.findIndex(
-      (s) => s.code === item.item_last_step,
-    );
-
+    const currentStepIndex = PROCESSING_STEPS.findIndex(s => s.code === item.item_last_step);
+    
     if (currentStepIndex === -1) {
-      return stepIndex === 0 ? "current" : "pending";
+      return stepIndex === 0 ? 'current' : 'pending';
     }
-
+    
     if (stepIndex < currentStepIndex) {
-      return "completed";
+      return 'completed';
     } else if (stepIndex === currentStepIndex) {
-      return "current";
+      return 'current';
     } else {
-      return "pending";
+      return 'pending';
     }
   };
 
   const toggleItemExpansion = (itemId: string) => {
-    setExpandedItemIds((prev) => {
+    setExpandedItemIds(prev => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -278,9 +230,7 @@ export default function ProcessingDetailPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary-text mx-auto" />
-          <p className="text-muted-foreground">
-            {tCommon("loading") || "Loading..."}
-          </p>
+          <p className="text-muted-foreground">{tCommon('loading') || 'Loading...'}</p>
         </div>
       </div>
     );
@@ -295,21 +245,17 @@ export default function ProcessingDetailPage() {
             <AlertCircle className="h-6 w-6 text-danger-text flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-danger-text mb-1">
-                {t("error.orderNotFound") || "Order not found"}
+                {t('error.orderNotFound') || 'Order not found'}
               </h3>
               <p className="text-danger-text mb-4">
-                {t("error.orderNotFoundDesc") ||
-                  "The order you are looking for could not be found."}
+                {t('error.orderNotFoundDesc') || 'The order you are looking for could not be found.'}
               </p>
               <CmxButton
                 variant="secondary"
                 onClick={() => router.push(returnUrl)}
               >
-                <ChevronLeft
-                  className="me-1 h-4 w-4 rtl:rotate-180"
-                  aria-hidden="true"
-                />
-                {t("backToProcessing") || "Back to Processing"}
+                <ChevronLeft className="me-1 h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+                {t('backToProcessing') || 'Back to Processing'}
               </CmxButton>
             </div>
           </div>
@@ -340,45 +286,40 @@ export default function ProcessingDetailPage() {
                 size="sm"
                 onClick={() => router.push(returnUrl)}
               >
-                <ChevronLeft
-                  className="me-1 h-4 w-4 rtl:rotate-180"
-                  aria-hidden="true"
-                />
-                {t("backToProcessing") || "Back to Processing"}
+                <ChevronLeft className="me-1 h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+                {t('backToProcessing') || 'Back to Processing'}
               </CmxButton>
               <OrderDetailsLink
                 tenantOrgId={currentTenant?.tenant_id}
                 orderId={order.id}
                 orderNo={order.order_no}
                 returnUrl={orderDetailsReturnUrl}
-                returnLabel={t("backToProcessing") || "Back to Processing"}
+                returnLabel={t('backToProcessing') || 'Back to Processing'}
                 className="inline-flex items-center text-sm font-medium text-primary-text hover:text-primary-text/80"
               >
-                {tTable("details")} →
+                {tTable('details')} →
               </OrderDetailsLink>
             </div>
-
+            
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                {t("title")}{" "}
+                {t('title')}{' '}
                 <CmxCodeChip code={order.order_no} kind="order" size="md" />
               </h1>
               {order.status && (
                 <CmxStatusBadge size="sm" tone="info">
-                  {order.status.replace("_", " ").toUpperCase()}
+                  {order.status.replace('_', ' ').toUpperCase()}
                 </CmxStatusBadge>
               )}
             </div>
-
+            
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div>
-                <span className="font-medium">
-                  {t("customer") || "Customer"}:
-                </span>{" "}
+                <span className="font-medium">{t('customer') || 'Customer'}:</span>{' '}
                 {order.customer.name}
               </div>
               <div>
-                <span className="font-medium">{t("phone") || "Phone"}:</span>{" "}
+                <span className="font-medium">{t('phone') || 'Phone'}:</span>{' '}
                 {order.customer.phone}
               </div>
             </div>
@@ -399,7 +340,7 @@ export default function ProcessingDetailPage() {
                 onClick={loadOrder}
                 className="mt-2 text-danger-text hover:text-danger-text/80"
               >
-                {tCommon("refresh") || "Retry"}
+                {tCommon('refresh') || 'Retry'}
               </CmxButton>
             </div>
           </div>
@@ -411,30 +352,23 @@ export default function ProcessingDetailPage() {
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">
-            {t("items") || "Order Items"}
+            {t('items') || 'Order Items'}
           </h2>
-
+          
           {order.items.length === 0 ? (
             <CmxCard className="border border-border p-8">
               <div className="text-center py-8 text-muted-foreground">
-                {t("noItems") || "No items found in this order"}
+                {t('noItems') || 'No items found in this order'}
               </div>
             </CmxCard>
           ) : (
             order.items.map((item) => {
-              const currentStepIndex = PROCESSING_STEPS.findIndex(
-                (s) => s.code === item.item_last_step,
-              );
-              const completedSteps =
-                currentStepIndex >= 0 ? currentStepIndex + 1 : 0;
-              const progressPercentage =
-                (completedSteps / PROCESSING_STEPS.length) * 100;
+              const currentStepIndex = PROCESSING_STEPS.findIndex(s => s.code === item.item_last_step);
+              const completedSteps = currentStepIndex >= 0 ? currentStepIndex + 1 : 0;
+              const progressPercentage = (completedSteps / PROCESSING_STEPS.length) * 100;
 
               return (
-                <CmxCard
-                  key={item.id}
-                  className="border border-border p-6 hover:shadow-md transition-shadow"
-                >
+                <CmxCard key={item.id} className="border border-border p-6 hover:shadow-md transition-shadow">
                   <CmxCardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
@@ -443,20 +377,13 @@ export default function ProcessingDetailPage() {
                         </h3>
                         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                           <span>
-                            <span className="font-medium">
-                              {t("quantity") || "Quantity"}:
-                            </span>{" "}
+                            <span className="font-medium">{t('quantity') || 'Quantity'}:</span>{' '}
                             {item.quantity}
                           </span>
-                          <CmxStatusBadge
-                            size="sm"
-                            tone={
-                              item.item_status === "ready" ? "success" : "info"
-                            }
+                          <CmxStatusBadge size="sm" 
+                            tone={item.item_status === 'ready' ? 'success' : 'info'}
                           >
-                            {item.item_status ||
-                              t("status.processing") ||
-                              "Processing"}
+                            {item.item_status || t('status.processing') || 'Processing'}
                           </CmxStatusBadge>
                         </div>
                       </div>
@@ -467,11 +394,10 @@ export default function ProcessingDetailPage() {
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-foreground">
-                        {t("progress") || "Progress"}
+                        {t('progress') || 'Progress'}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        {completedSteps} / {PROCESSING_STEPS.length}{" "}
-                        {t("stepsLabel") || "steps"}
+                        {completedSteps} / {PROCESSING_STEPS.length} {t('stepsLabel') || 'steps'}
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
@@ -485,16 +411,15 @@ export default function ProcessingDetailPage() {
                   {/* Step Progress Indicator */}
                   <div className="space-y-3">
                     <p className="text-sm font-medium text-foreground">
-                      {t("processingSteps") || "Processing Steps"}:
+                      {t('processingSteps') || 'Processing Steps'}:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {PROCESSING_STEPS.map((step, idx) => {
                         const status = getStepStatus(item, idx);
-                        const isCompleted = status === "completed";
-                        const isCurrent = status === "current";
-                        const isPending = status === "pending";
-                        const isDisabled =
-                          submitting || isCompleted || isPending;
+                        const isCompleted = status === 'completed';
+                        const isCurrent = status === 'current';
+                        const isPending = status === 'pending';
+                        const isDisabled = submitting || isCompleted || isPending;
 
                         return (
                           <button
@@ -508,33 +433,28 @@ export default function ProcessingDetailPage() {
                             className={`
                               relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
                               transition-all duration-200 border-2
-                              ${
-                                isCompleted
-                                  ? "bg-success-bg text-success-text border-success-border cursor-default"
-                                  : isCurrent
-                                    ? "bg-info-bg text-info-text border-primary hover:bg-info-border/50 hover:border-primary-hover shadow-sm"
-                                    : "bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60"
+                              ${isCompleted
+                                ? 'bg-success-bg text-success-text border-success-border cursor-default'
+                                : isCurrent
+                                ? 'bg-info-bg text-info-text border-primary hover:bg-info-border/50 hover:border-primary-hover shadow-sm'
+                                : 'bg-muted text-muted-foreground border-border cursor-not-allowed opacity-60'
                               }
-                              ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-                              ${isCurrent && !submitting ? "ring-2 ring-ring" : ""}
+                              ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                              ${isCurrent && !submitting ? 'ring-2 ring-ring' : ''}
                             `}
                             title={
                               isCompleted
-                                ? t("stepCompleted") || "Step completed"
+                                ? t('stepCompleted') || 'Step completed'
                                 : isCurrent
-                                  ? t("stepCurrent") ||
-                                    "Click to complete this step"
-                                  : t("stepPending") ||
-                                    "Complete previous steps first"
+                                ? t('stepCurrent') || 'Click to complete this step'
+                                : t('stepPending') || 'Complete previous steps first'
                             }
                           >
                             <div className="flex-shrink-0">
                               {isCompleted ? (
                                 <CheckCircle2 className="w-4 h-4 text-success-text" />
                               ) : (
-                                <Circle
-                                  className={`w-4 h-4 ${isCurrent ? "text-primary-text fill-primary" : "text-muted-foreground"}`}
-                                />
+                                <Circle className={`w-4 h-4 ${isCurrent ? 'text-primary-text fill-primary' : 'text-muted-foreground'}`} />
                               )}
                             </div>
                             <span className="text-xs font-semibold text-muted-foreground me-1">
@@ -545,7 +465,7 @@ export default function ProcessingDetailPage() {
                             </span>
                             {isCurrent && !submitting && (
                               <span className="text-xs text-primary-text font-semibold ms-auto">
-                                {t("clickToComplete") || "Click"}
+                                {t('clickToComplete') || 'Click'}
                               </span>
                             )}
                           </button>
@@ -570,14 +490,16 @@ export default function ProcessingDetailPage() {
                         onClick={() => toggleItemExpansion(item.id)}
                         className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
                       >
-                        <span>{tPieces("viewPieces")}</span>
+                        <span>
+                          {tPieces('viewPieces')}
+                        </span>
                         {expandedItemIds.has(item.id) ? (
                           <ChevronUp className="w-4 h-4" />
                         ) : (
                           <ChevronDown className="w-4 h-4" />
                         )}
                       </button>
-
+                      
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
                           <PiecesErrorBoundary>
@@ -602,84 +524,66 @@ export default function ProcessingDetailPage() {
               );
             })
           )}
-          {orderId && (
-            <OrderStageFiles
-              orderId={orderId}
-              source={FILE_SOURCES.ORDER_PROCESSING}
-            />
-          )}
+          {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_PROCESSING} />}
         </div>
 
         {/* Actions Panel */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">
-            {t("orderActions") || "Order Actions"}
+            {t('orderActions') || 'Order Actions'}
           </h2>
-
+          
           <CmxCard className="border border-border p-6">
             <CmxCardHeader>
               <div>
-                <CmxCardTitle>
-                  {t("completeOrder") || "Complete Order"}
-                </CmxCardTitle>
-                <CmxCardDescription>
-                  {t("completeOrderDesc") ||
-                    "Mark this order as ready for pickup"}
-                </CmxCardDescription>
+                <CmxCardTitle>{t('completeOrder') || 'Complete Order'}</CmxCardTitle>
+                <CmxCardDescription>{t('completeOrderDesc') || 'Mark this order as ready for pickup'}</CmxCardDescription>
               </div>
             </CmxCardHeader>
             <CmxCardContent>
-              {/* Rack Location Input */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {tModal("rackLocationOrder")}
-                  <span className="text-danger-text ms-1">*</span>
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <CmxInput
-                    className="ps-10 w-full"
-                    value={rackLocation}
-                    onChange={(e) => {
-                      setRackLocation(e.target.value);
-                      setRackLocationError("");
-                    }}
-                    placeholder={
-                      t("rackLocationPlaceholder") || "e.g., Rack A-12"
-                    }
-                    required
-                  />
-                </div>
-                {rackLocationError && (
-                  <p className="mt-1 text-sm text-danger-text">
-                    {rackLocationError}
-                  </p>
-                )}
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {t("rackLocationHelp") ||
-                    "Enter the rack location where this order is stored"}
-                </p>
+            {/* Rack Location Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-foreground mb-1">
+                {tModal('rackLocationOrder')}
+                <span className="text-danger-text ms-1">*</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <CmxInput
+                  className="ps-10 w-full"
+                  value={rackLocation}
+                  onChange={(e) => {
+                    setRackLocation(e.target.value);
+                    setRackLocationError('');
+                  }}
+                  placeholder={t('rackLocationPlaceholder') || 'e.g., Rack A-12'}
+                  required
+                />
               </div>
-
-              {/* Mark Ready Button */}
-              <CmxButton
-                variant="primary"
-                size="lg"
-                onClick={handleMarkReady}
-                disabled={submitting || !rackLocation.trim()}
-                loading={submitting}
-                className="w-full bg-success hover:bg-success/90"
-              >
-                {submitting
-                  ? t("processing") || "Processing..."
-                  : t("markOrderReady") || "Mark Order Ready"}
-              </CmxButton>
-
-              {/* Info Text */}
-              <p className="mt-4 text-xs text-muted-foreground text-center">
-                {t("markReadyInfo") ||
-                  "This will move the order to the ready status and make it available for pickup."}
+              {rackLocationError && (
+                <p className="mt-1 text-sm text-danger-text">{rackLocationError}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t('rackLocationHelp') || 'Enter the rack location where this order is stored'}
               </p>
+            </div>
+
+            {/* Mark Ready Button */}
+            <CmxButton
+              variant="primary"
+              size="lg"
+              onClick={handleMarkReady}
+              disabled={submitting || !rackLocation.trim()}
+              loading={submitting}
+              className="w-full bg-success hover:bg-success/90"
+            >
+              {submitting ? t('processing') || 'Processing...' : t('markOrderReady') || 'Mark Order Ready'}
+            </CmxButton>
+
+            {/* Info Text */}
+            <p className="mt-4 text-xs text-muted-foreground text-center">
+              {t('markReadyInfo') || 'This will move the order to the ready status and make it available for pickup.'}
+            </p>
             </CmxCardContent>
           </CmxCard>
         </div>

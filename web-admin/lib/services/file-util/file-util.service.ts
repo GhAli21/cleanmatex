@@ -353,23 +353,23 @@ async function bucketIdOf(bucketCode: string): Promise<{ storageBucketId: string
 /**
  * Single-slot purposes whose public URL is published on the owning record, for readers that only
  * know a URL column (receipts, mobile app, public booking, HQ): PRODUCT_IMAGE/MAIN →
- * `org_product_data_mst.product_image`, TENANT_LOGO/MAIN → `org_tenants_mst.logo_url`.
+ * `org_product_data_mst.product_image`, TENANT_LOGO/MAIN → `org_tenants_mst.logo_url`,
+ * TENANT_LOGO/DARK → `org_tenants_mst.logo_dark_url` (dark-mode logo, UI Design System PR-07 task 6).
  * The file row stays the truth; the column is rewritten in the same transaction as every change
  * to that slot (decision 14 in docs/features/File_Util/PLAN.md).
  */
-const PUBLISHED_URL_PURPOSE: Partial<Record<FileCategoryCode, string>> = {
-  PRODUCT_IMAGE: 'MAIN',
-  TENANT_LOGO: 'MAIN',
+const PUBLISHED_URL_PURPOSES: Partial<Record<FileCategoryCode, readonly string[]>> = {
+  PRODUCT_IMAGE: ['MAIN'],
+  TENANT_LOGO: ['MAIN', 'DARK'],
 };
 
 function publishesUrl(categoryCode: FileCategoryCode, purposeCode: string): boolean {
-  return PUBLISHED_URL_PURPOSE[categoryCode] === purposeCode;
+  return PUBLISHED_URL_PURPOSES[categoryCode]?.includes(purposeCode) ?? false;
 }
 
-/** Rewrites the owning record's URL column from the slot's current READY file (or clears it). */
-async function syncPublishedUrl(tx: Prisma.TransactionClient, tenantId: string, userId: string, categoryCode: FileCategoryCode, entityId: string): Promise<void> {
-  const purposeCode = PUBLISHED_URL_PURPOSE[categoryCode];
-  if (!purposeCode) return;
+/** Rewrites the owning record's URL column for one slot from its current READY file (or clears it). */
+async function syncPublishedUrl(tx: Prisma.TransactionClient, tenantId: string, userId: string, categoryCode: FileCategoryCode, entityId: string, purposeCode: string): Promise<void> {
+  if (!publishesUrl(categoryCode, purposeCode)) return;
   const file = await tx.org_file_mst.findFirst({
     where: { tenant_org_id: tenantId, category_code: categoryCode, entity_id: entityId, purpose_code: purposeCode, status_code: FILE_STATUSES.READY },
     orderBy: { ready_at: 'desc' },
@@ -387,7 +387,7 @@ async function syncPublishedUrl(tx: Prisma.TransactionClient, tenantId: string, 
     await tx.org_product_data_mst.updateMany({ where: { id: entityId, tenant_org_id: tenantId }, data: { product_image: url, ...audit } });
   } else if (categoryCode === 'TENANT_LOGO') {
     // The organization row is the tenant itself: its id is the tenant id.
-    await tx.org_tenants_mst.updateMany({ where: { id: tenantId }, data: { logo_url: url, ...audit } });
+    await tx.org_tenants_mst.updateMany({ where: { id: tenantId }, data: { ...(purposeCode === 'DARK' ? { logo_dark_url: url } : { logo_url: url }), ...audit } });
   }
 }
 
@@ -615,7 +615,7 @@ export async function completeFileUpload(tenantId: string, userId: string, categ
       replaced.push(...(await tx.org_file_mst.findMany({ where: slot, select: { object_key: true, thumb_object_key: true } })));
       await tx.org_file_mst.updateMany({ where: slot, data: softDeleteData(userId, 'file-util:replaced') });
     }
-    if (publishesUrl(categoryCode, file.purpose_code)) await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id);
+    if (publishesUrl(categoryCode, file.purpose_code)) await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id, file.purpose_code);
   });
   // Replaced objects are left for the purge sweep (DELETED, purged_at NULL), so a storage hiccup never loses the new file.
 
@@ -757,8 +757,10 @@ export async function updateFile(cmd: UpdateFileCommand): Promise<FileView> {
     if (updated.count === 0) throw lockedError();
     // Moving a file into or out of a published slot changes the record's URL.
     const moved = cmd.purposeCode && cmd.purposeCode !== file.purpose_code;
-    if (moved && (publishesUrl(cmd.categoryCode, file.purpose_code) || publishesUrl(cmd.categoryCode, cmd.purposeCode!))) {
-      await syncPublishedUrl(tx, cmd.tenantId, cmd.userId, cmd.categoryCode, file.entity_id);
+    if (moved) {
+      // Both slots change: the one the file left and the one it joined (each call skips a non-published purpose).
+      await syncPublishedUrl(tx, cmd.tenantId, cmd.userId, cmd.categoryCode, file.entity_id, file.purpose_code);
+      await syncPublishedUrl(tx, cmd.tenantId, cmd.userId, cmd.categoryCode, file.entity_id, cmd.purposeCode!);
     }
   });
   return (await viewFiles([await loadViewRow(cmd.tenantId, cmd.fileId)]))[0];
@@ -783,7 +785,7 @@ export async function deleteFile(tenantId: string, userId: string, categoryCode:
     const result = await tx.org_file_mst.updateMany({ where: { ...where, locked_at: null }, data: softDeleteData(userId, 'file-util:delete') });
     if (result.count === 0) throw lockedError();
     if (file.status_code === FILE_STATUSES.READY && publishesUrl(categoryCode, file.purpose_code)) {
-      await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id);
+      await syncPublishedUrl(tx, tenantId, userId, categoryCode, file.entity_id, file.purpose_code);
     }
   });
 }

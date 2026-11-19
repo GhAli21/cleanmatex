@@ -84,6 +84,7 @@
     "items": "items",
     "unknownCustomer": "Unknown customer",
     "phoneUnavailable": "N/A",
+    "backToAssembly": "Back to Assembly",
     "actions": {
       "assembleOrder": "Assemble Order"
     },
@@ -185,6 +186,13 @@
         }
       }
     }
+  },
+  "assemblyDetail": {
+    "verifyItems": "Verify Items",
+    "quantity": "Quantity",
+    "ready": "Ready",
+    "hint": "Confirm all items are present and correct, then open Assemble Order to scan and complete assembly.",
+    "actionsTitle": "Actions"
   },
   "qa": {
     "description": "Orders pending quality check",

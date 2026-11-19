@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-19T05:41:03.223Z",
+  "extractedAt": "2026-11-19T13:02:04.600Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -39,7 +39,7 @@
       "route": "/dashboard/delivery",
       "permission": "drivers:read",
       "component": "useHasPermissionCode",
-      "line": 119,
+      "line": 120,
       "surface": "screen"
     },
     {
@@ -47,7 +47,7 @@
       "route": "/dashboard/delivery",
       "permission": "orders:collect_payment",
       "component": "useHasPermissionCode",
-      "line": 120,
+      "line": 121,
       "surface": "screen"
     },
     {
@@ -159,7 +159,7 @@
       "route": "src/features/auth-session/ui/security-settings-screen.tsx",
       "permission": "auth_config:update",
       "component": "useHasPermission",
-      "line": 37,
+      "line": 38,
       "surface": "screen"
     },
     {
@@ -167,7 +167,7 @@
       "route": "src/features/auth-session/ui/tenant-sessions-screen.tsx",
       "permission": "user_sessions:revoke",
       "component": "useHasPermission",
-      "line": 31,
+      "line": 32,
       "surface": "screen"
     },
     {
@@ -183,7 +183,7 @@
       "route": "src/features/auth-session/ui/user-sessions-tab.tsx",
       "permission": "user_sessions:revoke",
       "component": "useHasPermission",
-      "line": 40,
+      "line": 41,
       "surface": "screen"
     },
     {
@@ -615,7 +615,7 @@
       "route": "src/features/orders/ui/order-stage-files.tsx",
       "permission": "orders:update",
       "component": "useHasPermission",
-      "line": 31,
+      "line": 34,
       "surface": "screen"
     },
     {
@@ -623,7 +623,7 @@
       "route": "src/features/orders/ui/order-stage-files.tsx",
       "permission": "orders:transition",
       "component": "useHasPermission",
-      "line": 32,
+      "line": 35,
       "surface": "screen"
     },
     {
@@ -631,7 +631,7 @@
       "route": "src/features/orders/ui/order-stage-files.tsx",
       "permission": "orders:read",
       "component": "useHasPermission",
-      "line": 34,
+      "line": 37,
       "surface": "screen"
     },
     {
@@ -645,17 +645,9 @@
     {
       "file": "src/features/orders/ui/pieces/piece-photos.tsx",
       "route": "src/features/orders/ui/pieces/piece-photos.tsx",
-      "permission": "orders:read",
-      "component": "useHasPermission",
-      "line": 51,
-      "surface": "screen"
-    },
-    {
-      "file": "src/features/orders/ui/pieces/piece-photos.tsx",
-      "route": "src/features/orders/ui/pieces/piece-photos.tsx",
       "permission": "orders:update",
       "component": "useHasPermission",
-      "line": 98,
+      "line": 108,
       "surface": "screen"
     },
     {
@@ -663,7 +655,15 @@
       "route": "src/features/orders/ui/pieces/piece-photos.tsx",
       "permission": "orders:transition",
       "component": "useHasPermission",
-      "line": 99,
+      "line": 109,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "route": "src/features/orders/ui/pieces/piece-photos.tsx",
+      "permission": "orders:read",
+      "component": "useHasPermission",
+      "line": 152,
       "surface": "screen"
     },
     {

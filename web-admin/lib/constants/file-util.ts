@@ -98,6 +98,16 @@ export const FILE_CATEGORY_ACCESS: Record<FileCategoryCode, { read: readonly str
   TENANT_LOGO: { read: ['settings:read'], write: ['settings:branding'] },
 };
 
+/**
+ * ORDER_FILE type preselected on a stage screen, so a QA photo is not saved as "Before processing".
+ * Screens not listed use the DB default purpose (`is_default`).
+ */
+export const ORDER_FILE_DEFAULT_PURPOSE_BY_SOURCE: Partial<Record<FileSourceCode, string>> = {
+  [FILE_SOURCES.ORDER_QA]: FILE_PURPOSES.ORDER_FILE.QA_EVIDENCE,
+  [FILE_SOURCES.ORDER_PACKING]: FILE_PURPOSES.ORDER_FILE.AFTER_IMAGE,
+  [FILE_SOURCES.ORDER_READY]: FILE_PURPOSES.ORDER_FILE.AFTER_IMAGE,
+};
+
 /** Lifetime of signed read URLs for private files: 5 minutes, never stored. */
 export const FILE_SIGNED_URL_TTL_SECONDS = 300;
 /** PENDING uploads older than this are abandoned: 24 hours. Must equal the interval in fn_file_util_expire_pending (0744). */

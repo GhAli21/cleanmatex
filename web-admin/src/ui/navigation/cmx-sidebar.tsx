@@ -169,6 +169,9 @@ export default function CmxSidebar() {
   const t = useTranslations('layout.sidebar')
   const tNav = useTranslations('navigation')
   const brand = useTenantBrand()
+  // Only a dark logo uploaded: show it in every mode rather than the initial letter.
+  const logoMain = brand.logoUrl ?? brand.logoDarkUrl
+  const logoDark = brand.logoUrl ? brand.logoDarkUrl : null
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
   const [hoverSectionKey, setHoverSectionKey] = useState<string | null>(null)
@@ -353,9 +356,13 @@ export default function CmxSidebar() {
             prefetch={false}
             className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} space-x-2`}
           >
-            {brand.logoUrl ? (
+            {logoMain ? (
               // Organization logo (File Util public storage), decorative: the name is next to it.
-              <img src={brand.logoUrl} alt="" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+              // With a dark logo, CSS (globals.css .cmx-logo-*) shows the one that fits the mode; no JS.
+              <>
+                <img src={logoMain} alt="" className={`w-8 h-8 rounded-lg object-contain flex-shrink-0 ${logoDark ? 'cmx-logo-light' : ''}`} />
+                {logoDark && <img src={logoDark} alt="" className="cmx-logo-dark w-8 h-8 rounded-lg object-contain flex-shrink-0" />}
+              </>
             ) : (
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
                 <span className="text-primary-foreground font-bold text-lg">{brand.name.charAt(0)}</span>

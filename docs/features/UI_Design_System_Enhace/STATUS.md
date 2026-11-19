@@ -12,13 +12,13 @@
 |---|---|---|---|
 | PR-01 | Tokens, fonts, `cn()` merge, RTL and accessibility fixes in shared components | — | **Implemented 2026-11-16 (all 7 tasks), owner QA pending** |
 | PR-02 | Badges, select, remove duplicate components, lint rules | PR-01 | **Implemented 2026-11-17 (all 10 tasks), owner QA pending** (`PLAN_PR-02.md`) |
-| PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | **In progress** (`PLAN_PR-07.md`, approved 2026-11-17). Tasks 1–4 done (0752–0754 applied); Tasks 1–5 done (migrations 0752, 0753, 0754, 0757 applied); Tasks 6–9 done (resolver; layout and login brand; public readers; branding screen with saved themes); Task 10 done (user appearance page); Tasks 1–11 done (migrations 0752, 0753, 0754, 0757, 0759 applied); Task 12 HQ plan approved 2026-11-18; **HQ A1 + A2 implemented 2026-11-19** (appearance catalogs in HQ Products & Items Config; `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`); Task 13 (verification, review, docs) done 2026-11-18; owner QA and commit left in both repos (HQ package B is separate). **Task 6 (dark mode): `PLAN_PR-07-T6.md` approved 2026-11-19 (ruling 6 = A). Tasks 1–5 and 7 done 2026-11-19 (print stays light, mode follows the person, Appearance choice, charts, paper previews, sweep); Task 6 (dark logo) blocked until File Util commits; Task 8 in progress** |
+| PR-07 | Theme tables, resolver, branding and appearance screens, HQ catalogs | PR-02 (dark mode also PR-05) | **In progress** (`PLAN_PR-07.md`, approved 2026-11-17). Tasks 1–4 done (0752–0754 applied); Tasks 1–5 done (migrations 0752, 0753, 0754, 0757 applied); Tasks 6–9 done (resolver; layout and login brand; public readers; branding screen with saved themes); Task 10 done (user appearance page); Tasks 1–11 done (migrations 0752, 0753, 0754, 0757, 0759 applied); Task 12 HQ plan approved 2026-11-18; **HQ A1 + A2 implemented 2026-11-19** (appearance catalogs in HQ Products & Items Config; `cleanmatexsaas/docs/features/UI_Theme_Catalogs/PLAN_PR-07-HQ.md`); Task 13 (verification, review, docs) done 2026-11-18; owner QA and commit left in both repos (HQ package B is separate). **Task 6 (dark mode): `PLAN_PR-07-T6.md` approved 2026-11-19 (ruling 6 = A). Tasks 1–5 and 7 done 2026-11-19 (print stays light, mode follows the person, Appearance choice, charts, paper previews, sweep); Tasks 6 and 8 done 2026-11-19 (0773 applied; fresh review done and fixed). Owner: QA M1–M14 and commit. PR-03 and PR-06: owner decides after everything else is done (2026-11-19)** |
 | PR-05 | Page shell; colour and direction class migration, folder by folder | PR-02 (orders after PR-04) | **Implemented 2026-11-19** (`PLAN_PR-05.md`, approved with the owner amendment "decide everything"). Codemod v2 decides every case (0 left for a person); 573 files migrated; global RTL hacks and old aliases deleted; `Alert` removed; lint rules at `error` everywhere; ESLint 0 errors, typecheck clean, jest only the 7 known failures. Fresh review done and its 5 real findings fixed; build: passed (`npm run build`, Next 16 webpack, 2026-11-19). Left: owner QA (`QA_TEST_GUIDE.md` → PR-05), commit |
 | PR-04 | POS touch targets and keyboard shortcuts | PR-01 | **Implemented 2026-11-19 (all 5 tasks), owner QA pending**; build PASSED 2026-11-19 after the `next.config.ts` fix (option B), see the PR-04 result (`PLAN_PR-04.md`). Tasks 1–4: (orders list on `CmxPagination` with tabular numbers; customer picker on `CmxDialog`; summary panel: Cmx buttons and switch, touch size, logical layout; POS hotkeys `/ F2 F9 Ctrl+Enter ?` and a cheat sheet, all off while a dialog is open) |
 | PR-03 | Zod validation at boundaries | — (independent track) | Not started |
 | PR-06 | Server-component boundaries; cache only if measured | — (independent track) | Not started |
 
-**Recommended order:** PR-01 → PR-02 → PR-07 tasks 1–5 → PR-04 → PR-05 → PR-07 task 6 (dark mode). PR-03 and PR-06 can run any time.
+**Recommended order:** PR-01 → PR-02 → PR-07 tasks 1–5 → PR-04 → PR-05 → PR-07 task 6 (dark mode). PR-03 and PR-06: the owner decides whether they stay in this program after all other work is done (2026-11-19).
 
 ## Decisions (2026-11-16)
 
@@ -108,7 +108,7 @@
   - `no-raw-classes.test.ts` covers the same folders.
   - `globals-css.test.ts` keeps the direction hacks and aliases out.
 - **Fresh review (2026-11-19):** Fresh read-only review (Review Focus 1–5) done 2026-11-19; its findings, each checked against the code: (1) delivery manifest header title and eyebrow were white/muted on `bg-foreground` (unreadable in dark mode) → `text-background`, `text-background/70`; (2) white text or icons on solid amber (about 3.2:1 light, 1.7:1 dark) → new token `--color-warning-foreground` (near-black) and a codemod rule (`text-white` on a yellow/amber/orange 400+ fill), 6 places + the customer stats icons fixed; (3) `DropdownMenuSubTrigger` chevron now `rtl:rotate-180`; (4) 20 files had hand-written `rtl:flex-row-reverse` / `rtl:space-x-reverse` from before PR-05, which put rows back in English order in Arabic → codemod rule drops them, plus 4 `dir === 'rtl' && 'flex-row-reverse'` in `CmxDataGrid` (its root already sets `dir`); (5) language switcher rows each take their own language direction (`dir="ltr"` / `dir="rtl"`) instead of a hard-coded reverse; (6) print in forced dark mode keeps brand and status tints, which was already the case before PR-05, so it is handed to PR-07 task 6. Codemod tests 82/82 with the new rules red first. The review found no broken code from the codemod, no physical classes left, and the `CmxSummaryMessage` and `CmxCrudPageShell` changes clean. 
-- **Hotfix after release (2026-11-19, uncommitted):** on desktop the sidebar was invisible (its space stayed empty) on cmx.cleanmatex.com. Cause: the codemod turned the mobile slide-off into `ltr:-translate-x-full rtl:translate-x-full`; Tailwind writes `ltr:`/`rtl:` rules after `lg:` rules with the same weight, so `lg:translate-x-0` lost and the sidebar stayed slid off. Same bug in the payment view receipt rail (`xl:`). Fix: the slide sits under `max-lg:` / `max-xl:` and the breakpoint reset is gone (`cmx-sidebar.tsx`, `payment-full-view.tsx`). Guard `__tests__/ui/foundations/off-canvas-direction.test.ts` (red on the old sidebar, green now). Owner: commit and redeploy.
+- **Hotfix after release (2026-11-19, uncommitted):** on desktop the sidebar was invisible (its space stayed empty) on cmx.cleanmatex.com. Cause: the codemod turned the mobile slide-off into `ltr:-translate-x-full rtl:translate-x-full`; Tailwind writes `ltr:`/`rtl:` rules after `lg:` rules with the same weight, so `lg:translate-x-0` lost and the sidebar stayed slid off. Same bug in the payment view receipt rail (`xl:`). Fix: the slide sits under `max-lg:` / `max-xl:` and the breakpoint reset is gone (`cmx-sidebar.tsx`, `payment-full-view.tsx`). Guard `__tests__/ui/foundations/off-canvas-direction.test.ts` (red on the old sidebar, green now). Build passed 2026-11-19. Owner: commit and redeploy.
 - **For PR-07 task 6 (dark mode for users):** the `@media print` block in `globals.css` resets only the neutral tokens with `:root, [data-mode]`. Brand tokens from `theme-style.ts` and the status `-bg`/`-text` tokens keep their dark values on paper when the screen is dark. Give print its own light values for those before dark mode is offered.
 - **Not in this package:** about 20 hardcoded English strings found during the `Alert` move (for example "Error", "Verified", the register trial messages). That needs a separate i18n sweep. There is also no `src/ui` breadcrumb component yet.
 
@@ -133,6 +133,31 @@
   - after a plan downgrade, any edit erased the stored colours and app name; they are now kept for an upgrade.
   - 7 Minor deferred (list in `PLAN_PR-07.md` row 13).
 - Reference: `PR-07_FEATURE_REFERENCE.md`. Owner QA: `QA_TEST_GUIDE.md` → PR-07.
+
+## PR-07 task 6 result — dark mode for users (2026-11-19)
+
+- **Done (Tasks 1–8, `PLAN_PR-07-T6.md`):**
+  - paper is always light;
+  - the mode follows the person (Appearance: Light, Dark, Same as this device);
+  - charts read tokens;
+  - print previews are forced light;
+  - the dark sweep;
+  - the dark logo (`0773` applied by owner; File Util publishes `logo_dark_url`; the sidebar swaps by CSS).
+- **Hotfix in the same work:** the sidebar and the payment rail disappeared on desktop (Tailwind emits `ltr:`/`rtl:` after `lg:`); now `max-lg:`/`max-xl:`. Committed in 8bd3c368; owner redeploys.
+- **Fresh review:** no Critical. 2 Important fixed (sign-in page white wash and borders; light paper text colour) plus the dark-only logo. Deferred Minor in the plan row 8.
+- **Checks:** typecheck 0, ESLint 0; foundations + theme 116/116; File Util service 30/30; build passed 2026-11-19 (with the review fixes).
+- **Follow-ups done after the review (2026-11-19):**
+  - Reject badge: text colour picked by contrast (`readableTextOn` in `lib/theme/brand-palette.ts`), not fixed white.
+  - User Preferences: removed the Theme and Display Density dropdowns (`user.theme` / `user.density`, read by nothing); a card links to Appearance.
+  - Toasts follow the mode.
+  - Appearance page title translated (PR-07 M6 part).
+  - PR-07 M7 closed (`ui_color_mode` is used now).
+  - Checks: tests green, typecheck 0, ESLint 0, `check:i18n` passed, build passed 2026-11-19.
+- **Still open, separate work:**
+  - i18n sweep: measured about 800 English-only strings in about 100 files (682 text strings + about 120 props + 18 feedback calls, without the `jhtestui` developer page). Plan `PLAN_I18N_SWEEP.md` written 2026-11-19, waiting for owner approval.
+  - PR-07 M1–M5.
+  - The breadcrumb component.
+- **Owner:** QA `QA_TEST_GUIDE.md` → "PR-07 task 6" M1–M18, then commit.
 
 ## Open
 

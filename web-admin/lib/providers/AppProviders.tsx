@@ -18,6 +18,7 @@ import { Toaster } from 'sonner'
 import { AlertDialogProvider } from '@ui/feedback'
 import { PermissionsInspectorProvider } from '@features/access/ui/permissions-inspector'
 import { type Locale } from '@/lib/utils/locale.client'
+import type { UiColorMode } from '@/lib/constants/ui-theme'
 
 /**
  *
@@ -26,17 +27,20 @@ import { type Locale } from '@/lib/utils/locale.client'
  * @param root0.locale
  * @param root0.messages
  * @param root0.timeZone Tenant IANA timezone for date formatting; undefined falls back to the viewer's own
+ * @param root0.mode The person's colour mode (`<html data-mode>`), so toasts match it
  */
 export function AppProviders({
   children,
   locale = 'en',
   messages,
   timeZone,
+  mode = 'SYSTEM',
 }: {
   children: ReactNode;
   locale?: Locale;
   messages: AbstractIntlMessages;
   timeZone?: string;
+  mode?: UiColorMode;
 }) {
   // Create QueryClient instance with default options
   const [queryClient] = useState(
@@ -60,6 +64,7 @@ export function AppProviders({
 
   // RTL-aware toast position
   const toastPosition = locale === 'ar' ? 'top-left' : 'top-right';
+  const toastTheme = mode === 'DARK' ? 'dark' : mode === 'SYSTEM' ? 'system' : 'light';
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -70,7 +75,7 @@ export function AppProviders({
               <AlertDialogProvider>
                 <PermissionsInspectorProvider>
                   {children}
-                  <Toaster position={toastPosition} richColors closeButton />
+                  <Toaster position={toastPosition} theme={toastTheme} richColors closeButton />
                 </PermissionsInspectorProvider>
               </AlertDialogProvider>
             </RoleProvider>

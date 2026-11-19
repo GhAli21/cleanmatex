@@ -49,7 +49,7 @@ Theme writes check CSRF, `settings:branding` and the rate limit (`lib/services/o
 
 ## Logos
 
-Logos are File Util `TENANT_LOGO` files with the purposes `MAIN`, `RECEIPT`, `DARK` and `FAVICON`. `org_tenants_mst.logo_url` keeps the published `MAIN` URL. The sidebar, the browser title and the sign-in page read the logo and name from `useTenantBrand()` (`lib/theme/tenant-brand.tsx`).
+Logos are File Util `TENANT_LOGO` files with the purposes `MAIN`, `RECEIPT`, `DARK` and `FAVICON`. `org_tenants_mst.logo_url` keeps the published `MAIN` URL and `org_tenants_mst.logo_dark_url` the published `DARK` URL (`0773`, both written only by File Util `syncPublishedUrl`). The sidebar shows the dark logo in dark mode through `globals.css` `.cmx-logo-light` / `.cmx-logo-dark` (no JS); with only a dark logo it shows that one in every mode. The sign-in page brand cookie carries only the main logo. The sidebar, the browser title and the sign-in page read the logo and name from `useTenantBrand()` (`lib/theme/tenant-brand.tsx`).
 
 ## i18n keys
 
@@ -61,8 +61,17 @@ Removed: `settings.logo`, `logoGuidelines`, `brandColors`, `accentColor`, `accen
 
 ## Not here yet
 
-- Dark mode: `mode` is always `LIGHT` until PR-07 task 6, after PR-05.
+- The sign-in page shows the main logo only (the brand cookie has no dark logo).
 - HQ token sync and the accent rename (HQ package B, its own plan later).
+
+## Dark mode (PR-07 task 6, 2026-11-19)
+
+- **Who picks:** each person on Appearance (`sys_users_mst.ui_color_mode`: `LIGHT`, `DARK`, `SYSTEM` = follow the device). Signed out = `SYSTEM`. Invalid values resolve to `SYSTEM` (`lib/theme/resolve-theme.ts`). The mode is never stored in a cookie; save → `router.refresh()` → `<html data-mode>`.
+- **Tokens:** `tokens.css` and `themeStyleCss()` put light values on `:root, [data-mode=LIGHT]`, DARK inside `@media screen`, SYSTEM inside `@media screen and (prefers-color-scheme: dark)`. Paper therefore always gets light values, for any theme.
+- **Paper on screen:** every print preview root has `data-mode="LIGHT"` (guard: `__tests__/ui/foundations/paper-light.test.ts`); `[data-mode=LIGHT]` also resets `color`.
+- **Charts:** Recharts tooltip, grid, axis and cursor read tokens in `globals.css`.
+- **No `dark:` classes:** Tailwind's `dark:` follows only the device, not a chosen mode. Use tokens or `[data-mode]` selectors.
+- **Off-canvas panels:** slide with `max-lg:ltr:-translate-x-full` (never `ltr:` + `lg:translate-x-0`; Tailwind emits `ltr:`/`rtl:` after breakpoints). Guard: `off-canvas-direction.test.ts`.
 
 ## HQ catalog screens (2026-11-19)
 

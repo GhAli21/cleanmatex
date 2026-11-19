@@ -42,6 +42,14 @@ test("reads only the session Organization's theme in use and the session person'
   expect([theme.mode, theme.density, theme.fontScale]).toEqual(['DARK', 'COMPACT', 'LG'])
 })
 
+test('reads both published logos (light and dark) of the session Organization', async () => {
+  getSessionIdentity.mockResolvedValue({ tenantId: 'tenant-a', userId: 'user-y' })
+  prisma.org_tenants_mst.findFirst.mockResolvedValue({ logo_url: 'https://x/l.webp', logo_dark_url: 'https://x/d.webp' })
+  const theme = await getRequestTheme()
+  expect(prisma.org_tenants_mst.findFirst).toHaveBeenCalledWith({ where: { id: 'tenant-a' }, select: { logo_url: true, logo_dark_url: true } })
+  expect([theme.logoUrl, theme.logoDarkUrl]).toEqual(['https://x/l.webp', 'https://x/d.webp'])
+})
+
 test('signed out: built-in STANDARD, no database read', async () => {
   getSessionIdentity.mockResolvedValue(null)
   expect(await getRequestTheme()).toEqual(DEFAULT_THEME)

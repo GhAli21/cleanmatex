@@ -19,7 +19,7 @@ import { buildLastBrand, LAST_BRAND_COOKIE, LAST_BRAND_MAX_AGE_SEC } from '@/lib
 import type { ResolvedTheme } from '@/lib/types/ui-theme'
 import { logger } from '@/lib/utils/logger'
 
-const NO_INPUTS = { themes: [], radii: [], fonts: [], orgTheme: null, customBranding: false, whiteLabel: false, user: null, logoUrl: null }
+const NO_INPUTS = { themes: [], radii: [], fonts: [], orgTheme: null, customBranding: false, whiteLabel: false, user: null, logoUrl: null, logoDarkUrl: null }
 
 /** The built-in STANDARD appearance (signed out, or any read failure). */
 export const DEFAULT_THEME: ResolvedTheme = resolveTheme(NO_INPUTS)
@@ -61,7 +61,7 @@ export async function getTenantTheme(tenantId: string, userId: string | null = n
       : null,
     getFeatureFlags(tenantId),
     // org_tenants_mst is the tenant itself: its id is the tenant id.
-    prisma.org_tenants_mst.findFirst({ where: { id: tenantId }, select: { logo_url: true } }),
+    prisma.org_tenants_mst.findFirst({ where: { id: tenantId }, select: { logo_url: true, logo_dark_url: true } }),
   ])
   return resolveTheme({
     themes,
@@ -72,6 +72,7 @@ export async function getTenantTheme(tenantId: string, userId: string | null = n
     whiteLabel: flags.white_label === true,
     user,
     logoUrl: tenant?.logo_url ?? null,
+    logoDarkUrl: tenant?.logo_dark_url ?? null,
   })
 }
 

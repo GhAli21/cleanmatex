@@ -12,4 +12,5 @@ export const DEFAULT_THEME_FOR_TEST: ResolvedTheme = {
   appName: null,
   appName2: null,
   logoUrl: null,
+  logoDarkUrl: null,
 }

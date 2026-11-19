@@ -1,4 +1,4 @@
-import { BRAND_TOKENS, computeBrandPalette, contrastRatio, cssVarName, seedAdjustments } from '@/lib/theme/brand-palette'
+import { BRAND_TOKENS, computeBrandPalette, contrastRatio, cssVarName, readableTextOn, seedAdjustments } from '@/lib/theme/brand-palette'
 import { UI_THEME_SEEDS } from '@/lib/constants/ui-theme'
 
 const SEEDS: Array<[string, string]> = [
@@ -64,4 +64,14 @@ test('a grey seed does not tint the neutrals', () => {
 
 test('rejects a malformed colour', () => {
   expect(() => computeBrandPalette('blue', '#000000')).toThrow('Invalid colour: blue')
+})
+
+test('readableTextOn picks readable text for an Organization colour (reject badge)', () => {
+  expect(readableTextOn('#B91C1C')).toBe('rgb(255 255 255)') // dark red: white
+  for (const hex of ['#10B981', '#FBBF24', '#FFFFFF']) {
+    const fg = readableTextOn(hex).slice(4, -1)
+    const bg = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(' ')
+    expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(4.5)
+  }
+  expect(readableTextOn('green')).toBe('rgb(255 255 255)') // not #RRGGBB: old behaviour, never throws
 })

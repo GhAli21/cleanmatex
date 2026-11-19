@@ -171,6 +171,12 @@ Set the mode on **Account → Appearance → "Light or dark"** (no console trick
 | M10 | Order → Tax documents → Print; order receipt / details print; AR invoice and statement print; cash drawer session print; POS shift report; Reports → Print; Cash variance print — all with the screen in **Dark** | Open the print page | The paper is white with dark text on screen; the area around it may be dark. |
 | M11 | Same pages, Dark, and a non-STANDARD theme in use | Press Print (or print preview) | Paper is white: no dark backgrounds, no dark brand or status tints; the main logo is shown. |
 | M12 | Settings → Branding with a **dark logo** uploaded (after Task 6) | Look at the sidebar in Dark, then in Light | Dark: the dark logo. Light and paper: the main logo. |
+| M13 | Settings → Branding with **only** a dark logo (no main logo) | Look at the sidebar in Light and Dark | The dark logo shows in both modes (not the initial letter). |
+| M14 | Sign-in page with the device in **Dark**, signed out | Look at the top-start corner, the language switch, the card and both inputs | No white glare or white borders; text and inputs readable. Repeat in Light: looks as before, borders now grey instead of white. |
+| M15 | Processing → a piece marked **rejected**, with the reject colour set to a light colour (e.g. yellow) in settings | Look at the "Rejected" badge | Dark text on the light fill; with a dark colour (e.g. dark red) the text is white. |
+| M16 | Settings → User Preferences | Look at the "Appearance" card; click "Open Appearance" | No Theme or Display Density dropdowns any more; the link opens Account → Appearance. EN and AR. |
+| M17 | Any page in **Dark** | Do something that shows a toast (e.g. save Appearance) | The toast is dark with readable text; in Light it is light; with "Same as this device" it follows the device. |
+| M18 | Account → Appearance in **Arabic** | Look at the browser tab title | "المظهر" (not "Appearance"). |
 
 ## Financial_Expert_Tester Results
 

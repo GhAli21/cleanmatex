@@ -12,6 +12,8 @@ import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primit
 import { AssemblyScanner } from './assembly-scanner';
 import { AssemblyItemsList } from './assembly-items-list';
 import { ExceptionDialog } from './exception-dialog';
+import { OrderStageFiles } from '@features/orders/ui/order-stage-files';
+import { FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
 import {
   useAssemblyTask,
   useStartAssemblyTask,
@@ -248,6 +250,13 @@ export function AssemblyTaskModal({
                 onItemMarked={() => {
                   void refetch();
                 }}
+              />
+
+              <OrderStageFiles
+                orderId={orderId}
+                source={FILE_SOURCES.ORDER_ASSEMBLY}
+                refType={FILE_REF_TYPES.ASM_TASK}
+                refId={taskId}
               />
 
               <div className="flex flex-col gap-2 sm:flex-row">

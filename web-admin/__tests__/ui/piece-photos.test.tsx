@@ -72,6 +72,21 @@ describe('PiecePhotosControl', () => {
     expect(mockFetchFiles).toHaveBeenCalledWith('ORDER_FILE', [ORDER], undefined, expect.anything());
   });
 
+  it('counts item photos (ORDER_ITEM) when used for an item, not piece photos with the same id', async () => {
+    mockPermissions = ['orders:read'];
+    mockFetchFiles.mockResolvedValue([
+      { id: '1', refTypeCode: 'ORDER_ITEM', refId: 'item-a' },
+      { id: '2', refTypeCode: 'ORDER_PIECE', refId: 'item-a' },
+    ]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <PiecePhotosControl orderId={ORDER} refType="ORDER_ITEM" refId="item-a" label="Shirt" source="ORDER_QA" />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('piecePhotosCount:{"count":1}')).toBeInTheDocument();
+  });
+
   it('offers to add photos when the piece has none', async () => {
     mockPermissions = ['orders:read'];
     mockFetchFiles.mockResolvedValue([]);

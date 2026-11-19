@@ -100,6 +100,20 @@ body {
 .recharts-tooltip-cursor { fill: rgb(var(--cmx-muted-rgb)); }
 
 /* Paper is always light, whatever the screen mode. */
+/* Light paper inside a dark screen: tokens reset, but color inherits as a computed value, so set it again. */
+[data-mode=LIGHT] { color: rgb(var(--cmx-foreground-rgb)); }
+
+/* Dark logo (PR-07 task 6): same mode selectors as tokens.css, so paper and light mode keep the light logo. */
+.cmx-logo-dark { display: none; }
+@media screen {
+  [data-mode=DARK] .cmx-logo-light { display: none; }
+  [data-mode=DARK] .cmx-logo-dark { display: block; }
+}
+@media screen and (prefers-color-scheme: dark) {
+  [data-mode=SYSTEM] .cmx-logo-light { display: none; }
+  [data-mode=SYSTEM] .cmx-logo-dark { display: block; }
+}
+
 @media print {
   :root, [data-mode] {
     color-scheme: light;
