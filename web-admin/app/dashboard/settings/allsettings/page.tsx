@@ -34,12 +34,15 @@ import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
  */
 export default function AllSettingsPage() {
   const tSettings = useTranslations("settings");
+  const t = useTranslations("settings.advancedSettings");
+  const tCommon = useTranslations("common");
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     void fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -49,14 +52,14 @@ export default function AllSettingsPage() {
       const tenantData = await tenantResponse.json();
 
       if (!tenantResponse.ok) {
-        throw new Error(tenantData.error || "Failed to fetch tenant data");
+        throw new Error(tenantData.error || t("loadErrorTenant"));
       }
 
       setTenant(tenantData.data);
 
       // Each tab loads the settings required for its own scope, avoiding a stale global HQ dependency.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load settings");
+      setError(err instanceof Error ? err.message : t("loadErrorTenant"));
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +78,7 @@ export default function AllSettingsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading settings...</p>
+          <p className="mt-4 text-muted-foreground">{t("loadingSettings")}</p>
         </div>
       </div>
     );
@@ -92,31 +95,31 @@ export default function AllSettingsPage() {
   const tabs = [
     {
       id: "tenant-settings",
-      label: "Tenant Settings",
+      label: t("tabOrganization"),
       icon: <span>🧩</span>,
       content: <TenantSettings />,
     },
     {
       id: "branch-settings",
-      label: "Branch Settings",
+      label: t("tabBranch"),
       icon: <span>🏬</span>,
       content: <BranchSettings />,
     },
     {
       id: "user-settings",
-      label: "User Settings",
+      label: t("tabUser"),
       icon: <span>👤</span>,
       content: <UserSettings />,
     },
     {
       id: "feature-flags",
-      label: "Feature Flags",
+      label: t("tabFeatureFlags"),
       icon: <span>🚩</span>,
       content: <FeatureFlagsSettings />,
     },
     {
       id: "plan-limits",
-      label: "Plan Limits",
+      label: t("tabPlanLimits"),
       icon: <span>📊</span>,
       content: <PlanLimitsSettings />,
     },
@@ -127,7 +130,7 @@ export default function AllSettingsPage() {
       {/* Tenant status badge (optional, no duplicate header) */}
       <div className="mb-4 flex justify-end">
         <CmxStatusBadge size="sm" tone={tenant.status === "trial" ? "warning" : "success"}>
-          {tenant.status === "trial" ? "Trial Account" : "Active"}
+          {tenant.status === "trial" ? t("trialAccount") : tCommon("active")}
         </CmxStatusBadge>
       </div>
 
@@ -143,12 +146,10 @@ export default function AllSettingsPage() {
             <Info className="h-5 w-5 text-primary-text flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="text-sm font-medium text-primary-text">
-                7-Layer Settings Resolution
+                {t("resolutionTitle")}
               </h3>
               <p className="mt-1 text-sm text-primary-text">
-                Settings are resolved through 7 layers: System Default → Profile
-                → Plan → Feature Flags → Tenant → Branch → User. Look for source
-                badges next to each setting to see where the value comes from.
+                {t("resolutionDescription")}
               </p>
               <CmxButton
                 variant="ghost"
@@ -156,7 +157,7 @@ export default function AllSettingsPage() {
                 className="mt-2 text-primary-text hover:text-primary-text/80 p-0 h-auto"
               >
                 <HelpCircle className="h-4 w-4 me-1" />
-                Learn more about settings resolution
+                {t("learnMore")}
               </CmxButton>
             </div>
           </div>

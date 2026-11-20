@@ -100,5 +100,18 @@
   "view": "View",
   "selectAllOrders": "Select all orders",
   "selectOrder": "Select order {orderNo}",
-  "items": "Items"
+  "items": "Items",
+  "loadingPieces": "Loading pieces...",
+  "detailError": {
+    "orderIdLabel": "Order ID: {id}",
+    "hideDebugInfo": "Hide debug info",
+    "showDebugInfo": "Show debug info (to trace error)",
+    "conditionLabel": "Condition:",
+    "serverErrorLabel": "Server error:",
+    "tenantIdLabel": "Organization ID (used for query):",
+    "userIdLabel": "User ID:",
+    "orderIdQueriedLabel": "Order ID (queried):",
+    "emptyValue": "(empty)",
+    "possibleCauses": "Possible causes: order deleted, organization mismatch (order belongs to different organization), database connection issue, or RLS policy blocking access."
+  }
 }

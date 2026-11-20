@@ -156,7 +156,9 @@ export function CmxDialog({
   const [descriptionId, setDescriptionId] = React.useState<string | null>(null);
   const labelledBy = ariaLabelledBy ?? titleId ?? undefined;
   const onOpenChangeRef = React.useRef(onOpenChange);
-  onOpenChangeRef.current = onOpenChange;
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  }, [onOpenChange]);
   // Trap only after portal mount — otherwise the first open effect sees a null
   // ref and never attaches listeners when `mounted` flips to true.
   const trapRef = useFocusTrap(open && mounted, { returnFocus: true, autoFocus, returnFocusTo });

@@ -1,6 +1,6 @@
 # I11 Background Execution — Production Runbook
 
-**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D12). Do not resume the Render worker before WP1. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Transitional poll/safety net is **15 minutes** (D10) once WP0 is implemented; until then source ticks may still disagree with this runbook.  
+**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D20). **WP0 and WP1 are applied** (`0779`, `0780`). **WP2 host is drafted and off** (`PLATFORM_BG_ENABLED` unset). `0781` NOTIFY is not applied. Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` until File Util purge is ported. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Safety sweep is **15 minutes** (D10).  
 **Authority:** [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Test execution companion:** [I11 remote QA and evidence guide](I11_background_execution_QA_TEST_GUIDE.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence. Local results are development-only.
@@ -14,6 +14,21 @@
 - BullMQ is not part of the supported notification path. It is rollback-only and starts only when `LEGACY_BULLMQ_ENABLED=true`, never merely because `REDIS_URL` is set. Redis on HQ API is for cache/limiter/locks only.
 - Never retry an `ACCEPTANCE_UNCERTAIN` claim until provider/HQ evidence proves whether an external effect occurred.
 
+## WP0 operator freeze (D11 / D15)
+
+After `0779` is applied, HQ `/ops/jobs` shows HTTP wrappers as **Retired** (`SUPERSEDED`). Do not Enable, Restore, or Run now:
+
+`ntf-outbox-processor`, `ntf-campaign-scheduler`, `ntf-reconcile-outbox`, `fin-outbox-processor`, `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-erp-posting-retry`, `fin-pos-session-rollover`.
+
+`fin-idempotency-cleanup` stays ACTIVE but HTTP Restore/Run now are stripped. Campaign expansion and finance expiry/rollover/ERP HTTP remain paused until WP5 replacements.
+
+## WP0.6 inventory (no secret values)
+
+| Item | Finding | LISTEN / Redis implication |
+|---|---|---|
+| HQ API Redis | `REDIS_URL` is documented in `platform-api/.env.example` and is used in deployed HQ API for cache/limiter/locks (D8). | Not a job bus. Presence of Redis must not start BullMQ. |
+| Session-mode Postgres | Local example `DATABASE_URL` targets the direct Postgres port (`54322`), which is session mode. Production LISTEN (WP2/D9) needs a **direct / session** URL, not the transaction pooler (`6543`). | Confirm the production session-mode URL exists before WP2; do not paste it here. |
+
 ## Required Render configuration
 
 Do not put secrets or values in this document. The Owner sets the same dedicated `PLATFORM_WORKER_API_KEY` on HQ API and Render. Render uses the private HQ internal-jobs base URL for `HQ_JOBS_API_URL`.
@@ -22,7 +37,7 @@ HQ Config Registry (`/ops/config`, migration `0777`) inventories these names as 
 
 | Situation | `NTF_OUTBOX_WORKER_ENABLED` | `NTF_OUTBOX_SHADOW_ENABLED` | `LEGACY_BULLMQ_ENABLED` | Canary limits |
 |---|---:|---:|---:|---|
-| Normal observation / incident recovery | `false` | `true` | `false` or unset | N/A |
+| Normal observation / incident recovery | `false` | `false` unless an aggregate snapshot is required | `false` or unset | N/A |
 | Capacity containment after proof | `false` | `false` | `false` or unset | N/A |
 | One-claim canary only | `true` | `true` | `false` or unset | New `NTF_OUTBOX_CANARY_RUN_ID` UUID; `NTF_OUTBOX_CLAIM_LIMIT=1`; `NTF_OUTBOX_MAX_CLAIMS_PER_BOOT=1` |
 | Explicit legacy rollback | `false` | as required | `true` | Prohibited unless the Owner has approved the legacy rollback plan and no canonical worker can claim the same work |
@@ -34,7 +49,7 @@ HQ Config Registry (`/ops/config`, migration `0777`) inventories these names as 
 1. Confirm Render shows one active worker instance and no rollout is in progress.
 2. Confirm the deployment build for `platform-workers` passed and the released source contains the canary and shadow gates.
 3. Confirm Render startup contains `legacy BullMQ dispatch is disabled`.
-4. For normal observation, confirm minute-level `ntf-outbox-shadow` lines occur from one process only. For capacity containment, confirm the explicit `Notification outbox shadow probe is disabled` warning instead.
+4. For normal observation, confirm `ntf-outbox-shadow` lines occur from one process only at the 15-minute safety tick, not once per minute. For capacity containment, confirm the explicit `Notification outbox shadow probe is disabled` warning instead.
 5. Confirm `HQ_JOBS_API_URL` points to the deployed private HQ jobs base path and both services use the same dedicated machine key. Verify with a fake IDs stale-claim probe; it must return `200 {"kind":"STALE_CLAIM"}` and must not create a canonical row, HQ command, or provider request.
 6. Capture the remote canonical state and verify no legacy notification HTTP scheduler exists:
 
@@ -56,7 +71,7 @@ ORDER BY jobid;
 
 ## Supabase Disk I/O investigation
 
-The warning is not proof that the worker is the source. While delivery is disabled, one worker process issues six shadow reads per minute for five active tenants, plus two or three small registry RPCs per minute. Duplicate Render processes multiply that load. The prior Upstash request-limit incident is unrelated to Supabase Disk I/O.
+The warning is not proof that the worker is the source. While delivery is disabled, one worker process issues shadow reads on the 15-minute safety tick (I11 D10), plus File Util registry RPCs on the same cadence. Duplicate Render processes multiply that load. The prior Upstash request-limit incident is unrelated to Supabase Disk I/O.
 
 Capture the following twice, five minutes apart, before changing cadence or pausing observation:
 

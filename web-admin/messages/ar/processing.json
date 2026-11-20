@@ -196,15 +196,26 @@
       "tagMoreIssues": "لم يُحفظ أي شيء. عدد الأوسمة الأخرى التي تحتاج إلى تصحيح: {count}.",
       "tagPartialSaved": "تم حفظ {count} قطعة قبل خطأ الوسم. صحّح الوسم واحفظ مرة أخرى.",
       "updateFailed": "فشل التحديث"
-    }
+    },
+    "loadingPieces": "جاري تحميل القطع...",
+    "itemLevelTracking": "تتبع على مستوى الصنف نشط",
+    "notesLabel": "ملاحظات:",
+    "unknownItem": "صنف غير معروف",
+    "itemAriaLabel": "الصنف: {name}"
   },
   "splitConfirm": {
     "title": "تأكيد تقسيم الطلب",
     "message": "تقسيم {count} قطعة إلى طلب جديد؟",
     "reason": "السبب (مطلوب)",
+    "reasonRequired": "السبب مطلوب",
     "reasonPlaceholder": "أدخل سبب التقسيم...",
     "confirm": "تأكيد التقسيم",
-    "cancel": "إلغاء"
+    "cancel": "إلغاء",
+    "previewHeading": "ما الذي سيحدث:",
+    "previewLine1": "سيتم إنشاء طلب فرعي جديد",
+    "previewLine2": "{count, plural, zero {لن يتم نقل أي قطعة} one {سيتم نقل قطعة واحدة إلى الطلب الجديد} two {سيتم نقل قطعتين إلى الطلب الجديد} few {سيتم نقل # قطع إلى الطلب الجديد} many {سيتم نقل # قطعة إلى الطلب الجديد} other {سيتم نقل # قطعة إلى الطلب الجديد}}",
+    "previewLine3": "سيحتفظ الطلب الأصلي بالقطع المتبقية",
+    "previewLine4": "سيرتبط كلا الطلبين ببعضهما مرجعياً"
   },
   "summary": {
     "updateSuccess": "تم التحديث بنجاح",

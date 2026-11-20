@@ -100,5 +100,18 @@
   "view": "عرض",
   "selectAllOrders": "تحديد جميع الطلبات",
   "selectOrder": "تحديد الطلب {orderNo}",
-  "items": "العناصر"
+  "items": "العناصر",
+  "loadingPieces": "جاري تحميل القطع...",
+  "detailError": {
+    "orderIdLabel": "معرّف الطلب: {id}",
+    "hideDebugInfo": "إخفاء معلومات التشخيص",
+    "showDebugInfo": "عرض معلومات التشخيص (لتتبع الخطأ)",
+    "conditionLabel": "الشرط:",
+    "serverErrorLabel": "خطأ الخادم:",
+    "tenantIdLabel": "معرّف المنشأة (المستخدم في الاستعلام):",
+    "userIdLabel": "معرّف المستخدم:",
+    "orderIdQueriedLabel": "معرّف الطلب (المستعلم عنه):",
+    "emptyValue": "(فارغ)",
+    "possibleCauses": "الأسباب المحتملة: حذف الطلب، أو عدم تطابق المنشأة، أو مشكلة اتصال بقاعدة البيانات، أو حظر الوصول عبر سياسة RLS."
+  }
 }

@@ -7,9 +7,10 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxInput } from '@ui/primitives';
+import { CmxInput, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives';
 
 interface FeatureFlag {
   flag_key: string;
@@ -27,6 +28,8 @@ interface FeatureFlag {
  *
  */
 export function FeatureFlagsSettings() {
+  const t = useTranslations('settings.advancedSettings');
+  const tCommon = useTranslations('common');
   const [flags, setFlags] = React.useState<FeatureFlag[]>([]);
   const [filter, setFilter] = React.useState('');
   const [loading, setLoading] = React.useState(true);
@@ -41,13 +44,13 @@ export function FeatureFlagsSettings() {
       const res = await fetch('/api/settings/tenants/me/feature-flags');
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json?.details || json?.error || 'Failed to load feature flags');
+        throw new Error(json?.details || json?.error || t('loadErrorFlags'));
       }
       const data = (json.data?.items ?? json.data ?? []) as FeatureFlag[];
       setFlags(data);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to load feature flags';
+        error instanceof Error ? error.message : t('loadErrorFlags');
       cmxMessage.error(message);
     } finally {
       setLoading(false);
@@ -78,14 +81,14 @@ export function FeatureFlagsSettings() {
       <CmxCardContent className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Feature Flags</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('tabFeatureFlags')}</h2>
             <p className="text-sm text-muted-foreground">
-              View all active feature flags defined in Platform HQ that may affect this tenant.
+              {t('flagsSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <CmxInput
-              placeholder="Search flags..."
+              placeholder={t('searchFlagsPlaceholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="w-full md:w-64"
@@ -95,36 +98,36 @@ export function FeatureFlagsSettings() {
 
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Key</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Name</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Category</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Binding</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-card">
+            <Table className="min-w-full divide-y divide-border text-sm">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('flagColKey')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('flagColName')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('flagColCategory')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('flagColBinding')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('flagColStatus')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border bg-card">
                 {loading ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                      Loading feature flags...
-                    </td>
-                  </tr>
+                  <TableRow>
+                    <TableCell colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                      {t('loadingFlags')}
+                    </TableCell>
+                  </TableRow>
                 ) : filteredFlags.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                      No feature flags found.
-                    </td>
-                  </tr>
+                  <TableRow>
+                    <TableCell colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                      {t('noFlagsFound')}
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredFlags.map((f) => (
-                    <tr key={f.flag_key}>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-foreground">
+                    <TableRow key={f.flag_key}>
+                      <TableCell className="px-4 py-3 whitespace-nowrap font-mono text-xs text-foreground">
                         {f.flag_key}
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
                         <div className="text-foreground text-sm font-medium">
                           {f.name}
                         </div>
@@ -133,14 +136,14 @@ export function FeatureFlagsSettings() {
                             {f.description}
                           </div>
                         )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                         {f.category || '—'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                         {f.plan_binding_type || '—'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs">
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                             f.is_active
@@ -148,14 +151,14 @@ export function FeatureFlagsSettings() {
                               : 'bg-muted text-muted-foreground border border-border'
                           }`}
                         >
-                          {f.is_active ? 'Active' : 'Inactive'}
+                          {f.is_active ? tCommon('active') : tCommon('inactive')}
                         </span>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </CmxCardContent>

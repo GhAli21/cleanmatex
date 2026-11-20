@@ -22,6 +22,9 @@ import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-fie
  */
 export default function UserPreferencesPage() {
   const tAppearance = useTranslations('authSession.appearance');
+  const t = useTranslations('settings.advancedSettings');
+  const tSettings = useTranslations('settings');
+  const tCommon = useTranslations('common');
   const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,7 +46,7 @@ export default function UserPreferencesPage() {
     } catch (err) {
       console.error('Failed to load preferences:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to load preferences'
+        err instanceof Error ? err.message : t('loadErrorPreferences')
       );
     } finally {
       setIsLoading(false);
@@ -72,7 +75,7 @@ export default function UserPreferencesPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading preferences...</p>
+          <p className="mt-4 text-muted-foreground">{t('loadingPreferences')}</p>
         </div>
       </div>
     );
@@ -85,11 +88,11 @@ export default function UserPreferencesPage() {
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-danger-text mb-2">
-                Error Loading Preferences
+                {t('preferencesLoadErrorTitle')}
               </h2>
               <p className="text-danger-text mb-4">{error}</p>
               <CmxButton onClick={fetchSettings} variant="outline">
-                Try Again
+                {tCommon('tryAgain')}
               </CmxButton>
             </div>
           </div>
@@ -108,10 +111,10 @@ export default function UserPreferencesPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              User Preferences
+              {t('preferencesTitle')}
             </h1>
             <p className="mt-1 text-muted-foreground">
-              Customize your personal settings and preferences
+              {t('preferencesSubtitle')}
             </p>
           </div>
         </div>
@@ -122,48 +125,48 @@ export default function UserPreferencesPage() {
         <div className="flex items-center gap-2 mb-4">
           <Globe className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">
-            Language & Localization
+            {t('languageSectionTitle')}
           </h2>
         </div>
 
         <div className="space-y-4">
           <UserPreference
             settingCode="user.language"
-            label="Language"
-            description="Preferred language for the interface"
+            label={tSettings('language')}
+            description={t('languageDescription')}
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
             <CmxSelect
               disabled={isSaving}
               options={[
-                { value: 'en', label: 'English' },
-                { value: 'ar', label: 'Arabic' },
+                { value: 'en', label: t('langEnglish') },
+                { value: 'ar', label: t('langArabic') },
               ]}
             />
           </UserPreference>
 
           <UserPreference
             settingCode="user.timezone"
-            label="Timezone"
-            description="Your local timezone"
+            label={tSettings('timezone')}
+            description={t('timezoneDescription')}
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
             <CmxSelect
               disabled={isSaving}
               options={[
-                { value: 'Asia/Muscat', label: 'Asia/Muscat (Oman)' },
-                { value: 'Asia/Riyadh', label: 'Asia/Riyadh (Saudi Arabia)' },
-                { value: 'Asia/Dubai', label: 'Asia/Dubai (UAE)' },
+                { value: 'Asia/Muscat', label: t('tzMuscat') },
+                { value: 'Asia/Riyadh', label: t('tzRiyadh') },
+                { value: 'Asia/Dubai', label: t('tzDubai') },
               ]}
             />
           </UserPreference>
 
           <UserPreference
             settingCode="user.date_format"
-            label="Date Format"
-            description="Preferred date display format"
+            label={t('dateFormatLabel')}
+            description={t('dateFormatDescription')}
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
@@ -198,15 +201,15 @@ export default function UserPreferencesPage() {
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">
-            Notifications
+            {t('notificationsSectionTitle')}
           </h2>
         </div>
 
         <div className="space-y-4">
           <UserPreference
             settingCode="user.email_notifications"
-            label="Email Notifications"
-            description="Receive notifications via email"
+            label={t('emailNotificationsLabel')}
+            description={t('emailNotificationsDesc')}
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
             isBoolean
@@ -216,8 +219,8 @@ export default function UserPreferencesPage() {
 
           <UserPreference
             settingCode="user.sms_notifications"
-            label="SMS Notifications"
-            description="Receive notifications via SMS"
+            label={t('smsNotificationsLabel')}
+            description={t('smsNotificationsDesc')}
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
             isBoolean
@@ -227,8 +230,8 @@ export default function UserPreferencesPage() {
 
           <UserPreference
             settingCode="user.browser_notifications"
-            label="Browser Notifications"
-            description="Show browser push notifications"
+            label={t('browserNotificationsLabel')}
+            description={t('browserNotificationsDesc')}
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
             isBoolean
@@ -243,20 +246,20 @@ export default function UserPreferencesPage() {
         <div className="flex items-center gap-2 mb-4">
           <Clock className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold text-foreground">
-            Workspace
+            {t('workspaceSectionTitle')}
           </h2>
         </div>
 
         <UserPreference
           settingCode="user.default_branch"
-          label="Default Branch"
-          description="Branch selected by default when logging in"
+          label={t('defaultBranchLabel')}
+          description={t('defaultBranchDesc')}
           effectiveSettings={effectiveSettings}
           onSave={handleSave}
         >
           <CmxSelect
             disabled={isSaving}
-            placeholder="Select branch..."
+            placeholder={tCommon('selectBranch')}
             options={[]}
           />
         </UserPreference>

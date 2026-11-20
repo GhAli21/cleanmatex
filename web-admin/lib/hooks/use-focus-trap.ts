@@ -190,7 +190,9 @@ export function useFocusTrap(open: boolean, options?: UseFocusTrapOptions) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
   const returnFocusToRef = useRef(options?.returnFocusTo);
-  returnFocusToRef.current = options?.returnFocusTo;
+  useEffect(() => {
+    returnFocusToRef.current = options?.returnFocusTo;
+  }, [options?.returnFocusTo]);
 
   const returnFocus = options?.returnFocus !== false;
   const autoFocus = options?.autoFocus !== false;
@@ -258,10 +260,11 @@ export function useFocusTrap(open: boolean, options?: UseFocusTrapOptions) {
       document.removeEventListener('focusin', handleFocusIn, true);
       if (returnFocus) {
         const explicitTargetOpt = returnFocusToRef.current;
-        const explicitTarget =
-          explicitTargetOpt && typeof explicitTargetOpt === 'object' && 'current' in explicitTargetOpt
-            ? explicitTargetOpt.current
-            : explicitTargetOpt;
+        // Explicit type: `in` narrowing is unreliable under strict:false.
+        const explicitTarget: HTMLElement | null =
+          explicitTargetOpt instanceof HTMLElement
+            ? explicitTargetOpt
+            : (explicitTargetOpt?.current ?? null);
         const restoreTarget =
           explicitTarget?.isConnected
             ? explicitTarget

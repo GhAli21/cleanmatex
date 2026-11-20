@@ -277,6 +277,10 @@
       "first_order": "First Order",
       "loyalty": "Loyalty"
     },
+    "discountTypes": {
+      "percentage": "%",
+      "fixed_amount": "Fixed"
+    },
     "conditions": {
       "title": "Conditions",
       "minOrder": "Minimum Order Amount",

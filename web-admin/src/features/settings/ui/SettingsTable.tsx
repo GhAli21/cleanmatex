@@ -7,8 +7,9 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives';
 import type { SettingDefinition, ResolvedSetting } from '@/lib/api/settings-client';
 
 type EditMode = 'inline';
@@ -67,6 +68,8 @@ export function SettingsTable({
   onSaveOverride,
   onResetOverride,
 }: SettingsTableProps) {
+  const t = useTranslations('settings.advancedSettings');
+  const tCommon = useTranslations('common');
   const [filter, setFilter] = React.useState('');
   const [editingKey, setEditingKey] = React.useState<string | null>(null);
   const [draftValue, setDraftValue] = React.useState<any>('');
@@ -141,14 +144,14 @@ export function SettingsTable({
               </p>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Scope: {context.scope}
-              {context.branchId ? ` · Branch ${context.branchId}` : ''}
-              {context.userId ? ` · User ${context.userId}` : ''}
+              {t('tableScope', { scope: context.scope })}
+              {context.branchId ? t('tableScopeBranch', { id: context.branchId }) : ''}
+              {context.userId ? t('tableScopeUser', { id: context.userId }) : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <CmxInput
-              placeholder="Search by code, name, or value..."
+              placeholder={t('searchSettingsPlaceholder')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="w-full md:w-64"
@@ -158,30 +161,30 @@ export function SettingsTable({
 
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Code</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Name</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Scope</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Effective Value</th>
-                  <th className="px-4 py-2 text-start font-medium text-foreground">Source</th>
-                  <th className="px-4 py-2 text-end font-medium text-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-card">
+            <Table className="min-w-full divide-y divide-border text-sm">
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('colCode')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('colName')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('colScope')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('colEffectiveValue')}</TableHead>
+                  <TableHead className="px-4 py-2 text-start font-medium text-foreground">{t('colSource')}</TableHead>
+                  <TableHead className="px-4 py-2 text-end font-medium text-foreground">{t('colActions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border bg-card">
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                      Loading settings...
-                    </td>
-                  </tr>
+                  <TableRow>
+                    <TableCell colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                      {t('loadingSettings')}
+                    </TableCell>
+                  </TableRow>
                 ) : filteredRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                      No settings found.
-                    </td>
-                  </tr>
+                  <TableRow>
+                    <TableCell colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
+                      {t('noSettingsFound')}
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredRows.map((row) => {
                     const { definition, resolved, isOverridden, canEdit, isLockedByEditPolicy } = row;
@@ -189,11 +192,11 @@ export function SettingsTable({
                     const isSaving = savingKey === definition.setting_code;
 
                     return (
-                      <tr key={definition.setting_code}>
-                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-foreground">
+                      <TableRow key={definition.setting_code}>
+                        <TableCell className="px-4 py-3 whitespace-nowrap font-mono text-xs text-foreground">
                           {definition.setting_code}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <div className="text-foreground text-sm font-medium">
                             {definition.setting_name}
                           </div>
@@ -202,20 +205,20 @@ export function SettingsTable({
                               {definition.setting_description}
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                           {definition.stng_scope}
-                        </td>
-                        <td className="px-4 py-3 min-w-[180px]">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 min-w-[180px]">
                           {isEditing ? (
-                            renderEditor(definition.stng_data_type, draftValue, setDraftValue)
+                            renderEditor(definition.stng_data_type, draftValue, setDraftValue, { select: tCommon('select'), boolTrue: t('boolTrue'), boolFalse: t('boolFalse') })
                           ) : (
                             <div className="text-sm text-foreground break-words">
                               {renderValue(resolved?.stngValue)}
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                           {resolved ? (
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -229,8 +232,8 @@ export function SettingsTable({
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-end text-xs">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 whitespace-nowrap text-end text-xs">
                           <div className="inline-flex items-center gap-2">
                             {canEdit && (
                               <>
@@ -242,7 +245,7 @@ export function SettingsTable({
                                       loading={isSaving}
                                       onClick={() => handleSave(row)}
                                     >
-                                      Save
+                                      {tCommon('save')}
                                     </CmxButton>
                                     <CmxButton
                                       size="sm"
@@ -250,7 +253,7 @@ export function SettingsTable({
                                       disabled={isSaving}
                                       onClick={() => setEditingKey(null)}
                                     >
-                                      Cancel
+                                      {tCommon('cancel')}
                                     </CmxButton>
                                   </>
                                 ) : (
@@ -260,7 +263,7 @@ export function SettingsTable({
                                     disabled={isSaving}
                                     onClick={() => openEditor(row)}
                                   >
-                                    Edit
+                                    {tCommon('edit')}
                                   </CmxButton>
                                 )}
                               </>
@@ -272,22 +275,22 @@ export function SettingsTable({
                                 disabled={isSaving}
                                 onClick={() => handleReset(row)}
                               >
-                                Reset
+                                {tCommon('reset')}
                               </CmxButton>
                             )}
                             {isLockedByEditPolicy && (
-                              <span className="text-xs text-warning-text" title="This setting can only be set once and is now locked">
-                                Locked
+                              <span className="text-xs text-warning-text" title={t('lockedTooltip')}>
+                                {t('locked')}
                               </span>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       </CmxCardContent>
@@ -311,6 +314,7 @@ function renderEditor(
   dataType: SettingDefinition['stng_data_type'],
   value: any,
   onChange: (next: any) => void,
+  labels: { select: string; boolTrue: string; boolFalse: string },
 ) {
   switch (dataType) {
     case 'BOOLEAN':
@@ -323,9 +327,9 @@ function renderEditor(
           }}
           className="w-28"
           options={[
-            { value: '', label: 'Select…' },
-            { value: 'true', label: 'true' },
-            { value: 'false', label: 'false' },
+            { value: '', label: labels.select },
+            { value: 'true', label: labels.boolTrue },
+            { value: 'false', label: labels.boolFalse },
           ]}
         />
       );

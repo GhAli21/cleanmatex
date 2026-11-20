@@ -69,6 +69,7 @@ export function ErpLiteJournalsScreen({ rows }: ErpLiteJournalsScreenProps) {
   return (
     <div className="space-y-4">
       <div>
+        {/* cmx-ds-ignore UI008: ERP-Lite module brand mark */}
         <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">ERP-Lite</p>
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>

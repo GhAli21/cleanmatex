@@ -277,6 +277,10 @@
       "first_order": "الطلب الأول",
       "loyalty": "الولاء"
     },
+    "discountTypes": {
+      "percentage": "%",
+      "fixed_amount": "مبلغ ثابت"
+    },
     "conditions": {
       "title": "الشروط",
       "minOrder": "الحد الأدنى لمبلغ الطلب",

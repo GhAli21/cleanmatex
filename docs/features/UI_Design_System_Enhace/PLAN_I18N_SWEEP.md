@@ -11,14 +11,14 @@
 | Batch | Status | Date | Result |
 |---|---|---|---|
 | 0 Plan and inventory | Done | 2026-11-19 | This file. |
-| 1 Shared `src/ui` | Not started | | |
-| 2 Public pages (sign-in family, sign-up, verify, forgot) | Not started | | |
-| 3 Settings pages and `src/features/settings` | Not started | | |
-| 4 Subscription screen (`tenant-admin`) | Not started | | |
-| 5 Catalog (pages and `src/features/catalog`) | Not started | | |
-| 6 Orders, workflow, customers, receipts | Not started | | |
-| 7 Dashboard widgets and the rest (users, auth, access, erp-lite, finance, inventory, api-docs) | Not started | | |
-| 8 Lint guard on everywhere, review, docs | Not started | | |
+| 1 Shared `src/ui` | Done | 2026-11-21 | Intentional `UI008` ignore comments on `cmx-spinner.tsx` (`sr-only` fallback), `cmx-language-switcher.tsx` (`English` endonym), and `cmx-sidebar.tsx` (`CleanMateX v1.0`). |
+| 2 Public pages (sign-in family, sign-up, verify, forgot) | Done | 2026-11-21 | Localized `app/page.tsx`, `forgot-password`, `verify-email`, `register`, `register/tenant`, `register/tenant/success` (`messages/{en,ar}/auth.json`). |
+| 3 Settings pages and `src/features/settings` | Done | 2026-11-21 | Localized `permissions`, `preferences`, `allsettings`, `branches/[id]`, `SettingsTable`, `FeatureFlagsSettings`, `explain-drawer`, `UserSettings`, `PlanLimitsSettings`, `BranchSettings`; raw `<table>` converted to `<Table>` + `CmxConfirmDialog` on `branches/[id]`. |
+| 4 Subscription screen (`tenant-admin`) | Done | 2026-11-21 | Localized `tenant-admin-subscription-screen.tsx` (`settings.subscriptionPage.*`, `formatNumber`, locale dates). |
+| 5 Catalog (pages and `src/features/catalog`) | Done | 2026-11-21 | Localized `pricing/[id]`, `customer-categories`, `price-history-timeline`, `bulk-import-modal`, `import-modal`, `preferences`, `pricing` (`messages/{en,ar}/catalog.json`, `CmxConfirmDialog`). |
+| 6 Orders, workflow, customers, receipts | Done | 2026-11-21 | Localized `order-detail-error`, `split-confirmation-dialog`, `processing-item-row`, `processing-modal`, `order-items-list`, `receipt-preview`, `qa/[id]`; annotated `CleanMateX` brand in 6 print components + `UI001` in `order-details-print.tsx`. |
+| 7 Dashboard widgets and the rest (users, auth, access, erp-lite, finance, inventory, api-docs) | Done | 2026-11-21 | Localized `cmx-permissions-inspector-panel` (`zIndex` scale + `CmxButton`), `dashboard-home-page`, `workflow-stats-widget`, `overdue-orders-widget` (`OrderStatusBadge` + `formatNumber`), `create-user-screen`, `voucher-post-preview-dialog`, `discount-rule-form-dialog`, `api-docs/page.tsx`; annotated `ERP-Lite` brand in 5 ERP-Lite files. |
+| 8 Lint guard on everywhere, review, docs | Done | 2026-11-21 | `check:ui --all` reports **0 remaining `UI008` warnings** across all web-admin files; `check:i18n` PASS; `check:ui` on changed files 0 errors / 0 warnings. |
 
 After every batch: update this table, `STATUS.md` and `RESUME_CONTINUATION.md`; QA steps only in `QA_TEST_GUIDE.md` → "i18n sweep".
 

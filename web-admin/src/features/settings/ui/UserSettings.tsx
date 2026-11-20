@@ -26,6 +26,7 @@ import {
  */
 export function UserSettings() {
   const t = useTranslations('settings');
+  const tAdv = useTranslations('settings.advancedSettings');
   const { currentTenant, session } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
   const accessToken = session?.access_token ?? '';
@@ -64,7 +65,7 @@ export function UserSettings() {
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to load users';
+        error instanceof Error ? error.message : tAdv('loadErrorUsers');
       cmxMessage.error(message);
     } finally {
       setInitialLoading(false);
@@ -81,7 +82,7 @@ export function UserSettings() {
       setRows(buildRows(catalog, effective));
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to load user settings';
+        error instanceof Error ? error.message : tAdv('loadErrorUserSettings');
       cmxMessage.error(message);
     } finally {
       setLoading(false);
@@ -96,7 +97,7 @@ export function UserSettings() {
         value: nextValue,
         userId: selectedUserId,
       });
-      cmxMessage.success('User setting updated successfully');
+      cmxMessage.success(tAdv('userUpdatedSuccess'));
       await loadSettingsForUser(selectedUserId);
     } catch (error) {
       const message =
@@ -104,7 +105,7 @@ export function UserSettings() {
           ? t('error.settingLocked')
           : error instanceof Error
             ? error.message
-            : 'Failed to update user setting';
+            : tAdv('userUpdateError');
       cmxMessage.error(message);
       throw error;
     }
@@ -116,7 +117,7 @@ export function UserSettings() {
       await settingsClient.deleteOverride(row.definition.setting_code, {
         userId: selectedUserId,
       });
-      cmxMessage.success('User setting override removed');
+      cmxMessage.success(tAdv('userResetSuccess'));
       await loadSettingsForUser(selectedUserId);
     } catch (error) {
       const message =
@@ -124,7 +125,7 @@ export function UserSettings() {
           ? t('error.settingLocked')
           : error instanceof Error
             ? error.message
-            : 'Failed to reset user setting';
+            : tAdv('userResetError');
       cmxMessage.error(message);
       throw error;
     }
@@ -136,9 +137,9 @@ export function UserSettings() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">User Settings</h2>
+          <h2 className="text-lg font-semibold text-foreground">{tAdv('userSettingsTitle')}</h2>
           <p className="text-sm text-muted-foreground">
-            Select a user to view and override user-scoped settings for that user.
+            {tAdv('userSettingsSubtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +150,7 @@ export function UserSettings() {
             }
             className="min-w-[220px]"
             options={[
-              { value: '', label: 'Select user…' },
+              { value: '', label: tAdv('selectUserPlaceholder') },
               ...users.map((u) => ({
                 value: u.id,
                 label: u.display_name || u.email,
@@ -163,7 +164,7 @@ export function UserSettings() {
               size="sm"
               onClick={() => void loadSettingsForUser(selectedUserId)}
             >
-              Reload
+              {tAdv('reload')}
             </CmxButton>
           )}
         </div>
@@ -171,20 +172,20 @@ export function UserSettings() {
 
       {initialLoading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-          Loading users...
+          {tAdv('loadingUsers')}
         </div>
       ) : !selectedUserId ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-          No user selected.
+          {tAdv('noUserSelected')}
         </div>
       ) : (
         <SettingsTable
           title={
             currentUser
-              ? `Settings for ${currentUser.display_name || currentUser.email}`
-              : 'User Settings'
+              ? tAdv('settingsForUser', { name: currentUser.display_name || currentUser.email })
+              : tAdv('userSettingsTitle')
           }
-          description="View all effective settings for this user and manage user-level overrides."
+          description={tAdv('userTableDescription')}
           rows={rows}
           context={{ scope: 'USER', userId: selectedUserId }}
           isLoading={loading}

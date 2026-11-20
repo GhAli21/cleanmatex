@@ -72,6 +72,7 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
     >
       <header className="print-header">
         <div className="flex justify-between print-subtitle">
+          {/* cmx-ds-ignore UI008: brand name */}
           <span>CleanMateX</span>
           <span>{data.order.order_no}</span>
         </div>

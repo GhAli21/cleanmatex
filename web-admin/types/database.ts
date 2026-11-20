@@ -13486,13 +13486,13 @@ isOneToOne: false
                   ]
                 },"sys_ops_job_cf": {
                   Row: {
-                    "applied_at": string | null,"applied_by": string | null,"applied_enabled": boolean | null,"applied_schedule": string | null,"category": string,"completion_mode": string,"created_at": string,"created_by": string | null,"created_info": string | null,"cron_job_name": string,"default_schedule": string,"description": string | null,"description2": string | null,"desired_enabled": boolean,"id": string,"is_active": boolean,"job_code": string,"kind": string,"module": string,"name": string,"name2": string | null,"notes": string | null,"operator_actions": (string)[],"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"restore_command": string | null,"run_now_allowed": boolean,"schedule": string | null,"source_migration": string | null,"sub_system": string | null,"updated_at": string,"updated_by": string | null,"updated_info": string | null
+                    "applied_at": string | null,"applied_by": string | null,"applied_enabled": boolean | null,"applied_schedule": string | null,"category": string,"completion_mode": string,"created_at": string,"created_by": string | null,"created_info": string | null,"cron_job_name": string,"default_schedule": string,"description": string | null,"description2": string | null,"desired_enabled": boolean,"id": string,"is_active": boolean,"job_code": string,"kind": string,"lifecycle_status": string,"module": string,"name": string,"name2": string | null,"notes": string | null,"operator_actions": (string)[],"rec_notes": string | null,"rec_order": number | null,"rec_status": number,"restore_command": string | null,"run_now_allowed": boolean,"schedule": string | null,"source_migration": string | null,"sub_system": string | null,"superseded_by": string | null,"updated_at": string,"updated_by": string | null,"updated_info": string | null
                   }
                   Insert: {
-                    "applied_at"?: string | null,"applied_by"?: string | null,"applied_enabled"?: boolean | null,"applied_schedule"?: string | null,"category": string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name": string,"default_schedule": string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code": string,"kind"?: string,"module": string,"name": string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
+                    "applied_at"?: string | null,"applied_by"?: string | null,"applied_enabled"?: boolean | null,"applied_schedule"?: string | null,"category": string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name": string,"default_schedule": string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code": string,"kind"?: string,"lifecycle_status"?: string,"module": string,"name": string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"superseded_by"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Update: {
-                    "applied_at"?: string | null,"applied_by"?: string | null,"applied_enabled"?: boolean | null,"applied_schedule"?: string | null,"category"?: string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name"?: string,"default_schedule"?: string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code"?: string,"kind"?: string,"module"?: string,"name"?: string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
+                    "applied_at"?: string | null,"applied_by"?: string | null,"applied_enabled"?: boolean | null,"applied_schedule"?: string | null,"category"?: string,"completion_mode"?: string,"created_at"?: string,"created_by"?: string | null,"created_info"?: string | null,"cron_job_name"?: string,"default_schedule"?: string,"description"?: string | null,"description2"?: string | null,"desired_enabled"?: boolean,"id"?: string,"is_active"?: boolean,"job_code"?: string,"kind"?: string,"lifecycle_status"?: string,"module"?: string,"name"?: string,"name2"?: string | null,"notes"?: string | null,"operator_actions"?: (string)[],"rec_notes"?: string | null,"rec_order"?: number | null,"rec_status"?: number,"restore_command"?: string | null,"run_now_allowed"?: boolean,"schedule"?: string | null,"source_migration"?: string | null,"sub_system"?: string | null,"superseded_by"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"updated_info"?: string | null
                   }
                   Relationships: [
                     
@@ -16073,6 +16073,11 @@ isOneToOne: false
               "acceptance_uncertain": number,"processing_leased": number,"queued_due": number,"retry_due": number
             }[]
                            },
+"fn_ntf_outbox_due_sum_all":
+{ Args: { "p_as_of"?: string }; Returns: {
+              "acceptance_uncertain": number,"processing_leased": number,"queued_due": number,"retry_due": number,"tenants_with_due": number
+            }[]
+                           },
 "fn_ntf_prov_ctl_set":
 { Args: { "p_actor": string,"p_channel": string,"p_expected"?: string,"p_kind": string,"p_provider": string,"p_reason": string,"p_state": string }; Returns: Json
                            },
@@ -16133,6 +16138,11 @@ isOneToOne: false
                            },
 "fn_ntf_worker_claim_due":
 { Args: { "p_lease_seconds"?: number,"p_limit"?: number,"p_tenant_org_id": string,"p_worker_id": string }; Returns: {
+              "channel_code": string,"claim_token": string,"event_code": string,"id": string,"max_retries": number,"metadata": Json,"recipient_address": string,"recipient_user_id": string,"rendered_body": string,"rendered_subject": string,"retry_count": number,"source_entity_id": string,"source_entity_type": string,"tenant_org_id": string
+            }[]
+                           },
+"fn_ntf_worker_claim_due_global":
+{ Args: { "p_lease_seconds"?: number,"p_limit"?: number,"p_worker_id": string }; Returns: {
               "channel_code": string,"claim_token": string,"event_code": string,"id": string,"max_retries": number,"metadata": Json,"recipient_address": string,"recipient_user_id": string,"rendered_body": string,"rendered_subject": string,"retry_count": number,"source_entity_id": string,"source_entity_type": string,"tenant_org_id": string
             }[]
                            },
@@ -16201,7 +16211,7 @@ isOneToOne: false
                            },
 "fn_ops_job_list_v2":
 { Args: Record<PropertyKey, never>; Returns: {
-              "actual_active": boolean,"actual_schedule": string,"category": string,"command_present": boolean,"completion_mode": string,"cron_job_name": string,"cron_jobid": number,"default_schedule": string,"description": string,"description2": string,"desired_enabled": boolean,"drift_flags": (string)[],"effective_schedule": string,"is_active": boolean,"job_code": string,"kind": string,"last_run_actor": string,"last_run_at": string,"last_run_message": string,"last_run_source": string,"last_run_status": string,"last_run_trigger": string,"module": string,"name": string,"name2": string,"notes": string,"operator_actions": (string)[],"run_now_allowed": boolean,"schedule_override": string,"source_migration": string,"sub_system": string
+              "actual_active": boolean,"actual_schedule": string,"category": string,"command_present": boolean,"completion_mode": string,"cron_job_name": string,"cron_jobid": number,"default_schedule": string,"description": string,"description2": string,"desired_enabled": boolean,"drift_flags": (string)[],"effective_schedule": string,"is_active": boolean,"job_code": string,"kind": string,"last_run_actor": string,"last_run_at": string,"last_run_message": string,"last_run_source": string,"last_run_status": string,"last_run_trigger": string,"lifecycle_status": string,"module": string,"name": string,"name2": string,"notes": string,"operator_actions": (string)[],"run_now_allowed": boolean,"schedule_override": string,"source_migration": string,"sub_system": string,"superseded_by": string
             }[]
                            },
 "fn_ops_job_request_slot":

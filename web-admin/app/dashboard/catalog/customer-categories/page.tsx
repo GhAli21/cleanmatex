@@ -22,7 +22,7 @@ import {
 } from '@ui/overlays';
 import { Label } from '@ui/primitives';
 import { Plus, Pencil, Trash2, RotateCcw } from 'lucide-react';
-import { useMessage, CmxStatusBadge } from '@ui/feedback';
+import { useMessage, CmxConfirmDialog, CmxStatusBadge } from '@ui/feedback';
 import {
   fetchCustomerCategories,
   createCustomerCategory,
@@ -35,18 +35,12 @@ import { generateCode, generateCustomerCategoryCode } from '@/lib/utils/generate
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 import { CATALOG_CUSTOMER_CATEGORIES_ACCESS } from '@features/catalog/access/catalog-access';
 
-const SYSTEM_TYPES = [
-  { value: 'guest', label: 'Guest' },
-  { value: 'walk_in', label: 'Walk-in' },
-  { value: 'stub', label: 'Stub' },
-  { value: 'b2b', label: 'B2B' },
-] as const;
-
 /**
  *
  */
 export default function CustomerCategoriesPage() {
   const t = useTranslations('catalog');
+  const tPage = useTranslations('catalog.customerCategoriesPage');
   const tCommon = useTranslations('common');
   const { showErrorFrom, showSuccess } = useMessage();
 
@@ -55,6 +49,8 @@ export default function CustomerCategoriesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [isCodeDirty, setIsCodeDirty] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
@@ -73,7 +69,7 @@ export default function CustomerCategoriesPage() {
       const data = await fetchCustomerCategories({ active_only: false });
       setCategories(data);
     } catch (err) {
-      showErrorFrom(err, { fallback: 'Failed to load customer categories' });
+      showErrorFrom(err, { fallback: tPage('loadError') });
     } finally {
       setLoading(false);
     }
@@ -148,7 +144,7 @@ export default function CustomerCategoriesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.code || !formData.name || !formData.system_type) {
-      showErrorFrom(new Error('Code, name, and system type are required'));
+      showErrorFrom(new Error(tPage('requiredFields')));
       return;
     }
 
@@ -167,7 +163,7 @@ export default function CustomerCategoriesPage() {
             is_individual: formData.is_individual,
           }),
         });
-        showSuccess('Customer category updated');
+        showSuccess(tPage('updatedSuccess'));
       } else {
         await createCustomerCategory({
           code: formData.code,
@@ -179,42 +175,56 @@ export default function CustomerCategoriesPage() {
           display_order: formData.display_order,
           is_active: formData.is_active,
         });
-        showSuccess('Customer category created');
+        showSuccess(tPage('createdSuccess'));
       }
       setDialogOpen(false);
       loadCategories();
     } catch (err) {
-      showErrorFrom(err, { fallback: 'Failed to save customer category' });
+      showErrorFrom(err, { fallback: tPage('saveError') });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (code: string) => {
+  const handleDeleteRequest = (code: string) => {
     const cat = categories.find((c) => c.code === code);
     if (cat?.system_category_code) {
-      showErrorFrom(new Error('Cannot delete system category'));
+      showErrorFrom(new Error(tPage('cannotDeleteSystem')));
       return;
     }
-    if (!confirm(`Delete "${cat?.name ?? code}"?`)) return;
+    setDeleteTargetCode(code);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetCode) return;
+    setDeleting(true);
     try {
-      await deleteCustomerCategory(code);
-      showSuccess('Customer category deleted');
+      await deleteCustomerCategory(deleteTargetCode);
+      showSuccess(tPage('deletedSuccess'));
+      setDeleteTargetCode(null);
       loadCategories();
     } catch (err) {
-      showErrorFrom(err, { fallback: 'Failed to delete' });
+      showErrorFrom(err, { fallback: tPage('deleteError') });
+    } finally {
+      setDeleting(false);
     }
   };
 
   const editingCategory = editingCode ? categories.find((c) => c.code === editingCode) : null;
   const isReserved = !!editingCategory?.system_category_code;
+  const deleteTargetCategory = deleteTargetCode ? categories.find((c) => c.code === deleteTargetCode) : null;
+  const systemTypes = [
+    { value: 'guest', label: tPage('typeGuest') },
+    { value: 'walk_in', label: tPage('typeWalkIn') },
+    { value: 'stub', label: tPage('typeStub') },
+    { value: 'b2b', label: tPage('typeB2b') },
+  ];
 
   return (
     <div className="space-y-6" data-testid="customer-categories-catalog-page">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
-          {t('customerCategories') || 'Customer Categories'}
+          {t('customerCategories')}
         </h1>
         <RequireAnyPermission
           permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
@@ -222,7 +232,7 @@ export default function CustomerCategoriesPage() {
         >
           <CmxButton onClick={openCreate}>
             <Plus className="h-4 w-4 me-2" />
-            {tCommon('add') || 'Add'}
+            {tCommon('add')}
           </CmxButton>
         </RequireAnyPermission>
       </div>
@@ -230,27 +240,27 @@ export default function CustomerCategoriesPage() {
       <CmxCard>
         <CmxCardHeader>
           <CmxCardTitle>
-            {t('customerCategories') || 'Customer Categories'}
+            {t('customerCategories')}
           </CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent>
           {loading ? (
-            <p className="text-muted-foreground py-8 text-center">Loading...</p>
+            <p className="text-muted-foreground py-8 text-center">{tCommon('loading')}</p>
           ) : (
             <div className="overflow-x-auto">
               <Table className="min-w-full text-sm">
                 <TableHeader className="border-b">
                   <TableRow>
-                    <TableHead className="text-start py-2 px-3 font-medium">Code</TableHead>
-                    <TableHead className="text-start py-2 px-3 font-medium">Name</TableHead>
-                    <TableHead className="text-start py-2 px-3 font-medium">Type</TableHead>
-                    <TableHead className="text-start py-2 px-3 font-medium">B2B</TableHead>
-                    <TableHead className="text-start py-2 px-3 font-medium">Status</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">{tPage('colCode')}</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">{tPage('colName')}</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">{tPage('colType')}</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">{tPage('colB2b')}</TableHead>
+                    <TableHead className="text-start py-2 px-3 font-medium">{tPage('colStatus')}</TableHead>
                     <RequireAnyPermission
                       permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
                       fallback={<TableHead />}
                     >
-                      <TableHead className="text-end py-2 px-3 font-medium">Actions</TableHead>
+                      <TableHead className="text-end py-2 px-3 font-medium">{tPage('colActions')}</TableHead>
                     </RequireAnyPermission>
                   </TableRow>
                 </TableHeader>
@@ -269,16 +279,16 @@ export default function CustomerCategoriesPage() {
                       <TableCell className="py-2 px-3">{cat.system_type || '—'}</TableCell>
                       <TableCell className="py-2 px-3">
                         <CmxStatusBadge size="sm" tone={cat.is_b2b ? 'brand' : 'neutral'}>
-                          {cat.is_b2b ? 'Yes' : 'No'}
+                          {cat.is_b2b ? t('yes') : t('no')}
                         </CmxStatusBadge>
                       </TableCell>
                       <TableCell className="py-2 px-3">
                         <div className="flex gap-1">
                           <CmxStatusBadge size="sm" tone={cat.is_active ? 'success' : 'neutral'}>
-                            {cat.is_active ? 'Active' : 'Inactive'}
+                            {cat.is_active ? tCommon('active') : tCommon('inactive')}
                           </CmxStatusBadge>
                           {cat.system_category_code && (
-                            <CmxStatusBadge size="sm" tone="neutral" appearance="outline">System</CmxStatusBadge>
+                            <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{tPage('systemBadge')}</CmxStatusBadge>
                           )}
                         </div>
                       </TableCell>
@@ -290,6 +300,7 @@ export default function CustomerCategoriesPage() {
                           <CmxButton
                             variant="ghost"
                             size="sm"
+                            aria-label={tCommon('edit')}
                             onClick={() => openEdit(cat)}
                           >
                             <Pencil className="h-4 w-4" />
@@ -297,7 +308,8 @@ export default function CustomerCategoriesPage() {
                           <CmxButton
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(cat.code)}
+                            aria-label={tCommon('delete')}
+                            onClick={() => handleDeleteRequest(cat.code)}
                             disabled={!!cat.system_category_code}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -317,23 +329,23 @@ export default function CustomerCategoriesPage() {
         <CmxDialogContent className="max-w-2xl w-full mx-4">
           <CmxDialogHeader>
             <CmxDialogTitle>
-              {editingCode ? 'Edit Customer Category' : 'New Customer Category'}
+              {editingCode ? tPage('editTitle') : tPage('createTitle')}
             </CmxDialogTitle>
           </CmxDialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label>Name (English) *</Label>
+                <Label>{tPage('nameEnLabel')} *</Label>
                 <CmxInput
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="Walk-in"
+                  placeholder={tPage('nameEnPlaceholder')}
                   required
                   className="w-full"
                 />
               </div>
               <div>
-                <Label>Code *</Label>
+                <Label>{tPage('codeLabel')} *</Label>
                 <div className="flex gap-2">
                   <CmxInput
                     value={formData.code}
@@ -350,17 +362,17 @@ export default function CustomerCategoriesPage() {
                 </div>
               </div>
               <div>
-                <Label>Name (Arabic)</Label>
+                <Label>{tPage('nameArLabel')}</Label>
                 <CmxInput
                   value={formData.name2}
                   onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
-                  placeholder="عميل وافد"
+                  placeholder={tPage('nameArPlaceholder')}
                   dir="rtl"
                   className="w-full"
                 />
               </div>
               <div>
-                <Label>System Type</Label>
+                <Label>{tPage('systemTypeLabel')}</Label>
                 <CmxSelect
                   value={formData.system_type}
                   onChange={(e) =>
@@ -372,11 +384,11 @@ export default function CustomerCategoriesPage() {
                     })
                   }
                   disabled={isReserved}
-                  options={[...SYSTEM_TYPES]}
+                  options={systemTypes}
                 />
               </div>
               <div>
-                <Label>Display Order</Label>
+                <Label>{tPage('displayOrderLabel')}</Label>
                 <CmxInput
                   type="number"
                   value={formData.display_order}
@@ -397,14 +409,14 @@ export default function CustomerCategoriesPage() {
                     })
                   }
                   disabled={isReserved}
-                  label="B2B"
+                  label={tPage('colB2b')}
                 />
                 <div className="flex items-center gap-2">
                   <CmxSwitch
                     checked={formData.is_active}
                     onCheckedChange={(v) => setFormData({ ...formData, is_active: !!v })}
                   />
-                  <Label className="text-sm font-normal">Active</Label>
+                  <Label className="text-sm font-normal">{tCommon('active')}</Label>
                 </div>
               </div>
             </div>
@@ -415,12 +427,27 @@ export default function CustomerCategoriesPage() {
                 </CmxButton>
               </CmxDialogClose>
               <CmxButton type="submit" disabled={saving} loading={saving}>
-                {editingCode ? 'Save' : 'Create'}
+                {editingCode ? tCommon('save') : tCommon('create')}
               </CmxButton>
             </CmxDialogFooter>
           </form>
         </CmxDialogContent>
       </CmxDialog>
+
+      <CmxConfirmDialog
+        open={Boolean(deleteTargetCode)}
+        title={tPage('deleteConfirmTitle')}
+        description={
+          deleteTargetCode
+            ? tPage('deleteConfirmDesc', { name: deleteTargetCategory?.name ?? deleteTargetCode })
+            : undefined
+        }
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
+        confirmDisabled={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => { if (!deleting) setDeleteTargetCode(null); }}
+      />
     </div>
   );
 }

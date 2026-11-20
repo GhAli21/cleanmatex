@@ -196,15 +196,26 @@
       "tagMoreIssues": "Nothing was saved. Other tags to fix: {count}.",
       "tagPartialSaved": "{count} piece(s) were saved before the tag error. Fix the tag and save again.",
       "updateFailed": "Update Failed"
-    }
+    },
+    "loadingPieces": "Loading pieces...",
+    "itemLevelTracking": "Item-level tracking active",
+    "notesLabel": "Notes:",
+    "unknownItem": "Unknown Item",
+    "itemAriaLabel": "Item: {name}"
   },
   "splitConfirm": {
     "title": "Confirm Split Order",
     "message": "Split {count} pieces into a new order?",
     "reason": "Reason (required)",
+    "reasonRequired": "Reason is required",
     "reasonPlaceholder": "Enter reason for splitting...",
     "confirm": "Confirm Split",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "previewHeading": "What will happen:",
+    "previewLine1": "A new sub-order will be created",
+    "previewLine2": "{count, plural, one {# piece will be moved to the new order} other {# pieces will be moved to the new order}}",
+    "previewLine3": "Original order will keep remaining pieces",
+    "previewLine4": "Both orders will reference each other"
   },
   "summary": {
     "updateSuccess": "Update Successful",

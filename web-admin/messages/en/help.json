@@ -102,5 +102,16 @@
       "forbidden": "You need the help:platform_inventories permission to view platform inventories. Ask your tenant admin to grant it.",
       "loadFailed": "Failed to load platform inventories."
     }
+  },
+  "apiDocs": {
+    "timeoutError": "Request timeout - The API documentation is taking too long to generate. This might be due to file scanning. Please try again.",
+    "unknownError": "Unknown error",
+    "loading": "Loading API documentation...",
+    "loadFailed": "Failed to load API documentation",
+    "retry": "Retry",
+    "emptyTitle": "No API documentation available",
+    "emptySubtitle": "The API spec could not be loaded",
+    "noteLabel": "Note:",
+    "noPathsNotice": "API route scanning may have failed. This is common on Vercel due to file system limitations. The documentation structure is available, but individual endpoint details may be missing."
   }
 }

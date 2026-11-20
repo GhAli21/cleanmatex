@@ -149,7 +149,7 @@ HQ app → **HQ Admin Console → Operations → Job Manager** (`/ops/jobs`), as
 
 | # | Where / do | Expect |
 |---|---|---|
-| H1 | Find **File Util: purge deleted file bytes** (module file_util) | Badge **HQ worker**; schedule `47 3 * * 0` ("every week on Sunday at 03:47 UTC"); Enabled; drift "In sync" within a minute of the worker starting. Before the worker runs: "Waiting for worker" and drift "Worker not reporting". |
+| H1 | Find **File Util: purge deleted file bytes** (module file_util) | Badge **HQ worker**; schedule `47 3 * * 0` ("every week on Sunday at 03:47 UTC"); Enabled; drift "In sync" within about 15 minutes of the worker starting (I11 D10). Before the worker runs: "Waiting for worker" and drift "Worker not reporting". |
 | H2 | Pencil → **Common schedules** → "Every day at 03:00 UTC" → Save | Cron box shows `0 3 * * *`; saved; within about a minute the row shows no drift (worker applied it). Audit (clipboard icon) shows the change with you as actor. |
 | H3 | Same dialog → type `99 * * * *` | Save disabled, "outside its allowed range". |
 | H4 | Tenant app: delete a file on an order. HQ: **Run now** on the purge job → confirm | Dialog says the run is queued; result dialog "Queued". Within about a minute History shows a MANUAL run SUCCESS "Purged 1 deleted file(s) in 2 batch(es)"; File Setup → File health "Deleted, bytes not removed" goes to 0. |

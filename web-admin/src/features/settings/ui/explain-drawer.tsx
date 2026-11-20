@@ -8,8 +8,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { X, Info, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { CmxButton, CmxCard } from '@ui/primitives';
+import { zIndex } from '@ui/foundations';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { settingsClient, type ExplainTrace } from '@/lib/api/settings-client';
 import { SourceBadge } from './source-badge';
@@ -41,6 +43,9 @@ export function ExplainDrawer({
   isOpen,
   onClose,
 }: ExplainDrawerProps) {
+  const t = useTranslations('settings.advancedSettings');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const [trace, setTrace] = useState<ExplainTrace | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -81,7 +86,7 @@ export function ExplainDrawer({
       });
       setTrace(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load explanation');
+      setError(err instanceof Error ? err.message : t('loadErrorExplain'));
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +95,7 @@ export function ExplainDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-label="Setting Resolution Trace">
+    <div className="fixed inset-0 overflow-hidden" style={{ zIndex: zIndex.modal }} role="dialog" aria-modal="true" aria-label={t('explainTitle')}>
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 transition-opacity"
@@ -106,13 +111,14 @@ export function ExplainDrawer({
             <div className="flex items-center gap-2">
               <Info className="h-5 w-5 text-primary-text" />
               <h2 className="text-lg font-semibold text-foreground">
-                Setting Resolution Trace
+                {t('explainTitle')}
               </h2>
             </div>
             <CmxButton
               variant="ghost"
               size="sm"
               onClick={onClose}
+              aria-label={tCommon('close')}
               className="text-muted-foreground hover:text-foreground"
             >
               <X className="h-5 w-5" />
@@ -143,7 +149,7 @@ export function ExplainDrawer({
               <CmxCard className="bg-success-bg border-success-border">
                 <div className="p-4">
                   <h3 className="text-sm font-medium text-success-text mb-2">
-                    Final Effective Value
+                    {t('finalEffectiveValue')}
                   </h3>
                   <div className="flex items-center justify-between">
                     <code className="text-lg font-mono text-success-text">
@@ -162,7 +168,7 @@ export function ExplainDrawer({
                 <CmxCard>
                   <div className="p-4">
                     <h3 className="text-sm font-medium text-foreground mb-3">
-                      Profile Inheritance Chain
+                      {t('profileInheritanceChain')}
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       {trace.inheritanceChain.map((profileCode, index) => (
@@ -171,13 +177,13 @@ export function ExplainDrawer({
                             {profileCode}
                           </div>
                           {index < trace.inheritanceChain!.length - 1 && (
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                            <ArrowRight className="h-4 w-4 text-muted-foreground rtl:rotate-180" />
                           )}
                         </React.Fragment>
                       ))}
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Resolution flows from left (child) to right (root)
+                      {t('inheritanceFlowHint')}
                     </p>
                   </div>
                 </CmxCard>
@@ -186,7 +192,7 @@ export function ExplainDrawer({
               {/* 7-Layer Resolution Timeline */}
               <div>
                 <h3 className="text-sm font-medium text-foreground mb-3">
-                  Resolution Layers (7-Layer Algorithm)
+                  {t('resolutionLayersTitle')}
                 </h3>
                 <div className="space-y-3">
                   {trace.layers.map((layer, index) => (
@@ -203,7 +209,11 @@ export function ExplainDrawer({
 
               {/* Metadata */}
               <div className="text-xs text-muted-foreground pt-4 border-t border-border">
-                <p>Computed at: {new Date(trace.computedAt).toLocaleString()}</p>
+                <p>
+                  {t('computedAt', {
+                    date: new Date(trace.computedAt).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM'),
+                  })}
+                </p>
               </div>
             </div>
           )}
@@ -212,7 +222,7 @@ export function ExplainDrawer({
         {/* Footer */}
         <div className="px-6 py-4 bg-muted border-t border-border">
           <CmxButton onClick={onClose} className="w-full">
-            Close
+            {tCommon('close')}
           </CmxButton>
         </div>
       </div>
@@ -238,6 +248,7 @@ interface LayerCardProps {
 }
 
 function LayerCard({ layer, layerNumber, isActive, isFinal }: LayerCardProps) {
+  const t = useTranslations('settings.advancedSettings');
   const bgColor = isFinal
     ? 'bg-success-bg border-success-border'
     : isActive
@@ -257,7 +268,7 @@ function LayerCard({ layer, layerNumber, isActive, isFinal }: LayerCardProps) {
                 {layer.layer.replace(/_/g, ' ')}
               </h4>
               <p className="text-xs text-muted-foreground">
-                Source: <code className="font-mono">{layer.sourceId}</code>
+                {t('layerSource')} <code className="font-mono">{layer.sourceId}</code>
               </p>
             </div>
           </div>
@@ -272,7 +283,7 @@ function LayerCard({ layer, layerNumber, isActive, isFinal }: LayerCardProps) {
 
         <div className="mt-2 ps-8">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Value:</span>
+            <span className="text-xs text-muted-foreground">{t('layerValue')}</span>
             <code className="text-sm font-mono text-foreground">
               {JSON.stringify(layer.value)}
             </code>
@@ -280,14 +291,14 @@ function LayerCard({ layer, layerNumber, isActive, isFinal }: LayerCardProps) {
 
           {layer.reason && (
             <div className="mt-1">
-              <span className="text-xs text-muted-foreground">Reason: </span>
+              <span className="text-xs text-muted-foreground">{t('layerReason')} </span>
               <span className="text-xs text-foreground">{layer.reason}</span>
             </div>
           )}
 
           <div className="mt-1">
             <span className={`text-xs ${isActive ? 'text-success-text font-medium' : 'text-muted-foreground'}`}>
-              {isActive ? '✓ Applied' : 'Skipped/Overridden'}
+              {isActive ? t('layerApplied') : t('layerSkipped')}
             </span>
           </div>
         </div>

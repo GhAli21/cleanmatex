@@ -7,15 +7,20 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxProgressBar } from '@ui/feedback';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import type { UsageMetrics } from '@/lib/types/tenant';
 
 /**
  *
  */
 export function PlanLimitsSettings() {
+  const t = useTranslations('settings.advancedSettings');
+  const tSub = useTranslations('settings.subscriptionPage');
+  const { formatNumber } = useTenantCurrency();
   const [metrics, setMetrics] = React.useState<UsageMetrics | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
@@ -31,11 +36,11 @@ export function PlanLimitsSettings() {
       const res = await fetch('/api/v1/subscriptions/usage');
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json?.error || 'Failed to load usage metrics');
+        throw new Error(json?.error || t('loadErrorUsage'));
       }
       setMetrics(json.data as UsageMetrics);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load usage metrics');
+      setError(err instanceof Error ? err.message : t('loadErrorUsage'));
     } finally {
       setLoading(false);
     }
@@ -50,7 +55,7 @@ export function PlanLimitsSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-        Loading plan limits...
+        {t('loadingLimits')}
       </div>
     );
   }
@@ -58,7 +63,7 @@ export function PlanLimitsSettings() {
   if (error || !metrics) {
     return (
       <div className="flex items-center justify-center py-12 text-danger-text text-sm">
-        {error || 'Failed to load plan limits'}
+        {error || t('loadErrorLimits')}
       </div>
     );
   }
@@ -69,16 +74,16 @@ export function PlanLimitsSettings() {
     <CmxCard>
       <CmxCardContent className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Plan Limits & Usage</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('planLimitsTitle')}</h2>
           <p className="text-sm text-muted-foreground">
-            View your current plan constraints and how much you have used.
+            {t('planLimitsSubtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Orders */}
           <LimitCard
-            title="Orders"
+            title={tSub('orders')}
             used={usage.ordersCount}
             limit={limits.ordersLimit}
             percentage={usage.ordersPercentage}
@@ -86,7 +91,7 @@ export function PlanLimitsSettings() {
 
           {/* Users */}
           <LimitCard
-            title="Users"
+            title={tSub('users')}
             used={usage.usersCount}
             limit={limits.usersLimit}
             percentage={usage.usersPercentage}
@@ -94,7 +99,7 @@ export function PlanLimitsSettings() {
 
           {/* Branches */}
           <LimitCard
-            title="Branches"
+            title={tSub('branches')}
             used={usage.branchesCount}
             limit={limits.branchesLimit}
             percentage={usage.branchesPercentage}
@@ -102,7 +107,7 @@ export function PlanLimitsSettings() {
 
           {/* Storage */}
           <LimitCard
-            title="Storage (MB)"
+            title={t('storageMbLabel')}
             used={usage.storageMb}
             limit={limits.storageMbLimit}
             percentage={usage.storagePercentage}
@@ -122,12 +127,12 @@ export function PlanLimitsSettings() {
             <p className="text-sm font-medium text-foreground">{title}</p>
             <p className="text-xs text-muted-foreground">
               {isUnlimited
-                ? `${used.toLocaleString()} used (Unlimited)`
-                : `${used.toLocaleString()} / ${limit.toLocaleString()} used`}
+                ? t('usedUnlimited', { used: formatNumber(used) })
+                : t('usedOfLimit', { used: formatNumber(used), limit: formatNumber(limit) })}
             </p>
           </div>
           <p className="text-sm font-semibold text-foreground">
-            {percentage.toFixed(1)}%
+            {formatNumber(percentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
           </p>
         </div>
         {!isUnlimited && (

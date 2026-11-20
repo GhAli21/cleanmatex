@@ -1034,7 +1034,7 @@ export function ProcessingModal({
                       {isPiecesLoading && trackByPiece && (
                         <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin me-2" />
-                          <span>Loading pieces...</span>
+                          <span>{t('loadingPieces')}</span>
                         </div>
                       )}
                     </>

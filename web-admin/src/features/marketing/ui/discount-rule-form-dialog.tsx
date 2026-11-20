@@ -256,8 +256,8 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
                       <CmxSelectDropdownValue />
                     </CmxSelectDropdownTrigger>
                     <CmxSelectDropdownContent>
-                      <CmxSelectDropdownItem value="percentage">%</CmxSelectDropdownItem>
-                      <CmxSelectDropdownItem value="fixed_amount">Fixed</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="percentage">{t('discountTypes.percentage')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="fixed_amount">{t('discountTypes.fixed_amount')}</CmxSelectDropdownItem>
                     </CmxSelectDropdownContent>
                   </CmxSelectDropdown>
                 )}

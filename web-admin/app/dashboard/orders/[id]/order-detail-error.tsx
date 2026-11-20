@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableRow } from '@ui/primitives/table';
@@ -59,6 +60,7 @@ export function OrderDetailError({
   returnLabel,
   debug,
 }: OrderDetailErrorProps) {
+  const t = useTranslations('orders.detailError');
   const [showDebug, setShowDebug] = useState(false);
   const hasDebug = debug && Object.values(debug).some((v) => v != null && v !== '');
 
@@ -74,7 +76,7 @@ export function OrderDetailError({
             <p className="mt-2 text-sm text-warning-text">{description}</p>
             {orderId && /^[0-9a-f-]{36}$/i.test(orderId) && (
               <p className="mt-2 text-xs text-warning-text font-mono">
-                Order ID: {orderId}
+                {t('orderIdLabel', { id: orderId })}
               </p>
             )}
 
@@ -90,12 +92,12 @@ export function OrderDetailError({
                   {showDebug ? (
                     <>
                       <ChevronUp className="h-4 w-4" />
-                      Hide debug info
+                      {t('hideDebugInfo')}
                     </>
                   ) : (
                     <>
                       <ChevronDown className="h-4 w-4" />
-                      Show debug info (to trace error)
+                      {t('showDebugInfo')}
                     </>
                   )}
                 </CmxButton>
@@ -105,36 +107,36 @@ export function OrderDetailError({
                       <TableBody>
                         {debug?.condition && (
                           <TableRow>
-                            <TableCell className="py-1 pe-4 font-semibold">Condition:</TableCell>
+                            <TableCell className="py-1 pe-4 font-semibold">{t('conditionLabel')}</TableCell>
                             <TableCell className="py-1">{debug.condition}</TableCell>
                           </TableRow>
                         )}
                         {debug?.serverError && (
                           <TableRow>
-                            <TableCell className="py-1 pe-4 font-semibold">Server error:</TableCell>
+                            <TableCell className="py-1 pe-4 font-semibold">{t('serverErrorLabel')}</TableCell>
                             <TableCell className="py-1">{debug.serverError}</TableCell>
                           </TableRow>
                         )}
                         {debug?.tenantId && (
                           <TableRow>
-                            <TableCell className="py-1 pe-4 font-semibold">Tenant ID (used for query):</TableCell>
+                            <TableCell className="py-1 pe-4 font-semibold">{t('tenantIdLabel')}</TableCell>
                             <TableCell className="py-1 break-all">{debug.tenantId}</TableCell>
                           </TableRow>
                         )}
                         {debug?.userId && (
                           <TableRow>
-                            <TableCell className="py-1 pe-4 font-semibold">User ID:</TableCell>
+                            <TableCell className="py-1 pe-4 font-semibold">{t('userIdLabel')}</TableCell>
                             <TableCell className="py-1 break-all">{debug.userId}</TableCell>
                           </TableRow>
                         )}
                         <TableRow>
-                          <TableCell className="py-1 pe-4 font-semibold">Order ID (queried):</TableCell>
-                          <TableCell className="py-1 break-all">{orderId || '(empty)'}</TableCell>
+                          <TableCell className="py-1 pe-4 font-semibold">{t('orderIdQueriedLabel')}</TableCell>
+                          <TableCell className="py-1 break-all">{orderId || t('emptyValue')}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
                     <p className="mt-2 text-warning-text">
-                      Possible causes: order deleted, tenant mismatch (order belongs to different tenant), database connection issue, or RLS policy blocking access.
+                      {t('possibleCauses')}
                     </p>
                   </div>
                 )}

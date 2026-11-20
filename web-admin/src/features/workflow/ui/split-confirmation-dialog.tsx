@@ -62,7 +62,7 @@ export function SplitConfirmationDialog({
   const handleConfirm = () => {
     // Validate reason is provided
     if (!reason.trim()) {
-      setError(t('reason') + ' is required');
+      setError(t('reasonRequired'));
       return;
     }
 
@@ -111,12 +111,12 @@ export function SplitConfirmationDialog({
 
           {/* Preview */}
           <div className="p-3 bg-info-bg border border-info-border rounded-lg text-sm">
-            <p className="font-medium text-primary-text">What will happen:</p>
+            <p className="font-medium text-primary-text">{t('previewHeading')}</p>
             <ul className="mt-2 space-y-1 text-primary-text">
-              <li>• A new sub-order will be created</li>
-              <li>• {pieceCount} piece{pieceCount !== 1 ? 's' : ''} will be moved to the new order</li>
-              <li>• Original order will keep remaining pieces</li>
-              <li>• Both orders will reference each other</li>
+              <li>• {t('previewLine1')}</li>
+              <li>• {t('previewLine2', { count: pieceCount })}</li>
+              <li>• {t('previewLine3')}</li>
+              <li>• {t('previewLine4')}</li>
             </ul>
           </div>
         </div>

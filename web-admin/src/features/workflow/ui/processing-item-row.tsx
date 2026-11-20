@@ -93,7 +93,9 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
         borderLeftColor: isRejected && rejectEnabled ? rejectColor : undefined,
       }}
       role="article"
-      aria-label={`Item: ${item.org_product_data_mst?.product_name || item.product_name || 'Unknown Item'}`}
+      aria-label={t('itemAriaLabel', {
+        name: item.org_product_data_mst?.product_name || item.product_name || t('unknownItem'),
+      })}
     >
       <CmxCardHeader className="pb-3 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4">
@@ -224,9 +226,9 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
       {!trackByPiece && (
         <CmxCardContent>
           <div className="text-sm text-muted-foreground space-y-2">
-            <p className="font-medium">Item-level tracking active</p>
+            <p className="font-medium">{t('itemLevelTracking')}</p>
             <div className="flex items-center gap-2">
-              <span>Status:</span>
+              <span>{t('status')}:</span>
               <CmxStatusBadge
                 label={item.status}
                 tone="neutral"
@@ -236,7 +238,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
             </div>
             {item.notes && (
               <div className="mt-3 p-3 bg-muted rounded-md">
-                <span className="font-medium text-foreground">Notes:</span>
+                <span className="font-medium text-foreground">{t('notesLabel')}</span>
                 <p className="mt-1 text-muted-foreground">{item.notes}</p>
               </div>
             )}

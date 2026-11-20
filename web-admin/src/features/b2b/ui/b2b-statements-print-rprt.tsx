@@ -59,6 +59,7 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
     >
       <header className="print-header">
         <div className="flex justify-between print-subtitle">
+          {/* cmx-ds-ignore UI008: brand name */}
           <span>CleanMateX</span>
           <span>{statement.statementNo}</span>
         </div>

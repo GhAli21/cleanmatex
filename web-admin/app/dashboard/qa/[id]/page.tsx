@@ -214,7 +214,7 @@ export default function QADetailPage() {
   if (!order) {
     return (
       <div className="bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
-        Order not found
+        {t('qa.orderNotFound')}
       </div>
     );
   }
@@ -255,12 +255,12 @@ export default function QADetailPage() {
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-semibold">{item.product_name}</h3>
-                  <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                  <p className="text-sm text-muted-foreground">{t('qa.quantityLabel', { count: item.quantity })}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium mb-2">Quality Decision:</p>
+                <p className="text-sm font-medium mb-2">{t('qa.qualityDecisionLabel')}</p>
                 <div className="flex gap-2">
                   <CmxButton
                     type="button"
@@ -353,7 +353,7 @@ export default function QADetailPage() {
         {/* Actions Panel */}
         <div className="space-y-4">
           <div className="bg-card rounded-lg border border-border p-4">
-            <h3 className="font-semibold mb-4">QA Actions</h3>
+            <h3 className="font-semibold mb-4">{t('qa.actionsPanelTitle')}</h3>
             
             <CmxButton
               type="button"

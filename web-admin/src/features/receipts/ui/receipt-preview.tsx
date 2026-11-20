@@ -7,6 +7,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton, CmxCheckbox, CmxSelect, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useReceipts, useSendReceipt } from '../hooks/use-receipts';
@@ -19,18 +20,6 @@ interface ReceiptPreviewProps {
   customerType?: string;
 }
 
-const RECEIPT_TYPES = [
-  { value: 'whatsapp_text', label: 'WhatsApp Text' },
-  { value: 'whatsapp_image', label: 'WhatsApp Image' },
-  { value: 'in_app', label: 'In-App Receipt' },
-];
-
-const DELIVERY_CHANNELS = [
-  { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'email', label: 'Email' },
-  { value: 'app', label: 'In-App' },
-];
-
 /**
  *
  * @param root0
@@ -38,6 +27,8 @@ const DELIVERY_CHANNELS = [
  * @param root0.customerType
  */
 export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
+  const t = useTranslations('receipts');
+  const locale = useLocale();
   const [receiptType, setReceiptType] = useState('whatsapp_text');
   const [deliveryChannels, setDeliveryChannels] = useState<string[]>(['whatsapp']);
   const isB2b = customerType === 'b2b';
@@ -48,9 +39,21 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   const { mutate: sendReceipt, isPending: isSending } = useSendReceipt();
   const { showSuccess, showError } = useMessage();
 
+  const receiptTypeOptions = [
+    { value: 'whatsapp_text', label: t('receiptTypes.whatsapp_text') },
+    { value: 'whatsapp_image', label: t('receiptTypes.whatsapp_image') },
+    { value: 'in_app', label: t('receiptTypes.in_app') },
+  ];
+
+  const deliveryChannelOptions = [
+    { value: 'whatsapp', label: t('deliveryChannels.whatsapp') },
+    { value: 'email', label: t('deliveryChannels.email') },
+    { value: 'app', label: t('deliveryChannels.app') },
+  ];
+
   const handleSend = () => {
     if (effectiveChannels.length === 0) {
-      showError('Please select at least one delivery channel');
+      showError(t('messages.channelRequired'));
       return;
     }
 
@@ -63,10 +66,10 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
       },
       {
         onSuccess: () => {
-          showSuccess('Receipt sent successfully');
+          showSuccess(t('messages.sendSuccess'));
         },
         onError: (error) => {
-          showError(error.message || 'Failed to send receipt');
+          showError(error.message || t('messages.sendFailed'));
         },
       }
     );
@@ -104,23 +107,23 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
         <CmxCardHeader>
           <CmxCardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Send Receipt
+            {t('send.title')}
           </CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="space-y-4">
           <div>
             <CmxSelect
-              label="Receipt Type"
+              label={t('send.receiptType')}
               value={receiptType}
               onChange={(e) => setReceiptType(e.target.value)}
-              options={RECEIPT_TYPES}
+              options={receiptTypeOptions}
             />
           </div>
 
           <div>
-            <Label className="block mb-1">Delivery Channels</Label>
+            <Label className="block mb-1">{t('send.deliveryChannels')}</Label>
             <div className="space-y-2">
-              {DELIVERY_CHANNELS.map((channel) => (
+              {deliveryChannelOptions.map((channel) => (
                 <CmxCheckbox
                   key={channel.value}
                   disabled={isB2b}
@@ -143,19 +146,19 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
 
           <div>
             <CmxSelect
-              label="Language"
+              label={t('send.language')}
               value={language}
               onChange={(e) => setLanguage(e.target.value as 'en' | 'ar')}
               options={[
-                { value: 'en', label: 'English' },
-                { value: 'ar', label: 'Arabic' },
+                { value: 'en', label: t('languages.en') },
+                { value: 'ar', label: t('languages.ar') },
               ]}
             />
           </div>
 
           <CmxButton onClick={handleSend} loading={isSending} disabled={isSending} className="w-full">
             <Send className="h-4 w-4 me-2" />
-            Send Receipt
+            {t('send.action')}
           </CmxButton>
         </CmxCardContent>
       </CmxCard>
@@ -163,7 +166,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
       {receipts && receipts.length > 0 && (
         <CmxCard>
           <CmxCardHeader>
-            <CmxCardTitle>Receipt History</CmxCardTitle>
+            <CmxCardTitle>{t('history.title')}</CmxCardTitle>
           </CmxCardHeader>
           <CmxCardContent>
             <div className="space-y-2">
@@ -176,12 +179,14 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
                     {getStatusIcon(receipt.deliveryStatusCode)}
                     <div>
                       <div className="font-medium text-sm">
-                        {receipt.receiptTypeCode} via {receipt.deliveryChannelCode}
+                        {receipt.receiptTypeCode} · {receipt.deliveryChannelCode}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground tabular-nums">
                         {receipt.sentAt
-                          ? `Sent: ${new Date(receipt.sentAt).toLocaleString()}`
-                          : 'Not sent'}
+                          ? t('history.sentAt', {
+                              date: new Date(receipt.sentAt).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM'),
+                            })
+                          : t('history.notSent')}
                       </div>
                     </div>
                   </div>

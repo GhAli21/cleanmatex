@@ -198,6 +198,10 @@
     "description": "Orders pending quality check",
     "empty": "No orders pending QA",
     "items": "items",
+    "orderNotFound": "Order not found",
+    "quantityLabel": "Quantity: {count}",
+    "qualityDecisionLabel": "Quality Decision:",
+    "actionsPanelTitle": "QA Actions",
     "actions": {
       "open": "Quality Check",
       "accept": "Accept",

@@ -49,7 +49,13 @@
     "mainBranchHelper": "Primary branch assignment (optional)",
     "noBranchAssigned": "No branch assigned",
     "selectRolePlaceholder": "Select a role...",
-    "roleRequired": "Role is required"
+    "roleRequired": "Role is required",
+    "loadingBranches": "Loading branches...",
+    "loadingRoles": "Loading roles...",
+    "fallbackViewer": "Viewer",
+    "fallbackOperator": "Operator",
+    "fallbackTenantAdmin": "Organization Administrator",
+    "fallbackBranchManager": "Branch Manager"
   },
   "stats": {
     "totalUsers": "Total Users",

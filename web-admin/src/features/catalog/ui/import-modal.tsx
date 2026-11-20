@@ -87,6 +87,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
                 </CmxButton>
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
+                {/* cmx-ds-ignore UI008: standard file format acronym CSV */}
                 <div className="mb-1 font-medium">CSV</div>
                 <pre className="overflow-auto rounded bg-muted p-2 text-xs">
                   {template === 'basic' ? sampleBasic : sampleAdvanced}

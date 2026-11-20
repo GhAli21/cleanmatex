@@ -8,8 +8,10 @@
 
 'use client';
 
+import { CmxConfirmDialog } from '@ui/feedback';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2 } from 'lucide-react';
 import { CmxCard } from '@ui/primitives/cmx-card';
@@ -22,6 +24,8 @@ import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-fie
  *
  */
 export default function BranchSettingsPage() {
+  const t = useTranslations('settings.advancedSettings');
+  const tCommon = useTranslations('common');
   const params = useParams();
   const router = useRouter();
   const branchId = params.id as string;
@@ -31,9 +35,11 @@ export default function BranchSettingsPage() {
   const [catalog, setCatalog] = useState<Record<string, SettingDefinition[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchId]);
 
   const fetchData = async () => {
@@ -44,7 +50,7 @@ export default function BranchSettingsPage() {
       const branchResponse = await fetch(`/api/v1/branches/${branchId}`);
       const branchData = await branchResponse.json();
       if (branchResponse.ok) {
-        setBranchName(branchData.data.branch_name || 'Branch');
+        setBranchName(branchData.data.branch_name || t('branchDetailFallback'));
       }
 
       // Fetch effective settings for this branch
@@ -55,15 +61,13 @@ export default function BranchSettingsPage() {
       const catalogData = await settingsClient.getCatalogByCategory();
       setCatalog(catalogData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+      setError(err instanceof Error ? err.message : t('loadErrorBranchSettings'));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResetAll = async () => {
-    if (!confirm('Are you sure you want to reset all branch overrides?')) return;
-
     try {
       // Delete all branch overrides
       const branchSettings = effectiveSettings.filter(
@@ -74,6 +78,7 @@ export default function BranchSettingsPage() {
         await settingsClient.deleteOverride(setting.stngCode, { branchId });
       }
 
+      setShowResetConfirm(false);
       await fetchData();
     } catch (err) {
       console.error('Failed to reset branch overrides:', err);
@@ -85,7 +90,7 @@ export default function BranchSettingsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading branch settings...</p>
+          <p className="mt-4 text-muted-foreground">{t('loadingBranchSettings')}</p>
         </div>
       </div>
     );
@@ -94,7 +99,7 @@ export default function BranchSettingsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <CmxSummaryMessage type="error" title="Error" message={error} />
+        <CmxSummaryMessage type="error" title={tCommon('error')} message={error} />
       </div>
     );
   }
@@ -143,7 +148,7 @@ export default function BranchSettingsPage() {
         settingCode,
         value,
         branchId,
-        overrideReason: `Branch ${branchName} override`,
+        overrideReason: t('branchOverrideReason', { name: branchName }),
       });
       await fetchData();
     } catch (err) {
@@ -161,8 +166,8 @@ export default function BranchSettingsPage() {
           onClick={() => router.back()}
           className="mb-4"
         >
-          <ArrowLeft className="h-4 w-4 me-2" />
-          Back to Settings
+          <ArrowLeft className="h-4 w-4 me-2 rtl:rotate-180" />
+          {t('backToSettings')}
         </CmxButton>
 
         <div className="flex items-center justify-between">
@@ -172,14 +177,14 @@ export default function BranchSettingsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                Branch Settings
+                {t('branchSettingsTitle')}
               </h1>
               <p className="mt-1 text-muted-foreground">{branchName}</p>
             </div>
           </div>
 
-          <CmxButton variant="outline" onClick={handleResetAll}>
-            Reset All Overrides
+          <CmxButton variant="outline" onClick={() => setShowResetConfirm(true)}>
+            {t('resetAllOverrides')}
           </CmxButton>
         </div>
       </div>
@@ -187,12 +192,22 @@ export default function BranchSettingsPage() {
       {/* Info Banner */}
       <CmxCard className="mb-6 p-4 bg-info-bg border-info-border">
         <p className="text-sm text-primary-text">
-          Branch-level overrides apply to all users in this branch and take precedence over tenant-level settings.
+          {t('branchBanner')}
         </p>
       </CmxCard>
 
       {/* Settings Tabs */}
       <CmxTabsPanel tabs={tabs} defaultTab={tabs[0]?.id} />
+
+      <CmxConfirmDialog
+        open={showResetConfirm}
+        title={t('resetAllOverrides')}
+        description={t('resetAllConfirm')}
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        onConfirm={handleResetAll}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 }

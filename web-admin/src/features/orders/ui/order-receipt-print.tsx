@@ -108,6 +108,7 @@ export function OrderReceiptPrint({
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <header className="print-header text-center">
+        {/* cmx-ds-ignore UI008: brand name */}
         <h1 className="print-title">CleanMateX</h1>
         <p className="print-subtitle">
           {tWorkflowReady('description')}

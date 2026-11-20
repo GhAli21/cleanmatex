@@ -109,7 +109,10 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
     >
       <CmxCrudPageShell
         breadcrumb={
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">ERP-Lite</p>
+          <>
+            {/* cmx-ds-ignore UI008: ERP-Lite module brand mark */}
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">ERP-Lite</p>
+          </>
         }
         title={t('gl.title')}
         subtitle={t('gl.subtitle')}

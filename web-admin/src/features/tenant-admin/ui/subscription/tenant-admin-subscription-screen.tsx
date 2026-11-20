@@ -34,7 +34,7 @@ import type {
   Tenant,
   Subscription,
 } from '@/lib/types/tenant';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useQueryClient } from '@tanstack/react-query';
@@ -63,7 +63,10 @@ export function TenantAdminSubscriptionScreen() {
   const [success, setSuccess] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const locale = useLocale();
-  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const t = useTranslations('settings.subscriptionPage');
+  const tSettings = useTranslations('settings');
+  const tCommon = useTranslations('common');
+  const { currencyCode, decimalPlaces, formatNumber } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const fmtPlanMoney = (amount: number) =>
     formatMoneyAmountWithCode(amount, { currencyCode, decimalPlaces, locale: moneyLocale });
@@ -84,7 +87,7 @@ export function TenantAdminSubscriptionScreen() {
       ]);
 
       if (!plansRes.ok || !usageRes.ok || !tenantRes.ok) {
-        throw new Error('Failed to fetch subscription data');
+        throw new Error(t('fetchError'));
       }
 
       const plansData = await plansRes.json();
@@ -96,7 +99,7 @@ export function TenantAdminSubscriptionScreen() {
       setUsage(usageData.data);
       setTenant(tenantData.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load subscription data');
+      setError(err instanceof Error ? err.message : t('loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -130,10 +133,10 @@ export function TenantAdminSubscriptionScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Upgrade failed');
+        throw new Error(data.error || t('upgradeFailed'));
       }
 
-      setSuccess(`Successfully upgraded to ${selectedPlan.plan_name}!`);
+      setSuccess(t('upgradeSuccess', { planName: selectedPlan.plan_name }));
       setShowUpgradeModal(false);
       void invalidateTenantFeatureFlags(queryClient, currentTenant?.tenant_id);
 
@@ -143,7 +146,7 @@ export function TenantAdminSubscriptionScreen() {
         setSuccess('');
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upgrade subscription');
+      setError(err instanceof Error ? err.message : t('upgradeError'));
     } finally {
       setIsProcessing(false);
     }
@@ -159,7 +162,7 @@ export function TenantAdminSubscriptionScreen() {
 
   const handleCancel = async () => {
     if (!cancelReason) {
-      setError('Please select a cancellation reason');
+      setError(t('cancelSelectReason'));
       return;
     }
 
@@ -180,10 +183,10 @@ export function TenantAdminSubscriptionScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Cancellation failed');
+        throw new Error(data.error || t('cancelFailed'));
       }
 
-      setSuccess('Subscription will be canceled at the end of the billing period');
+      setSuccess(t('cancelSuccess'));
       setShowCancelModal(false);
       void invalidateTenantFeatureFlags(queryClient, currentTenant?.tenant_id);
 
@@ -193,7 +196,7 @@ export function TenantAdminSubscriptionScreen() {
         setSuccess('');
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel subscription');
+      setError(err instanceof Error ? err.message : t('cancelError'));
     } finally {
       setIsProcessing(false);
     }
@@ -217,7 +220,7 @@ export function TenantAdminSubscriptionScreen() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading subscription data...</p>
+          <p className="mt-4 text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     );
@@ -228,7 +231,7 @@ export function TenantAdminSubscriptionScreen() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <CmxSummaryMessage
           type="error"
-          title="Error Loading Subscription"
+          title={t('errorLoadingTitle')}
           message={error}
         />
       </div>
@@ -237,6 +240,12 @@ export function TenantAdminSubscriptionScreen() {
 
   const isOnTrial = tenant?.status === 'trial';
   const isPaidPlan = currentPlan && currentPlan !== 'free';
+  const statusLabels: Record<string, string> = {
+    active: t('statusActive'),
+    trial: t('statusTrial'),
+    suspended: t('statusSuspended'),
+    canceled: t('statusCanceled'),
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -245,10 +254,10 @@ export function TenantAdminSubscriptionScreen() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              Subscription & Billing
+              {t('title')}
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Manage your plan and view usage
+              {t('subtitle')}
             </p>
           </div>
           {tenant && (
@@ -259,7 +268,7 @@ export function TenantAdminSubscriptionScreen() {
                 tenant.status === 'suspended' ? 'warning' : 'brand'
               }
             >
-              {tenant.status.toUpperCase()}
+              {statusLabels[tenant.status] ?? tenant.status}
             </CmxStatusBadge>
           )}
         </div>
@@ -269,7 +278,7 @@ export function TenantAdminSubscriptionScreen() {
       {success && (
         <CmxSummaryMessage
           type="success"
-          title="Success"
+          title={tCommon('success')}
           message={success}
           className="mb-6"
         />
@@ -277,7 +286,7 @@ export function TenantAdminSubscriptionScreen() {
       {error && (
         <CmxSummaryMessage
           type="error"
-          title="Error"
+          title={tCommon('error')}
           message={error}
           className="mb-6"
         />
@@ -287,8 +296,10 @@ export function TenantAdminSubscriptionScreen() {
       {isOnTrial && tenant?.status === 'trial' && (
         <CmxSummaryMessage
           type="warning"
-          title="Trial Period Active"
-          message={`You have ${tenant?.status === 'trial' && usage ? getDaysRemaining(usage.currentPeriod.end) : 0} days remaining in your free trial. Upgrade now to unlock all features!`}
+          title={t('trialActiveTitle')}
+          message={t('trialActiveMessage', {
+            days: formatNumber(tenant?.status === 'trial' && usage ? getDaysRemaining(usage.currentPeriod.end) : 0),
+          })}
           className="mb-6"
         >
           <CmxButton
@@ -300,7 +311,7 @@ export function TenantAdminSubscriptionScreen() {
             }}
             className="mt-2"
           >
-            Upgrade Now
+            {t('upgradeNow')}
           </CmxButton>
         </CmxSummaryMessage>
       )}
@@ -308,26 +319,30 @@ export function TenantAdminSubscriptionScreen() {
       {/* Current Plan Card */}
       <CmxCard className="mb-8">
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Current Plan</h2>
+          <h2 className="text-xl font-semibold mb-4">{tSettings('currentPlan')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-muted-foreground">Plan</p>
+              <p className="text-sm text-muted-foreground">{tSettings('plan')}</p>
               <p className="text-2xl font-bold text-foreground mt-1">
-                {plans.find(p => p.plan_code === currentPlan)?.plan_name || 'Loading...'}
+                {plans.find(p => p.plan_code === currentPlan)?.plan_name || tCommon('loading')}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Price</p>
-              <p className="text-2xl font-bold text-foreground mt-1">
-                {fmtPlanMoney(Number(plans.find(p => p.plan_code === currentPlan)?.price_monthly || 0))}/month
+              <p className="text-sm text-muted-foreground">{t('priceLabel')}</p>
+              <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
+                <bdi dir="ltr">
+                  {t('perMonthFull', {
+                    amount: fmtPlanMoney(Number(plans.find(p => p.plan_code === currentPlan)?.price_monthly || 0)),
+                  })}
+                </bdi>
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
-                {isOnTrial ? 'Trial Ends' : 'Next Billing Date'}
+                {isOnTrial ? t('trialEnds') : tSettings('nextBillingDate')}
               </p>
-              <p className="text-2xl font-bold text-foreground mt-1">
-                {usage?.currentPeriod.end ? new Date(usage.currentPeriod.end).toLocaleDateString() : '-'}
+              <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">
+                {usage?.currentPeriod.end ? new Date(usage.currentPeriod.end).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM') : '-'}
               </p>
             </div>
           </div>
@@ -339,9 +354,12 @@ export function TenantAdminSubscriptionScreen() {
         <CmxCard className="mb-8">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Usage & Limits</h2>
-              <p className="text-sm text-muted-foreground">
-                Period: {new Date(usage.currentPeriod.start).toLocaleDateString()} - {new Date(usage.currentPeriod.end).toLocaleDateString()}
+              <h2 className="text-xl font-semibold">{t('usageLimitsTitle')}</h2>
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {t('periodLabel', {
+                  start: new Date(usage.currentPeriod.start).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM'),
+                  end: new Date(usage.currentPeriod.end).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM'),
+                })}
               </p>
             </div>
 
@@ -350,10 +368,10 @@ export function TenantAdminSubscriptionScreen() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">
-                    Orders
+                    {t('orders')}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    {usage.usage.ordersCount} / {usage.limits.ordersLimit}
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {formatNumber(usage.usage.ordersCount)} / {formatNumber(usage.limits.ordersLimit)}
                   </span>
                 </div>
                 <CmxProgressBar
@@ -361,8 +379,8 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.ordersPercentage)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {usage.usage.ordersPercentage.toFixed(1)}% used
+                <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+                  {t('usedPct', { pct: formatNumber(usage.usage.ordersPercentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}
                 </p>
               </div>
 
@@ -370,10 +388,10 @@ export function TenantAdminSubscriptionScreen() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">
-                    Users
+                    {t('users')}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    {usage.usage.usersCount} / {usage.limits.usersLimit}
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {formatNumber(usage.usage.usersCount)} / {formatNumber(usage.limits.usersLimit)}
                   </span>
                 </div>
                 <CmxProgressBar
@@ -381,8 +399,8 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.usersPercentage)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {usage.usage.usersPercentage.toFixed(1)}% used
+                <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+                  {t('usedPct', { pct: formatNumber(usage.usage.usersPercentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}
                 </p>
               </div>
 
@@ -390,10 +408,10 @@ export function TenantAdminSubscriptionScreen() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">
-                    Branches
+                    {t('branches')}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    {usage.usage.branchesCount} / {usage.limits.branchesLimit}
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {formatNumber(usage.usage.branchesCount)} / {formatNumber(usage.limits.branchesLimit)}
                   </span>
                 </div>
                 <CmxProgressBar
@@ -401,8 +419,8 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.branchesPercentage)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {usage.usage.branchesPercentage.toFixed(1)}% used
+                <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+                  {t('usedPct', { pct: formatNumber(usage.usage.branchesPercentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}
                 </p>
               </div>
 
@@ -410,10 +428,10 @@ export function TenantAdminSubscriptionScreen() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">
-                    Storage
+                    {t('storage')}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    {usage.usage.storageMb} MB / {usage.limits.storageMbLimit} MB
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {t('storageUsage', { used: formatNumber(usage.usage.storageMb), limit: formatNumber(usage.limits.storageMbLimit) })}
                   </span>
                 </div>
                 <CmxProgressBar
@@ -421,8 +439,8 @@ export function TenantAdminSubscriptionScreen() {
                   max={100}
                   variant={getProgressVariant(usage.usage.storagePercentage)}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {usage.usage.storagePercentage.toFixed(1)}% used
+                <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+                  {t('usedPct', { pct: formatNumber(usage.usage.storagePercentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}
                 </p>
               </div>
             </div>
@@ -431,7 +449,7 @@ export function TenantAdminSubscriptionScreen() {
             {usage.warnings.length > 0 && (
               <div className="mt-6 pt-6 border-t border-border">
                 <h3 className="text-sm font-semibold text-foreground mb-3">
-                  ⚠️ Warnings ({usage.warnings.length})
+                  ⚠️ {t('warningsTitle', { count: formatNumber(usage.warnings.length) })}
                 </h3>
                 <div className="space-y-2">
                   {usage.warnings.map((warning, idx) => (
@@ -453,15 +471,15 @@ export function TenantAdminSubscriptionScreen() {
       <CmxCard className="mb-8">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Available Plans</h2>
-            <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-semibold">{tSettings('availablePlans')}</h2>
+            <div className="flex items-center gap-2">
               <CmxButton
                 type="button"
                 variant={showPricing === 'monthly' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setShowPricing('monthly')}
               >
-                Monthly
+                {t('monthly')}
               </CmxButton>
               <CmxButton
                 type="button"
@@ -469,8 +487,8 @@ export function TenantAdminSubscriptionScreen() {
                 size="sm"
                 onClick={() => setShowPricing('yearly')}
               >
-                Yearly
-                <span className="ms-1 text-xs">(Save 20%)</span>
+                {t('yearly')}
+                <span className="ms-1 text-xs">{t('save20Short')}</span>
               </CmxButton>
             </div>
           </div>
@@ -480,25 +498,25 @@ export function TenantAdminSubscriptionScreen() {
               <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Plan
+                    {tSettings('plan')}
                   </TableHead>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Price
+                    {t('priceLabel')}
                   </TableHead>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Orders
+                    {t('orders')}
                   </TableHead>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Users
+                    {t('users')}
                   </TableHead>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Branches
+                    {t('branches')}
                   </TableHead>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Key Features
+                    {t('colKeyFeatures')}
                   </TableHead>
                   <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Action
+                    {t('colAction')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -514,60 +532,59 @@ export function TenantAdminSubscriptionScreen() {
                       className={plan.isCurrentPlan ? 'bg-info-bg' : ''}
                     >
                       <TableCell className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2">
                           <span className="font-semibold text-foreground">
                             {plan.plan_name}
                           </span>
                           {plan.isCurrentPlan && (
                             <CmxStatusBadge size="sm" tone="success">
-                              Current
+                              {tSettings('current')}
                             </CmxStatusBadge>
                           )}
                           {plan.plan_code === 'growth' && !plan.isCurrentPlan && (
                             <CmxStatusBadge size="sm" tone="info">
-                              Recommended
+                              {t('recommended')}
                             </CmxStatusBadge>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap tabular-nums">
                         <bdi dir="ltr" className="text-lg font-bold text-foreground">
-                          {fmtPlanMoney(price)}
+                          {t('perMoShort', { amount: fmtPlanMoney(price) })}
                         </bdi>
-                        <span className="text-sm text-muted-foreground">/mo</span>
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground tabular-nums">
-                        {plan.orders_limit === 999999 ? 'Unlimited' : plan.orders_limit}
+                        {plan.orders_limit === 999999 ? tSettings('unlimited') : formatNumber(plan.orders_limit)}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground tabular-nums">
-                        {plan.users_limit === 999999 ? 'Unlimited' : plan.users_limit}
+                        {plan.users_limit === 999999 ? tSettings('unlimited') : formatNumber(plan.users_limit)}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-foreground tabular-nums">
-                        {plan.branches_limit === 999999 ? 'Unlimited' : plan.branches_limit}
+                        {plan.branches_limit === 999999 ? tSettings('unlimited') : formatNumber(plan.branches_limit)}
                       </TableCell>
                       <TableCell className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
                           {plan.feature_flags.pdf_invoices && (
-                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">PDF</CmxStatusBadge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('featurePdf')}</CmxStatusBadge>
                           )}
                           {plan.feature_flags.whatsapp_receipts && (
-                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">WhatsApp</CmxStatusBadge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('featureWhatsapp')}</CmxStatusBadge>
                           )}
                           {plan.feature_flags.driver_app && (
-                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">Driver App</CmxStatusBadge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('featureDriverApp')}</CmxStatusBadge>
                           )}
                           {plan.feature_flags.multi_branch && (
-                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">Multi-Branch</CmxStatusBadge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('featureMultiBranch')}</CmxStatusBadge>
                           )}
                           {plan.feature_flags.api_access && (
-                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">API</CmxStatusBadge>
+                            <CmxStatusBadge size="sm" tone="brand" appearance="solid">{t('featureApi')}</CmxStatusBadge>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap">
                         {plan.isCurrentPlan ? (
                           <CmxButton variant="secondary" size="sm" disabled>
-                            Current Plan
+                            {tSettings('currentPlan')}
                           </CmxButton>
                         ) : plan.display_order && currentPlan &&
                            plans.find(p => p.plan_code === currentPlan)?.display_order &&
@@ -577,11 +594,11 @@ export function TenantAdminSubscriptionScreen() {
                             size="sm"
                             onClick={() => handleUpgradeClick(plan)}
                           >
-                            Upgrade
+                            {tSettings('upgrade')}
                           </CmxButton>
                         ) : (
                           <CmxButton variant="secondary" size="sm" disabled>
-                            Downgrade
+                            {t('downgrade')}
                           </CmxButton>
                         )}
                       </TableCell>
@@ -602,7 +619,7 @@ export function TenantAdminSubscriptionScreen() {
             size="md"
             onClick={handleCancelClick}
           >
-            Cancel Subscription
+            {t('cancelSubscription')}
           </CmxButton>
         </div>
       )}
@@ -619,14 +636,14 @@ export function TenantAdminSubscriptionScreen() {
             <>
               <CmxDialogHeader className="mb-6">
                 <CmxDialogTitle className="text-2xl font-bold">
-                  Upgrade to {selectedPlan.plan_name}
+                  {t('upgradeToPlan', { planName: selectedPlan.plan_name })}
                 </CmxDialogTitle>
               </CmxDialogHeader>
 
               {error && (
                 <CmxSummaryMessage
                   type="error"
-                  title="Error"
+                  title={tCommon('error')}
                   message={error}
                   className="mb-4"
                 />
@@ -634,9 +651,9 @@ export function TenantAdminSubscriptionScreen() {
 
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Select Billing Cycle
+                  {t('selectBillingCycle')}
                 </h3>
-                <div className="flex space-x-4">
+                <div className="flex gap-4">
                   <div className="flex-1">
                     <CmxRadio
                       name="billingCycle"
@@ -646,7 +663,7 @@ export function TenantAdminSubscriptionScreen() {
                       disabled={isProcessing}
                       label={
                         <span className="tabular-nums">
-                          Monthly - {fmtPlanMoney(Number(selectedPlan.price_monthly))}/mo
+                          {t('monthlyOption', { amount: fmtPlanMoney(Number(selectedPlan.price_monthly)) })}
                         </span>
                       }
                     />
@@ -660,14 +677,16 @@ export function TenantAdminSubscriptionScreen() {
                       disabled={isProcessing}
                       label={
                         <span className="tabular-nums">
-                          Yearly - {fmtPlanMoney(
-                            selectedPlan.price_yearly
-                              ? Number(selectedPlan.price_yearly) / 12
-                              : Number(selectedPlan.price_monthly) * 12
-                          )}/mo
+                          {t('yearlyOption', {
+                            amount: fmtPlanMoney(
+                              selectedPlan.price_yearly
+                                ? Number(selectedPlan.price_yearly) / 12
+                                : Number(selectedPlan.price_monthly) * 12
+                            ),
+                          })}
                           {selectedPlan.price_yearly && (
                             <span className="ms-2 text-success-text font-semibold">
-                              Save 20%!
+                              {t('save20Exclaim')}
                             </span>
                           )}
                         </span>
@@ -679,29 +698,28 @@ export function TenantAdminSubscriptionScreen() {
 
               <div className="mb-6 p-4 bg-info-bg rounded-lg">
                 <h3 className="text-sm font-semibold text-foreground mb-2">
-                  New Features You&apos;ll Get:
+                  {t('newFeaturesTitle')}
                 </h3>
                 <ul className="space-y-1 text-sm text-foreground">
-                  {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>}
-                  {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>}
-                  {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>}
-                  {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>}
-                  {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>}
-                  {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>}
+                  {selectedPlan.feature_flags.pdf_invoices && <li>✓ {t('featurePdfFull')}</li>}
+                  {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ {t('featureWhatsappFull')}</li>}
+                  {selectedPlan.feature_flags.driver_app && <li>✓ {t('featureDriverAppFull')}</li>}
+                  {selectedPlan.feature_flags.multi_branch && <li>✓ {t('featureMultiBranchFull')}</li>}
+                  {selectedPlan.feature_flags.advanced_analytics && <li>✓ {t('featureAdvancedAnalyticsFull')}</li>}
+                  {selectedPlan.feature_flags.api_access && <li>✓ {t('featureApiFull')}</li>}
                 </ul>
               </div>
 
               <div className="mb-6 p-4 bg-muted rounded-lg">
                 <h3 className="text-sm font-semibold text-foreground mb-2">
-                  Payment Integration
+                  {t('paymentIntegrationTitle')}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Payment gateway integration coming soon. For now, your plan will be upgraded immediately
-                  and you&apos;ll receive an invoice via email.
+                  {t('paymentIntegrationNotice')}
                 </p>
               </div>
 
-              <div className="flex space-x-4">
+              <div className="flex gap-4">
                 <CmxButton
                   variant="secondary"
                   size="md"
@@ -709,7 +727,7 @@ export function TenantAdminSubscriptionScreen() {
                   disabled={isProcessing}
                   className="flex-1"
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </CmxButton>
                 <CmxButton
                   variant="primary"
@@ -719,7 +737,7 @@ export function TenantAdminSubscriptionScreen() {
                   disabled={isProcessing}
                   className="flex-1"
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm Upgrade'}
+                  {isProcessing ? t('processing') : t('confirmUpgrade')}
                 </CmxButton>
               </div>
             </>
@@ -737,14 +755,14 @@ export function TenantAdminSubscriptionScreen() {
         <CmxDialogContent className="max-w-md w-full p-6">
           <CmxDialogHeader className="mb-4">
             <CmxDialogTitle className="text-2xl font-bold">
-              Cancel Subscription
+              {t('cancelSubscription')}
             </CmxDialogTitle>
           </CmxDialogHeader>
 
           {error && (
             <CmxSummaryMessage
               type="error"
-              title="Error"
+              title={tCommon('error')}
               message={error}
               className="mb-4"
             />
@@ -752,14 +770,14 @@ export function TenantAdminSubscriptionScreen() {
 
           <CmxSummaryMessage
             type="warning"
-            title="Warning"
-            message="Your subscription will remain active until the end of the current billing period. You will lose access to premium features after cancellation."
+            title={tCommon('warning')}
+            message={t('cancelWarningMessage')}
             className="mb-4"
           />
 
           <div className="mb-4">
             <Label htmlFor="cancel-reason-select" className="mb-2 block">
-              Reason for Cancellation *
+              {t('cancelReasonLabel')} *
             </Label>
             <CmxSelect
               id="cancel-reason-select"
@@ -768,20 +786,20 @@ export function TenantAdminSubscriptionScreen() {
               disabled={isProcessing}
               className="w-full"
               options={[
-                { value: '', label: 'Select a reason' },
-                { value: 'Too expensive', label: 'Too expensive' },
-                { value: 'Missing features', label: 'Missing features' },
-                { value: 'Switching to competitor', label: 'Switching to competitor' },
-                { value: 'No longer needed', label: 'No longer needed' },
-                { value: 'Other', label: 'Other' },
+                { value: '', label: t('selectReasonPlaceholder') },
+                { value: 'Too expensive', label: t('reasonTooExpensive') },
+                { value: 'Missing features', label: t('reasonMissingFeatures') },
+                { value: 'Switching to competitor', label: t('reasonCompetitor') },
+                { value: 'No longer needed', label: t('reasonNoLongerNeeded') },
+                { value: 'Other', label: t('reasonOther') },
               ]}
-              placeholder="Select a reason"
+              placeholder={t('selectReasonPlaceholder')}
             />
           </div>
 
           <div className="mb-6">
             <Label htmlFor="cancel-feedback-input" className="mb-2 block">
-              Additional Feedback (Optional)
+              {t('additionalFeedback')}
             </Label>
             <CmxTextarea
               id="cancel-feedback-input"
@@ -789,20 +807,20 @@ export function TenantAdminSubscriptionScreen() {
               onChange={(e) => setCancelFeedback(e.target.value)}
               disabled={isProcessing}
               rows={3}
-              placeholder="Help us improve by sharing your feedback..."
+              placeholder={t('feedbackPlaceholder')}
             />
           </div>
 
           <div className="mb-4 p-3 bg-muted rounded-lg">
-            <p className="text-sm text-foreground">
-              <strong>Effective Date:</strong>{' '}
+            <p className="text-sm text-foreground tabular-nums">
+              <strong>{t('effectiveDate')}</strong>{' '}
               {usage?.currentPeriod.end
-                ? new Date(usage.currentPeriod.end).toLocaleDateString()
+                ? new Date(usage.currentPeriod.end).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM')
                 : '-'}
             </p>
           </div>
 
-          <div className="flex space-x-4">
+          <div className="flex gap-4">
             <CmxButton
               variant="secondary"
               size="md"
@@ -810,7 +828,7 @@ export function TenantAdminSubscriptionScreen() {
               disabled={isProcessing}
               className="flex-1"
             >
-              Keep Subscription
+              {t('keepSubscription')}
             </CmxButton>
             <CmxButton
               variant="destructive"
@@ -820,7 +838,7 @@ export function TenantAdminSubscriptionScreen() {
               disabled={isProcessing || !cancelReason}
               className="flex-1"
             >
-              {isProcessing ? 'Processing...' : 'Confirm Cancellation'}
+              {isProcessing ? t('processing') : t('confirmCancellation')}
             </CmxButton>
           </div>
         </CmxDialogContent>

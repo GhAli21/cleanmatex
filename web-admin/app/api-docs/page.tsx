@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
+import { CmxButton } from '@ui/primitives';
 import 'swagger-ui-react/swagger-ui.css';
 
 // Dynamically import SwaggerUI to avoid SSR issues
@@ -14,6 +16,7 @@ const SwaggerUI = dynamic<{ spec: any }>(
  *
  */
 export default function ApiDocsPage() {
+  const t = useTranslations('help.apiDocs');
   const [spec, setSpec] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +43,9 @@ export default function ApiDocsPage() {
         clearTimeout(timeoutId);
         console.error('Failed to load API docs:', err);
         if (err.name === 'AbortError') {
-          setError('Request timeout - The API documentation is taking too long to generate. This might be due to file scanning. Please try again.');
+          setError(t('timeoutError'));
         } else {
-          setError(err instanceof Error ? err.message : 'Unknown error');
+          setError(err instanceof Error ? err.message : t('unknownError'));
         }
         setLoading(false);
       });
@@ -53,7 +56,7 @@ export default function ApiDocsPage() {
       <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <div className="text-lg text-muted-foreground">Loading API documentation...</div>
+          <div className="text-lg text-muted-foreground">{t('loading')}</div>
         </div>
       </div>
     );
@@ -63,14 +66,14 @@ export default function ApiDocsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center">
-          <div className="text-danger-text text-lg mb-2">Failed to load API documentation</div>
+          <div className="text-danger-text text-lg mb-2">{t('loadFailed')}</div>
           <div className="text-muted-foreground">{error}</div>
-          <button
+          <CmxButton
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary-hover"
+            className="mt-4"
           >
-            Retry
-          </button>
+            {t('retry')}
+          </CmxButton>
         </div>
       </div>
     );
@@ -80,8 +83,8 @@ export default function ApiDocsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-muted">
         <div className="text-center">
-          <div className="text-lg text-danger-text mb-2">No API documentation available</div>
-          <div className="text-sm text-muted-foreground">The API spec could not be loaded</div>
+          <div className="text-lg text-danger-text mb-2">{t('emptyTitle')}</div>
+          <div className="text-sm text-muted-foreground">{t('emptySubtitle')}</div>
         </div>
       </div>
     );
@@ -97,8 +100,8 @@ export default function ApiDocsPage() {
           <div className="flex">
             <div className="ms-3">
               <p className="text-sm text-warning-text">
-                <strong>Note:</strong> API route scanning may have failed. This is common on Vercel due to file system limitations. 
-                The documentation structure is available, but individual endpoint details may be missing.
+                <strong>{t('noteLabel')}</strong> {t('noPathsNotice')}
+
               </p>
             </div>
           </div>

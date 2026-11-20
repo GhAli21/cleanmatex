@@ -193,6 +193,7 @@ export function ErpLiteHomeScreen({
   return (
     <div className="space-y-8">
       <div>
+        {/* cmx-ds-ignore UI008: ERP-Lite module brand mark */}
         <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">ERP-Lite</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>

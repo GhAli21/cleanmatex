@@ -198,6 +198,10 @@
     "description": "طلبات بانتظار فحص الجودة",
     "empty": "لا توجد طلبات بانتظار فحص الجودة",
     "items": "أصناف",
+    "orderNotFound": "الطلب غير موجود",
+    "quantityLabel": "الكمية: {count}",
+    "qualityDecisionLabel": "قرار الجودة:",
+    "actionsPanelTitle": "إجراءات فحص الجودة",
     "actions": {
       "open": "فحص الجودة",
       "accept": "قبول",

@@ -1,6 +1,6 @@
 # I11 Background Execution — Expert Replan
 
-**Status:** Owner-approved architecture (D1–D8). Planning pack complete (D9–D20, §5.6, WP-P/WP-D, WP9–WP10). **Plan QA complete** (D13–D18, §14). **No runtime, migration, or delivery enablement is authorized by planning alone.** First code slice is WP0 when the Owner says to start implementation.  
+**Status:** WP2 host drafted 21 Nov 2026. `PLATFORM_BG_ENABLED` defaults off. `0781` NOTIFY migration is not applied. Delivery and shadow stay off. File Util purge stays on platform-workers until its storage executor is ported. Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` yet.  
 **Written:** 20 Nov 2026  
 **Approved_By_Jh:** 20 Nov 2026 (architecture); planning locks D9–D12 recorded same day for implementation readiness.  
 **Authority it extends:** [PLAN](I11_background_execution_redesign_PLAN.md), [ADR](I11_background_execution_redesign_ADR.md), [handler contracts](I11_background_execution_handler_contracts.md), [runbook](I11_background_execution_RUNBOOK.md), [QA](I11_background_execution_QA_TEST_GUIDE.md), [I11/I11a](03_infrastructure_deploy_and_operations.md).  
@@ -133,7 +133,7 @@ Shadow and dispatch still **select all active tenants then RPC per tenant**.
 | Comments in dispatch scheduler | “One-minute cadence” | 20 minutes |
 | `worker-job-runner` comments, File Util QA, Run now copy | “within about a minute” | 30 minutes |
 | Earlier I11 FET | shadow ~every 60s | since changed in tree |
-| `/ops/jobs` Run now | HQ worker starts within a minute | 30 min worst case |
+| `/ops/jobs` Run now | HQ worker starts within about 15 minutes | Same as tick (D10) |
 
 Treat this as a **release defect**: either revert ticks to a documented value or update every operator string and the runbook in the same change.
 
@@ -570,7 +570,7 @@ This section finishes planning so WP0 can start without architecture debate. It 
 | 9.2/9.3/WP progress-log chores | WP-P / WP-D every slice; WP9 pack; WP10 rules+skill |
 | Central enqueue + executor allowlist (D19) | WP2 / WP-D19 |
 
-### 12.3 WP0 — planned tasks (first code slice, not started)
+### 12.3 WP0 — planned tasks (drafted 21 Nov 2026; migration not applied)
 
 | ID | Task | Repo | Exit |
 |---|---|---|---|
@@ -628,7 +628,7 @@ This section finishes planning so WP0 can start without architecture debate. It 
 3. Confirm session-mode DB URL for LISTEN when WP2 is reached (D9 inventory from WP0.6).
 4. Keep tax-kit / trial as separate product decisions (D7).
 
-**Planning is finished when this file’s D1–D19, §12, and §14 are accepted.** Implementation has not started.
+**Planning is finished.** WP0 source is drafted (21 Nov 2026); `0779` is **not applied**. Delivery remains disabled.
 
 ---
 
@@ -640,7 +640,7 @@ This section finishes planning so WP0 can start without architecture debate. It 
 | Redis platform vs BullMQ jobs | Approved D8 |
 | LISTEN mechanism, 15 min poll, SUPERSEDED list, WP5 cadence | Planning-locked D9–D12 |
 | Dual task lists | Closed — this file executes; old PLAN logs |
-| Code / migrations / delivery / Render resume | **Not authorized** until Owner says start WP0 |
+| Code / migrations / delivery / Render resume | `0779` applied local + remote; types and Prisma regenerated. Delivery and Render worker stay off. |
 | Plan QA (§14, D13–D18) | Closed in planning; production-ready only after WP8 remote evidence |
 | Central work platform (D19, §5.6) | Planning-locked: one enqueue, one runner, allowlisted executors |
 | CLAUDE.md always (D20); WP-P/WP-D each step; WP9 docs skill; WP10 rule+skill | Planning-locked |

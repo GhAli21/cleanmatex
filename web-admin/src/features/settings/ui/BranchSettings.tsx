@@ -38,6 +38,8 @@ interface BranchSettingsProps {
  */
 export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
   const t = useTranslations('settings');
+  const tAdv = useTranslations('settings.advancedSettings');
+  const tCommon = useTranslations('common');
   const [branches, setBranches] = React.useState<BranchOption[]>([]);
   const [selectedBranchId, setSelectedBranchId] = React.useState<string>(externalBranchId ?? '');
   const [rows, setRows] = React.useState<SettingsTableRow[]>([]);
@@ -70,7 +72,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       const res = await fetch('/api/v1/branches');
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json?.error || 'Failed to load branches');
+        throw new Error(json?.error || tAdv('loadErrorBranches'));
       }
       const list: BranchOption[] = json.data || [];
       setBranches(list);
@@ -80,7 +82,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to load branches';
+        error instanceof Error ? error.message : tAdv('loadErrorBranches');
       cmxMessage.error(message);
     } finally {
       setInitialLoading(false);
@@ -97,7 +99,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       setRows(buildRows(catalog, effective));
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to load branch settings';
+        error instanceof Error ? error.message : tAdv('loadErrorBranchSettings');
       cmxMessage.error(message);
     } finally {
       setLoading(false);
@@ -112,7 +114,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
         value: nextValue,
         branchId: selectedBranchId,
       });
-      cmxMessage.success('Branch setting updated successfully');
+      cmxMessage.success(tAdv('branchUpdatedSuccess'));
       await loadSettingsForBranch(selectedBranchId);
     } catch (error) {
       const message =
@@ -120,7 +122,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
           ? t('error.settingLocked')
           : error instanceof Error
             ? error.message
-            : 'Failed to update branch setting';
+            : tAdv('branchUpdateError');
       cmxMessage.error(message);
       throw error;
     }
@@ -132,7 +134,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       await settingsClient.deleteOverride(row.definition.setting_code, {
         branchId: selectedBranchId,
       });
-      cmxMessage.success('Branch setting override removed');
+      cmxMessage.success(tAdv('branchResetSuccess'));
       await loadSettingsForBranch(selectedBranchId);
     } catch (error) {
       const message =
@@ -140,7 +142,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
           ? t('error.settingLocked')
           : error instanceof Error
             ? error.message
-            : 'Failed to reset branch setting';
+            : tAdv('branchResetError');
       cmxMessage.error(message);
       throw error;
     }
@@ -153,9 +155,9 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
       {!externalBranchId && (
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Branch Settings</h2>
+            <h2 className="text-lg font-semibold text-foreground">{tAdv('branchSettingsTitle')}</h2>
             <p className="text-sm text-muted-foreground">
-              Select a branch to view and override settings at the branch level.
+              {tAdv('branchSettingsSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -166,10 +168,10 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
               }
               className="min-w-[220px]"
               options={[
-                { value: '', label: 'Select branch…' },
+                { value: '', label: tCommon('selectBranch') },
                 ...branches.map((b) => ({
                   value: b.id,
-                  label: `${b.name2 || b.name}${b.is_main ? ' (Main)' : ''}`,
+                  label: `${b.name2 || b.name}${b.is_main ? ` ${tAdv('branchMainTag')}` : ''}`,
                 })),
               ]}
             />
@@ -180,7 +182,7 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
                 size="sm"
                 onClick={() => void loadSettingsForBranch(selectedBranchId)}
               >
-                Reload
+                {tAdv('reload')}
               </CmxButton>
             )}
           </div>
@@ -189,16 +191,16 @@ export function BranchSettings({ externalBranchId }: BranchSettingsProps = {}) {
 
       {initialLoading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-          Loading branches...
+          {tAdv('loadingBranches')}
         </div>
       ) : !selectedBranchId ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-          No branch selected.
+          {tAdv('noBranchSelected')}
         </div>
       ) : (
         <SettingsTable
-          title={currentBranch ? `Settings for ${currentBranch.name}` : 'Branch Settings'}
-          description="View all effective settings for this branch and manage branch-level overrides."
+          title={currentBranch ? tAdv('settingsForBranch', { name: currentBranch.name2 || currentBranch.name }) : tAdv('branchSettingsTitle')}
+          description={tAdv('branchTableDescription')}
           rows={rows}
           context={{ scope: 'BRANCH', branchId: selectedBranchId }}
           isLoading={loading}

@@ -45,6 +45,7 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
     >
       <header className="print-header">
         <div className="flex justify-between print-subtitle">
+          {/* cmx-ds-ignore UI008: brand name */}
           <span>CleanMateX</span>
           <span>{order.orderNo}</span>
         </div>
@@ -73,6 +74,7 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
 
       <section className="print-section">
         <h2>{tOrders('orderItems')}</h2>
+        {/* cmx-ds-ignore UI001: print view table */}
         <table className="w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b border-border">

@@ -121,7 +121,7 @@ export default function PricingPage() {
             <CmxInput type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             <CmxInput type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
-          <CmxInput type="number" placeholder="Priority" value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
+          <CmxInput type="number" placeholder={t('pricingPage.priority')} value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
           <CmxSelect
             value={isDefault ? 'yes' : 'no'}
             onChange={(e) => setIsDefault(e.target.value === 'yes')}
@@ -151,7 +151,7 @@ export default function PricingPage() {
                   <TableHead className="px-4 py-2">{t('priceListType')}</TableHead>
                   <TableHead className="px-4 py-2">{t('effectiveFrom')}</TableHead>
                   <TableHead className="px-4 py-2">{t('effectiveTo')}</TableHead>
-                  <TableHead className="px-4 py-2">Items</TableHead>
+                  <TableHead className="px-4 py-2">{t('pricingPage.itemsCol')}</TableHead>
                   <TableHead className="px-4 py-2">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -159,13 +159,13 @@ export default function PricingPage() {
                 {lists.map((pl) => (
                   <TableRow key={pl.id} className="border-t">
                     <TableCell className="px-4 py-2">{pl.name}</TableCell>
-                    <TableCell className="px-4 py-2">{pl.price_list_type}</TableCell>
+                    <TableCell className="px-4 py-2">{t(pl.price_list_type)}</TableCell>
                     <TableCell className="px-4 py-2 tabular-nums">{pl.effective_from ?? '-'}</TableCell>
                     <TableCell className="px-4 py-2 tabular-nums">{pl.effective_to ?? '-'}</TableCell>
                     <TableCell className="px-4 py-2 tabular-nums">{pl.item_count ?? 0}</TableCell>
                     <TableCell className="px-4 py-2">
                       <CmxButton size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/pricing/${pl.id}`)}>
-                        Edit
+                        {tCommon('edit')}
                       </CmxButton>
                     </TableCell>
                   </TableRow>

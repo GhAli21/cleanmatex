@@ -24,14 +24,6 @@ import type { CreateUserData, GlobalUserLookup } from '@/lib/api/users'
 import type { TenantRole } from '@/lib/api/roles'
 import type { BranchOption } from '@/lib/services/inventory-service'
 
-// Fallback role options when API roles not available
-const FALLBACK_ROLE_OPTIONS = [
-  { value: 'viewer', label: 'Viewer' },
-  { value: 'operator', label: 'Operator' },
-  { value: 'tenant_admin', label: 'Tenant Administrator' },
-  { value: 'branch_manager', label: 'Branch Manager' },
-] as const
-
 /**
  *
  */
@@ -99,9 +91,15 @@ export default function CreateUserScreen() {
     }).finally(() => setBranchesLoading(false))
   }, [currentTenant])
 
+  const fallbackRoleOptions = [
+    { value: 'viewer', label: t('fallbackViewer') },
+    { value: 'operator', label: t('fallbackOperator') },
+    { value: 'tenant_admin', label: t('fallbackTenantAdmin') },
+    { value: 'branch_manager', label: t('fallbackBranchManager') },
+  ]
   const roleOptions = roles.length
     ? roles.map((r) => ({ value: r.code, label: r.name || r.code }))
-    : FALLBACK_ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))
+    : fallbackRoleOptions
 
   const runLookup = async (): Promise<GlobalUserLookup | null> => {
     if (!currentTenant || !accessToken) return null
@@ -511,7 +509,7 @@ export default function CreateUserScreen() {
                     {t('mainBranch')}
                   </Label>
                   {branchesLoading ? (
-                    <div className="mt-1 text-sm text-muted-foreground">Loading branches...</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{t('loadingBranches')}</div>
                   ) : (
                     <>
                       <CmxSelect
@@ -544,7 +542,7 @@ export default function CreateUserScreen() {
                     {tModal('roleLabel')}
                   </Label>
                   {rolesLoading ? (
-                    <div className="mt-1 text-sm text-muted-foreground">Loading roles...</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{t('loadingRoles')}</div>
                   ) : (
                     <CmxSelect
                       id="role"

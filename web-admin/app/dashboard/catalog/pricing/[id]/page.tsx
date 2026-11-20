@@ -30,7 +30,7 @@ import { PriceListItemModal } from '@features/catalog/ui/price-list-item-modal'
 import { CatalogSectionGate } from '@features/catalog/ui/catalog-section-gate'
 import { BulkImportModal } from '@features/catalog/ui/bulk-import-modal'
 import { PriceHistoryTimeline } from '@features/catalog/ui/price-history-timeline'
-import { cmxMessage } from '@ui/feedback'
+import { cmxMessage, CmxConfirmDialog } from '@ui/feedback'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 
@@ -42,17 +42,20 @@ interface Tab {
   icon: string
 }
 
-const tabs: Tab[] = [
-  { id: 'items', label: 'Items', icon: '📦' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
-  { id: 'history', label: 'History', icon: '📜' },
-]
-
 export default function PriceListDetailPage() {
   const params = useParams()
   const router = useRouter()
   const t = useTranslations('catalog')
+  const tPage = useTranslations('catalog.pricingPage')
+  const tCommon = useTranslations('common')
+  const { formatNumber } = useTenantCurrency()
   const priceListId = params.id as string
+
+  const tabs: Tab[] = [
+    { id: 'items', label: tPage('tabItems'), icon: '📦' },
+    { id: 'settings', label: tPage('tabSettings'), icon: '⚙️' },
+    { id: 'history', label: tPage('tabHistory'), icon: '📜' },
+  ]
 
   // State
   const [priceList, setPriceList] = useState<PriceListWithItems | null>(null)
@@ -66,6 +69,8 @@ export default function PriceListDetailPage() {
   const [itemModalOpen, setItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<PriceListItem | null>(null)
   const [bulkImportOpen, setBulkImportOpen] = useState(false)
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const [deletingItem, setDeletingItem] = useState(false)
 
   // Form state (for settings tab)
   const [formData, setFormData] = useState<{
@@ -100,7 +105,7 @@ export default function PriceListDetailPage() {
       try {
         const res = await fetch(`/api/v1/price-lists/${priceListId}`)
         const json = await res.json()
-        if (!res.ok) throw new Error(json?.error || 'Failed to load price list')
+        if (!res.ok) throw new Error(json?.error || tPage('loadError'))
 
         const data = json.data as PriceListWithItems
         setPriceList(data)
@@ -119,8 +124,8 @@ export default function PriceListDetailPage() {
           is_active: data.is_active ?? true,
         })
       } catch (err: any) {
-        setError(err.message || 'Failed to load price list')
-        cmxMessage.error(err.message || 'Failed to load price list')
+        setError(err.message || tPage('loadError'))
+        cmxMessage.error(err.message || tPage('loadError'))
       } finally {
         setLoading(false)
       }
@@ -129,6 +134,7 @@ export default function PriceListDetailPage() {
     if (priceListId) {
       loadPriceList()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceListId])
 
   // Save settings
@@ -142,30 +148,30 @@ export default function PriceListDetailPage() {
         body: JSON.stringify(formData),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Failed to update price list')
+      if (!res.ok) throw new Error(json?.error || tPage('updateError'))
 
       setPriceList({ ...priceList!, ...formData } as PriceListWithItems)
       setEditing(false)
-      cmxMessage.success('Price list updated successfully')
+      cmxMessage.success(tPage('updateSuccess'))
     } catch (err: any) {
-      setError(err.message || 'Failed to update price list')
-      cmxMessage.error(err.message || 'Failed to update price list')
+      setError(err.message || tPage('updateError'))
+      cmxMessage.error(err.message || tPage('updateError'))
     } finally {
       setSaving(false)
     }
   }
 
   // Delete item
-  async function handleDeleteItem(itemId: string) {
-    if (!confirm('Are you sure you want to delete this item?')) return
-
+  async function handleConfirmDeleteItem() {
+    if (!deleteItemId) return
+    setDeletingItem(true)
     try {
-      const res = await fetch(`/api/v1/price-lists/${priceListId}/items/${itemId}`, {
+      const res = await fetch(`/api/v1/price-lists/${priceListId}/items/${deleteItemId}`, {
         method: 'DELETE',
       })
       if (!res.ok) {
         const json = await res.json()
-        throw new Error(json?.error || 'Failed to delete item')
+        throw new Error(json?.error || tPage('deleteItemError'))
       }
 
       // Reload price list
@@ -173,10 +179,13 @@ export default function PriceListDetailPage() {
       const json2 = await res2.json()
       if (res2.ok) {
         setPriceList(json2.data)
-        cmxMessage.success('Item deleted successfully')
+        cmxMessage.success(tPage('deleteItemSuccess'))
       }
+      setDeleteItemId(null)
     } catch (err: any) {
-      cmxMessage.error(err.message || 'Failed to delete item')
+      cmxMessage.error(err.message || tPage('deleteItemError'))
+    } finally {
+      setDeletingItem(false)
     }
   }
 
@@ -184,7 +193,7 @@ export default function PriceListDetailPage() {
   async function handleExport() {
     try {
       const res = await fetch(`/api/v1/pricing/export?priceListId=${priceListId}`)
-      if (!res.ok) throw new Error('Failed to export')
+      if (!res.ok) throw new Error(tPage('exportError'))
 
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -195,9 +204,9 @@ export default function PriceListDetailPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      cmxMessage.success('Export completed')
+      cmxMessage.success(tPage('exportSuccess'))
     } catch (err: any) {
-      cmxMessage.error(err.message || 'Failed to export')
+      cmxMessage.error(err.message || tPage('exportError'))
     }
   }
 
@@ -218,7 +227,7 @@ export default function PriceListDetailPage() {
     return (
       <CatalogSectionGate>
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{tCommon('loading')}</div>
       </div>
       </CatalogSectionGate>
     )
@@ -232,7 +241,7 @@ export default function PriceListDetailPage() {
           {error}
         </div>
         <CmxButton onClick={() => router.push('/dashboard/catalog/pricing')} className="mt-4">
-          Back to Price Lists
+          {tPage('backToPriceLists')}
         </CmxButton>
       </div>
       </CatalogSectionGate>
@@ -254,9 +263,10 @@ export default function PriceListDetailPage() {
           <CmxButton
             variant="ghost"
             size="sm"
+            aria-label={tPage('backToPriceLists')}
             onClick={() => router.push('/dashboard/catalog/pricing')}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           </CmxButton>
           <div>
             <h1 className="text-2xl font-semibold">{priceList.name}</h1>
@@ -268,16 +278,16 @@ export default function PriceListDetailPage() {
             ? 'bg-success-bg text-success-text'
             : 'bg-muted text-foreground'
             }`}>
-            {priceList.is_active ? 'Active' : 'Inactive'}
+            {priceList.is_active ? tCommon('active') : tCommon('inactive')}
           </span>
           <span className="px-2 py-1 text-xs rounded text-start bg-info-bg text-info-text">
-            {priceList.price_list_type}
+            {t(priceList.price_list_type)}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <CmxButton variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 me-2" />
-            Export
+            {tCommon('export')}
           </CmxButton>
         </div>
       </div>
@@ -332,7 +342,7 @@ export default function PriceListDetailPage() {
                 setEditingItem(item)
                 setItemModalOpen(true)
               }}
-              onDeleteItem={handleDeleteItem}
+              onDeleteItem={(itemId) => setDeleteItemId(itemId)}
               onBulkImport={() => setBulkImportOpen(true)}
               onImportAllProducts={async () => {
                 // This will be handled in ItemsTab
@@ -389,6 +399,17 @@ export default function PriceListDetailPage() {
           }}
         />
       )}
+
+      <CmxConfirmDialog
+        open={Boolean(deleteItemId)}
+        title={tPage('deleteItemConfirmTitle')}
+        description={tPage('deleteItemConfirmDesc')}
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
+        confirmDisabled={deletingItem}
+        onConfirm={handleConfirmDeleteItem}
+        onCancel={() => { if (!deletingItem) setDeleteItemId(null) }}
+      />
     </div>
     </CatalogSectionGate>
   )
@@ -425,9 +446,10 @@ function ItemsTab({
   onReload: () => void
 }) {
   const t = useTranslations('catalog')
+  const tPage = useTranslations('catalog.pricingPage')
   const tCommon = useTranslations('common')
   const intlLocale = useLocale()
-  const { currencyCode, decimalPlaces } = useTenantCurrency()
+  const { currencyCode, decimalPlaces, formatNumber } = useTenantCurrency()
   const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en'
   const fmtPrice = (n: number) =>
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
@@ -450,20 +472,23 @@ function ItemsTab({
       })
 
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Failed to import products')
+      if (!res.ok) throw new Error(json?.error || tPage('importProductsError'))
 
       if (json.errors && json.errors.length > 0) {
         cmxMessage.error(
-          `Import completed with ${json.errors.length} errors. ${json.imported} products imported.`
+          tPage('importProductsPartial', {
+            errors: formatNumber(json.errors.length),
+            imported: formatNumber(json.imported),
+          })
         )
       } else {
-        cmxMessage.success(`Successfully imported ${json.imported} products with default prices`)
+        cmxMessage.success(tPage('importProductsSuccess', { imported: formatNumber(json.imported) }))
       }
 
       setShowImportConfirm(false)
       onReload()
     } catch (err: any) {
-      cmxMessage.error(err.message || 'Failed to import products')
+      cmxMessage.error(err.message || tPage('importProductsError'))
     } finally {
       setImportingAll(false)
     }
@@ -476,26 +501,26 @@ function ItemsTab({
         <div className="flex items-center gap-2">
           <CmxButton onClick={onAddItem}>
             <Plus className="w-4 h-4 me-2" />
-            Add Item
+            {tPage('addItem')}
           </CmxButton>
           <CmxButton
             variant="outline"
             onClick={() => setShowImportConfirm(true)}
-            title="Import all active products with their default prices"
+            title={tPage('importAllTitleAttr')}
           >
             <Package className="w-4 h-4 me-2" />
-            Import All Products
+            {tPage('importAllProducts')}
           </CmxButton>
           <CmxButton variant="outline" onClick={onBulkImport}>
             <Upload className="w-4 h-4 me-2" />
-            Import CSV
+            {tPage('importCsv')}
           </CmxButton>
           <CmxButton variant="outline" onClick={onExport}>
             <Download className="w-4 h-4 me-2" />
-            Export CSV
+            {t('priceHistory.exportCsv')}
           </CmxButton>
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground tabular-nums">
           {tCommon('itemCount', { count: items.length })}
         </div>
       </div>
@@ -504,14 +529,15 @@ function ItemsTab({
       <CmxDialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
         <CmxDialogContent className="max-w-md">
           <CmxDialogHeader>
-            <CmxDialogTitle>Import All Products with Default Prices</CmxDialogTitle>
+            <CmxDialogTitle>{tPage('importAllDialogTitle')}</CmxDialogTitle>
           </CmxDialogHeader>
 
           <div className="space-y-4">
             <div className="bg-info-bg border border-info-border rounded-lg p-4">
               <p className="text-sm text-foreground">
-                This will import all active products from your catalog into this price list using
-                their default {priceListType === 'express' || priceListType === 'vip' ? 'express' : 'standard'} prices.
+                {priceListType === 'express' || priceListType === 'vip'
+                  ? tPage('importAllDescriptionExpress')
+                  : tPage('importAllDescriptionStandard')}
               </p>
             </div>
 
@@ -519,26 +545,26 @@ function ItemsTab({
               <CmxCheckbox
                 checked={overwriteExisting}
                 onChange={(e) => setOverwriteExisting(e.target.checked)}
-                label="Overwrite existing price list items (if unchecked, only new products will be added)"
+                label={tPage('overwriteExistingLabel')}
               />
             </div>
 
             <div className="text-sm text-muted-foreground">
-              <p className="font-medium mb-1">Note:</p>
+              <p className="font-medium mb-1">{tPage('noteLabel')}</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Only products with default prices will be imported</li>
-                <li>Products without default prices will be skipped</li>
-                <li>You can edit prices after import</li>
+                <li>{tPage('noteOnlyWithDefault')}</li>
+                <li>{tPage('noteSkipWithoutDefault')}</li>
+                <li>{tPage('noteEditAfterImport')}</li>
               </ul>
             </div>
           </div>
 
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={() => setShowImportConfirm(false)}>
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton onClick={handleImportAllProducts} disabled={importingAll}>
-              {importingAll ? 'Importing...' : 'Import All Products'}
+              {importingAll ? tPage('importing') : tPage('importAllProducts')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
@@ -547,9 +573,9 @@ function ItemsTab({
       {/* Items Table */}
       {items.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p>No items in this price list</p>
+          <p>{tPage('emptyItems')}</p>
           <CmxButton onClick={onAddItem} className="mt-4">
-            Add First Item
+            {tPage('addFirstItem')}
           </CmxButton>
         </div>
       ) : (
@@ -557,12 +583,12 @@ function ItemsTab({
           <Table className="min-w-full text-sm">
             <TableHeader>
               <TableRow className="bg-muted text-start border-b">
-                <TableHead className="px-4 py-3">Product</TableHead>
-                <TableHead className="px-4 py-3">Price ({currencyCode})</TableHead>
-                <TableHead className="px-4 py-3">Discount %</TableHead>
-                <TableHead className="px-4 py-3">Quantity Range</TableHead>
-                <TableHead className="px-4 py-3">Status</TableHead>
-                <TableHead className="px-4 py-3">Actions</TableHead>
+                <TableHead className="px-4 py-3">{tPage('colProduct')}</TableHead>
+                <TableHead className="px-4 py-3">{tPage('colPriceWithCurrency', { currency: currencyCode })}</TableHead>
+                <TableHead className="px-4 py-3">{tPage('colDiscountPct')}</TableHead>
+                <TableHead className="px-4 py-3">{tPage('colQuantityRange')}</TableHead>
+                <TableHead className="px-4 py-3">{t('status')}</TableHead>
+                <TableHead className="px-4 py-3">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -577,11 +603,11 @@ function ItemsTab({
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 tabular-nums"><bdi dir="ltr">{fmtPrice(Number(item.price))}</bdi></TableCell>
-                  <TableCell className="px-4 py-3 tabular-nums"><bdi dir="ltr">{Number(item.discount_percent || 0).toFixed(2)}%</bdi></TableCell>
+                  <TableCell className="px-4 py-3 tabular-nums"><bdi dir="ltr">{formatNumber(Number(item.discount_percent || 0), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</bdi></TableCell>
                   <TableCell className="px-4 py-3 tabular-nums">
                     <bdi dir="ltr">
-                      {item.min_quantity}
-                      {item.max_quantity ? ` - ${item.max_quantity}` : '+'}
+                      {formatNumber(item.min_quantity)}
+                      {item.max_quantity ? ` - ${formatNumber(item.max_quantity)}` : '+'}
                     </bdi>
                   </TableCell>
                   <TableCell className="px-4 py-3">
@@ -589,7 +615,7 @@ function ItemsTab({
                       ? 'bg-success-bg text-success-text'
                       : 'bg-muted text-foreground'
                       }`}>
-                      {item.is_active ? 'Active' : 'Inactive'}
+                      {item.is_active ? tCommon('active') : tCommon('inactive')}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3">
@@ -597,6 +623,7 @@ function ItemsTab({
                       <CmxButton
                         size="sm"
                         variant="ghost"
+                        aria-label={tCommon('edit')}
                         onClick={() => onEditItem(item)}
                       >
                         <Edit className="w-4 h-4" />
@@ -604,6 +631,7 @@ function ItemsTab({
                       <CmxButton
                         size="sm"
                         variant="ghost"
+                        aria-label={tCommon('delete')}
                         onClick={() => onDeleteItem(item.id)}
                       >
                         <Trash2 className="w-4 h-4 text-danger-text" />
@@ -641,25 +669,27 @@ function SettingsTab({
   hasItems: boolean
 }) {
   const t = useTranslations('catalog')
+  const tPage = useTranslations('catalog.pricingPage')
+  const tCommon = useTranslations('common')
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Price List Settings</h2>
+        <h2 className="text-lg font-semibold">{tPage('settingsTitle')}</h2>
         {!editing ? (
           <CmxButton onClick={() => setEditing(true)}>
             <Edit className="w-4 h-4 me-2" />
-            Edit
+            {tCommon('edit')}
           </CmxButton>
         ) : (
           <div className="flex items-center gap-2">
             <CmxButton onClick={onSave} disabled={saving}>
               <Save className="w-4 h-4 me-2" />
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? tCommon('loading') : tCommon('save')}
             </CmxButton>
             <CmxButton variant="outline" onClick={() => setEditing(false)}>
               <X className="w-4 h-4 me-2" />
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
           </div>
         )}
@@ -667,7 +697,7 @@ function SettingsTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="block mb-1">Name (EN) *</Label>
+          <Label className="block mb-1">{tPage('nameEnLabel')} *</Label>
           <CmxInput
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -676,7 +706,7 @@ function SettingsTab({
           />
         </div>
         <div>
-          <Label className="block mb-1">Name (AR)</Label>
+          <Label className="block mb-1">{tPage('nameArLabel')}</Label>
           <CmxInput
             value={formData.name2}
             onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
@@ -684,7 +714,7 @@ function SettingsTab({
           />
         </div>
         <div className="md:col-span-2">
-          <Label className="block mb-1">Description (EN)</Label>
+          <Label className="block mb-1">{tPage('descriptionEnLabel')}</Label>
           <CmxTextarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -693,7 +723,7 @@ function SettingsTab({
           />
         </div>
         <div className="md:col-span-2">
-          <Label className="block mb-1">Description (AR)</Label>
+          <Label className="block mb-1">{tPage('descriptionArLabel')}</Label>
           <CmxTextarea
             value={formData.description2}
             onChange={(e) => setFormData({ ...formData, description2: e.target.value })}
@@ -703,23 +733,23 @@ function SettingsTab({
         </div>
         <div>
           <CmxSelect
-            label="Type"
+            label={t('priceListType')}
             value={formData.price_list_type}
             onChange={(e) => setFormData({ ...formData, price_list_type: e.target.value as PriceListType })}
             disabled={!editing || hasItems}
-            helpText={hasItems ? 'Type cannot be changed when items exist' : undefined}
+            helpText={hasItems ? tPage('typeCannotChangeHint') : undefined}
             options={[
-              { value: 'standard', label: 'Standard' },
-              { value: 'express', label: 'Express' },
-              { value: 'vip', label: 'VIP' },
-              { value: 'seasonal', label: 'Seasonal' },
-              { value: 'b2b', label: 'B2B' },
-              { value: 'promotional', label: 'Promotional' },
+              { value: 'standard', label: t('standard') },
+              { value: 'express', label: t('express') },
+              { value: 'vip', label: t('vip') },
+              { value: 'seasonal', label: t('seasonal') },
+              { value: 'b2b', label: t('b2b') },
+              { value: 'promotional', label: t('promotional') },
             ]}
           />
         </div>
         <div>
-          <Label className="block mb-1">Priority</Label>
+          <Label className="block mb-1">{tPage('priority')}</Label>
           <CmxInput
             type="number"
             value={formData.priority}
@@ -728,7 +758,7 @@ function SettingsTab({
           />
         </div>
         <div>
-          <Label className="block mb-1">Effective From</Label>
+          <Label className="block mb-1">{t('effectiveFrom')}</Label>
           <CmxInput
             type="date"
             value={formData.effective_from}
@@ -737,7 +767,7 @@ function SettingsTab({
           />
         </div>
         <div>
-          <Label className="block mb-1">Effective To</Label>
+          <Label className="block mb-1">{t('effectiveTo')}</Label>
           <CmxInput
             type="date"
             value={formData.effective_to}
@@ -750,7 +780,7 @@ function SettingsTab({
             checked={formData.is_default}
             onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
             disabled={!editing}
-            label="Default price list for this type"
+            label={tPage('defaultForTypeLabel')}
           />
         </div>
         <div className="md:col-span-2">
@@ -758,7 +788,7 @@ function SettingsTab({
             checked={formData.is_active}
             onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
             disabled={!editing}
-            label="Active"
+            label={tCommon('active')}
           />
         </div>
       </div>

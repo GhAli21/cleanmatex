@@ -1826,7 +1826,7 @@ export default function PreferencesCatalogPage() {
       permissions={CATALOG_PREFERENCES_ACCESS.page.permissions ?? []}
       fallback={
         <CmxCard className="p-6">
-          <p className="text-muted-foreground">You do not have permission to view the preferences catalog.</p>
+          <p className="text-muted-foreground">{tCatalog('preferencesNoAccess')}</p>
         </CmxCard>
       }
     >

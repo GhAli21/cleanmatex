@@ -47,6 +47,7 @@ import {
   isValidPermissionCode,
 } from '@/lib/api/permissions'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantPermission, PermissionsByCategory } from '@/lib/api/permissions'
 import { SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/settings-access'
@@ -58,6 +59,8 @@ import { SETTINGS_SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/
  */
 export default function PermissionsManagementPage() {
   const t = useTranslations('settings')
+  const tCommon = useTranslations('common')
+  const { formatNumber } = useTenantCurrency()
   const { currentTenant, permissions, session } = useAuth()
   const accessToken = session?.access_token ?? ''
 
@@ -105,7 +108,7 @@ export default function PermissionsManagementPage() {
       setPermissionsByCategory(grouped)
     } catch (err) {
       console.error('Error loading permissions:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load permissions')
+      setError(err instanceof Error ? err.message : t('permissionsPage.loadError'))
     } finally {
       setLoading(false)
     }
@@ -113,11 +116,11 @@ export default function PermissionsManagementPage() {
 
   const handleCreate = async () => {
     if (!isValidPermissionCode(createForm.code)) {
-      setActionError('Permission code must match format: resource:action (lowercase letters and underscores only)')
+      setActionError(t('permissionCodeError'))
       return
     }
     if (!createForm.name.trim() || !createForm.category.trim()) {
-      setActionError('Name and Category are required')
+      setActionError(t('permissionsPage.requiredFieldsError'))
       return
     }
 
@@ -140,7 +143,7 @@ export default function PermissionsManagementPage() {
       setCreateForm({ code: '', name: '', name2: '', category: '', description: '', description2: '' })
     } catch (err) {
       console.error('Error creating permission:', err)
-      setActionError(err instanceof Error ? err.message : 'Failed to create permission')
+      setActionError(err instanceof Error ? err.message : t('permissionsPage.createError'))
     } finally {
       setSaving(false)
     }
@@ -180,7 +183,7 @@ export default function PermissionsManagementPage() {
       setSelectedPermission(null)
     } catch (err) {
       console.error('Error updating permission:', err)
-      setActionError(err instanceof Error ? err.message : 'Failed to update permission')
+      setActionError(err instanceof Error ? err.message : t('permissionsPage.updateError'))
     } finally {
       setSaving(false)
     }
@@ -196,7 +199,7 @@ export default function PermissionsManagementPage() {
       setDeleteConfirmPermission(null)
     } catch (err) {
       console.error('Error deleting permission:', err)
-      setError(err instanceof Error ? err.message : 'Failed to delete permission')
+      setError(err instanceof Error ? err.message : t('permissionsPage.deleteError'))
       setDeleteConfirmPermission(null)
     } finally {
       setSaving(false)
@@ -225,9 +228,9 @@ export default function PermissionsManagementPage() {
       <div className="flex items-center justify-center h-64 bg-card rounded-lg shadow">
         <div className="text-center">
           <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">Access Denied</h3>
-          <p className="text-muted-foreground">You don&apos;t have permission to view permissions management.</p>
-          <p className="text-sm text-muted-foreground mt-2">Admin access required.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">{t('permissionsPage.accessDeniedTitle')}</h3>
+          <p className="text-muted-foreground">{t('permissionsPage.accessDeniedDescription')}</p>
+          <p className="text-sm text-muted-foreground mt-2">{t('permissionsPage.adminRequired')}</p>
         </div>
       </div>
     )
@@ -265,9 +268,9 @@ export default function PermissionsManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Permissions Management</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('permissionsManagement')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            View and manage permissions for your organization
+            {t('permissionsPage.description')}
           </p>
         </div>
         {RBAC_CATALOG_TENANT_WRITABLE && (
@@ -282,7 +285,7 @@ export default function PermissionsManagementPage() {
           }}
         >
           <Plus className="h-4 w-4 me-2" />
-          Create Permission
+          {t('createPermission')}
         </CmxButton>
         )}
       </div>
@@ -290,16 +293,16 @@ export default function PermissionsManagementPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-foreground tabular-nums">{allPermissions.length}</div>
-          <div className="text-sm text-muted-foreground">Total Permissions</div>
+          <div className="text-2xl font-bold text-foreground tabular-nums">{formatNumber(allPermissions.length)}</div>
+          <div className="text-sm text-muted-foreground">{t('permissionsPage.totalPermissions')}</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-primary-text tabular-nums">{systemCount}</div>
-          <div className="text-sm text-muted-foreground">System Permissions</div>
+          <div className="text-2xl font-bold text-primary-text tabular-nums">{formatNumber(systemCount)}</div>
+          <div className="text-sm text-muted-foreground">{t('permissionsPage.systemPermissions')}</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
-          <div className="text-2xl font-bold text-success-text tabular-nums">{customCount}</div>
-          <div className="text-sm text-muted-foreground">Custom Permissions</div>
+          <div className="text-2xl font-bold text-success-text tabular-nums">{formatNumber(customCount)}</div>
+          <div className="text-sm text-muted-foreground">{t('permissionsPage.customPermissions')}</div>
         </div>
       </div>
 
@@ -316,7 +319,7 @@ export default function PermissionsManagementPage() {
           <div className="flex-1">
             <p className="text-sm text-danger-text">{error}</p>
           </div>
-          <CmxButton type="button" variant="ghost" size="xs" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80" aria-label="Dismiss error">
+          <CmxButton type="button" variant="ghost" size="xs" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80" aria-label={t('permissionsPage.dismissError')}>
             <X className="h-4 w-4" />
           </CmxButton>
         </div>
@@ -327,7 +330,7 @@ export default function PermissionsManagementPage() {
         type="text"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search permissions by code, name, or category..."
+        placeholder={t('permissionsPage.searchPlaceholder')}
         leftIcon={<Search className="h-5 w-5" />}
       />
 
@@ -345,7 +348,7 @@ export default function PermissionsManagementPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
-            All ({allPermissions.length})
+            {t('permissionsPage.allCount', { count: formatNumber(allPermissions.length) })}
           </CmxButton>
           {categories.map((cat) => (
             <CmxButton
@@ -360,7 +363,7 @@ export default function PermissionsManagementPage() {
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
-              {cat} ({(permissionsByCategory[cat] ?? []).length})
+              {cat} ({formatNumber((permissionsByCategory[cat] ?? []).length)})
             </CmxButton>
           ))}
         </nav>
@@ -372,22 +375,22 @@ export default function PermissionsManagementPage() {
           <TableHeader className="bg-muted">
             <TableRow>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Code
+                {t('permissionsPage.colCode')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Name (EN / AR)
+                {t('permissionsPage.colName')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Category
+                {t('permissionsPage.colCategory')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Used By
+                {t('permissionsPage.colUsedBy')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Type
+                {t('permissionsPage.colType')}
               </TableHead>
               <TableHead className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Actions
+                {t('permissionsPage.colActions')}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -395,7 +398,7 @@ export default function PermissionsManagementPage() {
             {filteredPermissions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                  {searchQuery ? 'No permissions match your search.' : 'No permissions found.'}
+                  {searchQuery ? t('permissionsPage.noSearchResults') : t('permissionsPage.noPermissions')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -423,13 +426,15 @@ export default function PermissionsManagementPage() {
                     {permission.category}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
-                    {permission.role_count ?? '—'} role{permission.role_count !== 1 ? 's' : ''}
+                    {permission.role_count !== undefined
+                      ? t('permissionsPage.rolesCount', { count: permission.role_count })
+                      : t('permissionsPage.rolesCountUnknown')}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap">
                     {permission.is_system ? (
-                      <CmxStatusBadge size="sm" tone="info">System</CmxStatusBadge>
+                      <CmxStatusBadge size="sm" tone="info">{t('systemPermission')}</CmxStatusBadge>
                     ) : (
-                      <CmxStatusBadge size="sm" tone="success">Custom</CmxStatusBadge>
+                      <CmxStatusBadge size="sm" tone="success">{t('customPermission')}</CmxStatusBadge>
                     )}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
@@ -442,8 +447,8 @@ export default function PermissionsManagementPage() {
                         onClick={() => handleEdit(permission)}
                         className="text-primary-text hover:text-primary-text/80 h-8 w-8"
                         disabled={permission.is_system}
-                        aria-label={permission.is_system ? 'System permissions cannot be edited' : 'Edit Permission'}
-                        title={permission.is_system ? 'System permissions cannot be edited' : 'Edit Permission'}
+                        aria-label={permission.is_system ? t('permissionsPage.cannotEditSystemPermission') : t('permissionsPage.editPermission')}
+                        title={permission.is_system ? t('permissionsPage.cannotEditSystemPermission') : t('permissionsPage.editPermission')}
                       >
                         <Edit className="h-4 w-4" />
                       </CmxButton>
@@ -457,13 +462,13 @@ export default function PermissionsManagementPage() {
                           permission.is_system ||
                           (permission.role_count !== undefined && permission.role_count > 0)
                         }
-                        aria-label="Delete Permission"
+                        aria-label={t('permissionsPage.deletePermission')}
                         title={
                           permission.is_system
-                            ? 'System permissions cannot be deleted'
+                            ? t('cannotDeleteSystemPermission')
                             : permission.role_count && permission.role_count > 0
-                            ? 'Cannot delete permission used by roles'
-                            : 'Delete Permission'
+                            ? t('cannotDeleteAssignedPermission')
+                            : t('permissionsPage.deletePermission')
                         }
                       >
                         <Trash2 className="h-4 w-4" />
@@ -482,7 +487,7 @@ export default function PermissionsManagementPage() {
       <CmxDialog open={showCreateModal} onOpenChange={(next) => { if (!next && !saving) setShowCreateModal(false) }}>
         <CmxDialogContent className="max-w-md w-full p-6" scrollBody>
           <CmxDialogHeader className="mb-4">
-            <CmxDialogTitle>Create New Permission</CmxDialogTitle>
+            <CmxDialogTitle>{t('permissionsPage.createTitle')}</CmxDialogTitle>
           </CmxDialogHeader>
           {actionError && (
             <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
@@ -492,7 +497,7 @@ export default function PermissionsManagementPage() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="perm-create-code" className="mb-1 block">
-                Code * <span className="text-muted-foreground text-xs">(format: resource:action)</span>
+                {t('permissionsPage.codeLabel')} * <span className="text-muted-foreground text-xs">{t('permissionsPage.codeFormatHint')}</span>
               </Label>
               <CmxInput
                 id="perm-create-code"
@@ -501,25 +506,25 @@ export default function PermissionsManagementPage() {
                 onChange={(e) =>
                   setCreateForm({ ...createForm, code: e.target.value.toLowerCase() })
                 }
-                placeholder="e.g. orders:read"
+                placeholder={t('permissionsPage.codePlaceholder')}
                 dir="ltr"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Only lowercase letters and underscores allowed, separated by colon
+                {t('permissionsPage.codeRulesHint')}
               </p>
             </div>
             <div>
-              <Label htmlFor="perm-create-name" className="mb-1 block">Name (English) *</Label>
+              <Label htmlFor="perm-create-name" className="mb-1 block">{t('permissionsPage.nameEnLabel')} *</Label>
               <CmxInput
                 id="perm-create-name"
                 type="text"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                placeholder="e.g. Read Orders"
+                placeholder={t('permissionsPage.nameEnPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="perm-create-name2" className="mb-1 block">Name (Arabic)</Label>
+              <Label htmlFor="perm-create-name2" className="mb-1 block">{t('permissionsPage.nameArLabel')}</Label>
               <CmxInput
                 id="perm-create-name2"
                 type="text"
@@ -529,17 +534,17 @@ export default function PermissionsManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="perm-create-category" className="mb-1 block">Category *</Label>
+              <Label htmlFor="perm-create-category" className="mb-1 block">{t('permissionsPage.categoryLabel')} *</Label>
               <CmxInput
                 id="perm-create-category"
                 type="text"
                 value={createForm.category}
                 onChange={(e) => setCreateForm({ ...createForm, category: e.target.value })}
-                placeholder="e.g. Orders"
+                placeholder={t('permissionsPage.categoryPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="perm-create-desc" className="mb-1 block">Description</Label>
+              <Label htmlFor="perm-create-desc" className="mb-1 block">{t('permissionsPage.descriptionLabel')}</Label>
               <CmxTextarea
                 id="perm-create-desc"
                 value={createForm.description}
@@ -550,10 +555,10 @@ export default function PermissionsManagementPage() {
           </div>
           <CmxDialogFooter className="mt-6">
             <CmxButton type="button" variant="outline" onClick={() => setShowCreateModal(false)} disabled={saving}>
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton type="button" variant="primary" onClick={handleCreate} loading={saving} disabled={saving}>
-              Create
+              {tCommon('create')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
@@ -566,7 +571,7 @@ export default function PermissionsManagementPage() {
       >
         <CmxDialogContent className="max-w-md w-full p-6" scrollBody>
           <CmxDialogHeader className="mb-4">
-            <CmxDialogTitle>Edit Permission</CmxDialogTitle>
+            <CmxDialogTitle>{t('permissionsPage.editTitle')}</CmxDialogTitle>
           </CmxDialogHeader>
           {actionError && (
             <div className="mb-4 p-3 bg-danger-bg border border-danger-border rounded-md text-sm text-danger-text">
@@ -575,7 +580,7 @@ export default function PermissionsManagementPage() {
           )}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="perm-edit-code" className="mb-1 block">Code</Label>
+              <Label htmlFor="perm-edit-code" className="mb-1 block">{t('permissionsPage.codeLabel')}</Label>
               <CmxInput
                 id="perm-edit-code"
                 type="text"
@@ -583,10 +588,10 @@ export default function PermissionsManagementPage() {
                 disabled
                 dir="ltr"
               />
-              <p className="text-xs text-muted-foreground mt-1">Permission code cannot be changed</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('permissionsPage.codeImmutable')}</p>
             </div>
             <div>
-              <Label htmlFor="perm-edit-name" className="mb-1 block">Name (English) *</Label>
+              <Label htmlFor="perm-edit-name" className="mb-1 block">{t('permissionsPage.nameEnLabel')} *</Label>
               <CmxInput
                 id="perm-edit-name"
                 type="text"
@@ -595,7 +600,7 @@ export default function PermissionsManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="perm-edit-name2" className="mb-1 block">Name (Arabic)</Label>
+              <Label htmlFor="perm-edit-name2" className="mb-1 block">{t('permissionsPage.nameArLabel')}</Label>
               <CmxInput
                 id="perm-edit-name2"
                 type="text"
@@ -605,7 +610,7 @@ export default function PermissionsManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="perm-edit-category" className="mb-1 block">Category</Label>
+              <Label htmlFor="perm-edit-category" className="mb-1 block">{t('permissionsPage.categoryLabel')}</Label>
               <CmxInput
                 id="perm-edit-category"
                 type="text"
@@ -614,7 +619,7 @@ export default function PermissionsManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="perm-edit-desc" className="mb-1 block">Description</Label>
+              <Label htmlFor="perm-edit-desc" className="mb-1 block">{t('permissionsPage.descriptionLabel')}</Label>
               <CmxTextarea
                 id="perm-edit-desc"
                 value={editForm.description}
@@ -625,10 +630,10 @@ export default function PermissionsManagementPage() {
           </div>
           <CmxDialogFooter className="mt-6">
             <CmxButton type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton type="button" variant="primary" onClick={handleUpdate} loading={saving} disabled={saving}>
-              Update
+              {tCommon('update')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
@@ -637,14 +642,14 @@ export default function PermissionsManagementPage() {
       {/* Delete Confirmation Modal */}
       <CmxConfirmDialog
         open={Boolean(deleteConfirmPermission)}
-        title="Delete Permission"
+        title={t('permissionsPage.deleteConfirmTitle')}
         description={
           deleteConfirmPermission
-            ? `Are you sure you want to delete the permission "${deleteConfirmPermission.code}"? This action cannot be undone.`
+            ? t('permissionsPage.deleteConfirmDescription', { code: deleteConfirmPermission.code })
             : undefined
         }
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
         confirmDisabled={saving}
         onConfirm={handleDeleteConfirm}
         onCancel={() => { if (!saving) setDeleteConfirmPermission(null) }}

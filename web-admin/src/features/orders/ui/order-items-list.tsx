@@ -67,6 +67,7 @@ export function OrderItemsList({
   highlightPiece = null,
 }: OrderItemsListProps) {
   const t = useTranslations('orders.itemsList');
+  const tOrders = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
@@ -220,7 +221,7 @@ export function OrderItemsList({
               {expandedItemIds.has(item.id) && orderId && tenantId && item.id && (
                 <div className="mt-3">
                   <PiecesErrorBoundary>
-                    <React.Suspense fallback={<div className="text-sm text-muted-foreground p-2">Loading pieces...</div>}>
+                    <React.Suspense fallback={<div className="text-sm text-muted-foreground p-2">{tOrders('loadingPieces')}</div>}>
                       <OrderPiecesManager
                         orderId={orderId}
                         itemId={item.id}

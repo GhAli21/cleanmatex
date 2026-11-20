@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -15,6 +16,7 @@ import { PosSessionRequiredAction } from '@features/pos-sessions/ui/pos-session-
 import { readPosSessionRequired, type PosSessionRequiredInfo } from '@features/pos-sessions/model/pos-session-required';
 import { LINE_ROLE } from '@/lib/constants/voucher';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import type { VoucherLineData } from '@/lib/types/voucher';
 
 interface VoucherPostPreviewDialogProps {
@@ -23,20 +25,6 @@ interface VoucherPostPreviewDialogProps {
   onSuccess: () => void;
   voucherId: string;
   lines: VoucherLineData[];
-}
-
-function deriveExpectedEffect(line: VoucherLineData): string {
-  if (line.line_role === LINE_ROLE.ORDER_PAYMENT) {
-    const isCash = line.payment_method_code?.toUpperCase() === PAYMENT_METHODS.CASH;
-    const isCard = line.payment_method_code?.toUpperCase() === PAYMENT_METHODS.CARD;
-    if (isCash && line.cash_drawer_session_id) return '1 Order Payment + 1 Cash Movement';
-    if (isCash || isCard) return '1 Order Payment (completed)';
-    return '1 Order Payment (pending)';
-  }
-  if (line.line_role === LINE_ROLE.ORDER_CREDIT_APPLICATION) {
-    return `1 Credit Application (${line.credit_application_type ?? '—'})`;
-  }
-  return 'No wiring (skipped)';
 }
 
 /**
@@ -58,9 +46,24 @@ export function VoucherPostPreviewDialog({
   const t = useTranslations('finance.vouchers.postPreview');
   const tCommon = useTranslations('common');
   const tLedger = useTranslations('cashControl.ledgerErrors');
+  const { formatNumber } = useTenantCurrency();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [posSessionRequired, setPosSessionRequired] = useState<PosSessionRequiredInfo | null>(null);
+
+  const deriveExpectedEffect = (line: VoucherLineData): string => {
+    if (line.line_role === LINE_ROLE.ORDER_PAYMENT) {
+      const isCash = line.payment_method_code?.toUpperCase() === PAYMENT_METHODS.CASH;
+      const isCard = line.payment_method_code?.toUpperCase() === PAYMENT_METHODS.CARD;
+      if (isCash && line.cash_drawer_session_id) return t('effectPaymentAndCash');
+      if (isCash || isCard) return t('effectPaymentCompleted');
+      return t('effectPaymentPending');
+    }
+    if (line.line_role === LINE_ROLE.ORDER_CREDIT_APPLICATION) {
+      return t('effectCreditApplication', { type: line.credit_application_type ?? '—' });
+    }
+    return t('effectNoWiring');
+  };
 
   const draftLines = lines.filter((l) => l.line_status === 'DRAFT');
 
@@ -77,14 +80,14 @@ export function VoucherPostPreviewDialog({
         setError(
           result.errorCode && tLedger.has(result.errorCode as Parameters<typeof tLedger>[0])
             ? tLedger(result.errorCode as Parameters<typeof tLedger>[0])
-            : (result.error ?? 'Failed to post voucher')
+            : (result.error ?? t('postError'))
         );
         return;
       }
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to post voucher');
+      setError(err instanceof Error ? err.message : t('postError'));
     } finally {
       setLoading(false);
     }
@@ -101,33 +104,33 @@ export function VoucherPostPreviewDialog({
           <p className="mb-3 text-sm text-muted-foreground">{t('description')}</p>
 
           {draftLines.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No draft lines to post.</p>
+            <p className="text-sm text-muted-foreground">{t('noDraftLines')}</p>
           ) : (
             <div className="overflow-x-auto rounded-md border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-3 py-2 text-start font-medium">{t('lineNo')}</th>
-                    <th className="px-3 py-2 text-start font-medium">{t('lineRole')}</th>
-                    <th className="px-3 py-2 text-end font-medium">Amount</th>
-                    <th className="px-3 py-2 text-start font-medium">{t('expectedEffect')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+              <Table className="w-full text-sm">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="px-3 py-2 text-start font-medium">{t('lineNo')}</TableHead>
+                    <TableHead className="px-3 py-2 text-start font-medium">{t('lineRole')}</TableHead>
+                    <TableHead className="px-3 py-2 text-end font-medium">{t('amountCol')}</TableHead>
+                    <TableHead className="px-3 py-2 text-start font-medium">{t('expectedEffect')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y">
                   {draftLines.map((line) => (
-                    <tr key={line.id}>
-                      <td className="px-3 py-2 tabular-nums">{line.line_no}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{line.line_role}</td>
-                      <td className="px-3 py-2 text-end tabular-nums">
-                        {Number(line.amount).toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
+                    <TableRow key={line.id}>
+                      <TableCell className="px-3 py-2 tabular-nums">{formatNumber(line.line_no)}</TableCell>
+                      <TableCell className="px-3 py-2 font-mono text-xs">{line.line_role}</TableCell>
+                      <TableCell className="px-3 py-2 text-end tabular-nums">
+                        {formatNumber(Number(line.amount), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-muted-foreground">
                         {deriveExpectedEffect(line)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
 

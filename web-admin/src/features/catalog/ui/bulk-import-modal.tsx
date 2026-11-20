@@ -12,6 +12,7 @@ import { CmxButton, Label } from '@ui/primitives'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table'
 import { Download, Upload } from 'lucide-react'
 import { cmxMessage } from '@ui/feedback'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 
 interface BulkImportModalProps {
   open: boolean
@@ -34,7 +35,10 @@ export function BulkImportModal({
   priceListId,
   onSuccess,
 }: BulkImportModalProps) {
-  const _t = useTranslations('catalog')
+  const t = useTranslations('catalog.bulkImport')
+  const tCatalog = useTranslations('catalog')
+  const tCommon = useTranslations('common')
+  const { formatNumber } = useTenantCurrency()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<{ headers: string[]; rows: string[][]; totalRows: number } | null>(null)
@@ -43,7 +47,7 @@ export function BulkImportModal({
   async function downloadTemplate() {
     try {
       const res = await fetch('/api/v1/pricing/template')
-      if (!res.ok) throw new Error('Failed to download template')
+      if (!res.ok) throw new Error(t('templateDownloadError'))
 
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -54,9 +58,9 @@ export function BulkImportModal({
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      cmxMessage.success('Template downloaded')
+      cmxMessage.success(t('templateDownloaded'))
     } catch (err: unknown) {
-      cmxMessage.error(err instanceof Error ? err.message : 'Failed to download template')
+      cmxMessage.error(err instanceof Error ? err.message : t('templateDownloadError'))
     }
   }
 
@@ -66,7 +70,7 @@ export function BulkImportModal({
     if (!selectedFile) return
 
     if (!selectedFile.name.endsWith('.csv')) {
-      cmxMessage.error('Please select a CSV file')
+      cmxMessage.error(t('selectCsvPrompt'))
       return
     }
 
@@ -102,17 +106,22 @@ export function BulkImportModal({
       })
 
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Failed to import')
+      if (!res.ok) throw new Error(json?.error || t('importError'))
 
       if (json.errors && json.errors.length > 0) {
-        cmxMessage.error(`Import completed with ${json.errors.length} errors. ${json.imported} items imported.`)
+        cmxMessage.error(
+          t('importPartial', {
+            errors: formatNumber(json.errors.length),
+            imported: formatNumber(json.imported),
+          })
+        )
       } else {
-        cmxMessage.success(`Successfully imported ${json.imported} items`)
+        cmxMessage.success(t('importSuccess', { imported: formatNumber(json.imported) }))
       }
 
       onSuccess()
     } catch (err: unknown) {
-      cmxMessage.error(err instanceof Error ? err.message : 'Failed to import')
+      cmxMessage.error(err instanceof Error ? err.message : t('importError'))
     } finally {
       setUploading(false)
     }
@@ -122,36 +131,36 @@ export function BulkImportModal({
     <CmxDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <CmxDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <CmxDialogHeader>
-          <CmxDialogTitle>Bulk Import Price List Items</CmxDialogTitle>
+          <CmxDialogTitle>{t('title')}</CmxDialogTitle>
         </CmxDialogHeader>
 
         <div className="space-y-4">
           {/* Instructions */}
           <div className="bg-info-bg border border-info-border rounded-lg p-4">
-            <h3 className="font-medium mb-2">Import Instructions</h3>
+            <h3 className="font-medium mb-2">{t('instructionsTitle')}</h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-foreground">
-              <li>Download the CSV template</li>
-              <li>Fill in product codes/IDs, prices, discounts, and quantity ranges</li>
-              <li>Upload the completed CSV file</li>
-              <li>Review validation results before confirming</li>
+              <li>{t('step1')}</li>
+              <li>{t('step2')}</li>
+              <li>{t('step3')}</li>
+              <li>{t('step4')}</li>
             </ol>
           </div>
 
           {/* Template Download */}
           <div className="flex items-center justify-between p-4 border border-border rounded-lg">
             <div>
-              <p className="font-medium">CSV Template</p>
-              <p className="text-sm text-muted-foreground">Download template with required columns</p>
+              <p className="font-medium">{t('csvTemplateTitle')}</p>
+              <p className="text-sm text-muted-foreground">{t('csvTemplateDescription')}</p>
             </div>
             <CmxButton variant="outline" onClick={downloadTemplate}>
               <Download className="w-4 h-4 me-2" />
-              Download Template
+              {tCatalog('downloadTemplate')}
             </CmxButton>
           </div>
 
           {/* File Upload */}
           <div>
-            <Label className="block mb-2">Select CSV File</Label>
+            <Label className="block mb-2">{t('selectFileLabel')}</Label>
             {/* cmx-ds-ignore UI001: native file input required for CSV upload */}
             <input
               type="file"
@@ -160,8 +169,11 @@ export function BulkImportModal({
               className="w-full px-3 py-2 border border-border rounded-lg"
             />
             {file && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
+              <p className="mt-2 text-sm text-muted-foreground tabular-nums">
+                {t('selectedFileSummary', {
+                  name: file.name,
+                  kb: formatNumber((file.size / 1024), { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                })}
               </p>
             )}
           </div>
@@ -169,7 +181,9 @@ export function BulkImportModal({
           {/* Preview */}
           {preview && (
             <div>
-              <h3 className="font-medium mb-2">Preview ({preview.totalRows} rows)</h3>
+              <h3 className="font-medium mb-2 tabular-nums">
+                {t('previewTitle', { rows: formatNumber(preview.totalRows) })}
+              </h3>
               <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-h-60 overflow-y-auto">
                   <Table className="min-w-full text-sm">
@@ -201,14 +215,14 @@ export function BulkImportModal({
 
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton
               onClick={handleUpload}
               disabled={!file || uploading}
             >
               <Upload className="w-4 h-4 me-2" />
-              {uploading ? 'Uploading...' : 'Import'}
+              {uploading ? t('uploading') : tCommon('import')}
             </CmxButton>
           </CmxDialogFooter>
         </div>
