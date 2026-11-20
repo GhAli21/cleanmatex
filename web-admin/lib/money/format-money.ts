@@ -177,3 +177,29 @@ export function formatMoneyAmountWithCode(
   // B15: no invented currency — a blank code renders the bare number.
   return cc ? `${num} ${cc}` : num;
 }
+
+/**
+ * Format a plain integer or decimal count using the Organization's numeral script
+ * (`NUMBER_SCRIPT`: `'LATN'` vs `'ARAB'`) and grouping convention.
+ * @param value - Number to format
+ * @param options - Optional locale and extra-config numeral script / grouping overrides
+ */
+export function formatNumberForLocale(
+  value: MoneyAmountInput,
+  options?: {
+    locale?: MoneyLocale;
+    numberScript?: NumberScript;
+    groupingLocale?: NumberGroupingLocale;
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+  }
+): string {
+  const intlLocale = resolveMoneyIntlLocale(options?.locale, {
+    numberScript: options?.numberScript ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberScript,
+    groupingLocale: options?.groupingLocale ?? DEFAULT_RESOLVED_EXTRA_CONFIG.numberGroupingLocale,
+  });
+  return new Intl.NumberFormat(intlLocale, {
+    minimumFractionDigits: options?.minimumFractionDigits,
+    maximumFractionDigits: options?.maximumFractionDigits,
+  }).format(coerceAmount(value));
+}

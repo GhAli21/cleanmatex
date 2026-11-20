@@ -411,3 +411,27 @@ Prior findings, Retest r4 2026-11-19: the 17-Nov "order route avoided" gap for 2
 
 ### Test data left behind
 - None from this retest. Incognito window closed; the normal profile is signed in as the Demo Laundry admin.
+
+## Financial_Expert_Tester Results — Retest r5 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+User Session Lifecycle (Q10) — only the user-detail Activity/Sessions rows were re-checked in this observe pass (22:19–22:26 Asia/Muscat). Edit User was opened and cancelled; nothing was saved. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| 0.6 / 5.3 | BLOCKED | 22:19–22:26 Asia/Muscat. `https://cmx.cleanmatex.com/dashboard/settings/users` has no user detail page. Edit User dialog shows Email + Role only; there are no Activity or Sessions tabs. Still blocked (FET-USL-Nov17-ActivityLogFails / FET-USL-Nov17-SessionsTabMismatch cannot be exercised). Dialog cancelled. |
+
+**Prior findings — Retest r5 2026-11-20**
+
+- **FET-USL-Nov17-ActivityLogFails** / **FET-USL-Nov17-SessionsTabMismatch** — **STILL BLOCKED.** No user-detail Activity/Sessions UI to retest.
+
+**r5 tally for the rows above (parent counts unchanged):** BLOCKED 2 (0.6, 5.3).
+
+**Rows not run in r5:** invite, set-password, lock/revoke, and other session-lifecycle writes (awaiting approval). No shared Demo account was locked or reset.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After a user-detail page (or Edit User tabs for Activity/Sessions) ships, re-run 0.6 and 5.3 as observe, then ask once before any revoke/lock writes.

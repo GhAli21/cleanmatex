@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const mockRequirePermission = jest.fn();
+const mockValidateJWTWithTenant = jest.fn();
 const mockValidateCSRF = jest.fn();
 const mockRateLimit = jest.fn();
 const mockGetScreenData = jest.fn();
@@ -13,6 +14,10 @@ const mockResetAll = jest.fn();
 
 jest.mock('@/lib/middleware/require-permission', () => ({
   requirePermission: () => mockRequirePermission,
+}));
+
+jest.mock('@/lib/middleware/jwt-tenant-validator', () => ({
+  validateJWTWithTenant: (...args: unknown[]) => mockValidateJWTWithTenant(...args),
 }));
 
 jest.mock('@/lib/middleware/csrf', () => ({
@@ -46,15 +51,17 @@ describe('/api/v1/settings/extra-config routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRequirePermission.mockResolvedValue({ tenantId: 't-1', userId: 'u-1' });
+    mockValidateJWTWithTenant.mockResolvedValue({ tenantId: 't-1', userId: 'u-1', isValid: true });
     mockValidateCSRF.mockResolvedValue(null);
     mockRateLimit.mockResolvedValue(null);
   });
 
-  it('GET returns screen payload with Cache-Control: private, no-store', async () => {
+  it('GET allows authenticated tenant users in read-only mode even when write permission is denied', async () => {
     mockGetScreenData.mockResolvedValueOnce({ resolved: { numberScript: 'LATN' }, items: [] });
     const req = new NextRequest('http://localhost/api/v1/settings/extra-config');
     const res = await GET(req);
     expect(res.status).toBe(200);
+    expect(mockRequirePermission).not.toHaveBeenCalled();
     expect(res.headers.get('Cache-Control')).toBe('private, no-store');
     const json = await res.json();
     expect(json.success).toBe(true);

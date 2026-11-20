@@ -1,16 +1,19 @@
 # ADR — I11 Background Execution Boundary
 
-**Status:** Target boundary approved on 17 Nov 2026; notification implementation is in controlled canary hardening. Production expansion remains blocked on remote capacity attribution, single-instance confirmation, and the defined canary/soak evidence.
-**Scope:** `cleanmatex` database and tenant legacy routes; `cleanmatexsaas` HQ `platform-api`, `platform-web`, and Render `platform-workers`.
+**Status:** Target boundary approved 17 Nov 2026; **runtime architecture amended and Owner-approved 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D8); **D19 central work platform** added 21 Nov 2026. Notification delivery stays disabled until WP0–WP4 gates.
+**Approved_By_Jh:** 20 Nov 2026 (D1–D8); D19 recorded 21 Nov 2026 from Owner direction to centralize work calls.
+**Scope:** `cleanmatex` database and tenant legacy routes; `cleanmatexsaas` HQ `platform-api`, `platform-web`; Render `platform-workers` is transitional until WP2.
 
 ## Decision
 
 1. Vercel/tenant `web-admin` is limited to user-request-driven work. No supported `pg_cron` or `pg_net` path may invoke a tenant API route for scheduled execution.
 2. Supabase PostgreSQL owns database-native schedules and fixed database functions. A database job has bounded work, explicit grants/search path, idempotency/overlap behavior, tenant-safe queries, durable outcome facts, and no provider call.
-3. Render HQ `platform-workers` owns scheduling, durable outbox claim/finalize/reconciliation, and storage-byte work. PostgreSQL remains the durable source for claim, outcome, retry, and audit state. The notification path does not use BullMQ or Redis; legacy BullMQ starts only under the explicit rollback-only `LEGACY_BULLMQ_ENABLED=true` gate.
-4. **Owner-approved notification exception:** `platform-api/src/modules/jobs-need-api/notifications/outbox-delivery` is the only approved initial `jobs-need-api` boundary. A Render worker may invoke its one typed, private operation after claiming a canonical outbox row. The API owns notification policy and provider submission because it is the controlled credential, route, quota, and audit boundary; it is not a generic worker proxy or command runner.
+3. **Approved HQ runtime (20 Nov 2026):** `platform-api` owns the `BackgroundExecutionModule` (claim/finalize/purge, later reconcile). Wake is `LISTEN/NOTIFY` plus a 5–15 minute `pg_cron` safety sweep. PostgreSQL remains the durable source for outbox, claim, outcome, retry, and audit (`SKIP LOCKED`). Render `platform-workers` is transitional until that module soaks, then the Background Worker service is deleted. The notification **job path** does not use BullMQ. Redis may run on HQ API for cache, rate limit, and locks; it is not the job bus. Legacy BullMQ starts only under `LEGACY_BULLMQ_ENABLED=true`, and never merely because `REDIS_URL` is set.
+4. **Owner-approved notification exception:** `platform-api/src/modules/jobs-need-api/notifications/outbox-delivery` remains the policy/provider boundary. Target execute is **in-process** after a canonical claim. HTTP machine ingress (`PLATFORM_WORKER_API_KEY`, identity-only DTO) stays until WP2, then is rollback-only. It is not a generic worker proxy or command runner.
 5. `sys_ops_job_cf` is the HQ operator control plane. It records desired state and safe metadata, never arbitrary command text, URLs, secrets, or SQL. A scheduler may not be silently duplicated to make registry state look healthy.
 6. **Owner-approved notification convergence:** `org_ntf_outbox_dtl` remains the canonical tenant delivery state. HQ workers may claim and finalize only that tenant record through fixed database contracts. `hq_ntf_dispatch_log` is an operational/audit projection and cannot independently authorize or finalize a customer delivery.
+7. **Central work platform (D19, 21 Nov 2026):** Application code creates customer-visible background work only through one enqueue helper in the same transaction as the domain write. One HQ `BackgroundExecutionModule` runs allowlisted `job_code` executors. `/ops/jobs` is the operator surface. This is not a generic command/URL/SQL runner and not a god service that owns finance + notify + storage in one class.
+8. **CLAUDE.md (D20):** Every planning or implementation slice loads tenant and HQ `CLAUDE.md`/`AGENTS.md` and the skills they name before writing that kind of artifact. Progress Log and related docs update after every WP. After soak: `/documentation` pack (WP9), then Cursor rule + `background-execution` skill (WP10).
 
 ## Approved target map
 
@@ -18,7 +21,7 @@
 |---|---|
 | `DATABASE` | Session, extension cleanup, File pending-upload expiry, finance idempotency, notification retry/quota/retention/push-subscription, operations capture, Setup Health, tax-kit update, campaigns, and financial domain transitions. |
 | `HQ_WORKER` | Notification claim/finalize/reconciliation orchestration and File Util storage-byte purge. |
-| `HQ_JOB_API` | Notification outbox policy and provider submission only, reached by the claimed Render worker through a dedicated machine identity. |
+| `HQ_JOB_API` | Notification outbox policy and provider submission only (in-process target; machine HTTP until WP2). |
 
 ## Non-negotiable execution contracts
 
@@ -55,4 +58,4 @@ Remote evidence shows `cron.job` currently runs `tax-kit-update` at `5 2 * * *` 
 
 Remote Supabase is the production authority. Phase 1 must produce the per-handler contract, a forward-only migration plan, worker/API changes where applicable, test/soak criteria, and runbooks before Phase 2 implementation.
 
-See [I11_background_execution_redesign_PLAN.md](I11_background_execution_redesign_PLAN.md) for task status and the [Phase 0–4 register](Phase_0_to_4_Go_No_Go_Register.md) for launch gating.
+See [I11_background_execution_EXPERT_REPLAN.md](I11_background_execution_EXPERT_REPLAN.md) for the approved execution roadmap (D1–D12, WP0–WP9), [I11_background_execution_redesign_PLAN.md](I11_background_execution_redesign_PLAN.md) for the Progress Log, and the [Phase 0–4 register](Phase_0_to_4_Go_No_Go_Register.md) for launch gating.

@@ -20,12 +20,14 @@ import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
 import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
 import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
+import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
 
 /** Labels the tenant order list independently from individual order workspaces. */
 export const metadata: Metadata = { title: 'Orders' };
 
 type OrdersSearchParams = {
   page?: string;
+  limit?: string;
   status?: string;
   preparationStatus?: string;
   priority?: string;
@@ -71,11 +73,19 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     );
   }
 
-  // Safely parse page / dates from query string
+  // Safely parse page / limit / dates from query string
   const page =
     params.page && !Number.isNaN(Number.parseInt(params.page, 10))
       ? Number.parseInt(params.page, 10)
       : 1;
+
+  const parsedLimit =
+    params.limit && !Number.isNaN(Number.parseInt(params.limit, 10))
+      ? Number.parseInt(params.limit, 10)
+      : CMX_DEFAULT_PAGE_SIZE;
+  const limit = CMX_PAGE_SIZE_OPTIONS.includes(parsedLimit)
+    ? parsedLimit
+    : CMX_DEFAULT_PAGE_SIZE;
 
   const parseDate = (value?: string) => {
     if (!value) return undefined;
@@ -85,7 +95,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 
   const filters = {
     page,
-    limit: 20,
+    limit,
     status: params.status,
     preparationStatus: params.preparationStatus,
     priority: params.priority,

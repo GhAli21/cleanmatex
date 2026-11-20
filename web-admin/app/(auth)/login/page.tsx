@@ -321,14 +321,16 @@ export default function LoginPage() {
                       ) : null}
                     </>
                   ) : (
-                    <Image
-                      src="/brand/cleanmatex-wordmark.png"
-                      alt={t('login.brandAlt')}
-                      width={920}
-                      height={320}
-                      className="h-auto w-full"
-                      priority
-                    />
+                    <div className="cmx-wordmark-box">
+                      <Image
+                        src="/brand/cleanmatex-wordmark.png"
+                        alt={t('login.brandAlt')}
+                        width={920}
+                        height={320}
+                        className="h-auto w-full"
+                        priority
+                      />
+                    </div>
                   )}
                   {brandName ? <p className="mt-3 text-lg font-semibold text-foreground">{brandName}</p> : null}
                 </div>

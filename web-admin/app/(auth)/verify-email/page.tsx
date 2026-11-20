@@ -10,12 +10,14 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase/client'
 import { CmxButton } from '@ui/primitives'
 
 function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('auth.verifyEmail')
 
   const [email, setEmail] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
@@ -48,7 +50,7 @@ function VerifyEmailContent() {
           }, 3000)
         } catch (error: any) {
           console.error('Verification error:', error)
-          setVerificationError(error.message || 'Verification failed')
+          setVerificationError(error.message || t('failedError'))
         } finally {
           setIsVerifying(false)
         }
@@ -74,7 +76,7 @@ function VerifyEmailContent() {
 
   const handleResendEmail = async () => {
     if (!email) {
-      setResendError('Email address is required')
+      setResendError(t('resendEmailRequired'))
       return
     }
 
@@ -95,7 +97,7 @@ function VerifyEmailContent() {
       }, 5000)
     } catch (error: any) {
       console.error('Resend error:', error)
-      setResendError(error.message || 'Failed to resend verification email')
+      setResendError(error.message || t('resendFailed'))
       setResendSuccess(false)
     }
   }
@@ -129,10 +131,10 @@ function VerifyEmailContent() {
               </svg>
             </div>
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-              Verifying your email...
+              {t('verifyingTitle')}
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Please wait while we verify your email address
+              {t('verifyingSubtitle')}
             </p>
           </div>
         </div>
@@ -162,10 +164,10 @@ function VerifyEmailContent() {
               </svg>
             </div>
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-              Email Verified!
+              {t('verifiedTitle')}
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Your email has been successfully verified
+              {t('verifiedSubtitle')}
             </p>
           </div>
 
@@ -186,7 +188,7 @@ function VerifyEmailContent() {
               </div>
               <div className="ms-3">
                 <p className="text-sm text-success-text">
-                  You can now sign in with your credentials. Redirecting to login page...
+                  {t('verifiedNotice')}
                 </p>
               </div>
             </div>
@@ -197,7 +199,7 @@ function VerifyEmailContent() {
               href="/login"
               className="font-medium text-primary-text hover:text-primary-text/80"
             >
-              Go to Login Now
+              {t('goToLoginNow')}
             </Link>
           </div>
         </div>
@@ -227,10 +229,10 @@ function VerifyEmailContent() {
               </svg>
             </div>
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-              Verification Failed
+              {t('failedTitle')}
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              We couldn't verify your email address
+              {t('failedSubtitle')}
             </p>
           </div>
 
@@ -261,13 +263,13 @@ function VerifyEmailContent() {
               onClick={handleResendEmail}
               className="flex-1"
             >
-              Resend Verification Email
+              {t('resendButton')}
             </CmxButton>
             <Link
               href="/login"
               className="flex-1 flex justify-center rounded-md border border-border bg-card py-2 px-4 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              Back to Login
+              {t('backToLogin')}
             </Link>
           </div>
         </div>
@@ -297,11 +299,11 @@ function VerifyEmailContent() {
             </svg>
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-            Verify your email
+            {t('noticeTitle')}
           </h2>
           {email && (
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              We sent a verification email to <strong>{email}</strong>
+              {t('noticeBody', { email })}
             </p>
           )}
         </div>
@@ -325,7 +327,7 @@ function VerifyEmailContent() {
               </div>
               <div className="ms-3">
                 <p className="text-sm text-success-text">
-                  Verification email sent successfully! Check your inbox.
+                  {t('resendSuccess')}
                 </p>
               </div>
             </div>
@@ -373,12 +375,12 @@ function VerifyEmailContent() {
               </svg>
             </div>
             <div className="ms-3">
-              <h3 className="text-sm font-medium text-primary-text">What's next?</h3>
+              <h3 className="text-sm font-medium text-primary-text">{t('whatsNext')}</h3>
               <div className="mt-2 text-sm text-primary-text">
                 <ol className="list-decimal list-inside space-y-1">
-                  <li>Check your email inbox (and spam folder)</li>
-                  <li>Click the verification link in the email</li>
-                  <li>Return here to sign in</li>
+                  <li>{t('step1')}</li>
+                  <li>{t('step2')}</li>
+                  <li>{t('step3')}</li>
                 </ol>
               </div>
             </div>
@@ -400,7 +402,7 @@ function VerifyEmailContent() {
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="ms-2 text-sm text-foreground">Didn't receive the email?</span>
+              <span className="ms-2 text-sm text-foreground">{t('didntReceive')}</span>
             </div>
             <CmxButton
               type="button"
@@ -408,7 +410,7 @@ function VerifyEmailContent() {
               size="sm"
               onClick={handleResendEmail}
             >
-              Resend
+              {t('resendShort')}
             </CmxButton>
           </div>
         </div>
@@ -419,7 +421,7 @@ function VerifyEmailContent() {
             href="/login"
             className="font-medium text-primary-text hover:text-primary-text/80"
           >
-            ← Back to Login
+            {t('backToLogin')}
           </Link>
         </div>
       </div>

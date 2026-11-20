@@ -17,6 +17,7 @@ import { useTranslations } from 'next-intl'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { useRole } from '@/lib/auth/role-context'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { useFeatureOptional } from '@/src/features/auth/ui/RequireFeature'
 import type { UserRole } from '@/config/navigation'
 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
@@ -246,6 +247,7 @@ export function StatCard({
   color?: 'blue' | 'green' | 'red' | 'yellow' | 'gray'
   isLoading?: boolean
 }) {
+  const { formatNumber } = useTenantCurrency()
   const colorClasses = {
     blue: 'bg-info-bg text-info-text',
     green: 'bg-success-bg text-success-text',
@@ -275,18 +277,20 @@ export function StatCard({
         )}
       </div>
       <div className="flex items-baseline">
-        <p className="text-3xl font-bold text-foreground">{value}</p>
+        <p className="text-3xl font-bold text-foreground tabular-nums">
+          {typeof value === 'number' ? formatNumber(value) : value}
+        </p>
       </div>
       {(trend !== undefined || trendLabel) && (
         <div className="mt-2 flex items-center">
           {trend !== undefined && (
             <span
-              className={`text-sm font-medium ${
+              className={`text-sm font-medium tabular-nums ${
                 trend >= 0 ? 'text-success-text' : 'text-danger-text'
               }`}
             >
-              {trend >= 0 ? '+' : ''}
-              {trend}%
+              {trend >= 0 ? '+' : '-'}
+              {formatNumber(Math.abs(trend))}%
             </span>
           )}
           {trendLabel && (

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import {
   BarChart,
   Bar,
+  Cell,
   LineChart,
   Line,
   XAxis,
@@ -23,15 +24,21 @@ interface InvoicesReportChartsProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  paid: '#10B981',
-  partial: '#F59E0B',
-  pending: '#6B7280',
-  overdue: '#EF4444',
-  draft: '#9CA3AF',
-  cancelled: '#EF4444',
+  paid: 'rgb(var(--cmx-success-text-rgb))',
+  partial: 'rgb(var(--cmx-warning-text-rgb))',
+  pending: 'rgb(var(--cmx-muted-foreground-rgb))',
+  overdue: 'rgb(var(--cmx-danger-text-rgb))',
+  draft: 'rgb(var(--cmx-muted-foreground-rgb))',
+  cancelled: 'rgb(var(--cmx-danger-text-rgb))',
 };
 
-const AGING_COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#F97316', '#EF4444'];
+const AGING_COLORS = [
+  'rgb(var(--cmx-success-text-rgb))',
+  'rgb(var(--cmx-primary-rgb))',
+  'rgb(var(--cmx-warning-text-rgb))',
+  '#F97316', // cmx-ds-ignore UI003: distinct 60-90d aging bucket severity colour
+  'rgb(var(--cmx-danger-text-rgb))',
+];
 
 /**
  *
@@ -68,8 +75,8 @@ export default function InvoicesReportCharts({
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
             <ChartLegend />
-            <Bar dataKey="count" name={t('charts.count')} fill="#3B82F6" />
-            <Bar dataKey="amount" name={`${t('charts.amount')} (${currencyCode})`} fill="#10B981" />
+            <Bar dataKey="count" name={t('charts.count')} fill="rgb(var(--cmx-primary-rgb))" />
+            <Bar dataKey="amount" name={`${t('charts.amount')} (${currencyCode})`} fill="rgb(var(--cmx-success-text-rgb))" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -87,9 +94,9 @@ export default function InvoicesReportCharts({
             <Tooltip
               formatter={(value: number) => `${currencyCode} ${value.toLocaleString()}`}
             />
-            <Bar dataKey="amount" name={t('charts.outstanding')}>
+            <Bar dataKey="amount" name={t('charts.outstanding')} fill="rgb(var(--cmx-primary-rgb))">
               {agingBuckets.map((_, idx) => (
-                <rect key={idx} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
+                <Cell key={idx} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
               ))}
             </Bar>
           </BarChart>
@@ -109,7 +116,7 @@ export default function InvoicesReportCharts({
             <Tooltip
               formatter={(value: number) => [`${currencyCode} ${value.toLocaleString()}`, t('charts.collected')]}
             />
-            <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="revenue" stroke="rgb(var(--cmx-success-text-rgb))" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

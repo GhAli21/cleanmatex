@@ -16,6 +16,7 @@ import {
   guardFileRequest,
   initUploadSchema,
   readJson,
+  uuidLikeSchema,
 } from '@/lib/services/file-util/file-util-http';
 
 const csv = (v: string | null) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined);
@@ -23,10 +24,10 @@ const csv = (v: string | null) => (v ? v.split(',').map((s) => s.trim()).filter(
 const listQuerySchema = z
   .object({
     category: categorySchema,
-    entityIds: z.array(z.string().uuid()).min(1).max(FILE_LIST_MAX_ENTITIES),
+    entityIds: z.array(uuidLikeSchema).min(1).max(FILE_LIST_MAX_ENTITIES),
     purposes: z.array(z.string().regex(/^[A-Z][A-Z0-9_]{1,49}$/)).max(50).optional(),
     refType: z.enum(FILE_REF_TYPE_CODES).optional(),
-    refId: z.string().uuid().optional(),
+    refId: uuidLikeSchema.optional(),
     sources: z.array(z.enum(FILE_SOURCE_CODES)).max(50).optional(),
     // Stage codes belong to the owning record's domain (order status: lowercase, e.g. ready_for_pickup).
     stages: z.array(z.string().regex(/^[a-z][a-z0-9_]{1,49}$/)).max(50).optional(),

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition, useCallback } from 'react';
 import { Calendar, Search, X } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 
 const DATE_PRESETS = ['today', '7d', '30d', '90d', 'custom'] as const;
 type DatePreset = typeof DATE_PRESETS[number];
@@ -122,73 +123,76 @@ export default function ReportFiltersBar({
       <div className="flex flex-wrap items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
         {DATE_PRESETS.map((preset) => (
-          <button
+          <CmxButton
             key={preset}
+            type="button"
+            size="sm"
+            variant={currentPreset === preset ? 'primary' : 'outline'}
             onClick={() => handlePresetChange(preset)}
             disabled={isPending}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-              currentPreset === preset
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground hover:bg-border'
-            } disabled:opacity-50`}
           >
             {t(preset)}
-          </button>
+          </CmxButton>
         ))}
       </div>
 
       {/* Custom Date Range + Filters */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex items-center gap-1">
-          <label className="text-xs text-muted-foreground">{tCommon('dateFrom')}</label>
-          <input
+          <Label htmlFor="report-filter-start-date" className="text-xs text-muted-foreground">{tCommon('dateFrom')}</Label>
+          <CmxInput
+            id="report-filter-start-date"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-md border border-border px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-auto"
           />
         </div>
         <div className="flex items-center gap-1">
-          <label className="text-xs text-muted-foreground">{tCommon('dateTo')}</label>
-          <input
+          <Label htmlFor="report-filter-end-date" className="text-xs text-muted-foreground">{tCommon('dateTo')}</Label>
+          <CmxInput
+            id="report-filter-end-date"
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-md border border-border px-2 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-auto"
           />
         </div>
         {currentPreset === 'custom' && (
-          <button
+          <CmxButton
+            type="button"
+            size="sm"
+            variant="primary"
             onClick={handleCustomDateApply}
             disabled={isPending}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
           >
             {t('apply')}
-          </button>
+          </CmxButton>
         )}
 
         {showStatusFilter && statusOptions.length > 0 && (
-          <select
+          <CmxSelect
             value={currentStatus}
             onChange={(e) => updateParams({ status: e.target.value || null })}
-            className="rounded-md border border-border px-3 py-1.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t('allStatuses')}</option>
-            {statusOptions.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+            className="min-w-[10rem]"
+            options={[
+              { value: '', label: t('allStatuses') },
+              ...statusOptions.map((s) => ({ value: s, label: s })),
+            ]}
+          />
         )}
 
         {hasFilters && (
-          <button
+          <CmxButton
+            type="button"
+            size="sm"
+            variant="outline"
             onClick={handleClearFilters}
             disabled={isPending}
-            className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted disabled:opacity-50"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3 w-3 me-1" />
             {tCommon('clearFilters')}
-          </button>
+          </CmxButton>
         )}
       </div>
     </div>

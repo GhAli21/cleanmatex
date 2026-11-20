@@ -225,12 +225,14 @@
   --cmx-control-h: 2.5rem;
   --cmx-row-h: 2.75rem;
   --cmx-cell-px: 1rem;
+  --cmx-cell-py: 0.5rem;
 }
 
 [data-density=COMPACT] {
   --cmx-control-h: 2rem;
   --cmx-row-h: 2rem;
   --cmx-cell-px: 0.5rem;
+  --cmx-cell-py: 0.1875rem;
 }
 
 /* Font scale: rem-based sizes follow the root size */

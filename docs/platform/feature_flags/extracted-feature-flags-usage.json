@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-19T20:40:41.483Z",
+  "extractedAt": "2026-11-20T20:21:10.176Z",
   "schemaVersion": 2,
   "usages": {
     "order_fin_sv_funding_capture": [
@@ -168,14 +168,14 @@
       },
       {
         "path": "lib/services/tenant-extra-config.service.ts",
-        "line": 336,
+        "line": 337,
         "context": "getFeatureFlags(tenantId),",
         "surface": "service",
         "pattern": "getFeatureFlags"
       },
       {
         "path": "lib/services/ui-theme.service.ts",
-        "line": 62,
+        "line": 69,
         "context": "getFeatureFlags(tenantId),",
         "surface": "service",
         "pattern": "getFeatureFlags"

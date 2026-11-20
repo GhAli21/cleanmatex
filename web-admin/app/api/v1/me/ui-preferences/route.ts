@@ -9,9 +9,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/db/prisma'
 import { getAuthContext } from '@/lib/middleware/require-permission'
 import { validateCSRF } from '@/lib/middleware/csrf'
+import { writeLastModeCookie } from '@/lib/services/ui-theme.service'
 import { uiPreferencesSchema } from '@/lib/validations/ui-theme'
 import { logger } from '@/lib/utils/logger'
 
@@ -68,6 +70,9 @@ export async function PUT(request: NextRequest) {
       },
       select: SELECT,
     })
+    if (data.ui_color_mode) {
+      writeLastModeCookie(await cookies(), data.ui_color_mode)
+    }
     revalidatePath('/', 'layout')
     return NextResponse.json({ success: true, data })
   } catch (err) {

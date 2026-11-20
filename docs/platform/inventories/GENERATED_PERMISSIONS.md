@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T20:40:46.887Z
+Generated: 2026-11-20T20:21:15.167Z
 
 ## By surface (counts)
 
@@ -12,7 +12,7 @@ Generated: 2026-11-19T20:40:46.887Z
 | api | 375 |
 | middleware | 4 |
 | screen | 117 |
-| service | 6 |
+| service | 5 |
 
 ## All permission usages
 
@@ -348,7 +348,7 @@ Generated: 2026-11-19T20:40:46.887Z
 | orders:rebill_authorize | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 93 | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx |
 | orders:reverse_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 83 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
 | orders:split | screen | src/features/workflow/ui/processing-modal.tsx | 161 | src/features/workflow/ui/processing-modal.tsx |
-| orders:split | screen | src/features/workflow/ui/simple-processing-dialog.tsx | 131 | src/features/workflow/ui/simple-processing-dialog.tsx |
+| orders:split | screen | src/features/workflow/ui/simple-processing-dialog.tsx | 132 | src/features/workflow/ui/simple-processing-dialog.tsx |
 | orders:split | api | app/api/v1/orders/[id]/split/route.ts | 34 | /api/v1/orders/[id]/split |
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |
 | orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 73 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
@@ -479,11 +479,10 @@ Generated: 2026-11-19T20:40:46.887Z
 | settings:branding | screen | src/features/settings/ui/branding/branding-screen.tsx | 42 | src/features/settings/ui/branding/branding-screen.tsx |
 | settings:branding | service | lib/services/org-ui-theme-http.ts | 25 | lib/services/org-ui-theme-http.ts |
 | settings:organization | api | app/api/v1/settings/general/route.ts | 116 | /api/v1/settings/general |
-| settings:read | service | lib/services/tenant-extra-config-http.ts | 26 | lib/services/tenant-extra-config-http.ts |
 | settings:read | api | app/api/v1/settings/branding/route.ts | 24 | /api/v1/settings/branding |
 | settings:read | api | app/api/v1/settings/general/route.ts | 84 | /api/v1/settings/general |
 | settings:update | screen | src/features/settings/ui/extra-config/extra-config-screen.tsx | 34 | src/features/settings/ui/extra-config/extra-config-screen.tsx |
-| settings:update | service | lib/services/tenant-extra-config-http.ts | 39 | lib/services/tenant-extra-config-http.ts |
+| settings:update | service | lib/services/tenant-extra-config-http.ts | 42 | lib/services/tenant-extra-config-http.ts |
 | settings:workflow | api | app/api/v1/workflows/config/route.ts | 52 | /api/v1/workflows/config |
 | stored_value:issue_advance | screen | src/features/customers/ui/customer-stored-value-tab.tsx | 112 | src/features/customers/ui/customer-stored-value-tab.tsx |
 | stored_value:issue_advance | api | app/api/v1/customers/[id]/advance/issue/route.ts | 28 | /api/v1/customers/[id]/advance/issue |

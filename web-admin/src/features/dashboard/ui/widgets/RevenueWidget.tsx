@@ -8,11 +8,9 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRTL } from '@/lib/hooks/useRTL'
 import { DollarSign, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
-import { formatMoneyAmount } from '@/lib/money/format-money'
 import { dashboardService } from '@/lib/services/dashboard.service'
 
 /**
@@ -21,8 +19,7 @@ import { dashboardService } from '@/lib/services/dashboard.service'
 export function RevenueWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')
-  const isRTL = useRTL()
-  const { decimalPlaces, currencyCode } = useTenantCurrency()
+  const { formatMoney, formatNumber } = useTenantCurrency()
   const [data, setData] = useState<{
     today: number
     mtd: number
@@ -65,11 +62,7 @@ export function RevenueWidget() {
   }, [currentTenant])
 
   const formatRevenueMoney = (amount: number) =>
-    formatMoneyAmount(amount, {
-      currencyCode: data.currency || currencyCode,
-      decimalPlaces,
-      locale: isRTL ? 'ar' : 'en',
-    })
+    formatMoney(amount, data.currency || undefined)
 
   if (isLoading) {
     return (
@@ -108,12 +101,12 @@ export function RevenueWidget() {
                 }`}
               />
               <span
-                className={`text-sm font-medium ${
+                className={`text-sm font-medium tabular-nums ${
                   data.trend >= 0 ? 'text-success-text' : 'text-danger-text'
                 }`}
               >
-                {data.trend >= 0 ? '+' : ''}
-                {data.trend}%
+                {data.trend >= 0 ? '+' : '-'}
+                {formatNumber(Math.abs(data.trend))}%
               </span>
               <span className="text-sm text-muted-foreground ms-2">{t('fromYesterday')}</span>
             </div>

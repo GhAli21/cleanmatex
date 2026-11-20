@@ -1219,3 +1219,27 @@ Prior findings, Retest r1 2026-11-19: **FET-RWP-Nov17-TaxDocPrintWrong / NoTaxDo
 
 ### Test data left behind
 - `ORD-20261119-00001` — 3.959 cash (tendered 5.000, change 1.050), whole-order preference Separate Wash +0.500, Fold packing on Blouse; Processing. Other run-wide QA orders `ORD-20261119-00002..00004` are listed in the Q3/Q4 guides.
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Remediation Work Packages (Q6) — only the tax-document list row was re-checked in this observe pass (22:19–22:26 Asia/Muscat). Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| 26.13 | BLOCKED | 22:19–22:26 Asia/Muscat. No tax-documents list in nav or by URL (404). ORD-20261119-00006 financial tab shows "Tax documents: None". SIM-2026-000003 is not reachable. Still blocked (FET-RWP-Nov17-NoTaxDocList / FET-TX-Nov17-TaxDocPrint). No dedicated shot; same session as Q7 #26. |
+
+**Prior findings — Retest r2 2026-11-20**
+
+- **FET-RWP-Nov17-NoTaxDocList** — **STILL BROKEN / still blocking 26.13.**
+
+**r5 tally for the rows above (parent counts unchanged):** BLOCKED 1 (26.13).
+
+**Rows not run in r5:** remaining RWP money, loyalty, cash-banner, and cron rows (write-gated or need fixtures; awaiting approval).
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After a tax-documents list/route ships (or a reachable SIM/tax-doc fixture is named), re-run 26.13 and the related print rows.

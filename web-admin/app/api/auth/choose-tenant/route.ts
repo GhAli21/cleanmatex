@@ -81,10 +81,11 @@ export async function POST(request: NextRequest) {
       : {}),
   })
 
-  // The login page shows this Organization's brand on this device next time (never fails sign-in).
-  await writeLastBrandCookie(cookieStore, row.tenant_org_id)
-
   const { data: userData } = await supabase.auth.getUser()
+
+  // The login page shows this Organization's brand and color mode on this device next time (never fails sign-in).
+  await writeLastBrandCookie(cookieStore, row.tenant_org_id, userData.user?.id ?? null)
+
   if (userData.user && row.new_device) {
     after(() =>
       notifyNewDeviceSignIn(

@@ -18,6 +18,7 @@ import { CmxButton, CmxInput, Label } from '@ui/primitives'
 function ForgotPasswordForm() {
   const { resetPassword, isLoading } = useAuth()
   const tReset = useTranslations('auth.resetPassword')
+  const t = useTranslations('auth.forgotPassword')
   // /auth/callback sends users here with ?error=invalid_link when the emailed link failed to exchange.
   const invalidLink = useSearchParams().get('error') === 'invalid_link'
 
@@ -43,7 +44,7 @@ function ForgotPasswordForm() {
     } catch (error: any) {
       console.error('Reset password error:', error)
       setErrors({
-        general: error.message || 'Failed to send reset email. Please try again.',
+        general: error.message || t('sendFailed'),
       })
     }
   }
@@ -70,10 +71,10 @@ function ForgotPasswordForm() {
               </svg>
             </div>
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-              Check your email
+              {t('checkEmailTitle')}
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              We've sent a password reset link to <strong>{email}</strong>
+              {t('checkEmailBody', { email })}
             </p>
           </div>
 
@@ -93,13 +94,13 @@ function ForgotPasswordForm() {
                 </svg>
               </div>
               <div className="ms-3">
-                <h3 className="text-sm font-medium text-primary-text">Next Steps</h3>
+                <h3 className="text-sm font-medium text-primary-text">{t('nextSteps')}</h3>
                 <div className="mt-2 text-sm text-primary-text">
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Check your email inbox (and spam folder)</li>
-                    <li>Click the password reset link in the email</li>
-                    <li>Enter your new password</li>
-                    <li>Sign in with your new password</li>
+                    <li>{t('step1')}</li>
+                    <li>{t('step2')}</li>
+                    <li>{t('step3')}</li>
+                    <li>{t('step4')}</li>
                   </ol>
                 </div>
               </div>
@@ -123,8 +124,7 @@ function ForgotPasswordForm() {
               </div>
               <div className="ms-3">
                 <p className="text-sm text-warning-text">
-                  The reset link will expire in <strong>1 hour</strong>. If you don't see the
-                  email, check your spam folder or{' '}
+                  {t('expiresIn1Hour')}{' '}
                   <CmxButton
                     type="button"
                     variant="ghost"
@@ -132,9 +132,8 @@ function ForgotPasswordForm() {
                     onClick={() => setEmailSent(false)}
                     className="h-auto px-0 py-0 font-medium underline text-warning-text hover:bg-transparent hover:text-warning-text"
                   >
-                    try again
+                    {t('tryAgain')}
                   </CmxButton>
-                  .
                 </p>
               </div>
             </div>
@@ -145,7 +144,7 @@ function ForgotPasswordForm() {
               href="/login"
               className="font-medium text-primary-text hover:text-primary-text/80"
             >
-              Back to Login
+              {t('backToLogin')}
             </Link>
           </div>
         </div>
@@ -159,10 +158,10 @@ function ForgotPasswordForm() {
         {/* Header */}
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-            Reset your password
+            {t('title')}
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Enter your email address and we'll send you a link to reset your password
+            {t('subtitle')}
           </p>
         </div>
 
@@ -201,7 +200,7 @@ function ForgotPasswordForm() {
           {/* Email Field */}
           <div>
             <Label htmlFor="email" className="block mb-1">
-              Email address
+              {t('emailLabel')}
             </Label>
             <CmxInput
               id="email"
@@ -212,7 +211,7 @@ function ForgotPasswordForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={errors.email}
-              placeholder="you@example.com"
+              placeholder={t('emailPlaceholder')}
             />
           </div>
 
@@ -224,7 +223,7 @@ function ForgotPasswordForm() {
               loading={isLoading}
               className="w-full"
             >
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
+              {isLoading ? t('sending') : t('submit')}
             </CmxButton>
           </div>
 
@@ -234,7 +233,7 @@ function ForgotPasswordForm() {
               href="/login"
               className="font-medium text-primary-text hover:text-primary-text/80"
             >
-              ← Back to Login
+              {t('backToLogin')}
             </Link>
           </div>
         </form>
@@ -257,9 +256,9 @@ function ForgotPasswordForm() {
             </div>
             <div className="ms-3">
               <p className="text-sm text-foreground">
-                Don't have an account?{' '}
+                {t('noAccount')}{' '}
                 <Link href="/register" className="font-medium text-primary-text hover:text-primary-text/80">
-                  Sign up
+                  {t('signUp')}
                 </Link>
               </p>
             </div>

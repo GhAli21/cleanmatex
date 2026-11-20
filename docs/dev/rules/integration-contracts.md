@@ -23,7 +23,7 @@
 | ADR approval | User (writes `Approved_By_Jh` in ADR file) | Both projects |
 | Order-finance settings on `org_tenants_mst` / branches (`tax_pricing_mode`, `extra_price_pricing_mode`, `commercial_level`, `disc_alloc_mode`, `disc_alloc_basis`) | `cleanmatexsaas` (Tax & Pricing, branch Pricing overrides; ADR-060 §8 — written directly by HQ, not via `sys_stng_*`) | `cleanmatex` reads them; its tenant / branch PATCH routes refuse them with `403 FIELD_MANAGED_BY_HQ` |
 | Tax kits, kit versions, starter packages (`sys_tax_kit*`, `sys_starter_pkg_*`, `sys_tax_return_box_*`) | `cleanmatexsaas` (Tax kits screen: draft → check → publish; Apply / Update kit per organization; Tax Engine ADR-061) | `cleanmatex` copies a published version into `org_tax_*` via `fn_tax_kit_apply` / `fn_tax_kit_update` (nightly cron `tax-kit-update`); the organization owns its copy, published kits are locked |
-| File Util storage (`org_file_mst`, `sys_file_*`, buckets `tenants-cmx-*`) | `cleanmatex` (tables, uploads, rules, DB job `file-util-expire` that marks abandoned uploads DELETED — migrations 0743/0744) | `cleanmatexsaas` `platform-workers` job `file-util-purge` deletes stored bytes of DELETED rows via the Storage API and sets `purged_at` (tenant-filtered writes); it is an `HQ_WORKER` job in `sys_ops_job_cf` (0768) whose schedule and Run now HQ controls in `/ops/jobs`; HQ `/file-util-config` manages the `sys_file_*` catalogs |
+| File Util storage (`org_file_mst`, `sys_file_*`, buckets `tenants-cmx-*`) | `cleanmatex` (tables, uploads, rules, DB job `file-util-expire` that marks abandoned uploads DELETED — migrations 0743/0744) | HQ `file-util-purge` (`HQ_WORKER`, `0768`) deletes stored bytes of DELETED rows via the Storage API and sets `purged_at` (tenant-filtered writes); `/ops/jobs` owns schedule and Run now. **Today** the loop runs in `platform-workers`; **approved target (I11 D1, 20 Nov 2026)** is `platform-api` `BackgroundExecutionModule`. HQ `/file-util-config` manages the `sys_file_*` catalogs |
 | Organization tax setup and tax record (`org_tax_config_cf`, `org_tax_rules_cf`, `org_tax_item_classes_cf`, `org_tax_lines_tr`, `org_tax_periods_mst`) | `cleanmatex` (Settings › Tax Setup, orders, purchases, VAT return) | `cleanmatexsaas` reads them for Setup Health and the organization's Tax kit page; it writes only through `fn_tax_kit_apply` / `fn_tax_kit_update` |
 
 ---
@@ -279,9 +279,13 @@ Internal calls from `cleanmatex` platform-api to `cleanmatexsaas` platform-api (
 Authorization: Bearer <HQ_SERVICE_ROLE_KEY>
 ```
 
-### Render Worker Job Ingress (I11)
+### HQ background jobs and worker ingress (I11)
 
-`platform-workers` must use a **separate** `PLATFORM_WORKER_API_KEY` for the future private I11 notification job ingress. It is not `HQ_SERVICE_ROLE_KEY`, is never exposed to a browser, and is accepted only by `PlatformWorkerGuard`. The worker may send only a claimed `tenantOrgId`, `outboxId`, and opaque claim token to the fixed notification operation; tenant scope is verified again against the current unexpired canonical outbox lease. This is not a generic proxy or a tenant-facing endpoint. The route remains unimplemented and disabled until policy/provider parity tests are complete.
+Owner-approved 20–21 Nov 2026 ([expert replan](../../pending_to_production/16_11_2026/I11_background_execution_EXPERT_REPLAN.md) D1–D19): Postgres outbox + `SKIP LOCKED` is the job queue; `LISTEN/NOTIFY` plus a safety sweep is the wake; `/ops/jobs` is the operator surface; Redis on HQ API is cache/limiter/locks only; BullMQ is not the notification bus. Application code enqueues only via `WorkOutbox` in the same transaction as the domain write; one HQ `BackgroundExecutionModule` runs allowlisted executors (D19). Not a generic command/URL/SQL API.
+
+**Today:** `platform-workers` claims canonical rows and calls the private execute HTTP with a **separate** `PLATFORM_WORKER_API_KEY` (not `HQ_SERVICE_ROLE_KEY`). The body is only `tenantOrgId`, `outboxId`, and opaque claim token; HQ re-reads the unexpired lease. Not a generic proxy. Delivery stays env-disabled.
+
+**Approved target:** the same claim/finalize and File Util purge run **in-process** in `platform-api` `BackgroundExecutionModule` via an `ExecutorRegistry`. HTTP machine ingress remains until that soak, then rollback-only. Do not start BullMQ merely because `REDIS_URL` is set. Screens never call execute HTTP.
 
 - `HQ_SERVICE_ROLE_KEY` lives only in `cleanmatexsaas` platform-api env and in `cleanmatex` env (as a caller credential). It is **never** in the database, never in `platform-web`, and never logged.
 - Guard: `ServiceRoleGuard` (timing-safe via SHA-256 hash comparison). Fail-closed: returns 503 if the key is not configured rather than allowing open access.

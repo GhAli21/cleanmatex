@@ -260,7 +260,7 @@ function densityFilterRowClass(d: CmxDataGridDensity): string {
 function densityCellClass(d: CmxDataGridDensity): string {
   if (d === 'compact') return 'px-1.5 py-1';
   if (d === 'comfortable') return 'px-3 py-2.5';
-  return 'px-[var(--cmx-cell-px)] py-2';
+  return 'px-[var(--cmx-cell-px)] py-[var(--cmx-cell-py,0.5rem)]';
 }
 
 function densityFilterInputClass(d: CmxDataGridDensity): string {
@@ -506,6 +506,8 @@ export interface CmxDataGridProps<TData> {
   manualFiltering?: boolean;
   /** Optional total for footer when client row model does not reflect full filtered set. */
   totalFilteredCount?: number;
+  /** Hide the built-in footer/pagination controls when a server-paginated parent renders its own CmxPagination. */
+  hidePagination?: boolean;
   /** Built-in audit action column that opens the shared audit metadata dialog (same behavior as CmxDataTable). */
   auditConfig?: boolean | CmxAuditConfig<TData>;
 }
@@ -553,6 +555,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
     manualSorting = false,
     manualFiltering = false,
     totalFilteredCount,
+    hidePagination = false,
     auditConfig,
   } = props;
 
@@ -1085,7 +1088,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
         </table>
       </div>
 
-      {!isLoading && (
+      {!isLoading && !hidePagination && (
         <div
           className={cn(
             'flex flex-col gap-3 rounded-lg border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] px-3 py-3 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between'

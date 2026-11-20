@@ -7,7 +7,9 @@
 
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives';
 
@@ -16,6 +18,7 @@ import { CmxButton } from '@ui/primitives';
  */
 export default function RegistrationSuccessPage() {
   const router = useRouter();
+  const t = useTranslations('auth.tenantRegister.success');
 
   return (
     <div className="min-h-screen bg-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -40,41 +43,41 @@ export default function RegistrationSuccessPage() {
             </div>
 
             <h1 className="mt-6 text-3xl font-bold text-foreground">
-              Welcome to CleanMateX!
+              {t('title')}
             </h1>
 
             <p className="mt-2 text-muted-foreground">
-              Your account has been created successfully
+              {t('subtitle')}
             </p>
           </div>
 
           {/* Trial Info */}
           <CmxSummaryMessage
             type="success"
-            title="14-Day Free Trial Started"
-            message="You now have full access to all features. No credit card required."
+            title={t('trialTitle')}
+            message={t('trialMessage')}
             className="mt-6"
           />
 
           {/* Next Steps */}
           <div className="mt-6 space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Next Steps:</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('nextSteps')}</h2>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start">
                 <span className="text-primary-text me-2">1.</span>
-                <span>Complete your tenant profile and upload your logo</span>
+                <span>{t('step1')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-primary-text me-2">2.</span>
-                <span>Configure your service categories and pricing</span>
+                <span>{t('step2')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-primary-text me-2">3.</span>
-                <span>Add your first customer and create an order</span>
+                <span>{t('step3')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-primary-text me-2">4.</span>
-                <span>Invite team members to collaborate</span>
+                <span>{t('step4')}</span>
               </li>
             </ul>
           </div>
@@ -84,15 +87,15 @@ export default function RegistrationSuccessPage() {
             className="mt-8 w-full"
             onClick={() => router.push('/dashboard')}
           >
-            Go to Dashboard
+            {t('goToDashboard')}
           </CmxButton>
 
           {/* Support Link */}
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Need help getting started?{' '}
-            <a href="/docs" className="text-primary-text hover:text-primary-text/80">
-              View documentation
-            </a>
+            {t('needHelp')}{' '}
+            <Link href="/docs" className="text-primary-text hover:text-primary-text/80">
+              {t('viewDocs')}
+            </Link>
           </p>
         </CmxCard>
       </div>

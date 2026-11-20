@@ -131,6 +131,34 @@ function getPaymentBadgeInfo(
   }
 }
 
+const KNOWN_PROCESSING_STATUS_KEYS = new Set([
+  'processing',
+  'sorting',
+  'pretreatment',
+  'washing',
+  'drying',
+  'finishing',
+  'in_wash',
+  'in_dry',
+  'in_finish',
+  'qc',
+  'qa',
+  'assembly',
+]);
+
+function getLocalizedStatusLabel(
+  status: string,
+  tStatus: (key: string) => string
+): string {
+  const normalized = (status || 'processing').trim().toLowerCase();
+  if (KNOWN_PROCESSING_STATUS_KEYS.has(normalized)) {
+    return tStatus(normalized);
+  }
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 function getPriorityBadgeInfo(
   priority: string,
   t: ReturnType<typeof useTranslations>
@@ -210,18 +238,18 @@ function ProcessingSortableHeader({
     <TableHead
       rowHeight="compact"
       aria-sort={isActive ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
-      className={alignEnd ? 'text-end' : undefined}
+      className={`px-2 py-2 ${alignEnd ? 'text-end' : ''}`}
     >
       <CmxButton
         type="button"
         variant="ghost"
         size="xs"
         onClick={() => onSort(field)}
-        className={`-mx-2 h-7 px-2 font-semibold text-foreground ${alignEnd ? 'ms-auto' : ''}`}
+        className={`-mx-1.5 h-7 max-w-full px-1.5 font-semibold text-foreground ${alignEnd ? 'ms-auto' : ''}`}
       >
-        <span>{children}</span>
+        <span className="truncate">{children}</span>
         <SortIcon
-          className={`ms-1.5 h-3.5 w-3.5 ${isActive ? 'text-primary-text' : 'text-muted-foreground'}`}
+          className={`ms-1 h-3.5 w-3.5 shrink-0 ${isActive ? 'text-primary-text' : 'text-muted-foreground'}`}
           aria-hidden
         />
       </CmxButton>
@@ -304,8 +332,8 @@ export function ProcessingTable(props: ProcessingTableProps) {
 
   return (
     <>
-      {/* Mobile Cards (< md) */}
-      <div className="space-y-3 md:hidden">
+      {/* Mobile / Tablet Cards (< lg) */}
+      <div className="space-y-3 lg:hidden">
         {orders.map((order) => (
           <ProcessingOrderCard
             key={order.id}
@@ -323,10 +351,23 @@ export function ProcessingTable(props: ProcessingTableProps) {
         ))}
       </div>
 
-      {/* Desktop Table (>= md) */}
-      <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm md:block">
-        <Table>
-          <TableHeader className="bg-muted/60">
+      {/* Desktop Table (>= lg): full row fits without horizontal scroll; vertical scroll with sticky header */}
+      <div className="hidden overflow-hidden rounded-lg border border-border bg-card shadow-sm lg:block">
+        <Table
+          className="w-full table-fixed"
+          containerClassName="max-h-[calc(100vh-20rem)] min-h-[16rem] overflow-y-auto overflow-x-hidden"
+        >
+          <colgroup>
+            <col className="w-[16%]" />
+            <col className="w-[11%]" />
+            <col className="w-[14%]" />
+            <col className="w-[18%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[14%]" />
+          </colgroup>
+          <TableHeader className="sticky top-0 z-10 bg-muted shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
             <TableRow>
               <ProcessingSortableHeader field="order_no" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>
                 {t('id')}
@@ -337,11 +378,11 @@ export function ProcessingTable(props: ProcessingTableProps) {
               <ProcessingSortableHeader field="customer_name" sortField={sortField} sortDirection={sortDirection} onSort={onSort}>
                 {t('customer')}
               </ProcessingSortableHeader>
-              <TableHead rowHeight="compact">{t('order')}</TableHead>
+              <TableHead rowHeight="compact" className="px-2 py-2">{t('order')}</TableHead>
               <ProcessingSortableHeader field="total_items" sortField={sortField} sortDirection={sortDirection} onSort={onSort} alignEnd>
                 {t('pcs')}
               </ProcessingSortableHeader>
-              <TableHead rowHeight="compact">{t('notes')}</TableHead>
+              <TableHead rowHeight="compact" className="px-2 py-2">{t('notes')}</TableHead>
               <ProcessingSortableHeader field="total" sortField={sortField} sortDirection={sortDirection} onSort={onSort} alignEnd>
                 {t('total')}
               </ProcessingSortableHeader>
@@ -410,6 +451,7 @@ const OrderRow = React.memo(function OrderRow({
 }: OrderRowProps) {
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
+  const tStatus = useTranslations('processing.status');
   const locale = useLocale();
   const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
@@ -419,6 +461,7 @@ const OrderRow = React.memo(function OrderRow({
   const slaState = getSlaState(order.ready_by_at, nowMs);
   const priorityBadge = getPriorityBadgeInfo(order.priority, t);
   const paymentBadge = getPaymentBadgeInfo(order, t);
+  const localizedStatus = getLocalizedStatusLabel(order.current_status, tStatus);
 
   const totalItems = Math.max(0, order.total_items || 0);
   const readyCount = Math.min(totalItems, Math.max(0, order.quantity_ready || 0));
@@ -454,10 +497,10 @@ const OrderRow = React.memo(function OrderRow({
   return (
     <TableRow className={`${rowBg} ${rowHighlight} transition-colors`}>
       {/* Order & Priority & Issues */}
-      <TableCell rowHeight="compact" className="align-top whitespace-nowrap">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5">
-            <CmxCodeChip code={order.order_no} kind="order" size="md" />
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top">
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-1">
+            <CmxCodeChip code={order.order_no} kind="order" size="sm" />
             <OrderIssueRowActions
               orderId={order.id}
               scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
@@ -476,9 +519,9 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Ready By & SLA */}
-      <TableCell rowHeight="compact" className="align-top whitespace-nowrap">
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium tabular-nums text-foreground">
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="text-xs font-medium leading-tight tabular-nums text-foreground">
             {formatProcessingDate(order.ready_by_at, locale)}
           </span>
           {slaState && (
@@ -500,16 +543,18 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Customer */}
-      <TableCell rowHeight="compact" className="align-top">
-        <div className="max-w-[11rem]">
-          <div className="truncate text-sm font-medium text-foreground" title={displayCustomerName}>
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top">
+        <div className="min-w-0">
+          <div className="truncate text-xs font-medium text-foreground sm:text-sm" title={displayCustomerName}>
             {displayCustomerName}
           </div>
           {secondaryCustomerName && (
-            <div className="truncate text-xs text-muted-foreground">{secondaryCustomerName}</div>
+            <div className="truncate text-xs text-muted-foreground" title={secondaryCustomerName}>
+              {secondaryCustomerName}
+            </div>
           )}
           {order.customer_phone && (
-            <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+            <div className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
               <bdi dir="ltr">{order.customer_phone}</bdi>
             </div>
           )}
@@ -517,16 +562,18 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Items Preview & Details Link */}
-      <TableCell rowHeight="compact" className="align-top">
-        <div className="max-w-[16rem] space-y-1">
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top">
+        <div className="min-w-0 space-y-1">
           {order.items.map((item, idx) => {
             const itemName = getBilingual(item.product_name, item.product_name2) || item.product_name;
             return (
               <div key={idx} className="text-xs leading-snug">
-                <span className="font-medium text-foreground">
-                  {itemName}{' '}
-                  <span className="tabular-nums text-muted-foreground">× {item.quantity}</span>
-                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className="truncate font-medium text-foreground" title={itemName}>
+                    {itemName}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">× {item.quantity}</span>
+                </div>
                 {(item.color || item.brand || item.has_stain || item.has_damage) && (
                   <div className="mt-0.5 flex flex-wrap items-center gap-1">
                     {item.color && (
@@ -571,12 +618,15 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Pieces & Progress */}
-      <TableCell rowHeight="compact" alignment="right" className="align-top whitespace-nowrap">
-        <div className="ms-auto w-28 space-y-1 text-end">
-          <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+      <TableCell rowHeight="compact" alignment="right" className="px-2 py-2 align-top">
+        <div
+          className="ms-auto w-full max-w-[5.75rem] space-y-1 text-end"
+          title={`${t('piecesReadyCount', { ready: readyCount, total: totalItems })} (${progressPercent}%)`}
+        >
+          <div className="flex items-center justify-between gap-1 text-xs tabular-nums">
             <span className="font-semibold text-foreground">{totalItems}</span>
             <span className="text-muted-foreground">
-              {t('piecesReadyCount', { ready: readyCount, total: totalItems })} ({progressPercent}%)
+              {readyCount}/{totalItems} ({progressPercent}%)
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -591,16 +641,16 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Notes */}
-      <TableCell rowHeight="compact" className="align-top">
-        <div className="max-w-[11rem] truncate text-xs text-muted-foreground" title={order.notes || undefined}>
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top">
+        <div className="truncate text-xs text-muted-foreground" title={order.notes || undefined}>
           {order.notes || '—'}
         </div>
       </TableCell>
 
       {/* Total & Payment */}
-      <TableCell rowHeight="compact" alignment="right" className="align-top whitespace-nowrap">
+      <TableCell rowHeight="compact" alignment="right" className="px-2 py-2 align-top">
         <div className="flex flex-col items-end gap-1">
-          <span className="text-sm font-semibold tabular-nums text-foreground">
+          <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-foreground sm:text-sm">
             {formatMoneyWithCode(order.total)}
           </span>
           <CmxStatusBadge label={paymentBadge.label} tone={paymentBadge.tone} size="sm" />
@@ -608,75 +658,79 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Status & Streamlined Actions */}
-      <TableCell rowHeight="compact" alignment="right" className="align-top whitespace-nowrap">
-        <div className="flex items-center justify-end gap-1.5">
-          <CmxStatusBadge label={order.current_status} tone="info" size="sm" />
+      <TableCell rowHeight="compact" alignment="right" className="px-2 py-2 align-top">
+        <div className="flex flex-col items-end gap-1.5">
+          <CmxStatusBadge label={localizedStatus} tone="info" size="sm" />
 
-          <CmxButton
-            type="button"
-            size="xs"
-            variant="secondary"
-            onClick={() => onSimpleProcessClick?.(order.id)}
-            onMouseEnter={() => prefetchProcessingDialogs(order.id)}
-            disabled={!onSimpleProcessClick}
-            title={t('simpleProcess')}
-            aria-label={t('simpleProcess')}
-          >
-            <ListChecks className="me-1 h-3.5 w-3.5" aria-hidden />
-            <span className="hidden xl:inline">{t('simpleProcess')}</span>
-          </CmxButton>
+          <div className="flex items-center justify-end gap-1">
+            <CmxButton
+              type="button"
+              size="xs"
+              variant="secondary"
+              onClick={() => onSimpleProcessClick?.(order.id)}
+              onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+              disabled={!onSimpleProcessClick}
+              title={t('simpleProcess')}
+              aria-label={t('simpleProcess')}
+              className="px-2"
+            >
+              <ListChecks className="h-3.5 w-3.5 2xl:me-1" aria-hidden />
+              <span className="hidden 2xl:inline">{t('simpleProcess')}</span>
+            </CmxButton>
 
-          <CmxButton
-            type="button"
-            size="xs"
-            variant="outline"
-            onClick={() => onMarkReadyClick(order)}
-            disabled={markReadyBusy}
-            loading={markReadyBusy}
-            title={t('complete')}
-            aria-label={t('complete')}
-            className="border-success-border text-success-text hover:bg-success-bg"
-          >
-            {!markReadyBusy && <CheckCircle className="h-3.5 w-3.5" aria-hidden />}
-          </CmxButton>
+            <CmxButton
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={() => onMarkReadyClick(order)}
+              disabled={markReadyBusy}
+              loading={markReadyBusy}
+              title={t('complete')}
+              aria-label={t('complete')}
+              className="border-success-border px-2 text-success-text hover:bg-success-bg"
+            >
+              {!markReadyBusy && <CheckCircle className="h-3.5 w-3.5" aria-hidden />}
+            </CmxButton>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <CmxButton
-                type="button"
-                size="xs"
-                variant="ghost"
-                aria-label={t('moreActions')}
-                title={t('moreActions')}
-              >
-                <MoreVertical className="h-3.5 w-3.5" aria-hidden />
-              </CmxButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onEditClick && (
-                <DropdownMenuItem
-                  onSelect={() => onEditClick(order.id)}
-                  onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <CmxButton
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  aria-label={t('moreActions')}
+                  title={t('moreActions')}
+                  className="px-1.5"
                 >
-                  <SquarePen className="h-4 w-4" aria-hidden />
-                  <span>{t('edit')}</span>
+                  <MoreVertical className="h-3.5 w-3.5" aria-hidden />
+                </CmxButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onEditClick && (
+                  <DropdownMenuItem
+                    onSelect={() => onEditClick(order.id)}
+                    onMouseEnter={() => prefetchProcessingDialogs(order.id)}
+                  >
+                    <SquarePen className="h-4 w-4" aria-hidden />
+                    <span>{t('edit')}</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/processing/${order.id}`}>
+                    <ExternalLink className="h-4 w-4" aria-hidden />
+                    <span>{t('viewProcessingDetails')}</span>
+                  </Link>
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild>
-                <Link href={`/dashboard/processing/${order.id}`}>
-                  <ExternalLink className="h-4 w-4" aria-hidden />
-                  <span>{t('viewProcessingDetails')}</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href={orderDetailsHref}>
-                  <FileText className="h-4 w-4" aria-hidden />
-                  <span>{t('details')}</span>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={orderDetailsHref}>
+                    <FileText className="h-4 w-4" aria-hidden />
+                    <span>{t('details')}</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </TableCell>
     </TableRow>
@@ -870,6 +924,7 @@ function ProcessingOrderCard(props: {
   } = props;
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
+  const tStatus = useTranslations('processing.status');
   const locale = useLocale();
   const getBilingual = useBilingual();
   const { formatMoneyWithCode } = useTenantCurrency();
@@ -879,6 +934,7 @@ function ProcessingOrderCard(props: {
   const slaState = getSlaState(order.ready_by_at, nowMs);
   const priorityBadge = getPriorityBadgeInfo(order.priority, t);
   const paymentBadge = getPaymentBadgeInfo(order, t);
+  const localizedStatus = getLocalizedStatusLabel(order.current_status, tStatus);
 
   const totalItems = Math.max(0, order.total_items || 0);
   const readyCount = Math.min(totalItems, Math.max(0, order.quantity_ready || 0));
@@ -930,7 +986,7 @@ function ProcessingOrderCard(props: {
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <CmxStatusBadge label={order.current_status} tone="info" size="sm" />
+          <CmxStatusBadge label={localizedStatus} tone="info" size="sm" />
           <CmxStatusBadge label={paymentBadge.label} tone={paymentBadge.tone} size="sm" />
         </div>
       </div>

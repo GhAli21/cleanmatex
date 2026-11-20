@@ -8,11 +8,26 @@
  */
 
 import { z } from 'zod'
+import { UI_COLOR_MODES, type UiColorMode } from '@/lib/constants/ui-theme'
 import type { ResolvedTheme } from '@/lib/types/ui-theme'
 
 export const LAST_BRAND_COOKIE = 'cmx_last_brand'
+export const LAST_MODE_COOKIE = 'cmx_last_mode'
 /** 180 days: the brand of a counter tablet rarely changes. */
 export const LAST_BRAND_MAX_AGE_SEC = 180 * 24 * 60 * 60
+
+const modeSchema = z.enum(UI_COLOR_MODES)
+
+/**
+ * Validate the remembered color mode cookie before letting it set `<html data-mode>`.
+ * @param raw - Cookie value
+ * @returns A known UiColorMode, or null when unset or invalid
+ */
+export function parseLastMode(raw: string | undefined): UiColorMode | null {
+  if (!raw) return null
+  const parsed = modeSchema.safeParse(raw)
+  return parsed.success ? parsed.data : null
+}
 
 const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/)
 const name = z.string().min(1).max(80).nullable()

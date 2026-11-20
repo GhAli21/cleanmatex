@@ -451,3 +451,37 @@ Prior findings, Retest r2 2026-11-19: **FET-RV-Nov17-CustomerIdentityMismatch ST
 - `ORD-20261119-00004` — Pay on Collection 2.354, collected cash (`RV-2026-000125`, `ADJ-2026-000009`).
 - `ORD-20261117-00006` — edited +Blouse to 5.268, paid 2.996, **2.272 still owing and uncollectable** (see Q4 FET-LLMS-Nov19-PrepaidEditUncollectable).
 - `ORD-20261117-00001/-00002/-00004/-00005` — unchanged (read only; `-00002` Review opened and cancelled without saving).
+
+## Financial_Expert_Tester Results — Retest r3 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Reusable Order Fin View (Q3) rows below were run on cmx Demo admin, 22:19–22:26 Asia/Muscat, on `ORD-20261119-00006`. Observe only. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| RV-10 | FAIL | 22:25 Asia/Muscat. Copy button still has no toast. Anonymous `https://cmx.cleanmatex.com/track/00bf10c54e9dbdeb941e7ebdbe5e0b09` shows "Customer: Test Customer2 Mohammed Ahmed +96896662624", "Fitness Leggings", and raw timeline codes "STATUS_CHANGE", "ORDER_CREATED". Received time 5:43 PM vs 9:43 PM in the app (UTC not converted to Asia/Muscat). Still broken (FET-RV-Nov17-TrackingUtcAndInclusivePrices; customer PII on a public track URL also overlaps FET-RV-Nov17-CustomerIdentityMismatch). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b4-RV10-track.webp`. |
+| RV-05 | FAIL | 22:25 Asia/Muscat. Workspace `https://cmx.cleanmatex.com/dashboard/orders/a676aff3-1777-45ca-bd9c-9c47a515c2da/workspace` header "Order total 0.000 OMR" vs snapshot Total 1.070 OMR; raw key `orders.detail.workspace.paymentPlans.pay_in_advance`. Still broken (FET-RV-Nov17-WorkspaceHeaderZero). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b4-RV05.png`. |
+| RV-02 | PARTIAL | `/full?tab=financial` Charges 0.000 OMR "None"; Rounding row has no amount; item tax lines use raw codes "Tax LEGACY_05 2%", "Tax VAT_STD 5%"; "VAT standard rate 0.050", "Municipal Fee 2% 0.020". |
+
+**Prior findings — Retest r3 2026-11-20**
+
+- **FET-RV-Nov17-TrackingUtcAndInclusivePrices** — **STILL BROKEN.** Public tracking still uses UTC and raw event codes.
+- **FET-RV-Nov17-WorkspaceHeaderZero** — **STILL BROKEN.** Header 0.000 OMR vs 1.070 snapshot.
+- **FET-RV-Nov17-CustomerIdentityMismatch** — **STILL OPEN**, and broader in this run (see new finding): the same order shows different customer names on different screens.
+
+**New findings — Financial_Expert_Tester, Retest r3 2026-11-20**
+
+- **P1 FET-ORD-Nov20-CustomerNameInconsistent:** ORD-20261119-00006 customer name is "Jh Test dev21" on the orders list, "Test Customer2 Mohammed Ahmed" on Ready / workspace / public tracking, and blank Name in the full view. Suggested fix: bind every surface to the same customer display name (and do not put the full name + phone on the anonymous public track page). Code location not checked.
+- **P1 FET-EOV2-Nov20-ReadyListTotalZero** (also on this order): Ready card total 0.000 vs order 1.070 OMR. Code location not checked.
+- Slow UI: full view once >20 s to DOMContentLoaded; Ready Details spinner >5 s.
+
+**r5 tally for the rows above (parent counts unchanged):** FAIL 2 (RV-10, RV-05) · PARTIAL 1 (RV-02).
+
+**Rows not run in r5:** remaining RV money / collect / refund / tax-document rows (need disposable QA orders or writes; awaiting approval). Customer-app preflight still out of remote scope.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After a privacy/tracking fix, recheck RV-10 as anonymous (masked identity, org TZ, human event labels, copy toast). Recheck RV-05 header total and the raw payment-plan key after the workspace money fix. Align customer display across list / Ready / workspace / full / track.

@@ -1,7 +1,7 @@
 # I11 Background Execution — Remote QA and Evidence Guide
 
 **Status:** Partially executed — worker capacity attribution is complete; controlled notification canary remains blocked pending an authorized safe fixture and Owner decision.  
-**Authority:** [I11 plan](I11_background_execution_redesign_PLAN.md), [production runbook](I11_background_execution_RUNBOOK.md), [ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
+**Authority:** [Expert replan](I11_background_execution_EXPERT_REPLAN.md) (living WP list, D1–D12), [I11 plan](I11_background_execution_redesign_PLAN.md) (Progress Log), [production runbook](I11_background_execution_RUNBOOK.md), [ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence only. Local build/test output is supporting development evidence, never production proof.
 
 ## Worker configuration registry inventory (I11 task 4.7)
@@ -583,3 +583,27 @@ Round 1b changes: R1 (BLOCKED) is replaced by the ten rows 1b-1 to 1b-10; 1b-10 
 - New findings: 1 P1, 1 P2. I11 stays open; verdict unchanged: remain disabled.
 
 Test data left behind (Round 1b): none. Nothing was created or changed in Render or the DB.
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+I11 background execution — **only R16 was re-checked** in this observe pass (HQ Scheduled Jobs UI, 22:14–22:18 Asia/Muscat). The I11 canary remains **HELD**: there is no safe QA-only fixture, and the queue must not be driven against real recipients. No `hq_ops:manage_jobs` mutate, no retry/requeue/finalize/delete, no worker enablement. No secrets, connection strings, API keys, recipients, or provider payloads are recorded here.
+
+| # | Result | Evidence |
+|---|---|---|
+| R16 | PARTIAL | 22:17 Asia/Muscat. `https://hqsaas.cleanmatex.com/en/ops/jobs` header "22 jobs. 19 with drift. 0 inactive." Filters: search "Search by name, code, or description…", All modules (auth, file_util, fin, housekeeping, ntf, ops, setup_health, tax), All categories (CAMPAIGN, CLEANUP, EXPIRY, MAINTENANCE, OPS, OUTBOX, RETRY, ROLLOVER, SECURITY), Drift only, Inactive only. Columns: JOB, MODULE / CATEGORY, SCHEDULE, ENABLED, DRIFT, LAST RUN, ACTIONS. Examples of drift text: "Missing in scheduler", "Worker not reporting", "Success, Oct 25, 2026, 4:00 PM · Scheduled". This is a scheduled-job manager, not a job queue: there are still no job type / attempts / next run / org / created-updated columns (FET-I11-Nov19-JobsListColumns still open). Shots from the same HQ session: `C:\Users\JHNLP\qa-20261120\r5\shots\b3-1-jobs-loading.webp`, `C:\Users\JHNLP\qa-20261120\r5\shots\b3-1-jobs.webp`. |
+
+**Prior findings — Retest r2 2026-11-20**
+
+- **FET-I11-Nov19-JobsListColumns** — **STILL OPEN.** The page is a scheduled-job manager; queue columns named in the guide are still absent. R16 stays PARTIAL.
+
+**r5 tally for the rows above (parent counts unchanged):** PARTIAL 1 (R16). No other I11 rows were run.
+
+**Rows not run in r5:** §3 / §5 / §6 / §7 Render and canary rows remain **HELD / BLOCKED** (no safe fixture; `NTF_OUTBOX_WORKER_ENABLED` must stay false; per-boot limit and §5 probe were not re-confirmed in this pass). Round 1 / 1b SQL and UI evidence is left untouched. Do not retry ACCEPTANCE_UNCERTAIN rows.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** Keep the canary HELD until the owner provides a QA-only due row and confirms the §5 probe and per-boot limit. Recheck R16 if a job-queue view (type/attempts/next run/org) is added. Do not enable the outbox worker or call manage_jobs in production.

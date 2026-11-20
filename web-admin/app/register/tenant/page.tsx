@@ -8,7 +8,9 @@
 
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import {
   CmxCard,
@@ -58,6 +60,8 @@ const LANGUAGES = [
  */
 export default function TenantRegisterPage() {
   const router = useRouter();
+  const t = useTranslations('auth.tenantRegister');
+  const tCommon = useTranslations('common');
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -126,40 +130,40 @@ export default function TenantRegisterPage() {
     const newErrors: Record<string, string> = {};
 
     if (currentStep === 1) {
-      if (!formData.businessName) newErrors.businessName = 'Business name is required';
-      if (!formData.slug) newErrors.slug = 'Slug is required';
+      if (!formData.businessName) newErrors.businessName = t('errors.businessNameRequired');
+      if (!formData.slug) newErrors.slug = t('errors.slugRequired');
       if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
-        newErrors.slug = 'Slug must contain only lowercase letters, numbers, and hyphens';
+        newErrors.slug = t('errors.slugFormat');
       }
       if (formData.slug && slugAvailable === false) {
-        newErrors.slug = 'This slug is already taken. Please choose another.';
+        newErrors.slug = t('errors.slugTaken');
       }
-      if (!formData.email) newErrors.email = 'Email is required';
+      if (!formData.email) newErrors.email = t('errors.emailRequired');
       if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = 'Invalid email format';
+        newErrors.email = t('errors.invalidEmail');
       }
-      if (!formData.phone) newErrors.phone = 'Phone number is required';
+      if (!formData.phone) newErrors.phone = t('errors.phoneRequired');
     }
 
     if (currentStep === 2) {
-      if (!formData.country) newErrors.country = 'Country is required';
-      if (!formData.currency) newErrors.currency = 'Currency is required';
-      if (!formData.timezone) newErrors.timezone = 'Timezone is required';
+      if (!formData.country) newErrors.country = t('errors.countryRequired');
+      if (!formData.currency) newErrors.currency = t('errors.currencyRequired');
+      if (!formData.timezone) newErrors.timezone = t('errors.timezoneRequired');
     }
 
     if (currentStep === 3) {
-      if (!formData.adminUser.email) newErrors.adminEmail = 'Admin email is required';
+      if (!formData.adminUser.email) newErrors.adminEmail = t('errors.adminEmailRequired');
       if (formData.adminUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminUser.email)) {
-        newErrors.adminEmail = 'Invalid email format';
+        newErrors.adminEmail = t('errors.invalidEmail');
       }
-      if (!formData.adminUser.password) newErrors.adminPassword = 'Password is required';
+      if (!formData.adminUser.password) newErrors.adminPassword = t('errors.passwordRequired');
       if (formData.adminUser.password && formData.adminUser.password.length < 8) {
-        newErrors.adminPassword = 'Password must be at least 8 characters';
+        newErrors.adminPassword = t('errors.passwordLength');
       }
       if (formData.adminUser.password && !/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(formData.adminUser.password)) {
-        newErrors.adminPassword = 'Password must include uppercase, number, and special character';
+        newErrors.adminPassword = t('errors.passwordComplexity');
       }
-      if (!formData.adminUser.displayName) newErrors.adminDisplayName = 'Display name is required';
+      if (!formData.adminUser.displayName) newErrors.adminDisplayName = t('errors.displayNameRequired');
     }
 
     setErrors(newErrors);
@@ -192,13 +196,13 @@ export default function TenantRegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || t('registrationFailed'));
       }
 
       // Redirect to success page or dashboard
       router.push('/register/tenant/success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : t('registrationFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -209,9 +213,9 @@ export default function TenantRegisterPage() {
       <div className="max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Create Your Account</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-2 text-muted-foreground">
-            Start your 14-day free trial. No credit card required.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -240,9 +244,9 @@ export default function TenantRegisterPage() {
             ))}
           </div>
           <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-            <span>Business Info</span>
-            <span>Preferences</span>
-            <span>Admin Account</span>
+            <span>{t('stepBusiness')}</span>
+            <span>{t('stepPreferences')}</span>
+            <span>{t('stepAdmin')}</span>
           </div>
         </div>
 
@@ -257,17 +261,17 @@ export default function TenantRegisterPage() {
             <div>
               <CmxCardTitle>
                 {step === 1
-                  ? 'Business Information'
+                  ? t('cardTitleBusiness')
                   : step === 2
-                  ? 'Regional Preferences'
-                  : 'Admin Account'}
+                  ? t('cardTitlePreferences')
+                  : t('cardTitleAdmin')}
               </CmxCardTitle>
               <CmxCardDescription>
                 {step === 1
-                  ? 'Tell us about your laundry business'
+                  ? t('cardDescBusiness')
                   : step === 2
-                  ? 'Configure your regional settings'
-                  : 'Create your administrator account'}
+                  ? t('cardDescPreferences')
+                  : t('cardDescAdmin')}
               </CmxCardDescription>
             </div>
           </CmxCardHeader>
@@ -276,11 +280,11 @@ export default function TenantRegisterPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <Label className="block mb-1">Business Name <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('businessName')} <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   value={formData.businessName}
                   onChange={(e) => handleBusinessNameChange(e.target.value)}
-                  placeholder="e.g., Fresh Clean Laundry"
+                  placeholder={t('businessNamePlaceholder')}
                   required
                   className="w-full"
                 />
@@ -288,20 +292,20 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <Label className="block mb-1">Business Name (Arabic)</Label>
+                <Label className="block mb-1">{t('businessNameAr')}</Label>
                 <CmxInput
                   value={formData.businessNameAr || ''}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, businessNameAr: e.target.value }))
                   }
-                  placeholder="e.g., مغسلة فريش كلين"
+                  placeholder={t('businessNameArPlaceholder')}
                   className="w-full"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">Optional: Arabic name for bilingual support</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('businessNameArHint')}</p>
               </div>
 
               <div>
-                <Label className="block mb-1">Slug (URL Identifier) <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('slugLabel')} <span className="text-danger-text">*</span></Label>
                 <div className="relative">
                   <CmxInput
                     value={formData.slug}
@@ -310,13 +314,13 @@ export default function TenantRegisterPage() {
                       setSlugAvailable(null);
                     }}
                     onBlur={() => checkSlugAvailability(formData.slug)}
-                    placeholder="e.g., fresh-clean"
+                    placeholder={t('slugPlaceholder')}
                     required
                     className="w-full pe-20"
                   />
                   <div className="absolute end-3 top-1/2 -translate-y-1/2 text-sm">
                     {slugChecking ? (
-                      <span className="text-muted-foreground">Checking...</span>
+                      <span className="text-muted-foreground">{t('slugChecking')}</span>
                     ) : slugAvailable === true ? (
                       <span className="text-success-text">✓</span>
                     ) : slugAvailable === false ? (
@@ -325,11 +329,11 @@ export default function TenantRegisterPage() {
                   </div>
                 </div>
                 {errors.slug && <p className="mt-1 text-sm text-danger-text">{errors.slug}</p>}
-                <p className="mt-1 text-xs text-muted-foreground">Will be used in your URL: app.cleanmatex.com/fresh-clean</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('slugUrlHint')}</p>
               </div>
 
               <div>
-                <Label className="block mb-1">Business Email <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('businessEmail')} <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="email"
                   value={formData.email}
@@ -344,7 +348,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <Label className="block mb-1">Phone Number <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('phoneNumber')} <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="tel"
                   value={formData.phone}
@@ -364,7 +368,7 @@ export default function TenantRegisterPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <Label className="block mb-1">Country <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('country')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.country}
                   onChange={(e) =>
@@ -376,7 +380,7 @@ export default function TenantRegisterPage() {
               </div>
 
               <div>
-                <Label className="block mb-1">Currency <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('currency')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.currency}
                   onChange={(e) =>
@@ -385,11 +389,11 @@ export default function TenantRegisterPage() {
                   options={CURRENCIES}
                   required
                 />
-                <p className="mt-1 text-xs text-muted-foreground">Used for invoices and pricing</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('currencyHint')}</p>
               </div>
 
               <div>
-                <Label className="block mb-1">Timezone <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('timezone')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.timezone}
                   onChange={(e) =>
@@ -398,11 +402,11 @@ export default function TenantRegisterPage() {
                   options={TIMEZONES}
                   required
                 />
-                <p className="mt-1 text-xs text-muted-foreground">For scheduling and timestamps</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('timezoneHint')}</p>
               </div>
 
               <div>
-                <Label className="block mb-1">Default Language <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('defaultLanguage')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
                   value={formData.language}
                   onChange={(e) =>
@@ -419,7 +423,7 @@ export default function TenantRegisterPage() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <Label className="block mb-1">Admin Email <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('adminEmail')} <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="email"
                   value={formData.adminUser.email}
@@ -434,11 +438,11 @@ export default function TenantRegisterPage() {
                   className="w-full"
                 />
                 {errors.adminEmail && <p className="mt-1 text-sm text-danger-text">{errors.adminEmail}</p>}
-                <p className="mt-1 text-xs text-muted-foreground">You'll use this email to log in</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('adminEmailHint')}</p>
               </div>
 
               <div>
-                <Label className="block mb-1">Password <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('password')} <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   type="password"
                   value={formData.adminUser.password}
@@ -452,11 +456,11 @@ export default function TenantRegisterPage() {
                   className="w-full"
                 />
                 {errors.adminPassword && <p className="mt-1 text-sm text-danger-text">{errors.adminPassword}</p>}
-                <p className="mt-1 text-xs text-muted-foreground">Min 8 characters with uppercase, number, and special character</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('passwordHint')}</p>
               </div>
 
               <div>
-                <Label className="block mb-1">Display Name <span className="text-danger-text">*</span></Label>
+                <Label className="block mb-1">{t('displayName')} <span className="text-danger-text">*</span></Label>
                 <CmxInput
                   value={formData.adminUser.displayName}
                   onChange={(e) =>
@@ -465,7 +469,7 @@ export default function TenantRegisterPage() {
                       adminUser: { ...prev.adminUser, displayName: e.target.value },
                     }))
                   }
-                  placeholder="John Admin"
+                  placeholder={t('displayNamePlaceholder')}
                   required
                   className="w-full"
                 />
@@ -474,7 +478,7 @@ export default function TenantRegisterPage() {
 
               <CmxSummaryMessage
                 type="info"
-                message="Your 14-day free trial starts immediately. No credit card required."
+                message={t('trialNotice')}
               />
             </div>
           )}
@@ -486,14 +490,14 @@ export default function TenantRegisterPage() {
               onClick={handleBack}
               disabled={step === 1}
             >
-              Back
+              {tCommon('back')}
             </CmxButton>
 
             {step < 3 ? (
-              <CmxButton onClick={handleNext}>Next</CmxButton>
+              <CmxButton onClick={handleNext}>{tCommon('next')}</CmxButton>
             ) : (
               <CmxButton onClick={handleSubmit} loading={isLoading}>
-                Create Account
+                {t('createAccount')}
               </CmxButton>
             )}
           </div>
@@ -502,10 +506,10 @@ export default function TenantRegisterPage() {
 
         {/* Login Link */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <a href="/login" className="text-primary-text hover:text-primary-text/80 font-medium">
-            Sign in
-          </a>
+          {t('alreadyHaveAccount')}{' '}
+          <Link href="/login" className="text-primary-text hover:text-primary-text/80 font-medium">
+            {t('signIn')}
+          </Link>
         </p>
       </div>
     </div>

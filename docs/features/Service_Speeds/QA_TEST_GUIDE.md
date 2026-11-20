@@ -254,3 +254,37 @@ Prior findings, Retest r4 2026-11-19: **FET-SS-Nov17-StandardSlowerThanEconomy S
 
 ### Test data left behind
 - `ORD-20261119-00002` (3.692 cash, Standard + Express lines) is the order for §6.3/§6.5; `ORD-20261119-00001`, `-00003`, `-00004` are described in the Q3/Q4 guides. No speed rules, calendar hours or holidays were changed; the three QA speed rules from 17-Nov remain **inactive**.
+
+## Financial_Expert_Tester Results — Retest r5 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Service Speeds (Q8) rows below were run on cmx Demo admin, 22:27–22:30 Asia/Muscat. A new-order cart was opened for §6.3 and emptied; no order was created. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| §2 | PASS (FIXED) | 22:27 Asia/Muscat. Admin `https://cmx.cleanmatex.com/dashboard/settings/calendar?tab=branches&branch=22222222-2222-2222-2222-222222222222` shows "Business Calendar", Sun "Closed", Mon–Fri 08:00–06:00, cut-off 11:00, ready 18:00, preview "Closed now / Counting starts: Mon, Nov 23, 8:00 AM". The prior branch-calendar load failure is **not reproduced** (FET-SS-Nov13-BranchCalendar400 **FIXED**). Note: weekday hours display "08:00–06:00" (closing appears before opening; "06:00" is likely 18:00 — see new finding). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q8-2.png`. |
+| §6.3 | PASS (FIXED) with notes | 22:27 Asia/Muscat, Friday. New order, Blouse speed menu: Economy "Ready Sat, Nov 28, 2:00 PM"; Standard "Ready Tue, Dec 1, 3:00 PM"; Next day "OMR 2.943 · Ready Tue, Nov 24, 6:00 PM"; Express "Ready Mon, Nov 23, 2:00 PM"; Urgent "Ready Mon, Nov 23, 11:00 AM". Speed previews now appear (FET-SS-Nov13-SpeedMenuNoPreview **FIXED** / not reproduced). Notes: Fri hours show 08:00–06:00 yet counting jumps to Monday; the order screen used disabled branch "Main Branch 2" vs calendar "Main Branch Name"; cart "Ready By" field stays empty (FET-SS-Nov19-ReadyByNotFromSpeed still open); toast "Item removed from the order." stayed on screen and blocked user-menu clicks until reload. Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q8-6.3.png`. |
+
+**Prior findings — Retest r5 2026-11-20**
+
+- **FET-SS-Nov13-BranchCalendar400** — **FIXED.** Branch calendar loads with hours and a preview.
+- **FET-SS-Nov13-SpeedMenuNoPreview** — **FIXED.** Speed menu shows ready dates and the Next-day price.
+- **FET-SS-Nov19-ReadyByNotFromSpeed** — **STILL OPEN.** Cart "Ready By" stays empty after a speed is shown in the menu.
+- **FET-SS-Nov13-BranchTimeFormatMix** — **STILL OPEN / tightened** by the 08:00–06:00 display (see new finding).
+
+**New findings — Financial_Expert_Tester, Retest r5 2026-11-20**
+
+- **P2 FET-SS-Nov20-FridayHoursShows0600:** Branch calendar lists Mon–Fri as 08:00–06:00, which reads as closing before opening. "06:00" is likely 18:00 shown in 12-hour digits without AM/PM (ready time on the same page is 18:00). Suggested fix: format all branch hours in one consistent 12- or 24-hour pattern, including AM/PM if 12-hour. Code location not checked.
+- **P2 FET-SS-Nov20-StuckToastBlocksMenu:** After removing the Blouse, toast "Item removed from the order." stayed on screen and intercepted user-menu clicks until a reload. Suggested fix: auto-dismiss the toast and do not block pointer events on the user menu. Code location not checked.
+- **P3 FET-SS-Nov20-NewOrderBranchMismatch:** New Order used disabled branch "Main Branch 2" while the calendar under test is "Main Branch Name". Suggested fix: default New Order to the same active branch the calendar/preview uses, and do not silently select a disabled branch. Code location not checked.
+
+**r5 tally for the rows above (parent counts unchanged):** PASS 2 (§2, §6.3) with notes.
+
+**Rows not run in r5:** remaining speed-rule, HQ calendar, Arabic leftovers, and write-gated holiday/rule rows (awaiting approval / not in this observe batch).
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** Recheck hour formatting and the cart Ready By field after the next calendar/speeds fix. After approval, keep rule/holiday writes on a disposable QA branch.

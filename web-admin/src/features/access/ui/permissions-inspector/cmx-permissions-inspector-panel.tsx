@@ -20,7 +20,8 @@ import { useDraggablePanel } from '@/lib/hooks/useDraggablePanel'
 import { HELP_PERMISSIONS } from '@/lib/constants/permissions/help'
 import { useFeatureFlagsQuery } from '@/lib/hooks/use-feature-flags'
 import { invalidateTenantFeatureFlags } from '@/lib/query/feature-flag-keys'
-import { CmxInput } from '@ui/primitives'
+import { CmxButton, CmxInput } from '@ui/primitives'
+import { zIndex } from '@ui/foundations'
 import type { PermissionsInspectorTab } from './permissions-inspector-types'
 
 function RequirementBadge({ passed, label }: { passed: boolean; label: string }) {
@@ -37,11 +38,12 @@ function RequirementBadge({ passed, label }: { passed: boolean; label: string })
 }
 
 function RequirementDetailRow({ detail }: { detail: AccessEvaluationDetail }) {
+  const t = useTranslations('layout.topBar.permissionsDialog')
   const labels: Record<AccessEvaluationDetail['kind'], string> = {
-    permission: 'Permission',
-    permission_prefix: 'Permission Prefix',
-    feature_flag: 'Feature Flag',
-    tenant_role: 'Tenant Role',
+    permission: t('kindPermission'),
+    permission_prefix: t('kindPermissionPrefix'),
+    feature_flag: t('kindFeatureFlag'),
+    tenant_role: t('kindTenantRole'),
   }
 
   return (
@@ -52,7 +54,7 @@ function RequirementDetailRow({ detail }: { detail: AccessEvaluationDetail }) {
         </p>
         <p className="break-all text-xs font-mono text-foreground">{detail.value}</p>
       </div>
-      <RequirementBadge passed={detail.passed} label={detail.passed ? 'Allowed' : 'Missing'} />
+      <RequirementBadge passed={detail.passed} label={detail.passed ? t('allowed') : t('missing')} />
     </div>
   )
 }
@@ -70,17 +72,18 @@ function RequirementBlock({
   passed: boolean
   showNoExplicitPermissions?: boolean
 }) {
+  const t = useTranslations('layout.topBar.permissionsDialog')
   const explicitPermissionGate = hasExplicitPermissionGate(requirement)
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 rounded-md bg-card px-3 py-2">
         <span className="text-xs font-medium text-foreground">{title}</span>
-        <RequirementBadge passed={passed} label={passed ? 'Allowed' : 'Missing'} />
+        <RequirementBadge passed={passed} label={passed ? t('allowed') : t('missing')} />
       </div>
 
       {showNoExplicitPermissions && !explicitPermissionGate ? (
-        <p className="rounded-md bg-card px-3 py-2 text-xs text-muted-foreground">No explicit page permissions.</p>
+        <p className="rounded-md bg-card px-3 py-2 text-xs text-muted-foreground">{t('noExplicitPagePermissions')}</p>
       ) : null}
 
       {details.map((detail) => (
@@ -99,6 +102,8 @@ function ApiDependencyCard({
   passed: boolean
   details: AccessEvaluationDetail[]
 }) {
+  const t = useTranslations('layout.topBar.permissionsDialog')
+
   return (
     <div className="space-y-2 rounded-md border border-border bg-muted p-3">
       <div className="flex items-center justify-between gap-3">
@@ -108,12 +113,12 @@ function ApiDependencyCard({
             {dependency.method} {dependency.path}
           </p>
         </div>
-        <RequirementBadge passed={passed} label={passed ? 'Allowed' : 'Missing'} />
+        <RequirementBadge passed={passed} label={passed ? t('allowed') : t('missing')} />
       </div>
 
       {!dependency.requirement || details.length === 0 ? (
         <p className="rounded-md bg-card px-3 py-2 text-xs text-muted-foreground">
-          No explicit API permission requirement recorded.
+          {t('noExplicitApiPermission')}
         </p>
       ) : (
         details.map((detail) => (
@@ -152,6 +157,7 @@ export function CmxPermissionsInspectorPanel({
   const pathname = usePathname()
   const effectivePath = routePathOverride ?? pathname ?? ''
   const t = useTranslations('layout.topBar')
+  const tCommon = useTranslations('common')
   const queryClient = useQueryClient()
   const {
     permissions,
@@ -228,13 +234,18 @@ export function CmxPermissionsInspectorPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/40" onClick={handleClose}>
+    <div
+      className="fixed inset-0 bg-black/40"
+      style={{ zIndex: zIndex.modalBackdrop }}
+      onClick={handleClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="permissions-inspector-title"
-        className="fixed start-1/2 top-1/2 z-[101] flex w-[min(100vw-2rem,42rem)] max-h-[85vh] flex-col rounded-lg border border-border bg-card shadow-2xl"
+        className="fixed start-1/2 top-1/2 flex w-[min(100vw-2rem,42rem)] max-h-[85vh] flex-col rounded-lg border border-border bg-card shadow-2xl"
         style={{
+          zIndex: zIndex.modal,
           transform: `translate(calc(-50% + ${inspectorOffset.x}px), calc(-50% + ${inspectorOffset.y}px))`,
         }}
         onClick={(e) => e.stopPropagation()}
@@ -342,13 +353,15 @@ export function CmxPermissionsInspectorPanel({
                 <div className="space-y-4">
                   <div className="space-y-1 text-sm text-foreground">
                     <p>
-                      <span className="font-medium">Page:</span> {currentPageContract.label}
+                      <span className="font-medium">{t('permissionsDialog.pageLabel')}</span>{' '}
+                      {currentPageContract.label}
                     </p>
                     <p className="break-all">
-                      <span className="font-medium">Path:</span> {effectivePath}
+                      <span className="font-medium">{t('permissionsDialog.pathLabel')}</span> {effectivePath}
                     </p>
                     <p className="break-all">
-                      <span className="font-medium">Route Pattern:</span> {currentPageContract.routePattern}
+                      <span className="font-medium">{t('permissionsDialog.routePatternLabel')}</span>{' '}
+                      {currentPageContract.routePattern}
                     </p>
                     {canViewPlatformInventories ? (
                       <p className="pt-1">
@@ -363,7 +376,7 @@ export function CmxPermissionsInspectorPanel({
                   </div>
 
                   <RequirementBlock
-                    title="Page access"
+                    title={t('permissionsDialog.pageAccess')}
                     requirement={currentPageContract.page}
                     details={pageEvaluation.details}
                     passed={pageEvaluation.passed}
@@ -372,7 +385,9 @@ export function CmxPermissionsInspectorPanel({
 
                   {currentPageContract.actions && Object.keys(currentPageContract.actions).length > 0 ? (
                     <div className="space-y-3 border-t border-border pt-4">
-                      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</h4>
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t('permissionsDialog.actionsTitle')}
+                      </h4>
                       {Object.entries(currentPageContract.actions)
                         .filter(([actionKey, action]) => {
                           if (!normalizedPermissionSearch) return true
@@ -403,12 +418,16 @@ export function CmxPermissionsInspectorPanel({
                                 <span className="text-sm font-medium text-foreground">{action.label}</span>
                                 <RequirementBadge
                                   passed={actionEvaluation.passed}
-                                  label={actionEvaluation.passed ? 'Allowed' : 'Missing'}
+                                  label={
+                                    actionEvaluation.passed
+                                      ? t('permissionsDialog.allowed')
+                                      : t('permissionsDialog.missing')
+                                  }
                                 />
                               </div>
                               {actionEvaluation.details.length === 0 ? (
                                 <p className="rounded-md bg-card px-3 py-2 text-xs text-muted-foreground">
-                                  No explicit action requirements.
+                                  {t('permissionsDialog.noExplicitActionRequirements')}
                                 </p>
                               ) : (
                                 actionEvaluation.details.map((detail) => (
@@ -558,10 +577,12 @@ export function CmxPermissionsInspectorPanel({
             ) : (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-danger-text">
-                  Missing route access contract for this page.
+                  {t('permissionsDialog.missingRouteAccessContract')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Registered contracts: {getAllPageAccessContracts().length}
+                  {t('permissionsDialog.registeredContractsCount', {
+                    count: getAllPageAccessContracts().length,
+                  })}
                 </p>
                 <p className="break-all font-mono text-xs text-foreground">{effectivePath}</p>
               </div>
@@ -570,13 +591,9 @@ export function CmxPermissionsInspectorPanel({
         </div>
 
         <div className="flex justify-end border-t border-border px-5 py-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-md border border-border px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-          >
-            Close
-          </button>
+          <CmxButton type="button" variant="outline" size="sm" onClick={handleClose}>
+            {tCommon('close')}
+          </CmxButton>
         </div>
       </div>
     </div>

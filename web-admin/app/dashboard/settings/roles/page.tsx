@@ -58,6 +58,7 @@ import { SETTINGS_SETTINGS_ROLES_ACCESS } from '@features/settings/access/settin
  */
 export default function RolesManagementPage() {
   const t = useTranslations('settings')
+  const tCommon = useTranslations('common')
   const { currentTenant, permissions, session } = useAuth()
   const accessToken = session?.access_token ?? ''
 
@@ -218,9 +219,9 @@ export default function RolesManagementPage() {
       <div className="flex items-center justify-center h-64 bg-card rounded-lg shadow">
         <div className="text-center">
           <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">Access Denied</h3>
-          <p className="text-muted-foreground">You don&apos;t have permission to view roles and permissions.</p>
-          <p className="text-sm text-muted-foreground mt-2">Admin access required.</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">{t('roles.accessDeniedTitle')}</h3>
+          <p className="text-muted-foreground">{t('roles.accessDeniedDescription')}</p>
+          <p className="text-sm text-muted-foreground mt-2">{t('roles.adminRequired')}</p>
         </div>
       </div>
     )
@@ -262,15 +263,15 @@ export default function RolesManagementPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-card rounded-lg shadow p-4">
           <div className="text-2xl font-bold text-foreground tabular-nums">{roles.length}</div>
-          <div className="text-sm text-muted-foreground">Total Roles</div>
+          <div className="text-sm text-muted-foreground">{t('roles.totalRoles')}</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
           <div className="text-2xl font-bold text-primary-text tabular-nums">{systemRoles.length}</div>
-          <div className="text-sm text-muted-foreground">System Roles</div>
+          <div className="text-sm text-muted-foreground">{t('systemRoles')}</div>
         </div>
         <div className="bg-card rounded-lg shadow p-4">
           <div className="text-2xl font-bold text-success-text tabular-nums">{customRoles.length}</div>
-          <div className="text-sm text-muted-foreground">Custom Roles</div>
+          <div className="text-sm text-muted-foreground">{t('customRoles')}</div>
         </div>
       </div>
 
@@ -287,7 +288,7 @@ export default function RolesManagementPage() {
           <div className="flex-1">
             <p className="text-sm text-danger-text">{error}</p>
           </div>
-          <CmxButton type="button" variant="ghost" size="xs" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80" aria-label="Dismiss error">
+          <CmxButton type="button" variant="ghost" size="xs" onClick={() => setError(null)} className="text-danger-text hover:text-danger-text/80" aria-label={t('roles.dismissError')}>
             <X className="h-4 w-4" />
           </CmxButton>
         </div>
@@ -299,22 +300,22 @@ export default function RolesManagementPage() {
           <TableHeader className="bg-muted">
             <TableRow>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Role
+                {t('role')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Code
+                {t('roles.code')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Type
+                {t('roles.type')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Permissions
+                {t('permissions')}
               </TableHead>
               <TableHead className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Users
+                {t('roles.users')}
               </TableHead>
               <TableHead className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Actions
+                {tCommon('actions')}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -322,7 +323,7 @@ export default function RolesManagementPage() {
             {roles.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                  No roles found.
+                  {t('roles.noRolesFound')}
                 </TableCell>
               </TableRow>
             ) : (
@@ -351,9 +352,9 @@ export default function RolesManagementPage() {
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap">
                     {role.is_system ? (
-                      <CmxStatusBadge size="sm" tone="info">System</CmxStatusBadge>
+                      <CmxStatusBadge size="sm" tone="info">{t('systemPermission')}</CmxStatusBadge>
                     ) : (
-                      <CmxStatusBadge size="sm" tone="success">Custom</CmxStatusBadge>
+                      <CmxStatusBadge size="sm" tone="success">{t('customPermission')}</CmxStatusBadge>
                     )}
                   </TableCell>
                   <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
@@ -371,8 +372,8 @@ export default function RolesManagementPage() {
                         size="icon"
                         onClick={() => handleManagePermissions(role)}
                         className="text-primary-text hover:text-primary-text/80 h-8 w-8"
-                        aria-label="Manage Permissions"
-                        title="Manage Permissions"
+                        aria-label={t('roles.managePermissions')}
+                        title={t('roles.managePermissions')}
                       >
                         <Key className="h-4 w-4" />
                       </CmxButton>
@@ -383,8 +384,8 @@ export default function RolesManagementPage() {
                         onClick={() => handleEdit(role)}
                         className="text-primary-text hover:text-primary-text/80 h-8 w-8"
                         disabled={role.is_system}
-                        aria-label={role.is_system ? 'System roles cannot be edited' : 'Edit Role'}
-                        title={role.is_system ? 'System roles cannot be edited' : 'Edit Role'}
+                        aria-label={role.is_system ? t('roles.cannotEditSystemRole') : t('roles.editTitle')}
+                        title={role.is_system ? t('roles.cannotEditSystemRole') : t('roles.editTitle')}
                       >
                         <Edit className="h-4 w-4" />
                       </CmxButton>
@@ -395,13 +396,13 @@ export default function RolesManagementPage() {
                         onClick={() => setDeleteConfirmRole(role)}
                         className="text-danger-text hover:text-danger-text/80 h-8 w-8"
                         disabled={role.is_system || (role.user_count !== undefined && role.user_count > 0)}
-                        aria-label="Delete Role"
+                        aria-label={t('roles.deleteRole')}
                         title={
                           role.is_system
-                            ? 'System roles cannot be deleted'
+                            ? t('roles.cannotDeleteSystemRole')
                             : role.user_count && role.user_count > 0
-                            ? 'Cannot delete role with assigned users'
-                            : 'Delete Role'
+                            ? t('roles.cannotDeleteRoleWithUsers')
+                            : t('roles.deleteRole')
                         }
                       >
                         <Trash2 className="h-4 w-4" />
@@ -431,28 +432,28 @@ export default function RolesManagementPage() {
           )}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="role-create-code" className="mb-1 block">Code *</Label>
+              <Label htmlFor="role-create-code" className="mb-1 block">{t('roles.code')} *</Label>
               <CmxInput
                 id="role-create-code"
                 type="text"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
-                placeholder="e.g. warehouse_manager"
+                placeholder={t('roles.codePlaceholder')}
                 dir="ltr"
               />
             </div>
             <div>
-              <Label htmlFor="role-create-name" className="mb-1 block">Name (English) *</Label>
+              <Label htmlFor="role-create-name" className="mb-1 block">{t('roles.nameEn')} *</Label>
               <CmxInput
                 id="role-create-name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. Warehouse Manager"
+                placeholder={t('roles.namePlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="role-create-name2" className="mb-1 block">Name (Arabic)</Label>
+              <Label htmlFor="role-create-name2" className="mb-1 block">{t('roles.nameAr')}</Label>
               <CmxInput
                 id="role-create-name2"
                 type="text"
@@ -462,7 +463,7 @@ export default function RolesManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="role-create-desc" className="mb-1 block">Description</Label>
+              <Label htmlFor="role-create-desc" className="mb-1 block">{t('roles.descriptionLabel')}</Label>
               <CmxTextarea
                 id="role-create-desc"
                 value={formData.description}
@@ -473,10 +474,10 @@ export default function RolesManagementPage() {
           </div>
           <CmxDialogFooter className="mt-6">
             <CmxButton type="button" variant="outline" onClick={() => setShowCreateModal(false)} disabled={saving}>
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton type="button" variant="primary" onClick={handleCreate} loading={saving} disabled={saving}>
-              Create
+              {tCommon('create')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
@@ -500,7 +501,7 @@ export default function RolesManagementPage() {
           )}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="role-edit-code" className="mb-1 block">Code</Label>
+              <Label htmlFor="role-edit-code" className="mb-1 block">{t('roles.code')}</Label>
               <CmxInput
                 id="role-edit-code"
                 type="text"
@@ -508,10 +509,10 @@ export default function RolesManagementPage() {
                 disabled
                 dir="ltr"
               />
-              <p className="text-xs text-muted-foreground mt-1">Role code cannot be changed</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('roles.codeImmutable')}</p>
             </div>
             <div>
-              <Label htmlFor="role-edit-name" className="mb-1 block">Name (English) *</Label>
+              <Label htmlFor="role-edit-name" className="mb-1 block">{t('roles.nameEn')} *</Label>
               <CmxInput
                 id="role-edit-name"
                 type="text"
@@ -520,7 +521,7 @@ export default function RolesManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="role-edit-name2" className="mb-1 block">Name (Arabic)</Label>
+              <Label htmlFor="role-edit-name2" className="mb-1 block">{t('roles.nameAr')}</Label>
               <CmxInput
                 id="role-edit-name2"
                 type="text"
@@ -530,7 +531,7 @@ export default function RolesManagementPage() {
               />
             </div>
             <div>
-              <Label htmlFor="role-edit-desc" className="mb-1 block">Description</Label>
+              <Label htmlFor="role-edit-desc" className="mb-1 block">{t('roles.descriptionLabel')}</Label>
               <CmxTextarea
                 id="role-edit-desc"
                 value={formData.description}
@@ -541,10 +542,10 @@ export default function RolesManagementPage() {
           </div>
           <CmxDialogFooter className="mt-6">
             <CmxButton type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>
-              Cancel
+              {tCommon('cancel')}
             </CmxButton>
             <CmxButton type="button" variant="primary" onClick={handleUpdate} loading={saving} disabled={saving}>
-              Update
+              {tCommon('update')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>
@@ -553,14 +554,14 @@ export default function RolesManagementPage() {
       {/* Delete Confirmation Modal */}
       <CmxConfirmDialog
         open={Boolean(deleteConfirmRole)}
-        title="Delete Role"
+        title={t('roles.deleteRole')}
         description={
           deleteConfirmRole
-            ? `Are you sure you want to delete the role "${deleteConfirmRole.name}"? This action cannot be undone.`
+            ? t('roles.deleteRoleConfirm', { name: deleteConfirmRole.name })
             : undefined
         }
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmLabel={tCommon('delete')}
+        cancelLabel={tCommon('cancel')}
         confirmDisabled={saving}
         onConfirm={handleDeleteConfirm}
         onCancel={() => { if (!saving) setDeleteConfirmRole(null) }}

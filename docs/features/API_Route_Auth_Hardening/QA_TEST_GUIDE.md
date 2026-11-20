@@ -94,3 +94,31 @@ Prior findings, Retest r1 2026-11-19: **FET-AUTH-Nov17-*** not rechecked (no rol
 
 ### Test data left behind
 - None from this guide.
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+API Route Auth Hardening (Q16) rows below were run on cmx Demo admin (22:19–22:26 Asia/Muscat) and viewer (22:27–22:30). Viewer Quick Add was opened and cancelled; no customer was created; Export was refused by the app. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| 11 | FAIL | 22:19–22:26 Asia/Muscat. `https://cmx.cleanmatex.com/dashboard/settings/catalog` and `/dashboard/settings/categories` still show "404 This page could not be found." Still broken (FET-AUTH-Nov17-CatalogSettingsRoutes404). |
+| 12 | FAIL | Customers Export CSV as super_admin still shows "Insufficient permissions. Only admins can export customer data." Still broken (FET-AUTH-Nov17-SuperAdminExportDenied / FET-UIDS-Nov19-CustomerExportDenied). |
+| 2 | FAIL | 22:30 Asia/Muscat. Viewer still sees "Export CSV" and "Add Customer"; Quick Add dialog opens (cancelled, no customer created). Still broken (FET-AUTH-Nov17-ViewerCanWriteCustomers). Shots: `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q16-2.png`, `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q16-2-dialog.png`. |
+
+**Prior findings — Retest r2 2026-11-20**
+
+- **FET-AUTH-Nov17-CatalogSettingsRoutes404** — **STILL BROKEN.** #11.
+- **FET-AUTH-Nov17-SuperAdminExportDenied** — **STILL BROKEN.** #12.
+- **FET-AUTH-Nov17-ViewerCanWriteCustomers** — **STILL BROKEN.** #2.
+
+**r5 tally for the rows above (parent counts unchanged):** FAIL 3 (11, 12, 2).
+
+**Rows not run in r5:** remaining role-fixture, cashier, category-save, and session-revoke rows (need confirmed cashier credentials, a tenant_admin fixture, or writes; awaiting approval). Workflow Roles remains retired/skip per the guide.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** Recheck #11 when catalog/categories settings routes are restored. Recheck #12 after export authorization includes super_admin. Recheck #2 after viewer loses Export/Add Customer. Ask once for fixture accounts before the remaining role rows.

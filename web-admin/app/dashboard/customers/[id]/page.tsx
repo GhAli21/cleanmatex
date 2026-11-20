@@ -15,7 +15,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { getCustomerById } from '@/lib/api/customers'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
@@ -65,9 +65,11 @@ export default function CustomerDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false)
 
   const { currentTenant } = useAuth()
-  const { formatMoneyWithCode } = useTenantCurrency()
+  const { formatMoneyWithCode, formatNumber } = useTenantCurrency()
+  const locale = useLocale()
   const t = useTranslations('customers')
   const tB2b = useTranslations('b2b')
+  const tCommon = useTranslations('common')
   const canUpdateCustomer = useHasPermission('customers', 'update')
 
   const baseTabs: Tab[] = [
@@ -186,14 +188,14 @@ export default function CustomerDetailPage() {
               />
             </svg>
             <h2 className="text-xl font-semibold text-danger-text mb-2">
-              Customer Not Found
+              {t('notFound')}
             </h2>
-            <p className="text-danger-text mb-6">{error || 'Customer does not exist'}</p>
+            <p className="text-danger-text mb-6">{error || t('notFoundDescription')}</p>
             <Link
               href="/dashboard/customers"
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover"
             >
-              Back to Customers
+              {t('backToCustomers')}
             </Link>
           </div>
         </div>
@@ -212,10 +214,10 @@ export default function CustomerDetailPage() {
             href="/dashboard/customers"
             className="hover:text-foreground transition-colors"
           >
-            Customers
+            {t('title')}
           </Link>
           <svg
-            className="mx-2 h-4 w-4"
+            className="mx-2 h-4 w-4 rtl:rotate-180"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -260,20 +262,20 @@ export default function CustomerDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   {customer.customerNumber && (
                     <div>
-                      <span className="text-muted-foreground">Customer #:</span>
-                      <span className="ms-2 font-medium text-foreground">
-                        {customer.customerNumber}
+                      <span className="text-muted-foreground">{t('customerNumberShort')}:</span>
+                      <span className="ms-2 font-medium text-foreground tabular-nums">
+                        <bdi dir="ltr">{customer.customerNumber}</bdi>
                       </span>
                     </div>
                   )}
                   {customer.phone && (
                     <div>
-                      <span className="text-muted-foreground">Phone:</span>
-                      <span className="ms-2 font-medium text-foreground">
-                        {customer.phone}
+                      <span className="text-muted-foreground">{t('phone')}:</span>
+                      <span className="ms-2 font-medium text-foreground tabular-nums">
+                        <bdi dir="ltr">{customer.phone}</bdi>
                       </span>
                       {customer.phoneVerified && (
-                        <span className="ms-1 text-success-text" title="Verified">
+                        <span className="ms-1 text-success-text" title={t('phoneVerified')}>
                           ✓
                         </span>
                       )}
@@ -281,9 +283,9 @@ export default function CustomerDetailPage() {
                   )}
                   {customer.email && (
                     <div>
-                      <span className="text-muted-foreground">Email:</span>
+                      <span className="text-muted-foreground">{t('email')}:</span>
                       <span className="ms-2 font-medium text-foreground">
-                        {customer.email}
+                        <bdi dir="ltr">{customer.email}</bdi>
                       </span>
                     </div>
                   )}
@@ -300,7 +302,7 @@ export default function CustomerDetailPage() {
                   className="bg-success text-on-solid hover:bg-success/90"
                   onClick={() => setShowUpgradeModal(true)}
                 >
-                  Upgrade to Full
+                  {t('upgradeToFull')}
                 </CmxButton>
               )}
               <CmxButton
@@ -309,7 +311,7 @@ export default function CustomerDetailPage() {
                 size="sm"
                 onClick={() => setShowEditModal(true)}
               >
-                Edit
+                {tCommon('edit')}
               </CmxButton>
             </div>
           </div>
@@ -326,17 +328,15 @@ export default function CustomerDetailPage() {
             }}
           />
         )}
-        {showEditModal && (
-          <CustomerEditModal
-            open={showEditModal}
-            customerId={customerId}
-            onClose={() => setShowEditModal(false)}
-            onSuccess={(updated) => {
-              setCustomer((prev) => (prev ? { ...prev, ...updated } : null))
-              setShowEditModal(false)
-            }}
-          />
-        )}
+        <CustomerEditModal
+          open={showEditModal}
+          customerId={customerId}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={(updated) => {
+            setCustomer((prev) => (prev ? { ...prev, ...updated } : null))
+            setShowEditModal(false)
+          }}
+        />
 
         {/* Advance balance (canonical stored-value ledger) */}
         <div className="bg-card rounded-lg shadow-sm p-6 mb-6">
@@ -473,40 +473,46 @@ export default function CustomerDetailPage() {
  */
 function ProfileTab({
   customer,
-  onUpdate,
+  onUpdate: _onUpdate,
 }: {
   customer: CustomerWithTenantData
   onUpdate: (customer: CustomerWithTenantData) => void
 }) {
+  const t = useTranslations('customers')
+  const tB2b = useTranslations('b2b')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
+  const { formatNumber } = useTenantCurrency()
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Personal Information */}
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-4">
-            Personal Information
+            {t('personalInfo')}
           </h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">First Name</dt>
+              <dt className="text-sm font-medium text-muted-foreground">{t('firstName')}</dt>
               <dd className="mt-1 text-sm text-foreground">{customer.firstName}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Last Name</dt>
+              <dt className="text-sm font-medium text-muted-foreground">{t('lastName')}</dt>
               <dd className="mt-1 text-sm text-foreground">
                 {customer.lastName || '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
-              <dd className="mt-1 text-sm text-foreground">
-                {customer.phone || '—'}
+              <dt className="text-sm font-medium text-muted-foreground">{t('phone')}</dt>
+              <dd className="mt-1 text-sm text-foreground tabular-nums">
+                {customer.phone ? <bdi dir="ltr">{customer.phone}</bdi> : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Email</dt>
+              <dt className="text-sm font-medium text-muted-foreground">{t('email')}</dt>
               <dd className="mt-1 text-sm text-foreground">
-                {customer.email || '—'}
+                {customer.email ? <bdi dir="ltr">{customer.email}</bdi> : '—'}
               </dd>
             </div>
           </dl>
@@ -516,33 +522,33 @@ function ProfileTab({
         {customer.type === 'b2b' && (
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">
-              Company Information
+              {tB2b('companyInfo')}
             </h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Company Name</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{tB2b('companyName')}</dt>
                 <dd className="mt-1 text-sm text-foreground">
                   {customer.companyName || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Tax ID</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{tB2b('taxId')}</dt>
                 <dd className="mt-1 text-sm text-foreground">
                   {customer.taxId || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Credit Limit</dt>
-                <dd className="mt-1 text-sm text-foreground">
+                <dt className="text-sm font-medium text-muted-foreground">{tB2b('creditLimit')}</dt>
+                <dd className="mt-1 text-sm text-foreground tabular-nums">
                   {customer.creditLimit != null
-                    ? Number(customer.creditLimit).toLocaleString()
+                    ? formatNumber(Number(customer.creditLimit))
                     : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Payment Terms (Days)</dt>
-                <dd className="mt-1 text-sm text-foreground">
-                  {customer.paymentTermsDays ?? '—'}
+                <dt className="text-sm font-medium text-muted-foreground">{tB2b('paymentTermsDays')}</dt>
+                <dd className="mt-1 text-sm text-foreground tabular-nums">
+                  {customer.paymentTermsDays != null ? formatNumber(customer.paymentTermsDays) : '—'}
                 </dd>
               </div>
             </dl>
@@ -553,29 +559,29 @@ function ProfileTab({
         {customer.type === 'full' && (
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-4">
-              Preferences
+              {t('preferences')}
             </h3>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Language</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('language')}</dt>
                 <dd className="mt-1 text-sm text-foreground">
-                  English
+                  {locale === 'ar' ? t('whatsappConsent.languageArabic') : t('whatsappConsent.languageEnglish')}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Folding</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('folding')}</dt>
                 <dd className="mt-1 text-sm text-foreground">
                   {customer.preferences?.folding || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Fragrance</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('fragrance')}</dt>
                 <dd className="mt-1 text-sm text-foreground">
                   {customer.preferences?.fragrance || '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Starch Level</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('starchLevel')}</dt>
                 <dd className="mt-1 text-sm text-foreground">
                   —
                 </dd>
@@ -587,31 +593,31 @@ function ProfileTab({
         {/* Account Information */}
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-4">
-            Account Information
+            {t('accountInfo')}
           </h3>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Customer Type</dt>
-              <dd className="mt-1 text-sm text-foreground capitalize">
-                {customer.type}
+              <dt className="text-sm font-medium text-muted-foreground">{t('customerType')}</dt>
+              <dd className="mt-1 text-sm text-foreground">
+                {t(`types.${customer.type}`) || customer.type}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Status</dt>
+              <dt className="text-sm font-medium text-muted-foreground">{t('status')}</dt>
               <dd className="mt-1 text-sm text-foreground">
-                {customer.profileStatus === 3 ? 'Active' : `Status ${customer.profileStatus}`}
+                {customer.profileStatus === 3 ? t('active') : `${t('status')} ${formatNumber(customer.profileStatus)}`}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Phone Verified</dt>
+              <dt className="text-sm font-medium text-muted-foreground">{t('phoneVerified')}</dt>
               <dd className="mt-1 text-sm text-foreground">
-                {customer.phoneVerified ? 'Yes ✓' : 'No'}
+                {customer.phoneVerified ? `${tCommon('yes')} ✓` : tCommon('no')}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Member Since</dt>
-              <dd className="mt-1 text-sm text-foreground">
-                {new Date(customer.createdAt).toLocaleDateString()}
+              <dt className="text-sm font-medium text-muted-foreground">{t('memberSince')}</dt>
+              <dd className="mt-1 text-sm text-foreground tabular-nums">
+                {new Date(customer.createdAt).toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US')}
               </dd>
             </div>
           </dl>

@@ -1473,3 +1473,44 @@ Still-open older findings seen again this round: "Applied by: Unknown user" and 
 - **ORD-20261116-00002 (QA-B)**, Demo: cash paid 20.009 (tender 21.000, change 1.000); Boxer Shorts and Poncho removed → total 14.659; status Overpaid, overpayment 4.350 left unmoved (no advance / credit / wallet move, no refund).
 - **HQ:** Demo org override restored to ORDER_CHANGE_STANDARD_V1 (Pilot rev 3, All profiles, In effect; tenant verified). ORDER_CHANGE_STANDARD_QA_20261107_V1 stays **Published rev 6**; its Demo assignment is deactivated. The WF_V2_SIMPLE v4 version default set during §11.4 was removed. No profile default created.
 - No password changed; no messages sent; nothing printed.
+
+## Financial_Expert_Tester Results — Retest r7 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Edit Order V2 (Q2) rows below were run on cmx Demo admin, 22:03–22:12 Asia/Muscat, against `ORD-20261119-00005` (Processing) and `ORD-20261119-00006` (READY). No Apply / Save. Only rows touched in r5/r7 are listed; parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| Items loading | PARTIAL | 22:12 Asia/Muscat. ORD-20261119-00005 (Processing) editor body ~7.7 s then tiles ~5 s more; ORD-20261119-00006 ~3 s. Still slow (FET-MAN-Nov10-ItemsLoadingSlow). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b2-B-edit-processing.png`. |
+| Premature banners | FAIL | 22:12 Asia/Muscat. On open, before any change, red banners: "Change Item Price is not allowed at the current status." "Change Discount is not allowed at the current status." On 00006 also: "Add an item is not allowed at the current status." "Change ready by is not allowed at the current status." Still broken (FET-MAN-Nov10-PrematureBanners). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b2-B-edit-ready-order.png`. |
+| LC-3 / LC-4 | PARTIAL | Blouse 4.400 OMR line has no price pencil and no % icon (hidden, not greyed); only "Edit Items Preferences" and "Remove item" are shown. Related: FET-EOV2-Nov16-LineControlsDisabled. Evidence on `C:\Users\JHNLP\qa-20261120\r5\shots\b2-B-edit-ready-order.png`. |
+| MAN-UI-008 | PASS | Dev-note leave-guard fix confirmed. Typed "QA draft" piece note → "1 unsaved changes"; sidebar Dashboard → in-app dialog "Leave without saving?" with Cancel/Confirm. Cancel stays in the editor; Discard → "0 unsaved changes". Nothing was saved. Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b2-MAN-UI-008-leave.png`. |
+| Review change history | FAIL | 22:12 Asia/Muscat. ORD-20261119-00005 Rev 2 Review shows "Review result: OPERATION_NOT_AVAILABLE · Current total: 4.708 · Estimated total: 4.708", "Change history — No applied changes yet.", and toast "The review could not be completed." Meanwhile the Change History tab lists "Change #1 … +2.354 OMR Increase … Edit revision 1 → 2". Raw code is shown to the user. Still broken (FET-MAN-Nov10-ReviewHistoryEmpty; also FET-EOV2-Nov16-RawOverrideCode / graceful-failure). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b2-MAN-UI-010-review.png`. |
+| Edit History / Change History tabs | PASS | Tabs are **no longer swapped** (FET-MAN-Nov10-HistoryTabsSwapped **FIXED**), EN+AR. Edit History: "Edit access status OPEN … No edit history for this order". Change History: "Every applied change on this order…", "1 changes" (grammar). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b2-B-change-history.png`. |
+| MAN-UI-010 (Escape focus) | PASS | Escape closes Review and focus returns to the toolbar "Review" button. |
+
+**Prior findings — Retest r7 2026-11-20**
+
+- **FET-MAN-Nov10-HistoryTabsSwapped** — **FIXED.** Edit History and Change History show the correct content.
+- **MAN-UI-008 leave dialog** (Dev-note fix) — **FIXED / confirmed.** "Leave without saving?" appears; Cancel keeps the draft; Discard clears it.
+- **FET-MAN-Nov10-PrematureBanners** — **STILL BROKEN.**
+- **FET-MAN-Nov10-ReviewHistoryEmpty** — **STILL BROKEN**, and Review returns raw `OPERATION_NOT_AVAILABLE` plus "No applied changes yet" on an order that already has a change.
+- **FET-MAN-Nov10-ItemsLoadingSlow** — **STILL SEEN** (~7.7 s + 5 s on the Processing order).
+
+**New findings — Financial_Expert_Tester, Retest r7 2026-11-20**
+
+- **P1 FET-EOV2-Nov20-ReadyListTotalZero:** Ready list total for ORD-20261119-00006 is **0.000 OMR** while the order page shows **1.070 OMR**. Suggested fix: use the same financial snapshot on the Ready list as on the order page. Code location not checked.
+- **P3 FET-EOV2-Nov20-OrdersDelivery404:** `/dashboard/orders-delivery` returns 404. Suggested fix: add the route or retire the link. Code location not checked.
+- **P3 FET-EOV2-Nov20-ChangeHistoryGrammar:** Change History heading "1 changes" should be "1 change". Code location not checked.
+- Direct `/edit` URL correctly refuses with "Edit was not opened from the order — Open Edit from the order screen. A copied address does not start an edit." (by-design; no new finding). Session expired ~22:05 mid-run and was signed in again.
+
+**r5/r7 tally for the rows above (parent counts unchanged):** PASS 3 (MAN-UI-008, History tabs, MAN-UI-010 Escape) · FAIL 2 (premature banners, Review change history) · PARTIAL 2 (items loading, LC-3/LC-4).
+
+**Rows not run in r5:** Apply / Review-confirm / payment / policy-write rows (write-gated, awaiting approval); remaining Dev-note mutate rows that need a disposable QA order.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After owner approval, run Apply/Review on a disposable QA order (not the paid READY leftover) and recheck Review history + tax impact. Recheck premature banners and Ready-list totals after the next editor/money fix.

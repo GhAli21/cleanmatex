@@ -1,7 +1,7 @@
 # I11 Handler Implementation Contracts
 
-**Status:** The Phase 2 control-plane migration is applied and the notification worker/API boundary is in controlled canary hardening. Remote production evidence—not local source, build, or a single provider result—still gates expansion and legacy-route retirement.
-**Authority:** [I11 ADR](I11_background_execution_redesign_ADR.md) and [I11 plan](I11_background_execution_redesign_PLAN.md). Remote Supabase is the production evidence authority.
+**Status:** The Phase 2 control-plane migration is applied and the notification worker/API boundary is in controlled canary hardening. **20 Nov 2026:** Owner approved the expert-replan runtime (one HQ `BackgroundExecutionModule`, LISTEN + safety sweep, Redis-as-platform, no BullMQ on outbox). Delivery stays disabled. Remote production evidence still gates expansion.
+**Authority:** [I11 ADR](I11_background_execution_redesign_ADR.md), [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md). Remote Supabase is the production evidence authority.
 
 ## Common database-job contract
 
@@ -9,7 +9,7 @@ Each database job must use a fixed function with a pinned `search_path`, least-p
 
 ## Common worker-job contract
 
-The database creates the durable work state and the Render worker discovers active tenants before claiming one due row through a fixed tenant-scoped RPC. The worker retains only the claimed tenant/outbox/claim identity while the HQ API loads the canonical payload and provider policy. It then writes a terminal outcome, retry time, or reconciliation-required state through the exact claim token. A provider timeout is unknown—not a resend. Redis/BullMQ is not part of this canonical path and is available only behind an explicit rollback gate.
+The database creates the durable work state. Domain code must enqueue through one `WorkOutbox` helper in the **same transaction** as the business write (D19); it must not start timers, BullMQ, `pg_net`, or tenant job HTTP. The HQ runner (today `platform-workers`; approved target `platform-api` `BackgroundExecutionModule`) claims due rows through a **global** `SKIP LOCKED` RPC, not a per-tenant JS loop. An `ExecutorRegistry` maps `job_code` to a named executor and refuses unknown codes. Wake is `LISTEN/NOTIFY` plus a sparse safety sweep. The executor retains only tenant/outbox/claim identity; HQ loads policy and submits to the provider (in-process target). It writes a terminal outcome, retry time, or reconciliation-required state through the exact claim token. A provider timeout is unknown—not a resend. BullMQ is not on this path except `LEGACY_BULLMQ_ENABLED`. Redis on HQ API is not the outbox. Screens never call the execute HTTP.
 
 ## Approved notification convergence contract
 

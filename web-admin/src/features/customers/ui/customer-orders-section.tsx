@@ -12,17 +12,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@ui/primitives/table';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import { listOrders } from '@/app/actions/orders/list-orders';
 import type { OrderListItem } from '@/types/order';
-import { formatPrice } from '@/lib/utils/pricing-calculator';
 import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
 
 const PAGE_SIZE = 10;
@@ -54,9 +52,7 @@ export function CustomerOrdersSection({
   const tOrders = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
-  const nextLocale = useLocale();
-  const moneyUiLocale = nextLocale.startsWith('ar') ? 'ar' : 'en';
-  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const { formatMoney, formatNumber } = useTenantCurrency();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
@@ -314,11 +310,11 @@ export function CustomerOrdersSection({
                   </TableCell>
                   <TableCell className="px-4 py-3 text-end tabular-nums">
                     <div className="flex flex-col items-end">
-                      <span>{order.total_items}</span>
+                      <span>{formatNumber(order.total_items)}</span>
                       {trackByPiece &&
                         order.total_pieces != null && (
                           <span className="text-xs text-muted-foreground mt-0.5">
-                            {order.total_pieces}{' '}
+                            {formatNumber(order.total_pieces)}{' '}
                             {tPieces('totalPieces') || 'pieces'}
                           </span>
                         )}
@@ -326,12 +322,7 @@ export function CustomerOrdersSection({
                   </TableCell>
                   <TableCell className="px-4 py-3 font-medium text-end tabular-nums">
                     <bdi dir="ltr">
-                      {formatPrice(
-                        order.total,
-                        currencyCode,
-                        resolveMoneyIntlLocale(moneyUiLocale),
-                        decimalPlaces,
-                      )}
+                      {formatMoney(order.total)}
                     </bdi>
                   </TableCell>
                   <TableCell className="px-4 py-3 tabular-nums">

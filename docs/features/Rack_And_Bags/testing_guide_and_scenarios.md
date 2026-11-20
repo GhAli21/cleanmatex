@@ -114,3 +114,35 @@ Prior findings, Retest r1 2026-11-19: **FET-RACK-Nov17-NoReadyPath (P0) PARTLY F
 
 ### Test data left behind
 - None from this guide. QA orders are listed in the Q3/Q4 guides; all sit at Processing.
+
+## Financial_Expert_Tester Results — Retest r2 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Rack & Bags (Q15) rows below were run on cmx Demo admin, 22:19–22:26 Asia/Muscat, on READY leftover `ORD-20261119-00006` rack QA-A1. Rack & Bags was opened and closed with Escape / X; Submit was not pressed; Make available / Confirm pickup / Release were not pressed. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| S1 | PARTIAL (unblocked) | Ready Details page (no modal): "Ready ORD-20261119-00006", "Test Customer2 Mohammed Ahmed • +96896662624", "Rack: QA-A1", "Not yet available for pickup"; buttons Make available for pickup / Rack & Bags / Confirm customer pickup now / Release for delivery. The prior "no Ready path" blocker (FET-RACK-Nov17-NoReadyPath / FET-RACK-Nov19-ProcessingGrantStillBlocksReady) is **FIXED / unblocked**. Auto-release was not exercised (write). |
+| S2 | PASS | "Rack & Bags" dialog: Rack * "QA-A1", Locker, Code, Bags 1–7/Custom, Hanging 0–7/Custom; Submit + X only, **no Cancel**. Closed with X / Escape. Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b4-Q15-S2.png`. |
+| S5 | PARTIAL | Arabic Ready Details is translated and RTL, but actions stayed stuck on "جاري تحميل الإجراءات…"; Rack & Bags / Release were missing while observed. |
+
+**Prior findings — Retest r2 2026-11-20**
+
+- **FET-RACK-Nov17-NoReadyPath** / **FET-RACK-Nov19-ProcessingGrantStillBlocksReady** — **FIXED / unblocked.** Ready Details for this QA order loads with rack QA-A1.
+
+**New findings — Financial_Expert_Tester, Retest r2 2026-11-20**
+
+- **P3 FET-RACK-Nov20-DialogNoCancel:** Rack & Bags has Submit and X only; no Cancel. Suggested fix: add a Cancel button that discards unsaved dialog edits (X already closes). Code location not checked.
+- **P2 FET-RACK-Nov20-ARActionsStuckLoading:** In Arabic, Ready Details actions stay on "جاري تحميل الإجراءات…" and Rack & Bags / Release are missing. Suggested fix: finish loading the action group in AR the same as EN, or show a retry. Code location not checked.
+- **P1 FET-ORD-Nov20-CustomerNameInconsistent** (also here): Ready Details shows "Test Customer2 Mohammed Ahmed" while the orders list shows "Jh Test dev21" for the same order. Code location not checked.
+
+**r5 tally for the rows above (parent counts unchanged):** PARTIAL 2 (S1, S5) · PASS 1 (S2).
+
+**Rows not run in r5:** Make available, Confirm pickup, Release for delivery, Submit rack changes, and auto-release (write-gated, awaiting approval). Remaining rack scenarios that need those writes stay NOT RUN.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After owner approval, run Make available / pickup / release on a disposable READY QA order (prefer a new one; do not hand over `ORD-20261119-00006` unless the owner says so). Recheck AR actions after a loading fix.

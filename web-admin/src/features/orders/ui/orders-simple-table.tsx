@@ -13,7 +13,9 @@
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
-import { CmxStatusBadge } from '@ui/feedback/cmx-status-badge';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback/cmx-status-badge';
+import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
+import { OrderStatusBadge } from './order-status-badge';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -22,9 +24,7 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 
 import { useLocale } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
-import { formatPrice } from '@/lib/utils/pricing-calculator';
 import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
 
 interface OrdersSimpleTableProps {
@@ -47,10 +47,11 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('orders');
+  const tPrepStatuses = useTranslations('orders.prepStatuses');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const uiLocale = useLocale();
-  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const { formatMoney, formatNumber } = useTenantCurrency();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
@@ -58,6 +59,57 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
     const params = new URLSearchParams(window.location.search);
     params.set('page', String(nextPage));
     router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const goToPageSize = (nextSize: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('limit', String(nextSize));
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const renderOrderStatusBadge = (status?: string | null) => {
+    const normalized = String(status ?? '').toLowerCase() as OrderStatus;
+    if (normalized && STATUS_META[normalized]) {
+      return (
+        <OrderStatusBadge
+          status={normalized}
+          locale={uiLocale === 'ar' ? 'ar' : 'en'}
+          size="sm"
+        />
+      );
+    }
+    return (
+      <CmxStatusBadge
+        size="sm"
+        tone="neutral"
+        label={status ? status.replace(/_/g, ' ') : '—'}
+      />
+    );
+  };
+
+  const renderPrepStatusBadge = (prepStatus?: string | null) => {
+    if (!prepStatus) {
+      return <span className="text-muted-foreground">—</span>;
+    }
+    const normalized = prepStatus.toLowerCase();
+    const tone: CmxBadgeTone =
+      normalized === 'completed'
+        ? 'success'
+        : normalized === 'in_progress' || normalized === 'inprogress'
+          ? 'info'
+          : normalized === 'pending'
+            ? 'warning'
+            : 'neutral';
+    const label =
+      normalized === 'completed'
+        ? tPrepStatuses('completed')
+        : normalized === 'in_progress' || normalized === 'inprogress'
+          ? tPrepStatuses('in_progress')
+          : normalized === 'pending'
+            ? tPrepStatuses('pending')
+            : prepStatus.replace(/_/g, ' ');
+    return <CmxStatusBadge size="sm" tone={tone} label={label} />;
   };
 
   const columns: CmxDataTableSimpleColumn<OrderListItem>[] = [
@@ -86,7 +138,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
       sortable: false,
       render: (order) => (
         <div className="flex flex-wrap items-center gap-1">
-          <span className="capitalize">{order.status?.replace(/_/g, ' ') || '—'}</span>
+          {renderOrderStatusBadge(order.status)}
           {order.physical_intake_status === 'pending_dropoff' &&
           String(order.status ?? '').toLowerCase() === 'draft' ? (
             <CmxStatusBadge size="sm" tone="warning" label={t('badgeAwaitingDropoff')} />
@@ -107,11 +159,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
       key: 'preparation_status',
       header: t('prepStatus'),
       sortable: false,
-      render: (order) => (
-        <span className="capitalize">
-          {order.preparation_status?.replace(/_/g, ' ') || '—'}
-        </span>
-      ),
+      render: (order) => renderPrepStatusBadge(order.preparation_status),
     },
     {
       key: 'items',
@@ -127,10 +175,10 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
       sortable: false,
       render: (order) => (
         <div className="flex flex-col items-end">
-          <bdi className="tabular-nums">{order.total_items}</bdi>
+          <bdi className="tabular-nums">{formatNumber(order.total_items)}</bdi>
           {trackByPiece && order.total_pieces !== null && order.total_pieces !== undefined && (
             <span className="mt-0.5 text-xs text-muted-foreground">
-              <bdi className="tabular-nums">{order.total_pieces}</bdi> {tPieces('totalPieces') || 'pieces'}
+              <bdi className="tabular-nums">{formatNumber(order.total_pieces)}</bdi> {tPieces('totalPieces') || 'pieces'}
             </span>
           )}
         </div>
@@ -143,12 +191,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
       sortable: false,
       render: (order) => (
         <bdi dir="ltr" className="font-medium tabular-nums">
-          {formatPrice(
-            order.total,
-            currencyCode,
-            resolveMoneyIntlLocale(uiLocale),
-            decimalPlaces,
-          )}
+          {formatMoney(order.total)}
         </bdi>
       ),
     },
@@ -206,8 +249,9 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
       pageSize={pagination.limit}
       totalCount={pagination.total}
       onPageChange={goToPage}
-      showPageSizeSelector={false}
-      paginationFooter={pagination.totalPages > 1 ? 'auto' : 'never'}
+      onPageSizeChange={goToPageSize}
+      showPageSizeSelector
+      paginationFooter="always"
       scrollable={false}
       auditConfig={false}
       onRowClick={(order) => router.push(`/dashboard/orders/${order.id}`)}

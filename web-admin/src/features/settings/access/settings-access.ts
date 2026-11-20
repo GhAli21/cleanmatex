@@ -245,10 +245,7 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/settings/extra-config',
     label: 'Display & Formatting Preferences',
-    page: {
-      permissions: ['settings:read'],
-      requireAllPermissions: true,
-    },
+    page: {},
     actions: {
       update: {
         label: 'Save or reset extra configuration',
@@ -263,10 +260,7 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
         label: 'Load extra configuration',
         method: 'GET',
         path: '/api/v1/settings/extra-config',
-        requirement: {
-          permissions: ['settings:read'],
-          requireAllPermissions: true,
-        },
+        notes: ['Authenticated tenant read-only access so Operators/Viewers see read-only mode.'],
       },
       {
         label: 'Save extra configuration batch',

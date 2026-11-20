@@ -1042,3 +1042,23 @@ Prior findings, Retest r4 2026-11-19: **FET-LLMS-Nov10-NoChangeOutstanding STILL
 - `ORD-20261119-00001` (3.959 cash, preferences), `-00002` (3.692 cash, Standard + Express), `-00003` (POC 3.424 → +Curtain 7.250 → 11.182, collected cash, refund `REF-000013` 10.003 processed, `RF-2026-000001` + `ADJ-2026-000010`), `-00004` (2.354 POC, collected, `RV-2026-000125`, `ADJ-2026-000009`).
 - `ORD-20261117-00006` — edited +Blouse to 5.268, **2.272 owing, uncollectable**. `ORD-20261117-00002` — edit Review opened and cancelled, not saved.
 - `ORD-20261117-00003` was deleted on 2026-11-19 (HQ Maintenance, approved).
+
+## Financial_Expert_Tester Results — Retest r5 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+This is a **traceability note only**: **no rows from this Line Level Money Snapshot guide were run in r5**. Outstanding order-snapshot rows need disposable QA orders and are write-gated; owner approval for writes is still pending. No screenshots were taken for this guide.
+
+| # | Result | Evidence |
+|---|---|---|
+| (none) | NOT RUN | Observe-only post-deploy pass. Order-family rows were not opened for create/mutate. Awaiting owner approval for disposable QA order writes. |
+
+**r5 tally for this guide (parent counts unchanged):** NOT RUN — no rows retested.
+
+**Rows not run in r5:** all remaining FAIL/PARTIAL/BLOCKED snapshot and edit-money rows (write-gated / need disposable QA orders, awaiting approval).
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After owner approval, run the outstanding snapshot/edit rows on disposable QA orders. Do not mutate the paid READY leftover `ORD-20261119-00006` for these scenarios. Recheck workspace/Ready totals (0.000 vs 1.070) that were observed under Q3/Q2.

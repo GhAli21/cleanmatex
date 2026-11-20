@@ -117,10 +117,20 @@ body {
 @media screen {
   [data-mode=DARK] .cmx-logo-light { display: none; }
   [data-mode=DARK] .cmx-logo-dark { display: block; }
+  [data-mode=DARK] .cmx-wordmark-box {
+    background-color: rgb(255 255 255 / 0.92);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
 }
 @media screen and (prefers-color-scheme: dark) {
   [data-mode=SYSTEM] .cmx-logo-light { display: none; }
   [data-mode=SYSTEM] .cmx-logo-dark { display: block; }
+  [data-mode=SYSTEM] .cmx-wordmark-box {
+    background-color: rgb(255 255 255 / 0.92);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 @media print {

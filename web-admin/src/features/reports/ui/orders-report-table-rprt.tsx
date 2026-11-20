@@ -1,6 +1,7 @@
 'use client';
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { CmxButton, CmxSelect, Label } from '@ui/primitives';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
@@ -49,6 +50,7 @@ export default function OrdersReportTable({
   basePath,
 }: OrdersReportTableProps) {
   const t = useTranslations('reports');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -185,44 +187,44 @@ export default function OrdersReportTable({
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <label htmlFor="orders-report-limit" className="whitespace-nowrap text-sm text-muted-foreground">
+              <Label htmlFor="orders-report-limit" className="whitespace-nowrap text-sm text-muted-foreground">
                 {t('pagination.rowsPerPage')}
-              </label>
-              <select
+              </Label>
+              <CmxSelect
                 id="orders-report-limit"
-                value={pagination.limit}
+                value={String(pagination.limit)}
                 onChange={(e) => handleLimitChange(Number(e.target.value))}
-                className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
+                className="w-20"
+                options={PAGE_SIZES.map((size) => ({
+                  value: String(size),
+                  label: String(size),
+                }))}
+              />
             </div>
             <div className="flex items-center gap-1">
-              <button
+              <CmxButton
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page <= 1}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
-                aria-label="Previous page"
+                aria-label={tCommon('previous')}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="min-w-[4rem] px-2 py-1 text-center text-sm font-medium text-foreground">
+                <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+              </CmxButton>
+              <span className="min-w-[4rem] px-2 py-1 text-center text-sm font-medium text-foreground tabular-nums">
                 {pagination.page} / {Math.max(1, pagination.totalPages)}
               </span>
-              <button
+              <CmxButton
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page >= pagination.totalPages}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
-                aria-label="Next page"
+                aria-label={tCommon('next')}
               >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+                <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+              </CmxButton>
             </div>
           </div>
         </div>

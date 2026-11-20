@@ -34,6 +34,7 @@ export const CmxSpinner: React.FC<CmxSpinnerProps> = ({
       )}
       {...props}
     >
+      {/* cmx-ds-ignore UI008: accessible fallback when CmxSpinner renders without NextIntlClientProvider */}
       <span className="sr-only">Loading...</span>
     </div>
   )

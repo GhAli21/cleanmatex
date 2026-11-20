@@ -1,7 +1,7 @@
 # I11 Background Execution — Production Runbook
 
-**Status:** Active for controlled notification-worker hardening.  
-**Authority:** [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
+**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D12). Do not resume the Render worker before WP1. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Transitional poll/safety net is **15 minutes** (D10) once WP0 is implemented; until then source ticks may still disagree with this runbook.  
+**Authority:** [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Test execution companion:** [I11 remote QA and evidence guide](I11_background_execution_QA_TEST_GUIDE.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence. Local results are development-only.
 
@@ -11,7 +11,7 @@
 - Supabase owns canonical notification state in `org_ntf_outbox_dtl` and immutable delivery attempts in `org_ntf_delivery_log_dtl`.
 - Render `platform-workers` claims canonical rows. It calls HQ only with `tenantOrgId`, `outboxId`, and `claimToken`.
 - HQ `jobs-need-api/notifications/outbox-delivery` rechecks policy and submits to the provider. It cannot accept arbitrary URLs, recipients, providers, commands, or payloads.
-- Redis/BullMQ is not part of the supported notification path. It is rollback-only and starts only when `LEGACY_BULLMQ_ENABLED=true`.
+- BullMQ is not part of the supported notification path. It is rollback-only and starts only when `LEGACY_BULLMQ_ENABLED=true`, never merely because `REDIS_URL` is set. Redis on HQ API is for cache/limiter/locks only.
 - Never retry an `ACCEPTANCE_UNCERTAIN` claim until provider/HQ evidence proves whether an external effect occurred.
 
 ## Required Render configuration

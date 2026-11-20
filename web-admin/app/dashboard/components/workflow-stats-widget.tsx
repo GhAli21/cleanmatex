@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Clock,
   Package,
@@ -11,6 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
 
 interface WorkflowStats {
@@ -30,6 +32,10 @@ interface WorkflowStats {
  *
  */
 export function WorkflowStatsWidget() {
+  const t = useTranslations('dashboard.workflowStats');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { formatNumber } = useTenantCurrency();
   const [stats, setStats] = useState<WorkflowStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +47,7 @@ export function WorkflowStatsWidget() {
     // Auto-refresh every 2 minutes
     const interval = setInterval(fetchStats, 2 * 60 * 1000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchStats = async () => {
@@ -50,7 +57,7 @@ export function WorkflowStatsWidget() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch workflow stats');
+        throw new Error(data.error || t('fetchError'));
       }
 
       const data = await response.json();
@@ -59,7 +66,7 @@ export function WorkflowStatsWidget() {
     } catch (err) {
       console.error('Error fetching workflow stats:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to load workflow stats'
+        err instanceof Error ? err.message : t('loadError')
       );
     } finally {
       setLoading(false);
@@ -76,13 +83,13 @@ export function WorkflowStatsWidget() {
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">
-            Workflow Statistics
+            {t('title')}
           </h3>
         </div>
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Loading...</span>
+            <span className="text-sm">{tCommon('loading')}</span>
           </div>
         </div>
       </div>
@@ -94,20 +101,20 @@ export function WorkflowStatsWidget() {
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">
-            Workflow Statistics
+            {t('title')}
           </h3>
           <CmxButton
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleRefresh}
-            aria-label="Refresh"
+            aria-label={t('refreshAria')}
           >
             <RefreshCw className="h-5 w-5" />
           </CmxButton>
         </div>
         <div className="rounded-lg bg-danger-bg p-4 text-sm text-danger-text">
-          {error || 'No data available'}
+          {error || t('noData')}
         </div>
       </div>
     );
@@ -132,20 +139,21 @@ export function WorkflowStatsWidget() {
   // Simple donut chart using conic-gradient
   const chartData = sortedByStatus.map((item) => {
     const meta = STATUS_META[item.status];
+    const localizedLabel = locale === 'ar' ? meta?.labelAr || meta?.label : meta?.label;
     return {
-      label: meta?.label || item.status,
+      label: localizedLabel || item.status,
       // cmx-ds-ignore UI003: fallback neutral conic-gradient slice hex color
       color: meta?.color || '#999',
       value: item.count,
-      percentage: ((item.count / stats.totalOrders) * 100).toFixed(1),
+      percentage: stats.totalOrders > 0 ? ((item.count / stats.totalOrders) * 100) : 0,
     };
   });
 
   let cumulativePercentage = 0;
   const gradientStops = chartData
-    .map((item, index) => {
+    .map((item) => {
       const startPercentage = cumulativePercentage;
-      cumulativePercentage += parseFloat(item.percentage);
+      cumulativePercentage += item.percentage;
       return `${item.color} ${startPercentage}% ${cumulativePercentage}%`;
     })
     .join(', ');
@@ -155,7 +163,7 @@ export function WorkflowStatsWidget() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-6">
         <h3 className="text-lg font-semibold text-foreground">
-          Workflow Statistics
+          {t('title')}
         </h3>
         <CmxButton
           type="button"
@@ -163,7 +171,7 @@ export function WorkflowStatsWidget() {
           size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          aria-label="Refresh"
+          aria-label={t('refreshAria')}
         >
           <RefreshCw
             className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -179,11 +187,11 @@ export function WorkflowStatsWidget() {
             <div className="flex items-center gap-2 mb-2">
               <Package className="h-4 w-4 text-primary-text" />
               <span className="text-xs font-medium text-primary-text uppercase">
-                Total
+                {t('total')}
               </span>
             </div>
-            <div className="text-2xl font-bold text-primary-text">
-              {stats.totalOrders}
+            <div className="text-2xl font-bold text-primary-text tabular-nums">
+              {formatNumber(stats.totalOrders)}
             </div>
           </div>
 
@@ -191,11 +199,11 @@ export function WorkflowStatsWidget() {
             <div className="flex items-center gap-2 mb-2">
               <Clock className="h-4 w-4 text-primary-text" />
               <span className="text-xs font-medium text-primary-text uppercase">
-                In Progress
+                {t('inProgress')}
               </span>
             </div>
-            <div className="text-2xl font-bold text-primary-text">
-              {stats.inProgress}
+            <div className="text-2xl font-bold text-primary-text tabular-nums">
+              {formatNumber(stats.inProgress)}
             </div>
           </div>
 
@@ -203,11 +211,11 @@ export function WorkflowStatsWidget() {
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-4 w-4 text-success-text" />
               <span className="text-xs font-medium text-success-text uppercase">
-                Ready
+                {t('ready')}
               </span>
             </div>
-            <div className="text-2xl font-bold text-success-text">
-              {stats.ready}
+            <div className="text-2xl font-bold text-success-text tabular-nums">
+              {formatNumber(stats.ready)}
             </div>
           </div>
 
@@ -215,11 +223,11 @@ export function WorkflowStatsWidget() {
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="h-4 w-4 text-danger-text" />
               <span className="text-xs font-medium text-danger-text uppercase">
-                Overdue
+                {t('overdue')}
               </span>
             </div>
-            <div className="text-2xl font-bold text-danger-text">
-              {stats.overdue}
+            <div className="text-2xl font-bold text-danger-text tabular-nums">
+              {formatNumber(stats.overdue)}
             </div>
           </div>
         </div>
@@ -236,10 +244,10 @@ export function WorkflowStatsWidget() {
             >
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-32 h-32 rounded-full bg-card flex flex-col items-center justify-center">
-                  <div className="text-3xl font-bold text-foreground">
-                    {stats.totalOrders}
+                  <div className="text-3xl font-bold text-foreground tabular-nums">
+                    {formatNumber(stats.totalOrders)}
                   </div>
-                  <div className="text-xs text-muted-foreground">Orders</div>
+                  <div className="text-xs text-muted-foreground">{t('ordersUnit')}</div>
                 </div>
               </div>
             </div>
@@ -257,11 +265,11 @@ export function WorkflowStatsWidget() {
                   style={{ backgroundColor: item.color }}
                 />
                 <span className="text-foreground flex-1">{item.label}</span>
-                <span className="font-semibold text-foreground">
-                  {item.value}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatNumber(item.value)}
                 </span>
-                <span className="text-muted-foreground text-xs">
-                  ({item.percentage}%)
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  ({formatNumber(item.percentage, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)
                 </span>
               </div>
             ))}
@@ -272,9 +280,9 @@ export function WorkflowStatsWidget() {
         <div className="mt-6 pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">SLA Compliance</div>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.slaCompliance.toFixed(1)}%
+              <div className="text-xs text-muted-foreground mb-1">{t('slaCompliance')}</div>
+              <div className="text-2xl font-bold text-foreground tabular-nums">
+                {formatNumber(stats.slaCompliance, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
               </div>
             </div>
             <div
@@ -289,17 +297,17 @@ export function WorkflowStatsWidget() {
               {stats.slaCompliance >= 95 ? (
                 <>
                   <TrendingUp className="h-3 w-3" />
-                  <span>Excellent</span>
+                  <span>{t('excellent')}</span>
                 </>
               ) : stats.slaCompliance >= 85 ? (
                 <>
                   <TrendingDown className="h-3 w-3" />
-                  <span>Good</span>
+                  <span>{t('good')}</span>
                 </>
               ) : (
                 <>
                   <TrendingDown className="h-3 w-3" />
-                  <span>Needs Attention</span>
+                  <span>{t('needsAttention')}</span>
                 </>
               )}
             </div>
@@ -308,10 +316,12 @@ export function WorkflowStatsWidget() {
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div>
               <div className="text-xs text-muted-foreground mb-1">
-                Avg Completion Time
+                {t('avgCompletionTime')}
               </div>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.avgCompletionHours.toFixed(1)}h
+              <div className="text-2xl font-bold text-foreground tabular-nums">
+                {t('durationHoursValue', {
+                  hours: formatNumber(stats.avgCompletionHours, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+                })}
               </div>
             </div>
             <Clock className="h-8 w-8 text-muted-foreground" />

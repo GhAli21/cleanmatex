@@ -25,6 +25,7 @@ import {
 import { cmxMessage } from '@ui/feedback'
 import { CmxButton } from '@ui/primitives'
 import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell'
+import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
 import { Download, Plus } from 'lucide-react'
 import type {
   CustomerListItem,
@@ -56,7 +57,7 @@ export default function CustomersPage() {
   })
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 20,
+    limit: CMX_DEFAULT_PAGE_SIZE,
     total: 0,
     totalPages: 0,
   })
@@ -127,6 +128,10 @@ export default function CustomersPage() {
   // Handle pagination
   const handlePageChange = (page: number) => {
     setPagination((prev) => ({ ...prev, page }))
+  }
+
+  const handlePageSizeChange = (limit: number) => {
+    setPagination((prev) => ({ ...prev, limit, page: 1 }))
   }
 
   // Handle customer creation success
@@ -205,6 +210,7 @@ export default function CustomersPage() {
         onSelectCustomer={handleSelectCustomer}
         onSelectAll={handleSelectAll}
         onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
         onRefresh={loadCustomers}
       />
 

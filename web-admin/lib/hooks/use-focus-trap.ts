@@ -175,6 +175,8 @@ export type UseFocusTrapOptions = {
   returnFocus?: boolean;
   /** Focus the first focusable on open. Default true. */
   autoFocus?: boolean;
+  /** Optional explicit trigger element/ref to receive focus on close (useful when menu items unmount on click). */
+  returnFocusTo?: React.RefObject<HTMLElement | null> | HTMLElement | null;
 };
 
 /**
@@ -187,6 +189,8 @@ export type UseFocusTrapOptions = {
 export function useFocusTrap(open: boolean, options?: UseFocusTrapOptions) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
+  const returnFocusToRef = useRef(options?.returnFocusTo);
+  returnFocusToRef.current = options?.returnFocusTo;
 
   const returnFocus = options?.returnFocus !== false;
   const autoFocus = options?.autoFocus !== false;
@@ -252,8 +256,21 @@ export function useFocusTrap(open: boolean, options?: UseFocusTrapOptions) {
       if (autoFocusTimer != null) window.clearTimeout(autoFocusTimer);
       document.removeEventListener('keydown', handleKeyDown, true);
       document.removeEventListener('focusin', handleFocusIn, true);
-      if (returnFocus && previousActiveRef.current?.focus) {
-        requestAnimationFrame(() => previousActiveRef.current?.focus());
+      if (returnFocus) {
+        const explicitTargetOpt = returnFocusToRef.current;
+        const explicitTarget =
+          explicitTargetOpt && typeof explicitTargetOpt === 'object' && 'current' in explicitTargetOpt
+            ? explicitTargetOpt.current
+            : explicitTargetOpt;
+        const restoreTarget =
+          explicitTarget?.isConnected
+            ? explicitTarget
+            : previousActiveRef.current?.isConnected
+              ? previousActiveRef.current
+              : null;
+        if (restoreTarget?.focus) {
+          requestAnimationFrame(() => restoreTarget.focus());
+        }
       }
     };
   }, [open, returnFocus, autoFocus, handleKeyDown, handleFocusIn]);

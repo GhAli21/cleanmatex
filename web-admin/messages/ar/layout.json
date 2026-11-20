@@ -33,7 +33,20 @@
       "enabled": "مفعّل",
       "disabled": "معطّل",
       "noFeatureFlags": "لم يتم العثور على علامات ميزات لهذا المستأجر.",
-      "viewFullInventory": "عرض المخزون الكامل في المساعدة ←"
+      "viewFullInventory": "عرض المخزون الكامل في المساعدة ←",
+      "allowed": "مسموح",
+      "routePatternLabel": "نمط المسار:",
+      "pageAccess": "صلاحية الصفحة",
+      "actionsTitle": "الإجراءات",
+      "noExplicitPagePermissions": "لا توجد صلاحيات صريحة للصفحة.",
+      "noExplicitActionRequirements": "لا توجد متطلبات صريحة للإجراء.",
+      "noExplicitApiPermission": "لا يوجد متطلب صلاحية API مسجّل.",
+      "missingRouteAccessContract": "عقد وصول المسار مفقود لهذه الصفحة.",
+      "registeredContractsCount": "العقود المسجلة: {count}",
+      "kindPermission": "صلاحية",
+      "kindPermissionPrefix": "بادئة الصلاحية",
+      "kindFeatureFlag": "علامة ميزة",
+      "kindTenantRole": "دور المنشأة"
     },
     "accountSecurity": "أمان الحساب",
     "appearance": "المظهر"

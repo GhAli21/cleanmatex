@@ -3,7 +3,7 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-19T20:40:46.887Z
+Generated: 2026-11-20T20:21:15.167Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
@@ -73,8 +73,8 @@ Generated: 2026-11-19T20:40:46.887Z
 | getFeatureFlags | service | lib/services/setup-health/setup-health.service.ts | 88 | getFeatureFlags(tenantOrgId), |
 | getFeatureFlags | service | lib/services/tenant-extra-config.service.ts | 154 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/tenant-extra-config.service.ts | 197 | getFeatureFlags(tenantId), |
-| getFeatureFlags | service | lib/services/tenant-extra-config.service.ts | 336 | getFeatureFlags(tenantId), |
-| getFeatureFlags | service | lib/services/ui-theme.service.ts | 62 | getFeatureFlags(tenantId), |
+| getFeatureFlags | service | lib/services/tenant-extra-config.service.ts | 337 | getFeatureFlags(tenantId), |
+| getFeatureFlags | service | lib/services/ui-theme.service.ts | 69 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 227 | const featureFlags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 448 | const flags = await getFeatureFlags(tenantId); |
 | multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 559 | {plan.feature_flags.multi_branch && ( |

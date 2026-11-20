@@ -33,7 +33,20 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "noFeatureFlags": "No feature flags found for this tenant.",
-      "viewFullInventory": "View full inventory in Help →"
+      "viewFullInventory": "View full inventory in Help →",
+      "allowed": "Allowed",
+      "routePatternLabel": "Route Pattern:",
+      "pageAccess": "Page access",
+      "actionsTitle": "Actions",
+      "noExplicitPagePermissions": "No explicit page permissions.",
+      "noExplicitActionRequirements": "No explicit action requirements.",
+      "noExplicitApiPermission": "No explicit API permission requirement recorded.",
+      "missingRouteAccessContract": "Missing route access contract for this page.",
+      "registeredContractsCount": "Registered contracts: {count}",
+      "kindPermission": "Permission",
+      "kindPermissionPrefix": "Permission Prefix",
+      "kindFeatureFlag": "Feature Flag",
+      "kindTenantRole": "Organization Role"
     },
     "accountSecurity": "Account security",
     "appearance": "Appearance"

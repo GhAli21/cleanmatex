@@ -20,8 +20,9 @@ import { SidebarProvider, useSidebar } from '@/lib/context/sidebar-context'
 import { DashboardBrowserTitle } from '@features/dashboard/ui/dashboard-browser-title'
 import { SessionLifecycleProvider } from '@features/auth-session/ui/session-lifecycle-provider'
 import { SetupBlockerBanner } from '@features/setup-health/ui/setup-blocker-banner'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
+import { useNavigation } from '@/lib/hooks/use-navigation'
 import { CmxPermissionsInspectorTrigger } from '@features/access/ui/permissions-inspector'
 import { NotificationBell } from '@features/notifications/ui/notification-bell'
 import { SessionActivityTrigger } from '@features/session-activity'
@@ -37,14 +38,47 @@ function useIsPrintRoute(): boolean {
   )
 }
 
-/** Top bar with the page title from the access registry and the feature actions. */
+/** Resolves the localized top bar title for the active dashboard route. */
+function resolveLocalizedNavTitle(
+  navigation: ReturnType<typeof useNavigation>['navigation'],
+  pathname: string | null,
+  locale: string
+): string | null {
+  if (!pathname) return null
+  const normalized = pathname.replace(/\/+$/, '') || '/dashboard'
+  let bestLen = -1
+  let bestLabel: string | null = null
+  const visit = (path?: string, label?: string, label2?: string) => {
+    if (!path || !label) return
+    const p = path.replace(/\/+$/, '')
+    const matches =
+      normalized === p ||
+      (p !== '/dashboard' && normalized.startsWith(`${p}/`))
+    if (matches && p.length > bestLen) {
+      bestLen = p.length
+      bestLabel = locale === 'ar' ? label2 || label : label
+    }
+  }
+  for (const section of navigation) {
+    visit(section.path, section.label, section.label2)
+    for (const child of section.children ?? []) {
+      visit(child.path, child.label, child.label2)
+    }
+  }
+  return bestLabel
+}
+
+/** Top bar with the localized route title and the feature actions. */
 function DashboardTopBar() {
   const pathname = usePathname()
+  const locale = useLocale()
+  const { navigation } = useNavigation()
   const tNav = useTranslations('navigation')
   const t = useTranslations('layout.topBar')
+  const localizedTitle = resolveLocalizedNavTitle(navigation, pathname, locale)
   return (
     <CmxTopBar
-      title={getPageAccessContractByPath(pathname)?.label ?? tNav('dashboard')}
+      title={localizedTitle ?? getPageAccessContractByPath(pathname)?.label ?? tNav('dashboard')}
       actions={
         <>
           <GlobalScanTrigger />
@@ -98,6 +132,7 @@ function DashboardContent({
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const tCommon = useTranslations('common')
   const { isAuthenticated, isLoading, currentTenant, signOut } = useAuth()
   const isPrintRoute = useIsPrintRoute()
 
@@ -120,7 +155,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Redirecting to login...</p>
+          <p className="mt-4 text-muted-foreground">{tCommon('loading')}</p>
         </div>
       </div>
     )

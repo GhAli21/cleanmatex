@@ -43,11 +43,11 @@
 
 ## Phase 1 — Operational autonomy gate
 
-**Target by:** 30 Nov 2026 · **Dependency:** Phase 0 `GO`; job redesign work follows [I11_background_execution_redesign_PLAN.md](I11_background_execution_redesign_PLAN.md).
+**Target by:** 30 Nov 2026 · **Dependency:** Phase 0 `GO`; job redesign work follows [I11_background_execution_EXPERT_REPLAN.md](I11_background_execution_EXPERT_REPLAN.md) (living WP list) and the [I11 PLAN Progress Log](I11_background_execution_redesign_PLAN.md).
 
 | ID | Required result | Owner | Source | Target by | Status | Evidence / next action |
 |---|---|---|---|---|---|---|
-| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Owner applied `0755_ops_job_action_contract.sql` locally and remotely. Remote evidence confirms V2 functions, the unchanged single active `tax-kit-update` scheduler, and observation-only registry capability. The notification worker/API path is in controlled canary hardening with delivery disabled pending remote Disk I/O attribution, one-instance verification, and canary/soak proof. See [I11 runbook](I11_background_execution_RUNBOOK.md). |
+| 1.1 | Classify each enabled job and restore/replace schedules only through the approved DB/worker design; every enabled job has exactly one verified scheduler. | Dev + Owner | I11a | 27 Nov | In progress | Architecture + planning locked 20 Nov 2026 (expert replan D1–D12). Do not restore HTTP cron. Delivery off. WP0 not started. See [expert replan](I11_background_execution_EXPERT_REPLAN.md) and [runbook](I11_background_execution_RUNBOOK.md). |
 | 1.2 | Decide trial-expiry outcome, implement it under the approved scheduler model, and prove an expired demo trial changes state. | Owner → Dev | B1 | 27 Nov | Not started | — |
 | 1.3 | Cancel/resolve old demo queued notifications before sender enablement. | Owner | D13 | 27 Nov | Not started | — |
 | 1.4 | Deploy Sentry or equivalent to web-admin and platform-web with PII scrubbing; prove a controlled error appears. | Dev | I4 | 28 Nov | Not started | — |
@@ -119,13 +119,15 @@
 | Commercial | [01_business_and_commercial_blockers.md](01_business_and_commercial_blockers.md) |
 | QA | [12_manual_qa_backlog.md](12_manual_qa_backlog.md) |
 | Data cleanup | [13_data_cleanup_before_go_live.md](13_data_cleanup_before_go_live.md) |
-| Background jobs execution plan | [I11_background_execution_redesign_PLAN.md](I11_background_execution_redesign_PLAN.md) |
+| Background jobs living plan | [I11_background_execution_EXPERT_REPLAN.md](I11_background_execution_EXPERT_REPLAN.md) |
+| Background jobs Progress Log | [I11_background_execution_redesign_PLAN.md](I11_background_execution_redesign_PLAN.md) |
 | Background jobs operator runbook | [I11_background_execution_RUNBOOK.md](I11_background_execution_RUNBOOK.md) |
 
 ## Change log
 
 | Date | Change | Owner |
 |---|---|---|
+| 2026-11-20 | I11 architecture D1–D8 approved; planning pack D9–D12 complete. Row 1.1 stays In progress (WP0 not started, delivery off). Living plan is the expert replan. | Owner + Dev |
 | 2026-11-17 | Created from ROADMAP phases 0–4; all execution rows start unverified. | Dev |
 | 2026-11-17 | Phase 0 set to GO. Leaked-password protection and S12 moved to `future_check.md`. Row 0.5 is N/A (approved) until the Supabase Pro upgrade. Row 0.4 is Pass; `supabase_admin` defaults are reported, not a failure. | Dev |
 | 2026-11-19 | Added the I11 operator runbook and synchronized the I11 execution-model wording. Phase 1.1 remains In progress: notification delivery stays disabled until remote capacity attribution, one-instance evidence, and controlled canary/soak proof are recorded. | Dev |

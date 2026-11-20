@@ -59,6 +59,7 @@ export function CmxLanguageSwitcher() {
                   locale === 'en' ? 'bg-info-bg text-info-text' : 'text-muted-foreground'
                 }`}
               >
+                {/* cmx-ds-ignore UI008: native language endonym in language switcher */}
                 <span>English</span>
                 {locale === 'en' && <span className="text-primary-text">✓</span>}
               </button>

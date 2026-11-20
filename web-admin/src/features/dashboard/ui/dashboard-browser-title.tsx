@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { getPageAccessContractByPath } from '@features/access/page-access-registry'
+import { useNavigation } from '@/lib/hooks/use-navigation'
 import { useTenantBrand } from '@/lib/theme/tenant-brand'
 
 const SEGMENT_LABELS: Readonly<Record<string, string>> = {
@@ -44,6 +46,8 @@ function getFallbackTitle(pathname: string): string {
  */
 export function DashboardBrowserTitle() {
   const pathname = usePathname()
+  const locale = useLocale()
+  const { navigation } = useNavigation()
   const { name } = useTenantBrand()
 
   useEffect(() => {
@@ -51,9 +55,27 @@ export function DashboardBrowserTitle() {
       return
     }
 
-    const title = getPageAccessContractByPath(pathname)?.label ?? getFallbackTitle(pathname)
+    const normalized = pathname.replace(/\/+$/, '') || '/dashboard'
+    let bestLen = -1
+    let navTitle: string | null = null
+    const visit = (path?: string, label?: string, label2?: string) => {
+      if (!path || !label) return
+      const p = path.replace(/\/+$/, '')
+      if ((normalized === p || (p !== '/dashboard' && normalized.startsWith(`${p}/`))) && p.length > bestLen) {
+        bestLen = p.length
+        navTitle = locale === 'ar' ? label2 || label : label
+      }
+    }
+    for (const section of navigation) {
+      visit(section.path, section.label, section.label2)
+      for (const child of section.children ?? []) {
+        visit(child.path, child.label, child.label2)
+      }
+    }
+
+    const title = navTitle ?? getPageAccessContractByPath(pathname)?.label ?? getFallbackTitle(pathname)
     document.title = `${title} — ${name}`
-  }, [pathname, name])
+  }, [pathname, name, navigation, locale])
 
   return null
 }

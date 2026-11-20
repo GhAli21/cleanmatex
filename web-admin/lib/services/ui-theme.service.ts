@@ -11,11 +11,18 @@
 import 'server-only'
 
 import { cache } from 'react'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/db/prisma'
 import { getSessionIdentity } from '@/lib/db/tenant-context'
 import { getFeatureFlags } from '@/lib/services/feature-flags.service'
 import { resolveTheme } from '@/lib/theme/resolve-theme'
-import { buildLastBrand, LAST_BRAND_COOKIE, LAST_BRAND_MAX_AGE_SEC } from '@/lib/theme/last-brand'
+import {
+  buildLastBrand,
+  LAST_BRAND_COOKIE,
+  LAST_BRAND_MAX_AGE_SEC,
+  LAST_MODE_COOKIE,
+  parseLastMode,
+} from '@/lib/theme/last-brand'
 import type { ResolvedTheme } from '@/lib/types/ui-theme'
 import { logger } from '@/lib/utils/logger'
 
@@ -97,16 +104,44 @@ interface CookieWriter {
 }
 
 /**
+ * Remember the user's color mode preference on this device for unauthenticated pages (e.g. sign-in).
+ * Never throws; rejects invalid values before writing.
+ * @param cookieStore - `await cookies()` of the route handler
+ * @param mode - Preferred color mode (`LIGHT`, `DARK`, or `SYSTEM`)
+ */
+export function writeLastModeCookie(cookieStore: CookieWriter, mode: string): void {
+  const valid = parseLastMode(mode)
+  if (!valid) return
+  try {
+    cookieStore.set(LAST_MODE_COOKIE, valid, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: LAST_BRAND_MAX_AGE_SEC,
+    })
+  } catch (error) {
+    logger.error('writeLastModeCookie failed', error instanceof Error ? error : new Error(String(error)), {})
+  }
+}
+
+/**
  * Remember this Organization's public brand on the device for the login page.
+ * When `userId` is passed, also persists their color mode preference for the login page.
  * Called by the sign-in routes once the session is bound to an Organization.
  * Never throws: sign-in must not fail because of branding.
  * @param cookieStore - `await cookies()` of the sign-in route
  * @param tenantId - The Organization the session was bound to
+ * @param userId - Optional `sys_users_mst.id` whose color mode preference should persist
  */
-export async function writeLastBrandCookie(cookieStore: CookieWriter, tenantId: string): Promise<void> {
+export async function writeLastBrandCookie(
+  cookieStore: CookieWriter,
+  tenantId: string,
+  userId: string | null = null
+): Promise<void> {
   try {
     const started = Date.now()
-    const theme = await getTenantTheme(tenantId)
+    const theme = await getTenantTheme(tenantId, userId)
     // Sign-in waits for this read (PR-07 M3): a slow one shows up in the logs instead of as a mystery delay.
     const ms = Date.now() - started
     if (ms > 300) logger.warn(`writeLastBrandCookie theme read took ${ms} ms; sign-in waited for it`, {})
@@ -117,6 +152,9 @@ export async function writeLastBrandCookie(cookieStore: CookieWriter, tenantId: 
       sameSite: 'lax',
       maxAge: LAST_BRAND_MAX_AGE_SEC,
     })
+    if (userId) {
+      writeLastModeCookie(cookieStore, theme.mode)
+    }
   } catch (error) {
     logger.error('writeLastBrandCookie failed; login page keeps its current brand', error instanceof Error ? error : new Error(String(error)), {})
   }
@@ -130,7 +168,11 @@ export async function writeLastBrandCookie(cookieStore: CookieWriter, tenantId: 
 export const getRequestTheme = cache(async (): Promise<ResolvedTheme> => {
   try {
     const identity = await getSessionIdentity()
-    return identity ? await getTenantTheme(identity.tenantId, identity.userId) : DEFAULT_THEME
+    if (identity) {
+      return await getTenantTheme(identity.tenantId, identity.userId)
+    }
+    const savedMode = parseLastMode((await cookies()).get(LAST_MODE_COOKIE)?.value)
+    return savedMode ? { ...DEFAULT_THEME, mode: savedMode } : DEFAULT_THEME
   } catch (error) {
     logger.error('getRequestTheme failed; using STANDARD', error instanceof Error ? error : new Error(String(error)), {})
     return DEFAULT_THEME

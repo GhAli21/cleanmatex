@@ -340,3 +340,35 @@ Prior findings, Retest r4 2026-11-19: **FET-TX-Nov17-DiscountTaxMismatch STILL B
 
 ### Test data left behind
 - `ORD-20261117-00006` — edited +Blouse to 5.268 (paid 2.996, **2.272 owing, uncollectable**; discount re-applied 0.100 → 0.176). `ORD-20261117-00002` — Review opened and cancelled, not saved. No tax rules, classes or catalog items were changed; Demo tax **Advanced mode is still ON** (unchanged since 17-Nov).
+
+## Financial_Expert_Tester Results — Retest r5 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Tax Config (Q7) rows below were run on cmx Demo admin (22:19–22:26 Asia/Muscat) and viewer (#12, 22:27–22:30). No Confirm/Publish. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| #1 | PASS | 22:19 Asia/Muscat. `https://cmx.cleanmatex.com/dashboard/settings/tax` shows "Active", kit "Oman VAT · v2", "Starter package / Oman — Small / medium", "Prices are entered: Before tax · Change in organization settings". |
+| #2 | PARTIAL | No Review section on the overview. The "Municipal Fee 2% 2%" duplicate is **not reproduced** on this overview (financial tab shows "Municipal Fee 2%"). Setup Health in AR lists "تحديث إعداد الضريبة يحتاج إلى مراجعة". Related: FET-TX-Nov13-NoReviewTaxLink still open; FET-TX-Nov13-MunicipalFeeDuplicate partly cleared on the overview. |
+| #11 | PARTIAL | Arabic Tax page is translated and RTL ("أرقام التسجيل الضريبي", "إعداد الضريبة"). Review headings were not present to check. AR "Loading..." lasted > 8 s. |
+| #70 | PASS | Dashboard tile "Setup health" shows "0 blockers · 1 warning · 0 info". Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b4-T13.png`. |
+| #26 | BLOCKED | No tax-documents list in nav or URL (404). ORD-20261119-00006 financial "Tax documents: None". SIM-2026-000003 not reachable. Same blocker as Q6 26.13 (FET-RWP-Nov17-NoTaxDocList / FET-TX-Nov17-TaxDocPrint). |
+| #12 | FAIL | 22:30 Asia/Muscat. Viewer at `https://cmx.cleanmatex.com/dashboard/settings/tax` shows header "Tax Setup" and a blank body, with no denial message. Still broken (FET-TX-Nov13-ViewerTaxBlank). Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q7-12.png`. |
+
+**Prior findings — Retest r5 2026-11-20**
+
+- **FET-TX-Nov13-ViewerTaxBlank** — **STILL BROKEN.** Viewer tax page is a blank body under "Tax Setup".
+- **FET-TX-Nov13-NoReviewTaxLink** — **STILL OPEN.** No Review section on the tax overview (#2/#11).
+- **FET-TX-Nov13-MunicipalFeeDuplicate** — **PARTLY FIXED** on the overview (duplicate "2% 2%" not seen); financial tab shows a single "Municipal Fee 2%".
+- **FET-RWP-Nov17-NoTaxDocList** / **FET-TX-Nov17-TaxDocPrint** — **STILL BLOCKING** #26.
+
+**r5 tally for the rows above (parent counts unchanged):** PASS 2 (#1, #70) · PARTIAL 2 (#2, #11) · FAIL 1 (#12) · BLOCKED 1 (#26).
+
+**Rows not run in r5:** Confirm / Publish / kit / rule / exemption writes and other high-impact tax rows (awaiting approval). HQ kit-path rows not rechecked in this batch.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After approval, keep Confirm/Publish held until explicitly allowed. Recheck #12 after a denial card is added for viewers (same pattern as Setup Health T3/T4, which now pass). Recheck #26 when a tax-documents route exists.

@@ -582,6 +582,7 @@ export default function CmxSidebar() {
         </nav>
 
         <div className={`border-t border-border flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          {/* cmx-ds-ignore UI008: brand name and product version */}
           <div className="text-xs text-muted-foreground text-center">CleanMateX v1.0</div>
         </div>
       </aside>

@@ -784,7 +784,7 @@ export function CmxDataTable<TData>({
                         key={header.id}
                         scope="col"
                         className={cn(
-                          'px-[var(--cmx-cell-px)] py-2.5 text-start text-xs font-semibold uppercase tracking-[0.02em]',
+                          'px-[var(--cmx-cell-px)] py-[calc(var(--cmx-cell-py,0.5rem)+0.125rem)] text-start text-xs font-semibold uppercase tracking-[0.02em]',
                           headerSize === 'emphasized' && 'py-3.5 text-sm font-bold normal-case tracking-normal text-foreground',
                           showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                           headerAlignClass,
@@ -822,7 +822,7 @@ export function CmxDataTable<TData>({
                         <td
                           key={cellIndex}
                           className={cn(
-                            'px-[var(--cmx-cell-px)] py-2',
+                            'px-[var(--cmx-cell-px)] py-[var(--cmx-cell-py,0.5rem)]',
                             showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                             stickyEndColumnIds.includes(tanstackColumns[cellIndex]?.id ?? '') && 'sticky end-0 z-[2] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] shadow-[-8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)] rtl:shadow-[8px_0_12px_-12px_rgb(var(--cmx-foreground-rgb,15_23_42)/0.2)]',
                           )}
@@ -853,7 +853,7 @@ export function CmxDataTable<TData>({
                           <td
                             key={cell.id}
                             className={cn(
-                              'px-[var(--cmx-cell-px)] py-2 align-middle',
+                              'px-[var(--cmx-cell-px)] py-[var(--cmx-cell-py,0.5rem)] align-middle',
                               showColumnBorders && 'border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] last:border-e-0',
                               alignClass,
                               cell.column.id === ROW_NUM_COL_ID && 'w-14 text-end tabular-nums',

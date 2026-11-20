@@ -1,4 +1,4 @@
-import { buildLastBrand, parseLastBrand } from '@/lib/theme/last-brand'
+import { buildLastBrand, LAST_MODE_COOKIE, parseLastBrand, parseLastMode } from '@/lib/theme/last-brand'
 import { DEFAULT_THEME_FOR_TEST } from './theme-fixture'
 
 const STORAGE = 'https://abc.supabase.co/storage/v1/object/public/'
@@ -40,4 +40,15 @@ test('the dark logo travels in the cookie and is host-checked; an older cookie w
   expect(parseLastBrand(buildLastBrand(theme, logo, 'https://evil.example/x.png'), STORAGE)).toBeNull()
   const old = JSON.stringify({ logo, primary: '#2563EB', secondary: '#0F172A', name: null, name2: null })
   expect(parseLastBrand(old, STORAGE)?.logo).toBe(logo)
+})
+
+test('parseLastMode accepts valid color modes and rejects arbitrary values', () => {
+  expect(LAST_MODE_COOKIE).toBe('cmx_last_mode')
+  expect(parseLastMode('DARK')).toBe('DARK')
+  expect(parseLastMode('LIGHT')).toBe('LIGHT')
+  expect(parseLastMode('SYSTEM')).toBe('SYSTEM')
+  expect(parseLastMode('dark')).toBeNull()
+  expect(parseLastMode('INVALID')).toBeNull()
+  expect(parseLastMode('')).toBeNull()
+  expect(parseLastMode(undefined)).toBeNull()
 })

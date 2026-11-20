@@ -328,8 +328,8 @@ export async function POST(request: NextRequest) {
         : {}),
     });
 
-    // The login page shows this Organization's brand on this device next time (never fails sign-in).
-    await writeLastBrandCookie(cookieStore, registration.tenantOrgId);
+    // The login page shows this Organization's brand and color mode on this device next time (never fails sign-in).
+    await writeLastBrandCookie(cookieStore, registration.tenantOrgId, data.user.id);
 
     console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ done — returning response`);
     // Return session + tenants so client can skip a redundant get_user_tenants call

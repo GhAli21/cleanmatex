@@ -6,6 +6,16 @@ const B2B_NOTES = [
 
 export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
+    routePattern: '/dashboard/b2b',
+    label: 'B2B Home',
+    page: {
+      permissions: ['b2b_customers:view'],
+      featureFlags: ['b2b_contracts'],
+      requireAllPermissions: true,
+      requireAllFeatureFlags: true,
+    },
+  },
+  {
     routePattern: '/dashboard/b2b/customers',
     label: 'B2B Customers',
     page: {

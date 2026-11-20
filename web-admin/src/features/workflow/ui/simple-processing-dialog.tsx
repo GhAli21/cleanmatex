@@ -28,7 +28,8 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
+import { ORDER_PAYMENT_STATUS } from '@/lib/constants/order-financial';
+import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 import type { BatchUpdateRequest, ItemPiece, OrderItemPiece } from '@/types/order';
 import {
   hasSimplePieceChanged,
@@ -741,7 +742,20 @@ export function SimpleProcessingDialog({
   const totalAmount = Number(
     order?.total_amount ?? order?.total ?? order?.grand_total ?? 0
   );
-  const isPaid = isOrderPaidStatus(paymentStatus);
+  const normalizedPaymentStatus = normalizeOrderPaymentStatus(paymentStatus, {
+    paymentTypeCode: (order?.payment_type_code as string | undefined) ?? null,
+    outstandingAmount:
+      order?.outstanding_amount != null ? Number(order.outstanding_amount) : undefined,
+  });
+  const paymentMetaLabel =
+    normalizedPaymentStatus === ORDER_PAYMENT_STATUS.PAID ||
+    normalizedPaymentStatus === ORDER_PAYMENT_STATUS.OVERPAID
+      ? t('meta.paid')
+      : normalizedPaymentStatus === ORDER_PAYMENT_STATUS.PARTIALLY_PAID
+        ? t('meta.partial')
+        : normalizedPaymentStatus === ORDER_PAYMENT_STATUS.PENDING_COLLECTION
+          ? t('meta.pendingCollection')
+          : t('meta.unpaid');
   const wasEdited =
     createdAt &&
     updatedAt &&
@@ -839,7 +853,7 @@ export function SimpleProcessingDialog({
                     {formatMoneyWithCode(totalAmount)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {isPaid ? t('meta.paid') : t('meta.unpaid')}
+                    {paymentMetaLabel}
                   </div>
                 </div>
                 <div className="space-y-0.5 px-3 py-2.5">

@@ -426,11 +426,11 @@ export default function ProcessingPage() {
 
       {showInitialSkeleton ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3 md:hidden">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden">
             <CmxSkeleton className="h-36 w-full" />
             <CmxSkeleton className="h-36 w-full" />
           </div>
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <CmxSkeletonTable rows={6} columns={8} />
           </div>
         </div>

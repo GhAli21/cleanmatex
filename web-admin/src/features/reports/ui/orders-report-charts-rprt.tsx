@@ -6,6 +6,7 @@ import {
   Line,
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,15 +24,15 @@ interface OrdersReportChartsProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  completed: '#10B981',
-  delivered: '#3B82F6',
-  processing: '#F59E0B',
-  pending: '#6B7280',
-  cancelled: '#EF4444',
-  intake: '#8B5CF6',
-  preparing: '#EC4899',
-  ready: '#06B6D4',
-  draft: '#9CA3AF',
+  completed: 'rgb(var(--cmx-success-text-rgb))',
+  delivered: 'rgb(var(--cmx-primary-rgb))',
+  processing: 'rgb(var(--cmx-warning-text-rgb))',
+  pending: 'rgb(var(--cmx-muted-foreground-rgb))',
+  cancelled: 'rgb(var(--cmx-danger-text-rgb))',
+  intake: '#8B5CF6', // cmx-ds-ignore UI003: distinct workflow stage series colour
+  preparing: '#EC4899', // cmx-ds-ignore UI003: distinct workflow stage series colour
+  ready: 'rgb(var(--cmx-info-text-rgb))',
+  draft: 'rgb(var(--cmx-muted-foreground-rgb))',
 };
 
 /**
@@ -74,7 +75,7 @@ export default function OrdersReportCharts({
             <Line
               type="monotone"
               dataKey="revenue"
-              stroke="#3B82F6"
+              stroke="rgb(var(--cmx-primary-rgb))"
               strokeWidth={2}
               dot={false}
             />
@@ -93,9 +94,9 @@ export default function OrdersReportCharts({
             <XAxis dataKey="status" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Bar dataKey="count" name={t('charts.count')}>
+            <Bar dataKey="count" name={t('charts.count')} fill="rgb(var(--cmx-primary-rgb))">
               {ordersByStatus.map((entry, idx) => (
-                <rect key={idx} fill={STATUS_COLORS[entry.status] ?? '#6B7280'} />
+                <Cell key={idx} fill={STATUS_COLORS[entry.status] ?? 'rgb(var(--cmx-muted-foreground-rgb))'} />
               ))}
             </Bar>
           </BarChart>
@@ -116,8 +117,8 @@ export default function OrdersReportCharts({
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
               <Tooltip />
               <ChartLegend />
-              <Bar yAxisId="left" dataKey="count" name={t('charts.count')} fill="#3B82F6" />
-              <Bar yAxisId="right" dataKey="revenue" name={t('charts.revenue')} fill="#10B981" />
+              <Bar yAxisId="left" dataKey="count" name={t('charts.count')} fill="rgb(var(--cmx-primary-rgb))" />
+              <Bar yAxisId="right" dataKey="revenue" name={t('charts.revenue')} fill="rgb(var(--cmx-success-text-rgb))" />
             </BarChart>
           </ResponsiveContainer>
         </div>

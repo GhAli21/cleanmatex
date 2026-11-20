@@ -247,3 +247,31 @@ Prior findings, Retest r3 2026-11-19: **FET-HFC-Nov17-PhotoUrlsColumnDropped (P0
 
 ### Test data left behind
 - `ORD-20261119-00001` (3.959 cash), `-00002` (3.692 cash), `-00003` (POC, edited to 11.182, collected, refunded 10.003), `-00004` (2.354 POC, collected).
+
+## Financial_Expert_Tester Results — Retest r4 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Human Friendly Codes (Q11) rows below were run on cmx Demo admin, 22:19–22:26 Asia/Muscat. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| All Orders (tenant list) | PASS (FIXED) | `https://cmx.cleanmatex.com/dashboard/orders` loads 13 orders with no Prisma error, ~5.0 s. The prior `photo_urls` / Prisma failure (FET-HFC-Nov17-PhotoUrlsColumnDropped) is **FIXED / not reproduced** on this page. |
+| S13 | PARTIAL | `https://cmx.cleanmatex.com/dashboard/receipts/a676aff3-1777-45ca-bd9c-9c47a515c2da` now shows "ORD-20261119-00006" (not a UUID) plus the send-receipt form only; still no tracking QR / preview (FET-HFC-Nov19-ReceiptNoQrNoPreview / FET-RV-Nov19-ReceiptNoPreview still open). The order-number-on-receipt half is **FIXED**. |
+| S17 | BLOCKED | `https://cmx.cleanmatex.com/dashboard/settings/document-sequences` and `/dashboard/settings/consistency` are 404; no nav entry. All Settings search list never loaded. |
+
+**Prior findings — Retest r4 2026-11-20**
+
+- **FET-HFC-Nov17-PhotoUrlsColumnDropped** (All Orders Prisma error) — **FIXED / not reproduced.**
+- **FET-HFC-Nov19-NoOrderNumberAfterSubmit** (receipt showed a UUID) — **FIXED** on this receipt: it shows ORD-20261119-00006.
+- **FET-HFC-Nov19-ReceiptNoQrNoPreview** / **FET-RV-Nov19-ReceiptNoPreview** — **STILL OPEN.** Receipt page has no tracking QR/preview.
+
+**r5 tally for the rows above (parent counts unchanged):** PASS 1 (All Orders) · PARTIAL 1 (S13) · BLOCKED 1 (S17).
+
+**Rows not run in r5:** remaining code-format, submit, and sequence-write rows (write-gated or still blocked on missing settings routes).
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** Recheck S13 when a receipt preview/QR ships. Recheck S17 when document-sequences / consistency routes are restored or linked from All Settings.

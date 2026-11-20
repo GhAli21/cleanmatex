@@ -98,4 +98,14 @@ describe('/api/v1/file-util', () => {
     expect(badStage.status).toBe(400);
     expect(mockList).not.toHaveBeenCalled();
   });
+
+  it('accepts seeded non-RFC4122 hex UUIDs for TENANT_LOGO while still rejecting malformed IDs', async () => {
+    const seededTenant = '11111111-1111-1111-1111-111111111111';
+    const ok = await GET(new NextRequest(`http://localhost/api/v1/file-util?category=TENANT_LOGO&entityIds=${seededTenant}`));
+    expect(ok.status).toBe(200);
+    expect(mockList.mock.calls[0][0]).toMatchObject({ categoryCode: 'TENANT_LOGO', entityIds: [seededTenant] });
+
+    const malformed = await GET(new NextRequest('http://localhost/api/v1/file-util?category=TENANT_LOGO&entityIds=not-a-uuid'));
+    expect(malformed.status).toBe(400);
+  });
 });

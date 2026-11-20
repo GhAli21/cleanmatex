@@ -35,7 +35,7 @@ export default function DashboardContent() {
   const t = useTranslations('dashboard')
   const tLayout = useTranslations('layout.topBar')
   const isRTL = useRTL()
-  const { formatMoneyWithCode } = useTenantCurrency()
+  const { formatMoneyWithCode, formatNumber } = useTenantCurrency()
 
   return (
     <div className="space-y-6">
@@ -76,14 +76,14 @@ export default function DashboardContent() {
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('activeCustomers')}
           </h3>
-          <p className="text-3xl font-bold text-foreground tabular-nums">0</p>
+          <p className="text-3xl font-bold text-foreground tabular-nums">{formatNumber(0)}</p>
           <p className="mt-2 text-sm text-muted-foreground">{t('totalActiveCustomers')}</p>
         </div>
         <div className="bg-card rounded-lg shadow p-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             {t('pendingDeliveries')}
           </h3>
-          <p className="text-3xl font-bold text-foreground tabular-nums">0</p>
+          <p className="text-3xl font-bold text-foreground tabular-nums">{formatNumber(0)}</p>
           <p className="mt-2 text-sm text-muted-foreground">{t('readyForDelivery')}</p>
         </div>
         <div className="bg-card rounded-lg shadow p-6">

@@ -498,3 +498,38 @@ Prior findings, Retest r3 2026-11-17: T23 audit route **FIXED** (loads). T19 Sen
 
 ### Test data left behind
 - QA org `QA-20261117 Catalog Org` is **active and unpaused**; no quota override or failover rule left. No message sent.
+
+## Financial_Expert_Tester Results — Retest r4 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Platform Operations Console (Q12) rows below were run on HQ Incognito (`admin@cleanmatex.com`), 22:14–22:18 Asia/Muscat. Nothing was saved; Pause was not pressed. Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| 0.3 (jobs permission flash) | PASS (FIXED) | 22:17 Asia/Muscat. `https://hqsaas.cleanmatex.com/en/ops/jobs` "Scheduled Jobs" shows only "Loading…" and then the list. No permission text on 3 loads. Sidebar: Platform Health & Ops → Scheduled Jobs. STATUS fix confirmed. Shots: `C:\Users\JHNLP\qa-20261120\r5\shots\b3-1-jobs-loading.webp`, `C:\Users\JHNLP\qa-20261120\r5\shots\b3-1-jobs.webp`. |
+| 0.2 (Setup Health / master key) | PASS (FIXED) | `https://hqsaas.cleanmatex.com/en/ops/health` "Bootstrap environment variables are present" OK ("11 bootstrap variables are present."), "Encrypted values are sealed with the current master key" OK. Summary 14 OK / 4 warnings / 1 failing / 4 not determined. The remaining failing check is "Scheduled jobs match their intended state" ("19 job(s) drifted…"). Warnings include 8 secrets stored as plain text; Config Registry last check 22:04 shows 16 missing keys. The master-key complaint from the prior run is **FIXED**; drift remains as a separate issue (see findings). |
+| A2 (config module filter) | PASS (FIXED) | `https://hqsaas.cleanmatex.com/en/ops/config` now has filters: All modules (Finance, Integrations, Marketing, Notifications, Orders, Platform, Runtime, Storage, Organizations, Workflow), All policies, All managers, All apps, plus "Check now". |
+| pause-org | PARTIAL | No dialog. An inline "Paused organizations" form sits on `https://hqsaas.cleanmatex.com/en/notifications/operations` with picker "Organization ID - [tenant_org_id]" listing "Demo Laundry LLC · 11111111-1111-1111-1111-111111111111" (seeded id, name correct). Pause was not pressed. |
+
+**Prior findings — Retest r4 2026-11-20**
+
+- Jobs page permission flash (STATUS claim) — **FIXED.** 0.3 no longer flashes a permission error.
+- Setup Health missing-master-key complaint — **FIXED** (0.2). Encrypted values are sealed with the current master key.
+- Config list module filter — **FIXED** (A2).
+
+**New findings — Financial_Expert_Tester, Retest r4 2026-11-20**
+
+- **P2 FET-POC-Nov20-JobsDrift:** Setup Health still fails because "19 job(s) drifted" from their intended state (header on Scheduled Jobs also: "22 jobs. 19 with drift. 0 inactive."). Suggested fix: bring the 19 drifted jobs back in sync or document expected drift; keep the failing health check until they match. Code location not checked.
+- **P3 FET-POC-Nov20-PauseOrgInlineForm:** Pause-org is an inline form on Notifications operations, not a dialog, and the picker exposes the seeded Demo org UUID. Suggested fix: if a dialog was specified, restore it; mask or avoid advertising seed UUIDs in the picker label if that is not required. Code location not checked.
+- **P2 FET-POC-Nov20-HealthSecretsPlaintext:** Setup Health warns that 8 secrets are stored as plain text and Config Registry reports 16 missing keys (last check 22:04). Suggested fix: seal or migrate the 8 secrets and add or accept the missing keys. Code location not checked. No secret values were copied or recorded.
+
+**r5 tally for the rows above (parent counts unchanged):** PASS 3 (0.3, 0.2, A2) · PARTIAL 1 (pause-org).
+
+**Rows not run in r5:** remaining ops, quota, failover, template, and any pause/mutate rows (write-gated, awaiting approval). I11 canary remains HELD (see the I11 guide).
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** Recheck the 19 drifted jobs and plaintext-secret warnings after ops follow-up. After explicit owner approval only, exercise pause-org on a non-production fixture — never on Demo Laundry.

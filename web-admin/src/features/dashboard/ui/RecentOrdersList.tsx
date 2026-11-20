@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
 import { dashboardService } from '@/lib/services/dashboard.service'
-import { useRTL } from '@/lib/hooks/useRTL'
+import { useLocale, useRTL } from '@/lib/hooks/useRTL'
+import { STATUS_META, type OrderStatus } from '@/lib/types/workflow'
+import { OrderStatusBadge } from '@features/orders/ui/order-status-badge'
 
 /**
  *
@@ -15,6 +17,7 @@ export function RecentOrdersList() {
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
   const isRTL = useRTL()
+  const uiLocale = useLocale()
   const [orders, setOrders] = useState<
     Array<{ id: string; order_no: string; status: string; created_at: string }>
   >([])
@@ -62,7 +65,15 @@ export function RecentOrdersList() {
             <span className="font-medium text-foreground tabular-nums">
               <bdi dir="ltr">{order.order_no}</bdi>
             </span>
-            <span className="text-sm text-muted-foreground">{order.status}</span>
+            {order.status && STATUS_META[order.status.toLowerCase() as OrderStatus] ? (
+              <OrderStatusBadge
+                status={order.status.toLowerCase() as OrderStatus}
+                locale={uiLocale === 'ar' ? 'ar' : 'en'}
+                size="sm"
+              />
+            ) : (
+              <span className="text-sm text-muted-foreground">{order.status}</span>
+            )}
           </Link>
         </li>
       ))}

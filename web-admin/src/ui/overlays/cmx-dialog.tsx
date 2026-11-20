@@ -129,6 +129,8 @@ export interface CmxDialogProps {
    * raised from inside a full-screen view. Default false.
    */
   stackAboveModals?: boolean;
+  /** Optional trigger element/ref to restore focus to when closed (useful when opened from unmounting menu items). */
+  returnFocusTo?: React.RefObject<HTMLElement | null> | HTMLElement | null;
   /** Accessible name when the dialog has no `CmxDialogTitle`. */
   'aria-label'?: string;
   /** Overrides the id of the element that names the dialog (default: its `CmxDialogTitle`). */
@@ -144,6 +146,7 @@ export function CmxDialog({
   autoFocus = true,
   closeOnOverlayClick = false,
   stackAboveModals = false,
+  returnFocusTo,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   'aria-describedby': ariaDescribedBy,
@@ -152,9 +155,11 @@ export function CmxDialog({
   const [titleId, setTitleId] = React.useState<string | null>(null);
   const [descriptionId, setDescriptionId] = React.useState<string | null>(null);
   const labelledBy = ariaLabelledBy ?? titleId ?? undefined;
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
   // Trap only after portal mount — otherwise the first open effect sees a null
   // ref and never attaches listeners when `mounted` flips to true.
-  const trapRef = useFocusTrap(open && mounted, { returnFocus: true, autoFocus });
+  const trapRef = useFocusTrap(open && mounted, { returnFocus: true, autoFocus, returnFocusTo });
 
   React.useEffect(() => {
     setMounted(true);
@@ -191,11 +196,11 @@ export function CmxDialog({
       if (dialogs[dialogs.length - 1] !== root) return;
       event.preventDefault();
       event.stopPropagation();
-      onOpenChange(false);
+      onOpenChangeRef.current(false);
     };
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
-  }, [open, onOpenChange, trapRef]);
+  }, [open, trapRef]);
 
   if (!open || !mounted) return null;
 

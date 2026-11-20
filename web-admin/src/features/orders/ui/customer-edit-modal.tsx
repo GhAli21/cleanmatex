@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { getCustomerById, updateCustomer } from '@/lib/api/customers';
@@ -117,7 +117,7 @@ export function CustomerEditModal({
     };
 
     loadCustomerData();
-  }, [open, customerId, t]);
+  }, [open, customerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,8 +168,8 @@ export function CustomerEditModal({
     }
   };
 
-  const handleClose = () => {
-    if (loading || fetching) return; // Prevent closing while loading
+  const handleClose = useCallback(() => {
+    if (loading) return; // Prevent closing while submitting changes
 
     // Reset form on close
     setFirstName('');
@@ -187,12 +187,19 @@ export function CustomerEditModal({
     setCustomerType('');
     setError(null);
     onClose();
-  };
+  }, [loading, onClose]);
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (!next) handleClose();
+    },
+    [handleClose]
+  );
 
   return (
     <CmxDialog
       open={open}
-      onOpenChange={(next) => { if (!next) handleClose(); }}
+      onOpenChange={handleOpenChange}
       stackAboveModals
     >
       <CmxDialogContent className="max-w-2xl w-full" scrollBody>

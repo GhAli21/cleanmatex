@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Eye, Pencil } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CmxDataGrid } from '@ui/data-display';
+import { CmxPagination } from '@ui/navigation';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { VoucherStatusBadge } from './voucher-status-badge';
 import { VoucherDirectionBadge } from './voucher-direction-badge';
@@ -42,11 +43,11 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
   const [editVoucher, setEditVoucher] = useState<VoucherListItem | null>(null);
 
   const voucherTypeLabels: Record<string, string> = {
-    RECEIPT_VOUCHER:    t('voucherTypeLabels.RECEIPT_VOUCHER'),
-    PAYMENT_VOUCHER:    t('voucherTypeLabels.PAYMENT_VOUCHER'),
-    REFUND_VOUCHER:     t('voucherTypeLabels.REFUND_VOUCHER'),
+    RECEIPT_VOUCHER: t('voucherTypeLabels.RECEIPT_VOUCHER'),
+    PAYMENT_VOUCHER: t('voucherTypeLabels.PAYMENT_VOUCHER'),
+    REFUND_VOUCHER: t('voucherTypeLabels.REFUND_VOUCHER'),
     ADJUSTMENT_VOUCHER: t('voucherTypeLabels.ADJUSTMENT_VOUCHER'),
-    TRANSFER_VOUCHER:   t('voucherTypeLabels.TRANSFER_VOUCHER'),
+    TRANSFER_VOUCHER: t('voucherTypeLabels.TRANSFER_VOUCHER'),
   };
 
   const columns: ColumnDef<VoucherListItem, unknown>[] = [
@@ -172,6 +173,7 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
           dir={dir}
           initialPageSize={pageSize}
           pageSizeOptions={[pageSize]}
+          hidePagination
           enableGlobalSearch
           enableColumnVisibility
           enableDensityToggle
@@ -184,31 +186,16 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
           }}
         />
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-            <span className="text-sm text-muted-foreground">
-              {tCommon('pagination', { page, totalPages })}
-            </span>
-            <div className="flex gap-2">
-              <CmxButton
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(page - 1)}
-                disabled={page <= 1}
-              >
-                {tCommon('previous')}
-              </CmxButton>
-              <CmxButton
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(page + 1)}
-                disabled={page >= totalPages}
-              >
-                {tCommon('next')}
-              </CmxButton>
-            </div>
-          </div>
-        )}
+        <CmxPagination
+          currentPage={page}
+          totalPages={Math.max(1, totalPages)}
+          pageSize={pageSize}
+          totalItems={total}
+          showPageSizeSelector={false}
+          showWhenSinglePage
+          onPageChange={onPageChange}
+          onPageSizeChange={() => { }}
+        />
       </div>
 
       <VoucherEditDialog

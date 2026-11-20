@@ -22,6 +22,7 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import {
   formatMoneyAmount,
   formatMoneyAmountWithCode,
+  formatNumberForLocale,
   roundMoneyAmount,
   type MoneyAmountInput,
   type MoneyLocale,
@@ -60,6 +61,11 @@ export interface TenantCurrencyContextValue {
   formatMoneyWithCode: (
     amount: MoneyAmountInput,
     currencyCode?: string | null,
+  ) => string;
+  /** Format counts/numbers honoring the Organization numeral script and grouping settings. */
+  formatNumber: (
+    value: MoneyAmountInput,
+    opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
   ) => string;
   roundMoney: (amount: MoneyAmountInput) => number;
   refresh: () => Promise<void>;
@@ -173,6 +179,21 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
     [currencyCode, decimalPlaces, moneyLocale, extraConfig.numberScript, extraConfig.numberGroupingLocale],
   );
 
+  const formatNumberCb = useCallback(
+    (
+      amount: MoneyAmountInput,
+      opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
+    ) =>
+      formatNumberForLocale(amount, {
+        locale: moneyLocale,
+        numberScript: extraConfig.numberScript,
+        groupingLocale: extraConfig.numberGroupingLocale,
+        minimumFractionDigits: opts?.minimumFractionDigits,
+        maximumFractionDigits: opts?.maximumFractionDigits,
+      }),
+    [moneyLocale, extraConfig.numberScript, extraConfig.numberGroupingLocale],
+  );
+
   const roundMoney = useCallback(
     (amount: MoneyAmountInput) => roundMoneyAmount(amount, decimalPlaces),
     [decimalPlaces],
@@ -188,6 +209,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
       moneyLocale,
       formatMoney,
       formatMoneyWithCode: formatMoneyWithCodeCb,
+      formatNumber: formatNumberCb,
       roundMoney,
       refresh: load,
     }),
@@ -197,6 +219,7 @@ export function TenantCurrencyProvider({ children }: { children: ReactNode }) {
       decimalPlaces,
       formatMoney,
       formatMoneyWithCodeCb,
+      formatNumberCb,
       isReady,
       load,
       moneyLocale,
@@ -246,6 +269,15 @@ export function useTenantCurrency(): TenantCurrencyContextValue {
           currencyCode: overrideCurrencyCode || currencyCode,
           decimalPlaces,
           locale: moneyLocale,
+        }),
+      formatNumber: (
+        amount: MoneyAmountInput,
+        opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
+      ) =>
+        formatNumberForLocale(amount, {
+          locale: moneyLocale,
+          minimumFractionDigits: opts?.minimumFractionDigits,
+          maximumFractionDigits: opts?.maximumFractionDigits,
         }),
       roundMoney: (amount: MoneyAmountInput) =>
         roundMoneyAmount(amount, decimalPlaces),

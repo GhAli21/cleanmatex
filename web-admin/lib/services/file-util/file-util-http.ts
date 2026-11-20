@@ -21,6 +21,10 @@ import {
 import { FileUtilError } from './file-util.service';
 
 export const categorySchema = z.enum(FILE_CATEGORY_CODES);
+/** Accepts any 8-4-4-4-12 hex UUID (PostgreSQL/seeded IDs + RFC 4122). */
+export const uuidLikeSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid UUID');
 const codeSchema = z.string().regex(/^[A-Z][A-Z0-9_]{1,49}$/);
 
 /** POST /api/v1/file-util body. */
@@ -28,9 +32,9 @@ export const initUploadSchema = z
   .object({
     category: categorySchema,
     purpose: codeSchema.optional(),
-    entityId: z.string().uuid(),
+    entityId: uuidLikeSchema,
     refType: z.enum(FILE_REF_TYPE_CODES).optional(),
-    refId: z.string().uuid().optional(),
+    refId: uuidLikeSchema.optional(),
     source: z.enum(FILE_SOURCE_CODES),
     fileName: z.string().trim().min(1).max(255),
     mimeType: z.string().trim().min(3).max(255),
@@ -49,7 +53,7 @@ export const initUploadSchema = z
 /** POST /api/v1/file-util/sign body. */
 export const signSchema = z.object({
   category: categorySchema,
-  fileIds: z.array(z.string().uuid()).min(1).max(200),
+  fileIds: z.array(uuidLikeSchema).min(1).max(200),
 });
 
 /** PATCH /api/v1/file-util/:id body. */
@@ -67,7 +71,7 @@ export const updateSchema = z
 /** Body or query that only names the category (complete, delete). */
 export const categoryOnlySchema = z.object({ category: categorySchema });
 
-export const fileIdParamsSchema = z.object({ id: z.string().uuid() });
+export const fileIdParamsSchema = z.object({ id: uuidLikeSchema });
 
 /**
  * Guard chain for File Util routes: CSRF on writes (blocks cross-site form posts riding the

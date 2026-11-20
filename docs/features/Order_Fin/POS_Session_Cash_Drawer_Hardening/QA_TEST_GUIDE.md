@@ -503,3 +503,23 @@ Prior findings, Retest r4 2026-11-19: **FET-POS-S13 (P0) STILL BROKEN** ("Failed
 - Orders/vouchers: `ORD-20261119-00004` (2.354, collected cash, `RV-2026-000125`, `ADJ-2026-000009`); `ORD-20261119-00003` cash refund `REF-000013` 10.003 processed (`RF-2026-000001` + `ADJ-2026-000010`).
 - Cash in transit: `CDT-20261119-0001` (1,000.000, cancelled), `CDT-20261119-0003` (4.250 QA Till 1 → QA Safe 1, **received**; QA Safe 1 +4.250, QA Till 1 −4.250), `CDT-20261119-0005` (0.100, cancelled).
 - Sessions: `POS-20261028-6E9072AF` was Open at the start, paused and resumed, now Open (as before); drawer sessions QA Till 1 `SES-20261010-0007` and QA Till 2 `SES-20261010-0002` remain open (were open before). POS and Cash Control settings unchanged.
+
+## Financial_Expert_Tester Results — Retest r5 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+This is a **traceability note only**: **no rows from this POS Session / Cash Drawer guide were run in r5**. Outstanding drawer and session rows need disposable QA sessions/orders and are write-gated; owner approval for writes is still pending. No screenshots were taken for this guide.
+
+| # | Result | Evidence |
+|---|---|---|
+| (none) | NOT RUN | Observe-only post-deploy pass. POS session / cash-drawer rows were not opened for create/mutate. Awaiting owner approval for disposable QA session writes. |
+
+**r5 tally for this guide (parent counts unchanged):** NOT RUN — no rows retested.
+
+**Rows not run in r5:** all remaining FAIL/PARTIAL/BLOCKED session, drawer, Z-report, and refund rows (write-gated / need disposable fixtures, awaiting approval).
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** After owner approval, run the outstanding POS session and cash-drawer rows on disposable QA sessions. Do not close or retender the existing shared open session without an explicit yes.

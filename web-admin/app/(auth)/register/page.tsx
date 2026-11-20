@@ -10,6 +10,7 @@
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
 import { validateRegisterForm } from '@/lib/auth/validation'
 import type { FormErrors } from '@/types/auth'
@@ -21,6 +22,7 @@ import { CmxButton, CmxCheckbox, CmxInput, Label } from '@ui/primitives'
 export default function RegisterPage() {
   const router = useRouter()
   const { signUp, isLoading } = useAuth()
+  const t = useTranslations('auth.register')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -49,7 +51,7 @@ export default function RegisterPage() {
     } catch (error: any) {
       console.error('Registration error:', error)
       setErrors({
-        general: error.message || 'Registration failed. Please try again.',
+        general: error.message || t('failed'),
       })
     }
   }
@@ -76,10 +78,10 @@ export default function RegisterPage() {
               </svg>
             </div>
             <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-              Registration Successful!
+              {t('successTitle')}
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              We've sent a verification email to <strong>{email}</strong>
+              {t('successBody', { email })}
             </p>
           </div>
 
@@ -99,12 +101,12 @@ export default function RegisterPage() {
                 </svg>
               </div>
               <div className="ms-3">
-                <h3 className="text-sm font-medium text-primary-text">Next Steps</h3>
+                <h3 className="text-sm font-medium text-primary-text">{t('nextSteps')}</h3>
                 <div className="mt-2 text-sm text-primary-text">
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Check your email inbox</li>
-                    <li>Click the verification link in the email</li>
-                    <li>Return here and sign in with your credentials</li>
+                    <li>{t('step1')}</li>
+                    <li>{t('step2')}</li>
+                    <li>{t('step3')}</li>
                   </ol>
                 </div>
               </div>
@@ -116,7 +118,7 @@ export default function RegisterPage() {
               href="/login"
               className="font-medium text-primary-text hover:text-primary-text/80"
             >
-              Go to Login
+              {t('goToLogin')}
             </Link>
           </div>
         </div>
@@ -130,10 +132,10 @@ export default function RegisterPage() {
         {/* Header */}
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-foreground">
-            Create your account
+            {t('title')}
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Join CleanMateX and start managing your laundry business
+            {t('subtitle')}
           </p>
         </div>
 
@@ -167,7 +169,7 @@ export default function RegisterPage() {
             {/* Display Name Field */}
             <div>
               <Label htmlFor="displayName" className="block mb-1">
-                Full Name *
+                {t('fullNameLabel')}
               </Label>
               <CmxInput
                 id="displayName"
@@ -177,14 +179,14 @@ export default function RegisterPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 error={errors.displayName}
-                placeholder="John Doe"
+                placeholder={t('fullNamePlaceholder')}
               />
             </div>
 
             {/* Email Field */}
             <div>
               <Label htmlFor="email" className="block mb-1">
-                Email address *
+                {t('emailLabel')}
               </Label>
               <CmxInput
                 id="email"
@@ -195,14 +197,14 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 error={errors.email}
-                placeholder="you@example.com"
+                placeholder={t('emailPlaceholder')}
               />
             </div>
 
             {/* Password Field */}
             <div>
               <Label htmlFor="password" className="block mb-1">
-                Password *
+                {t('passwordLabel')}
               </Label>
               <div className="relative">
                 <CmxInput
@@ -214,7 +216,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={errors.password ? 'border-danger-border pe-10' : 'pe-10'}
-                  placeholder="At least 8 characters"
+                  placeholder={t('passwordPlaceholder')}
                 />
                 <CmxButton
                   type="button"
@@ -222,7 +224,7 @@ export default function RegisterPage() {
                   size="sm"
                   className="absolute inset-y-0 end-0 h-full px-3"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
                 >
                   {showPassword ? (
                     <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,14 +242,14 @@ export default function RegisterPage() {
                 <p className="mt-1 text-sm text-danger-text">{errors.password}</p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
-                Must be at least 8 characters with uppercase, lowercase, and number
+                {t('passwordHint')}
               </p>
             </div>
 
             {/* Confirm Password Field */}
             <div>
               <Label htmlFor="confirmPassword" className="block mb-1">
-                Confirm Password *
+                {t('confirmPasswordLabel')}
               </Label>
               <div className="relative">
                 <CmxInput
@@ -259,7 +261,7 @@ export default function RegisterPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className={errors.confirmPassword ? 'border-danger-border pe-10' : 'pe-10'}
-                  placeholder="Re-enter your password"
+                  placeholder={t('confirmPasswordPlaceholder')}
                 />
                 <CmxButton
                   type="button"
@@ -267,7 +269,7 @@ export default function RegisterPage() {
                   size="sm"
                   className="absolute inset-y-0 end-0 h-full px-3"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  aria-label={showConfirmPassword ? t('hideConfirmPassword') : t('showConfirmPassword')}
                 >
                   {showConfirmPassword ? (
                     <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -296,13 +298,13 @@ export default function RegisterPage() {
               size="sm"
               label={(
                 <span className="text-sm font-medium text-foreground">
-                  I agree to the{' '}
+                  {t('termsAgreement')}{' '}
                   <Link href="/terms" className="text-primary-text hover:text-primary-text/80">
-                    Terms of Service
+                    {t('termsOfService')}
                   </Link>{' '}
-                  and{' '}
+                  ·{' '}
                   <Link href="/privacy" className="text-primary-text hover:text-primary-text/80">
-                    Privacy Policy
+                    {t('privacyPolicy')}
                   </Link>
                 </span>
               )}
@@ -317,19 +319,19 @@ export default function RegisterPage() {
               loading={isLoading}
               className="w-full"
             >
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              {isLoading ? t('creatingAccount') : t('createAccount')}
             </CmxButton>
           </div>
 
           {/* Sign in link */}
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
+              {t('alreadyHaveAccount')}{' '}
               <Link
                 href="/login"
                 className="font-medium text-primary-text hover:text-primary-text/80"
               >
-                Sign in
+                {t('signIn')}
               </Link>
             </p>
           </div>

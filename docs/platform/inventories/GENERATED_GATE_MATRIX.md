@@ -1,13 +1,13 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-19T20:40:46.887Z
-Git SHA: e8427fc7
+Generated: 2026-11-20T20:21:15.167Z
+Git SHA: 41d1f552
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 171 |
-| Permission usages | 502 |
+| Access contracts | 172 |
+| Permission usages | 501 |
 | Feature flag usages | 92 |
 | Setting usages | 23 |
 | Plan limit usages | 2 |
@@ -21,6 +21,7 @@ Git SHA: e8427fc7
 | /dashboard/account/security | Account security | — | — | 0 |
 | /dashboard/assembly | Assembly | — | — | 0 |
 | /dashboard/assembly/[id] | Assembly Details | — | — | 0 |
+| /dashboard/b2b | B2B Home | b2b_customers:view | b2b_contracts | 0 |
 | /dashboard/b2b/contracts | B2B Contracts | b2b_contracts:view | b2b_contracts | 0 |
 | /dashboard/b2b/customers | B2B Customers | b2b_customers:view | b2b_contracts | 0 |
 | /dashboard/b2b/customers/[id] | B2B Customer Details | b2b_customers:view | b2b_contracts | 0 |
@@ -161,7 +162,7 @@ Git SHA: e8427fc7
 | /dashboard/settings/branches/[id] | Branch Settings | — | — | 0 |
 | /dashboard/settings/branding | Branding Settings | — | — | 0 |
 | /dashboard/settings/calendar | Business Calendar | settings:read | — | 2 |
-| /dashboard/settings/extra-config | Display & Formatting Preferences | settings:read | — | 0 |
+| /dashboard/settings/extra-config | Display & Formatting Preferences | — | — | 0 |
 | /dashboard/settings/finance | Finance Settings | settings:read | — | 0 |
 | /dashboard/settings/finance/currency-fx | Currencies & FX | currencies:view | — | 7 |
 | /dashboard/settings/general | General Settings | — | — | 0 |

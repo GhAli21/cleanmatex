@@ -383,8 +383,9 @@ function OrderSummaryPanelComponent({
               tabIndex={readyByCapability.interactive ? 0 : -1}
               aria-disabled={!readyByCapability.interactive}
               className={`flex-1 flex items-center gap-1.5 px-2 py-1 border rounded bg-card text-xs ${readyByValidation.isTooFar ? 'border-destructive' : readyByValidation.isValid && readyByAt ? 'border-info-border' : 'border-border'} ${readyByCapability.interactive ? 'cursor-pointer hover:border-primary' : 'cursor-not-allowed opacity-60'} transition-colors min-w-0`}
-              onClick={() => {
+              onClick={(e) => {
                 if (!readyByCapability.interactive) return;
+                (e.currentTarget as HTMLElement).focus();
                 onOpenReadyByModal?.();
               }}
               onKeyDown={(e) => {
@@ -422,7 +423,10 @@ function OrderSummaryPanelComponent({
             <CmxButton
               type="button"
               size="icon"
-              onClick={onOpenReadyByModal}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).focus();
+                onOpenReadyByModal?.();
+              }}
               className={`shrink-0 h-auto min-h-7 w-8 ${TOUCH_MIN}`}
               aria-label={t('openReadyBy')}
             >

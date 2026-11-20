@@ -171,3 +171,31 @@ Prior findings, Retest r3 2026-11-17: **FET-SH-Nov12-DirectUrlNotRefused FIXED**
 
 ### Test data left behind
 - None. Language left English; HQ filters cleared. Setup Checks runs only refresh check results.
+
+## Financial_Expert_Tester Results — Retest r4 2026-11-20 (post-deploy observe pass)
+
+**Retest r5 (2026-11-20 21:55–22:31 Asia/Muscat).** Tester: Financial_Expert_Tester (Grok Bot). Trigger: owner t160u — new evening deploy; redo all QA files, not only UIDS and File_Util. This round is an **observe-only** post-deploy pass: owner approval for writes is still pending, so write-gated rows are **NOT RUN (awaiting approval)**. Nothing was saved, applied, paid, published, assigned, or confirmed. Appearance and language were restored. Earlier rounds above are untouched.
+
+Environment: remote only. Tenant https://cmx.cleanmatex.com (Demo Laundry, Main Branch) and HQ https://hqsaas.cleanmatex.com (Incognito). Accounts used: Demo Laundry admin `admin@demo-laundry.example`, operator `operator@demo-laundry.example` (`U000001`), viewer `viewer@demo-laundry.example`; HQ SAAS Admin `admin@cleanmatex.com`. Credentials: see `F:\JhApps_doc\CleanMateX_Jh\Testing_Jh\GrokBot_HQ_Test\CREDENTIALS_AND_ENVIRONMENTS.md` — none recorded here. Real mouse and keyboard; no direct API calls; no page scripts that change data; no Jest. Hard-reload (Ctrl+Shift+R) after the deploy. Screenshots: `C:\Users\JHNLP\qa-20261120\r5\shots\`.
+
+Setup Health (Q9) rows below were run on cmx Demo admin (22:19–22:26 Asia/Muscat) and viewer/operator (22:27–22:30). Parent scenario counts are unchanged.
+
+| # | Result | Evidence |
+|---|---|---|
+| T13 | PASS | Dashboard tile "Setup health" "0 blockers · 1 warning · 0 info". Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b4-T13.png`. |
+| T8 | PASS (FIXED) | `https://cmx.cleanmatex.com/dashboard/setup-health` in Arabic: heading "صحة الإعداد", subtitle "ما ينقص أو ما هو خاطئ في الإعداد، ولماذا يهم، وأين يتم إصلاحه.", groups الضريبة / تقويم العمل / سرعات الخدمة. Prior English-only AR content (FET-SH-Nov17-ArabicHealthContentEnglish) is **FIXED**. |
+| T3 | PASS | 22:30 Asia/Muscat. Viewer has no Setup Health in the sidebar. Direct URL shows "You don't have access to Setup Health / Ask an administrator of your organization to give you the Setup Health permission." Shot: `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q9-T3.png`. |
+| T4 | PASS (FIXED) | 22:30 Asia/Muscat. Operator sees the same denial card (was blank in the prior run). FET-SH-Nov12-ViewerBlankPage / blank operator denial is **FIXED** for this screen. Shots: `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q9-T4.png`, `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q9-T4-sidebar.png`. (Operator Extra Config error is logged under UIDS P9, shot `C:\Users\JHNLP\qa-20261120\r5\shots\b5-Q9-T4-extra.png`.) |
+
+**Prior findings — Retest r4 2026-11-20**
+
+- **FET-SH-Nov17-ArabicHealthContentEnglish** — **FIXED.** T8 Arabic heading, subtitle, and groups are translated.
+- **FET-SH-Nov12-ViewerBlankPage** (operator/viewer denial) — **FIXED** on Setup Health: both roles now get an explicit denial card (T3, T4). (Viewer tax remains blank — see Q7 #12.)
+
+**r5 tally for the rows above (parent counts unchanged):** PASS 4 (T13, T8, T3, T4).
+
+**Rows not run in r5:** remaining HQ Setup Health, filter, and ERP-lite rows; T6 still unexercisable as previously noted. No writes.
+
+**Test data left behind:** nothing new was created in r5. Shared leftover from earlier rounds (unchanged): `ORD-20261119-00006` is READY on rack QA-A1, paid 1.070 OMR cash, with 3 photos including `qa_photo2.jpg` (note "QA r4 note"). Appearance and language were restored. No branding, settings, users, or other orders were changed.
+
+**Retest plan:** Carry T8/T3/T4 as passing. Recheck HQ Setup Health leftover findings in a later HQ pass. Apply the same denial-card pattern to Tax Setup for viewers (Q7 #12).

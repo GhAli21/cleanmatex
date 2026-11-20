@@ -19,6 +19,8 @@ import {
   TableRow,
 } from '@ui/primitives'
 import { CmxStatusBadge } from '@ui/feedback'
+import { CmxPagination } from '@ui/navigation'
+import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
 import { useLocale } from '@/lib/hooks/useRTL'
 import type { CustomerListItem } from '@/lib/types/customer'
 
@@ -35,6 +37,7 @@ interface CustomerTableProps {
   onSelectCustomer: (customerId: string, selected: boolean) => void
   onSelectAll: (selected: boolean) => void
   onPageChange: (page: number) => void
+  onPageSizeChange?: (size: number) => void
   onRefresh: () => void
 }
 
@@ -55,7 +58,7 @@ export default function CustomerTable({
   loading = false,
   pagination = {
     page: 1,
-    limit: 20,
+    limit: CMX_DEFAULT_PAGE_SIZE,
     total: 1,
     totalPages: 1,
   },
@@ -63,6 +66,7 @@ export default function CustomerTable({
   onSelectCustomer,
   onSelectAll,
   onPageChange,
+  onPageSizeChange,
 }: CustomerTableProps) {
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
@@ -218,11 +222,11 @@ export default function CustomerTable({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-foreground tabular-nums">
+                <TableCell className="px-6 py-4 whitespace-nowrap text-start">
+                  <div className="text-sm text-foreground tabular-nums text-start">
                     {customer.phone ? <bdi dir="ltr">{customer.phone}</bdi> : t('noPhone')}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-muted-foreground text-start">
                     {customer.email ? <bdi dir="ltr">{customer.email}</bdi> : t('noEmail')}
                   </div>
                 </TableCell>
@@ -254,123 +258,16 @@ export default function CustomerTable({
       </div>
 
       {/* Pagination */}
-      <div className="bg-card px-4 py-3 flex items-center border-t border-border sm:px-6 justify-between">
-        <div className="flex-1 flex sm:hidden justify-between">
-          <CmxButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pagination.page - 1)}
-            disabled={pagination.page === 1}
-          >
-            {t('previous')}
-          </CmxButton>
-          <CmxButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pagination.page + 1)}
-            disabled={pagination.page >= pagination.totalPages}
-            className="ms-3"
-          >
-            {t('next')}
-          </CmxButton>
-        </div>
-        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-foreground tabular-nums">
-              {t('showing')}{' '}
-              <span className="font-medium">
-                {(pagination.page - 1) * pagination.limit + 1}
-              </span>{' '}
-              {t('to')}{' '}
-              <span className="font-medium">
-                {Math.min(
-                  pagination.page * pagination.limit,
-                  pagination.total
-                )}
-              </span>{' '}
-              {t('of')} <span className="font-medium">{pagination.total}</span> {t('results')}
-            </p>
-          </div>
-          <div>
-            <nav
-              className="relative z-0 inline-flex rounded-md shadow-sm gap-1"
-              aria-label="Pagination"
-            >
-              <CmxButton
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                aria-label={t('previous')}
-              >
-                <svg
-                  className="h-5 w-5 rtl:rotate-180"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </CmxButton>
-
-              {/* Page numbers */}
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                .filter(
-                  (page) =>
-                    page === 1 ||
-                    page === pagination.totalPages ||
-                    (page >= pagination.page - 2 &&
-                      page <= pagination.page + 2)
-                )
-                .map((page, index, array) => (
-                  <span key={page} className="inline-flex items-center">
-                    {index > 0 && array[index - 1] !== page - 1 && (
-                      <span className="px-2 text-sm font-medium text-foreground">
-                        ...
-                      </span>
-                    )}
-                    <CmxButton
-                      type="button"
-                      variant={page === pagination.page ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => onPageChange(page)}
-                      className="tabular-nums"
-                    >
-                      {page}
-                    </CmxButton>
-                  </span>
-                ))}
-
-              <CmxButton
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-                aria-label={t('next')}
-              >
-                <svg
-                  className="h-5 w-5 rtl:rotate-180"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </CmxButton>
-            </nav>
-          </div>
-        </div>
-      </div>
+      <CmxPagination
+        currentPage={pagination.page}
+        totalPages={Math.max(1, pagination.totalPages)}
+        pageSize={pagination.limit}
+        totalItems={pagination.total}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange ?? (() => {})}
+        showPageSizeSelector={Boolean(onPageSizeChange)}
+        showWhenSinglePage
+      />
     </div>
   )
 }

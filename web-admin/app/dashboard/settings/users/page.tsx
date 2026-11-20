@@ -4,7 +4,7 @@
  * Users Settings Page — team list, invite, and role updates via platform-api (rbacFetch).
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { UserPlus, Mail, Shield, MoreVertical, Trash2, Edit, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -92,6 +92,7 @@ export default function UsersSettingsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const editOpenerRef = useRef<HTMLElement | null>(null)
 
   const [confirm, setConfirm] = useState<{
     kind: 'deactivate' | 'activate'
@@ -323,6 +324,7 @@ export default function UsersSettingsPage() {
 
       <CmxDialog
         open={showEditModal}
+        returnFocusTo={editOpenerRef}
         onOpenChange={(o) => {
           setShowEditModal(o)
           if (!o) setSelectedMember(null)
@@ -502,7 +504,10 @@ export default function UsersSettingsPage() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => setOpenMenuId(openMenuId === member.id ? null : member.id)}
+                          onClick={(e) => {
+                            editOpenerRef.current = e.currentTarget
+                            setOpenMenuId(openMenuId === member.id ? null : member.id)
+                          }}
                           disabled={actionLoading === member.id}
                           aria-expanded={openMenuId === member.id}
                           aria-haspopup="true"

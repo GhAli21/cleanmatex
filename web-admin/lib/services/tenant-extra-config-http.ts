@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { requirePermission } from '@/lib/middleware/require-permission';
+import { validateJWTWithTenant } from '@/lib/middleware/jwt-tenant-validator';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import {
@@ -18,12 +19,14 @@ import {
 import { logger } from '@/lib/utils/logger';
 
 /**
- * Validate session and `settings:read` permission for read routes.
+ * Validate active authenticated tenant session for read-only access to Extra Config.
+ * Allows Operators and Viewers without `settings:read` to inspect the screen in read-only mode
+ * (mutations still strictly require `settings:update` via `guardExtraConfigWrite`).
  */
 export async function guardExtraConfigRead(
   request: NextRequest
 ): Promise<{ tenantId: string; userId: string } | NextResponse> {
-  const auth = await requirePermission('settings:read')(request);
+  const auth = await validateJWTWithTenant(request);
   if (auth instanceof NextResponse) return auth;
   return { tenantId: auth.tenantId, userId: auth.userId };
 }
