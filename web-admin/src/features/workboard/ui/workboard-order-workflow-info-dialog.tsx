@@ -32,16 +32,18 @@ export function WorkboardOrderWorkflowInfoDialog({ order }: WorkboardOrderWorkfl
   const profileName = locale === 'ar' && order.workflowProfileName2
     ? order.workflowProfileName2
     : order.workflowProfileName;
-  const fields = [
-    { key: 'stateVersion', value: order.stateVersion },
+  const primaryFields = [
     { key: 'workflowProfile', value: profileName },
-    { key: 'workflowProfileId', value: order.workflowProfileId },
     { key: 'workflowVersionNo', value: order.workflowVersionNo },
     { key: 'workflowProfileRevision', value: order.workflowProfileRevision },
-    { key: 'workflowProfileVersionId', value: order.workflowProfileVersionId },
+    { key: 'stateVersion', value: order.stateVersion },
     { key: 'orderSourceCode', value: order.orderSourceCode },
-    { key: 'orderTypeId', value: order.orderTypeId },
     { key: 'orderSubtype', value: order.orderSubtype },
+  ] as const;
+  const technicalFields = [
+    { key: 'workflowProfileId', value: order.workflowProfileId },
+    { key: 'workflowProfileVersionId', value: order.workflowProfileVersionId },
+    { key: 'orderTypeId', value: order.orderTypeId },
   ] as const;
 
   return (
@@ -64,7 +66,7 @@ export function WorkboardOrderWorkflowInfoDialog({ order }: WorkboardOrderWorkfl
             <CmxDialogDescription>{t('description')}</CmxDialogDescription>
           </CmxDialogHeader>
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            {fields.map((field) => (
+            {primaryFields.map((field) => (
               <div key={field.key} className="min-w-0 space-y-1">
                 <dt className="text-xs text-muted-foreground">{t(`fields.${field.key}`)}</dt>
                 <dd className="break-words text-sm font-medium">
@@ -75,6 +77,23 @@ export function WorkboardOrderWorkflowInfoDialog({ order }: WorkboardOrderWorkfl
               </div>
             ))}
           </dl>
+          <details className="mt-4 rounded-lg border border-border bg-muted/40 p-3">
+            <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+              {t('fields.workflowProfileId')}
+            </summary>
+            <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {technicalFields.map((field) => (
+                <div key={field.key} className="min-w-0 space-y-1">
+                  <dt className="text-xs text-muted-foreground">{t(`fields.${field.key}`)}</dt>
+                  <dd className="break-all font-mono text-xs text-muted-foreground">
+                    {field.value === null || field.value === undefined || field.value === ''
+                      ? t('notAvailable')
+                      : <bdi dir="ltr">{String(field.value)}</bdi>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </details>
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={() => setOpen(false)}>
               {t('close')}

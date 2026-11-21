@@ -22,7 +22,7 @@ interface NewOrderLayoutProps {
 export function NewOrderLayout({ children }: NewOrderLayoutProps) {
 
     return (
-        <div className="flex flex-col h-screen bg-muted">
+        <div className="flex flex-col h-[calc(100dvh-4rem)] min-h-0 bg-muted">
             <div className="flex-1 min-h-0 overflow-hidden flex">
                 {children}
             </div>

@@ -1,6 +1,6 @@
 # I11 Background Execution — Expert Replan
 
-**Status:** `0782` through `0788` applied. `ntf-outbox-retry` is `SUPERSEDED` by `ntf-outbox-dispatch` and has no cron row. `0789` is drafted and not applied: it restores `ops-job-run-capture` only. Notification delivery jobs stay desired off. Canary claims only a fixture UUID. Manual reconciliation is one exact claim token after provider evidence. `ntf-outbox-reconcile` is not scheduled. Delivery, shadow, and `PLATFORM_BG_ENABLED` stay off.  
+**Status:** `0782` through `0790` applied. Canary is deferred: the named organization has 46 due notifications, so the first claim would send. Delivery, shadow, and `PLATFORM_BG_ENABLED` stay off. Gift-card, credit-note, and loyalty expiry stay superseded until the application posting service writes the journal. `ntf-outbox-reconcile` is not scheduled.  
 **Written:** 20 Nov 2026  
 **Approved_By_Jh:** 20 Nov 2026 (architecture); planning locks D9–D12 recorded same day for implementation readiness.  
 **Authority it extends:** [PLAN](I11_background_execution_redesign_PLAN.md), [ADR](I11_background_execution_redesign_ADR.md), [handler contracts](I11_background_execution_handler_contracts.md), [runbook](I11_background_execution_RUNBOOK.md), [QA](I11_background_execution_QA_TEST_GUIDE.md), [I11/I11a](03_infrastructure_deploy_and_operations.md).  

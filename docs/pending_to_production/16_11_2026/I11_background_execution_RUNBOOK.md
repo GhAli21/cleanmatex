@@ -1,6 +1,6 @@
 # I11 Background Execution — Production Runbook
 
-**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D20). **WP0 through WP3 are applied** (`0779`–`0783`). `0784` through `0788` are applied. **`0789` is drafted, not applied.** `ntf-outbox-dispatch` and `ntf-outbox-shadow` stay desired off. **WP2 host stays off** (`PLATFORM_BG_ENABLED` unset). Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` until File Util purge is ported. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Safety sweep is **15 minutes** (D10).  
+**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D20). **WP0 through WP3 are applied** (`0779`–`0783`). `0784` through `0790` are applied. Gift-card, credit-note, and loyalty expiry stay superseded until a ledger-and-GL replacement exists. `ntf-outbox-dispatch` and `ntf-outbox-shadow` stay desired off. **WP2 host stays off** (`PLATFORM_BG_ENABLED` unset). Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` until File Util purge is ported. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Safety sweep is **15 minutes** (D10).  
 **Authority:** [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Test execution companion:** [I11 remote QA and evidence guide](I11_background_execution_QA_TEST_GUIDE.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence. Local results are development-only.
@@ -24,11 +24,9 @@ After `0779` is applied, HQ `/ops/jobs` shows HTTP wrappers as **Retired** (`SUP
 
 ## WP5 — one database handler at a time
 
-`0784` through `0788` are applied. `ntf-outbox-retry` is superseded by `ntf-outbox-dispatch`. Due temporary failures stay on the global claim. They are not set back to `QUEUED`.
+`0784` through `0790` are applied. Remote idempotency cleanup runs `SELECT public.cleanup_expired_idempotency_keys()` daily at 03:00. It does not call `fin_trigger_job`.
 
-`0789` is the next file to review. It restores only `ops-job-run-capture` as `SELECT public.fn_ops_job_capture_runs()` every 5 minutes. One tick copies at most 1000 finished runs and prunes at most 1000 rows older than 90 days from each log. It does not enable notification delivery.
-
-After `0789` is applied on remote, confirm one active `cron.job` row named `ops-job-run-capture`, schedule `*/5 * * * *`. The registry schedule must no longer be `0 13 */6 * *`. Stop there. `fin-idempotency-cleanup` still calls `fin_trigger_job`, and that HTTP command stays until a direct SQL replacement is reviewed.
+Gift-card, credit-note, and loyalty expiry stay superseded. Expiring a gift card sets the card to `EXPIRED`, writes an `EXPIRE` ledger row for the remaining balance, and asks `ErpLiteAutoPostService.dispatchRequest` to post `gift_card_expired`. That posting checks the ERP Lite feature flag and the auto-post policy in the application. A database job cannot make that journal. A status-only update would leave the liability on the books. Remote has no open gift card past its expiry date. Do not Enable, Restore, or Run now those jobs. Do not enable delivery.
 
 ## WP0.6 inventory (no secret values)
 
@@ -128,9 +126,9 @@ If capacity is immediately critical and no attribution can be obtained, suspend 
 
 ## One-claim notification canary
 
-The Owner may authorize this only after the preflight passes, the Disk I/O investigation is no longer an active blocker, and one safe/authorized due record is identified. Do not use an uncontrolled production backlog as a canary fixture.
+The Owner named the canary organization `11111111-1111-1111-1111-111111111111`. It is active on local and remote. Remote has 13 queued-due rows and 33 retry-due rows for that organization, and no row in `PROCESSING`. Delivery stays off. Setting the tenant id does not by itself limit claims: a canary also needs a new `NTF_OUTBOX_CANARY_RUN_ID`. Without that run id, a later delivery enable would use the global claim.
 
-1. Deploy with the one-claim environment values from the configuration table and exactly one active worker instance.
+1. Deploy with the one-claim environment values from the configuration table and exactly one active worker instance. `NTF_OUTBOX_CANARY_TENANT_ID` is the organization above.
 2. Observe one `ntf-outbox-dispatch` log with `claimed:1`. Do not wait through a second timer tick.
 3. Immediately set `NTF_OUTBOX_WORKER_ENABLED=false` and redeploy. Keep the per-boot budget in place.
 4. Capture the exact canonical row and matching latest delivery log. Confirm one of:

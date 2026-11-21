@@ -1052,10 +1052,9 @@ export function NewOrderContent() {
   };
 
   return (
-    <div
+    <section
       className="flex-1 min-h-0 overflow-hidden flex flex-col"
-      role="main"
-      aria-label={t('title') || 'New Order'}
+      aria-label={t('title')}
     >
       {/* Screen reader live region */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
@@ -1148,7 +1147,7 @@ export function NewOrderContent() {
       )}
 
       <div
-        className="flex-1 min-h-0 flex"
+        className={`flex-1 min-h-0 flex ${orderEntryLocked ? 'opacity-50' : ''}`}
         inert={orderEntryLocked ? true : undefined}
       >
         {/* Left/Center Panel */}
@@ -1175,30 +1174,55 @@ export function NewOrderContent() {
                 <div
                   className="bg-card rounded-lg border border-border p-2"
                   role="tablist"
-                  aria-label={t('title') || 'New order steps'}
+                  aria-label={t('title')}
+                  onKeyDown={(e) => {
+                    const visibleTabs: Array<'select' | 'details' | 'piecePreferences' | 'pieces' | 'customer'> = [
+                      'select',
+                      'details',
+                      ...(trackByPiece && state.state.items.length > 0
+                        ? (['piecePreferences', 'pieces'] as const)
+                        : []),
+                      ...(state.state.customer !== null ? (['customer'] as const) : []),
+                    ];
+                    const idx = visibleTabs.indexOf(activeTab);
+                    if (idx === -1) return;
+                    let nextIdx: number | null = null;
+                    if (e.key === 'ArrowRight') nextIdx = (idx + 1) % visibleTabs.length;
+                    else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + visibleTabs.length) % visibleTabs.length;
+                    else if (e.key === 'Home') nextIdx = 0;
+                    else if (e.key === 'End') nextIdx = visibleTabs.length - 1;
+                    if (nextIdx !== null) {
+                      e.preventDefault();
+                      const nextTab = visibleTabs[nextIdx];
+                      setRequestedActiveTab(nextTab);
+                      document.getElementById(`new-order-tab-${nextTab}`)?.focus();
+                    }
+                  }}
                 >
                   <div
-                    className="flex gap-2"
+                    className="flex gap-2 overflow-x-auto [scrollbar-width:thin]"
                   >
                     <CmxButton
+                      id="new-order-tab-select"
                       type="button"
                       variant={activeTab === 'select' ? 'primary' : 'ghost'}
                       role="tab"
                       aria-selected={activeTab === 'select'}
                       tabIndex={activeTab === 'select' ? 0 : -1}
                       onClick={() => setRequestedActiveTab('select')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'select' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                      className={`shrink-0 whitespace-nowrap flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'select' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                     >
-                      1) {t('itemsGrid.selectItems') || 'Select Items'}
+                      1) {t('itemsGrid.selectItems')}
                     </CmxButton>
                     <CmxButton
+                      id="new-order-tab-details"
                       type="button"
                       variant={activeTab === 'details' ? 'primary' : 'ghost'}
                       role="tab"
                       aria-selected={activeTab === 'details'}
                       tabIndex={activeTab === 'details' ? 0 : -1}
                       onClick={() => setRequestedActiveTab('details')}
-                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                      className={`shrink-0 whitespace-nowrap flex-1 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                     >
                       {state.state.items.length > 0 && (
                         <Check
@@ -1206,12 +1230,13 @@ export function NewOrderContent() {
                           aria-hidden="true"
                         />
                       )}
-                      2) {t('itemsGrid.orderItems') || 'Order Items'} (
+                      2) {t('itemsGrid.orderItems')} (
                       {state.state.items.length})
                     </CmxButton>
                     {trackByPiece && state.state.items.length > 0 && (
                       <>
                         <CmxButton
+                          id="new-order-tab-piecePreferences"
                           type="button"
                           variant={activeTab === 'piecePreferences' ? 'primary' : 'ghost'}
                           role="tab"
@@ -1220,40 +1245,42 @@ export function NewOrderContent() {
                           onClick={() =>
                             setRequestedActiveTab('piecePreferences')
                           }
-                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'piecePreferences' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                          className={`shrink-0 whitespace-nowrap flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'piecePreferences' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                         >
                           3) {t('pieces.editItemPreferences')} ({totalPieces})
                         </CmxButton>
                         <CmxButton
+                          id="new-order-tab-pieces"
                           type="button"
                           variant={activeTab === 'pieces' ? 'primary' : 'ghost'}
                           role="tab"
                           aria-selected={activeTab === 'pieces'}
                           tabIndex={activeTab === 'pieces' ? 0 : -1}
                           onClick={() => setRequestedActiveTab('pieces')}
-                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'pieces' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                          className={`shrink-0 whitespace-nowrap flex-1 px-4 py-2 rounded-lg text-sm font-semibold ${activeTab === 'pieces' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                         >
-                          4) {t('pieces.editItemNotes') || 'Edit Item Notes'} (
+                          4) {t('pieces.editItemNotes')} (
                           {totalPieces})
                         </CmxButton>
                       </>
                     )}
                     {state.state.customer !== null && (
                       <CmxButton
+                        id="new-order-tab-customer"
                         type="button"
                         variant={activeTab === 'customer' ? 'primary' : 'ghost'}
                         role="tab"
                         aria-selected={activeTab === 'customer'}
                         tabIndex={activeTab === 'customer' ? 0 : -1}
                         onClick={() => setRequestedActiveTab('customer')}
-                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 ${activeTab === 'customer' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
+                        className={`shrink-0 whitespace-nowrap flex-1 px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 ${activeTab === 'customer' ? 'shadow-md' : 'bg-muted text-foreground hover:bg-border'}`}
                       >
                         <Check
                           className="w-4 h-4 shrink-0"
                           aria-hidden="true"
                         />
                         {trackByPiece ? '5)' : '3)'}{' '}
-                        {t('customerDetails.title') || 'Customer Details'}
+                        {t('customerDetails.title')}
                       </CmxButton>
                     )}
                   </div>
@@ -1518,6 +1545,6 @@ export function NewOrderContent() {
           onRemove={() => state.setItemLineDiscount(discountItem.productId, null)}
         />
       ) : null}
-    </div>
+    </section>
   );
 }

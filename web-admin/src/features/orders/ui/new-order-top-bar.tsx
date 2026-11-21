@@ -8,7 +8,7 @@
 
 import { ServiceSpeedSelect } from './service-speed-select';
 import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
-import { memo, type ReactNode } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useEditControlGroup } from '../order-change/use-edit-control-capability';
@@ -16,7 +16,8 @@ import { CategoryTabs } from './category-tabs';
 import { CategoryTabsSkeleton } from './loading-skeletons';
 import { UserPlus, UserCheck, Edit2, Settings2 } from 'lucide-react';
 import type { BranchOption } from '@/lib/services/inventory-service';
-import { CmxButton, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxSelect, Label } from '@ui/primitives';
+import { CmxAlertDialog } from '@ui/feedback';
 import {
   SELECTABLE_NEW_ORDER_SOURCE_CODES,
   type OrderSourceCode,
@@ -105,6 +106,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   const tCommon = useTranslations('common');
   const tOrders = useTranslations('orders');
   const isRTL = useRTL();
+  const [pendingBranchId, setPendingBranchId] = useState<string | null>(null);
   const speedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED'], 'ORDER');
   const orderTypeOptions = ORDER_TYPE_ID_VALUES.map((code) => ({
     value: code,
@@ -131,16 +133,12 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
               if (branchLocked) return;
               const newId = e.target.value || null;
               if (hasBranchDependentData && newId && newId !== branchId) {
-                // cmx-ds-ignore UI002: synchronous confirmation gates branch change before state clear
-                const confirmed = window.confirm(
-                  t('warnings.changeBranchConfirm') || 'Changing the branch will clear your current order data. Continue?'
-                );
-                if (!confirmed) return;
+                setPendingBranchId(newId);
+                return;
               }
               onBranchChange(newId);
             }}
             className={`max-w-[180px] text-start ${branchLocked ? 'border-border bg-muted text-foreground' : !branchId ? 'border-warning bg-warning-bg' : 'border-border'}`}
-            dir={isRTL ? 'rtl' : 'ltr'}
             aria-label={tCommon('branch')}
             options={[
               { value: '', label: tCommon('selectBranch') },
@@ -224,9 +222,9 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
         {showOrderContextSelectors && (
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              <Label htmlFor="new-order-type" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {t('topBar.orderTypeLabel')}
-              </span>
+              </Label>
               <CmxSelect
                 id="new-order-type"
                 value={orderTypeId}
@@ -235,15 +233,14 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
                 size="sm"
                 fullWidth={false}
                 className="min-w-[10.5rem]"
-                dir={isRTL ? 'rtl' : 'ltr'}
                 aria-label={t('topBar.orderTypeLabel')}
               />
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+              <Label htmlFor="new-order-source" className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                 {t('topBar.orderSourceLabel')}
-              </span>
+              </Label>
               <CmxSelect
                 id="new-order-source"
                 value={orderSourceCode}
@@ -252,7 +249,6 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
                 size="sm"
                 fullWidth={false}
                 className="min-w-[9.5rem]"
-                dir={isRTL ? 'rtl' : 'ltr'}
                 aria-label={t('topBar.orderSourceLabel')}
               />
             </div>
@@ -281,6 +277,21 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
           )}
         </div>
       )}
+
+      <CmxAlertDialog
+        open={pendingBranchId !== null}
+        title={tCommon('branch')}
+        message={t('warnings.changeBranchConfirm')}
+        variant="warning"
+        confirmLabel={tCommon('confirm')}
+        cancelLabel={tCommon('cancel')}
+        onConfirm={() => {
+          const nextBranchId = pendingBranchId;
+          setPendingBranchId(null);
+          if (nextBranchId) onBranchChange(nextBranchId);
+        }}
+        onCancel={() => setPendingBranchId(null)}
+      />
     </div>
   );
 });

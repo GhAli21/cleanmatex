@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { Search } from 'lucide-react'
+import { ArrowDown, ArrowUp, Search } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders'
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config'
@@ -29,7 +29,8 @@ import {
 } from '@/lib/constants/ready-list-focus'
 import { CmxButton, CmxCard, CmxInput, CmxSelect, CmxSkeleton } from '@ui/primitives'
 import { CmxEmptyState } from '@ui/data-display'
-import { CmxSummaryMessage } from '@ui/feedback'
+import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
+import { CmxStatusBadge, CmxSummaryMessage, type CmxBadgeTone } from '@ui/feedback'
 import { CmxPagination } from '@ui/navigation'
 import { cn } from '@lib/utils'
 
@@ -68,6 +69,7 @@ interface ReadyListRow {
  */
 export function ReadyListScreen() {
   const t = useTranslations('workflow')
+  const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -91,9 +93,9 @@ export function ReadyListScreen() {
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  const { orders: rawOrders, pagination, isLoading, isFetching, error } = useScreenOrders<ReadyListApiOrder>('ready', {
+  const { orders: rawOrders, pagination, isLoading, isFetching, error, refetch } = useScreenOrders<ReadyListApiOrder>('ready', {
     page: query.page,
-    limit: 20,
+    limit: CMX_DEFAULT_PAGE_SIZE,
     enabled: !!currentTenant,
     useOldWfCodeOrNew: useNewWorkflowSystem,
     search: debouncedSearch || undefined,
@@ -150,15 +152,17 @@ export function ReadyListScreen() {
       : status === 'PARTIALLY_PAID'
         ? 'paymentStatus.partial'
         : 'paymentStatus.pending'
-    const cls = status === 'PAID'
-      ? 'bg-success/12 text-success'
+    const tone: CmxBadgeTone = status === 'PAID'
+      ? 'success'
       : status === 'PARTIALLY_PAID'
-        ? 'bg-warning/12 text-warning'
-        : 'bg-muted text-muted-foreground'
+        ? 'warning'
+        : 'neutral'
     return (
-      <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
-        {t(`ready.${key}`)}
-      </span>
+      <CmxStatusBadge
+        size="sm"
+        tone={tone}
+        label={t(`ready.${key}`)}
+      />
     )
   }
 
@@ -166,13 +170,24 @@ export function ReadyListScreen() {
 
   return (
     <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">
-          {query.desk ? t('ready.focus.counterTitle') : t('screens.ready')}
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          {query.desk ? t('ready.focus.counterDescription') : t('ready.description')}
-        </p>
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {query.desk ? t('ready.focus.counterTitle') : t('screens.ready')}
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            {query.desk ? t('ready.focus.counterDescription') : t('ready.description')}
+          </p>
+        </div>
+        <CmxButton
+          type="button"
+          variant="outline"
+          size="sm"
+          loading={isFetching}
+          onClick={() => void refetch()}
+        >
+          {tCommon('refresh')}
+        </CmxButton>
       </div>
 
       <div className="mb-4">
@@ -195,7 +210,7 @@ export function ReadyListScreen() {
             fullWidth={false}
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value)}
-            aria-label={t('ready.sortBy.orderNo')}
+            aria-label={t('labels.sortBy')}
             options={[
               { value: 'order_no', label: t('ready.sortBy.orderNo') },
               { value: 'received_at', label: t('ready.sortBy.receivedAt') },
@@ -208,14 +223,27 @@ export function ReadyListScreen() {
             variant="outline"
             onClick={() => setSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'))}
           >
+            {sortOrder === 'asc' ? (
+              <ArrowUp className="me-1.5 h-4 w-4" aria-hidden="true" />
+            ) : (
+              <ArrowDown className="me-1.5 h-4 w-4" aria-hidden="true" />
+            )}
             {sortOrder === 'asc' ? t('ready.sortOrder.asc') : t('ready.sortOrder.desc')}
           </CmxButton>
         </div>
       </div>
 
       {error ? (
-        <div className="mb-6">
+        <div className="mb-6 space-y-2">
           <CmxSummaryMessage type="error" title={t('ready.messages.loadFailed')} items={[error]} />
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void refetch()}
+          >
+            {tCommon('retry')}
+          </CmxButton>
         </div>
       ) : null}
 
@@ -237,63 +265,81 @@ export function ReadyListScreen() {
             isFetching ? 'opacity-70' : undefined,
           )}
         >
-          {orders.map((order) => (
-            <Link
-              key={order.id}
-              href={`/dashboard/ready/${order.id}?returnUrl=${encodeURIComponent(listPath)}`}
-              className="block"
-            >
-              <CmxCard className="h-full p-6 transition-shadow hover:shadow-md">
-                <div className="mb-4 flex items-start justify-between gap-2">
-                  <h3 className="text-xl font-bold text-primary-text">
-                    <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
-                  </h3>
-                  <div className="flex flex-col items-end gap-1">
-                    <PickupReleaseStatus
-                      release={order.pickup_release}
-                      workflowStatus={order.current_status}
-                    />
-                    {paymentStatusBadge(order.payment_status)}
-                  </div>
-                </div>
+          {orders.map((order) => {
+            const formattedReadyBy = order.ready_by && !Number.isNaN(new Date(order.ready_by).getTime())
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+                new Date(order.ready_by),
+              )
+              : null
 
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{t('labels.customer')}:</span>
-                    <span>{order.customer.name}</span>
+            return (
+              <Link
+                key={order.id}
+                href={`/dashboard/ready/${order.id}?returnUrl=${encodeURIComponent(listPath)}`}
+                className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <CmxCard className="h-full p-6 transition-shadow hover:shadow-md">
+                  <div className="mb-4 flex items-start justify-between gap-2">
+                    <h3 className="text-xl font-bold text-primary-text">
+                      <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
+                    </h3>
+                    <div className="flex flex-col items-end gap-1">
+                      <PickupReleaseStatus
+                        release={order.pickup_release}
+                        workflowStatus={order.current_status}
+                      />
+                      {paymentStatusBadge(order.payment_status)}
+                    </div>
                   </div>
-                  {order.customer.phone ? (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{t('labels.phone')}:</span>
-                      <span>{order.customer.phone}</span>
-                    </div>
-                  ) : null}
-                  {order.rack_location ? (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{t('ready.rack')}:</span>
-                      <span className="font-bold">{order.rack_location}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{t('ready.total')}:</span>
-                    <span className="font-bold">{fmt(Number(order.total ?? 0))}</span>
-                  </div>
-                  {order.remaining > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{t('ready.paymentSection.remainingDue')}:</span>
-                      <span className="font-bold">{fmt(order.remaining)}</span>
-                    </div>
-                  ) : null}
-                </div>
 
-                <div className="mt-4 border-t border-border pt-4">
-                  <span className="block w-full rounded-lg bg-success px-4 py-2 text-center text-on-solid">
-                    {t('ready.actions.open')}
-                  </span>
-                </div>
-              </CmxCard>
-            </Link>
-          ))}
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{t('labels.customer')}:</span>
+                      <span>{order.customer.name}</span>
+                    </div>
+                    {order.customer.phone ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{t('labels.phone')}:</span>
+                        <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
+                      </div>
+                    ) : null}
+                    {order.rack_location ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{t('ready.rack')}:</span>
+                        <span className="font-bold text-foreground">{order.rack_location}</span>
+                      </div>
+                    ) : null}
+                    {formattedReadyBy ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{t('ready.sortBy.readyBy')}:</span>
+                        <span className="tabular-nums">{formattedReadyBy}</span>
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{t('ready.total')}:</span>
+                      <bdi dir="ltr" className="font-bold text-foreground tabular-nums">
+                        {fmt(Number(order.total ?? 0))}
+                      </bdi>
+                    </div>
+                    {order.remaining > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{t('ready.paymentSection.remainingDue')}:</span>
+                        <bdi dir="ltr" className="font-bold text-warning-text tabular-nums">
+                          {fmt(order.remaining)}
+                        </bdi>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 border-t border-border pt-4">
+                    <span className="block w-full rounded-lg bg-primary px-4 py-2 text-center font-medium text-primary-foreground">
+                      {t('ready.actions.open')}
+                    </span>
+                  </div>
+                </CmxCard>
+              </Link>
+            )
+          })}
         </div>
       )}
 

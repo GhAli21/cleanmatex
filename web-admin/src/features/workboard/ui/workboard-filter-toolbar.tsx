@@ -102,7 +102,7 @@ export function WorkboardFilterToolbar({
 
   return (
     <CmxCard className="shadow-sm">
-      <CmxCardHeader className="flex flex-col gap-2 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] p-3 pb-2 md:p-3 md:pb-2 lg:flex-row lg:items-center lg:justify-between">
+      <CmxCardHeader className="flex flex-col gap-2 border-b border-border p-3 pb-2 md:p-3 md:pb-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <CmxCardTitle>{t('filters.title')}</CmxCardTitle>
           <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -120,7 +120,7 @@ export function WorkboardFilterToolbar({
           {activeFilters.map((item) => (
             <span
               key={item}
-              className="inline-flex items-center rounded-full border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-muted px-3 py-1 text-xs text-foreground"
+              className="inline-flex items-center rounded-full border border-border bg-muted px-3 py-1 text-xs text-foreground"
             >
               {item}
             </span>
@@ -204,7 +204,11 @@ export function WorkboardFilterToolbar({
             <CmxSelectDropdownItem value="all">{t('filters.allPriorities')}</CmxSelectDropdownItem>
             {metadata?.priorities.map((value) => (
               <CmxSelectDropdownItem key={value} value={value}>
-                {value}
+                {t('priority.label', {
+                  value: value
+                    .replace(/[_-]+/g, ' ')
+                    .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+                })}
               </CmxSelectDropdownItem>
             ))}
           </CmxSelectDropdownContent>

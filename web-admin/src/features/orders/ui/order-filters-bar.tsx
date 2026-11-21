@@ -9,7 +9,6 @@
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton, CmxSelect } from '@ui/primitives';
 import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
 import { resolveScan, scanResultHref } from '@features/scan/api/scan-api';
@@ -28,7 +27,6 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useTranslations('orders');
-  const isRTL = useRTL();
   const [search, setSearch] = useState(currentFilters.search || '');
 
   const handleFilterChange = (key: string, value: string) => {
@@ -94,7 +92,6 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           value={currentFilters.status || ''}
           onChange={(e) => handleFilterChange('status', e.target.value)}
           className="text-start"
-          dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByStatus')}
           options={[
             { value: '', label: t('allStatuses') },
@@ -114,7 +111,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           value={currentFilters.preparationStatus || ''}
           onChange={(e) => handleFilterChange('preparationStatus', e.target.value)}
           className="text-start"
-          dir={isRTL ? 'rtl' : 'ltr'}
+          aria-label={t('prepStatus')}
           options={[
             { value: '', label: t('allPrepStatuses') },
             { value: 'pending', label: t('prepStatuses.pending') },
@@ -128,7 +125,6 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           value={currentFilters.priority || ''}
           onChange={(e) => handleFilterChange('priority', e.target.value)}
           className="text-start"
-          dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByPriority')}
           options={[
             { value: '', label: t('allPriorities') },
@@ -143,7 +139,6 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           value={currentFilters.isRetail || ''}
           onChange={(e) => handleFilterChange('isRetail', e.target.value)}
           className="text-start"
-          dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByOrderType')}
           options={[
             { value: '', label: t('allOrders') },
@@ -156,7 +151,6 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           value={currentFilters.physicalIntakeStatus || ''}
           onChange={(e) => handleFilterChange('physicalIntakeStatus', e.target.value)}
           className="text-start"
-          dir={isRTL ? 'rtl' : 'ltr'}
           aria-label={t('filterByIntake')}
           options={[
             { value: '', label: t('allIntakeStatuses') },
@@ -171,6 +165,10 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         currentFilters.preparationStatus ||
         currentFilters.priority ||
         currentFilters.isRetail ||
+        currentFilters.physicalIntakeStatus ||
+        currentFilters.fromDate ||
+        currentFilters.toDate ||
+        currentFilters.orderSourceCode ||
         currentFilters.search) && (
         <div className="mt-3">
           <CmxButton

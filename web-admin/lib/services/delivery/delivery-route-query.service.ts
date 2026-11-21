@@ -65,6 +65,7 @@ export interface DeliveryRouteListItem {
   routeNumber: string;
   statusCode: string;
   driverId: string | null;
+  driverName: string | null;
   branchId: string | null;
   totalStops: number;
   completedStops: number;
@@ -327,6 +328,9 @@ export class DeliveryRouteQueryService {
           created_by: true,
           updated_by: true,
           updated_at: true,
+          org_drivers_mst: {
+            select: { name: true },
+          },
         },
       }),
       prisma.org_dlv_routes_mst.count({ where }),
@@ -338,6 +342,7 @@ export class DeliveryRouteQueryService {
         routeNumber: route.route_number,
         statusCode: route.route_status_code ?? 'planned',
         driverId: route.driver_id,
+        driverName: route.org_drivers_mst?.name ?? null,
         branchId: route.branch_id,
         totalStops: route.total_stops ?? 0,
         completedStops: route.completed_stops ?? 0,

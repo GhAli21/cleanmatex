@@ -17,10 +17,12 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import { CmxEmptyState, CmxKpiStatCard } from '@ui/data-display';
-import { CmxStatusBadge } from '@ui/feedback';
+import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
+import { CmxPagination } from '@ui/navigation';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxSpinner } from '@ui/primitives';
+import { CmxButton, CmxSkeleton } from '@ui/primitives';
 import { Truck, CheckCircle2 } from 'lucide-react';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
@@ -93,12 +95,28 @@ function DeliveryOrderStatusBadge({ status }: { status: string }) {
 
 interface DeliveryRoute {
   id: string;
-  route_number: string;
-  route_status_code: string;
-  driver_id: string | null;
-  total_stops: number;
-  completed_stops: number;
-  created_at: string;
+  routeNumber?: string;
+  route_number?: string;
+  statusCode?: string;
+  route_status_code?: string;
+  driverId?: string | null;
+  driver_id?: string | null;
+  driverName?: string | null;
+  driver_name?: string | null;
+  totalStops?: number;
+  total_stops?: number;
+  completedStops?: number;
+  completed_stops?: number;
+  createdAt?: string | null;
+  created_at?: string | null;
+}
+
+function routeStatusTone(statusCode: string): CmxBadgeTone {
+  const normalized = statusCode.trim().toLowerCase();
+  if (normalized === 'completed') return 'success';
+  if (normalized === 'in_progress' || normalized === 'active') return 'info';
+  if (normalized === 'cancelled' || normalized === 'failed') return 'danger';
+  return 'warning';
 }
 
 /**
@@ -115,6 +133,8 @@ export default function DeliveryPage() {
 function DeliveryReadOnlyScreen() {
   const t = useTranslations('workflow');
   const tCollect = useTranslations('orders.collectPayment');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const { currentTenant } = useAuth();
   const { formatMoneyWithCode } = useTenantCurrency();
   const canReadRoutes = useHasPermissionCode('drivers:read');
@@ -122,15 +142,17 @@ function DeliveryReadOnlyScreen() {
   const useNewWorkflowSystem = useWorkflowSystemMode();
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(CMX_DEFAULT_PAGE_SIZE);
   const {
     orders: rawOrders,
     pagination,
     isLoading,
+    isFetching,
     error,
     refetch: refetchOrders,
   } = useScreenOrders<DeliveryOrderRecord>(WORKFLOW_SCREENS.DRIVER_DELIVERY, {
     page,
-    limit: 20,
+    limit: pageSize,
     enabled: !!currentTenant,
     useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['out_for_delivery'],
@@ -182,7 +204,7 @@ function DeliveryReadOnlyScreen() {
       const res = await fetch(`/api/v1/orders?${params.toString()}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Failed to load delivered count');
+        throw new Error(json.error || tCommon('error'));
       }
       return json;
     },
@@ -216,7 +238,7 @@ function DeliveryReadOnlyScreen() {
       );
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Failed to load routes');
+        throw new Error(json.error || tCommon('error'));
       }
       return json;
     },
@@ -232,36 +254,67 @@ function DeliveryReadOnlyScreen() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <CmxSpinner size="lg" />
+      <div className="max-w-6xl mx-auto space-y-6 p-6">
+        <CmxSkeleton className="h-10 w-64" />
+        <div className="grid grid-cols-2 gap-4">
+          <CmxSkeleton className="h-24 w-full" />
+          <CmxSkeleton className="h-24 w-full" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <CmxSkeleton className="h-32 w-full" />
+          <CmxSkeleton className="h-32 w-full" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Truck className="h-8 w-8" />
-          {t('screens.delivery')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('delivery.description')}</p>
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Truck className="h-8 w-8" aria-hidden="true" />
+            {t('screens.delivery')}
+          </h1>
+          <p className="text-muted-foreground mt-1">{t('delivery.description')}</p>
+        </div>
+        <CmxButton
+          type="button"
+          variant="outline"
+          size="sm"
+          loading={isFetching}
+          onClick={() => void refetchOrders()}
+        >
+          {tCommon('refresh')}
+        </CmxButton>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <CmxKpiStatCard
           title={t('delivery.stats.outForDelivery')}
           value={pagination.total}
-          icon={<Truck className="h-5 w-5" />}
+          icon={<Truck className="h-5 w-5" aria-hidden="true" />}
         />
         <CmxKpiStatCard
           title={t('delivery.stats.completedToday')}
           value={deliveredTodayCount}
-          icon={<CheckCircle2 className="h-5 w-5" />}
+          icon={<CheckCircle2 className="h-5 w-5" aria-hidden="true" />}
         />
       </div>
 
-      {error && <CmxSummaryMessage type="error" message={error} className="mb-6" />}
+      {error && (
+        <div className="mb-6 space-y-2">
+          <CmxSummaryMessage type="error" message={error} />
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void refetchOrders()}
+          >
+            {tCommon('retry')}
+          </CmxButton>
+        </div>
+      )}
 
       {orders.length === 0 ? (
         <CmxEmptyState title={t('delivery.empty')} />
@@ -270,8 +323,8 @@ function DeliveryReadOnlyScreen() {
           {orders.map((order) => (
             <CmxCard key={order.id} className="hover:shadow-lg transition-all">
               <CmxCardContent className="p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/dashboard/delivery/${order.id}?returnUrl=${encodeURIComponent('/dashboard/delivery')}&returnLabel=${encodeURIComponent(
@@ -284,13 +337,15 @@ function DeliveryReadOnlyScreen() {
                       <DeliveryOrderStatusBadge status={order.status} />
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {order.customer.name} • {order.customer.phone}
+                      <span>{order.customer.name}</span>
+                      {' • '}
+                      <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-1 tabular-nums">
                       {t('delivery.items')}: {order.total_items}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-end gap-2">
                     {canCollectPayment &&
                     order.paymentTypeCode ===
                       SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION &&
@@ -323,34 +378,24 @@ function DeliveryReadOnlyScreen() {
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <CmxButton
-            type="button"
-            variant="outline"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            {t('labels.previous')}
-          </CmxButton>
-          <div className="text-sm text-muted-foreground">
-            {t('labels.pageOf', {
-              page: pagination.page,
-              totalPages: pagination.totalPages,
-            })}
-          </div>
-          <CmxButton
-            type="button"
-            variant="outline"
-            disabled={page >= pagination.totalPages}
-            onClick={() =>
-              setPage((p) => Math.min(pagination.totalPages, p + 1))
-            }
-          >
-            {t('labels.next')}
-          </CmxButton>
-        </div>
-      )}
+      <div className="mt-6">
+        <CmxPagination
+          currentPage={pagination.page}
+          totalPages={Math.max(1, pagination.totalPages)}
+          pageSize={pageSize}
+          totalItems={pagination.total}
+          pageSizeOptions={[...CMX_PAGE_SIZE_OPTIONS]}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onPageSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(1);
+          }}
+          showPageSizeSelector
+          showWhenSinglePage={false}
+          disabled={isLoading || isFetching}
+          labels={{ noItems: t('delivery.empty') }}
+        />
+      </div>
 
       {canReadRoutes ? (
         <div className="mt-10">
@@ -358,7 +403,7 @@ function DeliveryReadOnlyScreen() {
             <h2 className="text-xl font-semibold">
               {t('delivery.routes.listTitle')}
             </h2>
-            <CmxButton variant="outline" onClick={() => refetchRoutes()}>
+            <CmxButton variant="outline" size="sm" onClick={() => void refetchRoutes()}>
               {t('delivery.routes.actions.refresh')}
             </CmxButton>
           </div>
@@ -372,86 +417,86 @@ function DeliveryReadOnlyScreen() {
           ) : null}
 
           {routesLoading ? (
-            <div className="flex items-center justify-center h-40">
-              <CmxSpinner size="lg" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <CmxSkeleton className="h-36 w-full" />
+              <CmxSkeleton className="h-36 w-full" />
             </div>
           ) : routes.length === 0 ? (
-            <CmxCard>
-              <CmxCardContent className="py-10 text-center text-muted-foreground">
-                {t('delivery.routes.empty')}
-              </CmxCardContent>
-            </CmxCard>
+            <CmxEmptyState title={t('delivery.routes.empty')} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {routes.map((r) => (
-                <CmxCard key={r.id}>
-                  <CmxCardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{r.route_number}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {t('delivery.routes.fields.status')}:{' '}
-                          {r.route_status_code}
+              {routes.map((r) => {
+                const routeNumber = r.routeNumber ?? r.route_number ?? '';
+                const statusCode = r.statusCode ?? r.route_status_code ?? 'planned';
+                const driverName = r.driverName ?? r.driver_name ?? null;
+                const totalStops = r.totalStops ?? r.total_stops ?? 0;
+                const completedStops = r.completedStops ?? r.completed_stops ?? 0;
+                const createdAt = r.createdAt ?? r.created_at ?? null;
+                const formattedDate = createdAt
+                  ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(createdAt))
+                  : '—';
+
+                return (
+                  <CmxCard key={r.id}>
+                    <CmxCardContent className="p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {routeNumber ? (
+                              <CmxCodeChip code={routeNumber} kind="order" size="sm" copyable={false} />
+                            ) : null}
+                            <CmxStatusBadge
+                              label={statusCode.replace(/_/g, ' ')}
+                              tone={routeStatusTone(statusCode)}
+                              size="sm"
+                            />
+                          </div>
+                          <div className="text-xs text-muted-foreground tabular-nums">
+                            {t('delivery.routes.fields.stops')}:{' '}
+                            {completedStops}/{totalStops}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t('delivery.routes.fields.stops')}:{' '}
-                          {r.completed_stops}/{r.total_stops}
+                        <div className="text-xs text-muted-foreground tabular-nums">
+                          {formattedDate}
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(r.created_at).toLocaleDateString()}
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        {t('delivery.routes.fields.driverId')}:{' '}
+                        <span className="font-medium text-foreground">
+                          {driverName || t('delivery.routes.fields.unassigned')}
+                        </span>
                       </div>
-                    </div>
-                    <div className="mt-3 text-xs text-muted-foreground">
-                      {t('delivery.routes.fields.driverId')}:{' '}
-                      {r.driver_id || t('delivery.routes.fields.unassigned')}
-                    </div>
-                    <CmxButton
-                      className="mt-4"
-                      size="sm"
-                      variant="outline"
-                      asChild
-                    >
-                      <Link href={`/dashboard/delivery/routes/${r.id}`}>
-                        {t('delivery.routes.actions.openManifest')}
-                      </Link>
-                    </CmxButton>
-                  </CmxCardContent>
-                </CmxCard>
-              ))}
+                      <CmxButton
+                        className="mt-4"
+                        size="sm"
+                        variant="outline"
+                        asChild
+                      >
+                        <Link href={`/dashboard/delivery/routes/${r.id}`}>
+                          {t('delivery.routes.actions.openManifest')}
+                        </Link>
+                      </CmxButton>
+                    </CmxCardContent>
+                  </CmxCard>
+                );
+              })}
             </div>
           )}
 
-          {routesPagination.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <CmxButton
-                type="button"
-                variant="outline"
-                disabled={routesPage <= 1}
-                onClick={() => setRoutesPage((p) => Math.max(1, p - 1))}
-              >
-                {t('labels.previous')}
-              </CmxButton>
-              <div className="text-sm text-muted-foreground">
-                {t('labels.pageOf', {
-                  page: routesPagination.page,
-                  totalPages: routesPagination.totalPages,
-                })}
-              </div>
-              <CmxButton
-                type="button"
-                variant="outline"
-                disabled={routesPage >= routesPagination.totalPages}
-                onClick={() =>
-                  setRoutesPage((p) =>
-                    Math.min(routesPagination.totalPages, p + 1),
-                  )
-                }
-              >
-                {t('labels.next')}
-              </CmxButton>
-            </div>
-          )}
+          <div className="mt-4">
+            <CmxPagination
+              currentPage={routesPagination.page}
+              totalPages={Math.max(1, routesPagination.totalPages)}
+              pageSize={routesPagination.limit}
+              totalItems={routesPagination.total}
+              onPageChange={(nextPage) => setRoutesPage(nextPage)}
+              onPageSizeChange={() => undefined}
+              showPageSizeSelector={false}
+              showWhenSinglePage={false}
+              disabled={routesLoading}
+              labels={{ noItems: t('delivery.routes.empty') }}
+            />
+          </div>
         </div>
       ) : null}
       {collectionOrder ? (

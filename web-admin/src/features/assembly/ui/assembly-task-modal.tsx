@@ -27,8 +27,9 @@ import {
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowProfileStaffMessage } from '@/lib/hooks/use-workflow-profile-staff-message';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { CmxSummaryMessage } from '@ui/feedback';
 import { useMessage } from '@ui/feedback/useMessage';
-import { X, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface AssemblyTaskModalProps {
   orderId: string;
@@ -54,6 +55,7 @@ export function AssemblyTaskModal({
   onComplete,
 }: AssemblyTaskModalProps) {
   const t = useTranslations('workflow.assembly.task');
+  const tCommon = useTranslations('common');
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
   const { showSuccess, showError } = useMessage();
   const profileStaffMessage = useWorkflowProfileStaffMessage();
@@ -186,12 +188,18 @@ export function AssemblyTaskModal({
           </CmxDialogHeader>
           <div className="space-y-6">
             {isError ? (
-              <div className="rounded-lg border border-danger-border bg-danger-bg px-4 py-3 text-sm text-danger-text">
-                {(error as Error)?.message || t('messages.loadFailed')}
+              <div className="space-y-2">
+                <CmxSummaryMessage
+                  type="error"
+                  message={(error as Error)?.message || t('messages.loadFailed')}
+                />
+                <CmxButton type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+                  {tCommon('retry')}
+                </CmxButton>
               </div>
             ) : null}
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-lg bg-info-bg p-4">
                 <div className="text-sm text-muted-foreground">
                   {t('metrics.totalItems')}

@@ -16,7 +16,6 @@ import {
   ExternalLink,
   FileText,
   ListChecks,
-  Loader2,
   MoreVertical,
   PackageOpen,
   RotateCcw,

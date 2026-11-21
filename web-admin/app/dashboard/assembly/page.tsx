@@ -5,7 +5,8 @@
 
 'use client';
 
-import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { CmxCodeChip, CmxEmptyState, CmxKpiStatCard } from '@ui/data-display';
+import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -14,10 +15,11 @@ import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useAssemblyDashboard, useCreateAssemblyTask } from '@/src/features/assembly/hooks/use-assembly';
 import { AssemblyTaskModal } from '@/src/features/assembly/ui/assembly-task-modal';
+import { CmxStatusBadge, CmxSummaryMessage } from '@ui/feedback';
 import { useMessage } from '@ui/feedback/useMessage';
-import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxPagination } from '@ui/navigation';
+import { CmxButton, CmxSkeleton } from '@ui/primitives';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
-import { CmxKpiStatCard } from '@ui/data-display/cmx-kpi-stat-card';
 import { Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface AssemblyOrder {
@@ -33,21 +35,24 @@ interface AssemblyOrder {
  */
 export default function AssemblyPage() {
   const t = useTranslations('workflow');
+  const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const { showSuccess, showError: showErrorMsg } = useMessage();
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(CMX_DEFAULT_PAGE_SIZE);
+  const [creatingOrderId, setCreatingOrderId] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrderNo, setSelectedOrderNo] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const { data: dashboardData } = useAssemblyDashboard();
-  const { mutateAsync: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
+  const { mutateAsync: createTask } = useCreateAssemblyTask();
 
-  const { orders: rawOrders, pagination, isLoading, error, refetch } = useScreenOrders<any>('assembly', {
+  const { orders: rawOrders, pagination, isLoading, isFetching, error, refetch } = useScreenOrders<any>('assembly', {
     page,
-    limit: 20,
+    limit: pageSize,
     enabled: !!currentTenant,
     useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['ready', 'assembly'],
@@ -73,6 +78,7 @@ export default function AssemblyPage() {
     e.preventDefault();
     e.stopPropagation();
 
+    setCreatingOrderId(order.id);
     try {
       const result = await createTask(order.id);
       if (result.success && result.taskId) {
@@ -87,61 +93,80 @@ export default function AssemblyPage() {
           ? err.message
           : t('assembly.messages.taskCreateFailed')
       );
+    } finally {
+      setCreatingOrderId(null);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div className="max-w-6xl mx-auto space-y-6 p-6">
+        <CmxSkeleton className="h-10 w-64" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <CmxSkeleton className="h-44 w-full" />
+          <CmxSkeleton className="h-44 w-full" />
+          <CmxSkeleton className="h-44 w-full" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">{t('screens.assembly')}</h1>
-        <p className="text-muted-foreground mt-1">{t('assembly.description')}</p>
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{t('screens.assembly')}</h1>
+          <p className="text-muted-foreground mt-1">{t('assembly.description')}</p>
+        </div>
+        <CmxButton
+          type="button"
+          variant="outline"
+          size="sm"
+          loading={isFetching}
+          onClick={() => void refetch()}
+        >
+          {tCommon('refresh')}
+        </CmxButton>
       </div>
 
       {dashboardData && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <CmxKpiStatCard title={t('assembly.stats.pending')} value={dashboardData.pendingTasks} icon={<Package className="h-5 w-5" />} />
-          <CmxKpiStatCard title={t('assembly.stats.inProgress')} value={dashboardData.inProgressTasks} icon={<Package className="h-5 w-5" />} />
-          <CmxKpiStatCard title={t('assembly.stats.qaPending')} value={dashboardData.qaPendingTasks} icon={<CheckCircle2 className="h-5 w-5" />} />
-          <CmxKpiStatCard title={t('assembly.stats.completedToday')} value={dashboardData.completedToday} icon={<CheckCircle2 className="h-5 w-5" />} />
-          <CmxKpiStatCard title={t('assembly.stats.openExceptions')} value={dashboardData.exceptionsOpen} icon={<AlertTriangle className="h-5 w-5" />} />
+          <CmxKpiStatCard title={t('assembly.stats.pending')} value={dashboardData.pendingTasks} icon={<Package className="h-5 w-5" aria-hidden="true" />} />
+          <CmxKpiStatCard title={t('assembly.stats.inProgress')} value={dashboardData.inProgressTasks} icon={<Package className="h-5 w-5" aria-hidden="true" />} />
+          <CmxKpiStatCard title={t('assembly.stats.qaPending')} value={dashboardData.qaPendingTasks} icon={<CheckCircle2 className="h-5 w-5" aria-hidden="true" />} />
+          <CmxKpiStatCard title={t('assembly.stats.completedToday')} value={dashboardData.completedToday} icon={<CheckCircle2 className="h-5 w-5" aria-hidden="true" />} />
+          <CmxKpiStatCard title={t('assembly.stats.openExceptions')} value={dashboardData.exceptionsOpen} icon={<AlertTriangle className="h-5 w-5" aria-hidden="true" />} />
         </div>
       )}
 
       {error && (
-        <div className="mb-6 bg-danger-bg border border-danger-border text-danger-text px-4 py-3 rounded-lg">
-          {error}
+        <div className="mb-6 space-y-2">
+          <CmxSummaryMessage type="error" message={error} />
+          <CmxButton type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+            {tCommon('retry')}
+          </CmxButton>
         </div>
       )}
 
       {orders.length === 0 ? (
-        <CmxCard>
-          <CmxCardContent className="py-12 text-center">
-            <p className="text-muted-foreground text-lg">{t('assembly.empty')}</p>
-          </CmxCardContent>
-        </CmxCard>
+        <CmxEmptyState title={t('assembly.empty')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {orders.map((order) => (
-            <CmxCard key={order.id} className="hover:shadow-lg transition-all cursor-pointer">
+            <CmxCard key={order.id} className="hover:shadow-lg transition-all">
               <CmxCardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-start gap-2 mb-4">
                   <Link
                     href={`/dashboard/assembly/${order.id}?returnUrl=${encodeURIComponent('/dashboard/assembly')}`}
                     className="text-xl font-bold text-primary-text hover:underline"
                   >
                     <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
                   </Link>
-                  <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs font-medium">
-                    {order.total_items} {t('assembly.items')}
-                  </span>
+                  <CmxStatusBadge
+                    size="sm"
+                    tone="neutral"
+                    label={`${order.total_items} ${t('assembly.items')}`}
+                  />
                 </div>
 
                 <div className="space-y-2 text-sm text-muted-foreground mb-4">
@@ -151,7 +176,7 @@ export default function AssemblyPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('labels.phone')}:</span>
-                    <span>{order.customer.phone}</span>
+                    <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
                   </div>
                 </div>
 
@@ -159,10 +184,10 @@ export default function AssemblyPage() {
                   <CmxButton
                     className="w-full"
                     onClick={(e) => handleAssembleOrder(order, e)}
-                    loading={isCreatingTask}
-                    disabled={isCreatingTask}
+                    loading={creatingOrderId === order.id}
+                    disabled={creatingOrderId !== null}
                   >
-                    <Package className="h-4 w-4 me-2" />
+                    <Package className="h-4 w-4 me-2" aria-hidden="true" />
                     {t('assembly.actions.assembleOrder')}
                   </CmxButton>
                 </div>
@@ -172,29 +197,24 @@ export default function AssemblyPage() {
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <CmxButton
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            {t('labels.previous')}
-          </CmxButton>
-          <div className="text-sm text-muted-foreground">
-            {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
-          </div>
-          <CmxButton
-            variant="outline"
-            size="sm"
-            disabled={page >= pagination.totalPages}
-            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-          >
-            {t('labels.next')}
-          </CmxButton>
-        </div>
-      )}
+      <div className="mt-6">
+        <CmxPagination
+          currentPage={pagination.page}
+          totalPages={Math.max(1, pagination.totalPages)}
+          pageSize={pageSize}
+          totalItems={pagination.total}
+          pageSizeOptions={[...CMX_PAGE_SIZE_OPTIONS]}
+          onPageChange={(nextPage) => setPage(nextPage)}
+          onPageSizeChange={(nextSize) => {
+            setPageSize(nextSize);
+            setPage(1);
+          }}
+          showPageSizeSelector
+          showWhenSinglePage={false}
+          disabled={isLoading || isFetching}
+          labels={{ noItems: t('assembly.empty') }}
+        />
+      </div>
 
       {selectedOrderId && selectedTaskId && (
         <AssemblyTaskModal

@@ -14,6 +14,7 @@
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
 import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback/cmx-status-badge';
+import { CmxButton } from '@ui/primitives';
 import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
 import { OrderStatusBadge } from './order-status-badge';
 import Link from 'next/link';
@@ -35,6 +36,7 @@ interface OrdersSimpleTableProps {
     limit: number;
     totalPages: number;
   };
+  hasActiveFilters?: boolean;
 }
 
 /**
@@ -42,8 +44,13 @@ interface OrdersSimpleTableProps {
  * @param root0
  * @param root0.orders
  * @param root0.pagination
+ * @param root0.hasActiveFilters
  */
-export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps) {
+export function OrdersSimpleTable({
+  orders,
+  pagination,
+  hasActiveFilters = false,
+}: OrdersSimpleTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('orders');
@@ -167,7 +174,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
         <>
           {t('items')}
           {trackByPiece && (
-            <span className="ms-1 text-xs text-muted-foreground">/ {tPieces('totalPieces') || 'Pieces'}</span>
+            <span className="ms-1 text-xs text-muted-foreground">/ {tPieces('totalPieces')}</span>
           )}
         </>
       ),
@@ -178,7 +185,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
           <bdi className="tabular-nums">{formatNumber(order.total_items)}</bdi>
           {trackByPiece && order.total_pieces !== null && order.total_pieces !== undefined && (
             <span className="mt-0.5 text-xs text-muted-foreground">
-              <bdi className="tabular-nums">{formatNumber(order.total_pieces)}</bdi> {tPieces('totalPieces') || 'pieces'}
+              <bdi className="tabular-nums">{formatNumber(order.total_pieces)}</bdi> {tPieces('totalPieces')}
             </span>
           )}
         </div>
@@ -252,17 +259,26 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
       onPageSizeChange={goToPageSize}
       showPageSizeSelector
       paginationFooter="always"
-      scrollable={false}
       auditConfig={false}
       onRowClick={(order) => router.push(`/dashboard/orders/${order.id}`)}
       emptyStateTitle={t('noOrdersFound')}
       emptyStateAction={
-        <Link
-          href="/dashboard/orders/new"
-          className="inline-block text-sm font-medium text-primary-text hover:text-primary-text/80"
-        >
-          {t('createFirstOrder')}
-        </Link>
+        hasActiveFilters ? (
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/dashboard/orders')}
+          >
+            {t('clearAllFilters')}
+          </CmxButton>
+        ) : (
+          <CmxButton variant="primary" size="sm" asChild>
+            <Link href="/dashboard/orders/new">
+              {t('createFirstOrder')}
+            </Link>
+          </CmxButton>
+        )
       }
     />
   );

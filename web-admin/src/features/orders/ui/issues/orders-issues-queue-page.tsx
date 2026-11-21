@@ -104,14 +104,23 @@ export function OrdersIssuesQueuePage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <CmxKpiStatCard
-          title={t('filterOpen')}
-          value={isLoading ? <CmxSkeleton className="h-7 w-12" /> : openInView}
-        />
-        <CmxKpiStatCard
-          title={t('listTitle')}
-          value={isLoading ? <CmxSkeleton className="h-7 w-12" /> : issues.length}
-        />
+        {isLoading ? (
+          <>
+            <CmxSkeleton className="h-24 w-full" />
+            <CmxSkeleton className="h-24 w-full" />
+          </>
+        ) : (
+          <>
+            <CmxKpiStatCard
+              title={t('filterOpen')}
+              value={openInView}
+            />
+            <CmxKpiStatCard
+              title={t('listTitle')}
+              value={issues.length}
+            />
+          </>
+        )}
       </div>
 
       <OrderIssuesFilterBar
@@ -187,8 +196,8 @@ export function OrdersIssuesQueuePage() {
           issueTypeLabel={
             locale === 'ar'
               ? solveTarget.issue_type_name2 ||
-                solveTarget.issue_type_name ||
-                solveTarget.issue_code
+              solveTarget.issue_type_name ||
+              solveTarget.issue_code
               : solveTarget.issue_type_name || solveTarget.issue_code
           }
           onOpenChange={(next) => {

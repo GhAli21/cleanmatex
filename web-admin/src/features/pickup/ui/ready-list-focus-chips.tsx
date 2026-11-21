@@ -73,14 +73,14 @@ export function ReadyListFocusChips({ query, onChange }: ReadyListFocusChipsProp
           {t('description')}
         </p>
       </div>
-      <div className="space-y-2">
-        <div role="group" aria-label={t('desk')} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+      <div className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label={t('desk')} className="flex items-center gap-1.5">
           {renderToggles(MODE_TOGGLES)}
         </div>
-        <div role="group" aria-label={t('statusGroup')} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+        <div role="group" aria-label={t('statusGroup')} className="flex items-center gap-1.5 sm:border-s sm:border-border sm:ps-2">
           {renderToggles(STATUS_TOGGLES)}
         </div>
-        <div role="group" aria-label={t('extraGroup')} className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+        <div role="group" aria-label={t('extraGroup')} className="flex flex-wrap items-center gap-1.5 sm:border-s sm:border-border sm:ps-2">
           {renderToggles(EXTRA_TOGGLES)}
           {readyListHasFilters(query) ? (
             <CmxButton

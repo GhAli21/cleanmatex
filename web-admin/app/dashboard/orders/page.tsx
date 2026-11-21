@@ -20,6 +20,7 @@ import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
 import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
 import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
+import { CmxButton, CmxSkeletonTable } from '@ui/primitives';
 import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
 
 /** Labels the tenant order list independently from individual order workspaces. */
@@ -66,9 +67,10 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     console.error('[OrdersPage] Auth error:', error);
     return (
       <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-text">
-          {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
-        </div>
+        <CmxSummaryMessage
+          type="error"
+          message={error instanceof Error ? error.message : t('failedToLoadOrders')}
+        />
       </div>
     );
   }
@@ -140,29 +142,41 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       actions={
         <>
           <OrdersRefreshButton />
-          <Link
-            href="/dashboard/orders?status=draft&physicalIntakeStatus=pending_dropoff"
-            className="text-sm font-medium text-warning-text hover:text-warning-text/80"
-          >
-            {t('awaitingDropoffQueue')}
-          </Link>
-          <Link
-            href="/dashboard/orders/new"
-            className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
-          >
-            + {t('newOrder')}
-          </Link>
+          <CmxButton variant="outline" size="sm" asChild>
+            <Link
+              href="/dashboard/orders?status=draft&physicalIntakeStatus=pending_dropoff"
+              className="text-warning-text border-warning-border hover:bg-warning-bg"
+            >
+              {t('awaitingDropoffQueue')}
+            </Link>
+          </CmxButton>
+          <CmxButton variant="primary" size="sm" asChild>
+            <Link href="/dashboard/orders/new">
+              + {t('newOrder')}
+            </Link>
+          </CmxButton>
         </>
       }
       kpis={statsData ? <OrderStatsCards stats={statsData} /> : undefined}
       filters={<OrderFiltersBar currentFilters={params} />}
     >
       {/* Orders table with graceful error state (simplified table component) */}
-      <Suspense fallback={<div>{t('loadingOrders')}</div>}>
+      <Suspense fallback={<CmxSkeletonTable rows={8} columns={8} />}>
         {ordersData ? (
           <OrdersSimpleTable
             orders={ordersData.orders}
             pagination={ordersData.pagination}
+            hasActiveFilters={Boolean(
+              params.status ||
+              params.preparationStatus ||
+              params.priority ||
+              params.isRetail ||
+              params.physicalIntakeStatus ||
+              params.fromDate ||
+              params.toDate ||
+              params.orderSourceCode ||
+              params.search
+            )}
           />
         ) : (
           <CmxSummaryMessage

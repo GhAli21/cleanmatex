@@ -1,15 +1,16 @@
 'use client'
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip'
-import { useCallback, useDeferredValue, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { SortingState } from '@tanstack/react-table'
 import { ClipboardList, Copy, ExternalLink, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
 import type { CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
+import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults'
 import { CmxSummaryMessage, CmxStatusBadge, useMessage, type CmxBadgeTone } from '@ui/feedback'
 
 import { useWorkboard } from '@features/workboard/hooks/use-workboard'
@@ -213,12 +214,13 @@ function WorkboardOrderReference({ order, returnUrl }: WorkboardOrderReferencePr
 export function WorkboardScreen() {
   const t = useTranslations('workboard')
   const locale = useLocale()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const message = useMessage()
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
-  const [pageSize, setPageSize] = useState(() => {
-    const value = Number(searchParams.get('pageSize')) || 25
-    return [10, 25, 50, 100].includes(value) ? value : 25
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const value = Number(searchParams.get('pageSize')) || CMX_DEFAULT_PAGE_SIZE
+    return CMX_PAGE_SIZE_OPTIONS.includes(value) ? value : CMX_DEFAULT_PAGE_SIZE
   })
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '')
   const [branchId, setBranchId] = useState<string | undefined>(() => searchParams.get('branchId') ?? undefined)
@@ -267,6 +269,14 @@ export function WorkboardScreen() {
   const data = isHydrated ? cachedData : undefined
   const isLoading = !isHydrated || isQueryLoading
   const workboardReturnUrl = useMemo(() => buildWorkboardReturnUrl(query), [query])
+
+  useEffect(() => {
+    if (!isHydrated) return
+    const current = `${window.location.pathname}${window.location.search}`
+    if (current !== workboardReturnUrl) {
+      router.replace(workboardReturnUrl, { scroll: false })
+    }
+  }, [isHydrated, router, workboardReturnUrl])
 
   const resetPage = () => setPage(1)
   const resetFilters = () => {
@@ -323,7 +333,11 @@ export function WorkboardScreen() {
             returnUrl={workboardReturnUrl}
           />
           <div className="text-xs text-muted-foreground">
-            {row.customerPhone ?? t('noPhone')}
+            {row.customerPhone ? (
+              <bdi dir="ltr" className="tabular-nums">{row.customerPhone}</bdi>
+            ) : (
+              t('noPhone')
+            )}
           </div>
         </div>
       ),
@@ -339,14 +353,6 @@ export function WorkboardScreen() {
             {row.branchName ?? t('noBranch')}
           </div>
         </div>
-      ),
-    },
-    {
-      key: 'branch',
-      header: t('columns.branch'),
-      sortable: false,
-      render: (row) => (
-        <span className="text-sm">{row.branchName ?? t('noBranch')}</span>
       ),
     },
     {
@@ -371,8 +377,8 @@ export function WorkboardScreen() {
       header: t('columns.age'),
       sortable: true,
       render: (row) => (
-        <div className="text-sm">
-          <div className={isOverdue(row) ? 'font-semibold text-destructive' : 'font-medium'}>
+        <div className="text-sm tabular-nums">
+          <div className={isOverdue(row) ? 'font-semibold text-danger-text' : 'font-medium'}>
             {formatAge(row.ageMinutes, t)}
           </div>
         </div>
@@ -383,8 +389,8 @@ export function WorkboardScreen() {
       header: t('columns.readyBy'),
       sortable: true,
       render: (row) => (
-        <div className="text-sm">
-          <div className={isOverdue(row) ? 'font-semibold text-destructive' : 'font-medium'}>
+        <div className="text-sm tabular-nums">
+          <div className={isOverdue(row) ? 'font-semibold text-danger-text' : 'font-medium'}>
             {row.readyByAt ? formatDateTime(row.readyByAt, locale) : t('noDueDate')}
           </div>
         </div>
@@ -411,11 +417,8 @@ export function WorkboardScreen() {
       header: t('columns.assignee'),
       sortable: true,
       render: (row) => (
-        <div className="space-y-1 text-sm">
-          <div>{row.assigneeName ?? t('unassigned')}</div>
-          <div className="text-xs text-muted-foreground">
-            {t(`owners.${row.ownerScreenKey}`)}
-          </div>
+        <div className="text-sm">
+          {row.assigneeName ?? t('unassigned')}
         </div>
       ),
     },
@@ -443,7 +446,7 @@ export function WorkboardScreen() {
       key: 'open',
       header: t('columns.open'),
       sortable: false,
-      align: 'right',
+      align: 'end',
       render: (row) => (
         <CmxButton size="sm" variant="outline" className="whitespace-nowrap" asChild>
           <Link href={`${row.ownerPath}?returnUrl=${encodeURIComponent(workboardReturnUrl)}`}>
@@ -477,6 +480,7 @@ export function WorkboardScreen() {
 
       <WorkboardOverviewCards
         summary={data?.summary}
+        loading={isLoading}
         ownerScreenKey={ownerScreenKey}
         blocker={blocker}
         sla={sla}
@@ -575,14 +579,14 @@ export function WorkboardScreen() {
             setPageSize(value)
             resetPage()
           }}
-          pageSizeOptions={[10, 25, 50, 100]}
+          pageSizeOptions={[...CMX_PAGE_SIZE_OPTIONS]}
           paginationFooter="always"
           showRowNumbers
           showColumnBorders
           headerSize="emphasized"
-          headerClassName="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]"
+          headerClassName="bg-muted"
           className="w-full shadow-sm"
-          tableClassName="min-w-[78rem]"
+          tableClassName="min-w-[64rem]"
           stickyEndColumnIds={['open']}
           scrollAreaClassName="min-h-[24rem] max-h-[calc(100vh-15rem)] overflow-auto"
           emptyStateTitle={t('empty.title')}
