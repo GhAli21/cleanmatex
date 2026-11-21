@@ -8,19 +8,20 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
-import { CmxSkeleton, CmxSkeletonTable } from '@ui/primitives';
+import { CmxButton, CmxSkeleton, CmxSkeletonTable } from '@ui/primitives';
 import { CmxSummaryMessage } from '@ui/feedback';
 import type { CmxScanStatus } from '@ui/forms';
 import { CmxPagination } from '@ui/navigation';
-import { CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
+import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
 import { orderNoFromCode } from '@/lib/validations/code-format-schemas';
 import type {
   ProcessingFilters,
@@ -48,7 +49,6 @@ const SimpleProcessingDialog = dynamic(
 );
 
 const FALLBACK_STATUSES = ['processing'] as const;
-const DEFAULT_PAGE_SIZE = 20;
 
 function toDayRangeIso(dateStr?: string): { from?: string; to?: string } {
   if (!dateStr) return {};
@@ -62,8 +62,26 @@ function toDayRangeIso(dateStr?: string): { from?: string; to?: string } {
  * Main Processing Queue screen (`/dashboard/processing`).
  */
 export default function ProcessingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full space-y-4">
+          <CmxSkeleton className="h-14 w-full" />
+          <CmxSkeletonTable rows={6} columns={8} />
+        </div>
+      }
+    >
+      <ProcessingQueueContent />
+    </Suspense>
+  );
+}
+
+function ProcessingQueueContent() {
   const t = useTranslations('processing');
   const tOrders = useTranslations('orders');
+  const tCommon = useTranslations('common');
+  const searchParams = useSearchParams();
+  const deepLinkOrderId = searchParams.get('orderId');
   const { currentTenant, isLoading: authLoading } = useAuth();
   const useNewWorkflowSystem = useWorkflowSystemMode();
 
@@ -73,14 +91,22 @@ export default function ProcessingPage() {
   const [sortField, setSortField] = useState<SortField>('ready_by_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState<number>(CMX_DEFAULT_PAGE_SIZE);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimpleOpen, setIsSimpleOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [dismissedDeepLinkOrderId, setDismissedDeepLinkOrderId] = useState<string | null>(null);
   const [simpleOrderId, setSimpleOrderId] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<CmxScanStatus | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+
+  const activeModalOrderId = isModalOpen
+    ? selectedOrderId
+    : deepLinkOrderId && deepLinkOrderId !== dismissedDeepLinkOrderId
+      ? deepLinkOrderId
+      : null;
+  const effectiveModalOpen = Boolean(activeModalOrderId);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -148,7 +174,7 @@ export default function ProcessingPage() {
 
       const orderItems = order.org_order_items_dtl || order.items || [];
       const items = orderItems.map((item: any) => ({
-        product_name: item.org_product_data_mst?.product_name || item.product_name || 'Item',
+        product_name: item.org_product_data_mst?.product_name || item.product_name || t('table.order'),
         product_name2: item.org_product_data_mst?.product_name2 || item.product_name2,
         quantity: item.quantity || 1,
         service_name: item.service_category_code,
@@ -374,9 +400,12 @@ export default function ProcessingPage() {
   }, []);
 
   const handleModalClose = useCallback(() => {
+    if (deepLinkOrderId && activeModalOrderId === deepLinkOrderId) {
+      setDismissedDeepLinkOrderId(deepLinkOrderId);
+    }
     setIsModalOpen(false);
     setSelectedOrderId(null);
-  }, []);
+  }, [activeModalOrderId, deepLinkOrderId]);
 
   const handleSimpleClose = useCallback(() => {
     setIsSimpleOpen(false);
@@ -417,11 +446,21 @@ export default function ProcessingPage() {
       />
 
       {error && (
-        <CmxSummaryMessage
-          type="error"
-          title={t('error.loadingFailed')}
-          items={[error]}
-        />
+        <div className="space-y-2">
+          <CmxSummaryMessage
+            type="error"
+            title={t('error.loadingFailed')}
+            items={[error]}
+          />
+          <CmxButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void handleHeaderRefresh()}
+          >
+            {tCommon('retry')}
+          </CmxButton>
+        </div>
       )}
 
       {showInitialSkeleton ? (
@@ -445,7 +484,7 @@ export default function ProcessingPage() {
             onRefresh={handleModalRefresh}
             onEditClick={openModal}
             onSimpleProcessClick={openSimpleModal}
-            selectedOrderId={selectedOrderId ?? simpleOrderId}
+            selectedOrderId={activeModalOrderId ?? simpleOrderId}
             nowMs={nowMs}
             hasActiveFilters={hasActiveFilters}
             onResetFilters={handleResetFilters}
@@ -469,10 +508,10 @@ export default function ProcessingPage() {
         }}
       />
 
-      {currentTenant && isModalOpen ? (
+      {currentTenant && effectiveModalOpen ? (
         <ProcessingModal
           isOpen
-          orderId={selectedOrderId}
+          orderId={activeModalOrderId}
           tenantId={currentTenant.tenant_id}
           onClose={handleModalClose}
           onRefresh={handleModalRefresh}

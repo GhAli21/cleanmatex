@@ -6,13 +6,12 @@
 
 import Link from 'next/link';
 import { CmxButton } from '@ui/primitives';
-
-import type { CmxDataTableSimpleColumn } from '@ui/data-display';
+import { CmxCodeChip, type CmxDataTableSimpleColumn } from '@ui/data-display';
 import { ORDER_ISSUE_STATUS } from '@/lib/constants/order-issues';
 import { OrderIssueActorTimeCell } from './order-issue-actor-time-cell';
 import type { OrderIssueTableRow } from './order-issue-table-types';
 
-import { CmxStatusBadge } from '@ui/feedback';
+import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback';
 export interface BuildOrderIssueColumnsOptions {
   locale: string;
   t: (key: string, values?: Record<string, string | number>) => string;
@@ -35,6 +34,14 @@ function priorityLabel(row: OrderIssueTableRow, locale: string): string {
     return row.priority_name2 || row.priority_name || row.priority || '—';
   }
   return row.priority_name || row.priority || '—';
+}
+
+function priorityTone(priority?: string | null): CmxBadgeTone {
+  const code = String(priority ?? '').trim().toLowerCase();
+  if (code === 'urgent' || code === 'critical') return 'danger';
+  if (code === 'high') return 'warning';
+  if (code === 'normal' || code === 'medium') return 'info';
+  return 'neutral';
 }
 
 function isIssueOpen(row: OrderIssueTableRow): boolean {
@@ -63,14 +70,17 @@ export function buildOrderIssueTableColumns(
       key: 'order',
       header: t('orderNo'),
       sortable: false,
-      render: (row) => (
-        <Link
-          href={`/dashboard/processing?orderId=${row.order_id}`}
-          className="font-medium text-primary-text hover:underline"
-        >
-          <bdi dir="ltr" className="font-mono">{row.order_no ?? '—'}</bdi>
-        </Link>
-      ),
+      render: (row) =>
+        row.order_id && row.order_no ? (
+          <Link
+            href={`/dashboard/orders/${row.order_id}?returnUrl=${encodeURIComponent('/dashboard/issues')}`}
+            className="inline-flex font-medium text-primary-text hover:underline"
+          >
+            <CmxCodeChip code={row.order_no} kind="order" size="sm" copyable={false} />
+          </Link>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
     });
   }
 
@@ -112,16 +122,14 @@ export function buildOrderIssueTableColumns(
       sortable: false,
       render: (row) => {
         const label = priorityLabel(row, locale);
-        if (!row.priority_color) {
-          return <CmxStatusBadge size="sm" tone="neutral" appearance="outline">{label}</CmxStatusBadge>;
-        }
         return (
-          <span
-            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold text-on-solid"
-            style={{ backgroundColor: row.priority_color }}
+          <CmxStatusBadge
+            size="sm"
+            tone={priorityTone(row.priority)}
+            appearance={row.priority ? 'soft' : 'outline'}
           >
             {label}
-          </span>
+          </CmxStatusBadge>
         );
       },
     }

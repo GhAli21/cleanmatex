@@ -1,6 +1,6 @@
 # I11 Background Execution — Production Runbook
 
-**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D20). **WP0 and WP1 are applied** (`0779`, `0780`). **WP2 host is drafted and off** (`PLATFORM_BG_ENABLED` unset). `0781` NOTIFY is not applied. Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` until File Util purge is ported. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Safety sweep is **15 minutes** (D10).  
+**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D20). **WP0 through WP3 are applied** (`0779`–`0783`). `0784` through `0788` are applied. **`0789` is drafted, not applied.** `ntf-outbox-dispatch` and `ntf-outbox-shadow` stay desired off. **WP2 host stays off** (`PLATFORM_BG_ENABLED` unset). Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` until File Util purge is ported. Delivery stays `NTF_OUTBOX_WORKER_ENABLED=false`. Safety sweep is **15 minutes** (D10).  
 **Authority:** [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Test execution companion:** [I11 remote QA and evidence guide](I11_background_execution_QA_TEST_GUIDE.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence. Local results are development-only.
@@ -20,7 +20,15 @@ After `0779` is applied, HQ `/ops/jobs` shows HTTP wrappers as **Retired** (`SUP
 
 `ntf-outbox-processor`, `ntf-campaign-scheduler`, `ntf-reconcile-outbox`, `fin-outbox-processor`, `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-erp-posting-retry`, `fin-pos-session-rollover`.
 
-`fin-idempotency-cleanup` stays ACTIVE but HTTP Restore/Run now are stripped. Campaign expansion and finance expiry/rollover/ERP HTTP remain paused until WP5 replacements.
+`fin-idempotency-cleanup` stays ACTIVE but HTTP Restore/Run now are stripped. Campaign expansion and finance expiry/rollover/ERP HTTP remain paused until their own WP5 replacements.
+
+## WP5 — one database handler at a time
+
+`0784` through `0788` are applied. `ntf-outbox-retry` is superseded by `ntf-outbox-dispatch`. Due temporary failures stay on the global claim. They are not set back to `QUEUED`.
+
+`0789` is the next file to review. It restores only `ops-job-run-capture` as `SELECT public.fn_ops_job_capture_runs()` every 5 minutes. One tick copies at most 1000 finished runs and prunes at most 1000 rows older than 90 days from each log. It does not enable notification delivery.
+
+After `0789` is applied on remote, confirm one active `cron.job` row named `ops-job-run-capture`, schedule `*/5 * * * *`. The registry schedule must no longer be `0 13 */6 * *`. Stop there. `fin-idempotency-cleanup` still calls `fin_trigger_job`, and that HTTP command stays until a direct SQL replacement is reviewed.
 
 ## WP0.6 inventory (no secret values)
 
@@ -39,7 +47,7 @@ HQ Config Registry (`/ops/config`, migration `0777`) inventories these names as 
 |---|---:|---:|---:|---|
 | Normal observation / incident recovery | `false` | `false` unless an aggregate snapshot is required | `false` or unset | N/A |
 | Capacity containment after proof | `false` | `false` | `false` or unset | N/A |
-| One-claim canary only | `true` | `true` | `false` or unset | New `NTF_OUTBOX_CANARY_RUN_ID` UUID; `NTF_OUTBOX_CLAIM_LIMIT=1`; `NTF_OUTBOX_MAX_CLAIMS_PER_BOOT=1` |
+| One-claim canary only | `true` | `true` | `false` or unset | New `NTF_OUTBOX_CANARY_RUN_ID` UUID; `NTF_OUTBOX_CANARY_TENANT_ID` fixture UUID; `NTF_OUTBOX_CLAIM_LIMIT=1`; `NTF_OUTBOX_MAX_CLAIMS_PER_BOOT=1`. No fixture means no claim. |
 | Explicit legacy rollback | `false` | as required | `true` | Prohibited unless the Owner has approved the legacy rollback plan and no canonical worker can claim the same work |
 
 `NTF_OUTBOX_CANARY_RUN_ID` is database-global after migration `0774`: the same new UUID on every overlapping process permits one canonical claim only. `NTF_OUTBOX_MAX_CLAIMS_PER_BOOT=1` remains a defense-in-depth process limit. A canary still requires **exactly one active Render worker instance** for clean evidence; do not use it during autoscaling or an unverified duplicate service.
@@ -130,6 +138,25 @@ The Owner may authorize this only after the preflight passes, the Disk I/O inves
    - `PROCESSING` plus `ACCEPTANCE_UNCERTAIN`, requiring reconciliation before any retry.
 5. Capture the HQ projection/provider evidence without exposing sensitive request content.
 6. Append the evidence, decision, recipient/customer impact class, and next action to the I11 Progress Log. Do not expand batch size, tenant count, or duration without Owner sign-off and the defined soak evidence.
+
+The canary also requires `NTF_OUTBOX_CANARY_TENANT_ID`. Without that fixture UUID the worker claims nothing and does not list organizations.
+
+## Manual exact-token reconciliation
+
+Do not register or run `ntf-outbox-reconcile` until dispatch has soaked. Do not scan organizations. Do not update `org_ntf_outbox_dtl` by hand. Do not requeue a lease because it expired.
+
+One uncertain row is settled only after provider evidence, then one call to `fn_ntf_worker_reconcile_claim` with that row's `tenant_org_id`, `outbox_id`, and `claim_token`:
+
+| Evidence | Decision |
+|---|---|
+| Provider lookup failed | Leave the row unchanged |
+| No lookup is possible | `FAILED_PERMANENT`. This is operator review, not a resend |
+| Twilio has no message (404 / 20404) and retries remain | `FAILED_TEMPORARY` |
+| Twilio has no message and the retry cap is spent | `FAILED_PERMANENT` |
+| Twilio accepted or delivered, or Meta already returned a message id | `SENT` |
+| Twilio reported a permanent failure | `FAILED_PERMANENT` |
+
+`reconcileOutboxClaim` is the only writer. A `false` result means the claim token no longer matches; stop. Do not try the next row.
 
 ## Incident actions
 

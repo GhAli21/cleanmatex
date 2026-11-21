@@ -113,7 +113,23 @@
     "rackLocationHelp": "أدخل موقع الرف حيث يتم تخزين هذا الطلب",
     "validation": {
       "rackLocationRequired": "موقع الرف مطلوب"
-    }
+    },
+    "summaryTitle": "ملخص الطلب",
+    "financialTitle": "الدفع والإجماليات",
+    "subtotal": "المجموع الفرعي",
+    "tax": "الضريبة",
+    "paid": "المدفوع",
+    "balanceDue": "الرصيد",
+    "readyBy": "جاهز بحلول",
+    "storageTitle": "التخزين والملاحظات",
+    "rackNotAssigned": "غير معين بعد",
+    "notes": "ملاحظات",
+    "quickToolsTitle": "أدوات المعالجة",
+    "stepSuccess": "تم تسجيل خطوة «{step}»",
+    "stepError": "فشل تسجيل الخطوة",
+    "allStepsCompleted": "اكتملت جميع خطوات المعالجة",
+    "category": "الفئة",
+    "piecesReady": "القطع الجاهزة"
   },
   "modal": {
     "title": "تفاصيل المعالجة",

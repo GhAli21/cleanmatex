@@ -577,12 +577,12 @@ const OrderRow = React.memo(function OrderRow({
                 {(item.color || item.brand || item.has_stain || item.has_damage) && (
                   <div className="mt-0.5 flex flex-wrap items-center gap-1">
                     {item.color && (
-                      <span className="rounded bg-muted px-1 py-0.5 text-[11px] text-muted-foreground">
+                      <span className="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
                         {item.color}
                       </span>
                     )}
                     {item.brand && (
-                      <span className="rounded bg-muted px-1 py-0.5 text-[11px] text-muted-foreground">
+                      <span className="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
                         {item.brand}
                       </span>
                     )}
@@ -618,7 +618,7 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Pieces & Progress */}
-      <TableCell rowHeight="compact" alignment="right" className="px-2 py-2 align-top">
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top text-end">
         <div
           className="ms-auto w-full max-w-[5.75rem] space-y-1 text-end"
           title={`${t('piecesReadyCount', { ready: readyCount, total: totalItems })} (${progressPercent}%)`}
@@ -629,7 +629,14 @@ const OrderRow = React.memo(function OrderRow({
               {readyCount}/{totalItems} ({progressPercent}%)
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={t('piecesReadyCount', { ready: readyCount, total: totalItems })}
+          >
             <div
               className={`h-full rounded-full transition-all duration-300 ${
                 progressPercent === 100 ? 'bg-success' : 'bg-primary'
@@ -648,17 +655,17 @@ const OrderRow = React.memo(function OrderRow({
       </TableCell>
 
       {/* Total & Payment */}
-      <TableCell rowHeight="compact" alignment="right" className="px-2 py-2 align-top">
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top text-end">
         <div className="flex flex-col items-end gap-1">
-          <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-foreground sm:text-sm">
+          <bdi dir="ltr" className="whitespace-nowrap text-xs font-semibold tabular-nums text-foreground sm:text-sm">
             {formatMoneyWithCode(order.total)}
-          </span>
+          </bdi>
           <CmxStatusBadge label={paymentBadge.label} tone={paymentBadge.tone} size="sm" />
         </div>
       </TableCell>
 
       {/* Status & Streamlined Actions */}
-      <TableCell rowHeight="compact" alignment="right" className="px-2 py-2 align-top">
+      <TableCell rowHeight="compact" className="px-2 py-2 align-top text-end">
         <div className="flex flex-col items-end gap-1.5">
           <CmxStatusBadge label={localizedStatus} tone="info" size="sm" />
 
@@ -672,7 +679,7 @@ const OrderRow = React.memo(function OrderRow({
               disabled={!onSimpleProcessClick}
               title={t('simpleProcess')}
               aria-label={t('simpleProcess')}
-              className="px-2"
+              className="px-2 pointer-coarse:min-h-11"
             >
               <ListChecks className="h-3.5 w-3.5 2xl:me-1" aria-hidden />
               <span className="hidden 2xl:inline">{t('simpleProcess')}</span>
@@ -687,7 +694,7 @@ const OrderRow = React.memo(function OrderRow({
               loading={markReadyBusy}
               title={t('complete')}
               aria-label={t('complete')}
-              className="border-success-border px-2 text-success-text hover:bg-success-bg"
+              className="border-success-border px-2 text-success-text hover:bg-success-bg pointer-coarse:min-h-11"
             >
               {!markReadyBusy && <CheckCircle className="h-3.5 w-3.5" aria-hidden />}
             </CmxButton>
@@ -700,7 +707,7 @@ const OrderRow = React.memo(function OrderRow({
                   variant="ghost"
                   aria-label={t('moreActions')}
                   title={t('moreActions')}
-                  className="px-1.5"
+                  className="px-1.5 pointer-coarse:min-h-11"
                 >
                   <MoreVertical className="h-3.5 w-3.5" aria-hidden />
                 </CmxButton>
@@ -854,7 +861,7 @@ function SharedMarkReadyDialogContent({
         <div className="space-y-2">
           <Label htmlFor="rack-location" className="block text-sm font-medium text-foreground">
             {t('rackLocation')}
-            <span className="ms-1 text-danger-text">*</span>
+            <span className="ms-1 text-danger-text" aria-hidden="true">*</span>
           </Label>
           <CmxInput
             id="rack-location"
@@ -883,14 +890,7 @@ function SharedMarkReadyDialogContent({
           disabled={isLoading || !rackLocation.trim()}
           loading={isLoading}
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="me-2 h-4 w-4 animate-spin" aria-hidden />
-              {t('processing')}
-            </>
-          ) : (
-            t('confirmReady')
-          )}
+          {isLoading ? t('processing') : t('confirmReady')}
         </CmxButton>
       </CmxDialogFooter>
     </CmxDialogContent>
@@ -1025,7 +1025,14 @@ function ProcessingOrderCard(props: {
             {t('piecesReadyCount', { ready: readyCount, total: totalItems })} ({progressPercent}%)
           </span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-2 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={t('piecesReadyCount', { ready: readyCount, total: totalItems })}
+        >
           <div
             className={`h-full rounded-full transition-all duration-300 ${
               progressPercent === 100 ? 'bg-success' : 'bg-primary'

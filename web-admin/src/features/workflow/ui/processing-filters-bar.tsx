@@ -22,6 +22,17 @@ interface ProcessingFiltersBarProps {
 }
 
 const FOCUS_KEYS: ProcessingFocus[] = ['all', 'urgent', 'overdue', 'issues', 'ready'];
+const PROCESSING_SUB_STATUS_KEYS = [
+  'processing',
+  'sorting',
+  'pretreatment',
+  'washing',
+  'drying',
+  'finishing',
+  'in_wash',
+  'in_dry',
+  'in_finish',
+] as const;
 
 /**
  * Compact filter bar with operational focus chips and server-backed controls.
@@ -38,9 +49,21 @@ export function ProcessingFiltersBar(props: ProcessingFiltersBarProps) {
   } = props;
   const t = useTranslations('processing.filters');
   const tFocus = useTranslations('processing.focus');
+  const tStatus = useTranslations('processing.status');
   const tCommon = useTranslations('common');
 
   const activeFocus: ProcessingFocus = filters.focus ?? 'all';
+
+  const statusOptions = useMemo(
+    () => [
+      { value: '', label: tFocus('all') },
+      ...PROCESSING_SUB_STATUS_KEYS.map((code) => ({
+        value: code,
+        label: tStatus(code),
+      })),
+    ],
+    [tFocus, tStatus]
+  );
 
   const priorityOptions = useMemo(
     () => [
@@ -120,12 +143,11 @@ export function ProcessingFiltersBar(props: ProcessingFiltersBarProps) {
           onChange={(e) => handleFieldChange('readyByDate', e.target.value || undefined)}
         />
 
-        <CmxInput
-          type="text"
+        <CmxSelect
           label={t('filterStatus')}
-          placeholder={t('typeToFilter')}
           value={filters.statusFilter || ''}
           onChange={(e) => handleFieldChange('statusFilter', e.target.value || undefined)}
+          options={statusOptions}
         />
       </div>
     </div>

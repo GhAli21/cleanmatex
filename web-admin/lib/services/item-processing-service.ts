@@ -84,6 +84,7 @@ export class ItemProcessingService {
         .from('org_order_items_dtl')
         .select('service_category_code, branch_id')
         .eq('id', orderItemId)
+        .eq('order_id', orderId)
         .eq('tenant_org_id', tenantId)
         .single();
 
@@ -126,6 +127,7 @@ export class ItemProcessingService {
         .from('org_order_item_processing_steps')
         .select('id')
         .eq('order_item_id', orderItemId)
+        .eq('tenant_org_id', tenantId)
         .eq('step_code', stepCode)
         .single();
 
@@ -168,7 +170,9 @@ export class ItemProcessingService {
           item_last_step_at: step.done_at,
           item_last_step_by: userId,
         })
-        .eq('id', orderItemId);
+        .eq('id', orderItemId)
+        .eq('order_id', orderId)
+        .eq('tenant_org_id', tenantId);
 
       // Log to history
       await catalogReadClient(supabase).rpc('log_order_action', {

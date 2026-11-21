@@ -113,7 +113,23 @@
     "rackLocationHelp": "Enter the rack location where this order is stored",
     "validation": {
       "rackLocationRequired": "Rack location is required"
-    }
+    },
+    "summaryTitle": "Order Summary",
+    "financialTitle": "Payment & Totals",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "paid": "Paid",
+    "balanceDue": "Balance",
+    "readyBy": "Ready By",
+    "storageTitle": "Storage & Notes",
+    "rackNotAssigned": "Not assigned yet",
+    "notes": "Notes",
+    "quickToolsTitle": "Processing Tools",
+    "stepSuccess": "Step \"{step}\" recorded",
+    "stepError": "Failed to record step",
+    "allStepsCompleted": "All processing steps completed",
+    "category": "Category",
+    "piecesReady": "Pieces Ready"
   },
   "modal": {
     "title": "Processing Details",

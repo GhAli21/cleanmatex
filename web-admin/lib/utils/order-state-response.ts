@@ -21,15 +21,22 @@ export function getOrderFromStateResponse(json: {
  */
 export function mapOrderCustomerFromStateRow(raw: Record<string, unknown>): {
   name: string;
+  name2?: string;
   phone: string;
 } {
   const orgCustomer = raw.org_customers_mst as
-    | { name?: string; phone?: string; sys_customers_mst?: { name?: string; phone?: string } }
+    | {
+        name?: string;
+        name2?: string;
+        phone?: string;
+        sys_customers_mst?: { name?: string; name2?: string; phone?: string };
+      }
     | undefined;
   const sysCustomer = orgCustomer?.sys_customers_mst;
   const customerData = sysCustomer || orgCustomer;
   return {
     name: customerData?.name || 'Unknown Customer',
+    name2: customerData?.name2 || orgCustomer?.name2 || undefined,
     phone: customerData?.phone || 'N/A',
   };
 }

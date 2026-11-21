@@ -126,17 +126,24 @@ export function OrderIssueSolveDialog({
         ) : null}
 
         <div className="space-y-2 py-2">
-          <Label htmlFor="issue-solved-notes">{t('notes')}</Label>
+          <Label htmlFor="issue-solved-notes">
+            {t('notes')}
+            <span className="ms-1 text-danger-text" aria-hidden="true">*</span>
+          </Label>
           <CmxTextarea
             id="issue-solved-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t('notesPlaceholder')}
             rows={4}
+            required
             aria-invalid={Boolean(fieldError)}
+            aria-describedby={fieldError ? 'issue-solved-notes-error' : undefined}
           />
           {fieldError ? (
-            <p className="text-xs text-destructive">{fieldError}</p>
+            <p id="issue-solved-notes-error" className="text-xs text-danger-text" role="alert">
+              {fieldError}
+            </p>
           ) : null}
         </div>
 

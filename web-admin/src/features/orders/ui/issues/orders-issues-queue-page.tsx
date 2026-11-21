@@ -7,8 +7,9 @@
 import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import { CmxSpinner } from '@ui/primitives';
+import { CmxButton, CmxSkeleton, CmxSkeletonTable } from '@ui/primitives';
 import { CmxEmptyState, CmxDataTable, CmxKpiStatCard } from '@ui/data-display';
+import { CmxSummaryMessage } from '@ui/feedback';
 import {
   CmxCard,
   CmxCardContent,
@@ -39,6 +40,7 @@ import type { OrderIssueTableRow } from './order-issue-table-types';
  */
 export function OrdersIssuesQueuePage() {
   const t = useTranslations('orders.issues');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const queryClient = useQueryClient();
   const [status, setStatus] = React.useState<OrderIssuesStatusFilter>('open');
@@ -55,7 +57,7 @@ export function OrdersIssuesQueuePage() {
     React.useState<OrderIssueTableRow | null>(null);
   const canResolveIssues = useHasPermissionCode('orders:update');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['tenant-order-issues', status, scope, priority],
     queryFn: async () => {
       const params = new URLSearchParams({ status, scope });
@@ -101,14 +103,14 @@ export function OrdersIssuesQueuePage() {
         <p className="text-sm text-muted-foreground">{t('pageDescription')}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <CmxKpiStatCard
           title={t('filterOpen')}
-          value={openInView}
+          value={isLoading ? <CmxSkeleton className="h-7 w-12" /> : openInView}
         />
         <CmxKpiStatCard
           title={t('listTitle')}
-          value={issues.length}
+          value={isLoading ? <CmxSkeleton className="h-7 w-12" /> : issues.length}
         />
       </div>
 
@@ -142,10 +144,24 @@ export function OrdersIssuesQueuePage() {
           <CmxCardTitle>{t('listTitle')}</CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <CmxSpinner />
+          {isError ? (
+            <div className="space-y-3">
+              <CmxSummaryMessage
+                type="error"
+                title={t('listFailed')}
+                items={[error instanceof Error ? error.message : t('listFailed')]}
+              />
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void refetch()}
+              >
+                {tCommon('retry')}
+              </CmxButton>
             </div>
+          ) : isLoading ? (
+            <CmxSkeletonTable rows={6} columns={7} />
           ) : issues.length === 0 ? (
             <CmxEmptyState
               title={t('emptyTitle')}

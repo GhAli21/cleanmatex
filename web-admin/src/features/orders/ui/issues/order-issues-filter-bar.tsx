@@ -70,7 +70,7 @@ function FilterGroup({
 }) {
   return (
     <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
       <div
@@ -243,7 +243,7 @@ export function OrderIssuesFilterBar({
             >
               <CmxSelectDropdownTrigger
                 aria-label={t('sortBy')}
-                className="h-7 min-w-[15rem] w-[15rem] border-0 bg-transparent px-2 shadow-none"
+                className="h-7 w-full border-0 bg-transparent px-2 shadow-none sm:w-[15rem] sm:min-w-[15rem]"
               >
                 <CmxSelectDropdownValue
                   displayValue={t(`sortFields.${sortBy}`)}

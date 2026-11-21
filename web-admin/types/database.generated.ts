@@ -16078,6 +16078,11 @@ isOneToOne: false
               "acceptance_uncertain": number,"processing_leased": number,"queued_due": number,"retry_due": number,"tenants_with_due": number
             }[]
                            },
+"fn_ntf_outbox_ops_snapshot":
+{ Args: { "p_as_of"?: string }; Returns: {
+              "acceptance_uncertain": number,"failed_permanent": number,"oldest_due_seconds": number,"processing_leased": number,"queued_due": number,"retry_due": number
+            }[]
+                           },
 "fn_ntf_prov_ctl_set":
 { Args: { "p_actor": string,"p_channel": string,"p_expected"?: string,"p_kind": string,"p_provider": string,"p_reason": string,"p_state": string }; Returns: Json
                            },
