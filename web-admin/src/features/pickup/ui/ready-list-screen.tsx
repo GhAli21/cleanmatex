@@ -1,13 +1,14 @@
 'use client'
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { ArrowDown, ArrowUp, Search } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders'
+import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
@@ -16,6 +17,8 @@ import type { CanonicalOrderFinancialRowLike } from '@/lib/utils/order-financial
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status'
 import { PickupReleaseStatus } from '@features/pickup/ui/pickup-release-status'
 import { ReadyListFocusChips } from '@features/pickup/ui/ready-list-focus-chips'
+import { resolveScan } from '@features/scan/api/scan-api'
+import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal'
 import {
   NOT_RELEASED_PICKUP_SUMMARY,
   type PickupReleaseSummary,
@@ -27,10 +30,11 @@ import {
   readyListQueryToApiFilters,
   type ReadyListQuery,
 } from '@/lib/constants/ready-list-focus'
-import { CmxButton, CmxCard, CmxInput, CmxSelect, CmxSkeleton } from '@ui/primitives'
+import { CmxButton, CmxCard, CmxSelect, CmxSkeleton } from '@ui/primitives'
 import { CmxEmptyState } from '@ui/data-display'
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
 import { CmxStatusBadge, CmxSummaryMessage, type CmxBadgeTone } from '@ui/feedback'
+import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input'
 import { CmxPagination } from '@ui/navigation'
 import { cn } from '@lib/utils'
 
@@ -45,6 +49,9 @@ interface ReadyListApiOrder extends CanonicalOrderFinancialRowLike {
   payment_status?: string | null
   payment_type_code?: string | null
   total_items?: number | null
+  branch_id?: string | null
+  currency_code?: string | null
+  org_customers_mst?: { id?: string | null } | Array<{ id?: string | null }> | null
   pickup_release?: PickupReleaseSummary
   customer?: { name?: string; phone?: string }
 }
@@ -52,7 +59,9 @@ interface ReadyListApiOrder extends CanonicalOrderFinancialRowLike {
 interface ReadyListRow {
   id: string
   order_no: string
-  customer: { name: string; phone: string }
+  customer: { id?: string | null; name: string; phone: string }
+  branchId?: string | null
+  currencyCode: string
   total_items: number
   total: number
   remaining: number
@@ -69,11 +78,13 @@ interface ReadyListRow {
  */
 export function ReadyListScreen() {
   const t = useTranslations('workflow')
+  const tCollect = useTranslations('orders.collectPayment')
   const tCommon = useTranslations('common')
   const locale = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { currencyCode, decimalPlaces } = useTenantCurrency()
+  const canCollectPayment = useHasPermissionCode('orders:collect_payment')
   const moneyLocale = locale === 'ar' ? 'ar' : 'en'
   const fmt = (n: number) =>
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
@@ -81,8 +92,10 @@ export function ReadyListScreen() {
   const useNewWorkflowSystem = useWorkflowSystemMode()
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [scanBusy, setScanBusy] = useState(false)
   const [sortBy, setSortBy] = useState('ready_by')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [collectionOrder, setCollectionOrder] = useState<ReadyListRow | null>(null)
 
   const query = useMemo(() => parseReadyListQuery(searchParams), [searchParams])
   const emptyKey = readyListEmptyKey(query)
@@ -118,9 +131,14 @@ export function ReadyListScreen() {
         id: order.id,
         order_no: order.order_no || '',
         customer: {
+          id: Array.isArray(order.org_customers_mst)
+            ? order.org_customers_mst[0]?.id
+            : order.org_customers_mst?.id,
           name: order.customer?.name || t('labels.unknownCustomer'),
           phone: order.customer?.phone || '',
         },
+        branchId: order.branch_id,
+        currencyCode: order.currency_code || currencyCode,
         total_items: order.total_items || 0,
         total: financialSnapshot.totalAmount,
         remaining,
@@ -131,9 +149,40 @@ export function ReadyListScreen() {
         pickup_release: order.pickup_release ?? { ...NOT_RELEASED_PICKUP_SUMMARY },
       }
     })
-  }, [rawOrders, t])
+  }, [currencyCode, rawOrders, t])
 
   const listPath = readyListPath(query)
+
+  const handleSearchSubmit = useCallback(
+    async (submit: CodeSearchSubmit) => {
+      if (submit.mode === 'text') {
+        setDebouncedSearch(submit.text)
+        return
+      }
+      const localMatch = orders.find(
+        (o) => o.order_no.toLowerCase() === submit.code.toLowerCase(),
+      )
+      if (localMatch) {
+        router.push(`/dashboard/ready/${localMatch.id}?returnUrl=${encodeURIComponent(listPath)}`)
+        return
+      }
+      setScanBusy(true)
+      try {
+        const found = await resolveScan(submit.code, 'any')
+        if (found.ok && found.data.order?.id) {
+          router.push(`/dashboard/ready/${found.data.order.id}?returnUrl=${encodeURIComponent(listPath)}`)
+          return
+        }
+      } catch {
+        // Fall back to list search.
+      } finally {
+        setScanBusy(false)
+      }
+      setSearchInput(submit.code)
+      setDebouncedSearch(submit.code)
+    },
+    [listPath, orders, router],
+  )
 
   const replaceQuery = (next: ReadyListQuery) => {
     router.replace(readyListPath(next))
@@ -195,14 +244,14 @@ export function ReadyListScreen() {
       </div>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <div className="flex-1">
-          <CmxInput
-            type="search"
+        <div className="flex-1" aria-busy={scanBusy || undefined}>
+          <CmxCodeSearchInput
             value={searchInput}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={setSearch}
+            onSubmit={(submit) => void handleSearchSubmit(submit)}
             placeholder={t('ready.searchPlaceholder')}
-            leftIcon={<Search className="h-4 w-4" aria-hidden />}
             aria-label={t('ready.searchPlaceholder')}
+            disabled={scanBusy}
           />
         </div>
         <div className="flex gap-2">
@@ -210,7 +259,7 @@ export function ReadyListScreen() {
             fullWidth={false}
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value)}
-            aria-label={t('labels.sortBy')}
+            aria-label={t('preparation.list.sortBy')}
             options={[
               { value: 'order_no', label: t('ready.sortBy.orderNo') },
               { value: 'received_at', label: t('ready.sortBy.receivedAt') },
@@ -273,16 +322,14 @@ export function ReadyListScreen() {
               : null
 
             return (
-              <Link
-                key={order.id}
-                href={`/dashboard/ready/${order.id}?returnUrl=${encodeURIComponent(listPath)}`}
-                className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <CmxCard className="h-full p-6 transition-shadow hover:shadow-md">
-                  <div className="mb-4 flex items-start justify-between gap-2">
-                    <h3 className="text-xl font-bold text-primary-text">
-                      <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
-                    </h3>
+              <CmxCard key={order.id} className="h-full p-6 transition-shadow hover:shadow-md">
+                <div className="mb-4 flex items-start justify-between gap-2">
+                  <Link
+                    href={`/dashboard/ready/${order.id}?returnUrl=${encodeURIComponent(listPath)}`}
+                    className="rounded text-xl font-bold text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <CmxCodeChip code={order.order_no} kind="order" size="md" copyable={false} />
+                  </Link>
                     <div className="flex flex-col items-end gap-1">
                       <PickupReleaseStatus
                         release={order.pickup_release}
@@ -331,13 +378,23 @@ export function ReadyListScreen() {
                     ) : null}
                   </div>
 
-                  <div className="mt-4 border-t border-border pt-4">
-                    <span className="block w-full rounded-lg bg-primary px-4 py-2 text-center font-medium text-primary-foreground">
-                      {t('ready.actions.open')}
-                    </span>
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                    <CmxButton asChild variant="primary" className="flex-1">
+                      <Link href={`/dashboard/ready/${order.id}?returnUrl=${encodeURIComponent(listPath)}`}>
+                        {t('ready.actions.open')}
+                      </Link>
+                    </CmxButton>
+                    {canCollectPayment && order.remaining > 0.001 ? (
+                      <CmxButton
+                        type="button"
+                        variant="outline"
+                        onClick={() => setCollectionOrder(order)}
+                      >
+                        {tCollect('collectButton')}
+                      </CmxButton>
+                    ) : null}
                   </div>
                 </CmxCard>
-              </Link>
             )
           })}
         </div>
@@ -356,6 +413,24 @@ export function ReadyListScreen() {
           noItems: t(`ready.focus.empty.${emptyKey}`),
         }}
       />
+
+      {collectionOrder ? (
+        <OrderCollectPaymentModal
+          open
+          onOpenChange={(open) => {
+            if (!open) setCollectionOrder(null)
+          }}
+          orderId={collectionOrder.id}
+          customerId={collectionOrder.customer.id}
+          branchId={collectionOrder.branchId}
+          outstandingAmount={collectionOrder.remaining}
+          currencyCode={collectionOrder.currencyCode}
+          onCollected={() => {
+            setCollectionOrder(null)
+            void refetch()
+          }}
+        />
+      ) : null}
     </div>
   )
 }

@@ -38,7 +38,12 @@ type OrdersSearchParams = {
   toDate?: string;
   physicalIntakeStatus?: string;
   orderSourceCode?: string;
+  sortBy?: string;
+  sortOrder?: string;
 };
+
+const ALLOWED_SORT_FIELDS = ['received_at', 'ready_by', 'order_no', 'total', 'created_at'] as const;
+type AllowedSortField = (typeof ALLOWED_SORT_FIELDS)[number];
 
 interface PageProps {
   searchParams?: Promise<OrdersSearchParams>;
@@ -95,6 +100,13 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     return Number.isNaN(date.getTime()) ? undefined : date;
   };
 
+  const resolvedSortBy: AllowedSortField = ALLOWED_SORT_FIELDS.includes(params.sortBy as AllowedSortField)
+    ? (params.sortBy as AllowedSortField)
+    : params.physicalIntakeStatus === 'pending_dropoff'
+      ? 'created_at'
+      : 'received_at';
+  const resolvedSortOrder: 'asc' | 'desc' = params.sortOrder === 'asc' ? 'asc' : 'desc';
+
   const filters = {
     page,
     limit,
@@ -107,10 +119,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     toDate: parseDate(params.toDate),
     physicalIntakeStatus: params.physicalIntakeStatus,
     orderSourceCode: params.orderSourceCode,
-    sortBy:
-      params.physicalIntakeStatus === 'pending_dropoff'
-        ? ('created_at' as const)
-        : ('received_at' as const),
+    sortBy: resolvedSortBy,
+    sortOrder: resolvedSortOrder,
   };
 
   const [ordersResult, statsResult] = await Promise.allSettled([
@@ -157,7 +167,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           </CmxButton>
         </>
       }
-      kpis={statsData ? <OrderStatsCards stats={statsData} /> : undefined}
+      kpis={statsData ? <OrderStatsCards stats={statsData} currentFilters={params} /> : undefined}
       filters={<OrderFiltersBar currentFilters={params} />}
     >
       {/* Orders table with graceful error state (simplified table component) */}
@@ -166,6 +176,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           <OrdersSimpleTable
             orders={ordersData.orders}
             pagination={ordersData.pagination}
+            sortBy={resolvedSortBy}
+            sortOrder={resolvedSortOrder}
             hasActiveFilters={Boolean(
               params.status ||
               params.preparationStatus ||

@@ -9,7 +9,7 @@
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxButton, CmxSelect } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect } from '@ui/primitives';
 import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
 import { resolveScan, scanResultHref } from '@features/scan/api/scan-api';
 
@@ -157,6 +157,20 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
             { value: 'pending_dropoff', label: t('intakePendingDropoff') },
             { value: 'received', label: t('intakeReceived') },
           ]}
+        />
+
+        <CmxInput
+          type="date"
+          value={currentFilters.fromDate || ''}
+          onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+          aria-label={t('fromDate')}
+        />
+
+        <CmxInput
+          type="date"
+          value={currentFilters.toDate || ''}
+          onChange={(e) => handleFilterChange('toDate', e.target.value)}
+          aria-label={t('toDate')}
         />
       </div>
 

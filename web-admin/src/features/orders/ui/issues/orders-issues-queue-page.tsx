@@ -1,5 +1,5 @@
 /**
- * Tenant-wide order issues queue — shared filters + columns.
+ * Tenant-wide order issues queue — shared filters, search, pagination, photos & solve dialog.
  */
 
 'use client';
@@ -7,15 +7,27 @@
 import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import { CmxButton, CmxSkeleton, CmxSkeletonTable } from '@ui/primitives';
+import { RefreshCw, Search } from 'lucide-react';
+import { CmxButton, CmxInput, CmxSkeleton, CmxSkeletonTable } from '@ui/primitives';
 import { CmxEmptyState, CmxDataTable, CmxKpiStatCard } from '@ui/data-display';
+import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults';
 import { CmxSummaryMessage } from '@ui/feedback';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
 import {
   CmxCard,
   CmxCardContent,
   CmxCardHeader,
   CmxCardTitle,
 } from '@ui/primitives/cmx-card';
+import { FileAttachments } from '@features/file-util';
+import { FILE_CATEGORIES, FILE_PURPOSES, FILE_REF_TYPES, FILE_SOURCES } from '@/lib/constants/file-util';
 import { ORDER_ISSUE_STATUS } from '@/lib/constants/order-issues';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { OrderIssueSolveDialog } from './order-issue-solve-dialog';
@@ -53,11 +65,17 @@ export function OrdersIssuesQueuePage() {
   const [sortDir, setSortDir] = React.useState<OrderIssuesSortDir>(
     DEFAULT_ORDER_ISSUES_SORT_DIR
   );
+  const [search, setSearch] = React.useState('');
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<number>(CMX_DEFAULT_PAGE_SIZE);
   const [solveTarget, setSolveTarget] =
     React.useState<OrderIssueTableRow | null>(null);
+  const [photosTarget, setPhotosTarget] =
+    React.useState<OrderIssueTableRow | null>(null);
   const canResolveIssues = useHasPermissionCode('orders:update');
+  const canReportIssues = useHasPermissionCode('orders:transition');
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ['tenant-order-issues', status, scope, priority],
     queryFn: async () => {
       const params = new URLSearchParams({ status, scope });
@@ -76,13 +94,37 @@ export function OrdersIssuesQueuePage() {
     },
   });
 
-  const issues = React.useMemo(
-    () => sortOrderIssueRows(data ?? [], sortBy, sortDir),
-    [data, sortBy, sortDir]
-  );
+  const issues = React.useMemo(() => {
+    const sorted = sortOrderIssueRows(data ?? [], sortBy, sortDir);
+    const term = search.trim().toLowerCase();
+    if (!term) return sorted;
+    return sorted.filter((row) => {
+      const haystack = [
+        row.order_no,
+        row.issue_text,
+        row.issue_type_name,
+        row.issue_type_name2,
+        row.issue_code,
+        row.created_by_name,
+        row.solved_notes,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [data, search, sortBy, sortDir]);
+
   const openInView = issues.filter(
     (row) => row.status === ORDER_ISSUE_STATUS.OPEN
   ).length;
+
+  const totalPages = Math.max(1, Math.ceil(issues.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedIssues = React.useMemo(
+    () => issues.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [issues, pageSize, safePage],
+  );
 
   const columns = React.useMemo(
     () =>
@@ -92,15 +134,28 @@ export function OrdersIssuesQueuePage() {
         includeOrderColumn: true,
         includeScopeColumn: true,
         onSolve: canResolveIssues ? (row) => setSolveTarget(row) : undefined,
+        onPhotos: (row) => setPhotosTarget(row),
       }),
     [locale, t, canResolveIssues]
   );
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('pageTitle')}</h1>
-        <p className="text-sm text-muted-foreground">{t('pageDescription')}</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{t('pageTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{t('pageDescription')}</p>
+        </div>
+        <CmxButton
+          type="button"
+          variant="outline"
+          size="sm"
+          loading={isFetching}
+          onClick={() => void refetch()}
+        >
+          {!isFetching ? <RefreshCw className="me-1.5 h-4 w-4" aria-hidden="true" /> : null}
+          {tCommon('refresh')}
+        </CmxButton>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -114,6 +169,7 @@ export function OrdersIssuesQueuePage() {
             <CmxKpiStatCard
               title={t('filterOpen')}
               value={openInView}
+              tone={openInView > 0 ? 'danger' : 'default'}
             />
             <CmxKpiStatCard
               title={t('listTitle')}
@@ -123,30 +179,53 @@ export function OrdersIssuesQueuePage() {
         )}
       </div>
 
-      <OrderIssuesFilterBar
-        variant="queue"
-        status={status}
-        onStatusChange={setStatus}
-        scope={scope}
-        onScopeChange={(value) =>
-          setScope(value as OrderIssuesQueueScopeFilter)
-        }
-        priority={priority}
-        onPriorityChange={setPriority}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onSortByChange={setSortBy}
-        onSortDirChange={setSortDir}
-        onReset={() => {
-          setStatus('open');
-          setScope('all');
-          setPriority('all');
-          setSortBy(DEFAULT_ORDER_ISSUES_SORT_BY);
-          setSortDir(DEFAULT_ORDER_ISSUES_SORT_DIR);
-        }}
-        openCount={openInView}
-        totalCount={issues.length}
-      />
+      <div className="space-y-3">
+        <CmxInput
+          type="search"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder={tCommon('search')}
+          aria-label={tCommon('search')}
+          leftIcon={<Search className="h-4 w-4" aria-hidden="true" />}
+        />
+
+        <OrderIssuesFilterBar
+          variant="queue"
+          status={status}
+          onStatusChange={(next) => {
+            setStatus(next);
+            setPage(1);
+          }}
+          scope={scope}
+          onScopeChange={(value) => {
+            setScope(value as OrderIssuesQueueScopeFilter);
+            setPage(1);
+          }}
+          priority={priority}
+          onPriorityChange={(next) => {
+            setPriority(next);
+            setPage(1);
+          }}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSortByChange={setSortBy}
+          onSortDirChange={setSortDir}
+          onReset={() => {
+            setStatus('open');
+            setScope('all');
+            setPriority('all');
+            setSearch('');
+            setSortBy(DEFAULT_ORDER_ISSUES_SORT_BY);
+            setSortDir(DEFAULT_ORDER_ISSUES_SORT_DIR);
+            setPage(1);
+          }}
+          openCount={openInView}
+          totalCount={issues.length}
+        />
+      </div>
 
       <CmxCard>
         <CmxCardHeader>
@@ -179,25 +258,34 @@ export function OrdersIssuesQueuePage() {
           ) : (
             <CmxDataTable
               columns={columns}
-              data={issues}
-              paginationFooter="never"
+              data={pagedIssues}
+              currentPage={safePage}
+              pageSize={pageSize}
+              totalCount={issues.length}
+              onPageChange={setPage}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize);
+                setPage(1);
+              }}
+              showPageSizeSelector
+              paginationFooter="always"
               emptyMessage={t('emptyTitle')}
             />
           )}
         </CmxCardContent>
       </CmxCard>
 
-      {solveTarget ? (
+      {solveTarget && solveTarget.order_id ? (
         <OrderIssueSolveDialog
           open={Boolean(solveTarget)}
-          orderId={solveTarget.order_id!}
+          orderId={solveTarget.order_id}
           issueId={solveTarget.id}
           issueSnippet={solveTarget.issue_text}
           issueTypeLabel={
             locale === 'ar'
               ? solveTarget.issue_type_name2 ||
-              solveTarget.issue_type_name ||
-              solveTarget.issue_code
+                solveTarget.issue_type_name ||
+                solveTarget.issue_code
               : solveTarget.issue_type_name || solveTarget.issue_code
           }
           onOpenChange={(next) => {
@@ -211,6 +299,43 @@ export function OrdersIssuesQueuePage() {
           }}
         />
       ) : null}
+
+      <CmxDialog
+        open={Boolean(photosTarget)}
+        onOpenChange={(next) => {
+          if (!next) setPhotosTarget(null);
+        }}
+      >
+        <CmxDialogContent className="max-w-3xl">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('photosTitle')}</CmxDialogTitle>
+            <CmxDialogDescription className="line-clamp-2">
+              {photosTarget?.issue_text}
+            </CmxDialogDescription>
+          </CmxDialogHeader>
+          {photosTarget && photosTarget.order_id ? (
+            <FileAttachments
+              title={t('viewPhotos')}
+              category={FILE_CATEGORIES.ORDER_FILE}
+              entityId={photosTarget.order_id}
+              purposes={[FILE_PURPOSES.ORDER_FILE.ISSUE_EVIDENCE]}
+              refType={FILE_REF_TYPES.ORDER_ISSUE}
+              refId={photosTarget.id}
+              source={FILE_SOURCES.ORDER_ISSUE}
+              readOnly={!canReportIssues}
+            />
+          ) : null}
+          <CmxDialogFooter>
+            <CmxButton
+              type="button"
+              variant="secondary"
+              onClick={() => setPhotosTarget(null)}
+            >
+              {tCommon('close')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </div>
   );
 }

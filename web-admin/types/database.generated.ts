@@ -51457,6 +51457,17 @@ export type Database = {
           sent_count: number
         }[]
       }
+      fn_ntf_outbox_dead_list: {
+        Args: { p_limit?: number }
+        Returns: {
+          channel_code: string
+          event_code: string
+          finalized_at: string
+          id: string
+          provider_code: string
+          retry_count: number
+        }[]
+      }
       fn_ntf_outbox_due_sum: {
         Args: { p_as_of?: string; p_tenant_org_id: string }
         Returns: {

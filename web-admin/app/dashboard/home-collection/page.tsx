@@ -8,9 +8,7 @@ export const metadata: Metadata = { title: 'Home Collection' };
 export default function HomeCollectionPage() {
   return (
     <RequireAnyPermission permissions={[ORDERS_PERMISSIONS.READ]}>
-      <div className="p-6">
-        <HomeCollectionListScreen />
-      </div>
+      <HomeCollectionListScreen />
     </RequireAnyPermission>
   );
 }

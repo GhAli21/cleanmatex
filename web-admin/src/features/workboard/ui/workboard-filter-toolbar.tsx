@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { CmxInput, CmxButton, Label } from '@ui/primitives'
 import {
   CmxSelectDropdown,
@@ -57,32 +57,51 @@ export function WorkboardFilterToolbar({
   const t = useTranslations('workboard')
 
   const activeFilters = useMemo(() => {
-    const items: string[] = []
+    const items: Array<{ key: string; label: string; onClear: () => void }> = []
 
     if (search.trim()) {
-      items.push(t('filters.active.search', { value: search.trim() }))
+      items.push({
+        key: 'search',
+        label: t('filters.active.search', { value: search.trim() }),
+        onClear: () => onSearchChange(''),
+      })
     }
 
     if (branchId) {
       const branchName = metadata?.branches.find((branch) => branch.id === branchId)?.name ?? branchId
-      items.push(t('filters.active.branch', { value: branchName }))
+      items.push({
+        key: 'branch',
+        label: t('filters.active.branch', { value: branchName }),
+        onClear: () => onBranchChange(undefined),
+      })
     }
 
     if (assigneeId) {
       const assigneeName = metadata?.assignees.find((assignee) => assignee.id === assigneeId)?.name ?? assigneeId
-      items.push(t('filters.active.assignee', { value: assigneeName }))
+      items.push({
+        key: 'assignee',
+        label: t('filters.active.assignee', { value: assigneeName }),
+        onClear: () => onAssigneeChange(undefined),
+      })
     }
 
     if (priority) {
-      items.push(t('filters.active.priority', { value: priority }))
+      items.push({
+        key: 'priority',
+        label: t('filters.active.priority', { value: priority }),
+        onClear: () => onPriorityChange(undefined),
+      })
     }
 
     if (blocker !== 'all') {
-      items.push(
-        blocker === 'blocked'
-          ? t('filters.active.blocked')
-          : t('filters.active.clear'),
-      )
+      items.push({
+        key: 'blocker',
+        label:
+          blocker === 'blocked'
+            ? t('filters.active.blocked')
+            : t('filters.active.clear'),
+        onClear: () => onBlockerChange('all'),
+      })
     }
 
     if (sla !== 'all') {
@@ -92,11 +111,30 @@ export function WorkboardFilterToolbar({
         due_today: t('filters.dueToday'),
         not_due: t('filters.notDue'),
       }
-      items.push(t('filters.active.sla', { value: slaLabels[sla] }))
+      items.push({
+        key: 'sla',
+        label: t('filters.active.sla', { value: slaLabels[sla] }),
+        onClear: () => onSlaChange('all'),
+      })
     }
 
     return items
-  }, [assigneeId, blocker, branchId, metadata, priority, search, sla, t])
+  }, [
+    assigneeId,
+    blocker,
+    branchId,
+    metadata,
+    onAssigneeChange,
+    onBlockerChange,
+    onBranchChange,
+    onPriorityChange,
+    onSearchChange,
+    onSlaChange,
+    priority,
+    search,
+    sla,
+    t,
+  ])
 
   const hasActiveFilters = activeFilters.length > 0
 
@@ -118,12 +156,17 @@ export function WorkboardFilterToolbar({
           ) : null}
 
           {activeFilters.map((item) => (
-            <span
-              key={item}
-              className="inline-flex items-center rounded-full border border-border bg-muted px-3 py-1 text-xs text-foreground"
+            <CmxButton
+              key={item.key}
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={item.onClear}
+              className="h-auto inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-foreground hover:bg-muted/80"
             >
-              {item}
-            </span>
+              <span>{item.label}</span>
+              <X className="h-3 w-3 shrink-0" aria-hidden="true" />
+            </CmxButton>
           ))}
 
           <CmxButton

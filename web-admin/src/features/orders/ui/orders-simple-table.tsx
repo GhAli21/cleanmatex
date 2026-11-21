@@ -15,6 +15,7 @@ import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
 import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback/cmx-status-badge';
 import { CmxButton } from '@ui/primitives';
+import type { SortingState } from '@tanstack/react-table';
 import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
 import { OrderStatusBadge } from './order-status-badge';
 import Link from 'next/link';
@@ -36,6 +37,8 @@ interface OrdersSimpleTableProps {
     limit: number;
     totalPages: number;
   };
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   hasActiveFilters?: boolean;
 }
 
@@ -44,11 +47,15 @@ interface OrdersSimpleTableProps {
  * @param root0
  * @param root0.orders
  * @param root0.pagination
+ * @param root0.sortBy
+ * @param root0.sortOrder
  * @param root0.hasActiveFilters
  */
 export function OrdersSimpleTable({
   orders,
   pagination,
+  sortBy = 'received_at',
+  sortOrder = 'desc',
   hasActiveFilters = false,
 }: OrdersSimpleTableProps) {
   const router = useRouter();
@@ -74,6 +81,24 @@ export function OrdersSimpleTable({
     params.set('page', '1');
     router.push(`${pathname}?${params.toString()}`);
   };
+
+  const handleSortingChange = (nextSorting: SortingState) => {
+    const params = new URLSearchParams(window.location.search);
+    const first = nextSorting[0];
+    if (first && ['order_no', 'total', 'ready_by'].includes(first.id)) {
+      params.set('sortBy', first.id);
+      params.set('sortOrder', first.desc ? 'desc' : 'asc');
+    } else {
+      params.delete('sortBy');
+      params.delete('sortOrder');
+    }
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const sortingState: SortingState = ['order_no', 'total', 'ready_by'].includes(sortBy)
+    ? [{ id: sortBy, desc: sortOrder === 'desc' }]
+    : [];
 
   const renderOrderStatusBadge = (status?: string | null) => {
     const normalized = String(status ?? '').toLowerCase() as OrderStatus;
@@ -123,7 +148,7 @@ export function OrdersSimpleTable({
     {
       key: 'order_no',
       header: t('orderNumber'),
-      sortable: false,
+      sortable: true,
       render: (order) => <CmxCodeChip code={order.order_no} kind="order" />,
     },
     {
@@ -195,7 +220,7 @@ export function OrdersSimpleTable({
       key: 'total',
       header: t('total'),
       align: 'end',
-      sortable: false,
+      sortable: true,
       render: (order) => (
         <bdi dir="ltr" className="font-medium tabular-nums">
           {formatMoney(order.total)}
@@ -205,7 +230,7 @@ export function OrdersSimpleTable({
     {
       key: 'ready_by',
       header: t('readyBy'),
-      sortable: false,
+      sortable: true,
       render: (order) =>
         order.ready_by ? (
           <span className="text-xs text-foreground">
@@ -252,6 +277,8 @@ export function OrdersSimpleTable({
     <CmxDataTable<OrderListItem>
       columns={columns}
       data={orders ?? []}
+      sorting={sortingState}
+      onSortingChange={handleSortingChange}
       currentPage={pagination.page}
       pageSize={pagination.limit}
       totalCount={pagination.total}

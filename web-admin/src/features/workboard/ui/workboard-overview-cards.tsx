@@ -2,7 +2,22 @@
 
 import { useTranslations } from 'next-intl'
 import type { ReactNode } from 'react'
-import { AlertCircle, Layers3, TimerReset } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  ClipboardCheck,
+  FileText,
+  Home,
+  Layers,
+  Layers3,
+  PackageCheck,
+  PlusCircle,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  TimerReset,
+  Truck,
+} from 'lucide-react'
 import { CmxButton, CmxSkeleton } from '@ui/primitives'
 import { cn } from '@lib/utils'
 
@@ -70,6 +85,34 @@ function ownerTone(ownerScreenKey: WorkboardOwnerScreenKey): WorkboardOverviewTo
       return 'warning'
     case 'order_detail':
       return 'primary'
+  }
+}
+
+/** Returns a distinct semantic icon for each operational stage card. */
+function ownerIcon(ownerScreenKey: WorkboardOwnerScreenKey): ReactNode {
+  switch (ownerScreenKey) {
+    case 'new_order':
+      return <PlusCircle className="h-4 w-4" aria-hidden />
+    case 'home_collection':
+      return <Home className="h-4 w-4" aria-hidden />
+    case 'preparation':
+      return <ClipboardCheck className="h-4 w-4" aria-hidden />
+    case 'processing':
+      return <Sparkles className="h-4 w-4" aria-hidden />
+    case 'assembly':
+      return <Layers className="h-4 w-4" aria-hidden />
+    case 'qa':
+      return <ShieldCheck className="h-4 w-4" aria-hidden />
+    case 'packing':
+      return <PackageCheck className="h-4 w-4" aria-hidden />
+    case 'ready_release':
+      return <CheckCircle2 className="h-4 w-4" aria-hidden />
+    case 'pickup_handover':
+      return <ShoppingBag className="h-4 w-4" aria-hidden />
+    case 'driver_delivery':
+      return <Truck className="h-4 w-4" aria-hidden />
+    case 'order_detail':
+      return <FileText className="h-4 w-4" aria-hidden />
   }
 }
 
@@ -205,7 +248,7 @@ export function WorkboardOverviewCards({
             loading={loading && !summary}
             label={t(`owners.${screenKey}`)}
             value={summary?.byOwner[screenKey] ?? 0}
-            icon={<TimerReset className="h-4 w-4" aria-hidden />}
+            icon={ownerIcon(screenKey)}
             tone={ownerTone(screenKey)}
             onClick={() => {
               onOwnerScreenKeyChange(screenKey)

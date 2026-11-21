@@ -1,11 +1,12 @@
 /**
  * Order Stats Cards Component
  *
- * Displays order statistics in card format.
+ * Displays interactive order KPI cards built on CmxKpiStatCard.
  */
 
 'use client';
 
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   AlertTriangle,
@@ -16,80 +17,133 @@ import {
   RefreshCw,
   Truck,
 } from 'lucide-react';
+import { CmxKpiStatCard, type CmxKpiStatCardTone } from '@ui/data-display';
+import { CmxButton } from '@ui/primitives';
+import { cn } from '@/lib/utils';
 import type { OrderStats } from '@/types/order';
 
 interface OrderStatsCardsProps {
   stats: OrderStats;
+  currentFilters?: Record<string, string | undefined>;
 }
 
 /**
- *
- * @param root0
- * @param root0.stats
+ * Interactive KPI strip for `/dashboard/orders`.
  */
-export function OrderStatsCards({ stats }: OrderStatsCardsProps) {
+export function OrderStatsCards({ stats, currentFilters = {} }: OrderStatsCardsProps) {
   const t = useTranslations('orders');
-  
-  const cards = [
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const applyFilter = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(updates)) {
+      if (v) params.set(k, v);
+      else params.delete(k);
+    }
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const cards: Array<{
+    key: string;
+    label: string;
+    value: number;
+    tone: CmxKpiStatCardTone;
+    active: boolean;
+    onClick: () => void;
+    Icon: typeof Package;
+  }> = [
     {
+      key: 'total',
       label: t('totalOrders'),
       value: stats.total,
-      color: 'bg-info-bg text-info-text',
+      tone: 'default',
+      active: !currentFilters.status && !currentFilters.preparationStatus,
+      onClick: () => applyFilter({ status: null, preparationStatus: null }),
       Icon: Package,
     },
     {
+      key: 'pending_prep',
       label: t('pendingPrep'),
       value: stats.pending_preparation,
-      color: 'bg-warning-bg text-warning-text',
+      tone: stats.pending_preparation > 0 ? 'warning' : 'default',
+      active: currentFilters.preparationStatus === 'pending',
+      onClick: () => applyFilter({ status: null, preparationStatus: 'pending' }),
       Icon: Clock,
     },
     {
+      key: 'processing',
       label: t('inProgress'),
       value: stats.processing,
-      color: 'bg-info-bg text-info-text',
+      tone: 'default',
+      active: currentFilters.status === 'processing',
+      onClick: () => applyFilter({ status: 'processing', preparationStatus: null }),
       Icon: RefreshCw,
     },
     {
+      key: 'ready',
       label: t('ready'),
       value: stats.ready,
-      color: 'bg-success-bg text-success-text',
+      tone: stats.ready > 0 ? 'success' : 'default',
+      active: currentFilters.status === 'ready',
+      onClick: () => applyFilter({ status: 'ready', preparationStatus: null }),
       Icon: CheckCircle2,
     },
     {
+      key: 'out_for_delivery',
       label: t('statuses.outForDelivery'),
       value: stats.out_for_delivery,
-      color: 'bg-info-bg text-info-text',
+      tone: 'default',
+      active: currentFilters.status === 'out_for_delivery',
+      onClick: () => applyFilter({ status: 'out_for_delivery', preparationStatus: null }),
       Icon: Truck,
     },
     {
+      key: 'delivered_today',
       label: t('deliveredToday'),
       value: stats.delivered_today,
-      color: 'bg-info-bg text-info-text',
+      tone: 'default',
+      active: currentFilters.status === 'delivered',
+      onClick: () => applyFilter({ status: 'delivered', preparationStatus: null }),
       Icon: MailCheck,
     },
     {
+      key: 'overdue',
       label: t('overdue'),
       value: stats.overdue,
-      color: 'bg-danger-bg text-danger-text',
+      tone: stats.overdue > 0 ? 'danger' : 'default',
+      active: currentFilters.sortBy === 'ready_by' && currentFilters.sortOrder === 'asc',
+      onClick: () => applyFilter({ sortBy: 'ready_by', sortOrder: 'asc' }),
       Icon: AlertTriangle,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
       {cards.map((card) => {
         const CardIcon = card.Icon;
         return (
-          <div
-            key={card.label}
-            className={`${card.color} rounded-lg p-4 border border-border text-start`}
+          <CmxButton
+            key={card.key}
+            type="button"
+            variant="ghost"
+            aria-pressed={card.active}
+            onClick={card.onClick}
+            className="block h-auto w-full rounded-lg p-0 text-start font-normal hover:bg-transparent"
           >
-            <div className="flex items-center justify-between">
-              <CardIcon className="h-6 w-6 shrink-0" aria-hidden="true" />
-              <bdi className="text-2xl font-bold tabular-nums">{card.value}</bdi>
-            </div>
-            <div className="mt-2 text-sm font-medium text-start">{card.label}</div>
-          </div>
+            <CmxKpiStatCard
+              title={card.label}
+              value={card.value}
+              tone={card.tone}
+              icon={<CardIcon className="h-4 w-4" aria-hidden="true" />}
+              className={cn(
+                'transition-shadow hover:shadow-md',
+                card.active && 'ring-2 ring-ring',
+              )}
+            />
+          </CmxButton>
         );
       })}
     </div>
