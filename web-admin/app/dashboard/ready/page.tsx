@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
+import { PagePermissionDeniedFallback, RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm'
 import { ReadyListScreen } from '@features/pickup/ui/ready-list-screen'
 import { CmxSkeleton } from '@ui/primitives'
@@ -13,7 +13,10 @@ export const metadata: Metadata = { title: 'Ready for Pickup' }
  */
 export default function ReadyPage() {
   return (
-    <RequireAnyPermission permissions={[ORDERS_PERMISSIONS.READ]}>
+    <RequireAnyPermission
+      permissions={[ORDERS_PERMISSIONS.READ]}
+      fallback={<PagePermissionDeniedFallback />}
+    >
       <Suspense
         fallback={(
           <div className="mx-auto max-w-6xl space-y-4 p-6">

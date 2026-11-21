@@ -29,9 +29,6 @@ const PROCESSING_SUB_STATUS_KEYS = [
   'washing',
   'drying',
   'finishing',
-  'in_wash',
-  'in_dry',
-  'in_finish',
 ] as const;
 
 /**

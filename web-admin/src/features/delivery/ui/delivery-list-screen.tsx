@@ -118,6 +118,7 @@ function routeStatusTone(statusCode: string): CmxBadgeTone {
 export function DeliveryListScreen() {
   const t = useTranslations('workflow');
   const tCollect = useTranslations('orders.collectPayment');
+  const tStatuses = useTranslations('orders.statuses');
   const tFocus = useTranslations('processing.focus');
   const tCommon = useTranslations('common');
   const locale = useLocale();
@@ -473,7 +474,15 @@ export function DeliveryListScreen() {
                           <CmxCodeChip code={routeNumber} kind="order" size="sm" copyable={false} />
                         ) : null}
                         <CmxStatusBadge
-                          label={statusCode.replace(/_/g, ' ')}
+                          label={
+                            tStatuses.has(statusI18nKey(statusCode.toLowerCase()))
+                              ? tStatuses(statusI18nKey(statusCode.toLowerCase()))
+                              : statusCode.toLowerCase() === 'completed'
+                                ? tCommon('completed')
+                                : statusCode.toLowerCase() === 'cancelled'
+                                  ? tCommon('cancelled')
+                                  : statusCode.replace(/_/g, ' ')
+                          }
                           tone={routeStatusTone(statusCode)}
                           size="sm"
                         />

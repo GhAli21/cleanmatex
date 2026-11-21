@@ -10,8 +10,10 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { PagePermissionDeniedFallback, RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
@@ -63,16 +65,21 @@ function toDayRangeIso(dateStr?: string): { from?: string; to?: string } {
  */
 export default function ProcessingPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="w-full space-y-4">
-          <CmxSkeleton className="h-14 w-full" />
-          <CmxSkeletonTable rows={6} columns={8} />
-        </div>
-      }
+    <RequireAnyPermission
+      permissions={[ORDERS_PERMISSIONS.READ]}
+      fallback={<PagePermissionDeniedFallback />}
     >
-      <ProcessingQueueContent />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="w-full space-y-4">
+            <CmxSkeleton className="h-14 w-full" />
+            <CmxSkeletonTable rows={6} columns={8} />
+          </div>
+        }
+      >
+        <ProcessingQueueContent />
+      </Suspense>
+    </RequireAnyPermission>
   );
 }
 
@@ -80,6 +87,7 @@ function ProcessingQueueContent() {
   const t = useTranslations('processing');
   const tOrders = useTranslations('orders');
   const tCommon = useTranslations('common');
+  const router = useRouter();
   const searchParams = useSearchParams();
   const deepLinkOrderId = searchParams.get('orderId');
   const { currentTenant, isLoading: authLoading } = useAuth();
@@ -402,10 +410,11 @@ function ProcessingQueueContent() {
   const handleModalClose = useCallback(() => {
     if (deepLinkOrderId && activeModalOrderId === deepLinkOrderId) {
       setDismissedDeepLinkOrderId(deepLinkOrderId);
+      router.replace('/dashboard/processing', { scroll: false });
     }
     setIsModalOpen(false);
     setSelectedOrderId(null);
-  }, [activeModalOrderId, deepLinkOrderId]);
+  }, [activeModalOrderId, deepLinkOrderId, router]);
 
   const handleSimpleClose = useCallback(() => {
     setIsSimpleOpen(false);

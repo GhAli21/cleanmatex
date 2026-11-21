@@ -9,11 +9,28 @@
  */
 
 import { ReactNode } from 'react'
+import { ShieldAlert } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { CmxEmptyState } from '@ui/data-display'
 import {
   useHasPermission,
   useHasAnyPermission,
   useHasAllPermissions,
 } from '@/lib/hooks/usePermissions'
+
+/** Shared translated fallback for page-level permission gates so unauthorized users never see a blank screen. */
+export function PagePermissionDeniedFallback() {
+  const tCommon = useTranslations('common')
+  return (
+    <div className="mx-auto max-w-2xl p-6">
+      <CmxEmptyState
+        icon={<ShieldAlert className="h-10 w-10 text-danger-text" aria-hidden="true" />}
+        title={tCommon('accessDeniedTitle')}
+        description={tCommon('accessDeniedDescription')}
+      />
+    </div>
+  )
+}
 
 // ========================
 // Single Permission Check

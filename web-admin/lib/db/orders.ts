@@ -214,7 +214,8 @@ export async function listOrders(
     sortOrder = 'desc',
     orderSourceCode,
     physicalIntakeStatus,
-  } = filters;
+    overdue,
+  } = filters as OrderFilters & { overdue?: boolean };
 
   // Build where clause
   const where: any = {
@@ -255,6 +256,13 @@ export async function listOrders(
 
   if (toDate) {
     where.received_at = { ...where.received_at, lte: toDate };
+  }
+
+  if (overdue) {
+    where.ready_by = { lt: new Date() };
+    if (!status) {
+      where.status = { notIn: ['delivered', 'closed', 'cancelled'] };
+    }
   }
 
   if (orderSourceCode) {
@@ -359,7 +367,13 @@ export async function listOrders(
             { received_at: { sort: sortOrder, nulls: 'last' } },
             { created_at: sortOrder },
           ]
-        : { [sortBy]: sortOrder },
+        : sortBy === 'total'
+          ? { total_amount: sortOrder }
+          : sortBy === 'ready_by'
+            ? { ready_by: { sort: sortOrder, nulls: 'last' } }
+            : sortBy === 'order_no'
+              ? { order_no: sortOrder }
+              : { created_at: sortOrder },
     skip: (page - 1) * limit,
     take: limit,
   });

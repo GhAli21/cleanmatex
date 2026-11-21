@@ -505,11 +505,18 @@ async function completeCampaign(
  *
  * @param request
  */
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  if (!(await isOutboxRequestAuthorized(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export interface CampaignExpansionStats {
+  activated: number
+  activationFailed: number
+  targetsQueued: number
+  targetsSentNow: number
+  targetsSkipped: number
+  campaignsCompleted: number
+  errors: number
+}
 
+/** One bounded campaign pass: at most 10 activations and 50 targets per running campaign. */
+export async function runCampaignExpansion(): Promise<CampaignExpansionStats> {
   const supabase = createAdminSupabaseClient()
   const now      = new Date().toISOString()
 
@@ -599,5 +606,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   logger.info('process-campaigns: run complete', { ...stats, feature: 'notifications-campaigns' })
 
+  return stats
+}
+
+/**
+ * @param request
+ */
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  if (!(await isOutboxRequestAuthorized(request))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const stats = await runCampaignExpansion()
   return NextResponse.json({ success: true, ...stats })
 }

@@ -115,6 +115,7 @@ export const orderFiltersSchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
   orderSourceCode: z.string().max(64).optional(),
   physicalIntakeStatus: z.string().max(120).optional(),
+  overdue: z.boolean().optional(),
 });
 
 /**

@@ -183,6 +183,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
         currentFilters.fromDate ||
         currentFilters.toDate ||
         currentFilters.orderSourceCode ||
+        currentFilters.overdue === 'true' ||
         currentFilters.search) && (
         <div className="mt-3">
           <CmxButton

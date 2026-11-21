@@ -90,6 +90,8 @@
   "pieces": "قطع",
   "rowsPerPage": "صفوف لكل صفحة",
   "currency": "العملة",
+  "accessDeniedTitle": "تم رفض الوصول",
+  "accessDeniedDescription": "ليس لديك صلاحية لعرض هذه الصفحة. تواصل مع المسؤول إذا كنت بحاجة إلى الصلاحية.",
   "auditCard": {
     "title": "معلومات التدقيق",
     "actionLabel": "التدقيق",

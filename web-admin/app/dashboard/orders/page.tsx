@@ -22,6 +22,7 @@ import { CmxCrudPageShell } from '@ui/patterns/cmx-crud-page-shell';
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
 import { CmxButton, CmxSkeletonTable } from '@ui/primitives';
 import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
+import { PagePermissionDeniedFallback } from '@features/auth/ui/RequirePermission';
 
 /** Labels the tenant order list independently from individual order workspaces. */
 export const metadata: Metadata = { title: 'Orders' };
@@ -38,6 +39,7 @@ type OrdersSearchParams = {
   toDate?: string;
   physicalIntakeStatus?: string;
   orderSourceCode?: string;
+  overdue?: string;
   sortBy?: string;
   sortOrder?: string;
 };
@@ -119,6 +121,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     toDate: parseDate(params.toDate),
     physicalIntakeStatus: params.physicalIntakeStatus,
     orderSourceCode: params.orderSourceCode,
+    overdue: params.overdue === 'true' ? true : undefined,
     sortBy: resolvedSortBy,
     sortOrder: resolvedSortOrder,
   };
@@ -143,6 +146,15 @@ export default async function OrdersPage({ searchParams }: PageProps) {
 
   const statsData =
     statsOk && statsResult.status === 'fulfilled' ? statsResult.value.data : null;
+
+  const isForbidden =
+    ordersResult.status === 'fulfilled' &&
+    !ordersResult.value.success &&
+    String(ordersResult.value.error ?? '').toUpperCase().includes('FORBIDDEN');
+
+  if (isForbidden) {
+    return <PagePermissionDeniedFallback />;
+  }
 
   return (
     <CmxCrudPageShell
@@ -187,6 +199,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
               params.fromDate ||
               params.toDate ||
               params.orderSourceCode ||
+              params.overdue === 'true' ||
               params.search
             )}
           />

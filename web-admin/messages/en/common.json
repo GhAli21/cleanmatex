@@ -90,6 +90,8 @@
   "pieces": "Pieces",
   "rowsPerPage": "Rows per page",
   "currency": "Currency",
+  "accessDeniedTitle": "Access Denied",
+  "accessDeniedDescription": "You do not have permission to view this page. Contact your administrator if you need access.",
   "auditCard": {
     "title": "Audit Information",
     "actionLabel": "Audit",

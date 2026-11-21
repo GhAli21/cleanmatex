@@ -1,6 +1,6 @@
 # I11 Background Execution — Expert Replan
 
-**Status:** `0782` through `0791` applied. One-claim canary sent on 2026-11-21: outbox `028b2104-5b98-4464-8eab-fe1dd8c7a4ad` is `SENT`. Owner then set `NTF_OUTBOX_WORKER_ENABLED=false` and restarted the worker. Shadow and `PLATFORM_BG_ENABLED` stay off. Gift-card, credit-note, loyalty, POS, and ERP expiry stay superseded until the application posting service writes the journal. `ntf-outbox-reconcile` is not scheduled.  
+**Status:** Code through the claim gate, tenant-job callers, and job alerts is written. `0782` through `0804` are applied. I11 is not closed. Close it only after the HQ API deploy, the one-step cutover in the runbook, a scheduled provider-specific reconciler, and a 48-hour soak. Until then leave `PLATFORM_BG_ENABLED` unset, leave worker loops on, leave notification delivery off, and leave finance and campaign flags unset. Trial expiry is not a job. The living plan is this expert replan.  
 **Written:** 20 Nov 2026  
 **Approved_By_Jh:** 20 Nov 2026 (architecture); planning locks D9–D12 recorded same day for implementation readiness.  
 **Authority it extends:** [PLAN](I11_background_execution_redesign_PLAN.md), [ADR](I11_background_execution_redesign_ADR.md), [handler contracts](I11_background_execution_handler_contracts.md), [runbook](I11_background_execution_RUNBOOK.md), [QA](I11_background_execution_QA_TEST_GUIDE.md), [I11/I11a](03_infrastructure_deploy_and_operations.md).  

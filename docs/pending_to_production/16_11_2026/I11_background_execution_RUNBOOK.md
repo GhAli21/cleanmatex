@@ -1,6 +1,6 @@
 # I11 Background Execution — Production Runbook
 
-**Status:** Active for controlled notification-worker hardening. **Architecture locked 20 Nov 2026** ([expert replan](I11_background_execution_EXPERT_REPLAN.md) D1–D20). **WP0 through WP3 are applied** (`0779`–`0783`). `0784` through `0791` are applied. Gift-card, credit-note, and loyalty expiry stay superseded until a ledger-and-GL replacement exists. `ntf-outbox-dispatch` and `ntf-outbox-shadow` stay desired off. **WP2 host stays off** (`PLATFORM_BG_ENABLED` unset). Do not set `PLATFORM_WORKER_LOOPS_ENABLED=false` until File Util purge is ported. After the 2026-11-21 one-claim send, Owner set `NTF_OUTBOX_WORKER_ENABLED=false` and restarted the worker. Safety sweep is **15 minutes** (D10).  
+**Status:** Active. Migrations `0782` through `0804` are applied on local and remote. The HQ API source can claim shadow, dispatch, file purge, finance jobs, and campaign expansion, and it can alert on a missing worker, old due mail, and growing uncertain rows. **Do not enable that host yet.** `PLATFORM_BG_ENABLED` stays unset. `PLATFORM_WORKER_LOOPS_ENABLED` stays unset, so Render `platform-workers` is still the only claimer. Notification delivery stays off. Finance and campaign env flags stay unset. `ntf-outbox-reconcile` is not scheduled. Trial expiry is not a job. Safety sweep is **15 minutes** (D10). I11 stays open until the cutover below and a 48-hour soak.  
 **Authority:** [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Test execution companion:** [I11 remote QA and evidence guide](I11_background_execution_QA_TEST_GUIDE.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence. Local results are development-only.
@@ -14,19 +14,37 @@
 - BullMQ is not part of the supported notification path. It is rollback-only and starts only when `LEGACY_BULLMQ_ENABLED=true`, never merely because `REDIS_URL` is set. Redis on HQ API is for cache/limiter/locks only.
 - Never retry an `ACCEPTANCE_UNCERTAIN` claim until provider/HQ evidence proves whether an external effect occurred.
 
+## Current jobs (21 Nov 2026)
+
+These HTTP wrappers stay **Retired**. Do not Enable, Restore, or Run now:
+
+`ntf-outbox-processor`, `ntf-reconcile-outbox`.
+
+These are **HQ worker** jobs, desired off. Run now does nothing useful until the matching env flag is `true` and the tenant app that contains the route is deployed:
+
+`ntf-campaign-scheduler`, `fin-outbox-processor`, `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-erp-posting-retry`, `fin-pos-session-rollover`.
+
+`ntf-outbox-dispatch` and `ntf-outbox-shadow` stay desired off. `fin-idempotency-cleanup` is SQL and `SYNC`. `tax-kit-update`, `file-util-expire`, `setup-health-refresh`, `cleanup-cron-job-run-details`, and `cleanup-net-http-response` are active SQL jobs and can be paused. Notification delivery stays off.
+
+## Cutover — only after this HQ API build is deployed
+
+Do these in one change. Doing only one of them drops file purge or starts a second claimer.
+
+1. Deploy the HQ API build that contains the claim gate and the job alert.
+2. Deploy the tenant app build that contains the finance and campaign routes before any of those env flags are set. Leave the flags unset in this step.
+3. Set `PLATFORM_BG_ENABLED=true` on the HQ API and `PLATFORM_WORKER_LOOPS_ENABLED=false` on `platform-workers`, then restart both.
+4. Leave `NTF_OUTBOX_WORKER_ENABLED` false. Leave every `FIN_*_ENABLED` and `NTF_CAMPAIGN_EXPANSION_ENABLED` unset.
+5. Confirm `/ops/jobs` shows one worker heartbeat and no second claimer in the logs.
+
+After that deploy is stable, the remaining close is a provider-specific reconcile schedule, then a 48-hour soak, then removal of the retired HTTP cron paths. Trial expiry stays a separate product decision.
+
 ## WP0 operator freeze (D11 / D15)
 
-After `0779` is applied, HQ `/ops/jobs` shows HTTP wrappers as **Retired** (`SUPERSEDED`). Do not Enable, Restore, or Run now:
-
-`ntf-outbox-processor`, `ntf-campaign-scheduler`, `ntf-reconcile-outbox`, `fin-outbox-processor`, `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-erp-posting-retry`, `fin-pos-session-rollover`.
-
-`fin-idempotency-cleanup` stays ACTIVE but HTTP Restore/Run now are stripped. Campaign expansion and finance expiry/rollover/ERP HTTP remain paused until their own WP5 replacements.
+After `0779` is applied, HQ `/ops/jobs` shows the two remaining HTTP wrappers as **Retired** (`SUPERSEDED`). The finance and campaign rows were later moved to HQ worker jobs by `0792` through `0798`. Do not treat those as retired.
 
 ## WP5 — one database handler at a time
 
-`0784` through `0791` are applied. Remote idempotency cleanup runs `SELECT public.cleanup_expired_idempotency_keys()` daily at 03:00. It does not call `fin_trigger_job`. `0791` adds the read-only dead-letter list.
-
-Gift-card, credit-note, and loyalty expiry stay superseded. Expiring a gift card sets the card to `EXPIRED`, writes an `EXPIRE` ledger row for the remaining balance, and asks `ErpLiteAutoPostService.dispatchRequest` to post `gift_card_expired`. That posting checks the ERP Lite feature flag and the auto-post policy in the application. A database job cannot make that journal. A status-only update would leave the liability on the books. Remote has no open gift card past its expiry date. Do not Enable, Restore, or Run now those jobs. Do not enable delivery.
+`0784` through `0804` are applied. Remote idempotency cleanup runs `SELECT public.cleanup_expired_idempotency_keys()` daily at 03:00 and is recorded as `SYNC`. `0791` adds the read-only dead-letter list. `0792` through `0798` point the finance and campaign jobs at the HQ worker. `0799` through `0801` restore the tax, file-expiry, and setup-health cron rows and allow pause. `0803` and `0804` do the same for the two truncate jobs. None of these migrations send a notification.
 
 ## WP0.6 inventory (no secret values)
 

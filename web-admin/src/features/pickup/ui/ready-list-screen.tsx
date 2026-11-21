@@ -347,7 +347,9 @@ export function ReadyListScreen() {
                     {order.customer.phone ? (
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('labels.phone')}:</span>
-                        <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
+                        <span dir="ltr" className="inline-block tabular-nums [unicode-bidi:isolate]">
+                          {order.customer.phone}
+                        </span>
                       </div>
                     ) : null}
                     {order.rack_location ? (

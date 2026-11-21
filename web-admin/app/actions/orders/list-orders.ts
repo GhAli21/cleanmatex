@@ -69,7 +69,7 @@ export async function listOrders(
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch orders',
+      error: 'Failed to fetch orders',
     };
   }
 }

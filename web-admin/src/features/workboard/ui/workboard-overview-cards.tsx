@@ -4,11 +4,11 @@ import { useTranslations } from 'next-intl'
 import type { ReactNode } from 'react'
 import {
   AlertCircle,
+  Boxes,
   CheckCircle2,
   ClipboardCheck,
   FileText,
   Home,
-  Layers,
   Layers3,
   PackageCheck,
   PlusCircle,
@@ -100,7 +100,7 @@ function ownerIcon(ownerScreenKey: WorkboardOwnerScreenKey): ReactNode {
     case 'processing':
       return <Sparkles className="h-4 w-4" aria-hidden />
     case 'assembly':
-      return <Layers className="h-4 w-4" aria-hidden />
+      return <Boxes className="h-4 w-4" aria-hidden />
     case 'qa':
       return <ShieldCheck className="h-4 w-4" aria-hidden />
     case 'packing':

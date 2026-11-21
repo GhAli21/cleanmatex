@@ -334,7 +334,9 @@ export function WorkboardScreen() {
           />
           <div className="text-xs text-muted-foreground">
             {row.customerPhone ? (
-              <bdi dir="ltr" className="tabular-nums">{row.customerPhone}</bdi>
+              <span dir="ltr" className="inline-block tabular-nums [unicode-bidi:isolate]">
+                {row.customerPhone}
+              </span>
             ) : (
               t('noPhone')
             )}
@@ -586,7 +588,7 @@ export function WorkboardScreen() {
           headerSize="emphasized"
           headerClassName="bg-muted"
           className="w-full shadow-sm"
-          tableClassName="min-w-[64rem]"
+          tableClassName="w-full min-w-[64rem]"
           stickyEndColumnIds={['open']}
           scrollAreaClassName="min-h-[24rem] max-h-[calc(100vh-15rem)] overflow-auto"
           emptyStateTitle={t('empty.title')}

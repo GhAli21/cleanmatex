@@ -3,7 +3,7 @@
  */
 
 import { OrdersIssuesQueuePage } from '@features/orders/ui/issues/orders-issues-queue-page';
-import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { PagePermissionDeniedFallback, RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 import type { Metadata } from 'next';
 
@@ -15,7 +15,10 @@ export const metadata: Metadata = { title: 'Order Issues' };
  */
 export default function DashboardIssuesPage() {
   return (
-    <RequireAnyPermission permissions={[ORDERS_PERMISSIONS.READ]}>
+    <RequireAnyPermission
+      permissions={[ORDERS_PERMISSIONS.READ]}
+      fallback={<PagePermissionDeniedFallback />}
+    >
       <OrdersIssuesQueuePage />
     </RequireAnyPermission>
   );

@@ -625,7 +625,9 @@ const OrderRow = React.memo(function OrderRow({
           <div className="flex items-center justify-between gap-1 text-xs tabular-nums">
             <span className="font-semibold text-foreground">{totalItems}</span>
             <span className="text-muted-foreground">
-              {readyCount}/{totalItems} ({progressPercent}%)
+              <bdi dir="ltr" className="inline-block tabular-nums">
+                {readyCount}/{totalItems} ({progressPercent}%)
+              </bdi>
             </span>
           </div>
           <div
