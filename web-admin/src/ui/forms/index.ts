@@ -20,3 +20,5 @@ export * from './cmx-form-skeleton';
 export * from './cmx-scan-input';
 export * from './cmx-code-search-input';
 export * from './cmx-file-drop-zone';
+export * from './cmx-phone-input';
+export * from './cmx-form-phone-field';

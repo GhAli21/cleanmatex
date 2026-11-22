@@ -1227,8 +1227,16 @@ export async function suspendGiftCard(
   });
 }
 
+function giftCardAmount(value: { toNumber(): number } | number | string): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return Number(value);
+  return value.toNumber();
+}
+
 /**
  * Mark a gift card as EXPIRED and insert an EXPIRE ledger row.
+ * The row lock is held for the status change and the ledger insert so a
+ * second caller waits, then sees the card already expired and writes nothing.
  */
 export async function expireGiftCard(
   id: string,
@@ -1237,38 +1245,57 @@ export async function expireGiftCard(
   return withTenantContext(tenantOrgId, async () => {
     try {
       await prisma.$transaction(async (tx) => {
-        const card = await tx.org_gift_cards_mst.findFirst({
-          where: {
-            id,
-            tenant_org_id: tenantOrgId,
-            is_active: true,
-            status: {
-              in: [
-                GIFT_CARD_STATUS.ACTIVE,
-                GIFT_CARD_STATUS.PARTIALLY_REDEEMED,
-                GIFT_CARD_STATUS.GENERATED,
-              ],
-            },
-          },
-          select: { id: true, available_amount: true, currency_code: true },
-        });
-        if (!card) throw new Error('GIFT_CARD_NOT_FOUND');
+        const locked = await tx.$queryRaw<
+          {
+            id: string;
+            available_amount: { toNumber(): number } | number | string;
+            currency_code: string;
+            status: string;
+          }[]
+        >`
+          SELECT id, available_amount, currency_code, status
+          FROM org_gift_cards_mst
+          WHERE id = ${id}::uuid
+            AND tenant_org_id = ${tenantOrgId}::uuid
+            AND is_active = true
+            AND rec_status = 1
+            AND status IN ('ACTIVE', 'PARTIALLY_REDEEMED', 'GENERATED', 'EXPIRED')
+          FOR UPDATE
+        `;
+        if (!locked.length) throw new Error('GIFT_CARD_NOT_FOUND');
 
-        await tx.org_gift_cards_mst.update({
-          where: { id, tenant_org_id: tenantOrgId },
-          data: {
-            status: GIFT_CARD_STATUS.EXPIRED,
-            updated_at: new Date(),
-          },
-        });
+        const card = locked[0];
+        if (card.status === GIFT_CARD_STATUS.EXPIRED) {
+          const existing = await tx.org_gift_card_txn_dtl.findFirst({
+            where: {
+              tenant_org_id: tenantOrgId,
+              gift_card_id: id,
+              transaction_type: GIFT_CARD_TXN_TYPE.EXPIRE,
+            },
+            select: { id: true },
+          });
+          if (existing) return;
+        }
+
+        const amount = giftCardAmount(card.available_amount);
+
+        if (card.status !== GIFT_CARD_STATUS.EXPIRED) {
+          await tx.org_gift_cards_mst.update({
+            where: { id, tenant_org_id: tenantOrgId },
+            data: {
+              status: GIFT_CARD_STATUS.EXPIRED,
+              updated_at: new Date(),
+            },
+          });
+        }
 
         const txn = await tx.org_gift_card_txn_dtl.create({
           data: {
             tenant_org_id: tenantOrgId,
             gift_card_id: id,
             transaction_type: GIFT_CARD_TXN_TYPE.EXPIRE,
-            amount: card.available_amount.toNumber(),
-            balance_before: card.available_amount.toNumber(),
+            amount,
+            balance_before: amount,
             balance_after: 0,
             transaction_date: new Date(),
             notes: 'Card expired',
@@ -1286,7 +1313,7 @@ export async function expireGiftCard(
             tenant_org_id: tenantOrgId,
             gift_card_id: id,
             txn_id: txn.id,
-            amount: card.available_amount.toNumber(),
+            amount,
             currency_code: card.currency_code,
             expire_date: new Date().toISOString(),
           }),

@@ -6,10 +6,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
+import { CmxPhoneInput } from '@ui/forms';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -19,23 +20,9 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { createCustomer } from '@/lib/api/customers';
-import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useFeatureOptional } from '@/src/features/auth/ui/RequireFeature';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import type { CustomerType, Customer } from '@/lib/types/customer';
-
-/** Common GCC + regional country codes for phone input */
-const COUNTRY_CODES = [
-  { code: '+968', label: 'Oman', flag: '🇴🇲' },
-  { code: '+966', label: 'Saudi Arabia', flag: '🇸🇦' },
-  { code: '+971', label: 'UAE', flag: '🇦🇪' },
-  { code: '+965', label: 'Kuwait', flag: '🇰🇼' },
-  { code: '+973', label: 'Bahrain', flag: '🇧🇭' },
-  { code: '+974', label: 'Qatar', flag: '🇶🇦' },
-  { code: '+20', label: 'Egypt', flag: '🇪🇬' },
-  { code: '+962', label: 'Jordan', flag: '🇯🇴' },
-  { code: '+961', label: 'Lebanon', flag: '🇱🇧' },
-];
 
 interface CustomerCreateModalProps {
   open: boolean;
@@ -68,7 +55,6 @@ export function CustomerCreateModal({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('+968');
   const [email, setEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyName2, setCompanyName2] = useState('');
@@ -77,16 +63,6 @@ export function CustomerCreateModal({
   const [paymentTermsDays, setPaymentTermsDays] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Fetch tenant default phone country code when modal opens
-  useEffect(() => {
-    if (open && tenantId) {
-      getPhoneCountryCodeAction(tenantId).then((code) => {
-        const found = COUNTRY_CODES.find((c) => c.code === code);
-        setCountryCode(found ? code : '+968');
-      }).catch(() => { /* keep default */ });
-    }
-  }, [open, tenantId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,12 +91,11 @@ export function CustomerCreateModal({
 
       // For stub customers (most common POS use case)
       if (customerType === 'stub') {
-        const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode}${phone.replace(/\D/g, '')}`;
         createdCustomer = await createCustomer({
           type: 'stub',
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
-          phone: fullPhone,
+          phone: phone.trim(),
         });
       }
       // For guest customers
@@ -133,12 +108,11 @@ export function CustomerCreateModal({
       }
       // For B2B customers (when feature enabled)
       else if (customerType === 'b2b') {
-        const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode}${phone.replace(/\D/g, '')}`;
         createdCustomer = await createCustomer({
           type: 'b2b',
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
-          phone: fullPhone,
+          phone: phone.trim(),
           email: email.trim() || undefined,
           companyName: companyName.trim(),
           companyName2: companyName2.trim() || undefined,
@@ -311,37 +285,20 @@ export function CustomerCreateModal({
             />
           </div>
 
-          {/* Phone (for stub customers) */}
+          {/* Phone (for stub & B2B customers) */}
           {customerType !== 'guest' && (
             <div className="mb-4">
               <Label htmlFor="create-customer-phone" className="mb-1 block text-start">
                 {t('phoneNumber') || 'Phone Number'} <span className="text-danger-text">*</span>
               </Label>
-              <div className="flex gap-2" dir="ltr">
-                <div className="w-28 shrink-0">
-                  <CmxSelect
-                    aria-label={t('countryCode') || 'Country code'}
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    disabled={loading}
-                    options={COUNTRY_CODES.map((c) => ({
-                      value: c.code,
-                      label: `${c.flag} ${c.code}`,
-                    }))}
-                  />
-                </div>
-                <CmxInput
-                  type="tel"
-                  id="create-customer-phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  dir="ltr"
-                  disabled={loading}
-                  className="flex-1 tabular-nums"
-                  placeholder="90123456"
-                  required
-                />
-              </div>
+              <CmxPhoneInput
+                id="create-customer-phone"
+                value={phone}
+                onChange={(e164) => setPhone(e164)}
+                tenantId={tenantId}
+                disabled={loading}
+                required
+              />
             </div>
           )}
 

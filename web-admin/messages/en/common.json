@@ -137,5 +137,17 @@
     "noPreview": "This file cannot be shown here. Download it to open it.",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out"
+  },
+  "phone": {
+    "countryCode": "Country code",
+    "searchCountry": "Search country or code...",
+    "noCountriesFound": "No countries found",
+    "placeholder": "Phone number",
+    "normalizedLabel": "Saved format",
+    "valid": "Valid phone number",
+    "invalid": "Please check the phone number for the selected country",
+    "copyPhone": "Copy phone {phone}",
+    "callPhone": "Call {phone}",
+    "whatsappPhone": "Message {phone} on WhatsApp"
   }
 }

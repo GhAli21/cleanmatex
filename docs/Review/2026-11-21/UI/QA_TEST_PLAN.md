@@ -708,3 +708,194 @@ Added on 2026-11-22 at the owner's request. Descriptions were checked against th
 | NO-01 | FAIL | `r2-NO-01-DL-1.webp` | DL New Order at 1280×715 with 3 items; Submit Order cut off below the fold. |
 | AS-01 / §4 Unauthorized | PASS | `r2-UNAUTH-assembly-SAR-1.webp` | Accountant on Assembly: "Access Denied" card, tab "Assembly — CleanMateX". |
 | §4 Unauthorized | PASS | `r2-UNAUTH-orders-SAR-1.webp`, `r2-UNAUTH-processing-SAR-1.webp`, `r2-UNAUTH-qa-SAR-1.webp`, `r2-UNAUTH-packing-SAR-1.webp`, `r2-UNAUTH-workboard-SAR-1.webp`, `r2-UNAUTH-ready-SAR-1.webp`, `r2-UNAUTH-delivery-SAR-1.webp`, `r2-UNAUTH-issues-SAR-1.webp` | Accountant on each route (named in the file): the same "Access Denied" card with "You do not have permission to view this page. Contact your administrator if you need access." |
+
+---
+
+## Financial_Expert_Tester — Retest r3 (2026-11-23, after the 22–23 Nov deploy)
+
+**When:** 2026-11-23 about 00:02–00:26 (Asia/Muscat, UTC+4).
+**Where:** https://cmx.cleanmatex.com (remote; local plan steps adapted).
+**Accounts:**
+- Demo Laundry (DL, OMR 3 dp): `admin@demo-laundry.example`, 00:02–00:13.
+- Demo SAR (SAR, SAR 2 dp): `admin@saudiriyadhdemo.com`, 00:14–00:26.
+- Passwords are in CREDENTIALS_AND_ENVIRONMENTS.md, not this file.
+
+**Scope:**
+- Every row still FAIL or PARTIAL after r2.
+- BLOCKED rows only when the data might now allow them.
+- PR-02 against the owner's rewritten Expected (single deduplicated Workflow Status dropdown). The owner edited this row at about 22:55 on 2026-11-22.
+
+**Mode:** observe-only. Nothing was submitted, saved, paid, assembled, released or delivered. The NO-01 cart was emptied ("Order Items (0)"), zoom is back to 100%, and the UI is back in English.
+**Method:** real-user browser on the box. NO-01 used 150% zoom at a real 1280×715 window, because the window can't be set to 1366×768. "400% zoom" stands in for 320 px.
+**Screenshots:**
+- Box folder: `/workspace/qa-20261123/r3/shots/`. Copied to `C:\Users\JHNLP\qa-20261121\ui\shots\` and zipped as `C:\Users\JHNLP\qa-20261121\ui\shots_r3.zip`.
+- Naming: `r3-<point>-<tenant>[-AR|-zoom400]-<n>`. DL files are `.webp` and SAR files are `.png`.
+
+| ID | r2 | r3 | Evidence | Screenshot(s) |
+|---|---|---|---|---|
+| RD-04 | FAIL | **PARTIAL** | **Totals fixed on both tenants.** DL EN 00:03: ORD-20261117-00002 "Total: 2.675 OMR", "Ready by: Nov 17, 2026, 5:00 PM"; ORD-20261119-00006 "Total: 1.070 OMR", "Nov 27, 2026, 4:00 PM", "Rack: QA-A1"; both "Not yet available for pickup", "Paid". SAR 00:14+: ORD-20261121-00001 "Total: 6.90 SAR", "Ready by: Nov 21, 2026, 5:00 PM", phone +96877388824, rack QA-RA. All Orders shows the same totals and times (SAR checked twice: after sign-in and after a reload). **FET-UIQA-Nov21-ReadyTotalZero: FIXED.** "Sort by" is still OK. **Still failing:** DL AR shows the phone as `96896662624+` (plus at the end), with card text "الهاتف:", "جاهز بحلول: 17‏/11‏/2026، 5:00 م", "الإجمالي: 2.675 OMR". SAR AR shows +96877388824 correctly. **New:** the first DL All Orders load at 00:03 showed the same two orders 4 h earlier (1:00 PM / 12:00 PM). Every load from 00:09 showed 5:00 PM / 4:00 PM. See FET-UIQA-Nov23-ReadyByTimezoneFlip. **New:** the Ready cards name the customer "Test Customer2 Mohammed Ahmed" while All Orders shows "Jh Test dev21" for the same orders (FET-UIQA-Nov23-CustomerNameMismatch). | `r3-RD-04-DL-1.webp` (EN cards, totals 2.675 / 1.070 OMR), `r3-RD-04-DL-AR-1.webp` (AR, phone `96896662624+`), `r3-RD-04-SAR-1.png` (EN, 6.90 SAR), `r3-RD-04-SAR-AR-1.png` (AR, phone correct) |
+| NO-01 | FAIL | **PASS (adapted)** | DL 00:12, 150% zoom, 1280×715 inner window, 3 items (Bathrobe, Blouse, Boxer Shorts), no customer. "Submit Order" (disabled) is fully visible: top y=627, bottom 671, which is 88 px above the viewport bottom. Order panel: "Order Items (3)", "3 total pieces", Subtotal 7.000, Tax 0.490, Total 7.490 OMR. **FET-UIQA-Nov21-NewOrderSubmitClipped: FIXED (at this size).** Remaining minor issue: the right panel's items list shows only about 1 line before its own scrollbar. Not yet checked at a true 1366×768. Cleanup: all lines removed, "Order Items (0)". | `r3-NO-01-DL-1.webp` (150%, Submit Order visible above the fold) |
+| PR-02 | PARTIAL | **PASS (owner's updated Expected)** | DL 00:06 `/dashboard/processing`. Workflow Status is a single select with no duplicates. EN options: All, Processing, Sorting, Pretreatment, Washing, Drying, Finishing. AR options: الكل، قيد المعالجة، الفرز، المعالجة المسبقة، الغسيل، التجفيف، الكي. "Processing" gives "1-10 of 11", all in Processing. "Sorting" gives 0 rows with "Clear Filters". Back to All gives "1-10 of 11". FET-UIQA-Nov21-WorkflowStatusDuplicates is closed, because the plan now matches the UI. Minor: the KPIs show 0 for about 5.8 s before data (FET-UIQA-Nov21-SlowQueues). | `r3-PR-02-DL-1.webp` (EN dropdown, 7 options), `r3-PR-02-DL-AR-1.webp` (AR dropdown), `r3-PR-02-DL-2.webp` (filtered by Processing) |
+| WB-04 | PARTIAL | **PARTIAL** | AR Priority now reads "عادي" on DL (00:04) and SAR. **FET-UIQA-Nov22-WorkboardPriorityNotTranslated: FIXED.** **Regressed since r2:** the AR phone renders `96896662624+`, plus at the end, on both tenants. r2 showed +96896662624. **New:** in AR, the five filter selects (Branch, Assignee/Owner, Priority, Risk, SLA) all show the raw English value "all". The config banner is still there. EN: "Workboard configuration needs attention. • Status on_hold has no active stage owner." AR: "تحتاج تهيئة لوحة العمل إلى مراجعة." with "الحالة on_hold لا تملك مرحلة مسؤولة نشطة.". On SAR the warning also shows the raw "awaiting_collection". The branch subtitle "Main Branch 2" is the stored name. | `r3-WB-04-DL-AR-1.webp`, `r3-WB-04-SAR-AR-1.png` |
+| WB-01 | PARTIAL | **PARTIAL (unchanged)** | DL 00:05. Branch "Main Branch 2" + SLA Overdue + Ready by sort, then F5. The filters persist: `?page=1&pageSize=10&sort=ready_by_desc&branchId=597139c9-633c-43f5-b25f-9012a70893b4&sla=overdue`, 9 orders. **The Branch select box still shows the raw UUID "597139c9-633c-43f5-b25f-9012a708…"**, and the SLA select shows lowercase "overdue". The pills read "Branch: Main Branch 2" and "SLA: Overdue", but briefly showed the UUID right after F5. "Clear filters" left `sort=ready_by_desc` in the URL. FET-UIQA-Nov21-WorkboardBranchUuid is still open. | `r3-WB-01-DL-1.webp` |
+| WB-02 | PARTIAL | **PASS** | DL 00:04. Strip order: All 13, Overdue 11, Blocked 0, then New order, Home collection, Preparation, Processing 11, Assembly, Quality check, Packing, Ready / release 2, Customer pickup, Driver delivery, Order detail. All has a layers icon and Assembly a dots-cluster icon; every icon is distinct. | `r3-WB-02-DL-1.webp` (left half of the strip), `r3-WB-02-DL-2-strip-right.webp` (right half) |
+| PR-04 | PARTIAL | **PARTIAL** | DL AR 00:07: progress text is now "0/2 (0%)", fixing the r1 "(%0) 0/2". AR table headers are now Arabic: الطلب، جاهز بحلول، العميل، الأصناف، القطع، ملاحظات، المجموع، الحالة والإجراءات. SAR AR shows "0/1 (0%)" with Arabic headers. **Still failing:** the AR KPI amount renders "OMR 18.108" while AR table amounts render "3.103 OMR". SAR shows the same pattern: KPI "SAR 25.30", raw text "25.30 SAR". So the KPI total is not wrapped in an LTR `<bdi>` the way the plan expects. **New flash:** SAR AR Processing showed "تم رفض الوصول" (Access Denied) for more than 4.5 s with an empty sidebar, then loaded. DL EN Processing (00:06) showed "Access Denied — You do not have permission to view this page" for about 1.5 s. | `r3-PR-04-DL-AR-1.webp`, `r3-PR-04-SAR-AR-1.png`, `r3-PR-04-SAR-AR-accessdenied-flash.png` |
+| QA-01 | PARTIAL | **PARTIAL (unchanged)** | Tab "Quality Check — CleanMateX". Orders, Overdue SLA and Open Issues are buttons. **Pieces is still not interactive** on both tenants (a real click does nothing). DL shows all 0, "No orders pending QA". SAR has one card, ORD-20261120-00001. | `r3-QA-01-DL-1.webp`, `r3-QA-01-SAR-1.png` |
+| QA-03 | PARTIAL | **PARTIAL (unchanged)** | SAR AR: the neutral grey badge still reads "1 أصناف" (should be "صنف واحد" / "1 صنف"). The phone renders `96896662624+`, plus at the end. There are still no stain, damage or express fixtures to test the risk badges. | `r3-QA-03-SAR-AR-1.png` |
+| PK-03 | PARTIAL | **PARTIAL** | SAR EN: card ORD-20261113-00001, "1 items", "Overdue", "Ready by Nov 20, 12:00 PM", "Open Packing". **AR card text is now Arabic** ("العميل:", "الهاتف:", "جاهز بحلول:", "متأخر", "فتح التغليف"), fixing the r1-W ":Customer" / "items 2". **Still:** the AR phone shows the plus at the end, and the badge says "1 أصناف". DL Packing is empty, but its AR page text is fully Arabic ("التغليف", "لا توجد طلبات في التغليف"). Packing took more than 7 s to load. The Rack Save CSRF path was not retested, because it is a write. | `r3-PK-03-SAR-1.png`, `r3-PK-03-SAR-AR-1.png`, `r3-PK-03-DL-AR-1.webp` (empty, AR) |
+| AS-04 | PARTIAL | **PARTIAL (unchanged)** | SAR: Order B ORD-20261121-00002 card shows "1 items", "Overdue", Ready by Nov 21, 5:00 PM, and +96877388824. Open Exceptions KPI = 1. "Rows per page", "1-1 of 1". **There is still no priority badge.** DL is empty ("No orders in assembly", five KPIs at 0). | `r3-AS-04-SAR-1.png`, `r3-AS-04-DL-1.webp` |
+| AS-05 | PARTIAL | **PARTIAL (not rerun)** | Order B's card only offers "Assemble Order", which starts a task (a write), so the modal was not reopened. The error + Retry part still can't be simulated. The r1-W evidence stands. | none |
+| DL-02 | PARTIAL | **PARTIAL (unchanged)** | SAR `/dashboard/delivery` Routes: RT-2026-001, "Driver: QA Driver R1", "Stops: 0/1". **The status badge is still a raw lowercase "in progress" in EN and AR**, while the rest of the AR card is Arabic ("السائق: QA Driver R1", "المحطات: 0/1"). FET-UIQA-Nov22-RouteStatusNotTranslated is still open. The AR delivery KPI also renders "SAR 0.00". The page took about 6–10 s to load. | `r3-DL-02-SAR-1.png` (EN), `r3-DL-02-SAR-AR-1.png` (AR) |
+| DL-03 | PARTIAL | **PARTIAL (unchanged)** | Searching ORD-20261121-00003 returns C ("Out for Delivery", "Items: 1", "Open Delivery"). The Collect Payment filter shows "No orders out for delivery", which is correct because C is paid (KPI 0.00 SAR). Counts show 0 for about 6–10 s before data. Collecting from the Delivery card is still untested (see FET-UIQA-Nov22-DeliveryRequiresPrepaid). | `r3-DL-03-SAR-1.png` |
+| IS-04 | PARTIAL | **PARTIAL** | SAR: Status defaults to **Open**, so the list shows "No issues yet" until All is chosen. "zzzz" gives "No issues yet". "QA-UIQA" returns ORD-20261121-00003, "QA-UIQA-r1 issue", Solved, High. Rows per page 5–100, "Showing 1 - 1 of 1". **The High badge (orange text on pale yellow) still looks low-contrast** (not measured; FET-UIQA-Nov21-IssuePriorityContrast). **AR:** fully Arabic except "Showing 1 - 1 of 1", which stays English. DL has no issues ("No issues yet" / "لا توجد مشكلات بعد"). AR priority filter options: الكل، عاجلة، عالية، عادية، منخفضة. | `r3-IS-04-SAR-1.png` (EN search QA-UIQA), `r3-IS-04-SAR-AR-1.png` (AR list), `r3-IS-04-DL-1.webp`, `r3-IS-04-DL-AR-1.webp` (DL empty) |
+| AO-06 | PARTIAL | **PARTIAL (adaptation only)** | DL 00:10 at 400%: no page-level horizontal scroll. The table has its own scrollbar, then the pager ("Showing 1 - 10 of 13"). It behaves as expected, but it is still not a true 320×568 viewport. | `r3-AO-06-DL-1.webp` |
+| NO-03 | PARTIAL | **PARTIAL** | DL 00:10–00:11, real key presses on the "1) Select Items" tab. The results were inconsistent. Run 1: Right and Left stayed on tab 1, End went to tab 2, Home went to tab 1. Run 2: Right went 1→2, Left (twice) stayed on 2. Focus moved but the selected step stayed on 1. r1 had all four keys passing, so arrow-key focus has regressed or is flaky. **At 400% the page below the Order type row is still blank white** (about 3 screens of nothing), so tab scrolling at 320 px can't be judged. At 150% the step tabs scroll horizontally inside their own strip ("3) Edit Items Prefe…" is clipped, with a scrollbar under it). | `r3-NO-03-DL-1.webp` (100%, tab 1 focus ring), `r3-NO-03-DL-zoom400-1.webp` (400%, blank lower page) |
+| NO-02 | BLOCKED | **BLOCKED** | The New Order Branch select is still `disabled` ("Main Branch 2"), so no switch can be triggered. | none |
+| NO-04 | BLOCKED | **BLOCKED** | The POS shift is open ("Session Hub · Open", shown as "Checking" for about 2 s first). It needs a closed shift, and closing one is a write. | none |
+| HC-01..03 | BLOCKED | **BLOCKED** | SAR `/dashboard/home-collection`: all KPIs 0, "No home collection orders", chips All (0) / Awaiting collection / Out for collection / Overdue (0), no scan box. Order D ORD-20261121-00004 (created as Home collection) is at Processing on All Orders, type "POS (counter)", SAR 25.30. FET-UIQA-Nov21-HomeCollectionOrderMissing is still open. | `r3-HC-SAR-empty-1.png` |
+| PR-05, IS-01 | BLOCKED | **BLOCKED (not rerun)** | They still need offline/500 simulation, which isn't possible in the box browser. | none |
+| Delivery order type (FET) | open | **still open** | ORD-20261121-00003 (created as "Delivery only") is still listed as "POS (counter)" next to "Out for Delivery". Order D (Home collection) is also "POS (counter)". | `r3-FET-DeliveryOrderTypeLost-SAR-1.png` |
+| Totals flash (FET-UIQA-Nov21-SarDecimalsFlash) | open | **still open** | DL, 3 hard reloads at 00:09: the first row shows "1.070" with no currency at about 200–255 ms, then "OMR 1.070" at about 440–740 ms. SAR shows 6.900 briefly before "SAR 6.90". No screenshot, because it is too fast to capture; the page text was polled instead. | none |
+
+**Rows not re-run in r3 (unchanged since r2 or earlier):** AO-01..05, AO-07, WB-03, WB-05, NO-05, PR-01, PR-03, AS-01..03, QA-02, PK-01, PK-02, RD-01..03, DL-01, DL-04, IS-02, IS-03, IS-05.
+
+**Recount after r3 (49 scenarios, rebuilt row by row from each row's latest verdict):** PASS 28, FAIL 0, PARTIAL 14, BLOCKED 7.
+- PASS (28): AO-01, AO-02, AO-03, AO-04, AO-05, AO-07, WB-02, WB-03, WB-05, NO-01, NO-05, PR-01, PR-02, PR-03, AS-01, AS-02, AS-03, QA-02, PK-01, PK-02, RD-01, RD-02, RD-03, DL-01, DL-04, IS-02, IS-03, IS-05.
+- PARTIAL (14): AO-06, WB-01, WB-04, NO-03, PR-04, AS-04, AS-05, QA-01, QA-03, PK-03, RD-04, DL-02, DL-03, IS-04.
+- BLOCKED (7): NO-02, NO-04, PR-05, IS-01, HC-01, HC-02, HC-03.
+- Changes from r2: NO-01 FAIL→PASS, RD-04 FAIL→PARTIAL, PR-02 PARTIAL→PASS, WB-02 PARTIAL→PASS.
+- Note: this row-by-row rebuild supersedes the earlier running totals (r2 "24 / 2 / 16 / 7" was carried forward and slightly off; PR-04 is counted as PARTIAL here).
+
+**Release gate:** still not met. There are 0 FAIL rows, but 14 PARTIAL and 7 BLOCKED. Open P2s: ArPhoneReversed, Api504AndAccessDeniedFlash, DeliveryOrderTypeLost / HomeCollectionOrderMissing, ReadyByTimezoneFlip. Sign-off left blank.
+
+**Slow loads and errors (r3):**
+- No 504s and no raw errors.
+- Access Denied flashes before content:
+  - `/dashboard/workboard` AR, about 8 s ("تم رفض الوصول / ليس لديك صلاحية لعرض هذه الصفحة").
+  - `/dashboard/processing`, about 1.5 s (DL EN) and more than 4.5 s (SAR AR).
+- `/dashboard/ready` briefly redirected to sign-in after the deploy.
+- Delivery, Packing (over 7 s), Home Collection and Assembly showed empty or 0 states for 5–10 s before data.
+- Switching language takes about 5 s, with mixed EN/AR text while it applies.
+
+**Test data:** nothing created or changed in r3. The Demo SAR leftovers are unchanged: Orders A–D, QA Driver R1, route RT-2026-001 (in progress), and C not delivered.
+
+### Financial_Expert_Tester suggestions — r3 (FET-UIQA, 2026-11-23)
+
+- **FET-UIQA-Nov21-ReadyTotalZero (P1), Retest r3 2026-11-23: FIXED**
+  - Ready card totals equal All Orders on both tenants: DL 2.675 / 1.070 OMR, SAR 6.90 SAR.
+  - Ready by on the cards matches All Orders.
+  - Evidence: `r3-RD-04-DL-1.webp`, `r3-RD-04-SAR-1.png`.
+- **FET-UIQA-Nov21-NewOrderSubmitClipped (P2), Retest r3: FIXED at 1280×715 / 150%**
+  - "Submit Order" sits 88 px above the fold with 3 items.
+  - Follow-up (P3): the right-panel items list shows only about 1 line before scrolling, so give it more height.
+  - Evidence: `r3-NO-01-DL-1.webp`.
+- **FET-UIQA-Nov22-WorkboardPriorityNotTranslated (P3), Retest r3: FIXED**
+  - AR shows "عادي".
+  - Evidence: `r3-WB-04-DL-AR-1.webp`.
+- **FET-UIQA-Nov21-WorkflowStatusDuplicates (P3), Retest r3: CLOSED**
+  - The owner updated PR-02 to the single Workflow Status dropdown, and the UI matches.
+  - Evidence: `r3-PR-02-DL-1.webp`, `r3-PR-02-DL-AR-1.webp`.
+- **FET-UIQA-Nov21-ArPhoneReversed (P2), Retest r3: still open, and regressed on Workboard**
+  - What: in AR the phone renders `96896662624+` on DL Ready, DL and SAR Workboard (fine in r2), SAR QA and SAR Packing. SAR Ready renders +96877388824 correctly, so the correct component already exists.
+  - Fix: use one shared phone renderer, `<bdi dir="ltr" className="tabular-nums">`, on every queue card and table cell. Add a Playwright AR snapshot test for one card per screen.
+  - Evidence: `r3-RD-04-DL-AR-1.webp`, `r3-WB-04-DL-AR-1.webp`, `r3-WB-04-SAR-AR-1.png`, `r3-QA-03-SAR-AR-1.png`, `r3-PK-03-SAR-AR-1.png`; correct on `r3-RD-04-SAR-AR-1.png`.
+- **FET-UIQA-Nov23-ReadyByTimezoneFlip (P2, new)**
+  - What: right after sign-in (DL 00:03), All Orders showed ORD-20261117-00002 / ORD-20261119-00006 Ready By as 1:00 PM / 12:00 PM. Every later load showed 5:00 PM / 4:00 PM, matching the Ready cards. It looks like the first render formats with UTC (or the browser default) before the tenant timezone loads.
+  - Fix: don't render dates until the tenant timezone is known (or pass it server-side), and always format with the tenant's Asia/Muscat zone.
+  - Evidence: text only (no shot of the 00:03 load); compare with `r3-RD-04-DL-1.webp`.
+- **FET-UIQA-Nov23-CustomerNameMismatch (P3, new)**
+  - What: for the same DL orders, the Ready cards show "Test Customer2 Mohammed Ahmed" while All Orders shows "Jh Test dev21".
+  - Fix: check which field each list maps, such as the order snapshot name versus the current customer profile. Pick one source and use it on every queue.
+  - Evidence: `r3-RD-04-DL-1.webp`.
+- **FET-UIQA-Nov23-RawFilterValuesAr (P3, new)**
+  - What: the Workboard AR filter selects show the raw "all". The config warning shows raw status codes `on_hold` / `awaiting_collection`. Issues AR keeps "Showing 1 - 1 of 1" in English.
+  - Fix: render select values through their option labels, map status codes to i18n labels in the warning, and translate the table footer.
+  - Evidence: `r3-WB-04-DL-AR-1.webp`, `r3-WB-04-SAR-AR-1.png`, `r3-IS-04-SAR-AR-1.png`.
+- **FET-UIQA-Nov21-WorkboardBranchUuid (P3), Retest r3: still open**
+  - What: after F5 the Branch select shows the raw UUID and SLA shows "overdue"; the pills show names after a UUID flash.
+  - Fix: resolve the branch label from the branch list before rendering the select, or show a skeleton until it loads.
+  - Evidence: `r3-WB-01-DL-1.webp`.
+- **FET-UIQA-Nov22-Api504AndAccessDeniedFlash (P2), Retest r3: no 504s, but the Access Denied flash is still there**
+  - What: Workboard AR shows it for about 8 s, Processing for 1.5 s (DL EN) and more than 4.5 s (SAR AR).
+  - Fix: show a loading state while permissions or navigation are pending; render "Access Denied" only after a confirmed deny.
+  - Evidence: `r3-PR-04-SAR-AR-accessdenied-flash.png`.
+- **FET-UIQA-Nov22-RouteStatusNotTranslated (P3), Retest r3: still open**
+  - What: EN and AR both show "in progress".
+  - Evidence: `r3-DL-02-SAR-1.png`, `r3-DL-02-SAR-AR-1.png`.
+- **FET-UIQA-Nov21-DeliveryOrderTypeLost / FET-UIQA-Nov21-HomeCollectionOrderMissing (P2), Retest r3: still open**
+  - What: C (Delivery only) and D (Home collection) are both listed as "POS (counter)", and D never reaches Home Collection.
+  - Evidence: `r3-FET-DeliveryOrderTypeLost-SAR-1.png`, `r3-HC-SAR-empty-1.png`.
+- **FET-UIQA-Nov21-SarDecimalsFlash (P3), Retest r3: still open**
+  - What: about 200–700 ms of a bare 3-dp number before the currency-formatted value appears.
+  - Also: All Orders uses "OMR 1.070" while the Ready and Processing tables use "1.070 OMR". Pick one currency position per locale.
+- **FET-UIQA-Nov21-ArabicLeftovers (P3), Retest r3 update**
+  - The badge "1 أصناف" is still on QA and Packing; use ICU plural rules (صنف واحد / صنفان / n أصناف).
+  - The AR KPI total renders "OMR 18.108" / "SAR 25.30" without an LTR `<bdi>` (PR-04).
+  - Evidence: `r3-QA-03-SAR-AR-1.png`, `r3-PR-04-DL-AR-1.webp`.
+- **FET-UIQA-Nov21-QueueKpiAndPaging (P3), Retest r3: still open**
+  - The QA "Pieces" KPI is not interactive, and the Assembly card has no priority badge.
+  - Evidence: `r3-QA-01-SAR-1.png`, `r3-AS-04-SAR-1.png`.
+- **FET-UIQA-Nov21-IssuePriorityContrast (P3), Retest r3: still open**
+  - The High badge still looks low-contrast.
+  - Also (user-advocate): Issues defaults to Status "Open", so a tenant whose only issue is solved sees "No issues yet", which reads as if nothing exists. Use the wording "No open issues" with a "Show all" link.
+  - Evidence: `r3-IS-04-SAR-1.png`.
+- **FET-UIQA-Nov23-StepTabsArrowFlaky (P3, new)**
+  - What: on New Order, Left didn't move 2→1 and Right only sometimes moved, while End and Home worked. r1 passed all four keys. The 400% blank lower page is also still there.
+  - Fix: use a roving-tabindex tablist (`onKeyDown` on the tablist, not the individual tab). Check that the lower page content isn't hidden by a height calculation at narrow widths.
+  - Evidence: `r3-NO-03-DL-1.webp`, `r3-NO-03-DL-zoom400-1.webp`.
+
+**Retest plan (r4):**
+1. Recheck the AR phone on all queue screens on both tenants.
+2. Reload All Orders right after sign-in to catch the Ready By timezone flip.
+3. Rerun WB-01 after F5, and check NO-03 arrow keys and the 400% layout.
+4. Recheck the AR raw filter values and the route status translation.
+5. Recheck the Access Denied flash on Workboard and Processing.
+6. Owner decision or fixtures needed for the BLOCKED rows: a multi-branch New Order (NO-02), a closed shift (NO-04), a working home-collection order (HC-01..03), DevTools request blocking (PR-05, IS-01), and an approved unpaid delivery order (DL-03 collect).
+
+### Screenshot index — r3
+
+| Point | Result (r3) | Screenshot | What the screenshot shows |
+|---|---|---|---|
+| RD-04 | PARTIAL | `r3-RD-04-DL-1.webp` | DL Ready EN, 00:02. Two cards, ORD-20261117-00002 (2.675 OMR, Nov 17 5:00 PM) and ORD-20261119-00006 (1.070 OMR, Nov 27 4:00 PM, rack QA-A1), both Paid / "Not yet available for pickup", customer "Test Customer2 Mohammed Ahmed". |
+| RD-04 | PARTIAL | `r3-RD-04-DL-AR-1.webp` | DL Ready AR (RTL). The same two cards in Arabic, phone shown as `+96896662624` with the plus on the visual right end (reversed), totals 2.675 / 1.070 OMR. |
+| RD-04 | PARTIAL | `r3-RD-04-SAR-1.png` | SAR Ready EN. ORD-20261121-00001, Total 6.90 SAR, Ready by Nov 21 2026 5:00 PM, rack QA-RA, Paid. |
+| RD-04 | PARTIAL | `r3-RD-04-SAR-AR-1.png` | SAR Ready AR. Phone rendered correctly with the plus at the start. |
+| NO-01 | PASS | `r3-NO-01-DL-1.webp` | DL New Order at 150%, 1280×715. Order Items (3), Total 7.490 OMR, disabled "Submit Order" fully visible above the bottom edge. |
+| PR-02 | PASS | `r3-PR-02-DL-1.webp` | DL Processing, Workflow Status dropdown open in EN with 7 unique options. |
+| PR-02 | PASS | `r3-PR-02-DL-AR-1.webp` | The same dropdown in AR with Arabic options. |
+| PR-02 | PASS | `r3-PR-02-DL-2.webp` | Processing filtered by "Processing", Clear Filters shown, 11 orders. |
+| WB-04 | PARTIAL | `r3-WB-04-DL-AR-1.webp` | DL Workboard AR: Priority "عادي", phone with the plus at the end, filter selects "all", config banner. |
+| WB-04 | PARTIAL | `r3-WB-04-SAR-AR-1.png` | SAR Workboard AR: Priority Arabic, phone with the plus at the end, raw "all" selects, raw "awaiting_collection" in the warning. |
+| WB-01 | PARTIAL | `r3-WB-01-DL-1.webp` | DL Workboard EN after F5: Branch select shows the UUID "597139c9-…", SLA select "overdue", pills show "Branch: Main Branch 2" / "SLA: Overdue". |
+| WB-02 | PASS | `r3-WB-02-DL-1.webp` | KPI strip, left part (All, Overdue, Blocked, then stages through Quality check), distinct icons. |
+| WB-02 | PASS | `r3-WB-02-DL-2-strip-right.webp` | KPI strip scrolled right (Preparation to Order detail). |
+| PR-04 | PARTIAL | `r3-PR-04-DL-AR-1.webp` | DL Processing AR: KPI "OMR 18.108", progress "0/2 (0%)", Arabic headers. |
+| PR-04 | PARTIAL | `r3-PR-04-SAR-AR-1.png` | SAR Processing AR loaded: "0/1 (0%)", Arabic headers, KPI "SAR 25.30". |
+| PR-04 / Access Denied flash | PARTIAL | `r3-PR-04-SAR-AR-accessdenied-flash.png` | SAR Processing AR during load: "تم رفض الوصول" card, English header "Processing", empty sidebar. |
+| QA-01 | PARTIAL | `r3-QA-01-DL-1.webp` | DL QA: four KPIs (Orders selected), all 0, "No orders pending QA". |
+| QA-01 | PARTIAL | `r3-QA-01-SAR-1.png` | SAR QA: KPIs (Pieces not interactive), card ORD-20261120-00001. |
+| QA-03 | PARTIAL | `r3-QA-03-SAR-AR-1.png` | SAR QA AR card: "1 أصناف" badge, phone with the plus at the end. |
+| PK-03 | PARTIAL | `r3-PK-03-SAR-1.png` | SAR Packing EN: ORD-20261113-00001, "1 items", "Overdue", Ready by Nov 20 12:00 PM, "Open Packing". |
+| PK-03 | PARTIAL | `r3-PK-03-SAR-AR-1.png` | The same card in AR, with Arabic labels, "1 أصناف", and the phone plus at the end. |
+| PK-03 | PARTIAL | `r3-PK-03-DL-AR-1.webp` | DL Packing AR, empty state "لا توجد طلبات في التغليف", all Arabic. |
+| AS-04 | PARTIAL | `r3-AS-04-SAR-1.png` | SAR Assembly: Order B card ("1 items", "Overdue", Ready by), Open Exceptions 1, Rows per page, "1-1 of 1", no priority badge. |
+| AS-04 | PARTIAL | `r3-AS-04-DL-1.webp` | DL Assembly empty: "No orders in assembly", five KPIs at 0. |
+| DL-02 | PARTIAL | `r3-DL-02-SAR-1.png` | SAR Delivery Routes EN: RT-2026-001, "in progress" badge, Driver QA Driver R1, Stops 0/1. |
+| DL-02 | PARTIAL | `r3-DL-02-SAR-AR-1.png` | The same in AR: Arabic labels, badge still "in progress". |
+| DL-03 | PARTIAL | `r3-DL-03-SAR-1.png` | SAR Delivery, search ORD-20261121-00003 returning Order C "Out for Delivery". |
+| IS-04 | PARTIAL | `r3-IS-04-SAR-1.png` | SAR Issues EN, search "QA-UIQA": one row, Solved, High badge (orange on pale yellow), "Showing 1 - 1 of 1". |
+| IS-04 | PARTIAL | `r3-IS-04-SAR-AR-1.png` | SAR Issues AR, Status All: Arabic UI, but "Showing 1 - 1 of 1" in English. |
+| IS-04 | PARTIAL | `r3-IS-04-DL-1.webp` | DL Issues EN, search "ORD-2026" typed, "No issues yet". |
+| IS-04 | PARTIAL | `r3-IS-04-DL-AR-1.webp` | DL Issues AR, "لا توجد مشكلات بعد". |
+| AO-06 | PARTIAL | `r3-AO-06-DL-1.webp` | DL All Orders at 400%: table with its own horizontal scrollbar, "Showing 1 - 10 of 13", no page scroll. |
+| NO-03 | PARTIAL | `r3-NO-03-DL-1.webp` | DL New Order at 100%, step tab "1) Select Items" with a focus ring. |
+| NO-03 | PARTIAL | `r3-NO-03-DL-zoom400-1.webp` | DL New Order at 400%: top controls, then a blank white lower page. |
+| HC-01..03 | BLOCKED | `r3-HC-SAR-empty-1.png` | SAR Home Collection: KPIs 0, "No home collection orders", chips with counts 0. |
+| FET DeliveryOrderTypeLost | open | `r3-FET-DeliveryOrderTypeLost-SAR-1.png` | SAR All Orders: ORD-20261121-00003 "Out for Delivery" listed as "POS (counter)". |
+
+**Points with no screenshot in r3:**
+- AS-05 (not rerun; it needs a write).
+- NO-02 and NO-04 (state noted in text).
+- PR-05 and IS-01 (need offline/500 simulation).
+- The totals flash (too fast; measured from page text).
+- The 00:03 All Orders Ready By flip (seen in page text only).

@@ -21,6 +21,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { CmxPhoneInput } from '@ui/forms';
 
 interface CustomerEditModalProps {
   open: boolean;
@@ -88,12 +89,7 @@ export function CustomerEditModal({
         setName(customer.name || '');
         setName2(customer.name2 || '');
         setDisplayName(customer.displayName || '');
-        // Extract phone number without country code if present
-        let phoneNumber = customer.phone || '';
-        if (phoneNumber.startsWith('+968')) {
-          phoneNumber = phoneNumber.substring(4);
-        }
-        setPhone(phoneNumber);
+        setPhone(customer.phone || '');
         setEmail(customer.email || '');
         setAddress(customer.address || '');
         setArea(customer.area || '');
@@ -143,6 +139,7 @@ export function CustomerEditModal({
         name: name.trim() || undefined,
         name2: name2.trim() || undefined,
         displayName: displayName.trim() || undefined,
+        phone: phone.trim() || undefined,
         email: email.trim() || undefined,
         address: address.trim() || undefined,
         area: area.trim() || undefined,
@@ -389,21 +386,12 @@ export function CustomerEditModal({
                     >
                       {t('phoneNumber') || 'Phone Number'}
                     </Label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 rounded-s-md border-s border-e-0 border border-border bg-muted text-muted-foreground text-sm">
-                        <bdi dir="ltr">+968</bdi>
-                      </span>
-                      <CmxInput
-                        type="tel"
-                        id="edit-customer-phone"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        dir="ltr"
-                        disabled={loading}
-                        className="flex-1 rounded-s-none"
-                        placeholder="90123456"
-                      />
-                    </div>
+                    <CmxPhoneInput
+                      id="edit-customer-phone"
+                      value={phone}
+                      onChange={(e164) => setPhone(e164)}
+                      disabled={loading}
+                    />
                   </div>
 
                   {/* Email */}

@@ -24,7 +24,7 @@ These seven rows stay desired off. Source S0 no longer claims them from the HQ A
 
 `ntf-campaign-scheduler`, `fin-outbox-processor`, `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-erp-posting-retry`, `fin-pos-session-rollover`.
 
-`0805` is drafted and not applied. After apply, `fn_fin_gift_card_exp_due` only lists due gift cards. `expireGiftCard` remains the poster. Do not enable `fin-gift-card-expiry`.
+`0805` is applied. `fn_fin_gift_card_exp_due` only lists due gift cards. `expireGiftCard` locks the card, writes the expire ledger, and calls the existing general-ledger poster. HQ does not claim this job. Do not enable `fin-gift-card-expiry`.
 
 `ntf-outbox-dispatch` and `ntf-outbox-shadow` are `HQ_WORKER` and stay desired off. `file-util-purge` is `HQ_WORKER`. Notification delivery is the one `HQ_JOB_API` operation and stays off. `fin-idempotency-cleanup` is SQL and `SYNC`. `tax-kit-update`, `file-util-expire`, `setup-health-refresh`, `cleanup-cron-job-run-details`, and `cleanup-net-http-response` are active SQL jobs and can be paused.
 

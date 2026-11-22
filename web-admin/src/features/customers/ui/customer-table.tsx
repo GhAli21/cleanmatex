@@ -21,6 +21,7 @@ import {
 import { CmxStatusBadge } from '@ui/feedback'
 import { CmxPagination } from '@ui/navigation'
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
+import { CmxPhoneDisplay } from '@ui/data-display'
 import { useLocale } from '@/lib/hooks/useRTL'
 import type { CustomerListItem } from '@/lib/types/customer'
 
@@ -223,8 +224,8 @@ export default function CustomerTable({
                   </div>
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-start">
-                  <div className="text-sm text-foreground tabular-nums text-start">
-                    {customer.phone ? <bdi dir="ltr">{customer.phone}</bdi> : t('noPhone')}
+                  <div className="text-sm text-foreground text-start">
+                    <CmxPhoneDisplay value={customer.phone} fallback={t('noPhone')} />
                   </div>
                   <div className="text-sm text-muted-foreground text-start">
                     {customer.email ? <bdi dir="ltr">{customer.email}</bdi> : t('noEmail')}

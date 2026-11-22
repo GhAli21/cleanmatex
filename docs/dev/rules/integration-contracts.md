@@ -287,6 +287,8 @@ Owner-approved 20–21 Nov 2026 ([expert replan](../../pending_to_production/16_
 
 **22 Nov 2026 S0 (source, deploy still required):** the HQ claim list and the worker process start only `ntf-outbox-shadow`, `ntf-outbox-dispatch`, and `file-util-purge`. Finance and campaign HTTP callers are not registered. Their registry rows stay desired off. The tenant app is not called for those jobs.
 
+**22 Nov 2026 S1 (in progress):** `fn_fin_gift_card_exp_due` is applied. It lists due gift cards and does not post. `expireGiftCard` locks the card, writes the expire ledger, and calls the existing general-ledger poster. HQ does not claim `fin-gift-card-expiry`. The job stays desired off.
+
 **Approved target:** the same claim/finalize and File Util purge run **in-process** in `platform-api` `BackgroundExecutionModule` via an `ExecutorRegistry`. HTTP machine ingress remains until that soak, then rollback-only. Do not start BullMQ merely because `REDIS_URL` is set. Screens never call execute HTTP.
 
 - `HQ_SERVICE_ROLE_KEY` lives only in `cleanmatexsaas` platform-api env and in `cleanmatex` env (as a caller credential). It is **never** in the database, never in `platform-web`, and never logged.

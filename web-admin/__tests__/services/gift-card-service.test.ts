@@ -970,21 +970,33 @@ describe('gift-card-service', () => {
   // -------------------------------------------------------------------------
 
   describe('expireGiftCard (single, ledger + GL aware)', () => {
+    const mockTxnFindFirst = jest.fn();
+
+    function expireTx(locked: unknown[]) {
+      return {
+        $queryRaw: jest.fn().mockResolvedValue(locked),
+        org_gift_cards_mst: { update: mockGcUpdate },
+        org_gift_card_txn_dtl: { create: mockGcTxnCreate, findFirst: mockTxnFindFirst },
+      };
+    }
+
     beforeEach(() => {
+      mockTxnFindFirst.mockReset();
+      mockTxnFindFirst.mockResolvedValue(null);
       mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
-        fn({
-          org_gift_cards_mst: { findFirst: mockGcFindFirst, update: mockGcUpdate },
-          org_gift_card_txn_dtl: { create: mockGcTxnCreate },
-        }),
+        fn(expireTx([])),
       );
     });
 
     it('flips status to EXPIRED and writes an EXPIRE ledger row', async () => {
-      mockGcFindFirst.mockResolvedValue({
-        id: 'gc-1',
-        available_amount: { toNumber: () => 42.5 },
-        currency_code: 'OMR',
-      });
+      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+        fn(expireTx([{
+          id: 'gc-1',
+          available_amount: { toNumber: () => 42.5 },
+          currency_code: 'OMR',
+          status: 'ACTIVE',
+        }])),
+      );
       mockGcTxnCreate.mockResolvedValue({ id: 'txn-1' });
 
       const result = await expireGiftCard('gc-1', 'tenant-xyz');
@@ -1006,13 +1018,29 @@ describe('gift-card-service', () => {
     });
 
     it('returns success:false when the card is not found', async () => {
-      mockGcFindFirst.mockResolvedValue(null);
-
       const result = await expireGiftCard('gc-missing', 'tenant-xyz');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('GIFT_CARD_NOT_FOUND');
       expect(mockGcUpdate).not.toHaveBeenCalled();
+    });
+
+    it('writes nothing when the card is already expired and has an EXPIRE ledger row', async () => {
+      mockTxnFindFirst.mockResolvedValue({ id: 'txn-existing' });
+      mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+        fn(expireTx([{
+          id: 'gc-1',
+          available_amount: 10,
+          currency_code: 'OMR',
+          status: 'EXPIRED',
+        }])),
+      );
+
+      const result = await expireGiftCard('gc-1', 'tenant-xyz');
+
+      expect(result.success).toBe(true);
+      expect(mockGcUpdate).not.toHaveBeenCalled();
+      expect(mockGcTxnCreate).not.toHaveBeenCalled();
     });
   });
 
@@ -1020,17 +1048,34 @@ describe('gift-card-service', () => {
     beforeEach(() => {
       mockPrismaTransaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
         fn({
-          org_gift_cards_mst: { findFirst: mockGcFindFirst, update: mockGcUpdate },
-          org_gift_card_txn_dtl: { create: mockGcTxnCreate },
+          $queryRaw: jest.fn().mockResolvedValue([]),
+          org_gift_cards_mst: { update: mockGcUpdate },
+          org_gift_card_txn_dtl: { create: mockGcTxnCreate, findFirst: jest.fn().mockResolvedValue(null) },
         }),
       );
     });
 
     it('loops eligible cards and expires each via the ledger+GL-aware path (not a bare updateMany)', async () => {
       mockGcFindMany.mockResolvedValue([{ id: 'gc-1' }, { id: 'gc-2' }]);
-      mockGcFindFirst
-        .mockResolvedValueOnce({ id: 'gc-1', available_amount: { toNumber: () => 10 }, currency_code: 'OMR' })
-        .mockResolvedValueOnce({ id: 'gc-2', available_amount: { toNumber: () => 20 }, currency_code: 'OMR' });
+      mockPrismaTransaction
+        .mockImplementationOnce(async (fn: (tx: unknown) => unknown) =>
+          fn({
+            $queryRaw: jest.fn().mockResolvedValue([{
+              id: 'gc-1', available_amount: { toNumber: () => 10 }, currency_code: 'OMR', status: 'ACTIVE',
+            }]),
+            org_gift_cards_mst: { update: mockGcUpdate },
+            org_gift_card_txn_dtl: { create: mockGcTxnCreate, findFirst: jest.fn().mockResolvedValue(null) },
+          }),
+        )
+        .mockImplementationOnce(async (fn: (tx: unknown) => unknown) =>
+          fn({
+            $queryRaw: jest.fn().mockResolvedValue([{
+              id: 'gc-2', available_amount: { toNumber: () => 20 }, currency_code: 'OMR', status: 'ACTIVE',
+            }]),
+            org_gift_cards_mst: { update: mockGcUpdate },
+            org_gift_card_txn_dtl: { create: mockGcTxnCreate, findFirst: jest.fn().mockResolvedValue(null) },
+          }),
+        );
       mockGcTxnCreate.mockResolvedValue({ id: 'txn-x' });
 
       const result = await expireGiftCards('tenant-xyz');
@@ -1049,9 +1094,23 @@ describe('gift-card-service', () => {
 
     it('a mix of success and not-found cards yields separate expired/failed counts (one failure never blocks the rest)', async () => {
       mockGcFindMany.mockResolvedValue([{ id: 'gc-1' }, { id: 'gc-missing' }]);
-      mockGcFindFirst
-        .mockResolvedValueOnce({ id: 'gc-1', available_amount: { toNumber: () => 10 }, currency_code: 'OMR' })
-        .mockResolvedValueOnce(null);
+      mockPrismaTransaction
+        .mockImplementationOnce(async (fn: (tx: unknown) => unknown) =>
+          fn({
+            $queryRaw: jest.fn().mockResolvedValue([{
+              id: 'gc-1', available_amount: { toNumber: () => 10 }, currency_code: 'OMR', status: 'ACTIVE',
+            }]),
+            org_gift_cards_mst: { update: mockGcUpdate },
+            org_gift_card_txn_dtl: { create: mockGcTxnCreate, findFirst: jest.fn().mockResolvedValue(null) },
+          }),
+        )
+        .mockImplementationOnce(async (fn: (tx: unknown) => unknown) =>
+          fn({
+            $queryRaw: jest.fn().mockResolvedValue([]),
+            org_gift_cards_mst: { update: mockGcUpdate },
+            org_gift_card_txn_dtl: { create: mockGcTxnCreate, findFirst: jest.fn().mockResolvedValue(null) },
+          }),
+        );
       mockGcTxnCreate.mockResolvedValue({ id: 'txn-1' });
 
       const result = await expireGiftCards('tenant-xyz');

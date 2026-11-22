@@ -137,5 +137,17 @@
     "noPreview": "لا يمكن عرض هذا الملف هنا. نزّله لفتحه.",
     "zoomIn": "تكبير",
     "zoomOut": "تصغير"
+  },
+  "phone": {
+    "countryCode": "رمز الدولة",
+    "searchCountry": "ابحث عن الدولة أو الرمز...",
+    "noCountriesFound": "لم يتم العثور على دول",
+    "placeholder": "رقم الهاتف",
+    "normalizedLabel": "الصيغة المحفوظة",
+    "valid": "رقم هاتف صالح",
+    "invalid": "يرجى التحقق من رقم الهاتف للدولة المختارة",
+    "copyPhone": "نسخ الرقم {phone}",
+    "callPhone": "الاتصال بـ {phone}",
+    "whatsappPhone": "مراسلة {phone} عبر واتساب"
   }
 }

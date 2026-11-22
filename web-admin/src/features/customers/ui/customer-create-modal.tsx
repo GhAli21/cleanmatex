@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
+import { CmxPhoneInput } from '@ui/forms'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -268,27 +269,19 @@ export default function CustomerCreateModal({
             />
           </div>
 
-          {/* Phone (for stub customers) */}
+          {/* Phone (for stub & B2B customers) */}
           {customerType !== 'guest' && (
             <div className="mb-4">
               <Label htmlFor="phone" className="mb-1 block text-start">
                 {t('phoneNumber')} <span className="text-danger-text">*</span>
               </Label>
-              <div className="flex" dir="ltr">
-                <span className="inline-flex items-center px-3 rounded-s-md border-s border-e-0 border border-border bg-muted text-muted-foreground text-sm tabular-nums">
-                  +968
-                </span>
-                <CmxInput
-                  type="tel"
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  dir="ltr"
-                  className="flex-1 rounded-s-none tabular-nums"
-                  placeholder="90123456"
-                  required
-                />
-              </div>
+              <CmxPhoneInput
+                id="phone"
+                value={phone}
+                onChange={(e164) => setPhone(e164)}
+                disabled={loading}
+                required
+              />
             </div>
           )}
 
