@@ -71,7 +71,7 @@ Every screen below must be spot-checked across:
 | ID | Scenario | Steps | Expected Result | Pass |
 |---|---|---|---|---|
 | **PR-01** | `?orderId=` Deep Link | Navigate to `/dashboard/processing?orderId=<valid-order-id>`. | `ProcessingModal` opens automatically for that order; closing it dismisses cleanly without reopening. | [ ] |
-| **PR-02** | Localized Sub-Status Dropdown | Open the Sub-Status filter in `ProcessingFiltersBar` in EN and AR. | Renders a localized `CmxSelect` dropdown (NOT free-text input); selecting a status filters orders cleanly. | [ ] |
+| **PR-02** | Localized Workflow Status Dropdown | Open the Workflow Status filter in `ProcessingFiltersBar` in EN and AR. | Renders a single deduplicated, localized `CmxSelect` dropdown (`All`, `Processing`, `Sorting`, `Pretreatment`, `Washing`, `Drying`, `Finishing`); selecting a status filters orders cleanly. | [ ] |
 | **PR-03** | Mark Ready Modal UX | Click Complete (✓) on an order, enter Rack Location, click Confirm. | Single spinner renders on busy button (no duplicate `Loader2`); required `*` is `aria-hidden`. | [ ] |
 | **PR-04** | Progress Bar & RTL Alignment | Inspect piece progress bars and right-aligned columns in EN and AR. | Progress bars expose `role="progressbar"` + `aria-valuenow`; numeric/action columns align logically (`text-end`); totals render LTR `<bdi>`. | [ ] |
 | **PR-05** | Error Retry | Simulate `/api/v1/orders` failure (offline/500). | Error `CmxSummaryMessage` displays with working **Retry** button. | [ ] |
@@ -416,3 +416,295 @@ Every screen below must be spot-checked across:
 3. HC-01..03 need the home-collection queue fix; reuse D or create a new order.
 4. PR-05 and IS-01 need DevTools request blocking from a desktop browser.
 5. NO-04 needs a closed shift (approval needed). NO-02 needs a multi-branch tenant where the switcher is enabled.
+
+---
+
+## Financial_Expert_Tester — Retest r1-W2 (2026-11-22, delivery rows with QA driver)
+
+**When:** 2026-11-22 about 21:03–21:12 (Asia/Muscat, UTC+4).
+**Where:** https://cmx.cleanmatex.com, Demo SAR ("Demo Saudi Riyadh Dry Clean", SAR, 2 dp), signed in as admin@saudiriyadhdemo.com (tenant_admin), EN with an AR spot-check. This is a remote adaptation. Original guide steps are unchanged.
+**Owner approval (2026-11-22):** add one QA driver in Demo SAR and finish DL-02/DL-03/DL-04 with Order C. Earlier approvals for orders, payment and issues still apply.
+**Method:** real-user browser on the box at 1280x800. Zoom 400% stood in for 320 px.
+**Screenshots:** in `C:\Users\JHNLP\qa-20261121\ui\shots_w3.zip` (box path `/workspace/qa-20261121/ui/shots/w3-*`). Files: w3-DRV-1, w3-RACK-1, w3-DL01-1/2, w3-DL02-1/2(AR), w3-DL03-1/2/3, w3-DL04-1/2 (.webp), w3-AO04-1/2, w3-RD04-1 (Ready card total recheck).
+
+### Setup actions and data created
+
+- **Driver "QA Driver R1":**
+  - Created at `/dashboard/drivers` with **Add Driver**, phone 0500000001, branch Unassigned.
+  - Modal fields: Name, Name (Arabic), Phone, Branch, Vehicle Type, Vehicle Plate No., License No.
+  - Toast: "Driver saved". The row shows Active / Available.
+  - No login, email or password was asked for, and no user account was created.
+  - Note: `/dashboard/settings/drivers` returns 404, so drivers are managed only under `/dashboard/drivers`.
+- **Order C rack:** ORD-20261121-00003 now has rack **QA-RC**, saved on the Ready page via "Rack & Bags", then the rack field, then Submit.
+  - Toast: "Rack & bags details saved".
+  - **No CSRF error on this path.** The Packing "Save Rack Location" path (PR-02) was not retested.
+- **Order C payment:** 3.45 SAR cash was collected on the Ready page through "Collect remaining payment".
+  - The modal title is "Collect Payment", subtitle "Record a payment against this order's outstanding balance.". Fields: Payment Method Cash, Amount 3.45 (prefilled), Cash Tendered 3.45, Notes, Cash Drawer "Reception Drawer • SES-20261113-0001" (Bound). The button reads "Collect & release order".
+  - Toast: "Payment collected successfully". A Print Receipt dialog opened and was closed.
+  - C now shows Paid 3.45, balance 0.00, "Paid in full".
+- **Order C stage:** C is now **Out for Delivery**, via "Release for delivery — Moves to Out for delivery". No toast was shown; the action panel just disappeared. C was **not** marked delivered.
+- **Route RT-2026-001:** created at `/dashboard/drivers/routes` with C as the single stop and QA Driver R1 as driver.
+  - Toast: "Route created: RT-2026-001".
+  - Status "in progress", Stops 0/1.
+- **Gating observed before release:** "Release for delivery" was disabled with "Rack location is required before this action. · The order has an outstanding balance and is not eligible for this release.".
+  - The route planner listed 0 orders until C was Out for Delivery.
+  - The working order of operations was rack, then cash, then Release for delivery, then route.
+
+### Results
+
+| ID | Previous | r1-W2 | Evidence |
+|---|---|---|---|
+| DL-01 | (see r1) | PASS (recheck) | KPIs after C was out: Out for delivery **1**, Completed today **0**, Collect Payment **0.00 SAR**, Routes **1**. Tabs "Delivery (1)" and "Routes (1)". C's card shows the code, an "Out for Delivery" badge, "mohammed test • +96877388824", "Items: 1" and an "Open Delivery" button. Before C: 0/0/0/0; Collect Payment flashed "0.000" briefly (see SarDecimalsFlash). Routes said "No routes yet". Shots w3-DL01-1/2. |
+| DL-02 | PASS (Demo Laundry) | **PARTIAL** | EN: "RT-2026-001" chip, "in progress" badge, "Nov 22, 2026", "Driver: QA Driver R1", "Stops: 0/1", "Open manifest", no UUID. AR (rtl): "السائق: QA Driver R1", date "22‏/11‏/2026", other labels translated, **but the status badge stays raw English "in progress"**. Shots w3-DL02-1/2. |
+| DL-03 | BLOCKED | **PARTIAL** | Searching ORD-20261121-00003 keeps C in the list. With the Collect Payment/COD filter on, the list shows "No orders out for delivery". That is correct because C was already paid (COD KPI 0.00 SAR). Collecting from the Delivery card could **not** be tested, because the system requires full payment before "Release for delivery", so the payment was taken on the Ready page (see setup). Queue refresh after a payment from the Delivery page was not verified. Shots w3-DL03-1/2/3. |
+| DL-04 | BLOCKED | **PASS** | At 400% zoom C's card stacks vertically: code chip, badge, customer line, "Items: 1", and a full-width "Open Delivery" button. Nothing is clipped. The sidebar collapses to a hamburger menu. Zoom was reset to 100%. Shots w3-DL04-1/2. |
+| AO-04 | FAIL | **PASS (retest)** | `/dashboard/orders?sortBy=total&sortOrder=asc&page=1` shows no Prisma error. Ascending: 3.45, 3.45, 3.45, 6.90, 17.25, 21.74, 25.30, 73.03. Descending is OK too. **FET-UIQA-Nov21-SortTotalPrismaLeak appears fixed on Demo SAR.** Demo Laundry was not rechecked. Shots w3-AO04-1/2. |
+| Ready card total recheck (FET-UIQA-Nov21-ReadyTotalZero) | FAIL | **still FAIL** | Order A ORD-20261121-00001's Ready card still shows "Total: 0.00 SAR", with a Paid badge and Rack QA-RA. All Orders lists it at SAR 6.90. Shot w3-RD04-1. |
+
+**Recount after r1-W2 (49 scenarios):** PASS 22, FAIL 4, PARTIAL 16, BLOCKED 7.
+- FAIL: WB-04, NO-01, PR-02, AS-01.
+- BLOCKED: NO-02, NO-04, PR-05, IS-01, HC-01..03.
+
+### New findings (r1-W2)
+
+- **FET-UIQA-Nov22-CollectReleaseLabel (P2)**
+  - What: on the Ready page the payment modal button reads "Collect & release order". It collected the payment, but C stayed at Ready until "Release for delivery" was clicked separately.
+  - Fix: either release the order after a successful collect, or rename the button to "Collect payment". Add a test for the Ready → Out for Delivery transition after a collect.
+- **FET-UIQA-Nov22-DeliveryRequiresPrepaid (P2, product decision)**
+  - What: "Release for delivery" is blocked while there is any outstanding balance ("The order has an outstanding balance and is not eligible for this release."). Because of that, the Delivery page's Collect Payment/COD filter and its cash collection can never have a cash-on-delivery order to act on in the default config.
+  - Fix: confirm the intent. If COD is supported, allow release with a balance for delivery orders (maybe behind a tenant setting) so DL-03 can be exercised.
+- **FET-UIQA-Nov22-RouteStatusNotTranslated (P3)**
+  - What: the route status badge shows raw "in progress" in both EN and AR.
+  - Fix: map the route status enum to i18n keys, for example `delivery.routeStatus.in_progress`, with EN "In progress" and AR "قيد التنفيذ", and title-case it in EN.
+- **FET-UIQA-Nov22-ReleaseNoToast (P3)**
+  - What: "Release for delivery" succeeds silently; the action panel just disappears.
+  - Fix: show a success toast and refresh the stage badge.
+- **FET-UIQA-Nov22-Api504AndAccessDeniedFlash (P2)**
+  - What: on first load there were 504s on `/api/v1/orders?status_filter=delivered`, `/api/v1/delivery/routes?page=1&limit=10`, `/api/v1/notifications/unread-count` and `/api/navigation` (twice). The sidebar was blank and `/dashboard/delivery` showed "Access Denied" until a reload. The Ready detail page and `/dashboard/drivers/routes` took about 10–15 s.
+  - Fix: treat a navigation or permission fetch failure as "loading/retry", not "Access Denied"; add retry with backoff; investigate the 504s. This relates to FET-UIQA-Nov21-SlowQueues.
+- **Still open:** FET-UIQA-Nov21-DeliveryOrderTypeLost. C, created as "Delivery only", is still listed as "POS (counter)" in All Orders.
+
+### Test data left (Demo SAR), updated
+
+- **Order C** ORD-20261121-00003: Out for Delivery, paid 3.45 cash (Reception Drawer SES-20261113-0001), rack QA-RC, on route RT-2026-001 (in progress, 0/1), not delivered.
+- **Driver** "QA Driver R1" (0500000001): active.
+- **Orders A, B, D:** unchanged since r1-W.
+
+### Retest plan
+
+1. Retest PR-02 on Packing "Save Rack Location" (the CSRF path) using a fresh order.
+2. After CollectReleaseLabel and DeliveryRequiresPrepaid are decided or fixed, run DL-03 with an unpaid delivery order, collecting from the Delivery card.
+3. Recheck the AR route status and the Ready card total on Order A.
+4. Recheck AO-04 on Demo Laundry.
+5. Optionally mark C delivered and close RT-2026-001, or deactivate QA Driver R1, when the owner wants cleanup.
+
+---
+
+## Financial_Expert_Tester — Screenshot index per test point (r1, r1-W, r1-W2)
+
+Added on 2026-11-22 at the owner's request. Descriptions were checked against the images where the run notes were ambiguous, so each point above can be matched to its evidence. The earlier sections are append-only and were not edited, so this index does the mapping.
+**Folder:** `C:\Users\JHNLP\qa-20261121\ui\shots\` (r1 and r1-W; also in `shots.zip` and `shots_w.zip`). The r1-W2 shots are in `shots_w3.zip`.
+**Prefixes:**
+- `b1`: r1, Demo Laundry, All Orders and Workboard.
+- `b2`: r1, Demo Laundry, New Order to Packing.
+- `b3`: r1, Demo Laundry, Ready, Delivery and Issues.
+- `b4`: r1, Demo SAR and the unauthorized role.
+- `w1`: r1-W, Dark mode.
+- `w2` / `w2b`: r1-W, the approved workflow writes.
+- `w3`: r1-W2, delivery.
+
+### Run r1 (2026-11-21, observe-only)
+
+| Point | Result (r1) | Screenshot(s) | What the screenshot shows |
+|---|---|---|---|
+| AO-01 | PARTIAL | `b1-AO-01-1.png`, `b1-AO-01-2.png` | KPI cards with filter URLs. The Overdue card (8) adds no filter, and all rows still show. |
+| AO-02 | PASS | `b1-AO-02-1.png` | Date range 2026-11-17..19, "Showing 1 - 4 of 4", "Clear all filters". |
+| AO-03 | PASS | `b1-AO-03-1.png` | Awaiting drop-off queue, "No orders found". |
+| AO-04 | FAIL | `b1-AO-04-1.png` (Demo Laundry), `b4-orders-sort-prisma-1.png` (Demo SAR) | Raw "Invalid `prisma.org_orders_mst.findMany()` invocation" with tenant_org_id and the column list, after sorting by Total. |
+| AO-06 | PARTIAL | `b1-AO-06-1.webp`, `b1-AO-06-2.webp` | All Orders at 400% zoom; the table scrolls in its own container with no page overflow. |
+| AO-07 | PASS | `b1-AO-07-1.png`, `b1-AO-07-2.png` | Keyboard tab order and the visible focus ring. |
+| WB-01 | PARTIAL | `b1-WB-01-1.png`, `b1-WB-01-2.png` | Workboard after F5, with the Branch select and pill showing the raw UUID 597139c9-… and SLA "overdue". |
+| WB-02 | PARTIAL | `b1-WB-02-1.png`, `b1-WB-02-2.png` | Skeleton loading, then the cards; "All" and "Assembly" share the same icon. |
+| WB-03 | PASS | `b1-WB-03-1.png` | Branch pill removed, `search=Jh&sla=overdue` kept. |
+| WB-04 | FAIL | `b1-WB-04-1.png` | Table not full width, Action column not at the edge; AR phone "96896662624+". |
+| WB-05 | PASS | `b1-WB-05-1.png` | "Order ORD-20261116-00001 workflow information" dialog. |
+| §4 Arabic RTL | PARTIAL | `b1-AR-1.png`, `b1-AR-2.png` | Demo Laundry All Orders during the switch to AR: RTL sidebar in Arabic while the page body is still English, with the user menu open (Profile / Account security / Appearance). `b1-AR-2` is a second AR/RTL view from the same check. The reversed phone "96896662624+" is clearest in `b1-DARK-1`. |
+| §4 Dark | BLOCKED in r1 | `b1-DARK-1.png`, `b1-DARK-2.webp` | `b1-DARK-1`: All Orders in AR, still in Light mode (KPIs, "POS (counter)" in English, phone "96896662624+", English dates). `b1-DARK-2`: `/dashboard/account/appearance` in AR ("المظهر", "جاري التحميل..."); the page title "Appearance" stays English. No Save was made. |
+| NO-01 | FAIL | `b2-NO-01-1.png` | New Order with 3 items; "Submit Order" clipped at the bottom, two scrollbars. |
+| NO-03 | PARTIAL | `b2-NO-03-1.png` | Step tabs after the arrow and Home/End keys ("4) Edit Item Notes (3)"). |
+| NO-05 | PASS | `b2-NO-05-1.png` | Single `<main>`, labelled Order type and Order source. |
+| PR-01 | PASS | `b2-PR-01-1.png` | Processing Details auto-opened from `?orderId=2dd9f701-…` (spinner). |
+| PR-02 | FAIL | `b2-PR-02-1.png` | "Workflow Status" select with duplicate Washing/Drying/Finishing; no Sub-Status filter. |
+| PR-03 | PARTIAL | `b2-PR-03-1.png` | "Confirm Mark as Ready" dialog, "Rack Location*", Confirm disabled (cancelled). |
+| PR-04 | PARTIAL | `b2-PR-04-1.png`, `b2-PR-04-2.png` | Progress bars EN and AR ("(%0) 0/2"), KPI "OMR 18.108" vs "18.108 OMR". |
+| AS-01, AS-03 | AS-01 FAIL (admin view only), AS-03 BLOCKED | `b2-AS-01-1.png` | Demo Laundry admin Assembly page: KPIs Pending/In Progress/QA Pending/Completed Today/Open Exceptions all 0, chips All (0) / Overdue (0) / Express & Urgent / Has Issues (0), "No orders in assembly". The accountant's blank content is described in text (no separate shot). |
+| AS-04 | PARTIAL | `b2-AS-04-1.png` | Empty Assembly: KPI button and Overdue chip, no pagination. |
+| QA-01 | PARTIAL | `b2-QA-01-1.png` (Demo Laundry), `b4-QA-01-1.png` (Demo SAR) | QA KPIs; Pieces not interactive; Demo SAR shows "0" before data. |
+| QA-02 | PASS | `b4-QA-02-1.png` | QA detail for ORD-20261120-00001 opened by scan (Demo SAR). |
+| QA-03 | PARTIAL | `b4-QA-03-ar-1.png` | AR QA card: "1 أصناف" and the grey badge. |
+| PK-01 | PARTIAL | `b2-PK-01-1.png`, `b2-PK-01-2.png` | Packing KPIs and chips; Refresh still disabled after 8 s. |
+| RD-01 | PARTIAL | `b3-RD-01-1.png` | 5 Ready toggles on one row at desktop width. |
+| RD-02 | PASS | `b3-RD-02-1.png`, `b3-RD-02-2.png` | Scan to ORD-20261119-00006 detail; ZZZZ-999 gives "No orders in the Ready area". |
+| RD-04 | PARTIAL | `b3-RD-04-1.png` | Ready card, Sort by; AR phone "96896662624+", AR date. |
+| DL-01 | PARTIAL | `b3-DL-01-1.png` | Demo Laundry Delivery KPIs "Out for delivery 0 / Completed today 0 / Collect Payment 0.000 OMR / Routes 3". |
+| DL-02 | PASS | `b3-DL-02-1.png` | Routes RT-2026-002 "Driver Two", RT-2026-001 "Driver One", S10-CANARY-01 "Unassigned"; status "completed" in English. |
+| IS-01 | BLOCKED (empty state only) | `b3-IS-01-1.png` | "No issues yet / Report an issue for this order, item, or piece.". |
+| §4 Multi-tenancy, AO-01 (Demo SAR) | PARTIAL | `b4-orders-1.png` | Demo SAR All Orders: only its own 4 orders; Overdue card shows 1 but the table lists all 4; Total column first rendered as 3.450 / 73.030 / 17.250 / 21.740 with no currency (FET-UIQA-Nov21-SarDecimalsFlash). |
+| §4 Unauthorized role | FAIL | `b4-partB-processing-1.png`, `b4-partB-qa-blank-1.png` | Accountant: Processing "Permission denied: orders:read" then "No orders in processing queue" + "Create a new order"; QA blank content area. |
+| DL-01 (Demo SAR, admin) | reference | `b4-delivery-1.png` | Demo SAR admin Delivery before any QA data: Out for delivery 0, Completed today 0, Collect Payment 0.00 SAR, Routes 0, tabs "Delivery (0)" / "Routes (0)", "No orders out for delivery", tab title "Orders Delivery". |
+
+### Run r1-W (2026-11-21, approved writes, Demo SAR)
+
+| Point | Result (r1-W) | Screenshot(s) | What the screenshot shows |
+|---|---|---|---|
+| §4 Dark | PASS | `w1-DARK-orders-1.png`, `w1-DARK-orders-new-1.png`, `w1-DARK-workboard-1.png`, `w1-DARK-workboard-2.png`, `w1-DARK-workboard-info-dialog-1.png`, `w1-DARK-processing-1.png`, `w1-DARK-assembly-1.png`, `w1-DARK-qa-1.png`, `w1-DARK-qa-detail-ORD-20261120-00001-1.png`, `w1-DARK-packing-1.png`, `w1-DARK-home-collection-1.png`, `w1-DARK-ready-1.png`, `w1-DARK-delivery-1.png`, `w1-DARK-delivery-2.png`, `w1-DARK-issues-1.png` | Each of the 11 screens in Dark mode, plus the Workboard info dialog and the QA detail. |
+| §4 Dark + AR | PASS | `w1-DARK-orders-AR-1.png`, `w1-DARK-ready-AR-1.png` | AR + Dark; Orders still shows "Showing 1 - 4 of 4" and English dates. |
+| §4 Dark restore | done | `w1-DARK-appearance-restored-1.png` | Appearance restored to "Same as this device" (07:28:27). |
+| NO-01 | FAIL | `w2-NO-01-1.webp` | 1280×800, 3 lines; Submit Order clipped (about 15 px visible), disabled until Ready By applied. |
+| PR-01 | PASS | `w2-PR-01-1.png` | "Processing Details - ORD-20261121-00001". |
+| PR-02 | (see r1) | `w2-PR-02-1.png` | Workflow Status filter recheck (same duplicates). |
+| PR-03 | PASS | `w2-PR-03-1.png` | Confirm Ready with rack QA-R1, "Processing…" spinner. |
+| PR-04 | PASS on Demo SAR | `w2-PR-04-1.png` | Progress bar "0/2 ready"; AR headers still English. |
+| AS-02 | PASS | `w2-AS-02-1.png` | Scan, toast "Assembly task created", "Assembly Task - Order ORD-20261121-00001". |
+| AS-03 | PASS | `w2-AS-03-1.png` | Card #1 spinning, card #2 disabled; "Assembly task started". |
+| AS-04 | PARTIAL | `w2-AS-04-1.png` | "Today", Ready by, "1 items", Rows per page and "1-2 of 2"; no priority badge. |
+| AS-05 | PARTIAL | `w2-AS-05-1.webp` | Assembly modal at 400%, tiles stacked. |
+| QA-03 | PARTIAL | `w2-QA-03-1.png`, `w2-QA-03-2.png`, `w2-QA-03-3-crop-AR-phone.png` | "2 items"/"2 أصناف" badge; the crop shows AR phone "96877388824+". |
+| PK-01 | PASS | `w2-PK-01-1.png` | Rows per page 10, "1-2 of 2". |
+| PK-02 | PASS | `w2-PK-02-1.png` | Scan to `/dashboard/packing/7f38ab4f-…?returnUrl=%2Fdashboard%2Fpacking`. |
+| PK-03 | PARTIAL | `w2-PK-03-1.png`, `w2-PK-03-2.png` | EN packing card (Rack QA-RA); AR card text still English. The CSRF error on C is from the same step. |
+| Workflow (Order C at Processing) | evidence for WorkflowCopyAndSpeed | `w2b-C-processing-1.png` | Order C at Processing, "The stage command failed." before pieces were marked ready. |
+| AssemblyExceptionNotInIssues | finding | `w2b-ISSUE-B-exception-1.png` | Order B Assembly exception QUALITY_ISSUE / HIGH, "Exception recorded successfully". |
+| RD-01 | PASS | `w2b-RD-01-1.png`, `w2b-RD-01-2.png`, `w2b-RD-01-3-zoom400.webp` | Toggles on one row, `?focus=counter`, and the 3+2 wrap at 400%. |
+| RD-03 | PASS | `w2b-RD-03-1.png`, `w2b-RD-03-2.png` | `w2b-RD-03-1`: Collect Payment modal on A (6.90 SAR, Reception Drawer). `w2b-RD-03-2`: toast "Payment collected successfully" and the list refreshed to "Paid". |
+| RD-04 / ReadyTotalZero | PARTIAL | `w2b-RD-03-2.png` | After payment: toast "Payment collected successfully", A's card "Paid", Rack QA-RA, "Ready by: Nov 21, 2026, 1:00 PM", **"Total: 0.00 SAR"**. |
+| IS-02 | PASS | `w2b-IS-02-1.png` | Issue row opens `/dashboard/orders/9a534afb-…?returnUrl=%2Fdashboard%2Fissues`. |
+| IS-03 | PASS | `w2b-IS-03-1.png` | "Issue photos" dialog, "qa_photo.jpg · 9 KB". |
+| IS-04 | PARTIAL | `w2b-IS-04-1.png` | Search and "Showing 1 - 1 of 1"; High badge contrast. |
+| IS-05 | PASS | `w2b-IS-05-1.png`, `w2b-IS-05-2.png` | "Notes must be at least 3 characters" error, then solved / Open 0. |
+| HC-01..03 | BLOCKED | `w2b-HC-1.png`, `w2b-HC-2.png` | Order D (Home collection) in Processing; /dashboard/home-collection "No home collection orders". |
+| DL-02..04 | BLOCKED | `w2b-DL-1.png` | Demo SAR Delivery "No drivers yet"; C at Ready with only pickup actions. |
+
+### Run r1-W2 (2026-11-22, delivery with QA driver, Demo SAR)
+
+| Point | Result (r1-W2) | Screenshot(s) | What the screenshot shows |
+|---|---|---|---|
+| Setup: driver | done | `w3-DRV-1.png` | "QA Driver R1" added at /dashboard/drivers, toast "Driver saved", Active / Available. |
+| Setup: rack / CSRF recheck | PASS (Ready page path) | `w3-RACK-1.png` | C rack QA-RC, toast "Rack & bags details saved", no CSRF error. |
+| DL-01 | PASS | `w3-DL01-1.png`, `w3-DL01-2.png` | Before: 0/0/0/0 and "No routes yet". After: Out for delivery 1, Routes 1, C's card. |
+| DL-02 | PARTIAL | `w3-DL02-1.png` (EN), `w3-DL02-2.png` (AR) | RT-2026-001, "Driver: QA Driver R1", "Nov 22, 2026"; in AR the status stays "in progress". |
+| DL-03 | PARTIAL | `w3-DL03-1.png`, `w3-DL03-2.png`, `w3-DL03-3.png` | Collect Payment modal on C's Ready page (loading); toast "Payment collected successfully" with the receipt dialog; COD filter showing "No orders out for delivery". |
+| DL-04 | PASS | `w3-DL04-1.webp`, `w3-DL04-2.webp` | Delivery at 400%, C's card stacked, "Open Delivery" not clipped. |
+| AO-04 retest | PASS | `w3-AO04-1.png`, `w3-AO04-2.png` | Sort by Total asc and desc with no Prisma error. |
+| ReadyTotalZero retest | FAIL | `w3-RD04-1.png` | A's Ready card still "Total: 0.00 SAR" (All Orders shows 6.90). |
+
+**Points with no screenshot:**
+- r1: AO-05, NO-02, NO-04, PR-05, AS-02, AS-03, AS-05, PK-02, PK-03, HC-01..03, RD-03, DL-03, DL-04, IS-02..05. These were mostly BLOCKED or empty-queue text checks recorded in the evidence column.
+- r1-W: §4 Dark save toast, PK-03 CSRF toast (text recorded only), IS-05 success toast.
+
+---
+
+## Financial_Expert_Tester — Retest r2 (2026-11-22, prior FAIL rows + unauthorized role)
+
+**When:** 2026-11-22 about 21:28–21:37 (Asia/Muscat, UTC+4).
+**Where:** https://cmx.cleanmatex.com.
+**Accounts:**
+- Demo Laundry (DL, OMR 3 dp): `admin@demo-laundry.example`.
+- Demo SAR (SAR, SAR 2 dp): `admin@saudiriyadhdemo.com`.
+- Accountant (no `orders:read`): `qa.k5.accountant@saudiriyadhdemo.com`.
+- Passwords are in CREDENTIALS_AND_ENVIRONMENTS.md, not this file.
+
+**Scope (owner request):** AO-04, AO-01, WB-04, RD-04, PR-02, NO-01, AS-01 and the §4 unauthorized-role matrix.
+**Mode:** observe-only. Nothing was submitted or saved. The NO-01 cart was emptied and discarded.
+**Method:** real-user browser on the box. NO-01 used 150% zoom at a real 1280×715 window instead of 1366×768, because the window can't be resized.
+**Screenshots:**
+- Folder: `C:\Users\JHNLP\qa-20261121\ui\shots\` (also `shots_r2.zip`).
+- Naming: `r2-<point>-<tenant>[-AR]-<n>.webp`.
+- Every file is named in the Evidence column of its row below.
+
+| ID | Previous | r2 | Evidence | Screenshot(s) |
+|---|---|---|---|---|
+| AO-04 | FAIL (r1), PASS SAR (r1-W2) | **PASS (both tenants)** | **SAR:** Total desc at 21:28:45, `?page=1&sortBy=total&sortOrder=desc`, 73.03, 25.30, 21.74, 17.25, 6.90, 3.45…; asc at 21:29:05, 3.45 ×3, 6.90, 17.25, 21.74, 25.30, 73.03. **DL:** desc at 21:30:35, OMR 14.659, 13.482, 11.182…; asc 1.070, 2.354, 2.675…; the direct URL sorts too. Order # and Ready By sort both ways; Order # from page 2 resets to `page=1`. **No "prisma"/error text anywhere. FET-UIQA-Nov21-SortTotalPrismaLeak: FIXED (not reproduced).** Minor: the first Total click after load did nothing once (21:28:35); the third click clears the sort; the sort persists across reload (`/dashboard/orders` restores the saved sort). Ready By from page 2 kept `page=2` once, probably because of a reload between steps; not confirmed. | `r2-AO-04-SAR-1.webp`, `r2-AO-04-DL-1.webp` |
+| AO-01 | PARTIAL (Overdue didn't filter) | **PASS** | **SAR (21:29:26):** Overdue changes the URL to `/dashboard/orders?overdue=true&sortBy=ready_by&sortOrder=asc&page=1`, `aria-pressed` false→true, card "Overdue 3", table "Showing 1 - 3 of 3" (ORD-20261113-00001, ORD-20261121-00001, ORD-20261121-00002). **DL (21:31:19):** same URL, card "Overdue 9", "Showing 1 - 9 of 9". **FET-UIQA-Nov21-OverdueKpiNoFilter: FIXED.** Still open (FET-UIQA-Nov21-SarDecimalsFlash): totals first render as 3 dp with no currency (`25.300`), then `SAR 25.30` after about 1–2 s. | `r2-AO-01-SAR-1.webp`, `r2-AO-01-DL-1.webp` |
+| WB-04 | FAIL | **PARTIAL** | **EN:** the table fills the card (x=333–1833 at 1920 px), the Action column is last at the end edge, and there is no Branch column. Headers: #, Order #, Customer, Stage, Age, Ready by, Priority, Assignee, Attention, Action. "Main Branch 2" shows as a customer subtitle. **AR:** RTL, Action at the end (left) edge, phone **+96896662624** (plus at the start, so the WB-04 phone reversal is fixed), branch subtitle "Main Branch 2" (the r1 "2 Main Branch" is fixed). **Still failing:** the Priority column shows the English **"Normal"** in every AR row. The banner "Workboard configuration needs attention. Status on_hold has no active stage owner." is still there. | `r2-WB-04-DL-1.webp` (EN), `r2-WB-04-DL-AR-1.webp` (AR) |
+| RD-04 | PARTIAL | **FAIL** | **Sort select:** "Sort by" / AR "ترتيب حسب" (OK). **DL EN cards:** ORD-20261117-00002 "Ready by: Nov 17, 2026, 1:00 PM", "Total: 0.000 OMR"; ORD-20261119-00006 "Nov 27, 2026, 12:00 PM", "0.000 OMR". All Orders shows 5:00 PM / 4:00 PM and totals 2.675 / 1.070 for these orders. **DL AR:** phone still reversed **`96896662624+`** on both cards, Total `0.000 OMR`, Ready by `17/11/2026، 1:00 م`. **SAR:** ORD-20261121-00001 "Ready by: Nov 21, 2026, 1:00 PM", "Total: 0.00 SAR", phone +96877388824, while All Orders shows SAR 6.90 and Nov 21, 2026 at 5:00 PM. So the zero total and the 4-hour-early time happen on both tenants (FET-UIQA-Nov21-ReadyTotalZero, still open and widened; the ready-by time on Ready cards looks UTC-shifted by 4 h). The AR phone reversal on Ready is still open (FET-UIQA-Nov21-ArPhoneReversed). | `r2-RD-04-DL-1.webp`, `r2-RD-04-DL-AR-1.webp`, `r2-RD-04-SAR-1.webp` |
+| PR-02 | FAIL | **PARTIAL** | Filters: Search, Priority, Ready By Date, Workflow Status. **Workflow Status options are now unique:** All, Processing, Sorting, Pretreatment, Washing, Drying, Finishing (duplicates fixed). **Still no "Sub-Status" filter** as the plan expects. Pretreatment (21:33:13) gave "Processing 0", KPIs 0, "No orders match the current filters". KPIs show 0 for about 5–8 s before data. | `r2-PR-02-DL-1.webp` (filters), `r2-PR-02-DL-2.webp` (Pretreatment) |
+| NO-01 | FAIL | **FAIL** | Real inner window 1280×715 (150% zoom). Added 3 items: Bathrobe/Robe, Boxer Shorts, Fitness Leggings. **"Submit Order" top at y=863 (height 44) in a 715 px viewport, about 190 px below the fold.** It is disabled because no customer is selected. There are several scroll areas: the left item grid, the right order panel (with a very small items list) and the page. Cleanup: the 3 items were removed ("Order Items (0)"), nothing was submitted, and zoom was reset to 100%. | `r2-NO-01-DL-1.webp` |
+| AS-01 | FAIL | **PASS** | Accountant on `/dashboard/assembly` (21:35:28): card "Access Denied", "You do not have permission to view this page. Contact your administrator if you need access.". Tab "Assembly — CleanMateX". No blank area. | `r2-UNAUTH-assembly-SAR-1.webp` |
+| §4 Unauthorized role (matrix) | FAIL | **PASS** | Accountant, about 10 s per route. Every route shows the same "Access Denied" card with that text: no blank content, no bare "FORBIDDEN", no "Create a new order" CTA, no order data, and no flash of other content. Times and tab titles: `/orders` 21:35:08 "Orders — CleanMateX"; `/processing` 21:35:18 "Processing — CleanMateX"; `/assembly` 21:35:28 "Assembly — CleanMateX"; `/qa` 21:35:38 "Quality Check — CleanMateX"; `/packing` 21:35:47 "Packing — CleanMateX"; `/workboard` 21:35:57 "Workboard — CleanMateX"; `/ready` 21:36:06 "Ready — CleanMateX"; `/delivery` 21:36:15 "Delivery — CleanMateX" (the later shot shows "Orders Delivery — CleanMateX"); `/issues` 21:36:25 "Order Issues — CleanMateX". **FET-UIQA-Nov21-NoPermissionBlankPages: FIXED.** Minor: the sidebar was empty on most of these pages at screenshot time (still loading); on `/qa` it showed Dashboard, Customer Management, Internal Finance, Config And Settings, Help (no Orders). | `r2-UNAUTH-orders-SAR-1.webp`, `r2-UNAUTH-processing-SAR-1.webp`, `r2-UNAUTH-assembly-SAR-1.webp`, `r2-UNAUTH-qa-SAR-1.webp`, `r2-UNAUTH-packing-SAR-1.webp`, `r2-UNAUTH-workboard-SAR-1.webp`, `r2-UNAUTH-ready-SAR-1.webp`, `r2-UNAUTH-delivery-SAR-1.webp`, `r2-UNAUTH-issues-SAR-1.webp` |
+
+**Not captured in r2 (text evidence only):**
+- AO-04 SAR ascending.
+- The NO-01 empty cart after cleanup.
+- Demo SAR Arabic views and the SAR order-detail page (the RD-04 time comparison used the All Orders list).
+
+**Recount after r2 (49 scenarios):** PASS 24, FAIL 2, PARTIAL 16, BLOCKED 7.
+- FAIL: NO-01, RD-04.
+- BLOCKED: NO-02, NO-04, PR-05, IS-01, HC-01..03.
+- Changes from r1-W2: AO-01 PARTIAL→PASS, AS-01 FAIL→PASS, WB-04 FAIL→PARTIAL, PR-02 FAIL→PARTIAL, RD-04 PARTIAL→FAIL. AO-04 stays PASS, now on both tenants. The §4 unauthorized role is now PASS.
+
+**Release gate:** still not met (NO-01 and RD-04 fail; 7 rows blocked). Sign-off left blank.
+
+**Slow loads and errors:**
+- No 504s this time.
+- Workboard rows took about 10–15 s, with a skeleton first and an empty sidebar until loaded.
+- Processing KPIs showed 0 for about 5–8 s.
+- The totals 3-dp flash is still there on both tenants.
+
+**Test data:** nothing created or changed in r2. The r1-W/r1-W2 leftovers in Demo SAR are unchanged (Orders A–D, QA Driver R1, route RT-2026-001).
+
+### Financial_Expert_Tester suggestions — r2 (FET-UIQA, 2026-11-22)
+
+- **FET-UIQA-Nov21-ReadyTotalZero (P2 → P1, update r2)**
+  - What: the Ready card Total is 0 on **every** card in both tenants (DL `0.000 OMR` against 2.675/1.070; SAR `0.00 SAR` against 6.90). Ready by is exactly 4 h earlier than All Orders (1:00 PM vs 5:00 PM; 12:00 PM vs 4:00 PM).
+  - Why P1: a money value is shown wrong at the handover counter.
+  - Fix: in the Ready list mapper, read the same gross total field used by All Orders, and format ready_by with the tenant timezone (Asia/Muscat) instead of a UTC/date-only parse.
+  - Evidence: `r2-RD-04-DL-1.webp`, `r2-RD-04-SAR-1.webp`.
+- **FET-UIQA-Nov21-ArPhoneReversed (P2, update r2)**
+  - What: fixed on Workboard (`r2-WB-04-DL-AR-1.webp`), still reversed on Ready AR cards (`96896662624+`, `r2-RD-04-DL-AR-1.webp`).
+  - Fix: reuse the Workboard's LTR phone wrapper (`dir="ltr"` / `unicode-bidi: isolate`) on the Ready card.
+- **FET-UIQA-Nov22-WorkboardPriorityNotTranslated (P3)**
+  - What: the Workboard Priority column shows English "Normal" in AR.
+  - Fix: map the priority enum to i18n keys (AR "عادي").
+  - Evidence: `r2-WB-04-DL-AR-1.webp`.
+- **FET-UIQA-Nov21-NewOrderSubmitClipped (P2, still open r2)**
+  - What: "Submit Order" is about 190 px below the fold at 1280×715 with 3 items, and the page has three scroll areas.
+  - Fix: make the order summary/footer sticky (`position: sticky; bottom: 0`) inside the right panel, with a single scroll region for the items list.
+  - Evidence: `r2-NO-01-DL-1.webp`.
+- **FET-UIQA-Nov21-WorkflowStatusDuplicates (P2 → P3, update r2)**
+  - What: the duplicates are fixed, but the plan's "Sub-Status" filter still doesn't exist.
+  - Fix: either add it or update PR-02 in the plan to match the single Workflow Status filter.
+  - Evidence: `r2-PR-02-DL-1.webp`.
+- **FET-UIQA-Nov22-SortFirstClipAndPersist (P3)**
+  - What: the first Total-header click after page load sometimes doesn't apply. The sort cycles desc → asc → cleared, and the saved sort is restored on `/dashboard/orders`.
+  - Fix: confirm the persistence is intended, and show the active sort clearly. Check that the first-click handler is attached before hydration ends.
+- **Fixed in r2 (keep for the record):**
+  - FET-UIQA-Nov21-SortTotalPrismaLeak: not reproduced on DL or SAR.
+  - FET-UIQA-Nov21-OverdueKpiNoFilter: fixed.
+  - FET-UIQA-Nov21-NoPermissionBlankPages: fixed. All 9 routes show "Access Denied" with a plain-language message.
+
+**Retest plan:**
+1. After fixes, rerun RD-04 on both tenants, EN and AR.
+2. Rerun NO-01 at a true 1366×768.
+3. Rerun the WB-04 AR priority.
+4. Rerun PR-02 once the Sub-Status decision is made.
+5. Recheck the totals 3-dp flash on All Orders.
+
+### Screenshot index — r2
+
+| Point | Result (r2) | Screenshot | What the screenshot shows |
+|---|---|---|---|
+| AO-04 | PASS | `r2-AO-04-SAR-1.webp` | SAR All Orders sorted by Total desc, `?sortBy=total&sortOrder=desc&page=1`, 73.03 first, no error. |
+| AO-04 | PASS | `r2-AO-04-DL-1.webp` | DL All Orders sorted by Total desc, OMR 14.659 first, no error. |
+| AO-01 | PASS | `r2-AO-01-SAR-1.webp` | SAR Overdue card selected, 3 rows, "Clear all filters" shown. |
+| AO-01 | PASS | `r2-AO-01-DL-1.webp` | DL Overdue selected, `?overdue=true…`, 9 rows, all Ready By before Nov 20. |
+| WB-04 | PARTIAL | `r2-WB-04-DL-1.webp` | DL Workboard EN: full-width table, Action at the end, "Main Branch 2" subtitle, config warning banner. |
+| WB-04 | PARTIAL | `r2-WB-04-DL-AR-1.webp` | DL Workboard AR (RTL): "Normal" untranslated, phone +96896662624 correct. |
+| RD-04 | FAIL | `r2-RD-04-DL-1.webp` | DL Ready EN: "Sort by", cards with Total 0.000 OMR and Ready by 1:00 PM / 12:00 PM. |
+| RD-04 | FAIL | `r2-RD-04-DL-AR-1.webp` | DL Ready AR: phone reversed `96896662624+`, Total 0.000 OMR. |
+| RD-04 | FAIL | `r2-RD-04-SAR-1.webp` | SAR Ready: ORD-20261121-00001, Total 0.00 SAR, Ready by 1:00 PM. |
+| PR-02 | PARTIAL | `r2-PR-02-DL-1.webp` | DL Processing filters: Search, Priority, Ready By Date, Workflow Status; no Sub-Status. |
+| PR-02 | PARTIAL | `r2-PR-02-DL-2.webp` | DL Processing with Workflow Status = Pretreatment, "No orders match the current filters". |
+| NO-01 | FAIL | `r2-NO-01-DL-1.webp` | DL New Order at 1280×715 with 3 items; Submit Order cut off below the fold. |
+| AS-01 / §4 Unauthorized | PASS | `r2-UNAUTH-assembly-SAR-1.webp` | Accountant on Assembly: "Access Denied" card, tab "Assembly — CleanMateX". |
+| §4 Unauthorized | PASS | `r2-UNAUTH-orders-SAR-1.webp`, `r2-UNAUTH-processing-SAR-1.webp`, `r2-UNAUTH-qa-SAR-1.webp`, `r2-UNAUTH-packing-SAR-1.webp`, `r2-UNAUTH-workboard-SAR-1.webp`, `r2-UNAUTH-ready-SAR-1.webp`, `r2-UNAUTH-delivery-SAR-1.webp`, `r2-UNAUTH-issues-SAR-1.webp` | Accountant on each route (named in the file): the same "Access Denied" card with "You do not have permission to view this page. Contact your administrator if you need access." |

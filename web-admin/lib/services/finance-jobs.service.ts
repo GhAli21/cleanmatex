@@ -2,7 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/utils/logger';
-import { expireGiftCards } from './gift-card-service';
+import { expireGiftCard } from './gift-card-service';
 import { expireCreditNotes } from './stored-value.service';
 import { expireLoyaltyPoints } from './loyalty.service';
 import { processOutboxBatch } from './outbox-processor.service';
@@ -150,26 +150,31 @@ async function runOutboxProcessor(): Promise<FinanceJobOutcome> {
   };
 }
 
+/** One scheduled pass. The due function does not change a card. */
+const GIFT_CARD_EXPIRY_BATCH = 100;
+
 /**
- * Gift-card expiry sweep. Loops every active tenant, calling the ledger+GL
- * `expireGiftCards()` per tenant. One tenant's failure never blocks the rest.
+ * Gift-card expiry sweep. One due-row read, then the existing expireGiftCard
+ * poster (EXPIRE ledger row and non-blocking GL) for each card.
  */
 async function runGiftCardExpiry(): Promise<FinanceJobOutcome> {
-  const tenants = await prisma.org_tenants_mst.findMany({
-    where: { is_active: true },
-    select: { id: true },
-  });
+  const due = await prisma.$queryRaw<{ tenant_org_id: string; gift_card_id: string }[]>`
+    SELECT tenant_org_id, gift_card_id
+    FROM public.fn_fin_gift_card_exp_due(${GIFT_CARD_EXPIRY_BATCH})
+  `;
 
   let processedCount = 0;
   let failedCount = 0;
-  for (const tenant of tenants) {
+  for (const row of due) {
     try {
-      const result = await expireGiftCards(tenant.id);
-      processedCount += result.expiredCount;
-      failedCount += result.failedCount;
+      const result = await expireGiftCard(row.gift_card_id, row.tenant_org_id);
+      if (result.success) processedCount += 1;
+      else failedCount += 1;
     } catch (err) {
-      failedCount++;
-      logger.error('Gift-card expiry sweep failed for tenant', err as Error, { tenantId: tenant.id });
+      failedCount += 1;
+      logger.error('Gift-card expiry failed for one card', err as Error, {
+        tenantId: row.tenant_org_id,
+      });
     }
   }
   return { processedCount, failedCount };

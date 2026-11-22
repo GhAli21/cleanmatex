@@ -39,7 +39,15 @@ function formatDateTime(value: string, locale: string): string {
   }).format(new Date(value))
 }
 
-function formatPriorityLabel(value: string, t: ReturnType<typeof useTranslations>): string {
+function formatPriorityLabel(
+  value: string,
+  t: ReturnType<typeof useTranslations>,
+  tPriorities: ReturnType<typeof useTranslations>,
+): string {
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'normal' || normalized === 'urgent' || normalized === 'express') {
+    return tPriorities(normalized)
+  }
   return t('priority.label', {
     value: value
       .replace(/[_-]+/g, ' ')
@@ -213,6 +221,7 @@ function WorkboardOrderReference({ order, returnUrl }: WorkboardOrderReferencePr
 /** Supervisor view that triages work and routes it to the stage that owns actions. */
 export function WorkboardScreen() {
   const t = useTranslations('workboard')
+  const tPriorities = useTranslations('orders.priorities')
   const locale = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -406,7 +415,7 @@ export function WorkboardScreen() {
         row.priority
           ? (
             <CmxStatusBadge
-              label={formatPriorityLabel(row.priority, t)}
+              label={formatPriorityLabel(row.priority, t, tPriorities)}
               size="sm"
               tone="neutral" appearance="outline"
             />
@@ -458,7 +467,7 @@ export function WorkboardScreen() {
         </CmxButton>
       ),
     },
-  ], [locale, t, workboardReturnUrl])
+  ], [locale, t, tPriorities, workboardReturnUrl])
 
   const metadata = data?.metadata
   const hasRows = (data?.rows.length ?? 0) > 0

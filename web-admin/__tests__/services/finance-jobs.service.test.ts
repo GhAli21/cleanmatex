@@ -16,7 +16,7 @@ const mockRunLogFindFirst = jest.fn();
 const mockRunLogFindMany = jest.fn();
 const mockQueryRaw = jest.fn();
 const mockExecuteRaw = jest.fn();
-const mockExpireGiftCards = jest.fn();
+const mockExpireGiftCard = jest.fn();
 const mockExpireCreditNotes = jest.fn();
 const mockExpireLoyaltyPoints = jest.fn();
 const mockProcessOutboxBatch = jest.fn();
@@ -44,7 +44,7 @@ jest.mock('@/lib/db/prisma', () => ({
 }));
 
 jest.mock('@/lib/services/gift-card-service', () => ({
-  expireGiftCards: (...a: unknown[]) => mockExpireGiftCards(...a),
+  expireGiftCard: (...a: unknown[]) => mockExpireGiftCard(...a),
 }));
 
 jest.mock('@/lib/services/stored-value.service', () => ({
@@ -86,31 +86,38 @@ beforeEach(() => {
 });
 
 describe('runFinanceJob — gift_card_expiry', () => {
-  it('loops every active tenant and aggregates expired/failed counts', async () => {
-    mockTenantsFindMany.mockResolvedValue([{ id: 'tenant-a' }, { id: 'tenant-b' }]);
-    mockExpireGiftCards
-      .mockResolvedValueOnce({ expiredCount: 3, failedCount: 0 })
-      .mockResolvedValueOnce({ expiredCount: 1, failedCount: 1 });
+  it('expires each due card through the ledger poster and does not list tenants', async () => {
+    mockQueryRaw.mockResolvedValue([
+      { tenant_org_id: 'tenant-a', gift_card_id: 'gc-1' },
+      { tenant_org_id: 'tenant-b', gift_card_id: 'gc-2' },
+    ]);
+    mockExpireGiftCard
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: false, error: 'GIFT_CARD_NOT_FOUND' });
 
     const result = await runFinanceJob({ jobCode: FINANCE_JOB_CODES.GIFT_CARD_EXPIRY, triggerSource: 'SCHEDULE' });
 
     expect(result.status).toBe('SUCCESS');
-    expect(result.processedCount).toBe(4);
+    expect(result.processedCount).toBe(1);
     expect(result.failedCount).toBe(1);
-    expect(mockExpireGiftCards).toHaveBeenCalledWith('tenant-a');
-    expect(mockExpireGiftCards).toHaveBeenCalledWith('tenant-b');
+    expect(mockTenantsFindMany).not.toHaveBeenCalled();
+    expect(mockExpireGiftCard).toHaveBeenCalledWith('gc-1', 'tenant-a');
+    expect(mockExpireGiftCard).toHaveBeenCalledWith('gc-2', 'tenant-b');
   });
 
-  it('one tenant throwing never blocks the rest', async () => {
-    mockTenantsFindMany.mockResolvedValue([{ id: 'tenant-a' }, { id: 'tenant-b' }]);
-    mockExpireGiftCards
+  it('one card throwing never blocks the rest', async () => {
+    mockQueryRaw.mockResolvedValue([
+      { tenant_org_id: 'tenant-a', gift_card_id: 'gc-1' },
+      { tenant_org_id: 'tenant-b', gift_card_id: 'gc-2' },
+    ]);
+    mockExpireGiftCard
       .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce({ expiredCount: 2, failedCount: 0 });
+      .mockResolvedValueOnce({ success: true });
 
     const result = await runFinanceJob({ jobCode: FINANCE_JOB_CODES.GIFT_CARD_EXPIRY, triggerSource: 'SCHEDULE' });
 
     expect(result.status).toBe('SUCCESS');
-    expect(result.processedCount).toBe(2);
+    expect(result.processedCount).toBe(1);
     expect(result.failedCount).toBe(1);
   });
 });

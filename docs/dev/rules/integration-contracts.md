@@ -285,6 +285,8 @@ Owner-approved 20–21 Nov 2026 ([expert replan](../../pending_to_production/16_
 
 **Today:** `platform-workers` claims canonical rows and calls the private execute HTTP with a **separate** `PLATFORM_WORKER_API_KEY` (not `HQ_SERVICE_ROLE_KEY`). The body is only `tenantOrgId`, `outboxId`, and opaque claim token; HQ re-reads the unexpired lease. Not a generic proxy. Delivery stays env-disabled.
 
+**22 Nov 2026 S0 (source, deploy still required):** the HQ claim list and the worker process start only `ntf-outbox-shadow`, `ntf-outbox-dispatch`, and `file-util-purge`. Finance and campaign HTTP callers are not registered. Their registry rows stay desired off. The tenant app is not called for those jobs.
+
 **Approved target:** the same claim/finalize and File Util purge run **in-process** in `platform-api` `BackgroundExecutionModule` via an `ExecutorRegistry`. HTTP machine ingress remains until that soak, then rollback-only. Do not start BullMQ merely because `REDIS_URL` is set. Screens never call execute HTTP.
 
 - `HQ_SERVICE_ROLE_KEY` lives only in `cleanmatexsaas` platform-api env and in `cleanmatex` env (as a caller credential). It is **never** in the database, never in `platform-web`, and never logged.

@@ -13,6 +13,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
+import { getCurrencyConfigOutcomeAction } from '@/app/actions/tenant/get-currency-config';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { OrderStatsCards } from '@features/orders/ui/order-stats-cards';
 import { OrderFiltersBar } from '@features/orders/ui/order-filters-bar';
@@ -126,10 +127,19 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     sortOrder: resolvedSortOrder,
   };
 
-  const [ordersResult, statsResult] = await Promise.allSettled([
+  const [ordersResult, statsResult, currencyResult] = await Promise.allSettled([
     listOrders(tenantOrgId, filters),
     getStats(tenantOrgId),
+    getCurrencyConfigOutcomeAction(tenantOrgId),
   ]);
+
+  const initialCurrency =
+    currencyResult.status === 'fulfilled' && currencyResult.value.ok
+      ? {
+          currencyCode: currencyResult.value.config.currencyCode,
+          decimalPlaces: currencyResult.value.config.decimalPlaces,
+        }
+      : undefined;
 
   const ordersOk =
     ordersResult.status === 'fulfilled' &&
@@ -190,6 +200,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
             pagination={ordersData.pagination}
             sortBy={resolvedSortBy}
             sortOrder={resolvedSortOrder}
+            initialCurrency={initialCurrency}
             hasActiveFilters={Boolean(
               params.status ||
               params.preparationStatus ||

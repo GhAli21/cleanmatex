@@ -255,10 +255,10 @@ function OrderSummaryPanelComponent({
   );
 
   return (
-    <div className="flex flex-col bg-card overflow-hidden" style={{ height: '100%', maxHeight: '100vh' }}>
+    <div className="flex flex-1 min-h-0 flex-col bg-card overflow-hidden">
 
       {/* Customer Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted">
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border bg-muted">
         <div className="flex-1 min-w-0 flex items-center gap-2 bg-card border border-border rounded px-2 py-1.5">
           <span className={`flex-1 text-sm font-medium truncate text-start ${customerName ? 'text-foreground' : 'text-muted-foreground'}`}>
             {customerName || (tNewOrder('selectCustomer') || 'Select customer')}
@@ -297,7 +297,7 @@ function OrderSummaryPanelComponent({
       </div>
 
       {/* Order speed (§5.4): new lines follow it; "Apply to all lines" resets line overrides */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted">
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border bg-muted">
         <span className="shrink-0 text-sm font-medium text-foreground">{tNewOrder('serviceSpeed.label')}</span>
         <ServiceSpeedSelect
           className="flex-1 min-w-0"
@@ -324,43 +324,44 @@ function OrderSummaryPanelComponent({
         <EditControlNotice codes={['CHANGE_SERVICE_SPEED']} />
       </div>
 
-      {/* Item Cart List - Scrollable */}
-      <div className="px-3 pt-2">
-        <EditControlNotice codes={['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']} />
-      </div>
-      <div className={`flex-1 p-3 min-h-0 overflow-y-auto ${lineCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
-        <ItemCartList
-          items={items}
-          onEditItem={onEditItem}
-          onEditItemPreferences={onEditItemPreferences}
-          onDeleteItem={handleDeleteItem}
-          onPiecesChange={onPiecesChange}
-          onCopyPieceToAll={onCopyPieceToAll}
-          trackByPiece={trackByPiece}
-          currencyCode={currencyCode}
-          selectedPieceId={selectedPieceId}
-          onSelectPiece={onSelectPiece}
-          colorCatalog={colorCatalog}
-          preferenceLabelByCode={preferenceLabelByCode}
-          packingExtraPriceByCode={packingExtraPriceByCode}
-          orderSpeed={serviceSpeed}
-          quote={lineQuote}
-        />
-      </div>
-
-      {speedChangeNote ? (
-        <div className="px-3 pb-2">
-          <CmxSummaryMessage
-            type="info"
-            title={speedChangeNote.title}
-            items={speedChangeNote.items}
-            onDismiss={speedChangeNote.onDismiss}
+      {/* Scrollable Middle: Cart Items + Order Options (keeps Totals + Submit pinned above fold) */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="px-3 pt-2">
+          <EditControlNotice codes={['ADD_ITEM', 'REMOVE_ITEM', 'CHANGE_ITEM_QUANTITY', 'ADD_PIECE', 'REMOVE_PIECE']} />
+        </div>
+        <div className={`p-3 ${lineCapability.interactive ? '' : 'pointer-events-none opacity-60'}`}>
+          <ItemCartList
+            items={items}
+            onEditItem={onEditItem}
+            onEditItemPreferences={onEditItemPreferences}
+            onDeleteItem={handleDeleteItem}
+            onPiecesChange={onPiecesChange}
+            onCopyPieceToAll={onCopyPieceToAll}
+            trackByPiece={trackByPiece}
+            currencyCode={currencyCode}
+            selectedPieceId={selectedPieceId}
+            onSelectPiece={onSelectPiece}
+            colorCatalog={colorCatalog}
+            preferenceLabelByCode={preferenceLabelByCode}
+            packingExtraPriceByCode={packingExtraPriceByCode}
+            orderSpeed={serviceSpeed}
+            quote={lineQuote}
           />
         </div>
-      ) : null}
 
-      {/* Footer */}
-      <div className="shrink-0 border-t-2 border-border bg-card">
+        {speedChangeNote ? (
+          <div className="px-3 pb-2">
+            <CmxSummaryMessage
+              type="info"
+              title={speedChangeNote.title}
+              items={speedChangeNote.items}
+              onDismiss={speedChangeNote.onDismiss}
+            />
+          </div>
+        ) : null}
+
+        {/* Order Options (Ready By, Pieces/Bags, Notes, Quick Drop/Retail) */}
+        <div className="border-t border-border bg-card">
 
         {/* Ready By Row (compact, above footer grid) */}
         <div className="px-3 pt-2 pb-1 space-y-1">
@@ -590,7 +591,11 @@ function OrderSummaryPanelComponent({
             </div>
           </div>
         )}
+        </div>
+      </div>
 
+      {/* Pinned Checkout Footer — Totals + Submit Order always visible above fold */}
+      <div className="shrink-0 border-t-2 border-border bg-card">
         {cartQuote ? <CartQuoteTotals {...cartQuote} currencyCode={currencyCode} /> : null}
 
         {/* Submit Button — carries no money (D33); the only total is the server one above */}

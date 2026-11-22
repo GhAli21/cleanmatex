@@ -1238,7 +1238,18 @@ export async function expireGiftCard(
     try {
       await prisma.$transaction(async (tx) => {
         const card = await tx.org_gift_cards_mst.findFirst({
-          where: { id, tenant_org_id: tenantOrgId, is_active: true },
+          where: {
+            id,
+            tenant_org_id: tenantOrgId,
+            is_active: true,
+            status: {
+              in: [
+                GIFT_CARD_STATUS.ACTIVE,
+                GIFT_CARD_STATUS.PARTIALLY_REDEEMED,
+                GIFT_CARD_STATUS.GENERATED,
+              ],
+            },
+          },
           select: { id: true, available_amount: true, currency_code: true },
         });
         if (!card) throw new Error('GIFT_CARD_NOT_FOUND');

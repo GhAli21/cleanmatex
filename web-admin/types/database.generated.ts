@@ -51351,6 +51351,13 @@ export type Database = {
       fn_expire_gift_cards: { Args: never; Returns: number }
       fn_file_util_expire_pending: { Args: never; Returns: number }
       fn_fin_code_lvl: { Args: { p_code: string }; Returns: number }
+      fn_fin_gift_card_exp_due: {
+        Args: { p_limit?: number }
+        Returns: {
+          gift_card_id: string
+          tenant_org_id: string
+        }[]
+      }
       fn_fin_prnt_code: { Args: { p_code: string }; Returns: string }
       fn_get_setting_value: {
         Args: { p_setting_code: string; p_tenant_org_id: string }

@@ -26,6 +26,7 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 
 import { useLocale } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmount } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
 import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
 
@@ -39,6 +40,10 @@ interface OrdersSimpleTableProps {
   };
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  initialCurrency?: {
+    currencyCode: string;
+    decimalPlaces: number;
+  };
   hasActiveFilters?: boolean;
 }
 
@@ -56,6 +61,7 @@ export function OrdersSimpleTable({
   pagination,
   sortBy = 'received_at',
   sortOrder = 'desc',
+  initialCurrency,
   hasActiveFilters = false,
 }: OrdersSimpleTableProps) {
   const router = useRouter();
@@ -65,7 +71,17 @@ export function OrdersSimpleTable({
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const uiLocale = useLocale();
-  const { formatMoney, formatNumber } = useTenantCurrency();
+  const { formatMoney, formatNumber, isReady: currencyReady, moneyLocale } = useTenantCurrency();
+  const formatOrderTotal = (amount: number) => {
+    if (currencyReady || !initialCurrency) {
+      return formatMoney(amount);
+    }
+    return formatMoneyAmount(amount, {
+      currencyCode: initialCurrency.currencyCode,
+      decimalPlaces: initialCurrency.decimalPlaces,
+      locale: moneyLocale,
+    });
+  };
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
@@ -223,7 +239,7 @@ export function OrdersSimpleTable({
       sortable: true,
       render: (order) => (
         <bdi dir="ltr" className="font-medium tabular-nums">
-          {formatMoney(order.total)}
+          {formatOrderTotal(order.total)}
         </bdi>
       ),
     },

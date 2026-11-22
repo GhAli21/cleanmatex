@@ -1,6 +1,6 @@
 # I11 Background Execution — Production Runbook
 
-**Status:** Active. Migrations `0782` through `0804` are applied on local and remote. The HQ API source can claim shadow, dispatch, file purge, finance jobs, and campaign expansion, and it can alert on a missing worker, old due mail, and growing uncertain rows. **Do not enable that host yet.** `PLATFORM_BG_ENABLED` stays unset. `PLATFORM_WORKER_LOOPS_ENABLED` stays unset, so Render `platform-workers` is still the only claimer. Notification delivery stays off. Finance and campaign env flags stay unset. `ntf-outbox-reconcile` is not scheduled. Trial expiry is not a job. Safety sweep is **15 minutes** (D10). I11 stays open until the cutover below and a 48-hour soak.  
+**Status:** Active. Migrations `0782` through `0804` are applied on local and remote. **22 Nov 2026:** every job stays in one of three places ([expert replan §1.1](I11_background_execution_EXPERT_REPLAN.md)). For finance and campaigns, Postgres claims the due rows and one existing poster performs the effect. That build is not implemented yet. Do not call the tenant app for those jobs. The HQ API may claim shadow, dispatch, and file purge, and it can alert on a missing worker, old due mail, and growing uncertain rows. **Do not enable that host yet.** `PLATFORM_BG_ENABLED` stays unset. `PLATFORM_WORKER_LOOPS_ENABLED` stays unset, so Render `platform-workers` is still the only claimer. Notification delivery stays off. `ntf-outbox-reconcile` is not scheduled. Trial expiry is not a job. Safety sweep is **15 minutes** (D10). I11 stays open until the cutover below, S0–S7 and W1, and a 48-hour soak.  
 **Authority:** [expert replan](I11_background_execution_EXPERT_REPLAN.md), [I11 plan](I11_background_execution_redesign_PLAN.md), [I11 ADR](I11_background_execution_redesign_ADR.md), and [handler contracts](I11_background_execution_handler_contracts.md).  
 **Test execution companion:** [I11 remote QA and evidence guide](I11_background_execution_QA_TEST_GUIDE.md).  
 **Production evidence authority:** Remote Supabase read-only results and Render/HQ deployment evidence. Local results are development-only.
@@ -20,23 +20,24 @@ These HTTP wrappers stay **Retired**. Do not Enable, Restore, or Run now:
 
 `ntf-outbox-processor`, `ntf-reconcile-outbox`.
 
-These are **HQ worker** jobs, desired off. Run now does nothing useful until the matching env flag is `true` and the tenant app that contains the route is deployed:
+These seven rows stay desired off. Source S0 no longer claims them from the HQ API or starts them in the worker. That source is not live until the HQ API and worker builds are deployed. Do not set their env flags. Do not Run now:
 
 `ntf-campaign-scheduler`, `fin-outbox-processor`, `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-erp-posting-retry`, `fin-pos-session-rollover`.
 
-`ntf-outbox-dispatch` and `ntf-outbox-shadow` stay desired off. `fin-idempotency-cleanup` is SQL and `SYNC`. `tax-kit-update`, `file-util-expire`, `setup-health-refresh`, `cleanup-cron-job-run-details`, and `cleanup-net-http-response` are active SQL jobs and can be paused. Notification delivery stays off.
+`0805` is drafted and not applied. After apply, `fn_fin_gift_card_exp_due` only lists due gift cards. `expireGiftCard` remains the poster. Do not enable `fin-gift-card-expiry`.
+
+`ntf-outbox-dispatch` and `ntf-outbox-shadow` are `HQ_WORKER` and stay desired off. `file-util-purge` is `HQ_WORKER`. Notification delivery is the one `HQ_JOB_API` operation and stays off. `fin-idempotency-cleanup` is SQL and `SYNC`. `tax-kit-update`, `file-util-expire`, `setup-health-refresh`, `cleanup-cron-job-run-details`, and `cleanup-net-http-response` are active SQL jobs and can be paused.
 
 ## Cutover — only after this HQ API build is deployed
 
 Do these in one change. Doing only one of them drops file purge or starts a second claimer.
 
-1. Deploy the HQ API build that contains the claim gate and the job alert.
-2. Deploy the tenant app build that contains the finance and campaign routes before any of those env flags are set. Leave the flags unset in this step.
-3. Set `PLATFORM_BG_ENABLED=true` on the HQ API and `PLATFORM_WORKER_LOOPS_ENABLED=false` on `platform-workers`, then restart both.
-4. Leave `NTF_OUTBOX_WORKER_ENABLED` false. Leave every `FIN_*_ENABLED` and `NTF_CAMPAIGN_EXPANSION_ENABLED` unset.
-5. Confirm `/ops/jobs` shows one worker heartbeat and no second claimer in the logs.
+1. Deploy the HQ API build that contains the claim gate and the job alert. That build must not claim the seven finance and campaign job codes.
+2. Set `PLATFORM_BG_ENABLED=true` on the HQ API and `PLATFORM_WORKER_LOOPS_ENABLED=false` on `platform-workers`, then restart both.
+3. Leave `NTF_OUTBOX_WORKER_ENABLED` false.
+4. Confirm `/ops/jobs` shows one worker heartbeat and no second claimer in the logs.
 
-After that deploy is stable, the remaining close is a provider-specific reconcile schedule, then a 48-hour soak, then removal of the retired HTTP cron paths. Trial expiry stays a separate product decision.
+After that deploy is stable, implement S0–S7 and W1 in expert replan §1.1, then a provider-specific reconcile schedule, then a 48-hour soak, then removal of the retired HTTP cron paths. Trial expiry stays a separate product decision.
 
 ## WP0 operator freeze (D11 / D15)
 
@@ -44,7 +45,7 @@ After `0779` is applied, HQ `/ops/jobs` shows the two remaining HTTP wrappers as
 
 ## WP5 — one database handler at a time
 
-`0784` through `0804` are applied. Remote idempotency cleanup runs `SELECT public.cleanup_expired_idempotency_keys()` daily at 03:00 and is recorded as `SYNC`. `0791` adds the read-only dead-letter list. `0792` through `0798` point the finance and campaign jobs at the HQ worker. `0799` through `0801` restore the tax, file-expiry, and setup-health cron rows and allow pause. `0803` and `0804` do the same for the two truncate jobs. None of these migrations send a notification.
+`0784` through `0804` are applied. Remote idempotency cleanup runs `SELECT public.cleanup_expired_idempotency_keys()` daily at 03:00 and is recorded as `SYNC`. `0791` adds the read-only dead-letter list. `0792` through `0798` registered the finance and campaign jobs as HQ worker rows. The §1.1 build replaces their HTTP callers with a due-row claim plus the existing poster. They must not call the tenant app. `0799` through `0801` restore the tax, file-expiry, and setup-health cron rows and allow pause. `0803` and `0804` do the same for the two truncate jobs. None of these migrations send a notification.
 
 ## WP0.6 inventory (no secret values)
 

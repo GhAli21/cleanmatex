@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Search, X } from 'lucide-react'
 import { CmxInput, CmxButton, Label } from '@ui/primitives'
@@ -55,6 +55,22 @@ export function WorkboardFilterToolbar({
   onReset,
 }: WorkboardFilterToolbarProps) {
   const t = useTranslations('workboard')
+  const tPriorities = useTranslations('orders.priorities')
+
+  const formatPriority = useCallback(
+    (value: string): string => {
+      const normalized = value.trim().toLowerCase()
+      if (normalized === 'normal' || normalized === 'urgent' || normalized === 'express') {
+        return tPriorities(normalized)
+      }
+      return t('priority.label', {
+        value: value
+          .replace(/[_-]+/g, ' ')
+          .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+      })
+    },
+    [t, tPriorities],
+  )
 
   const activeFilters = useMemo(() => {
     const items: Array<{ key: string; label: string; onClear: () => void }> = []
@@ -88,7 +104,7 @@ export function WorkboardFilterToolbar({
     if (priority) {
       items.push({
         key: 'priority',
-        label: t('filters.active.priority', { value: priority }),
+        label: t('filters.active.priority', { value: formatPriority(priority) }),
         onClear: () => onPriorityChange(undefined),
       })
     }
@@ -123,6 +139,7 @@ export function WorkboardFilterToolbar({
     assigneeId,
     blocker,
     branchId,
+    formatPriority,
     metadata,
     onAssigneeChange,
     onBlockerChange,
@@ -197,100 +214,96 @@ export function WorkboardFilterToolbar({
         <div className="space-y-1.5">
           <Label>{t('filters.branch')}</Label>
           <CmxSelectDropdown
-          value={branchId ?? 'all'}
-          onValueChange={(value) => onBranchChange(value === 'all' ? undefined : value)}
-        >
-          <CmxSelectDropdownTrigger aria-label={t('filters.branch')}>
-            <CmxSelectDropdownValue placeholder={t('filters.branch')} />
-          </CmxSelectDropdownTrigger>
-          <CmxSelectDropdownContent>
-            <CmxSelectDropdownItem value="all">{t('filters.allBranches')}</CmxSelectDropdownItem>
-            {metadata?.branches.map((branch) => (
-              <CmxSelectDropdownItem key={branch.id} value={branch.id}>
-                {branch.name}
-              </CmxSelectDropdownItem>
-            ))}
-          </CmxSelectDropdownContent>
-        </CmxSelectDropdown>
+            value={branchId ?? 'all'}
+            onValueChange={(value) => onBranchChange(value === 'all' ? undefined : value)}
+          >
+            <CmxSelectDropdownTrigger aria-label={t('filters.branch')}>
+              <CmxSelectDropdownValue placeholder={t('filters.branch')} />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="all">{t('filters.allBranches')}</CmxSelectDropdownItem>
+              {metadata?.branches.map((branch) => (
+                <CmxSelectDropdownItem key={branch.id} value={branch.id}>
+                  {branch.name}
+                </CmxSelectDropdownItem>
+              ))}
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
         </div>
 
         <div className="space-y-1.5">
           <Label>{t('filters.assignee')}</Label>
           <CmxSelectDropdown
-          value={assigneeId ?? 'all'}
-          onValueChange={(value) => onAssigneeChange(value === 'all' ? undefined : value)}
-        >
-          <CmxSelectDropdownTrigger aria-label={t('filters.assignee')}>
-            <CmxSelectDropdownValue placeholder={t('filters.assignee')} />
-          </CmxSelectDropdownTrigger>
-          <CmxSelectDropdownContent>
-            <CmxSelectDropdownItem value="all">{t('filters.allAssignees')}</CmxSelectDropdownItem>
-            {metadata?.assignees.map((assignee) => (
-              <CmxSelectDropdownItem key={assignee.id} value={assignee.id}>
-                {assignee.name}
-              </CmxSelectDropdownItem>
-            ))}
-          </CmxSelectDropdownContent>
-        </CmxSelectDropdown>
+            value={assigneeId ?? 'all'}
+            onValueChange={(value) => onAssigneeChange(value === 'all' ? undefined : value)}
+          >
+            <CmxSelectDropdownTrigger aria-label={t('filters.assignee')}>
+              <CmxSelectDropdownValue placeholder={t('filters.assignee')} />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="all">{t('filters.allAssignees')}</CmxSelectDropdownItem>
+              {metadata?.assignees.map((assignee) => (
+                <CmxSelectDropdownItem key={assignee.id} value={assignee.id}>
+                  {assignee.name}
+                </CmxSelectDropdownItem>
+              ))}
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
         </div>
 
         <div className="space-y-1.5">
           <Label>{t('filters.priority')}</Label>
           <CmxSelectDropdown
-          value={priority ?? 'all'}
-          onValueChange={(value) => onPriorityChange(value === 'all' ? undefined : value)}
-        >
-          <CmxSelectDropdownTrigger aria-label={t('filters.priority')}>
-            <CmxSelectDropdownValue placeholder={t('filters.priority')} />
-          </CmxSelectDropdownTrigger>
-          <CmxSelectDropdownContent>
-            <CmxSelectDropdownItem value="all">{t('filters.allPriorities')}</CmxSelectDropdownItem>
-            {metadata?.priorities.map((value) => (
-              <CmxSelectDropdownItem key={value} value={value}>
-                {t('priority.label', {
-                  value: value
-                    .replace(/[_-]+/g, ' ')
-                    .replace(/\b\w/g, (letter) => letter.toUpperCase()),
-                })}
-              </CmxSelectDropdownItem>
-            ))}
-          </CmxSelectDropdownContent>
-        </CmxSelectDropdown>
+            value={priority ?? 'all'}
+            onValueChange={(value) => onPriorityChange(value === 'all' ? undefined : value)}
+          >
+            <CmxSelectDropdownTrigger aria-label={t('filters.priority')}>
+              <CmxSelectDropdownValue placeholder={t('filters.priority')} />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="all">{t('filters.allPriorities')}</CmxSelectDropdownItem>
+              {metadata?.priorities.map((value) => (
+                <CmxSelectDropdownItem key={value} value={value}>
+                  {formatPriority(value)}
+                </CmxSelectDropdownItem>
+              ))}
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
         </div>
 
         <div className="space-y-1.5">
           <Label>{t('filters.blocker')}</Label>
           <CmxSelectDropdown
-          value={blocker}
-          onValueChange={(value) => onBlockerChange(value as WorkboardQueryInput['blocker'])}
-        >
-          <CmxSelectDropdownTrigger aria-label={t('filters.blocker')}>
-            <CmxSelectDropdownValue />
-          </CmxSelectDropdownTrigger>
-          <CmxSelectDropdownContent>
-            <CmxSelectDropdownItem value="all">{t('filters.allRisk')}</CmxSelectDropdownItem>
-            <CmxSelectDropdownItem value="blocked">{t('filters.blocked')}</CmxSelectDropdownItem>
-            <CmxSelectDropdownItem value="clear">{t('filters.clear')}</CmxSelectDropdownItem>
-          </CmxSelectDropdownContent>
-        </CmxSelectDropdown>
+            value={blocker}
+            onValueChange={(value) => onBlockerChange(value as WorkboardQueryInput['blocker'])}
+          >
+            <CmxSelectDropdownTrigger aria-label={t('filters.blocker')}>
+              <CmxSelectDropdownValue />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="all">{t('filters.allRisk')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="blocked">{t('filters.blocked')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="clear">{t('filters.clear')}</CmxSelectDropdownItem>
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
         </div>
 
         <div className="space-y-1.5">
           <Label>{t('filters.sla')}</Label>
           <CmxSelectDropdown
-          value={sla}
-          onValueChange={(value) => onSlaChange(value as WorkboardQueryInput['sla'])}
-        >
-          <CmxSelectDropdownTrigger aria-label={t('filters.sla')}>
-            <CmxSelectDropdownValue />
-          </CmxSelectDropdownTrigger>
-          <CmxSelectDropdownContent>
-            <CmxSelectDropdownItem value="all">{t('filters.allSla')}</CmxSelectDropdownItem>
-            <CmxSelectDropdownItem value="overdue">{t('filters.overdue')}</CmxSelectDropdownItem>
-            <CmxSelectDropdownItem value="due_today">{t('filters.dueToday')}</CmxSelectDropdownItem>
-            <CmxSelectDropdownItem value="not_due">{t('filters.notDue')}</CmxSelectDropdownItem>
-          </CmxSelectDropdownContent>
-        </CmxSelectDropdown>
+            value={sla}
+            onValueChange={(value) => onSlaChange(value as WorkboardQueryInput['sla'])}
+          >
+            <CmxSelectDropdownTrigger aria-label={t('filters.sla')}>
+              <CmxSelectDropdownValue />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="all">{t('filters.allSla')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="overdue">{t('filters.overdue')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="due_today">{t('filters.dueToday')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="not_due">{t('filters.notDue')}</CmxSelectDropdownItem>
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
         </div>
       </CmxCardContent>
     </CmxCard>

@@ -49,6 +49,8 @@ interface ReadyListApiOrder extends CanonicalOrderFinancialRowLike {
   payment_status?: string | null
   payment_type_code?: string | null
   total_items?: number | null
+  total?: unknown
+  paid_amount?: unknown
   branch_id?: string | null
   currency_code?: string | null
   org_customers_mst?: { id?: string | null } | Array<{ id?: string | null }> | null
@@ -120,7 +122,12 @@ export function ReadyListScreen() {
 
   const orders: ReadyListRow[] = useMemo(() => {
     return (rawOrders ?? []).map((order) => {
-      const financialSnapshot = readCanonicalOrderFinancialSnapshot(order)
+      // /api/v1/orders aliases total_amount -> total and total_paid_amount -> paid_amount
+      const financialSnapshot = readCanonicalOrderFinancialSnapshot({
+        ...order,
+        total_amount: order.total_amount ?? order.total,
+        total_paid_amount: order.total_paid_amount ?? order.paid_amount,
+      })
       const remaining = financialSnapshot.outstandingAmount
       const paymentStatus = normalizeOrderPaymentStatus(order.payment_status, {
         paymentTypeCode: order.payment_type_code,
@@ -145,7 +152,7 @@ export function ReadyListScreen() {
         payment_status: paymentStatus,
         current_status: order.current_status || order.status || 'ready',
         rack_location: order.rack_location || '',
-        ready_by: order.ready_by || order.ready_by_at_new || '',
+        ready_by: order.ready_by_at_new || order.ready_by || '',
         pickup_release: order.pickup_release ?? { ...NOT_RELEASED_PICKUP_SUMMARY },
       }
     })
@@ -347,9 +354,9 @@ export function ReadyListScreen() {
                     {order.customer.phone ? (
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('labels.phone')}:</span>
-                        <span dir="ltr" className="inline-block tabular-nums [unicode-bidi:isolate]">
+                        <bdi dir="ltr" className="inline-block tabular-nums">
                           {order.customer.phone}
-                        </span>
+                        </bdi>
                       </div>
                     ) : null}
                     {order.rack_location ? (

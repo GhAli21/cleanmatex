@@ -1,6 +1,6 @@
 # I11 Background Execution — Expert Replan
 
-**Status:** Code through the claim gate, tenant-job callers, and job alerts is written. `0782` through `0804` are applied. I11 is not closed. Close it only after the HQ API deploy, the one-step cutover in the runbook, a scheduled provider-specific reconciler, and a 48-hour soak. Until then leave `PLATFORM_BG_ENABLED` unset, leave worker loops on, leave notification delivery off, and leave finance and campaign flags unset. Trial expiry is not a job. The living plan is this expert replan.  
+**Status:** `0782` through `0804` are applied. S0 is complete in source: the HQ claim list is shadow, dispatch, and file purge. That source is not live until the HQ API and worker builds are deployed. S1 is next. I11 is not closed. The seven finance and campaign jobs use the §1.1 build. Close still needs the HQ API deploy, the one-step cutover in the runbook, S1–S7 and W1, a scheduled provider-specific reconciler, and a 48-hour soak. Until then leave `PLATFORM_BG_ENABLED` unset, leave worker loops on, and leave notification delivery off. Trial expiry is not a job. The living plan is this expert replan.  
 **Written:** 20 Nov 2026  
 **Approved_By_Jh:** 20 Nov 2026 (architecture); planning locks D9–D12 recorded same day for implementation readiness.  
 **Authority it extends:** [PLAN](I11_background_execution_redesign_PLAN.md), [ADR](I11_background_execution_redesign_ADR.md), [handler contracts](I11_background_execution_handler_contracts.md), [runbook](I11_background_execution_RUNBOOK.md), [QA](I11_background_execution_QA_TEST_GUIDE.md), [I11/I11a](03_infrastructure_deploy_and_operations.md).  
@@ -14,6 +14,77 @@
 ## 1. Verdict
 
 Keep the **business boundary**. Change the **runtime shape**.
+
+### 1.1 Three places — Owner lock, 22 Nov 2026
+
+Every job runs in exactly one place. This applies to jobs already in the registry and to any job added later.
+
+| Place | Runs | Does not run |
+|---|---|---|
+| `DATABASE` | Postgres calls one fixed function. `pg_cron` command is `SELECT public.<function>(...)`. Due-row selection for every job is also a fixed function. | An application URL, a tenant route, or a second poster |
+| `HQ_WORKER` | HQ claims due identity and runs one in-process domain module: storage-byte purge, notification claim and finalize, and any finance or campaign effect whose current poster is TypeScript | A copy of that module, an HTTP call to the tenant app, or provider send for finance events |
+| `HQ_JOB_API` | One private HQ operation: notification delivery. The caller sends `tenantOrgId`, `outboxId`, and `claimToken` | A job name, a URL, a finance action, or a campaign action |
+
+The tenant app writes the business row and calls the same domain module as the job. It does not run the schedule.
+
+| Job | Place | Implementation |
+|---|---|---|
+| `auth-session-sweep`, notification quota / retention / stale-push sweeps, `ntf-outbox-retry`, `ops-job-run-capture` | `DATABASE` | Keep the fixed function. Finish any row that is still missing `SET_STATE` or a cron row, one job per migration. |
+| `fin-idempotency-cleanup` | `DATABASE` | Done. SQL function, `SYNC`. |
+| `tax-kit-update`, `file-util-expire`, `setup-health-refresh`, `cleanup-cron-job-run-details`, `cleanup-net-http-response` | `DATABASE` | Done as SQL. Tax-kit stays observation-only until a separate executor policy. |
+| `fin-gift-card-expiry`, `fin-credit-note-expiry`, `fin-loyalty-points-expiry`, `fin-pos-session-rollover` | `DATABASE` when a fixed SQL ledger contract already exists. Otherwise `HQ_WORKER` | Postgres selects the due rows. The existing poster performs the effect. The screen calls that same poster. |
+| `fin-erp-posting-retry`, `fin-outbox-processor`, `ntf-campaign-scheduler` | `HQ_WORKER` | Postgres selects the due rows. HQ runs the existing posting engine, outbox consumer, or campaign module in-process. |
+| `file-util-purge` | `HQ_WORKER` | HQ deletes storage bytes, then sets `purged_at`. |
+| `ntf-outbox-shadow` | `HQ_WORKER` | Aggregate read only. Desired off. |
+| `ntf-outbox-dispatch` | `HQ_WORKER` | Claim and exact-token finalize. Delivery stays off until opened on purpose. |
+| `ntf-outbox-reconcile` | `HQ_WORKER` | Provider-specific reconcile, scheduled only after dispatch is stable. |
+| `notifications/outbox-delivery` | `HQ_JOB_API` | The only approved HTTP operation. Identity only. |
+| `ntf-outbox-processor`, `ntf-reconcile-outbox` | Retired | Stay `SUPERSEDED`. Do not Enable, Restore, or Run now. |
+| Trial expiry | Not a job | Separate product decision. |
+
+**Implement, one task at a time, in this order.** Each build task has a progress task in the same change. The next build task stays `Planned` until its progress task is in the Progress Log.
+
+| ID | Build task | Repo | Status |
+|---|---|---|---|
+| S0 | Remove the seven HTTP callers from `API_CLAIMED_JOBS` and from the worker HTTP runners. Leave the registry rows desired off. | `cleanmatexsaas` | Complete in source. Deploy still required. |
+| S1 | `fin-gift-card-expiry`. Postgres claims due cards. The existing poster writes the expire ledger line and the general-ledger entry. Pass §1.2. | both | Drafted. `0805` is not applied. Job stays off. |
+| S2 | `fin-credit-note-expiry`. Same build, credit-note ledger. | both | Planned |
+| S3 | `fin-loyalty-points-expiry`. Same build, points ledger. | both | Planned |
+| S4 | `fin-pos-session-rollover`. Same build, current session lock order. | both | Planned |
+| S5 | `fin-erp-posting-retry`. Postgres claims `SYSTEM_ERROR` exceptions. HQ calls the existing posting engine in-process. | both | Planned |
+| S6 | `fin-outbox-processor`. Postgres claims due finance events. HQ runs the existing consumer for that event type in-process. No provider send. | both | Planned |
+| S7 | `ntf-campaign-scheduler`. Postgres claims the batch. HQ runs the existing consent, quiet-hours, and template module in-process. At most 10 campaigns and 50 targets. | both | Planned |
+| W1 | `WorkOutbox.enqueue`: one helper, same transaction as the business write. Migrate existing outbox inserts onto it. Screens do not call execute HTTP. | both | Planned |
+
+For S1–S4, use the existing SQL ledger function when one already exists, and schedule it with `pg_cron`. When the poster is TypeScript, move that logic into one module with no Next.js request type, and have the screen and the HQ executor call it. For S5–S7 the poster stays that existing TypeScript module. There is one poster. Do not write a second general ledger, posting engine, or template renderer in SQL.
+
+| ID | Progress task, same change as the build task | Status |
+|---|---|---|
+| S0-P | Set S0 to `In progress` when work starts. Set S0 to `Complete` only after the allowlist diff and tests are recorded. Update the status line of this file, the [Progress Log](I11_background_execution_redesign_PLAN.md), the runbook, and both `integration-contracts.md` copies. Name the next task S1. | Complete. Next task is S1. |
+| S1-P through S7-P | Set that row to `In progress` when work starts. Set it to `Complete` only after §1.2 is true on remote evidence. Update this file’s status line and that row’s Status, the Progress Log (date, evidence, owner, result, next action), the runbook, the QA guide, handler contracts, env inventory, HQ `/ops/jobs` copy, tenant screen copy, and both integration-contract copies. Where a document does not exist, write `N/A` and the reason in the Progress Log. | Planned |
+| W1-P | Same progress bar as S1-P. `Complete` only after enqueue, the migrated call sites, and the tests are recorded. Notification delivery stays off. | Planned |
+
+Do not enable `FIN_*_ENABLED` or `NTF_CAMPAIGN_EXPANSION_ENABLED`. Do not set `TENANT_WEB_ADMIN_URL` for these jobs. Do not schedule `fin_trigger_*` or `ntf_trigger_*`.
+
+D11 once listed the seven finance and campaign codes as `SUPERSEDED` HTTP wrappers. `0792`–`0798` then registered them as `HQ_WORKER`, desired off, with HTTP callers. Those HTTP callers are not the approved runner. Leave the rows desired off until the matching S1–S7 executor is in place. Do not mark them `SUPERSEDED` again, and do not Enable the HTTP path.
+
+### 1.2 Slice gate — every job, both repos
+
+A slice is one job. The next job does not start until this gate is true on remote evidence. A green build is not the gate.
+
+| Area | Repo | Required before the slice is done |
+|---|---|---|
+| Database | `cleanmatex` | New migration only. One claim function, name ≤ 30 characters, locked `search_path`, `COMMENT ON`, `service_role` execute only. Every `org_*` read and write filters `tenant_org_id`. Bounded batch, overlap lock, idempotent replay. The claim function returns due identity and does not post. |
+| Money and domain rules | both | One existing poster. A SQL poster is scheduled with `pg_cron` and the screen calls it. A TypeScript poster is one module with no Next.js request type; the screen and the HQ executor call it in-process. Ledger lines, amounts, lock order, consent, quiet hours, and idempotency stay those of that poster. A status-only update fails the slice. |
+| Performance | both | The claim is one set-based batch. `EXPLAIN` the due predicate on remote. Add an index only when that plan shows a scan the batch cannot afford. The executor does not list every organization from JavaScript. |
+| HQ runner | `cleanmatexsaas` | HTTP callers for this job are absent. The in-process executor is registered only in the slice that owns it. Unknown `job_code` still refuses. The runner does not post to the tenant app. |
+| Tenant routes | `cleanmatex` `web-admin` | No new job route. The old job route for this slice stays unscheduled. Delete it only after a caller inventory shows no scheduler still posts to it. |
+| Tenant screens | `cleanmatex` `web-admin` | The existing screen keeps its current user flow and calls the same poster. Shared Cmx components, `cmxMessage`, EN/AR, logical RTL. Money entry follows the no-silent-money rule. No new page unless the current screen cannot finish the action. |
+| HQ console | `cleanmatexsaas` `platform-web` | `/ops/jobs` shows the real place, a UTC schedule, and a working pause. EN/AR. Retired rows have no Enable, Restore, or Run now. Lists show counts only, never a ledger line, recipient, subject, or body. |
+| Tests | both | Tenant isolation, overlap, replay, partial batch, ledger parity against the current poster, and `anon` execute rejected. Pause leaves the job inactive. Notification slices also cover uncertain outcome and no second send. |
+| Docs and ops | both | Progress-log row, runbook, env inventory, and both `integration-contracts.md` copies match the applied slice. Secrets stay out of the docs. |
+
+`WorkOutbox.enqueue` (D19) is still required for new background work. It does not replace S1–S7. Tax-kit and trial expiry stay outside this gate until their own product decision.
 
 The ADR is right: Vercel must not poll; Postgres owns data, the outbox, leases, and DB-native jobs; one canonical outbox; identity-only HQ provider call; no generic command runner. **BullMQ is rollback-only on the notification path.** Redis is **platform infrastructure** on HQ API (cache, rate limit, locks) — not the job bus.
 
@@ -366,10 +437,10 @@ Order (low blast radius first):
 3. `ntf-outbox-retry` (bounded requeue; must not race dispatch)
 4. `ops-job-run-capture` if not already healthy
 5. `fin-idempotency-cleanup` **direct SQL** (drop HTTP wrapper)
-6. Gift/credit/loyalty expiry (ledger parity)
-7. POS rollover + ERP retry (lock order)
-8. Finance domain outbox **consumers** (not providers)
-9. Campaign expansion SQL parity (10/50, consent, quiet hours, idempotency)
+6. Gift/credit/loyalty expiry, as S1–S3 in §1.1
+7. POS rollover and ERP retry, as S4 and S5 in §1.1
+8. Finance domain outbox consumers, as S6 in §1.1
+9. Campaign expansion, as S7 in §1.1
 10. Tax-kit: graduate from observation-only only with executor policy
 11. Trial expiry (Owner product decision)
 
@@ -406,11 +477,13 @@ Reuse plan Phase 8, but add:
 
 ### WP-P — Progress after every step (mandatory)
 
-After **each** WP (and after each WP5 handler):
+After **each** WP, each §1.1 build task (S0–S7 and W1), and each WP5 handler, complete the matching progress task in the same change:
 
-1. Update this file’s WP status and the [I11 PLAN Progress Log](I11_background_execution_redesign_PLAN.md) (date, evidence, owner, next action).
-2. Update checkboxes/status columns on any still-open old Phase 0–9 rows this slice affects.
-3. Do not mark Complete without the Progress Log row.
+1. Set that task to `In progress` when work starts, and to `Complete` only when its exit evidence is true. A green build is not `Complete`.
+2. Update this file’s status line and the task Status cell.
+3. Add one [Progress Log](I11_background_execution_redesign_PLAN.md) row: date, evidence, owner, result, next action. Update still-open Phase 0–9 rows this slice affects.
+4. Update the runbook, QA guide, handler contracts, env inventory, and both `integration-contracts.md` copies when the slice changes them. Write `N/A` plus the reason when a document does not exist.
+5. Do not start the next task while the progress task is still `Planned`.
 
 ### WP-D — Related documentation after every step (mandatory)
 
@@ -522,7 +595,7 @@ I11 may close only when **all** are true on **remote** evidence:
 4. `/ops/jobs` can enable/disable/Run now **file-util-purge**, **ntf dispatch** (env kill still required), and each approved DATABASE job; SUPERSEDED jobs cannot start.
 5. Uncertain claims have a scheduled, provider-specific reconciler.
 6. 48h soak: zero duplicate provider effects, zero cross-tenant writes, heartbeat live.
-7. Finance/campaign/retry/sweeps either run as DATABASE functions or are explicitly deferred with Owner name.
+7. Finance, campaign, retry, and sweeps run as the §1.1 build: Postgres claims the due rows, and one existing poster performs the effect. The tenant HTTP callers are rejected. A named deferral is the only other close.
 8. Runbook, QA, integration-contracts, and env inventory match production.
 9. New background work is created only via `WorkOutbox.enqueue` or an approved DATABASE function; `ExecutorRegistry` has no unknown `job_code` path (D19).
 
@@ -628,7 +701,7 @@ This section finishes planning so WP0 can start without architecture debate. It 
 3. Confirm session-mode DB URL for LISTEN when WP2 is reached (D9 inventory from WP0.6).
 4. Keep tax-kit / trial as separate product decisions (D7).
 
-**Planning is finished.** WP0 source is drafted (21 Nov 2026); `0779` is **not applied**. Delivery remains disabled.
+**The architecture is locked.** `0779` through `0804` are applied. Delivery remains disabled. §1.2 is the gate for every remaining job. §12.3 task text that still says `0779` is not applied is historical.
 
 ---
 
