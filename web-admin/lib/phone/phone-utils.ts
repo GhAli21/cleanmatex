@@ -297,6 +297,17 @@ export function formatPhoneForDisplay(
   return raw
 }
 
+/** Extract the ISO 3166-1 alpha-2 country code from an E.164 or national phone string. */
+export function getPhoneCountry(
+  value: string | null | undefined,
+  defaultCountry?: CountryCode,
+): CountryCode | undefined {
+  const raw = (value ?? '').trim()
+  if (!raw) return undefined
+  const parsed = parsePhoneNumberFromString(toAsciiDigits(raw), defaultCountry)
+  return parsed?.country ?? defaultCountry
+}
+
 /** Strip "+" and non-digits for WhatsApp deep links (https://wa.me/<digits>). */
 export function toWhatsAppDigits(value: string | null | undefined): string {
   return toAsciiDigits(value ?? '').replace(/\D/g, '')

@@ -73,6 +73,7 @@
     "bwip-js": "^4.11.4",
     "class-variance-authority": "^0.7.1",
     "cookie": "^1.0.2",
+    "country-flag-icons": "^1.6.20",
     "date-fns": "^4.1.0",
     "decimal.js": "^10.6.0",
     "ioredis": "^5.8.2",

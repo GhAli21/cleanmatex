@@ -15,6 +15,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Check, CheckCircle2, ChevronDown, AlertCircle, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CmxInput } from '@ui/primitives'
+import { CmxCountryFlag } from '@ui/data-display/cmx-country-flag'
 import { useTenantDefaultCountry } from '@/lib/hooks/use-tenant-default-country'
 import {
   getPhoneCountryOptions,
@@ -240,9 +241,7 @@ export function CmxPhoneInput({
             hasError ? 'border-destructive' : 'border-input',
           )}
         >
-          <span aria-hidden className="text-base leading-none">
-            {selectedOption?.flag}
-          </span>
+          <CmxCountryFlag iso={selectedOption?.iso} />
           <span className="font-medium tabular-nums">
             {selectedOption?.dialCode}
           </span>
@@ -328,9 +327,7 @@ export function CmxPhoneInput({
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <span aria-hidden className="text-sm leading-none">
-                          {option.flag}
-                        </span>
+                        <CmxCountryFlag iso={option.iso} />
                         <span className="truncate">{option.name}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5">

@@ -11,9 +11,10 @@
 | Piece | Choice |
 |---|---|
 | Queue | **pg-boss** (v12.x) inside the existing Supabase Postgres. No Redis, no new database, no new vendor. |
-| Containers | **1 API** (HQ `platform-api`, already running) + **1 worker** (replaces today's `platform-workers`, so no new service). Vercel keeps serving the web apps. |
-| Code | **One repository.** Move the HQ apps into the tenant repo's existing npm workspaces, so the worker imports finance, orders and notification code exactly once. |
-| Creating work | Inside the business transaction, through pg-boss's Prisma adapter. If the business write rolls back, the job never existed. |
+| Containers | **1 API** (HQ `platform-api`, already running) + **1 worker** (`cleanmatex/cmx-workers`, replacing today's `platform-workers`, so no new service). Vercel keeps serving the web apps. |
+| Code | **Two repositories stay.** Only the worker moves: `platform-workers` becomes `cleanmatex/cmx-workers`, so it imports tenant finance, order and notification-preparation code in-process. HQ API keeps its notification-sending code and consumes the `ntf.deliver` and `ntf.reconcile` queues itself (§14.5). |
+| Creating work | Inside the business transaction, through pg-boss's Prisma adapter in producer mode (§18.2). If the business write rolls back, the job never existed. |
+| Schema | pg-boss's schema SQL is a normal repo migration that the Owner applies. Self-migration is off everywhere (§18.2). |
 | Job contents | Ids only. Data stays in the domain tables. |
 | Retries | Exponential backoff with a cap. After the last attempt, the job moves to a dead-letter queue. |
 | Idempotency | Every job is safe to run twice: one shared effect table records which effects already happened. |
@@ -36,7 +37,7 @@ Remote database, 23 Nov 2026:
 | 22 dead-lettered events | All are events for orders that were deleted. They were retried 5 times when they should have been skipped once. |
 | 14 notifications queued since 21 Nov, 5 sent ever | No delivery path is running. |
 | Database allows 60 connections; Supabase's own services use about 23 at idle | About 35 remain for all apps. Every new process must justify its connections. |
-| Database pooler in AWS `us-east-1` | The worker must run in a US East region next to the database. |
+| Database pooler in AWS `us-east-2` (Ohio), confirmed from the production Vercel `DATABASE_URL` host on 23 Nov 2026 | The worker and HQ API must run in Ohio next to the database. |
 | Scale: 5 tenants, 21 orders, 121 domain events in 30 days | Throughput is irrelevant today. Correctness and simplicity matter. |
 
 Code:
@@ -81,11 +82,12 @@ Code:
 ## 4. Architecture
 
 ```text
- Vercel                      Render (US East, next to the database)
+ Vercel                      Render (Ohio, next to the database)  
  ┌──────────────┐           ┌───────────────────┐   ┌─────────────────────────┐
  │ tenant-web   │           │ API container      │   │ Worker container         │
  │ hq-web       │           │ platform-api       │   │ cleanmatex/cmx-workers   │
- │ requests only│           │ HTTP only          │   │ pg-boss work() + crons   │
+ │ requests only│           │ HTTP + ntf.deliver │   │ all tenant-code queues   │
+ │ (producers)  │           │ + ntf.reconcile    │   │ + pg-boss crons          │
  └──────┬───────┘           └─────────┬─────────┘   └────────────┬────────────┘
         │  business write + boss.send(..., { db: fromPrisma(tx) })                │
         └───────────────────────┬─────┘                         │ fetch / complete
@@ -101,23 +103,22 @@ Code:
 
 ### 4.1 Repository layout
 
-Move the HQ apps into the tenant repo's existing npm workspaces. No Turborepo, no restructure of existing apps.
+Only the worker moves. Both repositories otherwise keep their shape.
 
 ```text
-cleanmatex/
-  web-admin/            tenant web (unchanged location)
-  platform-api/         moved from cleanmatexsaas
-  platform-web/         moved from cleanmatexsaas
-  marketing-web/        moved from cleanmatexsaas
-  cmx-workers/          new; replaces platform-workers (moved from cleanmatexsaas)
-  packages/
-    jobs/               queue names, payload schemas, enqueue helper, effect helper
-    notify/             orchestration + one copy of each provider (from platform-api)
-    (existing packages/i18n, types, utils)
-  supabase/migrations/  unchanged: still the only migration folder
+cleanmatex/                      (tenant repo, owns all migrations)
+  web-admin/                     tenant web; enqueues jobs in producer mode
+  cmx-workers/                   NEW npm workspace; replaces cleanmatexsaas/platform-workers
+  packages/jobs/                 NEW: queue names, Zod payload schemas, enqueue + effect helpers
+  supabase/migrations/           includes the pg-boss schema migration
+
+cleanmatexsaas/                  (HQ repo)
+  platform-api/                  HQ API; adds pg-boss work() for ntf.deliver + ntf.reconcile
+  platform-web/                  HQ web; /ops/jobs rebuilt on pg-boss data
+  platform-workers/              DELETED after cmx-workers is live
 ```
 
-Domain services that both web-admin and the worker use stay in `web-admin/lib/services` at first. The worker imports them directly, which is proven to work. They move into `packages/` only when a second consumer needs them. That avoids a large refactor on day one.
+Domain services stay in `web-admin/lib/services`. The worker imports them directly, which is proven to work (§2). They move into `packages/` only when a second consumer needs them. Provider code stays only in HQ API `notifications-hq`.
 
 ### 4.2 Why pg-boss
 
@@ -148,10 +149,12 @@ pg-boss facts this design relies on, verified against pgboss.io on 23 Nov 2026 (
 |---|---|
 | Worker: pg-boss | `max: 4`, through the Supabase session pooler |
 | Worker: Prisma | `connection_limit=3`, through the transaction pooler |
-| API container | unchanged |
-| Vercel functions | unchanged |
+| HQ API: pg-boss consumer | `max: 3`, through the session pooler |
+| Vercel functions: pg-boss producer | 0 extra. Producer mode uses the request's own Prisma connection (§18.2). |
 
-The worker adds about 7 connections, which fits inside the measured headroom. The old `platform-workers` connections go away.
+The worker and HQ API add about 10 connections together, which fits inside the measured headroom. The old `platform-workers` connections go away.
+
+Polling: `ntf.deliver` every 1 second (HQ API), `ntf.orchestrate` every 2 seconds, every other queue every 30 seconds.
 
 **What the 60-connection limit means.** It is Postgres `max_connections` on the current Supabase compute size, not a limit on users or logins. Users never hold a database connection. Their browsers talk to Vercel, Supabase Auth and PostgREST, and those services share small pools. Prisma traffic goes through Supavisor in transaction mode, which lends a real connection only for the length of one transaction. On this compute size the pooler accepts up to 200 clients and keeps about 15 real connections. What uses connections is **queries running at the same moment**. At about 5 ms per query, 15 pooled connections serve on the order of a few thousand queries per second. Larger compute sizes raise the limit: Small allows 90 and Medium 120.
 
@@ -260,7 +263,7 @@ provider webhook (API container)
     verify signature → store raw event → enqueue ntf.status_apply → return 200
 ```
 
-- One copy of each provider, in `packages/notify`. The tenant copy and the `platform-workers` copy are deleted.
+- One copy of each provider, in HQ API `notifications-hq`. The tenant adapters, `lib/integrations/whatsapp-client.ts` and the `platform-workers` copies are deleted.
 - Transactional messages use priority 0. Campaign chunks use a lower priority, so a big campaign never delays a receipt.
 - On a provider rate limit, the job re-enqueues itself with `startAfter` and completes, instead of spinning.
 
@@ -277,8 +280,8 @@ provider webhook (API container)
 | Schedules | pg-boss crons and `pg_cron` jobs, next run, last result | Run now |
 | Worker | Version, start time, last heartbeat | None |
 
-- Pause is a row in `sys_job_queue_cf` (`queue_name`, `enabled`). The worker reads it every 30 seconds and calls `offWork` or `work` to match. Jobs stay queued while paused.
-- Every action checks the HQ permission `ops_jobs:manage` and writes an audit row.
+- Pause is a row in `sys_job_queue_cf` (`queue_name`, `enabled`). Both consumers, `cmx-workers` and HQ API, read it every 30 seconds and call `offWork` or `work` to match. Jobs stay queued while paused.
+- Reading uses the existing HQ permission `hq_ops:read`. Every action uses the existing `hq_ops:manage_jobs` and writes an audit row.
 - Lists show counts, queue names and ids only. No recipients, amounts or message bodies.
 - EN/AR, RTL, Cmx components.
 
@@ -288,7 +291,7 @@ Four rules, sent through Sentry or an email webhook:
 
 1. The oldest ready job in a queue is older than that queue's threshold: 2 minutes for notifications, 1 hour for finance.
 2. The dead-letter queue gained jobs.
-3. The worker heartbeat is older than 2 minutes.
+3. A consumer's heartbeat is older than 2 minutes. Both `cmx-workers` and HQ API register as pg-boss instances, so each has its own heartbeat.
 4. A notification row stayed `UNCERTAIN` for more than 1 hour.
 
 ### 8.3 One switch
@@ -297,7 +300,7 @@ Four rules, sent through Sentry or an email webhook:
 
 ### 8.4 Deploys
 
-The worker stops fetching on SIGTERM, finishes running jobs up to 30 seconds, then exits. Rolling deploys are safe because pg-boss locks jobs and schedules across instances. Pin the pg-boss version. Its schema migration runs on start, under the same database role the worker uses.
+The worker stops fetching on SIGTERM, finishes running jobs up to 30 seconds, then exits. Rolling deploys are safe because pg-boss locks jobs and schedules across instances. Every process runs with `migrate: false`. Upgrading pg-boss means a new repo migration from `getMigrationPlans`, applied by the Owner, then the same pinned version deployed in `web-admin`, `cmx-workers` and HQ API.
 
 ---
 
@@ -322,17 +325,17 @@ Pre-launch, so each step replaces the old path directly. No dual-running, no rol
 
 | Step | Work | Done when | Size |
 |---|---|---|---|
-| 0 | **Stop silent loss now.** Await notification emission in order submit and transition. Make the order-history consumer skip orphan events. | No `void` on side effects in routes. | 1 day |
-| 1 | **One repo.** Move `platform-api`, `platform-web`, `marketing-web` into the tenant repo with history (`git subtree`). Add them to npm workspaces. Point Render and Vercel at the new folders. | All apps build and deploy from one repo. | 2–3 days |
-| 2 | **Worker and queue.** Create `cmx-workers/` (npm workspace) and `packages/jobs`. Install pg-boss with the `dead_letter` queue. Add migrations for `org_job_effect_tr` and `sys_job_queue_cf`. Wire Sentry, heartbeat, graceful shutdown and the ESLint rule. Deploy it in place of `platform-workers`. | A test job runs, fails, retries with backoff, reaches the dead-letter queue, and redrives. | 3–4 days |
+| 0 | **Stop silent loss now.** Await notification emission in order submit and transition. Make the order-history consumer skip orphan events. Confirm `NTF_QUEUE_ENABLED` is not `true` on HQ API. | No `void` on side effects in routes. | 1 day |
+| 1 | **Queue foundation.** Migration with the pg-boss schema from `getConstructionPlans`, plus `org_job_effect_tr` and `sys_job_queue_cf`, with grants per §18.3. `packages/jobs` with queue names, payload schemas, producer-mode enqueue and the effect helper. Hook enqueue into the shared domain-event writer (`outbox.service.ts`). ESLint rule. | Owner applies the migration. A Vercel request enqueues inside its transaction, and a rollback leaves no job. | 3 days |
+| 2 | **`cmx-workers`.** New workspace with an esbuild bundle (`server-only` aliased to a stub, Prisma external), Sentry, heartbeat, graceful shutdown, pause reader, queue bootstrap. Deploy it by repointing the existing Render worker service at `cleanmatex/cmx-workers`, with build filters that include `web-admin/lib/**`, `packages/**` and `prisma/**`. Measure memory on 512 MB. | A test job runs, fails, retries with backoff, reaches the dead-letter queue, and redrives. | 3 days |
 | 3 | **Finance reactions.** One job per consumer. Enqueue one job for each of the 115 pending events. Add orphan skip and effect keys. | Pending events reach zero. Loyalty, history and change confirmations are written once. | 3 days |
-| 4 | **Notifications.** Orchestrate, deliver, reconcile, webhooks, campaigns. Move providers into `packages/notify`. Delete the other copies. | Demo tenants get each message once, including after a forced timeout and a killed worker. | 5–7 days |
+| 4 | **Notifications.** `ntf.orchestrate` in `cmx-workers`. `ntf.deliver`, `ntf.reconcile` and webhooks in HQ API. Extract campaign expansion from its route into a service. Real OTP sending (launch blocker). Receipts through the outbox. Delete the tenant provider adapters and `whatsapp-client.ts`. | Demo tenants get each message once, including after a forced timeout and a killed consumer. | 6–8 days |
 | 5 | **Sweeps and delayed jobs.** Expiries, POS rollover, ERP retry, dunning, file purge. | Each queue has a run-twice test and a tenant-isolation test. | 3–4 days |
 | 6 | **HQ screen and alerts.** Rebuild `/ops/jobs` on queue stats, dead letters and pause. Add the four alerts. | The Owner can see and fix any failed job from the screen. | 3 days |
-| 7 | **Delete the old plumbing.** `platform-workers`, BullMQ, `bullmq` and `ioredis` in the job path, the execute endpoint and machine key, the `fn_ops_job_*` worker functions, the `fn_ntf_worker_*` functions, `claim_outbox_batch`, the finance and notification job routes, the `pg_net` wrappers and extension, nine of the ten env switches. Drop with `RESTRICT`. | Grep and the remote catalog show no callers. | 2 days |
-| 8 | **Prove it.** Run each job twice, kill the worker mid-job, force provider timeouts, then a 48-hour soak on demo tenants. Fold the six I11 documents into one design, one runbook and one QA guide. | Zero duplicate messages, zero cross-tenant writes, empty dead-letter queue. | 3 days |
+| 7 | **Delete the old plumbing.** `platform-workers` and its Render config, HQ API `BackgroundExecutionModule`, the private execute endpoint and machine key, HQ `DispatchQueueService` and `ntf.hq.queue_enabled`, the `fn_ops_job_*` worker functions, the `fn_ntf_worker_*` functions, `claim_outbox_batch`, the finance and notification job routes, the `pg_net` wrappers and extension, nine of the ten env switches. Drop with `RESTRICT`. | Grep and the remote catalog show no callers. | 2 days |
+| 8 | **Prove it.** Run each job twice, kill each consumer mid-job, force provider timeouts, then a 48-hour soak on demo tenants. Fold the six I11 documents into one design, one runbook and one QA guide. | Zero duplicate messages, zero cross-tenant writes, empty dead-letter queue. | 3 days |
 
-About 4 to 5 weeks for one person working with AI help. These are rough estimates. Steps 0 and 3 restore user-visible behavior first.
+About 4 to 5 weeks for one person working with AI help. These are rough estimates. Steps 0 and 3 restore user-visible behavior first. Server-side PDFs (§17) are not in this plan; they ship as their own feature when needed.
 
 ---
 
@@ -344,8 +347,8 @@ About 4 to 5 weeks for one person working with AI help. These are rough estimate
 | Job-path technologies | BullMQ, Redis-as-queue, `pg_net` |
 | Environment switches | 10 → 1 |
 | Hand-built claim and control functions | about 20 |
-| Copies of provider code | 3 → 1 |
-| Repositories to keep in sync | 2 → 1 |
+| Copies of provider code | 4 → 1 (HQ API only) |
+| Hand-built job runners | 2 (`platform-workers` loops, HQ `BackgroundExecutionModule`) → 0 |
 | I11 documents | 6 → 3 |
 
 ---
@@ -356,10 +359,10 @@ About 4 to 5 weeks for one person working with AI help. These are rough estimate
 |---|---|---|
 | S-D1 | Use pg-boss as the only job queue. | Approve. |
 | S-D2 | Where the worker's code lives: (a) merge all HQ apps into the tenant repo, or (b) move only the worker into the tenant repo and keep notification delivery as one private call to HQ API. | **(b)**, per §14, with HQ API consuming the delivery queues directly (§14.5) so no HQ URL or machine key is needed. Revisit (a) if more HQ jobs appear. |
-| S-D3 | Turn `platform-workers` into the single worker container, in Render's Virginia region. | Approve. |
+| S-D3 | Turn `platform-workers` into the single worker container, in Render's Ohio region, next to the database in AWS `us-east-2`. | Approve. |
 | S-D4 | Keep `pg_cron` for pure-SQL housekeeping only. | Approve. |
 | S-D5 | Do Step 0 now, before any decision above. | Approve. It stops silent loss on today's code. |
-| S-D6 | The database is in AWS `us-east-1` while users are in the GCC. This affects latency and possibly data-residency rules. | **Decide before launch, while all data is demo data**, because moving a live database later is the hardest migration there is. Leading candidate: Supabase Frankfurt (`eu-central-1`), with Render Frankfurt and Vercel `fra1`. All backend parts sit together, and GCC users are closer than to US East. Verify Supabase's region list, measured latency from the GCC, and any customer residency requirement first. If no move happens, run Render in Virginia and Vercel functions in `iad1`, next to the database. |
+| S-D6 | The database is in AWS `us-east-2` (Ohio) while users are in the GCC. This affects latency and possibly data-residency rules. | **Decide before launch, while all data is demo data**, because moving a live database later is the hardest migration there is. Leading candidate: Supabase Frankfurt (`eu-central-1`), with Render Frankfurt and Vercel `fra1`. All backend parts sit together, and GCC users are closer than to US East. Verify Supabase's region list, measured latency from the GCC, and any customer residency requirement first. If no move happens, run Render in Ohio and Vercel functions in `cle1` (Cleveland), next to the database. |
 
 ---
 
@@ -477,6 +480,8 @@ The cost is that the API container also runs one light, I/O-bound queue. If meas
 | Template test sends | `notifications-hq/templates/preview` | Calls `DispatchService` directly. |
 | Public dispatch endpoint | `notifications-hq/dispatch/dispatch.controller.ts` | Carries recipient and payload. When `ntf.hq.queue_enabled` is true, SMS, WhatsApp and push go into a BullMQ queue in Redis. |
 
+**Status 23 Nov 2026:** the Owner confirmed `NTF_QUEUE_ENABLED=false` on HQ API, so this trap is not active today.
+
 **Trap found:** the only consumer of that BullMQ queue is the legacy processor in HQ workers, which is off. If `ntf.hq.queue_enabled` ever becomes `true`, SMS, WhatsApp and push sends wait in Redis forever. That includes sends from the canonical outbox path, because `OutboxDeliveryService` calls `DispatchService.dispatch`. The database value is empty and the policy is `ENV_OVERRIDES_DB`, so the live value depends on `NTF_QUEUE_ENABLED` on the HQ API host. **Check that it is not `true`.** The design deletes the queue, the setting and the env name.
 
 ### 15.2 Target: four kinds of HQ message
@@ -497,6 +502,202 @@ The cost is that the API container also runs one light, I/O-bound queue. If meas
 
 ---
 
-## Appendix — If the repos stay separate
+## 16. Immediate sends from the tenant app
 
-If S-D2 is rejected, put the worker in the tenant repo and move notification delivery into it. Copy the HQ provider code, which is the newest copy, into `packages/notify`, and delete the other two copies. HQ API keeps only provider settings screens. Everything else in this design stays the same. The cost is one more port of the provider code. The benefit is no repo merge.
+### 16.1 Today (code read 23 Nov 2026)
+
+| Flow | Code | What it does |
+|---|---|---|
+| Customer OTP | `web-admin/lib/services/otp.service.ts` `sendOTP` | Stores a **fixed test code** and sends nothing. Customer OTP login cannot work in production. |
+| Receipt send and resend | `web-admin/lib/services/receipt-service.ts` → `lib/integrations/whatsapp-client.ts` | Calls the Meta WhatsApp Graph API **directly from the Vercel request**. It skips consent, quota, suppression, tenant provider policy and the delivery log. It is a fourth copy of provider code. |
+
+### 16.2 Target: same pipeline, fast lane
+
+An immediate send is a normal send with high priority, prepared inside the request because a person is waiting.
+
+1. **Tenant web request.** A staff member clicks "Send on WhatsApp", or a customer asks for an OTP. The request runs the preparation code itself: consent, template and channel, all tenant code. Then in **one transaction** it writes the outbox row and enqueues `ntf.deliver` with the highest priority. It returns `202` with the outbox id.
+2. **HQ API** polls `ntf.deliver` **every 1 second**, picks the job by priority, runs its policy checks, and calls the provider.
+3. **The screen** shows "Sending…", then polls the outbox status by id every second for up to about 15 seconds. It shows "Sent" or the failure reason through `cmxMessage`. After 15 seconds it says the message is still sending and links to the message log.
+
+Expected time from click to provider acceptance: about 1 to 3 seconds. Arrival on the phone then depends on the carrier, which is the same for any design.
+
+One queue serves everything. Priority orders it: OTP first, then staff-clicked and order messages, then campaigns last. Polling every 1 second instead of 2 adds roughly one query per second, measured as negligible in §13.2.
+
+### 16.3 Rules for immediate sends
+
+| Rule | Why |
+|---|---|
+| Never call a provider from the tenant web request | A slow provider freezes the screen. A Vercel timeout leaves the outcome unknown, and a second click then sends twice. It also skips every policy check. |
+| Dedupe on the server, not the client | A key built from the action, for example `receipt:<id>:whatsapp`, with a 30-second `singletonKey` window, and the button disabled while sending. A key minted fresh by the browser on each click cannot stop a double click. |
+| OTP jobs expire | `ntf.deliver` checks the code's expiry before sending and skips an expired one. Retries are limited to 2, because a late code is useless and the customer can ask again. |
+| OTP abuse limits | Limit requests per phone number and per IP, and allow only the countries you serve. This blocks SMS pumping fraud, which bills you for fake OTP traffic. |
+| OTP code retention | The outbox row holds the rendered code, so OTP rows get a short retention, for example 24 hours. |
+
+### 16.4 Changes
+
+- Implement real OTP sending through this path. Replace the fixed test code.
+- Route receipt sends through the outbox and `ntf.deliver`. Delete `lib/integrations/whatsapp-client.ts`.
+- Add a tenant status endpoint for one outbox id, tenant-filtered, returning status and failure reason only.
+- Later option: a provider verification service such as Twilio Verify for OTP, which handles codes, retries and fraud checks. It adds per-verification cost and a direct provider call, so start without it.
+
+---
+
+## 17. Reports, PDFs and sending files
+
+### 17.1 Today (code read 23 Nov 2026)
+
+- Printing happens in the browser: print pages under `app/dashboard/**/print` and `window.print`. `lib/utils/report-export.ts` builds CSV, Excel (`xlsx`) and simple PDFs (`jspdf`) for download in the browser.
+- No server-side PDF engine exists. jsPDF does not shape Arabic text or lay out right-to-left without extra fonts and work.
+- File Util stores files in Supabase Storage. It issues signed upload URLs to the browser and signed download URLs. It has no function that saves bytes generated on the server.
+
+### 17.2 Keep in the browser
+
+Screen printing and "Download CSV/Excel" of what is already on screen stay in the browser. They are instant and free. Use a job only when the work is slow, large, scheduled, or must be sent to someone.
+
+### 17.3 Target flow
+
+```text
+tenant web request (user has the permission)
+   one transaction: org_doc_request_tr row (QUEUED, type, small filter params, requested_by)
+                    + enqueue doc.render { requestId }
+   returns 202 + requestId; screen shows "Preparing…"
+cmx-workers  doc.render  (COMPUTE queue, localConcurrency 1)
+   load data through the domain service, tenant-filtered
+   PDF: Chromium renders the print page HTML  ·  Excel/CSV: xlsx in the worker
+   save bytes through File Util (new server-side save), category GENERATED_DOC, expiry 30 days
+   one transaction: request row → READY + file_id
+                    + if "send" was asked: outbox row(s) with attachment_file_id + enqueue ntf.deliver
+                    + in-app "ready" notification to the requester
+HQ API  ntf.deliver
+   email: Resend attachment from storage  ·  WhatsApp: document message with a signed link (valid 1 hour)
+```
+
+| Piece | Choice | Reason |
+|---|---|---|
+| PDF engine | **Headless Chromium (Playwright or Puppeteer)** in `cmx-workers` | It renders Arabic, right-to-left text and the existing HTML print layouts exactly as the browser does. It is the boring, proven option. jsPDF and react-pdf have weak Arabic shaping. A separate PDF service or a paid PDF API adds a service or a per-document cost. |
+| HTML source | The existing print pages, opened by Chromium with a **one-time render token**: tenant-scoped, read-only, expires in 5 minutes | No second copy of each layout. A failed page load is a normal retry for a `COMPUTE` job. Later, move a layout to a server-rendered template only if it changes often or Vercel latency hurts. |
+| Status and audit | New `org_doc_request_tr`: tenant, type, parameters, status, file id, requester, error code, full audit columns | The screen needs a status to show. Reports contain business data, so who generated what is recorded. The job payload is the request id only. |
+| Storage | File Util, new server-side `saveGeneratedFile(...)` | One storage path, signed URLs, and the existing expiry and purge jobs remove old files. |
+| Chaining | The render job enqueues the send in its final transaction | No workflow engine. If rendering fails, nothing is sent. If sending fails, the file still exists, and the send retries alone. |
+| Idempotency | Request id as the job key. Output is saved under a key derived from the request, so a rerun overwrites rather than duplicates. The send dedupes by outbox key. | A retry never produces two files or two messages. |
+| Attachments | New `attachment_file_id` on `org_ntf_outbox_dtl` | The outbox row still carries ids only. HQ API reads the bytes or signs a link at send time. |
+
+### 17.4 Limits and cost
+
+- Chromium needs about 300–500 MB of memory while rendering. The worker container's current size (512 MB) is likely too small once PDFs go live. Plan one size up on Render (2 GB) **when this feature ships, after measuring**, not before.
+- Keep the render queue at one job at a time. Big Excel exports run in the same queue.
+- If rendering slows other queues, step 4 of §9 applies: a second container that only runs `doc.render`.
+- Size limits: WhatsApp documents up to 100 MB, and email attachments much smaller. Reports above about 10 MB are sent as a signed download link instead of an attachment.
+- KSA ZATCA Phase 2 invoices need PDF/A-3 with the XML embedded. Chromium output then needs a post-processing step, for example with `pdf-lib`. Treat that as part of the ZATCA work, not this feature.
+
+---
+
+## 18. Architecture review (23 Nov 2026)
+
+A skeptical review of this document before any build. Each finding was checked against code, the remote database, or a local experiment. Every fix below is already applied in the sections named.
+
+### 18.1 Blockers found and fixed
+
+| # | Finding | Evidence | Fix |
+|---|---|---|---|
+| B1 | The document contradicted itself: §1, §4.1, §7, §10, §11 and the appendix still described the full repo merge, while §12 and §14.5 chose moving only the worker. | Document read | Rewrote §1, §4, §4.1, §7, §10 and §11 for the worker-only move with HQ API consuming the delivery queues. Removed the stale appendix. |
+| B2 | pg-boss migrates its own schema on `start()`. That would apply schema changes automatically on deploy, which CLAUDE.md forbids. | pgboss.io constructor docs; CLAUDE.md rules 2–3 | `migrate: false` in every process. The schema comes from `getConstructionPlans('pgboss')` as a repo migration the Owner applies. Upgrades use `getMigrationPlans`. **Verified locally:** the exported SQL (about 21 KB) installed the schema and a worker started against it with `migrate: false`. |
+| B3 | `send()` refuses to run before `start()`, even with a transaction adapter. A Vercel function cannot enqueue the way §5.3 first described. | **Local test:** "Database not opened. Call start() before using pg-boss". | Producer mode: construct pg-boss with a `db` adapter over the request's own Prisma client and `migrate`, `supervise`, `schedule` and `registerInstance` all off, then `start()` once per cold start. **Verified locally:** 5 queries at start, 0 extra connections, a committed send produced a job, a rolled-back send produced none. |
+| B4 | A job that outlives `expireInSeconds` is retried while the first handler may still be running, so an external effect could run twice. | pg-boss expiry semantics | Every handler gets a hard timeout through `AbortSignal`, set shorter than its queue's `expireInSeconds`. Every handler checks the domain row's status first. `ntf.deliver` sets `SENDING` before the provider call, so a parallel or redriven attempt goes to reconcile, never to a second send. |
+| B5 | Two repositories run pg-boss and share payloads. Version or payload drift between `web-admin`, `cmx-workers` and HQ API would break jobs. | Design review | One pinned pg-boss version in all three, checked at start (`migrate: false` fails on a schema mismatch). Payload changes are additive only. HQ API keeps a copy of the `ntf.deliver` and `ntf.reconcile` payload schemas, with a contract test in both repos. |
+
+### 18.2 Producer mode, as built
+
+```ts
+// web-admin and HQ API: once per process, no own pool
+const boss = new PgBoss({ db: fromPrisma(prisma), migrate: false, supervise: false,
+                          schedule: false, registerInstance: false });
+await boss.start();
+// inside the business transaction
+await boss.send('ntf.orchestrate', { tenantOrgId, eventId }, { db: fromPrisma(tx) });
+```
+
+Queues are created by `cmx-workers` on boot with idempotent `createQueue` and `updateQueue`. HQ API's `work()` on a queue that does not exist yet retries until it does.
+
+### 18.3 Security, restored from the earlier draft
+
+- The `pgboss` schema is not in Supabase's exposed API schemas. `anon` and `authenticated` get no grants on it, on `org_job_effect_tr`, or on `sys_job_queue_cf`.
+- Jobs carry ids only, so the queue tables hold no personal data or secrets.
+- Provider credentials stay where they are today, in HQ API's provider accounts and Vault.
+- Every `org_*` query in a handler filters `tenant_org_id` from the payload, and checks it against the loaded row before writing.
+
+### 18.4 Smaller issues fixed
+
+| # | Issue | Fix |
+|---|---|---|
+| I1 | The connections table missed HQ API's consumer pool and the Vercel producer. | §4.3 updated. |
+| I2 | Polling was 2 seconds in §13.2 and 1 second in §16.2 for `ntf.deliver`. | §4.3: 1 second for `ntf.deliver`, 2 seconds for `ntf.orchestrate`, 30 seconds for the rest. |
+| I3 | The heartbeat alert assumed one consumer. | §8.2: both consumers register as pg-boss instances. |
+| I4 | An invented permission `ops_jobs:manage`. | §8.1: the existing `hq_ops:read` and `hq_ops:manage_jobs`. |
+| I5 | Running the worker through the TypeScript loader at runtime is slow to start and memory-heavy. | §10 step 2: an esbuild bundle, with Render build filters so a change to tenant services redeploys the worker. |
+| I6 | The campaign route extraction, real OTP sending and receipt rerouting were not in the plan. | §10 step 4. |
+| I7 | Pause must reach both consumers. | §8.1. |
+| I8 | Provider code count was 3; the receipt WhatsApp client makes it 4. | §11. |
+| I9 | Two messages for the same order can arrive out of order, because `ntf.deliver` runs up to 5 at a time. | Accepted as a known limit. Revisit with a per-recipient ordering key if it ever matters. |
+
+### 18.5 Checked and sound
+
+- pg-boss as the queue, with the dead-letter queue, backoff, heartbeat recovery and retention.
+- In-transaction enqueue for finance events: all five writers go through Prisma transactions, mostly through one shared helper in `outbox.service.ts`.
+- The session pooler for consumers, and idle load (§13).
+- Effect classes, the effect table, orphan and poison handling.
+
+### 18.6 Idempotency at every layer, and the one gap it cannot close
+
+Duplicate protection is layered. Each layer stops a different cause:
+
+| Layer | Stops | How |
+|---|---|---|
+| Enqueue | Double clicks, repeated requests | Server-built `singletonKey` from the action, for example `receipt:<id>:whatsapp` |
+| Outbox row | Preparing the same message twice | One row per event, recipient and channel, unique key |
+| Effect table | Running an `INTERNAL` job twice | `org_job_effect_tr` primary key |
+| Status check | Retries, expiry overlap, dead-letter redrive | Handler skips `SENT`, and sends `SENDING` or `UNCERTAIN` rows to reconcile |
+| Provider key | The provider sending twice after a lost response | Only where the provider supports it |
+
+What each provider supports for the last layer, checked against their documentation on 23 Nov 2026:
+
+| Provider | Send-side idempotency key | Lookup after a timeout | Class |
+|---|---|---|---|
+| Resend (email) | **Yes.** `Idempotency-Key` header, kept 24 hours. A repeat returns the first response without sending again. | Not needed | `EXTERNAL_IDEMPOTENT` |
+| Twilio (SMS, WhatsApp) | **No.** The create-message API has no key or client reference. | List messages by `To` and `DateSent` range, then match | `EXTERNAL_UNCERTAIN` |
+| Meta WhatsApp Cloud API | **No.** No key, no client reference. | No lookup endpoint. Only status webhooks. | `EXTERNAL_UNCERTAIN` |
+| Firebase push (FCM) | **No.** | None. Android `tag` replaces a duplicate already shown on the device. | `EXTERNAL_UNCERTAIN`, with `tag` set to the outbox id so a duplicate replaces the first on screen |
+
+The gap: Twilio, Meta and FCM can accept a message, send it, and then lose the response on the way back. Our side sees a timeout. Without a provider key, resending would create a duplicate. That single case is why `UNCERTAIN` and the reconciler exist. For Meta, an uncertain row waits for the status webhook. If none arrives within the reconcile window, it goes to the dead-letter queue for a human decision, never an automatic resend.
+
+**Gap found in today's code:** HQ API's Resend provider (`email-resend.provider.ts`) sends no `Idempotency-Key`. Add the outbox id as that header. Email then becomes safe to retry after any timeout.
+
+### 18.7 Still to confirm before step 1
+
+| Item | Who |
+|---|---|
+| `NTF_QUEUE_ENABLED` is not `true` on HQ API | **Confirmed `false` by the Owner, 23 Nov 2026.** The §15.1 trap is not active. |
+| Production Vercel `DATABASE_URL` uses port 6543 with `connection_limit` 1–2 | **Confirmed by the Owner, 23 Nov 2026:** `aws-1-us-east-2.pooler.supabase.com:6543`, `pgbouncer=true`, `connection_limit=2`. Correct as is. It also shows the database is in AWS `us-east-2` (Ohio), not `us-east-1`. |
+| Vercel functions run next to the database | **Owner checked 23 Nov 2026: `iad1` (Virginia).** About 10–12 ms per round trip to Ohio. Change to `cle1` (Cleveland). |
+| HQ API and the worker run in the same region as the database | **Owner checked 23 Nov 2026: both in Oregon (US West).** About 50 ms per round trip to Ohio. See §18.8. |
+| Worker and HQ API pg-boss connection | Same pooler host on port **5432** (session mode): `aws-1-us-east-2.pooler.supabase.com:5432`. Set when step 2 starts. |
+| Database region decision (S-D6) | Owner |
+| `cmx-workers` memory on Render's 512 MB instance | Measured in step 2 |
+
+### 18.8 Region placement (found 23 Nov 2026)
+
+| Service | Today | Distance to the database in Ohio | Target |
+|---|---|---|---|
+| Supabase database | AWS `us-east-2`, Ohio | — | Stays, unless S-D6 moves it |
+| HQ API (`platform-api`, Render) | Oregon | about 50 ms per round trip | Ohio |
+| HQ worker (`platform-workers`, Render) | Oregon | about 50 ms per round trip | Not moved. It is replaced by `cmx-workers`, created in Ohio. |
+| Tenant web functions (Vercel) | `iad1`, Virginia | about 10–12 ms per round trip | `cle1`, Cleveland |
+
+Figures are typical AWS inter-region latencies, not measurements of this setup.
+
+- Database work is mostly sequential round trips, so distance multiplies. An HQ page with 20 sequential queries spends about 1 second just travelling between Oregon and Ohio. A notification send in HQ API, with about 10 queries, would spend about half a second.
+- This matters more under this design, because HQ API becomes the consumer of `ntf.deliver`.
+- **Vercel:** a settings change, Project → Settings → Functions → region `cle1`, effective on the next deploy. No cost.
+- **Render:** an existing service cannot change region. Create a new HQ API web service in Ohio, copy the environment variables, deploy, move the custom domain, then delete the Oregon service. Expect a short overlap of two running services during the switch.
+- **Order matters: decide S-D6 first.** If the database stays in Ohio, move HQ API to Ohio and set Vercel to `cle1` now. If the database moves before launch (for example to Frankfurt), move the database, HQ API and the new worker together, and set Vercel to the matching region, so nothing moves twice.
+- Check `platform-web` (HQ web) on Vercel as well. It should use the same function region as the tenant app.

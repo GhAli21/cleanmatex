@@ -2,6 +2,7 @@ import {
   countryIsoToFlag,
   dialCodeToDefaultCountry,
   formatPhoneForDisplay,
+  getPhoneCountry,
   getPhoneCountryOptions,
   normalizePhoneInput,
   splitPhoneValue,
@@ -83,9 +84,11 @@ describe('phone-utils', () => {
     })
   })
 
-  it('formats phones for display and WhatsApp deep links', () => {
+  it('formats phones for display, extracts country ISO, and builds WhatsApp digits', () => {
     expect(formatPhoneForDisplay('+96896662624')).toBe('+968 9666 2624')
     expect(formatPhoneForDisplay('+966501234567')).toBe('+966 50 123 4567')
+    expect(getPhoneCountry('+96896662624')).toBe('OM')
+    expect(getPhoneCountry('+966501234567')).toBe('SA')
     expect(toWhatsAppDigits('+968 9666 2624')).toBe('96896662624')
   })
 })

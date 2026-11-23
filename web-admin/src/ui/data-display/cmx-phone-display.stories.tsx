@@ -19,6 +19,7 @@ export const Default: Story = {
 export const WithActions: Story = {
   args: {
     value: '+966501234567',
+    showFlag: true,
     copyable: true,
     telLink: true,
     whatsappLink: true,

@@ -16,9 +16,11 @@ import { cn } from '@/lib/utils'
 import { useMessage } from '@ui/feedback'
 import {
   formatPhoneForDisplay,
+  getPhoneCountry,
   toWhatsAppDigits,
   type CountryCode,
 } from '@/lib/phone/phone-utils'
+import { CmxCountryFlag } from './cmx-country-flag'
 
 export interface CmxPhoneDisplayProps {
   /** Stored E.164 phone number (e.g. "+96896662624"). */
@@ -27,6 +29,8 @@ export interface CmxPhoneDisplayProps {
   defaultCountry?: CountryCode
   /** Text rendered when value is empty (defaults to "—"). */
   fallback?: React.ReactNode
+  /** Render the country SVG flag beside the phone number (default false). */
+  showFlag?: boolean
   /** Render a copy-to-clipboard button (default false). */
   copyable?: boolean
   /** Render the phone number as a clickable `tel:` link (default false). */
@@ -40,6 +44,7 @@ export function CmxPhoneDisplay({
   value,
   defaultCountry,
   fallback = '—',
+  showFlag = false,
   copyable = false,
   telLink = false,
   whatsappLink = false,
@@ -53,6 +58,10 @@ export function CmxPhoneDisplay({
   const formatted = React.useMemo(
     () => formatPhoneForDisplay(raw, defaultCountry),
     [raw, defaultCountry],
+  )
+  const resolvedCountry = React.useMemo(
+    () => (showFlag ? getPhoneCountry(raw, defaultCountry) : undefined),
+    [showFlag, raw, defaultCountry],
   )
 
   React.useEffect(() => {
@@ -80,6 +89,7 @@ export function CmxPhoneDisplay({
 
   return (
     <span className={cn('inline-flex items-center gap-1.5 align-middle', className)}>
+      {showFlag && resolvedCountry ? <CmxCountryFlag iso={resolvedCountry} /> : null}
       {telLink ? (
         <a
           href={`tel:${raw}`}
