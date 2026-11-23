@@ -5,19 +5,32 @@
  */
 
 import { z } from 'zod'
-import { UI_CATALOG_CODE_PATTERN, UI_COLOR_MODES, UI_DENSITIES, UI_FONT_SCALES } from '@/lib/constants/ui-theme'
+import {
+  MAX_SIDEBAR_PINS_PER_TENANT,
+  UI_CATALOG_CODE_PATTERN,
+  UI_COLOR_MODES,
+  UI_DENSITIES,
+  UI_FONT_SCALES,
+  UI_SIDEBAR_THEMES,
+} from '@/lib/constants/ui-theme'
 
 const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'must be #RRGGBB')
 const catalogCode = z.string().regex(UI_CATALOG_CODE_PATTERN, 'must be an UPPERCASE code')
 const name = z.string().trim().min(1).max(80)
+const sidebarPinnedMapSchema = z.record(
+  z.string().uuid(),
+  z.array(z.string().trim().min(1).max(64)).max(MAX_SIDEBAR_PINS_PER_TENANT),
+)
 
-/** `PUT /api/v1/me/ui-preferences`: only the caller's three preference columns. */
+/** `PUT /api/v1/me/ui-preferences`: only the caller's own UI preference columns. */
 export const uiPreferencesSchema = z
   .object({
     ui_color_mode: z.enum(UI_COLOR_MODES).optional(),
     // null = follow the Organization's default density.
     ui_density: z.enum(UI_DENSITIES).nullable().optional(),
     ui_font_scale: z.enum(UI_FONT_SCALES).optional(),
+    ui_sidebar_theme: z.enum(UI_SIDEBAR_THEMES).nullable().optional(),
+    ui_sidebar_pinned: sidebarPinnedMapSchema.nullable().optional(),
   })
   .strict()
 export type UiPreferencesInput = z.infer<typeof uiPreferencesSchema>

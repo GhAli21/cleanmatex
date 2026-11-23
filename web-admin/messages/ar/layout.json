@@ -57,6 +57,27 @@
     "currentPlan": "الخطة الحالية",
     "collapseSidebar": "طي الشريط الجانبي",
     "expandSidebar": "توسيع الشريط الجانبي",
-    "navLabel": "القائمة الرئيسية"
+    "navLabel": "القائمة الرئيسية",
+    "searchPlaceholder": "البحث في القائمة...",
+    "quickJumpPlaceholder": "انتقل إلى أي شاشة...",
+    "quickJumpTitle": "الانتقال السريع",
+    "quickJumpHint": "↑↓ للتنقل · ↵ للفتح",
+    "quickJumpEsc": "Esc للإغلاق",
+    "noSearchResults": "لا توجد شاشات مطابقة",
+    "pinnedSection": "المثبتة",
+    "navigationSection": "القائمة الرئيسية",
+    "pinItem": "تثبيت {label}",
+    "unpinItem": "إلغاء تثبيت {label}",
+    "sidebarColor": "لون الشريط الجانبي",
+    "mySidebarColor": "لون الشريط الجانبي الخاص بي",
+    "savedPerUser": "يُحفظ في ملفك الشخصي",
+    "savePreferencesError": "تعذر حفظ تفضيلات الشريط الجانبي",
+    "themes": {
+      "OCEAN": "أزرق محيطي",
+      "MIDNIGHT": "ليلي داكن",
+      "EMERALD": "زمردي منعش",
+      "INDIGO": "نيلي ملكي",
+      "SAND": "رملي دافئ"
+    }
   }
 }

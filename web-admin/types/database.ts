@@ -48661,6 +48661,8 @@ export type Database = {
           ui_color_mode: string
           ui_density: string | null
           ui_font_scale: string
+          ui_sidebar_pinned: Json | null
+          ui_sidebar_theme: string | null
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
@@ -48689,6 +48691,8 @@ export type Database = {
           ui_color_mode?: string
           ui_density?: string | null
           ui_font_scale?: string
+          ui_sidebar_pinned?: Json | null
+          ui_sidebar_theme?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
@@ -48717,6 +48721,8 @@ export type Database = {
           ui_color_mode?: string
           ui_density?: string | null
           ui_font_scale?: string
+          ui_sidebar_pinned?: Json | null
+          ui_sidebar_theme?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null

@@ -2,8 +2,16 @@
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 
 /**
- * CmxSidebar - Sidebar navigation component
- * Role-based menu filtering, responsive, collapsible on desktop, keyboard navigation
+ * CmxSidebar - Modern redesigned sidebar navigation component
+ *
+ * Features:
+ * - Compact unified brand/tenant header with top-of-sidebar per-user Color Palette Picker
+ * - High-contrast distinct bilingual Menu Search + Ctrl+K Quick-Jump Command Palette
+ * - DB-persisted tenant-scoped Pinned Favorites (★) filtered by active permissions/flags
+ * - Color-coded domain icon badges & 3px logical start active accent bar
+ * - Unclipped fixed-position hover flyout in collapsed 64px rail mode
+ * - Full EN/AR RTL logical classes & Light/Dark mode support
+ *
  * @module ui/navigation
  */
 
@@ -11,20 +19,33 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, ChevronRight, Menu, X, PanelLeftClose, PanelLeft } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronRight,
+  Menu,
+  X,
+  PanelLeftClose,
+  PanelLeft,
+  Search,
+  Star,
+  Palette,
+} from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 import { useSidebar } from '@/lib/context/sidebar-context'
 import { useFeatureFlagsQuery } from '@/lib/hooks/use-feature-flags'
-import {
-  isPathActive,
-  type NavigationSection,
-  type UserRole,
-} from '@/config/navigation'
+import { useUserSidebarPreferences } from '@/lib/hooks/use-user-sidebar-preferences'
+import { UI_SIDEBAR_THEMES, type UiSidebarTheme } from '@/lib/constants/ui-theme'
+import { isPathActive, type NavigationSection } from '@/config/navigation'
 import { getIcon } from '@/lib/utils/icon-registry'
 import { useTenantBrand } from '@/lib/theme/tenant-brand'
 import { Tooltip } from '@ui/primitives'
+import { cn } from '@/lib/utils'
+import {
+  CmxSidebarSearchDialog,
+  type QuickJumpItem,
+} from './cmx-sidebar-search-dialog'
 
 /** Section key → icon name when API/DB does not provide a valid icon */
 const SECTION_ICON_FALLBACK: Record<string, string> = {
@@ -44,6 +65,28 @@ const SECTION_ICON_FALLBACK: Record<string, string> = {
   tenant_admin: 'Building2',
   help: 'LifeBuoy',
   jhtestui: 'Bug',
+}
+
+/** Section key → semantic domain icon badge tint class (defined in globals.css) */
+const SECTION_TINT_MAP: Record<string, string> = {
+  home: 'cmx-sb-tint-primary',
+  orders: 'cmx-sb-tint-sky',
+  assembly: 'cmx-sb-tint-sky',
+  delivery: 'cmx-sb-tint-sky',
+  drivers: 'cmx-sb-tint-sky',
+  customers: 'cmx-sb-tint-emerald',
+  users: 'cmx-sb-tint-emerald',
+  catalog: 'cmx-sb-tint-violet',
+  inventory: 'cmx-sb-tint-violet',
+  billing: 'cmx-sb-tint-amber',
+  erp_lite: 'cmx-sb-tint-amber',
+  internal_fin: 'cmx-sb-tint-amber',
+  finance_vouchers: 'cmx-sb-tint-amber',
+  reports: 'cmx-sb-tint-rose',
+  settings: 'cmx-sb-tint-neutral',
+  config_settings: 'cmx-sb-tint-neutral',
+  tenant_admin: 'cmx-sb-tint-neutral',
+  help: 'cmx-sb-tint-neutral',
 }
 
 /** Child key → icon name for sub-menu items */
@@ -88,8 +131,7 @@ const CHILD_ICON_FALLBACK: Record<string, string> = {
   users_list: 'Users',
 }
 
-/** Fallback i18n key map — used only for hardcoded navigation.ts items (super_admin / tenant_admin
- *  fallback path) that have no label2 from the DB. DB-sourced items bypass this entirely. */
+/** Fallback i18n key map for hardcoded navigation.ts items without DB label2. */
 const NAV_TRANSLATION_KEY_MAP: Record<string, string> = {
   home: 'dashboard',
   orders: 'orders',
@@ -161,6 +203,19 @@ const NAV_TRANSLATION_KEY_MAP: Record<string, string> = {
   jhtestui: 'jwtTest',
 }
 
+const SWATCH_CLASS_MAP: Record<UiSidebarTheme, string> = {
+  OCEAN: 'cmx-sb-swatch-OCEAN',
+  MIDNIGHT: 'cmx-sb-swatch-MIDNIGHT',
+  EMERALD: 'cmx-sb-swatch-EMERALD',
+  INDIGO: 'cmx-sb-swatch-INDIGO',
+  SAND: 'cmx-sb-swatch-SAND',
+}
+
+interface FlyoutState {
+  section: NavigationSection
+  top: number
+}
+
 export default function CmxSidebar() {
   const pathname = usePathname()
   const { currentTenant } = useAuth()
@@ -169,21 +224,27 @@ export default function CmxSidebar() {
   const t = useTranslations('layout.sidebar')
   const tNav = useTranslations('navigation')
   const brand = useTenantBrand()
-  // Only a dark logo uploaded: show it in every mode rather than the initial letter.
   const logoMain = brand.logoUrl ?? brand.logoDarkUrl
   const logoDark = brand.logoUrl ? brand.logoDarkUrl : null
+
+  const { sidebarTheme, pinnedKeys, setSidebarTheme, togglePin } = useUserSidebarPreferences()
+  const pinnedSet = useMemo(() => new Set(pinnedKeys), [pinnedKeys])
+
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
-  const [hoverSectionKey, setHoverSectionKey] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [quickJumpOpen, setQuickJumpOpen] = useState(false)
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const [flyout, setFlyout] = useState<FlyoutState | null>(null)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const colorPickerRef = useRef<HTMLDivElement | null>(null)
 
   const { navigation, isLoading: navigationLoading } = useNavigation()
-  const userRole = currentTenant?.user_role?.toLowerCase() as UserRole | undefined
   const { data: featureFlags = {} } = useFeatureFlagsQuery({
     enabled: Boolean(currentTenant?.tenant_id),
   })
 
-  const getSectionIcon = (section: NavigationSection) => {
+  const getSectionIcon = useCallback((section: NavigationSection) => {
     const fromApi =
       typeof section.icon === 'function'
         ? section.icon
@@ -193,14 +254,17 @@ export default function CmxSidebar() {
     if (fromApi && typeof fromApi === 'function') return fromApi
     const fallbackName = SECTION_ICON_FALLBACK[section.key] ?? 'Home'
     return getIcon(fallbackName)
-  }
+  }, [])
 
-  const getChildIcon = (childKey: string) => {
+  const getChildIcon = useCallback((childKey: string) => {
     const name = CHILD_ICON_FALLBACK[childKey]
     return name ? getIcon(name) : getIcon('List')
-  }
+  }, [])
 
-  /** Format plan code for display (e.g. FREE_TRIAL -> "Free Trial", starter -> "Starter") */
+  const getSectionTint = useCallback((sectionKey: string): string => {
+    return SECTION_TINT_MAP[sectionKey] ?? 'cmx-sb-tint-primary'
+  }, [])
+
   const formatPlanDisplay = (planCode: string | undefined): string => {
     if (!planCode) return 'Free Trial'
     const normalized = planCode.toLowerCase().replace(/_/g, ' ')
@@ -210,23 +274,22 @@ export default function CmxSidebar() {
       .join(' ')
   }
 
-  const getNavLabel = (key: string, label: string, label2?: string): string => {
-    // Priority 1: DB Arabic label when in RTL mode
-    if (isRTL && label2) return label2
-
-    // Priority 2: DB English label — use it directly when it's a real value.
-    // The service falls back to comp_code when label is null, so skip if label === key.
-    if (label && label !== key) return label
-
-    // Priority 3: i18n translation map — safety net for hardcoded navigation.ts
-    // fallback items (super_admin / tenant_admin path) that have no label2.
-    const translationKey = NAV_TRANSLATION_KEY_MAP[key]
-    if (translationKey) {
-      try { return tNav(translationKey) } catch { /* fall through */ }
-    }
-
-    return label || key
-  }
+  const getNavLabel = useCallback(
+    (key: string, label: string, label2?: string): string => {
+      if (isRTL && label2) return label2
+      if (label && label !== key) return label
+      const translationKey = NAV_TRANSLATION_KEY_MAP[key]
+      if (translationKey) {
+        try {
+          return tNav(translationKey)
+        } catch {
+          // Fall through to raw label/key
+        }
+      }
+      return label || key
+    },
+    [isRTL, tNav],
+  )
 
   const filteredNavigation = useMemo(() => {
     const isFeatureEnabled = (flag: string | undefined) => {
@@ -239,13 +302,83 @@ export default function CmxSidebar() {
       .map((section) => {
         if (section.children) {
           const filteredChildren = section.children.filter((child) =>
-            isFeatureEnabled(child.featureFlag)
+            isFeatureEnabled(child.featureFlag),
           )
           return { ...section, children: filteredChildren }
         }
         return section
       })
   }, [navigation, featureFlags])
+
+  // Flat list of all permitted screens for Quick Jump + Pinned resolution
+  const allQuickJumpItems = useMemo<QuickJumpItem[]>(() => {
+    const items: QuickJumpItem[] = []
+    for (const section of filteredNavigation) {
+      const sectionLabel = getNavLabel(section.key, section.label, section.label2)
+      const tintClass = getSectionTint(section.key)
+      if (section.children && section.children.length > 0) {
+        for (const child of section.children) {
+          const childLabel = getNavLabel(child.key, child.label, child.label2)
+          items.push({
+            key: child.key,
+            path: child.path,
+            label: childLabel,
+            parentLabel: sectionLabel,
+            searchText: `${childLabel} ${child.label} ${child.label2 ?? ''} ${sectionLabel} ${section.label} ${section.label2 ?? ''} ${child.key}`.toLowerCase(),
+            icon: getChildIcon(child.key),
+            tintClass,
+          })
+        }
+      } else {
+        items.push({
+          key: section.key,
+          path: section.path,
+          label: sectionLabel,
+          searchText: `${sectionLabel} ${section.label} ${section.label2 ?? ''} ${section.key}`.toLowerCase(),
+          icon: getSectionIcon(section),
+          tintClass,
+        })
+      }
+    }
+    return items
+  }, [filteredNavigation, getChildIcon, getNavLabel, getSectionIcon, getSectionTint])
+
+  // Pinned items auto-pruned to only permitted screens in current tenant/role
+  const pinnedItems = useMemo(() => {
+    if (pinnedKeys.length === 0) return []
+    const byKey = new Map(allQuickJumpItems.map((item) => [item.key, item]))
+    return pinnedKeys
+      .map((key) => byKey.get(key))
+      .filter((item): item is QuickJumpItem => Boolean(item))
+  }, [allQuickJumpItems, pinnedKeys])
+
+  const normalizedSearch = searchQuery.trim().toLowerCase()
+
+  const visibleNavigation = useMemo(() => {
+    if (!normalizedSearch) return filteredNavigation
+    const result: NavigationSection[] = []
+    for (const section of filteredNavigation) {
+      const sectionLabel = getNavLabel(section.key, section.label, section.label2)
+      const sectionHay = `${sectionLabel} ${section.label} ${section.label2 ?? ''} ${section.key}`.toLowerCase()
+      const sectionMatches = sectionHay.includes(normalizedSearch)
+      if (section.children && section.children.length > 0) {
+        const matchingChildren = section.children.filter((child) => {
+          const childLabel = getNavLabel(child.key, child.label, child.label2)
+          const childHay = `${childLabel} ${child.label} ${child.label2 ?? ''} ${child.key} ${sectionHay}`.toLowerCase()
+          return childHay.includes(normalizedSearch)
+        })
+        if (sectionMatches || matchingChildren.length > 0) {
+          result.push({
+            ...section,
+            children: matchingChildren.length > 0 ? matchingChildren : section.children,
+          })
+        }
+      } else if (sectionMatches) {
+        result.push(section)
+      }
+    }
+    return result
+  }, [filteredNavigation, getNavLabel, normalizedSearch])
 
   const toggleSection = (key: string) => {
     setExpandedSections((prev) => {
@@ -256,19 +389,15 @@ export default function CmxSidebar() {
     })
   }
 
-  // Sections holding the active route, serialized with the pathname so the
-  // comparison below is by value (filteredNavigation is not referentially stable).
   const activeSectionsSignature = useMemo(() => {
     const activeKeys = filteredNavigation
       .filter((section) =>
-        section.children?.some((child) => isPathActive(pathname, child.path))
+        section.children?.some((child) => isPathActive(pathname, child.path)),
       )
       .map((section) => section.key)
     return JSON.stringify([pathname, activeKeys])
   }, [pathname, filteredNavigation])
 
-  // Adjust state during render on route change instead of in an effect
-  // (react-hooks/set-state-in-effect): expand active sections, close mobile drawer.
   const [syncedSignature, setSyncedSignature] = useState<string | null>(null)
   const [syncedPathname, setSyncedPathname] = useState(pathname)
   if (activeSectionsSignature !== syncedSignature) {
@@ -279,313 +408,698 @@ export default function CmxSidebar() {
   if (pathname !== syncedPathname) {
     setSyncedPathname(pathname)
     setIsMobileOpen(false)
+    setFlyout(null)
   }
 
   useEffect(() => {
     if (isMobileOpen) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.overflow = ''
+    }
   }, [isMobileOpen])
 
-  // Keyboard shortcut: Ctrl/Cmd + B toggles sidebar (desktop only)
+  // Global keyboard shortcuts: Ctrl/Cmd + B (collapse), Ctrl/Cmd + K (quick jump)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault()
         toggleCollapse()
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setQuickJumpOpen((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [toggleCollapse])
 
-  const handleFlyoutEnter = useCallback((key: string) => {
+  // Close top color picker popover on outside click
+  useEffect(() => {
+    if (!colorPickerOpen) return undefined
+    const handleOutside = (event: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
+        setColorPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [colorPickerOpen])
+
+  const openFlyout = useCallback((section: NavigationSection, triggerEl: HTMLElement) => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
       hoverTimeoutRef.current = null
     }
-    setHoverSectionKey(key)
+    const rect = triggerEl.getBoundingClientRect()
+    const maxTop = Math.max(64, window.innerHeight - 280)
+    setFlyout({ section, top: Math.min(Math.max(56, rect.top), maxTop) })
   }, [])
 
-  const handleFlyoutLeave = useCallback(() => {
-    hoverTimeoutRef.current = setTimeout(() => setHoverSectionKey(null), 120)
+  const scheduleCloseFlyout = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => setFlyout(null), 140)
   }, [])
 
-  useEffect(() => () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+  const cancelCloseFlyout = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
   }, [])
+
+  useEffect(
+    () => () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+    },
+    [],
+  )
+
+  const tenantSubtitle = currentTenant
+    ? [
+        currentTenant.tenant_name,
+        currentTenant.user_role,
+        formatPlanDisplay(currentTenant.s_current_plan),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
 
   return (
     <>
+      {/* Mobile Header Bar */}
       <div className="lg:hidden fixed top-0 start-0 end-0 z-50 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded-md p-2"
+            className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            aria-label="Toggle menu"
+            aria-label={isMobileOpen ? t('collapseSidebar') : t('expandSidebar')}
           >
-            {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isMobileOpen ? <X className="h-6 w-6" aria-hidden /> : <Menu className="h-6 w-6" aria-hidden />}
           </button>
           <span className="ms-3 text-lg font-semibold text-foreground">{brand.name}</span>
         </div>
+        <button
+          type="button"
+          onClick={() => setQuickJumpOpen(true)}
+          aria-label={t('quickJumpTitle')}
+          className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Search className="h-5 w-5" aria-hidden />
+        </button>
       </div>
 
-      {isMobileOpen && (
+      {/* Mobile Backdrop */}
+      {isMobileOpen ? (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/40 z-40 lg:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
-      )}
+      ) : null}
 
+      {/* Main Sidebar Rail */}
       <aside
         role="navigation"
         aria-label={t('navLabel')}
-        className={`
-          fixed top-0 bottom-0 z-40 bg-muted border-border flex flex-col shadow-sm
-          ${prefersReducedMotion ? '' : 'transition-[transform,width] duration-300 ease-in-out'}
-          start-0 border-e
-          w-64
-          ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
-          ${isMobileOpen ? 'translate-x-0' : 'max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full'}
-        `}
+        data-sidebar-theme={sidebarTheme}
+        className={cn(
+          'cmx-sb-surface fixed top-0 bottom-0 start-0 z-40 border-e flex flex-col shadow-sm',
+          prefersReducedMotion ? '' : 'transition-[transform,width] duration-300 ease-in-out',
+          'w-64',
+          isCollapsed ? 'lg:w-16' : 'lg:w-64',
+          isMobileOpen ? 'translate-x-0' : 'max-lg:ltr:-translate-x-full max-lg:rtl:translate-x-full',
+        )}
       >
-        <div className={`pt-4 pb-3 border-b border-border bg-card flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} `}>
+        {/* 1. Compact Unified Header + Top-of-Sidebar Color Picker + Collapse Toggle */}
+        <div
+          ref={colorPickerRef}
+          className={cn(
+            'relative border-b cmx-sb-border flex-shrink-0 flex items-center justify-between gap-1.5',
+            isCollapsed ? 'px-2 py-3 lg:flex-col lg:gap-2' : 'px-3 py-3',
+          )}
+        >
           <Link
             href="/dashboard"
             prefetch={false}
-            className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} space-x-2`}
+            className={cn(
+              'flex items-center min-w-0 gap-2.5',
+              isCollapsed ? 'lg:justify-center' : 'flex-1',
+            )}
           >
             {logoMain ? (
-              // Organization logo (File Util public storage), decorative: the name is next to it.
-              // With a dark logo, CSS (globals.css .cmx-logo-*) shows the one that fits the mode; no JS.
               <>
-                <img src={logoMain} alt="" className={`w-8 h-8 rounded-lg object-contain flex-shrink-0 ${logoDark ? 'cmx-logo-light' : ''}`} />
-                {logoDark && <img src={logoDark} alt="" className="cmx-logo-dark w-8 h-8 rounded-lg object-contain flex-shrink-0" />}
+                <img
+                  src={logoMain}
+                  alt=""
+                  className={cn(
+                    'w-8 h-8 rounded-lg object-contain flex-shrink-0',
+                    logoDark ? 'cmx-logo-light' : '',
+                  )}
+                />
+                {logoDark ? (
+                  <img
+                    src={logoDark}
+                    alt=""
+                    className="cmx-logo-dark w-8 h-8 rounded-lg object-contain flex-shrink-0"
+                  />
+                ) : null}
               </>
             ) : (
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-primary-foreground font-bold text-lg">{brand.name.charAt(0)}</span>
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span className="text-primary-foreground font-bold text-base">
+                  {brand.name.charAt(0)}
+                </span>
               </div>
             )}
-            <div className={`min-w-0 overflow-hidden ${isCollapsed ? 'lg:hidden' : ''}`}>
-              <span className="block text-xl font-bold text-foreground truncate whitespace-nowrap">{brand.name}</span>
-              {currentTenant && (
-                <span className="block text-xs text-muted-foreground font-medium mt-0.5 truncate whitespace-nowrap">
-                  {t('currentPlan')}: {formatPlanDisplay(currentTenant.s_current_plan)}
+            <div className={cn('min-w-0 overflow-hidden', isCollapsed ? 'lg:hidden' : '')}>
+              <span className="block text-sm font-bold cmx-sb-fg truncate leading-tight">
+                {brand.name}
+              </span>
+              {tenantSubtitle ? (
+                <span
+                  className="block text-[11px] cmx-sb-muted-fg truncate mt-0.5"
+                  title={tenantSubtitle}
+                >
+                  {tenantSubtitle}
                 </span>
-              )}
+              ) : null}
             </div>
           </Link>
-        </div>
 
-        {currentTenant && !isCollapsed && (
-          <div className="px-4 py-3 bg-card border-b border-border flex-shrink-0">
-            <div className="text-xs font-medium text-primary-text uppercase tracking-wide">{t('currentTenant')}</div>
-            <div className="mt-1 text-sm font-semibold text-foreground line-clamp-1 break-words">{currentTenant.tenant_name}</div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{t('role')}: {currentTenant.user_role}</div>
+          {/* Header Controls: Sidebar Color Picker + Desktop Collapse */}
+          <div className={cn('flex items-center gap-0.5 shrink-0', isCollapsed ? 'lg:flex-col' : '')}>
+            <button
+              type="button"
+              onClick={() => setColorPickerOpen((prev) => !prev)}
+              aria-haspopup="true"
+              aria-expanded={colorPickerOpen}
+              aria-label={t('sidebarColor')}
+              title={t('sidebarColor')}
+              className="cmx-sb-item rounded-md p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Palette className="h-4 w-4" aria-hidden />
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              aria-expanded={!isCollapsed}
+              aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
+              title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
+              className="cmx-sb-item hidden lg:inline-flex rounded-md p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {isCollapsed ? (
+                <PanelLeft className="h-4 w-4" aria-hidden />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" aria-hidden />
+              )}
+            </button>
           </div>
-        )}
 
-        <div className={`flex-shrink-0 border-b border-border px-2 py-2 ${isCollapsed ? 'lg:px-1' : 'lg:px-2'}`}>
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            aria-expanded={!isCollapsed}
-            aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            className={`hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${isCollapsed ? 'lg:justify-center' : ''} `}
-          >
-            {isCollapsed ? (
-              <PanelLeft className="h-5 w-5" />
-            ) : (
-              <>
-                <PanelLeftClose className="h-5 w-5" />
-                <span>{t('collapseSidebar')}</span>
-              </>
-            )}
-          </button>
+          {/* Per-User Sidebar Color Swatch Popover */}
+          {colorPickerOpen ? (
+            <div
+              role="dialog"
+              aria-label={t('mySidebarColor')}
+              className={cn(
+                'absolute top-full z-50 mt-1.5 w-52 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl p-2.5 space-y-2',
+                isCollapsed ? 'start-2' : 'end-2',
+              )}
+            >
+              <div className="text-xs font-semibold text-foreground">{t('mySidebarColor')}</div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {UI_SIDEBAR_THEMES.map((themeCode) => {
+                  const selected = sidebarTheme === themeCode
+                  const label = t(`themes.${themeCode}` as 'themes.OCEAN')
+                  return (
+                    <button
+                      key={themeCode}
+                      type="button"
+                      onClick={() => {
+                        setSidebarTheme(themeCode)
+                        setColorPickerOpen(false)
+                      }}
+                      aria-label={label}
+                      aria-pressed={selected}
+                      title={label}
+                      className={cn(
+                        'h-7 rounded-lg transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        SWATCH_CLASS_MAP[themeCode],
+                        selected ? 'ring-2 ring-ring ring-offset-1' : 'border border-border',
+                      )}
+                    />
+                  )
+                })}
+              </div>
+              <div className="text-[11px] text-muted-foreground">{t('savedPerUser')}</div>
+            </div>
+          ) : null}
         </div>
 
-        <nav className={`flex-1 overflow-y-auto min-h-0 py-3 flex-shrink min-w-0 ${isCollapsed ? 'px-1' : 'px-2'}`}>
+        {/* 2. High-Contrast Distinct Menu Search Bar */}
+        <div className={cn('border-b cmx-sb-border flex-shrink-0', isCollapsed ? 'px-2 py-2' : 'px-2.5 py-2.5')}>
+          {isCollapsed ? (
+            <Tooltip content={`${t('quickJumpTitle')} (Ctrl+K)`} side={isRTL ? 'left' : 'right'}>
+              <button
+                type="button"
+                onClick={() => setQuickJumpOpen(true)}
+                aria-label={t('quickJumpTitle')}
+                className="cmx-sb-search w-full h-9 rounded-lg flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Search className="h-4 w-4 cmx-sb-search-icon" aria-hidden />
+              </button>
+            </Tooltip>
+          ) : (
+            <div className="relative flex items-center">
+              <Search
+                className="h-3.5 w-3.5 cmx-sb-search-icon absolute start-2.5 pointer-events-none"
+                aria-hidden
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setSearchQuery('')
+                }}
+                placeholder={t('searchPlaceholder')}
+                aria-label={t('searchPlaceholder')}
+                className="cmx-sb-search w-full h-9 ps-8 pe-14 text-xs font-medium rounded-lg shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label={t('quickJumpEsc')}
+                  className="absolute end-1.5 rounded p-1 cmx-sb-muted-fg hover:opacity-80"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setQuickJumpOpen(true)}
+                  title={`${t('quickJumpTitle')} (Ctrl+K)`}
+                  className="cmx-sb-search-kbd absolute end-1.5 px-1.5 py-0.5 text-[10px] font-mono rounded hover:opacity-85"
+                >
+                  Ctrl K
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 3. Scrollable Navigation (Pinned Favorites + Sections) */}
+        <nav
+          className={cn(
+            'flex-1 overflow-y-auto min-h-0 py-2.5 flex-shrink min-w-0 space-y-3',
+            isCollapsed ? 'px-1.5' : 'px-2',
+          )}
+        >
           {navigationLoading ? (
-            <div className="px-3 py-4">
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-10 bg-muted rounded animate-pulse" />
-                ))}
-              </div>
+            <div className="px-2 py-2 space-y-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-9 bg-muted/40 rounded-lg animate-pulse" />
+              ))}
             </div>
           ) : (
-            <ul className="space-y-0.5">
-              {filteredNavigation.map((section) => {
-                const SectionIcon = getSectionIcon(section)
-                const isActive = isPathActive(pathname, section.path)
-                const hasChildren = section.children && section.children.length > 0
-                const label = getNavLabel(section.key, section.label, section.label2)
-
-                if (isCollapsed && hasChildren) {
-                  const showFlyout = hoverSectionKey === section.key
-                  return (
-                    <li
-                      key={section.key}
-                      className="relative"
-                      onMouseEnter={() => handleFlyoutEnter(section.key)}
-                      onMouseLeave={handleFlyoutLeave}
-                    >
-                      <button
-                        type="button"
-                        aria-haspopup="true"
-                        aria-expanded={showFlyout}
-                        aria-label={label}
-                        className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
-                          isActive
-                            ? 'bg-info-bg text-info-text border border-info-border'
-                            : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                        }`}
-                      >
-                        <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
-                      </button>
-                      {showFlyout && (
-                        <div
-                          className={`absolute top-0 z-50 min-w-48 py-1 bg-card rounded-lg shadow-lg border border-border ${
-                            'start-full'
-                          }`}
-                          role="menu"
-                          aria-label={label}
-                        >
-                          <div className="px-3 py-2 border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                            {label}
-                          </div>
-                          <ul className="space-y-0.5 py-1" role="group">
-                            {section.children!.map((child) => {
-                              const ChildIcon = getChildIcon(child.key)
-                              const childActive = isPathActive(pathname, child.path)
-                              return (
-                                <li key={child.key} role="none">
-                                  <Link
-                                    href={child.path}
-                                    prefetch={false}
-                                    role="menuitem"
-                                    className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg mx-1 transition-colors ${
-                                      childActive
-                                        ? 'bg-info-bg text-info-text font-medium'
-                                        : 'text-muted-foreground hover:bg-muted'
-                                    } `}
-                                  >
-                                    <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
-                                    <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
-                                  </Link>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        </div>
-                      )}
-                    </li>
-                  )
-                }
-
-                if (isCollapsed && !hasChildren) {
-                  return (
-                    <li key={section.key}>
-                      <Tooltip content={label} side={isRTL ? 'left' : 'right'}>
-                        <Link
-                          href={section.path}
-                          prefetch={false}
-                          aria-label={label}
-                          className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
-                            isActive
-                              ? 'bg-info-bg text-info-text border border-info-border'
-                              : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                          }`}
-                        >
-                          <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
-                        </Link>
-                      </Tooltip>
-                    </li>
-                  )
-                }
-
-                return (
-                  <li key={section.key}>
-                    {hasChildren ? (
-                      <div>
-                        <button
-                          type="button"
-                          onClick={() => toggleSection(section.key)}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 gap-2 ${
-                            isActive
-                              ? 'bg-info-bg text-info-text border border-info-border'
-                              : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                          } `}
-                        >
-                          <div className="flex items-center min-w-0 gap-3">
-                            <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
-                            <span className="truncate">{label}</span>
-                          </div>
-                          {expandedSections.has(section.key) ? (
-                            <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 flex-shrink-0 rtl:rotate-180" />
+            <>
+              {/* Pinned Favorites (DB-persisted per user, tenant-scoped) */}
+              {!isCollapsed && !normalizedSearch && pinnedItems.length > 0 ? (
+                <div className="space-y-0.5 pb-2 border-b cmx-sb-border">
+                  <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider cmx-sb-muted-fg flex items-center justify-between">
+                    <span>{t('pinnedSection')}</span>
+                    <span className="tabular-nums">{pinnedItems.length}</span>
+                  </div>
+                  <ul className="space-y-0.5">
+                    {pinnedItems.map((item) => {
+                      const ItemIcon = item.icon
+                      const active = isPathActive(pathname, item.path)
+                      return (
+                        <li
+                          key={`pin-${item.key}`}
+                          className={cn(
+                            'group relative flex items-center rounded-lg transition-colors',
+                            active ? 'cmx-sb-item-active' : 'cmx-sb-item',
                           )}
-                        </button>
-                        {expandedSections.has(section.key) && (
-                          <ul className="mt-0.5 ms-2 space-y-0.5 border-s border-border ps-2">
-                            {section.children!.map((child) => {
-                              const ChildIcon = getChildIcon(child.key)
-                              const childActive = isPathActive(pathname, child.path)
-                              return (
-                                <li key={child.key}>
-                                  <Link
-                                    href={child.path}
-                                    prefetch={false}
-                                    className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors duration-150 ${
-                                      childActive
-                                        ? 'bg-info-bg text-info-text font-medium border border-info-border'
-                                        : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                                    } `}
-                                  >
-                                    <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
-                                    <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
-                                  </Link>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    ) : (
-                      <Link
-                        href={section.path}
-                        prefetch={false}
-                        className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
-                          isActive
-                            ? 'bg-info-bg text-info-text border border-info-border'
-                            : 'text-muted-foreground hover:bg-card hover:shadow-sm border border-transparent'
-                        } `}
-                      >
-                        <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
-                        <span className="truncate flex-1">{label}</span>
-                        {section.badge && (
-                          <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-danger-bg text-danger-text">
-                            {section.badge}
-                          </span>
-                        )}
-                      </Link>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
+                        >
+                          {active ? (
+                            <span className="cmx-sb-active-bar absolute start-0 top-1.5 bottom-1.5 w-[3px] rounded-full" />
+                          ) : null}
+                          <Link
+                            href={item.path}
+                            prefetch={false}
+                            aria-current={active ? 'page' : undefined}
+                            className="flex-1 flex items-center gap-2 px-2 py-1.5 text-xs min-w-0"
+                          >
+                            <span
+                              className={cn(
+                                'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md',
+                                item.tintClass,
+                              )}
+                            >
+                              <ItemIcon className="h-3.5 w-3.5" aria-hidden />
+                            </span>
+                            <span className="truncate">{item.label}</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => togglePin(item.key)}
+                            aria-label={t('unpinItem', { label: item.label })}
+                            title={t('unpinItem', { label: item.label })}
+                            className="p-1.5 shrink-0 text-warning hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                          >
+                            <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+
+              {/* Main Navigation Sections */}
+              <div className="space-y-0.5">
+                {!isCollapsed ? (
+                  <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider cmx-sb-muted-fg">
+                    {t('navigationSection')}
+                  </div>
+                ) : null}
+
+                {visibleNavigation.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs cmx-sb-muted-fg">
+                    {t('noSearchResults')}
+                  </div>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {visibleNavigation.map((section) => {
+                      const SectionIcon = getSectionIcon(section)
+                      const tintClass = getSectionTint(section.key)
+                      const hasChildren = Boolean(section.children && section.children.length > 0)
+                      const isChildActive =
+                        hasChildren &&
+                        section.children!.some((child) => isPathActive(pathname, child.path))
+                      const isActive = isPathActive(pathname, section.path) || isChildActive
+                      const label = getNavLabel(section.key, section.label, section.label2)
+                      const isExpanded = Boolean(normalizedSearch) || expandedSections.has(section.key)
+
+                      // Collapsed Rail Mode: Parent with children -> fixed unclipped flyout
+                      if (isCollapsed && hasChildren) {
+                        return (
+                          <li key={section.key}>
+                            <button
+                              type="button"
+                              aria-haspopup="menu"
+                              aria-expanded={flyout?.section.key === section.key}
+                              aria-label={label}
+                              onMouseEnter={(e) => openFlyout(section, e.currentTarget)}
+                              onMouseLeave={scheduleCloseFlyout}
+                              onClick={(e) => openFlyout(section, e.currentTarget)}
+                              className={cn(
+                                'relative w-full h-10 flex items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                isActive ? 'cmx-sb-item-active' : 'cmx-sb-item',
+                              )}
+                            >
+                              {isActive ? (
+                                <span className="cmx-sb-active-bar absolute start-0 top-2 bottom-2 w-[3px] rounded-full" />
+                              ) : null}
+                              <span
+                                className={cn(
+                                  'inline-flex h-7 w-7 items-center justify-center rounded-lg',
+                                  tintClass,
+                                )}
+                              >
+                                <SectionIcon className="h-4 w-4" aria-hidden />
+                              </span>
+                            </button>
+                          </li>
+                        )
+                      }
+
+                      // Collapsed Rail Mode: Single link
+                      if (isCollapsed && !hasChildren) {
+                        return (
+                          <li key={section.key}>
+                            <Tooltip content={label} side={isRTL ? 'left' : 'right'}>
+                              <Link
+                                href={section.path}
+                                prefetch={false}
+                                aria-label={label}
+                                aria-current={isActive ? 'page' : undefined}
+                                className={cn(
+                                  'relative w-full h-10 flex items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                  isActive ? 'cmx-sb-item-active' : 'cmx-sb-item',
+                                )}
+                              >
+                                {isActive ? (
+                                  <span className="cmx-sb-active-bar absolute start-0 top-2 bottom-2 w-[3px] rounded-full" />
+                                ) : null}
+                                <span
+                                  className={cn(
+                                    'inline-flex h-7 w-7 items-center justify-center rounded-lg',
+                                    tintClass,
+                                  )}
+                                >
+                                  <SectionIcon className="h-4 w-4" aria-hidden />
+                                </span>
+                              </Link>
+                            </Tooltip>
+                          </li>
+                        )
+                      }
+
+                      // Expanded Mode: Section with children
+                      if (hasChildren) {
+                        return (
+                          <li key={section.key}>
+                            <button
+                              type="button"
+                              onClick={() => toggleSection(section.key)}
+                              aria-expanded={isExpanded}
+                              className={cn(
+                                'w-full flex items-center justify-between px-2 py-1.5 text-xs font-medium rounded-lg transition-colors gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                isActive ? 'cmx-sb-fg font-semibold' : 'cmx-sb-item',
+                              )}
+                            >
+                              <span className="flex items-center min-w-0 gap-2.5">
+                                <span
+                                  className={cn(
+                                    'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg',
+                                    tintClass,
+                                  )}
+                                >
+                                  <SectionIcon className="h-3.5 w-3.5" aria-hidden />
+                                </span>
+                                <span className="truncate">{label}</span>
+                              </span>
+                              <span className="flex items-center gap-1.5 shrink-0">
+                                {section.badge ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-danger-bg text-danger-text tabular-nums">
+                                    {section.badge}
+                                  </span>
+                                ) : null}
+                                {isExpanded ? (
+                                  <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                                ) : (
+                                  <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" aria-hidden />
+                                )}
+                              </span>
+                            </button>
+
+                            {isExpanded ? (
+                              <ul className="mt-0.5 ms-4 space-y-0.5 border-s cmx-sb-border ps-2.5">
+                                {section.children!.map((child) => {
+                                  const ChildIcon = getChildIcon(child.key)
+                                  const childActive = isPathActive(pathname, child.path)
+                                  const childLabel = getNavLabel(child.key, child.label, child.label2)
+                                  const isPinned = pinnedSet.has(child.key)
+                                  return (
+                                    <li
+                                      key={child.key}
+                                      className={cn(
+                                        'group relative flex items-center rounded-lg transition-colors',
+                                        childActive ? 'cmx-sb-item-active' : 'cmx-sb-item',
+                                      )}
+                                    >
+                                      {childActive ? (
+                                        <span className="cmx-sb-active-bar absolute start-0 top-1.5 bottom-1.5 w-[3px] rounded-full" />
+                                      ) : null}
+                                      <Link
+                                        href={child.path}
+                                        prefetch={false}
+                                        aria-current={childActive ? 'page' : undefined}
+                                        className="flex-1 flex items-center gap-2 px-2.5 py-1.5 text-xs min-w-0"
+                                      >
+                                        <ChildIcon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                                        <span className="truncate">{childLabel}</span>
+                                      </Link>
+                                      <button
+                                        type="button"
+                                        onClick={() => togglePin(child.key)}
+                                        aria-label={
+                                          isPinned
+                                            ? t('unpinItem', { label: childLabel })
+                                            : t('pinItem', { label: childLabel })
+                                        }
+                                        title={
+                                          isPinned
+                                            ? t('unpinItem', { label: childLabel })
+                                            : t('pinItem', { label: childLabel })
+                                        }
+                                        className={cn(
+                                          'p-1 shrink-0 rounded transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                          isPinned
+                                            ? 'text-warning opacity-100'
+                                            : 'cmx-sb-muted-fg opacity-0 group-hover:opacity-100',
+                                        )}
+                                      >
+                                        <Star
+                                          className={cn('h-3.5 w-3.5', isPinned ? 'fill-current' : '')}
+                                          aria-hidden
+                                        />
+                                      </button>
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            ) : null}
+                          </li>
+                        )
+                      }
+
+                      // Expanded Mode: Single top-level link
+                      const isPinned = pinnedSet.has(section.key)
+                      return (
+                        <li
+                          key={section.key}
+                          className={cn(
+                            'group relative flex items-center rounded-lg transition-colors',
+                            isActive ? 'cmx-sb-item-active' : 'cmx-sb-item',
+                          )}
+                        >
+                          {isActive ? (
+                            <span className="cmx-sb-active-bar absolute start-0 top-1.5 bottom-1.5 w-[3px] rounded-full" />
+                          ) : null}
+                          <Link
+                            href={section.path}
+                            prefetch={false}
+                            aria-current={isActive ? 'page' : undefined}
+                            className="flex-1 flex items-center gap-2.5 px-2 py-1.5 text-xs font-medium min-w-0"
+                          >
+                            <span
+                              className={cn(
+                                'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg',
+                                tintClass,
+                              )}
+                            >
+                              <SectionIcon className="h-3.5 w-3.5" aria-hidden />
+                            </span>
+                            <span className="truncate flex-1">{label}</span>
+                            {section.badge ? (
+                              <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-danger-bg text-danger-text tabular-nums">
+                                {section.badge}
+                              </span>
+                            ) : null}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => togglePin(section.key)}
+                            aria-label={
+                              isPinned
+                                ? t('unpinItem', { label })
+                                : t('pinItem', { label })
+                            }
+                            title={
+                              isPinned
+                                ? t('unpinItem', { label })
+                                : t('pinItem', { label })
+                            }
+                            className={cn(
+                              'p-1.5 shrink-0 rounded transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              isPinned
+                                ? 'text-warning opacity-100'
+                                : 'cmx-sb-muted-fg opacity-0 group-hover:opacity-100',
+                            )}
+                          >
+                            <Star
+                              className={cn('h-3.5 w-3.5', isPinned ? 'fill-current' : '')}
+                              aria-hidden
+                            />
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </div>
+            </>
           )}
         </nav>
 
-        <div className={`border-t border-border flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-4'}`}>
-          {/* cmx-ds-ignore UI008: brand name and product version */}
-          <div className="text-xs text-muted-foreground text-center">CleanMateX v1.0</div>
+        {/* 4. Compact Utility Footer */}
+        <div
+          className={cn(
+            'border-t cmx-sb-border flex-shrink-0 flex items-center text-[11px] cmx-sb-muted-fg',
+            isCollapsed ? 'justify-center px-1.5 py-2.5' : 'justify-between px-3 py-2.5',
+          )}
+        >
+          {!isCollapsed && currentTenant ? (
+            <span className="inline-flex items-center gap-1.5 truncate">
+              <span className="h-2 w-2 rounded-full bg-success shrink-0" aria-hidden />
+              <span className="truncate">{formatPlanDisplay(currentTenant.s_current_plan)}</span>
+            </span>
+          ) : null}
+          {/* cmx-ds-ignore UI008: product version */}
+          <span className="font-mono text-[10px] shrink-0">v1.0</span>
         </div>
       </aside>
+
+      {/* Fixed-Position Unclipped Flyout for Collapsed 64px Rail */}
+      {isCollapsed && flyout ? (
+        <div
+          data-sidebar-theme={sidebarTheme}
+          onMouseEnter={cancelCloseFlyout}
+          onMouseLeave={scheduleCloseFlyout}
+          style={{ top: `${flyout.top}px` }}
+          role="menu"
+          aria-label={getNavLabel(flyout.section.key, flyout.section.label, flyout.section.label2)}
+          className="cmx-sb-surface fixed start-16 ms-1 z-50 w-52 rounded-xl border shadow-2xl py-1.5 hidden lg:block"
+        >
+          <div className="px-3 py-1.5 border-b cmx-sb-border text-[11px] font-semibold cmx-sb-muted-fg uppercase tracking-wide">
+            {getNavLabel(flyout.section.key, flyout.section.label, flyout.section.label2)}
+          </div>
+          <ul className="space-y-0.5 p-1" role="group">
+            {flyout.section.children?.map((child) => {
+              const ChildIcon = getChildIcon(child.key)
+              const childActive = isPathActive(pathname, child.path)
+              return (
+                <li key={child.key} role="none">
+                  <Link
+                    href={child.path}
+                    prefetch={false}
+                    role="menuitem"
+                    onClick={() => setFlyout(null)}
+                    className={cn(
+                      'flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg transition-colors',
+                      childActive ? 'cmx-sb-item-active' : 'cmx-sb-item',
+                    )}
+                  >
+                    <ChildIcon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                    <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : null}
+
+      {/* Ctrl+K Quick-Jump Command Palette */}
+      <CmxSidebarSearchDialog
+        open={quickJumpOpen}
+        onOpenChange={setQuickJumpOpen}
+        items={allQuickJumpItems}
+      />
     </>
   )
 }

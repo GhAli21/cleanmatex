@@ -18429,6 +18429,8 @@ model sys_users_mst {
   ui_color_mode         String           @default("SYSTEM")
   ui_density            String?
   ui_font_scale         String           @default("MD")
+  ui_sidebar_theme      String?
+  ui_sidebar_pinned     Json?
   org_tenants_mst       org_tenants_mst? @relation(fields: [last_chosen_tenant_id], references: [id], onUpdate: NoAction, map: "fk_sys_users_hint_tenant")
 
   @@schema("public")

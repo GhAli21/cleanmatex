@@ -21,6 +21,13 @@ export type UiDensity = (typeof UI_DENSITIES)[number]
 export const UI_FONT_SCALES = ['SM', 'MD', 'LG'] as const
 export type UiFontScale = (typeof UI_FONT_SCALES)[number]
 
+/** `sys_users_mst.ui_sidebar_theme` and `<aside data-sidebar-theme>`. */
+export const UI_SIDEBAR_THEMES = ['OCEAN', 'MIDNIGHT', 'EMERALD', 'INDIGO', 'SAND'] as const
+export type UiSidebarTheme = (typeof UI_SIDEBAR_THEMES)[number]
+
+/** Maximum number of pinned sidebar items allowed per tenant per user. */
+export const MAX_SIDEBAR_PINS_PER_TENANT = 12
+
 /** Used when an Organization has chosen nothing, and whenever resolution fails. */
 export const DEFAULT_UI_THEME_CODE = 'STANDARD'
 export const DEFAULT_UI_RADIUS_CODE = 'STANDARD'
@@ -28,6 +35,7 @@ export const DEFAULT_UI_FONT_PAIR_CODE = 'STANDARD'
 export const DEFAULT_UI_COLOR_MODE: UiColorMode = 'SYSTEM'
 export const DEFAULT_UI_DENSITY: UiDensity = 'COMFORTABLE'
 export const DEFAULT_UI_FONT_SCALE: UiFontScale = 'MD'
+export const DEFAULT_UI_SIDEBAR_THEME: UiSidebarTheme = 'OCEAN'
 
 /** STANDARD radius preset (0752 seed, equal to tokens.css); used when the catalog cannot be read. */
 export const DEFAULT_UI_RADIUS = { sm: '0.375rem', md: '0.5rem', lg: '0.75rem' } as const

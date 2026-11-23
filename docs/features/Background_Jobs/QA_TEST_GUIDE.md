@@ -159,3 +159,41 @@ SELECT name FROM pgboss.queue ORDER BY 1;
 2. Submit an order on a demo tenant. **Expected:** within about 5 seconds the bell shows "Order created" with the real template text (not the plain fallback).
 3. SQL editor: `select status, result_summary from org_ntf_requests_tr order by created_at desc limit 1;` **Expected:** `PROCESSED`, with `deliverJobs` ≥ 1 when email is on for the tenant.
 4. `select state, count(*) from pgboss.job where name = 'ntf.deliver' group by 1;` **Expected:** jobs in `created` (they wait for HQ API in 5c).
+
+### 5.3 HQ API sends the messages (Owner, after the HQ API deploy)
+
+**A. Deploy**
+1. Commit and push both repos (tenant and HQ).
+2. Render → `cleanmatexsaas-api` → Environment: `NODE_VERSION` = `22.16.0` (pg-boss needs 22.12 or later), `JOBS_DATABASE_URL` = the same value as on `cmx-workers` (pooler port 5432), `JOBS_DATABASE_CA_CERT` = the same certificate. Save, deploy.
+3. HQ API logs. **Expected:** `queue consumer started as hq-api; running: ntf.deliver, ntf.reconcile` (or `none (all paused)` if they are off). If you see `queue consumer did not start (next try in 60 s): ...`, the text names the problem; it is also a FAILED row under **Last run / History** of `ntf.deliver` and `ntf.reconcile` in HQ → Ops → Jobs. HTTP keeps working, and the consumer tries again every minute.
+
+**B. Switch on**
+4. HQ → Ops → Jobs, search `ntf.`. For `ntf.orchestrate`, `ntf.deliver`, `ntf.reconcile`: the button shows **Disable** when the switch is on. Before HQ API reports, the badge says **Waiting for worker** and Drift says **Worker not reporting**; within 30 seconds of the deploy both change to **Enabled** with no drift. Leave `ntf.status_apply`, `ntf.campaign_start`, `ntf.campaign_chunk` off.
+
+**C. One email, end to end**
+5. Pick the account you will test with: a staff user of **Demo Laundry LLC** (or Demo Saudi Riyadh Dry Clean) whose login email is an inbox you can open. The `order.created` notification goes to **the staff user who submits the order**, at that user's login email. Both demo tenants have the email and in-app channels on.
+6. Sign in to the tenant app as that user. New order: pick a customer who has **not** opted out of email (customer → preferences; an opt-out also blocks this staff email, see F24), add one item, submit.
+7. **Expected within about 10 seconds:**
+   - the bell shows "Order created" with the order number;
+   - one email "Order created …" arrives in that inbox (check spam the first time; it comes from the HQ Resend sender address).
+8. SQL editor (Supabase, production):
+   ```sql
+   select channel_code, status, retry_count, provider_message_id, error_message, sent_at
+     from org_ntf_outbox_dtl
+    where source_entity_type = 'order'
+    order by created_at desc limit 5;
+   ```
+   **Expected:** the EMAIL row is `SENT`, with a `provider_message_id`, `retry_count` 0, no error.
+9. ```sql
+   select name, state, count(*) from pgboss.job where name like 'ntf.%' group by 1, 2 order by 1, 2;
+   ```
+   **Expected:** `ntf.orchestrate` and `ntf.deliver` `completed`; nothing `failed`; no `ntf.reconcile` (it runs only after an uncertain send).
+10. Submit one more order and refresh the inbox: exactly one new email (not two).
+
+**If the email row is not SENT**
+- `SKIPPED` with "opted out": the order's customer opted out of email; use another customer.
+- `FAILED_TEMPORARY`: a new `ntf.deliver` job waits 5 minutes (then 15, 60, 240, 720); `error_message` and `hq_ntf_dispatch_log` show the provider's reason.
+- `FAILED_PERMANENT` "PROVIDER_NOT_CONFIGURED": check HQ → configuration `ntf.hq.resend.api_key` and `ntf.hq.resend.from_email` (the from address must be on a domain verified in Resend).
+- Still `QUEUED` and the job `created`: HQ API is not consuming; see step 3.
+
+**Note:** the order submitted on 23 Nov at 21:10 already has three `ntf.deliver` jobs waiting (PUSH, EMAIL, SMS). They are sent as soon as step 4 is done, so that email may arrive first. Older outbox rows written before this release have no job and are not sent (stale demo messages; step 8 marks them skipped).

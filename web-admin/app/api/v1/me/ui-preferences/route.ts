@@ -1,15 +1,16 @@
 /**
- * GET /api/v1/me/ui-preferences — the signed-in person's appearance preferences
- * PUT /api/v1/me/ui-preferences — change them (colour mode, density, font size)
+ * GET /api/v1/me/ui-preferences — the signed-in person's appearance & sidebar preferences
+ * PUT /api/v1/me/ui-preferences — change them (colour mode, density, font size, sidebar theme, pinned screens)
  *
  * The row is always the caller's own (`sys_users_mst.id` = session user id) and
- * only the three ui_* columns can change. No permission is needed: everyone may
- * set their own appearance. The layout reads these on the next page load.
+ * only the ui_* columns can change. No permission is needed: everyone may
+ * set their own appearance and pinned navigation shortcuts.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db/prisma'
 import { getAuthContext } from '@/lib/middleware/require-permission'
 import { validateCSRF } from '@/lib/middleware/csrf'
@@ -17,7 +18,13 @@ import { writeLastModeCookie } from '@/lib/services/ui-theme.service'
 import { uiPreferencesSchema } from '@/lib/validations/ui-theme'
 import { logger } from '@/lib/utils/logger'
 
-const SELECT = { ui_color_mode: true, ui_density: true, ui_font_scale: true } as const
+const SELECT = {
+  ui_color_mode: true,
+  ui_density: true,
+  ui_font_scale: true,
+  ui_sidebar_theme: true,
+  ui_sidebar_pinned: true,
+} as const
 
 async function sessionUserId(): Promise<string | null> {
   try {
@@ -30,7 +37,7 @@ async function sessionUserId(): Promise<string | null> {
 /**
  * Read the caller's preferences.
  * @param _request - Incoming request
- * @returns ui_color_mode, ui_density (null = follow the Organization), ui_font_scale
+ * @returns ui_color_mode, ui_density, ui_font_scale, ui_sidebar_theme, ui_sidebar_pinned
  */
 export async function GET(_request: NextRequest) {
   const userId = await sessionUserId()
@@ -59,21 +66,42 @@ export async function PUT(request: NextRequest) {
   const parsed = uiPreferencesSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Validation failed' }, { status: 400 })
 
+  const {
+    ui_color_mode,
+    ui_density,
+    ui_font_scale,
+    ui_sidebar_theme,
+    ui_sidebar_pinned,
+  } = parsed.data
+
+  const updateData: Prisma.sys_users_mstUpdateInput = {
+    updated_at: new Date(),
+    updated_by: userId,
+    updated_info: request.headers.get('user-agent') ?? null,
+  }
+  if (ui_color_mode !== undefined) updateData.ui_color_mode = ui_color_mode
+  if (ui_density !== undefined) updateData.ui_density = ui_density
+  if (ui_font_scale !== undefined) updateData.ui_font_scale = ui_font_scale
+  if (ui_sidebar_theme !== undefined) updateData.ui_sidebar_theme = ui_sidebar_theme
+  if (ui_sidebar_pinned !== undefined) {
+    updateData.ui_sidebar_pinned =
+      ui_sidebar_pinned === null ? Prisma.JsonNull : ui_sidebar_pinned
+  }
+
   try {
     const data = await prisma.sys_users_mst.update({
       where: { id: userId },
-      data: {
-        ...parsed.data,
-        updated_at: new Date(),
-        updated_by: userId,
-        updated_info: request.headers.get('user-agent') ?? null,
-      },
+      data: updateData,
       select: SELECT,
     })
+
     if (data.ui_color_mode) {
       writeLastModeCookie(await cookies(), data.ui_color_mode)
     }
-    revalidatePath('/', 'layout')
+    if (ui_color_mode !== undefined || ui_density !== undefined || ui_font_scale !== undefined) {
+      revalidatePath('/', 'layout')
+    }
+
     return NextResponse.json({ success: true, data })
   } catch (err) {
     logger.error('PUT /me/ui-preferences failed', err instanceof Error ? err : new Error(String(err)), {})

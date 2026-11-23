@@ -57,6 +57,27 @@
     "currentPlan": "Current Plan",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
-    "navLabel": "Main navigation"
+    "navLabel": "Main navigation",
+    "searchPlaceholder": "Search menu...",
+    "quickJumpPlaceholder": "Jump to any screen...",
+    "quickJumpTitle": "Quick Jump",
+    "quickJumpHint": "↑↓ Navigate · ↵ Open",
+    "quickJumpEsc": "Esc Close",
+    "noSearchResults": "No matching screens",
+    "pinnedSection": "Pinned",
+    "navigationSection": "Navigation",
+    "pinItem": "Pin {label}",
+    "unpinItem": "Unpin {label}",
+    "sidebarColor": "Sidebar color",
+    "mySidebarColor": "My sidebar color",
+    "savedPerUser": "Saved to your profile",
+    "savePreferencesError": "Could not save sidebar preference",
+    "themes": {
+      "OCEAN": "Ocean Blue",
+      "MIDNIGHT": "Midnight Contrast",
+      "EMERALD": "Emerald Fresh",
+      "INDIGO": "Royal Indigo",
+      "SAND": "Warm Sand"
+    }
   }
 }

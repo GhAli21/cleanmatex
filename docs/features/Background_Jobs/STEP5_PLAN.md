@@ -1,6 +1,6 @@
 # Step 5 — Notifications on pg-boss: implementation plan
 
-Status (23 Nov): 0810 applied local + remote. **5b done in code:** tenant producer (`lib/notifications/request.service.ts`, `event-emitter.ts`), cmx-workers `ntf.orchestrate`, payloads in `@cmx/jobs`, tests 19/19. Next: 5c HQ consumer, 5d campaigns / OTP / receipts, 5e deletions. Design: [DESIGN.md](DESIGN.md) §7, §14.5, §15, §16.
+Status (23 Nov): 0810 applied local + remote. **5b done in code:** tenant producer (`lib/notifications/request.service.ts`, `event-emitter.ts`), cmx-workers `ntf.orchestrate`, payloads in `@cmx/jobs`, tests 19/19. **5c done in code:** HQ API `queue-consumer` module (`ntf.deliver`, `ntf.reconcile`), BullMQ queue removed, per-attempt idempotency key, Resend `Idempotency-Key`. Open in 5c: `ntf.status_apply` (webhooks still update status inline; the queue stays paused). Next: 5d campaigns / OTP / receipts, 5e deletions. Design: [DESIGN.md](DESIGN.md) §7, §14.5, §15, §16.
 
 ## What 0810 adds
 

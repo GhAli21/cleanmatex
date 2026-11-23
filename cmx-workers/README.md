@@ -70,7 +70,7 @@ Create a new **Background Worker**. Do not reuse the Oregon `platform-workers` s
 | Region | **The database's region** (Ohio while the database is in AWS `us-east-2`; decide S-D6 first) |
 | Root directory | empty (repo root: npm workspaces) |
 | Runtime | Node |
-| Build command | `npm ci --include=dev && npm run build --workspace=cmx-workers` (`--include=dev` because `NODE_ENV=production` makes `npm ci` skip dev dependencies, and the build needs `esbuild`; the shell tools need `tsx`) |
+| Build command | `npm ci && npm run build --workspace=cmx-workers` (`esbuild` and `tsx` are normal dependencies of cmx-workers, because `NODE_ENV=production` makes `npm ci` skip dev dependencies) |
 | Start command | `npm run start --workspace=cmx-workers` |
 | Instance type | Starter (512 MB) |
 | Build filters, included paths | `cmx-workers/**`, `packages/**`, `package.json`, `package-lock.json`, `web-admin/lib/**`, `web-admin/prisma/**`, `web-admin/tsconfig.json`, `web-admin/package.json` |
