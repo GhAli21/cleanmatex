@@ -57,6 +57,7 @@ function mockDb() {
     }],
     ...activeTaxSetup('VAT_STD'),
     sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
+    org_uom_cf: [{ uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: null, qty_decimals: 0 }],
     org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 0, branch_id: null }],
     sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 0 }],
   };
@@ -68,7 +69,7 @@ function mockDb() {
   const names = ['org_tenants_mst', 'org_branches_mst', 'org_customers_mst', 'org_product_data_mst', 'org_price_lists_mst',
     'org_price_list_items_dtl', 'org_speed_price_rules_cf', 'org_tax_profiles_cf', 'org_tax_exemptions_cf',
     'org_service_preference_cf', 'org_packing_preference_cf', 'sys_service_preference_cd', 'sys_service_category_cd',
-    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', ...TAX_ENGINE_MODELS];
+    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', 'org_uom_cf', ...TAX_ENGINE_MODELS];
   return { db: Object.fromEntries(names.map((n) => [n, model(n)])) as unknown as CommercialDb, counts };
 }
 

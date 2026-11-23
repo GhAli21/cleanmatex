@@ -46,7 +46,7 @@ CREATE TABLE org_order_prefs_dtl (
   tenant_org_id   UUID NOT NULL,
   order_id        UUID NOT NULL,
   item_id         UUID NOT NULL,
-  pref_weight     DECIMAL(19,4),   -- Expected weight in kg; NULL if not yet measured
+  pref_weight     DECIMAL(21,6),   -- Expected weight in kg (QUANTITY class); NULL if not yet measured
   rec_status      SMALLINT DEFAULT 1,  -- 1=active, 0=soft-deleted (never hard-delete)
   color_code      VARCHAR(30),     -- References sys_colors_cd.code; NULL = no preference
   created_at      TIMESTAMPTZ DEFAULT NOW(),

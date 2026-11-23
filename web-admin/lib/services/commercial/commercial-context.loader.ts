@@ -56,7 +56,9 @@ import {
   type StandardPriceResult,
   type TaxProfileInput,
   type MoneyInput,
-  toMoney, speedRulesForProduct, type ResolvedCalendar } from '@/lib/commercial';
+  toMoney, speedRulesForProduct, type ResolvedCalendar,
+  resolveBilledMeasure, isMeasuredDimension, type BilledMeasure } from '@/lib/commercial';
+import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
 import { TAX_CONFIG_STATUS } from '@/lib/constants/tax';
 import { decideOrderLineTax, taxPartyScope, type OrderTaxCode, type OrderTaxEngine, type OrderTaxRecord } from '@/lib/tax/order-line-tax';
@@ -73,7 +75,7 @@ export type CommercialDb = Pick<PrismaClient,
   | 'org_tax_profiles_cf' | 'org_tax_exemptions_cf' | 'org_tax_config_cf' | 'org_tax_rules_cf'
   | 'org_tax_rule_codes_dtl' | 'org_tax_item_classes_cf' | 'org_service_preference_cf'
   | 'org_packing_preference_cf' | 'sys_service_preference_cd' | 'sys_service_category_cd'
-  | 'sys_service_speed_cd' | 'sys_currency_rounding_rules_cf'> & CalendarDb;
+  | 'sys_service_speed_cd' | 'sys_currency_rounding_rules_cf' | 'org_uom_cf'> & CalendarDb;
 
 // ─── Intent (what the client may send) ─────────────────────────────────────
 
@@ -134,6 +136,13 @@ export interface CustomItemIntent {
   serviceCategoryCode: string | null;
 }
 
+/** The entered measure of one line: a measure, or length and width for an area unit (decimal text). */
+export interface LineMeasureIntent {
+  measuredQty?: string | null;
+  length?: string | null;
+  width?: string | null;
+}
+
 /** One order line as the client asks for it. */
 export interface LineIntent {
   /** Stable within the request (the cart row key); the writer maps it to the created row. */
@@ -143,6 +152,11 @@ export interface LineIntent {
   /** Set for a line with no catalog product. */
   customItem?: CustomItemIntent | null;
   quantity: number;
+  /**
+   * What staff entered for a measured line (kg, m, m x m). The server resolves the billed
+   * quantity; a count line carries none (MEASURE_NOT_ALLOWED) and a measured one needs it (MEASURE_REQUIRED).
+   */
+  measure?: LineMeasureIntent | null;
   /** Null: the order's speed. */
   serviceSpeed: string | null;
   /** A cashier price; the caller has already checked `pricing:override` and the reason (PF-01). */
@@ -279,6 +293,21 @@ export interface ProductFacts {
   taxExemptReason: string | null;
   /** Null: the organization's default sales class. */
   taxItemClassCode: string | null;
+  /** The unit the product is priced in; absent (a custom item, a pinned line) means the piece unit. */
+  baseUomCode?: string;
+  /** Optional minimum billed measure and billing step (D12, D13). */
+  minBillableQty?: string | null;
+  billingIncrement?: string | null;
+}
+
+/** One Organization unit, as the line snapshot needs it. */
+export interface UnitFacts {
+  code: string;
+  dimension: string;
+  uneceCode: string | null;
+  symbol: string;
+  symbol2: string | null;
+  qtyDecimals: number;
 }
 
 /** One enabled preference with its tenant price. */
@@ -301,6 +330,8 @@ export interface CommercialFacts {
   /** Service categories holding an active exemption. */
   exemptServiceCategories: ReadonlySet<string>;
   products: ReadonlyMap<string, ProductFacts>;
+  /** Unit code -> unit, for every unit a line uses (the piece unit always). */
+  units?: ReadonlyMap<string, UnitFacts>;
   priceCandidates: ReadonlyMap<string, PriceListCandidate[]>;
   speedRules: readonly SpeedRuleCandidate[];
   activeSpeeds: ReadonlySet<string>;
@@ -329,6 +360,8 @@ export const COMMERCIAL_CONTEXT_ERRORS = {
   SPEED_NOT_OFFERED: 'SPEED_NOT_OFFERED',
   PREFERENCE_NOT_AVAILABLE: 'PREFERENCE_NOT_AVAILABLE',
   TIMEZONE_NOT_CONFIGURED: 'TIMEZONE_NOT_CONFIGURED',
+  /** A line's unit is missing from the organization's units. */
+  UNIT_NOT_FOUND: 'UNIT_NOT_FOUND',
 } as const;
 /** Derived union of the context error codes. */
 export type CommercialContextErrorCode = (typeof COMMERCIAL_CONTEXT_ERRORS)[keyof typeof COMMERCIAL_CONTEXT_ERRORS];
@@ -418,7 +451,7 @@ export async function loadCommercialFacts(
 
   // ─── Independent reads ─────────────────────────────────────────────────
   const [tenant, branch, customer, products, listItems, activeSpeeds, profiles, accounting,
-    servicePrefs, packingPrefs, pricingMode, extraPriceMode] = await Promise.all([
+    servicePrefs, packingPrefs, pricingMode, extraPriceMode, units] = await Promise.all([
     // org_tenants_mst is keyed by the tenant id itself (no tenant_org_id column).
     db.org_tenants_mst.findFirst({
       where: { id: tenantOrgId },
@@ -435,6 +468,7 @@ export async function loadCommercialFacts(
       select: {
         id: true, service_category_code: true, price_type: true, default_sell_price: true, min_sell_price: true,
         turnaround_hh: true, is_retail_item: true, tax_category_code: true, tax_exempt_reason: true, tax_item_class_code: true,
+        base_uom_code: true, min_billable_qty: true, billing_increment: true,
       },
     }),
     db.org_price_list_items_dtl.findMany({
@@ -480,6 +514,11 @@ export async function loadCommercialFacts(
       : [],
     deps.recorded ? deps.recorded.pricingMode : resolveTaxPricingMode(db as PrismaClient, tenantOrgId, intent.branchId),
     deps.recorded ? deps.recorded.extraPriceMode : resolveExtraPricePricingMode(db as PrismaClient, tenantOrgId, intent.branchId),
+    // The Organization's units are few; one read covers every line (a line keeps the snapshot of its unit).
+    db.org_uom_cf.findMany({
+      where: { tenant_org_id: tenantOrgId, rec_status: 1 },
+      select: { uom_code: true, uom_dimension: true, unece_code: true, symbol: true, symbol2: true, qty_decimals: true },
+    }),
   ]);
   const taxConfig = deps.recorded && deps.recorded.lineTaxes.size === 0 ? null : await db.org_tax_config_cf.findFirst({
     where: { tenant_org_id: tenantOrgId, is_active: true, rec_status: 1 },
@@ -639,8 +678,8 @@ export async function loadCommercialFacts(
       itemActive: item.is_active && (item.rec_status ?? 1) === 1,
       unitPrice: item.price.toString(),
       discountPercent: text(item.discount_percent),
-      minQuantity: item.min_quantity,
-      maxQuantity: item.max_quantity,
+      minQuantity: text(item.min_quantity),
+      maxQuantity: text(item.max_quantity),
     });
     priceCandidates.set(item.product_id, candidates);
   }
@@ -687,7 +726,14 @@ export async function loadCommercialFacts(
       taxCategoryCode: p.tax_category_code,
       taxExemptReason: p.tax_exempt_reason,
       taxItemClassCode: p.tax_item_class_code,
+      baseUomCode: p.base_uom_code,
+      minBillableQty: text(p.min_billable_qty),
+      billingIncrement: text(p.billing_increment),
     }])),
+    units: new Map(units.map((u) => [u.uom_code, {
+      code: u.uom_code, dimension: u.uom_dimension, uneceCode: u.unece_code,
+      symbol: u.symbol, symbol2: u.symbol2, qtyDecimals: u.qty_decimals,
+    }] as const)),
     priceCandidates,
     speedRules: speedRules.map((r) => ({
       id: r.id,
@@ -774,7 +820,26 @@ function customProductFacts(custom: CustomItemIntent) {
     taxCategoryCode: null,
     taxExemptReason: null,
     taxItemClassCode: null,
+    // A custom item is sold in pieces.
+    baseUomCode: UOM_DEFAULT_COUNT_CODE,
+    minBillableQty: null,
+    billingIncrement: null,
   };
+}
+
+/**
+ * The unit of a line; a product with none (a custom item) is sold in pieces.
+ * @param facts the loaded facts
+ * @param code the product's base unit code
+ * @throws CommercialContextError PRODUCT_NOT_FOUND-style guard when the unit is not set up (the DB FK would refuse the line anyway)
+ */
+function unitOf(facts: CommercialFacts, code: string | undefined): UnitFacts {
+  const unit = facts.units?.get(code ?? UOM_DEFAULT_COUNT_CODE);
+  if (!unit) {
+    throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.UNIT_NOT_FOUND,
+      `Unit ${code ?? UOM_DEFAULT_COUNT_CODE} is not set up for this organization.`, { uomCode: code ?? UOM_DEFAULT_COUNT_CODE });
+  }
+  return unit;
 }
 
 /** One line's resolved prices, kept for the writer and the cart notes. */
@@ -789,6 +854,20 @@ export interface ResolvedLinePrice {
   pieceSpeeds?: ReadonlyMap<string, { serviceSpeed: string; ruleId: string | null }>;
   /** Why this line carries its tax; absent on an order taxed before the rules engine. */
   taxRecord?: OrderTaxRecord | null;
+  /** The unit snapshot of the line and, on a measured line, what was measured and billed. */
+  uom?: LineUomSnapshot;
+}
+
+/** A line's unit at sale time, with its measure when the unit is measured. */
+export interface LineUomSnapshot {
+  unit: UnitFacts;
+  /** Null on a count line. */
+  measure: BilledMeasure | null;
+  /** `FIXED` (a count unit sold as a whole) or `PER_UNIT`; the product's type, never FIXED on a measured unit. */
+  priceType: string;
+  /** The product's minimum and step as sold (null on a count line). */
+  minBillableQty: string | null;
+  billingIncrement: string | null;
 }
 
 /**
@@ -854,6 +933,20 @@ export function buildCommercialOrderInput(
       throw new CommercialContextError(COMMERCIAL_CONTEXT_ERRORS.PRODUCT_NOT_FOUND,
         `Product ${line.productId} is not an active product of this tenant.`, { productId: line.productId });
     }
+    const unit = unitOf(facts, product.baseUomCode);
+    // A measured line is priced on its billed measure (tiers included); a count line on its pieces.
+    const measure = isMeasuredDimension(unit.dimension)
+      ? resolveBilledMeasure({
+        dimension: unit.dimension, qtyDecimals: unit.qtyDecimals,
+        measuredQty: line.measure?.measuredQty, length: line.measure?.length, width: line.measure?.width,
+        minBillableQty: product.minBillableQty, billingIncrement: product.billingIncrement,
+      })
+      : null;
+    if (!measure && line.measure && (line.measure.measuredQty || line.measure.length || line.measure.width)) {
+      // A count unit is counted, not measured: refuse instead of dropping what staff typed.
+      resolveBilledMeasure({ dimension: unit.dimension, qtyDecimals: unit.qtyDecimals });
+    }
+    const pricedQty: MoneyInput = measure ? measure.billedQty : line.quantity;
     const serviceSpeed = lineSpeed(intent, line);
     // A pinned line keeping its speed (Edit, L24) is not a new choice: a speed retired since does not block it.
     if (!line.pinned?.speed && !facts.activeSpeeds.has(serviceSpeed)) {
@@ -864,14 +957,14 @@ export function buildCommercialOrderInput(
     // A custom item has no list rows: its entered price stands as the product default would.
     // A pinned line (Edit) keeps the list price agreed at drop-off (L24).
     const standard = line.pinned?.standard ?? resolveStandardPrice({
-      quantity: line.quantity,
+      quantity: pricedQty,
       businessDate: facts.businessDate,
       customerListType: facts.customerListType,
       candidates: product.id ? facts.priceCandidates.get(product.id) ?? [] : [],
       productDefaultPrice: product.defaultSellPrice,
     });
     const speed = line.pinned?.speed
-      ? recordedSpeed(serviceSpeed, standard.unitPrice, line.quantity, line.pinned.speed)
+      ? recordedSpeed(serviceSpeed, standard.unitPrice, pricedQty, line.pinned.speed)
       : requireOffered(resolveSpeedPricing({
       serviceSpeed,
       branchId: intent.branchId,
@@ -881,12 +974,20 @@ export function buildCommercialOrderInput(
       standardUnitPrice: standard.unitPrice,
       // A custom item has no authored reference: the entered price is the reference.
       referenceUnitPrice: line.customItem ? null : product.defaultSellPrice,
-      quantity: line.quantity,
+      quantity: pricedQty,
       rules: speedRulesForProduct(facts.speedRules, product.isRetailItem),
       discountAllowed: discountAllowed(serviceSpeed),
     }), product.id, product.isRetailItem);
     const pieceSpeeds = new Map<string, { serviceSpeed: string; ruleId: string | null }>();
-    const price: ResolvedLinePrice = { lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds };
+    const price: ResolvedLinePrice = {
+      lineId: line.lineId, productId: product.id, serviceSpeed, standard, speed, pieceSpeeds,
+      uom: {
+        unit, measure,
+        priceType: product.priceType === 'FIXED' && !measure ? 'FIXED' : 'PER_UNIT',
+        minBillableQty: measure ? product.minBillableQty ?? null : null,
+        billingIncrement: measure ? product.billingIncrement ?? null : null,
+      },
+    };
     prices.push(price);
 
     const pieces = line.pieces ?? Array.from({ length: Math.max(1, Math.ceil(line.quantity)) }, (_, k) => ({
@@ -970,6 +1071,7 @@ export function buildCommercialOrderInput(
     return {
       lineId: line.lineId,
       quantity: line.quantity,
+      measure,
       priceType: product.priceType,
       pricing: {
         listUnitPrice: standard.unitPrice,

@@ -17,8 +17,11 @@ import {
 const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'must be #RRGGBB')
 const catalogCode = z.string().regex(UI_CATALOG_CODE_PATTERN, 'must be an UPPERCASE code')
 const name = z.string().trim().min(1).max(80)
+// Match any Postgres UUID format (including seeded demo UUIDs like 11111111-1111-1111-1111-111111111111)
+// because Zod v4's z.string().uuid() rejects non-RFC4122 version/variant bits.
+const pgUuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'invalid tenant uuid')
 const sidebarPinnedMapSchema = z.record(
-  z.string().uuid(),
+  pgUuid,
   z.array(z.string().trim().min(1).max(64)).max(MAX_SIDEBAR_PINS_PER_TENANT),
 )
 

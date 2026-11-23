@@ -774,6 +774,34 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     ],
   },
+  {
+    routePattern: '/dashboard/catalog/units',
+    label: 'Units & Conversions',
+    page: {
+      permissions: ['uom:view'],
+      requireAllPermissions: true,
+    },
+    actions: {
+      manageUnits: {
+        label: 'Add, edit, switch off and reset units and conversions',
+        requirement: {
+          permissions: ['uom:manage'],
+          requireAllPermissions: true,
+        },
+      },
+    },
+    apiDependencies: [
+      { label: 'List units', method: 'GET', path: '/api/v1/uom/units', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
+      { label: 'List conversions', method: 'GET', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:view'], requireAllPermissions: true } },
+      { label: 'List addable system units', method: 'GET', path: '/api/v1/uom/catalog', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Add or create units', method: 'POST', path: '/api/v1/uom/units', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Update unit', method: 'PATCH', path: '/api/v1/uom/units/[code]', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Reset unit to system', method: 'POST', path: '/api/v1/uom/units/[code]/reset', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Create conversion', method: 'POST', path: '/api/v1/uom/conversions', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Update conversion', method: 'PATCH', path: '/api/v1/uom/conversions/[id]', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+      { label: 'Reset conversion to system', method: 'POST', path: '/api/v1/uom/conversions/[id]/reset', requirement: { permissions: ['uom:manage'], requireAllPermissions: true } },
+    ],
+  },
 ]
 
 export const CATALOG_PREFERENCES_ACCESS =
@@ -781,6 +809,9 @@ export const CATALOG_PREFERENCES_ACCESS =
 
 export const CATALOG_CUSTOMER_CATEGORIES_ACCESS =
   CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/customer-categories')!
+
+export const CATALOG_UNITS_ACCESS =
+  CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/units')!
 
 export const CATALOG_ORDER_SOURCES_ACCESS =
   CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/order-sources')!

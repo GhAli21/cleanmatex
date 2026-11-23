@@ -2,7 +2,7 @@
 name: pm-spec-converter
 description: Use only when explicitly requested for scoped pm-spec-converter work. Avoid broad scans and nested agents.
 version: 1.1.0
-model: sonnet
+model: haiku
 ---
 
 # Pm Spec Converter Agent

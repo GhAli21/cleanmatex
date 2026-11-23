@@ -91,6 +91,13 @@ export interface LinePricingInput {
   minUnitPrice: MoneyInput | null;
   /** The currency rule: decimals and mode, no coin step (L22c). */
   rounding: RoundingRule;
+  /**
+   * Decimals the unit prices (list, final) are kept at. Omitted = the currency
+   * decimals (piece lines, unchanged). Measured lines pass UNIT_PRICE_DECIMALS (6):
+   * a price per mL or per gram needs more than the currency's 3 decimals.
+   * Amounts (base, gross, discounts) are always at the currency decimals.
+   */
+  unitPriceDecimals?: number;
 }
 
 /** Notices the UI must show next to the row (rule #15). */
@@ -142,18 +149,20 @@ const invalid = (message: string, details: Record<string, string> = {}) =>
 export function priceLine(input: LinePricingInput): LinePricingResult {
   const { rounding } = input;
   const round = (value: MoneyInput) => roundMoney(value, rounding);
+  const unitRule: RoundingRule = { decimalPlaces: input.unitPriceDecimals ?? rounding.decimalPlaces, mode: rounding.mode };
+  const roundUnit = (value: MoneyInput) => roundMoney(value, unitRule);
   const quantity = toMoney(input.quantity);
   if (!quantity.greaterThan(0)) throw invalid(`Quantity must be positive: ${quantity.toString()}`);
 
   // ─── Unit price and base ───────────────────────────────────────────────
   const isOverride = input.overrideUnitPrice != null;
-  const listUnitPrice = round(input.listUnitPrice);
+  const listUnitPrice = roundUnit(input.listUnitPrice);
   if (isOverride && toMoney(input.overrideUnitPrice as MoneyInput).isNegative()) {
     throw invalid('An override price cannot be negative.');
   }
   const unitPrice = isOverride
-    ? round(input.overrideUnitPrice as MoneyInput)
-    : round(listUnitPrice.plus(toMoney(input.speedUnitPremium)));
+    ? roundUnit(input.overrideUnitPrice as MoneyInput)
+    : roundUnit(listUnitPrice.plus(toMoney(input.speedUnitPremium)));
   const base = round(unitPrice.times(quantity));
   const linePremium = isOverride ? ZERO : round(input.speedLinePremium);
   const speedPremiumAmount = isOverride

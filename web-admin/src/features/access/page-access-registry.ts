@@ -36,6 +36,7 @@ export {
   CATALOG_PREFERENCES_ACCESS,
   CATALOG_SECTION_PERMISSIONS,
   CATALOG_SERVICES_ACCESS,
+  CATALOG_UNITS_ACCESS,
 } from '@features/catalog/access/catalog-access'
 
 /**

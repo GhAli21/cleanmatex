@@ -347,5 +347,21 @@
     "languageArabic": "Arabic",
     "languageSaved": "Customer notification language saved",
     "languageSaveFailed": "Could not save the customer's notification language. Your choice remains available to retry."
+  },
+  "marketingConsent": {
+    "title": "Marketing messages",
+    "description": "Record whether this customer agreed to receive offers and campaigns on each channel. Customer campaigns reach only customers who agreed.",
+    "channels": {
+      "EMAIL": "Agreed to marketing by email",
+      "SMS": "Agreed to marketing by SMS",
+      "WHATSAPP": "Agreed to marketing on WhatsApp"
+    },
+    "noEmail": "This customer has no email address, so email campaigns cannot reach them yet.",
+    "noPhone": "This customer has no phone number, so these campaigns cannot reach them yet.",
+    "whatsappSeparate": "WhatsApp marketing is separate from WhatsApp order updates: agreeing to one does not agree to the other.",
+    "readOnly": "You can view marketing consent but not change it.",
+    "loadFailed": "Could not load marketing consent",
+    "saved": "Marketing consent saved",
+    "saveFailed": "Could not save marketing consent"
   }
 }

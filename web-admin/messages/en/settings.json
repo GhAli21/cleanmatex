@@ -4,13 +4,19 @@
   "calendar": {
     "title": "Business Calendar",
     "subtitle": "Opening hours, cut-off and holidays. Promised ready times are worked out from these.",
-    "tabs": { "organization": "Organization", "branches": "Branches", "holidays": "Holidays" },
+    "tabs": {
+      "organization": "Organization",
+      "branches": "Branches",
+      "holidays": "Holidays"
+    },
     "timezone": "Time zone: {timezone}. Change it in General settings.",
     "saved": "Calendar saved",
     "copyToOpenDays": "Copy to open days",
     "movedFromGeneral": "Opening hours are now set on the Business Calendar page, with cut-off time, ready time and holidays.",
     "openPage": "Open Business Calendar",
-    "hours": { "title": "Opening hours" },
+    "hours": {
+      "title": "Opening hours"
+    },
     "cutoff": {
       "label": "Cut-off time",
       "help": "Orders received after this time count from the next working day. Empty = no cut-off.",
@@ -75,24 +81,24 @@
       "READY_OUTSIDE_HOURS": "The ready time is outside the opening hours, so promised times are cut to closing time or start at opening."
     },
     "preview": {
-  "title": "If an order is placed now",
-  "subtitle": "From the saved settings, in the same way order entry promises a ready time. Standard is shown for an item that takes 24 working hours.",
-  "openNow": "Open now",
-  "closedNow": "Closed now",
-  "countingStarts": "Counting starts: {when}",
-  "ready": "Ready {when}",
-  "hours": "{count, plural, one {# working hour} other {# working hours}}",
-  "days": "{count, plural, one {# working day} other {# working days}}",
-  "example": "example item",
-  "noHours": "rule has no hours",
-  "notConfigured": "Set the opening hours (and the organization time zone) to see ready times. Until then orders count clock hours, including closed days.",
-  "loadFailed": "Could not load the preview. Refresh the page to try again."
-},
-"template": {
-  "fill": "Fill from the {name} template",
-  "filled": "Template values loaded. Review them, then press Save."
-},
-"discard": {
+      "title": "If an order is placed now",
+      "subtitle": "From the saved settings, in the same way order entry promises a ready time. Standard is shown for an item that takes 24 working hours.",
+      "openNow": "Open now",
+      "closedNow": "Closed now",
+      "countingStarts": "Counting starts: {when}",
+      "ready": "Ready {when}",
+      "hours": "{count, plural, one {# working hour} other {# working hours}}",
+      "days": "{count, plural, one {# working day} other {# working days}}",
+      "example": "example item",
+      "noHours": "rule has no hours",
+      "notConfigured": "Set the opening hours (and the organization time zone) to see ready times. Until then orders count clock hours, including closed days.",
+      "loadFailed": "Could not load the preview. Refresh the page to try again."
+    },
+    "template": {
+      "fill": "Fill from the {name} template",
+      "filled": "Template values loaded. Review them, then press Save."
+    },
+    "discard": {
       "title": "Discard your changes?",
       "description": "This branch has unsaved changes. Switching branch discards them."
     },
@@ -647,6 +653,10 @@
     "tzMuscat": "Asia/Muscat (Oman)",
     "tzRiyadh": "Asia/Riyadh (Saudi Arabia)",
     "tzDubai": "Asia/Dubai (UAE)",
+    "tzKuwait": "Asia/Kuwait (Kuwait)",
+    "tzBahrain": "Asia/Bahrain (Bahrain)",
+    "tzQatar": "Asia/Qatar (Qatar)",
+    "tzUtc": "UTC (Coordinated Universal Time)",
     "dateFormatLabel": "Date Format",
     "dateFormatDescription": "Preferred date display format",
     "notificationsSectionTitle": "Notifications",
@@ -658,6 +668,15 @@
     "browserNotificationsDesc": "Show browser push notifications",
     "workspaceSectionTitle": "Workspace",
     "defaultBranchLabel": "Default Branch",
-    "defaultBranchDesc": "Branch selected by default when logging in"
+    "defaultBranchDesc": "Branch selected by default when logging in",
+    "noDefaultBranch": "All branches (no default)",
+    "preferenceSaved": "Preference saved",
+    "preferenceSaveError": "Failed to save preference",
+    "preferenceReset": "Preference reset to default",
+    "sidebarPreferencesTitle": "Sidebar & Navigation",
+    "sidebarPreferencesDesc": "Choose your personal sidebar color palette and manage pinned shortcuts",
+    "pinnedScreensTitle": "Pinned Screens",
+    "pinnedScreensEmpty": "No pinned screens yet. Hover any sidebar item and click the star icon to pin it.",
+    "clearAllPins": "Clear all"
   }
 }

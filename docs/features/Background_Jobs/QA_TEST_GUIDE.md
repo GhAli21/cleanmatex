@@ -197,3 +197,54 @@ SELECT name FROM pgboss.queue ORDER BY 1;
 - Still `QUEUED` and the job `created`: HQ API is not consuming; see step 3.
 
 **Note:** the order submitted on 23 Nov at 21:10 already has three `ntf.deliver` jobs waiting (PUSH, EMAIL, SMS). They are sent as soon as step 4 is done, so that email may arrive first. Older outbox rows written before this release have no job and are not sent (stale demo messages; step 8 marks them skipped).
+
+### 5.4 Delivery status from provider webhooks (Owner, after 0812 and the HQ API deploy)
+
+Needs a provider that calls back: Twilio SMS or Meta WhatsApp with its status callback URL set to `https://<hq-api>/notifications/webhooks/twilio` (or `/meta`). Email (Resend) has no webhook yet, so email rows stay `SENT`.
+
+1. 0812 is applied (local and remote, 24 Nov). **Expected:** `select to_regprocedure('public.fn_ntf_status_apply(uuid,uuid,text,text,text,text,text,text)');` is not null.
+2. HQ → Ops → Jobs → `ntf.status_apply` → switch on. **Expected:** **Enabled** with no drift within 30 seconds.
+3. Send one SMS or WhatsApp to a phone you hold (for example, an order with SMS on for that tenant).
+4. Within about a minute: `select channel_code, status, delivered_at, read_at from org_ntf_outbox_dtl order by created_at desc limit 3;` **Expected:** the row moves from `SENT` to `DELIVERED` (WhatsApp: `READ` after you open it).
+5. `select receipt_kind, provider_status_raw from org_ntf_receipts_tr order by received_at desc limit 5;` **Expected:** one row per callback (`ACCEPTED`, `DELIVERED`, `READ`).
+6. `select event_type, processed_at, processing_error from hq_ntf_webhook_events order by created_at desc limit 5;` **Expected:** `processed_at` filled, `processing_error` empty.
+7. Reply `STOP` to the SMS. **Expected:** the event is processed and the number is on the suppression list; the next SMS to it is `SKIPPED`.
+
+**If not:** `processed_at` empty and a `ntf.status_apply` job `created` → the queue is off (step 2). `processing_error` "No dispatch has this provider message id" → the callback is for a send outside the outbox. The provider shows HTTP 503 → HQ API runs without `JOBS_DATABASE_URL` (5.3 step 1).
+
+### 5.5 Push (Owner, after 0816 and the HQ API deploy)
+
+Push reaches only a user who has a registered device. No screen registers one yet, so until that task is done only steps 1–3 can be checked; step 4 needs one row in `org_ntf_push_subs_dtl` (a browser subscription from a test page, or a Firebase token from the app).
+
+1. 0816 is applied (local and remote, 24 Nov). **Expected:** HQ → Ops → Config → `ntf.app.vapid.public_key` lists **HQ_API** under the apps; `ntf.hq.fcm.server_key` shows HQ_API as no longer used.
+2. On the HQ API host set the same `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` as web-admin (or rely on the registry values), and for apps `FCM_SERVICE_ACCOUNT_JSON` + `FCM_PROJECT_ID` from the Firebase console (Project settings → Service accounts → Generate new private key). Then **Check now** on those keys. **Expected:** HQ_API shows **yes**.
+3. Trigger a notification with push for a staff user who has no device (for example an order created). **Expected:** the PUSH outbox row ends `SKIPPED` with reason "The user has no active push device"; no row for it in `hq_ntf_dispatch_log`; the in-app bell row is there.
+4. With one registered device, trigger it again. **Expected:** the phone or browser shows the pop-up; the outbox row is `SENT`; `failure_count` of the device stays 0.
+5. Remove the device (uninstall the app or clear the browser site data), trigger again. **Expected:** the row is `FAILED_PERMANENT` ("provider rejected") and the device row is `is_active = false`.
+
+**If not:** row `FAILED_TEMPORARY` and the dispatch log says `PUSH_NOT_CONFIGURED` → step 2 keys are missing on HQ API. Browser push `config` errors (401/403) → HQ uses a different VAPID pair from the one the browser subscribed with.
+
+### 5.6 Campaigns (Owner, after the web-admin and cmx-workers deploy)
+
+Campaigns now run as jobs: approving (or scheduling, starting, resuming) a campaign queues `ntf.campaign_start`; cmx-workers creates the targets and sends them in `ntf.campaign_chunk` jobs of 50. Switch on `ntf.campaign_start` and `ntf.campaign_chunk` in HQ → Ops → Jobs There is no pg_cron call to stop any more: migration 0798 removed the `ntf-campaign-scheduler` cron job (remote checked 24 Nov: no campaign job in `cron.job`), and its HQ worker replacement is off (desired and applied off). Keep `ntf-campaign-scheduler` off; migration 0818 marks it SUPERSEDED so it cannot be switched on. 5e deletes the `process-campaigns` and `jobs/campaign-expansion` routes.
+
+1. Create a campaign on EMAIL for two staff users: one who allowed marketing email (Notifications → Preferences), one who did not. Submit it, then approve it. **Expected:** within about a minute the campaign is **Completed**; Targets = 2, Queued = 1, Skipped = 1; the skipped target says `NO_MARKETING_CONSENT`.
+2. Open the queued target's outbox row. **Expected:** it has the user's email address and is sent by HQ API (`SENT`), and the campaign's Sent count becomes 1.
+3. Create another campaign, approve it with **Start now**. **Expected:** it sends too (before this change "Start now" completed with nothing sent).
+4. Schedule a campaign 5 minutes ahead. **Expected:** nothing is sent before that time; it completes shortly after.
+5. Pause a large campaign (more than 50 targets) while it runs, then resume it. **Expected:** sending stops within one target, untouched targets stay Pending, resume finishes them, nobody gets the message twice.
+6. Approve a campaign whose target list is empty. **Expected:** status **Failed**, audit shows "No user_ids in target_segment".
+
+**Campaigns to customers (migration 0818, STEP5_PLAN 4b).** Switch EMAIL on for the Organization (and SMS if you test SMS).
+
+7. Customers → open a customer with an email → **Preferences** tab. **Expected:** a **Marketing messages** card under the WhatsApp card, with three boxes (email, SMS, WhatsApp), all unticked. Tick email, **Save**. **Expected:** success message; reload keeps it ticked. Tick SMS on a customer with no phone. **Expected:** a warning that campaigns cannot reach them yet (saving is still allowed). A user without `customers:update` sees the boxes disabled and a read-only note. Check Arabic (right-to-left) too.
+8. Notifications → Campaigns → Create. Choose **Customers**. **Expected:** channels are Email and SMS only, with a note that WhatsApp needs an approved template and is not available yet. Choose **Chosen customers** → **Add customer**, search by name or phone, add the customer from step 7 and one who did not agree. Save, submit, approve. **Expected:** Completed; Targets = 2, Queued = 1, Skipped = 1 (`NO_MARKETING_CONSENT`); the queued outbox row is addressed to the customer's own email, has no user, and HQ sends it.
+9. Create a customer campaign with **All customers who agreed** on Email and approve it. **Expected:** only customers with email ticked in step 7 become targets.
+10. Untick email for the step 7 customer while a campaign row to them is still queued (or schedule the campaign a few minutes ahead, then untick before it sends). **Expected:** HQ does not send; the row is skipped with "Customer has not agreed to EMAIL marketing".
+11. Send `audience_code: CUSTOMERS`, `channel_code: WHATSAPP` to `POST /api/v1/notifications/campaigns`. **Expected:** 422 with code `CAMPAIGN_CHANNEL_NOT_AVAILABLE`.
+
+**WhatsApp campaigns to customers (STEP5_PLAN 4c).** Migration 0819 first; the screens and sends come with the 4c code (steps added then).
+
+12. Apply `0819_ntf_campaign_wa_template.sql` on local, then remote. **Expected:** it commits. In SQL: `org_ntf_route_assign_cf` has `template_code` and constraint `uq_ntf_route_scope` now lists `template_code`; `org_ntf_campaigns_mst` has `template_vars` (default `{}`) and constraints `ck_ntf_camp_tvars`, `ck_ntf_camp_wa_tmpl`. The existing `order.created` route on remote is unchanged and still `ACTIVE`, with `template_code` NULL.
+
+**If not:** campaign stays **Approved** → `ntf.campaign_start` is off or cmx-workers is down (HQ → Ops → Jobs). Targets stay **Pending** with the channel switched off for the tenant → expected: the chunk checks again every 15 minutes until the channel is on or the campaign is cancelled.

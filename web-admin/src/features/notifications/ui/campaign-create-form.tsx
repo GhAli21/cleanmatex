@@ -7,7 +7,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { CmxButton, CmxInput, CmxTextarea, Label } from '@ui/primitives'
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
-import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'
+import { CmxRadioGroup, CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'
+import {
+  CAMPAIGN_AUDIENCE,
+  CAMPAIGN_CHANNELS_BY_AUDIENCE,
+  CAMPAIGN_CUSTOMER_CHANNELS_LIVE,
+  type CampaignAudience,
+} from '@/lib/constants/notification-campaigns'
+import { CampaignCustomerPicker, type CampaignCustomer } from './campaign-customer-picker'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation schema
@@ -15,12 +22,18 @@ import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, 
 
 const CHANNELS = ['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH'] as const
 
+/** Channels offered per audience. Customer WhatsApp waits for template choice (STEP5_PLAN 4c). */
+const FORM_CHANNELS: Record<CampaignAudience, readonly (typeof CHANNELS)[number][]> = {
+  STAFF: CAMPAIGN_CHANNELS_BY_AUDIENCE.STAFF,
+  CUSTOMERS: CAMPAIGN_CUSTOMER_CHANNELS_LIVE,
+}
+
 const schema = z.object({
   name:            z.string().min(1, 'Required').max(500),
   name2:           z.string().max(500).optional(),
   description:     z.string().optional(),
   channel_code:    z.enum(CHANNELS),
-  target_user_ids: z.string().min(1, 'At least one user ID is required'),
+  target_user_ids: z.string().optional(),
   scheduled_at:    z.string().optional(),
 })
 
@@ -45,6 +58,10 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
   const t = useTranslations('notifications')
   const [serverError, setServerError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [audience, setAudience] = useState<CampaignAudience>(CAMPAIGN_AUDIENCE.STAFF)
+  const [allConsented, setAllConsented] = useState(true)
+  const [customers, setCustomers] = useState<CampaignCustomer[]>([])
+  const [recipientsError, setRecipientsError] = useState<string | null>(null)
 
   const {
     register,
@@ -59,16 +76,34 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
 
   const channelCode = useWatch({ control, name: 'channel_code' }) ?? 'IN_APP'
 
+  const changeAudience = (next: CampaignAudience) => {
+    setAudience(next)
+    setRecipientsError(null)
+    // Keep the channel only when the new audience allows it.
+    if (!FORM_CHANNELS[next].includes(channelCode)) setValue('channel_code', FORM_CHANNELS[next][0])
+  }
+
   const onSubmit = async (values: FormValues) => {
     setServerError(null)
-    setIsSubmitting(true)
+    setRecipientsError(null)
 
-    // Parse the user IDs textarea (one per line or comma-separated)
-    const rawIds = values.target_user_ids
-    const userIds = rawIds
-      .split(/[\n,]+/)
-      .map(s => s.trim())
-      .filter(Boolean)
+    let targetSegment: Record<string, unknown>
+    if (audience === CAMPAIGN_AUDIENCE.STAFF) {
+      // The user IDs textarea: one per line or comma-separated.
+      const userIds = (values.target_user_ids ?? '')
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(Boolean)
+      if (userIds.length === 0) { setRecipientsError(t('campaigns.form.targetUserIdsRequired')); return }
+      targetSegment = { user_ids: userIds }
+    } else if (allConsented) {
+      targetSegment = { all_consented: true }
+    } else {
+      if (customers.length === 0) { setRecipientsError(t('campaigns.form.customersRequired')); return }
+      targetSegment = { customer_ids: customers.map(c => c.id) }
+    }
+
+    setIsSubmitting(true)
 
     try {
       const res = await fetch('/api/v1/notifications/campaigns', {
@@ -78,8 +113,9 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
           name:           values.name,
           name2:          values.name2 || undefined,
           description:    values.description || undefined,
+          audience_code:  audience,
           channel_code:   values.channel_code,
-          target_segment: { user_ids: userIds },
+          target_segment: targetSegment,
           scheduled_at:   values.scheduled_at || undefined,
         }),
       })
@@ -126,6 +162,18 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         />
       </div>
 
+      {/* Audience */}
+      <CmxRadioGroup
+        label={t('campaigns.form.audience')}
+        value={audience}
+        onChange={v => changeAudience(v as CampaignAudience)}
+        columns={2}
+        options={[
+          { value: CAMPAIGN_AUDIENCE.STAFF, label: t('campaigns.form.audienceStaff'), description: t('campaigns.form.audienceStaffHint') },
+          { value: CAMPAIGN_AUDIENCE.CUSTOMERS, label: t('campaigns.form.audienceCustomers'), description: t('campaigns.form.audienceCustomersHint') },
+        ]}
+      />
+
       {/* Channel */}
       <div className="space-y-1">
         <Label className="block">
@@ -137,7 +185,7 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         >
           <CmxSelectDropdownTrigger className="w-full">{channelCode}</CmxSelectDropdownTrigger>
           <CmxSelectDropdownContent>
-            {CHANNELS.map(ch => (
+            {FORM_CHANNELS[audience].map(ch => (
               <CmxSelectDropdownItem key={ch} value={ch}>
                 {ch}
               </CmxSelectDropdownItem>
@@ -146,6 +194,9 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         </CmxSelectDropdown>
         {errors.channel_code && (
           <p className="text-xs text-danger-text">{errors.channel_code.message}</p>
+        )}
+        {audience === CAMPAIGN_AUDIENCE.CUSTOMERS && (
+          <p className="text-xs text-muted-foreground">{t('campaigns.form.whatsappLater')}</p>
         )}
       </div>
 
@@ -162,27 +213,46 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         />
       </div>
 
-      {/* Target user IDs */}
-      <div className="space-y-1">
-        <Label className="block">
-          {t('campaigns.form.targetUserIds')}
-        </Label>
-        <CmxTextarea
-          {...register('target_user_ids')}
-          rows={4}
-          className="font-mono text-xs"
-          placeholder={t('campaigns.form.targetUserIdsPlaceholder')}
-          aria-invalid={Boolean(errors.target_user_ids)}
-        />
-        {errors.target_user_ids?.message && (
-          <p className="text-xs text-destructive" role="alert">
-            {errors.target_user_ids.message}
+      {/* Recipients */}
+      {audience === CAMPAIGN_AUDIENCE.STAFF ? (
+        <div className="space-y-1">
+          <Label className="block">
+            {t('campaigns.form.targetUserIds')}
+          </Label>
+          <CmxTextarea
+            {...register('target_user_ids')}
+            rows={4}
+            className="font-mono text-xs"
+            placeholder={t('campaigns.form.targetUserIdsPlaceholder')}
+            aria-invalid={Boolean(recipientsError)}
+          />
+          {recipientsError && (
+            <p className="text-xs text-danger-text" role="alert">{recipientsError}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {t('campaigns.form.targetUserIdsHint')}
           </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          {t('campaigns.form.targetUserIdsHint')}
-        </p>
-      </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <CmxRadioGroup
+            label={t('campaigns.form.customerRecipients')}
+            value={allConsented ? 'ALL' : 'CHOSEN'}
+            onChange={v => { setAllConsented(v === 'ALL'); setRecipientsError(null) }}
+            options={[
+              { value: 'ALL', label: t('campaigns.form.allConsented'), description: t('campaigns.form.allConsentedHint') },
+              { value: 'CHOSEN', label: t('campaigns.form.chosenCustomers'), description: t('campaigns.form.chosenCustomersHint') },
+            ]}
+          />
+          {!allConsented && (
+            <CampaignCustomerPicker
+              value={customers}
+              onChange={next => { setCustomers(next); setRecipientsError(null) }}
+              error={recipientsError ?? undefined}
+            />
+          )}
+        </div>
+      )}
 
       {/* Scheduled at (optional) */}
       <div className="space-y-1">

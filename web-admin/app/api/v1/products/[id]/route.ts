@@ -12,6 +12,9 @@ import {
   deleteProduct,
 } from '@/lib/services/catalog.service';
 import type { ProductUpdateRequest } from '@/lib/types/catalog';
+import { uomCodeSchema, productMeasureSettingsSchema } from '@/lib/validations/uom-schemas';
+import { UomRuleError } from '@/lib/uom/errors';
+import { uomErrorResponse } from '@/lib/api/uom-http';
 
 // ==================================================================
 // HELPER FUNCTIONS
@@ -105,6 +108,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'tax_category_code is not valid' }, { status: 400 });
     }
 
+    if (body.base_uom_code !== undefined && !uomCodeSchema.safeParse(body.base_uom_code).success) {
+      return NextResponse.json({ error: 'base_uom_code must be a unit code' }, { status: 400 });
+    }
+    const measureOk = productMeasureSettingsSchema.safeParse({
+      minBillableQty: body.min_billable_qty, billingIncrement: body.billing_increment,
+    });
+    if (!measureOk.success) {
+      return NextResponse.json({ error: measureOk.error.issues[0]?.message ?? 'Invalid measure settings' }, { status: 400 });
+    }
+
     // Update product
     const product = await updateProduct({
       id,
@@ -118,6 +131,7 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Error updating product:', error);
+    if (error instanceof UomRuleError) return uomErrorResponse(error, 'update-product');
 
     if (error instanceof Error) {
       if (error.message === 'Unauthorized' || error.message === 'No tenant context') {

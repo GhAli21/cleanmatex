@@ -37,6 +37,25 @@ declare module '@/lib/notifications/request.service' {
   }): Promise<string>;
 }
 
+declare module '@/lib/notifications/campaign-jobs.service' {
+  export const CAMPAIGN_CHUNK_SIZE: number;
+  export const CAMPAIGN_DELIVER_PRIORITY: number;
+  export interface CampaignStartOutcome {
+    outcome: 'STARTED' | 'NOT_DUE' | 'NOT_STARTABLE' | 'NO_TARGETS' | 'UNSUPPORTED' | 'COMPLETED' | 'SKIPPED_ORPHAN';
+    chunks: number;
+  }
+  export interface CampaignChunkOutcome {
+    outcome: 'PROCESSED' | 'NOT_RUNNING' | 'CHANNEL_OFF_RECHECK' | 'SKIPPED_ORPHAN';
+    queued: number;
+    sentNow: number;
+    skipped: number;
+    completed: boolean;
+  }
+  export function startCampaign(tenantOrgId: string, campaignId: string): Promise<CampaignStartOutcome>;
+  export function runCampaignChunk(tenantOrgId: string, campaignId: string, chunk: number): Promise<CampaignChunkOutcome>;
+  export function failCampaignChunk(tenantOrgId: string, campaignId: string, chunk: number, error: string): Promise<void>;
+}
+
 declare module '@/lib/db/prisma' {
   import type { PrismaClient } from '@prisma/client';
   export const prisma: PrismaClient;

@@ -33,7 +33,11 @@ export interface TaxDocumentPrintItem {
   lineNo: number;
   productName: string;
   productName2: string | null;
+  /** Decimal for a measured line (2.5). */
   quantity: number;
+  /** The unit invoiced (snapshot at issue) and its UN/ECE code. */
+  uomCode: string;
+  uomUneceCode: string | null;
   pricePerUnit: number;
   discountAmount: number;
   netAmount: number;
@@ -198,7 +202,9 @@ export async function getTaxDocumentPrintDetail(
         lineNo: item.line_no,
         productName: item.product_name,
         productName2: item.product_name2 ?? null,
-        quantity: item.quantity,
+        quantity: toNumber(item.quantity),
+        uomCode: item.uom_code,
+        uomUneceCode: item.uom_unece_code ?? null,
         pricePerUnit: toNumber(item.price_per_unit),
         discountAmount: toNumber(item.discount_amount),
         netAmount: toNumber(item.net_amount),

@@ -74,6 +74,7 @@ function catalogDb(): CommercialDb {
     }],
     ...activeTaxSetup('VAT_STD'),
     sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
+    org_uom_cf: [{ uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: null, qty_decimals: 0 }],
     org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 0, branch_id: null }],
     sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 0 }],
     org_packing_preference_cf: [{ packing_pref_code: 'HANG', extra_price: '0.100' }],

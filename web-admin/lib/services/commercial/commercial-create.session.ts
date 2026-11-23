@@ -17,10 +17,12 @@ import { checkoutLineId, checkoutPieceId } from './commercial-checkout.service';
 import {
   buildCommercialChildRows,
   lineMoneyColumns,
+  lineUomColumns,
   orderSnapshotColumns,
   type ChargeMeta,
   type CommercialChildRows,
   type LineMoneyColumns,
+  type LineUomColumns,
 } from './commercial-line.writer';
 
 const PRICED_SYS_KINDS = PRICED_PREFERENCE_SYS_KINDS;
@@ -35,7 +37,7 @@ export interface CommercialCreateSession {
   /** `org_orders_mst` snapshot columns (§5.3), `ready_by` included. */
   orderColumns: () => ReturnType<typeof orderSnapshotColumns>;
   /** §6.1 columns of line `index` (a cashier price is MANUAL, from the line intent). */
-  itemColumns: (index: number) => LineMoneyColumns;
+  itemColumns: (index: number) => LineMoneyColumns & LineUomColumns;
   /** §6.1 columns of piece `pieceIndex` of line `index`. */
   pieceColumns: (index: number, pieceIndex: number) => LineMoneyColumns;
   /**
@@ -80,7 +82,7 @@ export function openCommercialCreateSession(checkout: CheckoutQuote): Commercial
     orderColumns: () => orderSnapshotColumns(result, facts, prices, checkout.intent.serviceSpeed),
     itemColumns: (index) => {
       const { line, price, isOverride } = lineAt(index);
-      return lineMoneyColumns(line.item, line, price, isOverride, facts.pricingMode);
+      return { ...lineMoneyColumns(line.item, line, price, isOverride, facts.pricingMode), ...lineUomColumns(price) };
     },
     pieceColumns: (index, pieceIndex) => {
       const { line, price, isOverride } = lineAt(index);

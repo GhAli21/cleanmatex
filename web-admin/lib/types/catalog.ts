@@ -25,7 +25,7 @@ export type CSVTemplateType = 'basic' | 'advanced';
  * a CHECK constraint). `per_kg` does not exist in the DB and is not planned;
  * removed rather than kept as a dead option no CHECK would ever allow.
  */
-export type PriceType = 'FIXED' | 'PER_PC';
+export type PriceType = 'FIXED' | 'PER_UNIT';
 
 // ==================================================================
 // SERVICE CATEGORIES
@@ -130,6 +130,8 @@ export interface ProductListItem {
   category_name2: string | null;
   default_sell_price: number | null;
   product_unit: ProductUnit | null;
+  /** The unit the product is priced in. */
+  base_uom_code: string | null;
   is_active: boolean;
   created_at: string;
   product_image?: string | null;
@@ -148,7 +150,14 @@ export interface ProductCreateRequest {
   is_retail_item?: boolean;
   product_type?: number;
   price_type?: PriceType;
-  product_unit: ProductUnit;
+  /** @deprecated Use `base_uom_code`; kept until Migration B (P9). */
+  product_unit?: ProductUnit;
+  /** The unit the product is priced and stocked in (an `org_uom_cf` code); default PC. */
+  base_uom_code?: string;
+  /** Measured units only: smallest billed measure (decimal text); null/absent = none (D12). */
+  min_billable_qty?: string | null;
+  /** Measured units only: bill in steps of this size (decimal text); null/absent = none (D13). */
+  billing_increment?: string | null;
   default_sell_price: number;
   product_cost?: number;
   min_sell_price?: number;

@@ -1,6 +1,6 @@
 # Measured Pricing on a UoM platform — price by kg, m, m² (and any unit), both repos
 
-Status: **PLAN v5 — awaiting owner approval** (2026-11-23). Progress lives in [STATUS.md](STATUS.md).
+Status: **PLAN v5 — approved, in implementation** (2026-11-24). Progress lives in [STATUS.md](STATUS.md).
 
 History: v1 hard-coded `PER_KG/PER_M/PER_SQM` · v2 unit catalog · v3 open multiply/divide conversions + numeric precision
 policy · v4 tenant units (custom + copy-on-write override of system units), full both-repo coverage
@@ -64,6 +64,24 @@ and conversions are **copied** into each tenant (real FKs, no overlay), COUNT qu
 | Setup health | `tenant-setup-health` module (registry of checks). | New checks (§3.10). |
 | Docs | `docs/features/Products_Items_Config/`. | HQ doc updates live there + a UoM section. |
 
+### 2.3 P0 re-verification (2026-11-23, remote DB + both repos)
+
+| Check | Result | Plan impact |
+|---|---|---|
+| `product_unit` values | products: `PC` 157, `SUIT` 9, `piece` 6, `UNIT` 3, `PAIR` 3, `unit` 3, `SET` 3, NULL 2; templates: `PC` 53, `SUIT` 3, `PAIR` 1, `SET` 1, `UNIT` 1, NULL 2. No inventory values in data. | Backfill map holds (`piece/unit/UNIT/NULL → PC`). |
+| `price_type` | NULL on 2 products + 2 templates | Backfill `PER_UNIT`, `NOT NULL` (§3.6). |
+| Views on changing columns | none | `ALTER COLUMN TYPE` safe. |
+| DB functions on changed columns | `get_product_price`, `initialize_tenant_product_catalog`, `reseed_missing_products` (copy `price_type`/`product_unit`/`min_quantity`), `deduct_retail_stock_for_order` (deducts `quantity`); `fn_recalc_order_totals`, `cmx_ord_order_live_metrics` sum piece `quantity` + stored totals only | All replaced in Migration A (§3.6); totals fns unaffected. |
+| `get_product_price` callers | none in tenant, HQ, cmx-api | Signature → NUMERIC. |
+| Tenant creation path | HQ `tenants.service.ts` → `initialize_tenant_product_catalog`, `seed_tenant_service_preferences`; HQ maintenance → `reseed_missing_products`, `seed_tenant_customer_categories`; `org_tenants_mst` has AFTER INSERT `trigger_create_tenant_lifecycle` | Seed hook design (§3.3). |
+| `requires_weight` / `requires_dimensions` / `requires_item_count` | read only by HQ `code-tables.registry.ts` + `bulk.columns.ts`; no workflow consumer anywhere | Drop of the first two is safe. `requires_item_count` is dead too — left as a follow-up (not this feature). |
+| Product `min_quantity` | INTEGER, edited in product form / inventory / import, not enforced in orders | Untouched; form shows one minimum per unit kind (§3.6). |
+| Client-side `quantity × price` | `order-item-helpers.ts`, `new-order-reducer.ts`, `new-order-modals.tsx`, `custom-item-modal.tsx` (custom = COUNT); AR invoice lines are their own Decimal lines; `pricing-calculator.ts` test-only | `pricedQty()` helper (§3.9). |
+| `cmx-api` | no order-item code | No change. |
+| HQ permission format | old codes dot (`catalog.view`), newer codes colon (`hq_doc_seq:read`, `tenant_setup_health:view`) | `uom_config:view` / `uom_config:manage` (colon, P1). |
+| Mobile | `order_item_model`, `booking_catalog_item_model`, `order_booking_draft_model`, booking + tracking services | §3.11. |
+| Current precision | product prices/cost `10,3`; price list `price 10,3`; template prices `19,4`; line prices `19,4`; stock `19,4` | §3.1 classes. |
+
 ## 2a. External review — Gemini (2026-11-23)
 
 Adopted: system + tenant split (as separate `sys_*`/`org_*` tables), unit-cost precision, factor snapshots, catch-weight (L2).
@@ -100,7 +118,7 @@ Applied to new columns and columns this plan touches. Rule doc `docs/dev/rules/n
 | `qty_decimals SMALLINT` | 0–6; CHECK `uom_dimension <> 'COUNT' OR qty_decimals = 0` (D11). Seeds: KG 3, G 0, M 2, SQM 2, L 3, HR 2 |
 | `is_to_seed BOOLEAN NOT NULL DEFAULT true` | copied into every tenant (D10); base units forced `true` (CHECK `NOT is_base_unit OR is_to_seed`). Seeded `false` for rarer units (`DRUM GAL YD SQFT OZ`) — tenants add them on demand |
 | `unece_code TEXT` | UN/ECE Rec 20 (`H87 PR SET KGM GRM LBR ONZ MTR CMT MMT INH FOT YRD MTK FTK LTR MLT GLL BX PK RO BO DR BG HUR MIN`) |
-| `display_order`, `is_active`, `rec_status`, 14 audit columns | conventions |
+| `rec_order` (display order), `is_active`, `rec_status`, 14 audit columns | conventions |
 
 `BAG` added for laundry-by-bag pricing (count dimension, packaging).
 
@@ -115,7 +133,7 @@ Every unit a tenant can use is a row in `org_uom_cf`. Two kinds of row:
 
 Columns: `id`, `tenant_org_id`, `uom_code`, `sys_uom_code` (FK `sys_uom_cd`, nullable), `name`, `name2`, `symbol`, `symbol2`,
 `uom_dimension`, `is_base_unit`, `is_packaging`, `qty_decimals`, `unece_code` (nullable for custom → e-invoice falls back to
-`H87`/`C62` per dimension rule, documented), `is_customized` (tenant changed presentation fields), `display_order`,
+`H87`/`C62` per dimension rule, documented), `is_customized` (tenant changed presentation fields), `rec_order` (display order),
 `is_active`, `rec_status`, 14 audit columns. UNIQUE `(tenant_org_id, uom_code)` = the FK target for every tenant table.
 Same CHECKs as `sys_uom_cd` (COUNT ⇒ `qty_decimals = 0`; one base unit per dimension per tenant, partial UNIQUE).
 
@@ -123,7 +141,7 @@ Field ownership on a system row:
 
 | Editable by tenant | Locked (owned by `sys_uom_cd`, refreshed by sync) |
 |---|---|
-| names, symbols, `qty_decimals` (physical units only), `display_order`, `is_active` | `uom_code`, `uom_dimension`, `is_base_unit`, `is_packaging`, `unece_code` |
+| names, symbols, `qty_decimals` (physical units only), `rec_order`, `is_active` | `uom_code`, `uom_dimension`, `is_base_unit`, `is_packaging`, `unece_code` |
 
 - A BEFORE UPDATE trigger rejects tenant changes to locked fields on system rows (the sync fn bypasses it via a
   transaction-local setting). Editing a presentation field sets `is_customized = true`.
@@ -138,8 +156,11 @@ Field ownership on a system row:
 2. Refreshes locked fields of every system row; refreshes presentation fields only where `is_customized = false`.
 3. Never deletes, never touches custom rows or customized names.
 
-Called from: tenant creation (same place as `seed_tenant_customer_categories`, P0 confirms), Migration A backfill for all
-existing tenants, "Add from system catalog" (with codes), and an AFTER INSERT/UPDATE trigger on `sys_uom_cd` /
+Called from (P0-verified): an AFTER INSERT trigger `trg_tenant_uom_seed` on `org_tenants_mst` (precedent
+`trigger_create_tenant_lifecycle`) so no tenant can exist without units; defensively at the start of
+`initialize_tenant_product_catalog` and `reseed_missing_products` (they insert products that FK to units); an HQ
+tenant-maintenance step "Sync units"; Migration A backfill for all existing tenants; "Add from system catalog" (with
+codes); and an AFTER INSERT/UPDATE trigger on `sys_uom_cd` /
 `sys_uom_conv_cd` that runs the sync for every tenant, so an HQ fix reaches tenants with no manual step. HQ cannot change a
 system unit's `uom_dimension` or `is_base_unit` once any tenant uses it (HQ save rejects).
 
@@ -183,7 +204,8 @@ At most two stored rates multiplied; data cycles cannot loop. Converting transac
 
 **Whole-number rule (D11)** — one rule in one place: a quantity in a unit may have at most that unit's `qty_decimals`
 decimals (COUNT units always 0). Enforced by `assertQtyScale()` in `lib/uom/` (Zod refinement + services) and by
-`fn_uom_assert_qty_scale(tenant, uom, qty)` in the DB save functions (stock moves, price tiers, product minimum/increment,
+`fn_uom_assert_qty_scale(tenant, uom, qty)` in DB triggers (price tiers, product minimum/increment, order measures; stock
+moves are checked in the inventory service — existing stock writers are not trigger-gated,
 order measures). Examples: 1.5 M ✓, 2.375 KG ✓, 2.3755 KG ✗, 1.5 PC ✗. Order `quantity` stays an INTEGER column.
 
 ### 3.5 Layers
@@ -217,8 +239,16 @@ confirms). Seeding fn (0700 lineage) copies `base_uom_code`.
   AREA ⇒ L/W set, `measured_qty = ROUND(L×W, unit qty_decimals)` (half-up; server computes, client only previews).
 - `price_per_unit`, `list_unit_price`, `price_override` → `UNIT_PRICE` (items and pieces). `quantity` unchanged.
 
-`org_price_list_items_dtl`: tiers → `QUANTITY` (base unit), price → `UNIT_PRICE`; `get_product_price` numeric (P0: callers).
-`org_inv_stock_tr`: quantities → `QUANTITY`, `unit_cost` → `UNIT_COST`.
+`org_price_list_items_dtl`: `min_quantity` / `max_quantity` INTEGER → `QUANTITY` (base unit, scale rule), `price` 10,3 →
+`UNIT_PRICE`; `discount_percent` unchanged. `get_product_price` has no app callers (the TS calculator mirrors it) — replaced
+with `p_quantity NUMERIC` (old signature dropped `RESTRICT`) so the two stay identical.
+`org_inv_stock_tr`: `quantity`, `qty_before`, `qty_after` → `QUANTITY`; `unit_cost` → `UNIT_COST`; `total_cost` stays `AMOUNT`.
+`org_product_data_mst` stock fields `qty_on_hand`, `reorder_point`, `min_stock_level`, `max_stock_level` → `QUANTITY`.
+`deduct_retail_stock_for_order` (P0): deducts `oi.quantity` today — replaced to deduct `measured_qty` for measured retail
+lines (e.g. detergent sold by litre) and `quantity` for COUNT lines.
+`price_type` NULL on 2 products + 2 templates → backfilled `PER_UNIT`, column becomes `NOT NULL`.
+Existing product `min_quantity` (INTEGER, editable, enforced nowhere in the order flow) is untouched; the product form shows
+it for COUNT units only and "Minimum billable" for measured units, so there are never two "minimum" fields at once.
 
 Shortcut recorded: in v1 the measure is entered in the product's base unit (m² as L×W in metres). Entering in another unit
 (lb, ft) uses the resolver and is a UI follow-up.
@@ -228,6 +258,18 @@ already says and can contradict it (unit `KG` with `requires_weight = false`). A
 `requires_weight` ≙ dimension `MASS`, `requires_dimensions` ≙ dimension `AREA` (L×W) — read from the unit, never stored.
 `LENGTH` (curtain metres) needs one measure, which neither flag covered. Readers switch to the dimension in P7; columns drop
 in Migration B. `requires_item_count` is a different question (count pieces inside a bag) and stays.
+
+### 3.6b Migration A as written (P1, files 0813–0815)
+
+| File | Content |
+|---|---|
+| `0813_uom_units_conversions.sql` | `sys_uom_cd` (27 units, 5 not seeded) + `sys_uom_conv_cd` (12 pairs); `org_uom_cf`, `org_uom_conv_cf` (RLS read-only for signed-in users, writes via service role); guards (custom code ≠ system code, locked/immutable fields, `is_customized`, same-dimension / packaging rules, deferred base-conversion rule); `fn_uom_seed_tenant`, `fn_uom_sync_all_tenants`, HQ sync statement triggers, `trg_tenant_uom_seed` on `org_tenants_mst`; `fn_uom_reset_unit` / `fn_uom_reset_conv`; `fn_uom_conv_rate`, `fn_uom_convert`, `fn_uom_assert_qty_scale`; backfill of all tenants. |
+| `0814_uom_measured_pricing_cols.sql` | Precision classes on products, templates, line/piece prices, price lists (tiers decimal), price history, speed prices, stock, tax-document lines. Products: `base_uom_code` (FK, backfilled), `min_billable_qty`, `billing_increment`, `price_type` `FIXED|PER_UNIT` NOT NULL, rules trigger (adds a missing system unit, inactive unit, FIXED-only-count, measure fields measured-only, decimals), in-use guard on units. Templates: `base_uom_code` FK to `sys_uom_cd`. Order lines: snapshot + measure columns, billed-measure identity CHECK, snapshot trigger, committed-order guard extended. `get_product_price` NUMERIC; `deduct_retail_stock_for_order` deducts `measured_qty` on measured lines. Tax-document lines: decimal quantity + `uom_code` / `uom_unece_code` snapshot (filled from the order line). Transitional bridge triggers map legacy `product_unit` / `PER_PC` writes. |
+| `0815_uom_perms_nav.sql` | `uom:view` (roles with `products:read`), `uom:manage` (roles with `products:update`); HQ `uom_config:view` / `uom_config:manage` → TECH_ADMIN; nav `catalog_units` → `/dashboard/catalog/units`; permission cache rebuild; verification block. |
+
+Changes against the earlier plan text: `initialize_tenant_product_catalog` / `reseed_missing_products` are rewritten in
+Migration B (until then the bridge trigger maps their `product_unit` and the product rules trigger adds missing units);
+display order uses the standard `rec_order` column; tax-document lines added (e-invoices need decimal quantity + unit code).
 
 ### 3.6a Pricing rules (one place)
 
@@ -265,7 +307,14 @@ in Migration B. `requires_item_count` is a different question (count pieces insi
 | `GET/POST/PATCH/DELETE /api/v1/uom/conversions` | tenant-wide + per-product conversions (filter `productId`) | `uom:view` / `uom:manage` |
 | `POST /api/v1/uom/convert` | preview conversion (used by dialogs) | `uom:view` |
 
-- Services: `uom-units.service.ts`, `uom-conversions.service.ts`, writes through DB save functions (single source of rules).
+- Services: `uom-units.service.ts`, `uom-conversions.service.ts`; rules live in DB triggers (0813/0814), so every writer
+  gets them; services map the `UOM_*` / `MEASURE_*` error prefixes to i18n messages. Creating a custom physical unit and
+  its base conversion happens in one transaction (deferred check `UOM_BASE_CONV_REQUIRED`).
+- Measured lines may be saved unmeasured (customer-app booking); committing an order with an unmeasured line is refused
+  in the order service (`MEASURE_REQUIRED`).
+- Price-list tiers INTEGER → Decimal readers (P0 list): `commercial-context.loader.ts`, `standard-price.ts`, `catalog.service.ts`,
+  `pricing-bulk.service.ts`, `app/api/v1/pricing/import`, `app/api/v1/price-lists/[id]/items*`, `price-list-item-modal.tsx`,
+  `catalog/pricing/[id]/page.tsx`, `lib/types/catalog.ts`, `types/order.ts` + their tests.
 - Orders: schema accepts `measuredQty` / `measureLength` / `measureWidth` only; server decides billed qty; errors
   `MEASURE_REQUIRED`, `MEASURE_NOT_ALLOWED`, `UOM_CONVERSION_MISSING` (i18n `uom.errors.*`).
 - Checkout writes snapshots; Order Edit V2 op **`CHANGE_ITEM_MEASURE`** (schemas, constants, priced-ops, preview, apply,
@@ -289,7 +338,9 @@ in Migration B. `requires_item_count` is a different question (count pieces insi
   (shown for measured units only, with a live example "3.2 kg → billed 3.5 kg"); **Units tab** = that product's conversions.
 - **Inventory** add/edit/adjust modals: `CmxUomSelect`; decimals from unit.
 - **New order**: measured product → **Measure dialog** (`CmxQuantityMeasureInput` + `CmxKeypadPopover`), bag/piece count,
-  billed preview, inline minimum note; cart line "5.35 kg × 1.200 = 6.420".
+  billed preview, inline minimum note; cart line "5.35 kg × 1.200 = 6.420". The cart's own maths (P0:
+  `lib/utils/order-item-helpers.ts`, `new-order-reducer.ts`, `new-order-modals.tsx`) multiplies through one helper
+  `pricedQty(item)` (= billed measure for measured lines, `quantity` otherwise); the server quote stays authoritative.
 - **Order Edit**: "Change weight/size" action → quote → confirm.
 - **Display**: items list, order detail, receipt/invoice/statement prints, Order Fin View line rows, public tracking:
   "5.35 kg × 1.200"; "measured 1.8 kg · billed 3 kg (minimum)".
@@ -300,21 +351,24 @@ in Migration B. `requires_item_count` is a different question (count pieces insi
 - **platform-api**: new module `uom-config` on the code-table engine — registry entries `sys_uom_cd`, `sys_uom_conv_cd`;
   validation (one base per dimension, UN/ECE code format, reciprocal check, same-dimension, collision check against tenant
   custom codes, no dimension/base change on a unit tenants use), `is_to_seed` field; tenant sync runs via the DB trigger
-  (§3.3); `number` field precision support for `RATE` (12 dp) in the engine; permissions `uom_config.view` /
-  `uom_config.manage` (HQ dot format, verified in P0); audit via the engine.
+  (§3.3); `number` field precision support for `RATE` (12 dp) in the engine; permissions `uom_config:view` /
+  `uom_config:manage` (seeded in 0815, granted to TECH_ADMIN); audit via the engine.
 - **Products & Items Config**: registry `price_type` options `FIXED/PER_UNIT`; `product_unit` select → `base_uom_code` ref
   (`sys_uom_cd`); remove `requires_weight` / `requires_dimensions` fields; bulk columns + validation;
   tenant-products repository + comparison service use `base_uom_code` (and show the tenant's optional minimum/increment
   read-only in the tenant product view).
 - **platform-web**: "Units & Conversions" screens (shared code-table screens), nav entry, template editor changes,
   bulk template download updated.
+- **Tenant maintenance** (`tenant-maintenance` module + screen): new step "Sync units" calling `fn_uom_seed_tenant`;
+  `initialize_tenant_product_catalog` / `reseed_missing_products` callers unchanged (the fns seed units themselves).
 - **Tenant setup health** checks: products on an inactive unit; measured products with no price; custom physical units
   without a base conversion; templates referencing inactive units.
 - HQ docs: `docs/features/Products_Items_Config/` update + new `docs/features/UoM_Config/`.
 
 ### 3.11 Mobile customer app (`cmx_mobile_apps`)
 
-- `mobile_domain/order_item_model.dart`: measure fields + unit symbol; `order_booking_draft_model.dart` unchanged in money.
+- `mobile_domain/order_item_model.dart`: measure fields + unit symbol; `booking_catalog_item_model.dart`: unit symbol,
+  dimension, minimum, increment (to show "per kg"); `order_booking_draft_model.dart` unchanged in money.
 - Booking: measured products show "price per kg — final amount after weighing" (+ minimum / step when set); customer enters bag count only.
 - Order detail + tracking: "5.35 kg × 1.200"; minimum / step note. l10n EN/AR in `mobile_l10n`.
 
@@ -363,7 +417,7 @@ Every phase ends with: STATUS.md + PLAN progress, QA_TEST_GUIDE.md, RESUME_CONTI
 | P6 | tenant | Display: items list, detail, prints, Order Fin View, public tracking (allowlist test). | tests + build |
 | P7 | HQ | `uom-config` module + screens; Products & Items Config registry, bulk, tenant-products, comparison; setup-health checks. | HQ jest + build |
 | P8 | mobile | Customer app model, booking, detail, tracking, l10n. | flutter analyze + tests |
-| P9 | both | **Migration B**: drop `product_unit` (products + templates), `requires_weight`, `requires_dimensions` after grep shows no readers. STOP for apply. | owner applied |
+| P9 | both | **Migration B**: drop `product_unit` (products + templates), `requires_weight`, `requires_dimensions` after grep shows no readers; drop the transitional bridge triggers (`trg_prod_uom_1_bridge`, `trg_sspt_uom_1_bridge`) and `fn_uom_legacy_code`; rewrite `initialize_tenant_product_catalog` / `reseed_missing_products` to copy `base_uom_code`. STOP for apply. | owner applied |
 | P10 | both | Docs: UoM developer guide (seed + sync, resolver, scale rule, layers, precision), user guides EN/AR, QA guide, CHANGELOG, HQ docs; `/documentation`; platform inventories rebuild. | docs complete |
 
 ## 5. Risks
@@ -375,3 +429,6 @@ Every phase ends with: STATUS.md + PLAN progress, QA_TEST_GUIDE.md, RESUME_CONTI
 - Reports summing `quantity` count bags, not kg → follow-up column.
 - FX rate columns use mixed precision → separate follow-up under the new rule.
 - Scale hardware out of scope.
+
+## Progress note (2026-11-24)
+Owner approved v5. P1 and P2 are done and applied; P3 is mostly done. Details, decisions and open questions: [STATUS.md](STATUS.md) → Session handoff.

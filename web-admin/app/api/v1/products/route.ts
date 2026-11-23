@@ -3,6 +3,9 @@
  * Product management endpoints
  */
 
+import { uomCodeSchema, productMeasureSettingsSchema } from '@/lib/validations/uom-schemas';
+import { UomRuleError } from '@/lib/uom/errors';
+import { uomErrorResponse } from '@/lib/api/uom-http';
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { isTaxCategory } from '@/lib/constants/commercial';
@@ -180,11 +183,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.product_unit || !['piece', 'kg', 'item'].includes(body.product_unit)) {
+    // The unit is `base_uom_code` (an Organization unit; the database checks it exists and is on);
+    // the legacy `product_unit` text still works until Migration B.
+    const unitOk = body.base_uom_code !== undefined
+      ? uomCodeSchema.safeParse(body.base_uom_code).success
+      : body.product_unit !== undefined && ['piece', 'kg', 'item'].includes(body.product_unit);
+    if (!unitOk) {
       return NextResponse.json(
-        { error: 'product_unit must be piece, kg, or item' },
+        { error: 'base_uom_code must be a unit code (or product_unit piece, kg, item)' },
         { status: 400 }
       );
+    }
+    const measureOk = productMeasureSettingsSchema.safeParse({
+      minBillableQty: body.min_billable_qty, billingIncrement: body.billing_increment,
+    });
+    if (!measureOk.success) {
+      return NextResponse.json({ error: measureOk.error.issues[0]?.message ?? 'Invalid measure settings' }, { status: 400 });
     }
 
     if (body.default_sell_price === undefined || body.default_sell_price < 0) {
@@ -218,6 +232,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error creating product:', error);
+    if (error instanceof UomRuleError) return uomErrorResponse(error, 'create-product');
 
     if (error instanceof Error) {
       if (error.message === 'Unauthorized' || error.message === 'No tenant context') {

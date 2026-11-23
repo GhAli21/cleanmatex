@@ -213,13 +213,14 @@ export const MONEY_BASIS = {
 export type MoneyBasis = (typeof MONEY_BASIS)[keyof typeof MONEY_BASIS];
 
 /**
- * `org_product_data_mst.price_type` values (M4 CHECK: FIXED / PER_PC / NULL).
+ * `org_product_data_mst.price_type` values (CHECK chk_org_product_price_type, 0814: FIXED / PER_UNIT).
  * `FIXED` is a fixed price per unit, where one unit may be several pieces
- * (a suit set), so it cannot be priced per piece (L23, PLAN.md §5.1).
+ * (a suit set), so it cannot be priced per piece (L23, PLAN.md §5.1); count units only.
+ * `PER_UNIT` is price × quantity, or × the billed measure on a measured unit (renamed from PER_PC).
  */
 export const PRODUCT_PRICE_TYPES = {
   FIXED: 'FIXED',
-  PER_PC: 'PER_PC',
+  PER_UNIT: 'PER_UNIT',
 } as const;
 /** Derived union for `org_product_data_mst.price_type` values. */
 export type ProductPriceType = (typeof PRODUCT_PRICE_TYPES)[keyof typeof PRODUCT_PRICE_TYPES];

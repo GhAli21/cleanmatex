@@ -118,6 +118,7 @@ async function snapshotTaxDocumentItemsTx(
       id: true, product_name: true, product_name2: true, quantity: true, price_per_unit: true,
       line_disc_amount: true, order_disc_alloc_amount: true, net_amount: true,
       tax_category_code: true, tax_rate: true, tax_amount: true, line_total_amount: true,
+      billed_qty: true, uom_code: true, uom_unece_code: true,
     },
   });
   if (items.length === 0) return;
@@ -135,7 +136,10 @@ async function snapshotTaxDocumentItemsTx(
       line_no: index + 1,
       product_name: i.product_name ?? i.product_name2 ?? '',
       product_name2: i.product_name2 ?? null,
-      quantity: i.quantity ?? 0,
+      // A measured line is invoiced on its billed measure (2.5 KGM), a count line on its pieces.
+      quantity: i.billed_qty ?? i.quantity ?? 0,
+      uom_code: i.uom_code,
+      uom_unece_code: i.uom_unece_code,
       price_per_unit: i.price_per_unit,
       // Line discount plus the order discount allocated to this line (§6.7).
       discount_amount: toMoneyString(addMoney(i.line_disc_amount ?? 0, i.order_disc_alloc_amount ?? 0)),

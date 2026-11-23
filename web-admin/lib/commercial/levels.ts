@@ -36,6 +36,8 @@ export const PIECE_FALLBACK_REASONS = {
   PIECE_COUNT_MISMATCH: 'PIECE_COUNT_MISMATCH',
   /** The line has no pieces at all. */
   NO_PIECES: 'NO_PIECES',
+  /** The line is priced on a measure (kg, m, m²): a per-kg price cannot be split per piece. */
+  MEASURED_UOM: 'MEASURED_UOM',
 } as const;
 /** Derived union of PIECE fallback reasons. */
 export type PieceFallbackReason = (typeof PIECE_FALLBACK_REASONS)[keyof typeof PIECE_FALLBACK_REASONS];
@@ -51,17 +53,18 @@ export interface MoneyBasisDecision {
 /**
  * Decides which row carries the price for one line.
  * @param level the order's `commercial_level` snapshot
- * @param line the product's `price_type`, the line quantity and its piece count
+ * @param line the product's `price_type`, the line piece quantity, its piece count, and whether it is measured
  * @returns the item and piece bases and any fallback reason
  */
 export function resolveMoneyBasis(
   level: CommercialLevel,
-  line: { priceType: string | null; quantity: MoneyInput; pieceCount: number },
+  line: { priceType: string | null; quantity: MoneyInput; pieceCount: number; isMeasured?: boolean },
 ): MoneyBasisDecision {
   const itemPriced = (fallbackReason: PieceFallbackReason | null): MoneyBasisDecision => ({
     itemBasis: MONEY_BASIS.PRICED, pieceBasis: MONEY_BASIS.ALLOCATED, fallbackReason,
   });
   if (level !== COMMERCIAL_LEVELS.PIECE) return itemPriced(null);
+  if (line.isMeasured) return itemPriced(PIECE_FALLBACK_REASONS.MEASURED_UOM);
   if (line.priceType === PRODUCT_PRICE_TYPES.FIXED) return itemPriced(PIECE_FALLBACK_REASONS.FIXED_PRICE_TYPE);
   if (line.pieceCount === 0) return itemPriced(PIECE_FALLBACK_REASONS.NO_PIECES);
   if (!toMoney(line.quantity).equals(line.pieceCount)) return itemPriced(PIECE_FALLBACK_REASONS.PIECE_COUNT_MISMATCH);

@@ -189,7 +189,7 @@ npm run prisma:pull                # Sync Prisma from repo root (no cd web-admin
 - Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`
 - Bilingual: `name/name2`, `description/description2`
 - Soft delete: `is_active=false`, `rec_status=0`
-- Money fields: `DECIMAL(19, 4)`
+- Numbers by class (`docs/dev/rules/numeric-precision.md`): amounts `DECIMAL(19,4)`, unit prices `(21,6)`, unit costs `(23,8)`, quantities `(21,6)`, conversion rates `(28,12)`
 - String columns: **always `TEXT`**, never `VARCHAR`
 - No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.

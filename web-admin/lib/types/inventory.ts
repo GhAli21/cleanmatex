@@ -127,6 +127,8 @@ export interface CreateInventoryItemRequest {
   hint_text?: string;
   item_type_code?: string;
   product_unit?: string;
+  /** The unit the item is stocked and sold in (an `org_uom_cf` code); default PC. */
+  base_uom_code?: string;
   product_cost?: number;
   default_sell_price?: number;
   min_sell_price?: number;
@@ -169,6 +171,8 @@ export interface UpdateInventoryItemRequest {
   hint_text?: string;
   item_type_code?: string;
   product_unit?: string;
+  /** The unit the item is stocked and sold in (an `org_uom_cf` code); default PC. */
+  base_uom_code?: string;
   product_cost?: number;
   default_sell_price?: number;
   min_sell_price?: number;

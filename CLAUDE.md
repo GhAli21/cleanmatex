@@ -54,7 +54,7 @@ If you wrote code without the skill: stop, load it, verify, fix.
 17. **Design system:** `docs/dev/rules/cmx-design-system.md` is the source for UI look and behaviour — theme tokens only (no palette classes, hex, `dark:`), logical RTL classes, paper `data-mode="LIGHT"`, states, a11y. Before UI work is done: `npm run check:ui` (0 errors on changed files) and `/cmx-ui-design-review`.
 
 ## Database quick rules
-- `sys_*` global, `org_*` tenant (RLS). Max 30 chars per object name. TEXT not VARCHAR. Money `DECIMAL(19,4)`.
+- `sys_*` global, `org_*` tenant (RLS). Max 30 chars per object name. TEXT not VARCHAR. Numbers by class (`docs/dev/rules/numeric-precision.md`): amounts `DECIMAL(19,4)`, unit prices `(21,6)`, unit costs `(23,8)`, quantities `(21,6)`, conversion rates `(28,12)`.
 - Migration name: list `supabase/migrations/` right before writing, take last+1: `{version}_{snake_case}.sql`.
 - Comment every object + `COMMENT ON` (see `/code-documentation` sql-migration).
 - `DROP … CASCADE` banned by default; use `RESTRICT` (`docs/dev/drop-cascade-migration-workflow.md`, ask first).

@@ -35,10 +35,16 @@ name, name2
 description, description2
 ```
 
-## Money, Price Fields Size
+## Numeric precision by class
+
+Full rule: docs/dev/rules/numeric-precision.md.
 
 ```
-DECIMAL(19, 4)
+AMOUNT      DECIMAL(19,4)   totals, payments, balances, tax amounts, GL
+UNIT_PRICE  DECIMAL(21,6)   price per one unit (sell, list, line price per unit)
+UNIT_COST   DECIMAL(23,8)   cost per base unit
+QUANTITY    DECIMAL(21,6)   measured / billed / stock / tier quantities (piece counts stay INTEGER)
+RATE        DECIMAL(28,12)  unit conversion rates
 ```
 
 ## Multi-Currency Transaction Standard (base == functional)

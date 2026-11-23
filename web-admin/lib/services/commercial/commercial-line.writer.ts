@@ -31,6 +31,8 @@ import { DISCOUNT_SOURCE_TYPE } from '@/lib/constants/discount-source-type';
 import type { CommercialFacts, ResolvedLinePrice } from './commercial-context.loader';
 
 const money = (value: MoneyInput) => toStorageString(value);
+/** QUANTITY class columns are NUMERIC(21,6). */
+const qty = (value: MoneyInput) => toStorageString(value, 6);
 /** `tax_rate` is NUMERIC(5,2). */
 const rate = (value: MoneyInput) => toStorageString(value, 2);
 
@@ -102,6 +104,51 @@ export function lineMoneyColumns(
     taxable_amount: money(m.taxableAmount),
     tax_amount: money(m.taxAmount),
     line_total_amount: money(m.lineTotalAmount),
+  };
+}
+
+/** The unit snapshot and measure columns of an item row (0814); pieces carry none. */
+export interface LineUomColumns {
+  uom_code: string;
+  uom_dimension: string;
+  uom_unece_code: string | null;
+  uom_symbol: string;
+  uom_symbol2: string | null;
+  uom_qty_decimals: number;
+  price_type: string;
+  min_billable_qty: string | null;
+  billing_increment: string | null;
+  measured_qty: string | null;
+  measure_length: string | null;
+  measure_width: string | null;
+  billed_qty: string | null;
+}
+
+/**
+ * The unit snapshot and measure of an item row. The database CHECK `ck_oid_billed_qty`
+ * re-verifies the billed quantity, so a wrong figure here is refused, never stored.
+ * @param price the line's resolved price (carries the unit and the billed measure)
+ * @returns the columns to spread into the item create data
+ * @throws Error when the price has no unit (the loader always sets it)
+ */
+export function lineUomColumns(price: ResolvedLinePrice): LineUomColumns {
+  const uom = price.uom;
+  if (!uom) throw new Error(`Line ${price.lineId} has no unit snapshot.`);
+  const m = uom.measure;
+  return {
+    uom_code: uom.unit.code,
+    uom_dimension: uom.unit.dimension,
+    uom_unece_code: uom.unit.uneceCode,
+    uom_symbol: uom.unit.symbol,
+    uom_symbol2: uom.unit.symbol2,
+    uom_qty_decimals: uom.unit.qtyDecimals,
+    price_type: uom.priceType,
+    min_billable_qty: m?.minBillableQty ? qty(m.minBillableQty) : null,
+    billing_increment: m?.billingIncrement ? qty(m.billingIncrement) : null,
+    measured_qty: m ? qty(m.measuredQty) : null,
+    measure_length: m?.length ? qty(m.length) : null,
+    measure_width: m?.width ? qty(m.width) : null,
+    billed_qty: m ? qty(m.billedQty) : null,
   };
 }
 

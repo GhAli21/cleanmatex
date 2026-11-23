@@ -4,6 +4,7 @@
  * Single source of truth for validation and types.
  */
 
+import { lineMeasureSchema } from '@/lib/validations/uom-schemas';
 import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { z } from 'zod';
 import {
@@ -463,6 +464,8 @@ export const previewPaymentRequestSchema = z.object({
       /** A line with no catalog product (P5-03e). */
       customItem: customItemSchema.nullable().optional(),
       quantity: z.number().positive(),
+      /** The entered measure of a measured line (kg, m, length x width); the server computes the billed quantity. */
+      measure: lineMeasureSchema.nullable().optional(),
       /** Optional item-level unit price override used by preview totals. */
       priceOverride: z.number().min(0).nullable().optional(),
       /** @deprecated Ignored since P5-02: the server prices the preferences from `servicePrefs` / `pieces`. */
@@ -604,6 +607,8 @@ export const createWithPaymentRequestSchema = z.object({
       packingPrefIsOverride: z.boolean().optional(),
       packingPrefSource: z.string().optional(),
       packingCfId: z.preprocess(optionalUuidJsonPreprocess, zUuidLike().optional().nullable()),
+      /** The entered measure of a measured line; the server recomputes the billed quantity. */
+      measure: lineMeasureSchema.nullable().optional(),
       /** Item-level unit price override captured for pricing audit and server total validation. */
       priceOverride: z.number().min(0).nullable().optional(),
       overrideReason: z.string().max(500).nullable().optional(),

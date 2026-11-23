@@ -46,6 +46,10 @@ Use this skill only when the task explicitly matches **database**. Keep the acti
 - Keep output concise.
 - Public-key grants, `search_path`, and catalog views: follow **Public-key grants** in `conventions.md`. New objects do not inherit `anon` or `authenticated` grants.
 
+## Numeric precision by class
+
+Pick the type from what the value is (`docs/dev/rules/numeric-precision.md`): `AMOUNT` `DECIMAL(19,4)` · `UNIT_PRICE` `(21,6)` · `UNIT_COST` `(23,8)` · `QUANTITY` `(21,6)` · `RATE` `(28,12)`. Piece counts stay `INTEGER`. Comment the class on the column.
+
 ## Multi-Currency Transaction Standard (base == functional)
 
 Normal monetary transaction:

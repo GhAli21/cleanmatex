@@ -9,6 +9,9 @@ import { createClient } from '@/lib/supabase/server';
 import { PRODUCT_PRICE_TYPES } from '@/lib/constants/commercial';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getStockStatus, TRANSACTION_TYPES, ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
+import { legacyUnitToUomCode } from '@/lib/uom/legacy';
+import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
+import { throwIfUomRule } from '@/lib/uom/errors';
 import type {
   InventoryItem,
   InventoryItemListItem,
@@ -136,7 +139,8 @@ export async function createInventoryItem(
   if (request.product_group2 !== undefined) insertData.product_group2 = request.product_group2;
   if (request.product_group3 !== undefined) insertData.product_group3 = request.product_group3;
   if (request.product_type !== undefined) insertData.product_type = request.product_type;
-  insertData.price_type = request.price_type ?? PRODUCT_PRICE_TYPES.PER_PC;
+  insertData.price_type = request.price_type ?? PRODUCT_PRICE_TYPES.PER_UNIT;
+  insertData.base_uom_code = request.base_uom_code ?? legacyUnitToUomCode(request.product_unit) ?? UOM_DEFAULT_COUNT_CODE;
   if (request.min_quantity !== undefined) insertData.min_quantity = request.min_quantity;
   if (request.pieces_per_product !== undefined)
     insertData.pieces_per_product = request.pieces_per_product;
@@ -163,6 +167,7 @@ export async function createInventoryItem(
     if (error.code === '23505') {
       throw new Error('Item code already exists');
     }
+    throwIfUomRule(error.message);
     throw new Error('Failed to create inventory item');
   }
 
@@ -207,6 +212,7 @@ export async function updateInventoryItem(
   if (request.hint_text !== undefined) updateData.hint_text = request.hint_text;
   if (request.item_type_code !== undefined) updateData.item_type_code = request.item_type_code;
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
+  if (request.base_uom_code !== undefined) updateData.base_uom_code = request.base_uom_code;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
   if (request.default_sell_price !== undefined) updateData.default_sell_price = request.default_sell_price;
   if (request.min_sell_price !== undefined) updateData.min_sell_price = request.min_sell_price;
@@ -248,6 +254,7 @@ export async function updateInventoryItem(
 
   if (error) {
     console.error('Error updating inventory item:', error);
+    throwIfUomRule(error.message);
     throw new Error('Failed to update inventory item');
   }
 

@@ -33,6 +33,16 @@ export const QUEUE_PAYLOADS = {
    * token (`fn_ntf_worker_claim_one`); the first send of a row uses the outbox id.
    */
   'ntf.deliver': z.strictObject({ tenantOrgId: zId, outboxId: zId }),
+  /**
+   * One campaign (`org_ntf_campaigns_mst`) at its send time, on approval, start or resume: creates its
+   * targets, sets it RUNNING and queues one `ntf.campaign_chunk` per page that still has PENDING targets.
+   */
+  'ntf.campaign_start': z.strictObject({ tenantOrgId: zId, campaignId: zId }),
+  /**
+   * One page of a campaign's targets: `chunk` k = targets k*50 .. k*50+49 in id order (fixed once the
+   * campaign starts). Each PENDING target gets its outbox row and `ntf.deliver` job in one transaction.
+   */
+  'ntf.campaign_chunk': z.strictObject({ tenantOrgId: zId, campaignId: zId, chunk: z.number().int().min(0).max(100_000) }),
 } as const;
 
 export type QueueName = keyof typeof QUEUE_PAYLOADS;

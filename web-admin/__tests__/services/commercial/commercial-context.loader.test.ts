@@ -39,13 +39,14 @@ function mockDb(fixtures: Fixtures) {
   const names = ['org_tenants_mst', 'org_branches_mst', 'org_customers_mst', 'org_product_data_mst', 'org_price_lists_mst',
     'org_price_list_items_dtl', 'org_speed_price_rules_cf', 'org_tax_profiles_cf', 'org_tax_exemptions_cf',
     'org_service_preference_cf', 'org_packing_preference_cf', 'sys_service_preference_cd', 'sys_service_category_cd',
-    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', 'org_holidays_cf', 'sys_public_holidays_cf', ...TAX_ENGINE_MODELS];
+    'sys_service_speed_cd', 'sys_currency_rounding_rules_cf', 'org_uom_cf', 'org_holidays_cf', 'sys_public_holidays_cf', ...TAX_ENGINE_MODELS];
   return { db: Object.fromEntries(names.map((n) => [n, model(n)])) as unknown as CommercialDb, calls };
 }
 
 const product = (id: string, over: Record<string, unknown> = {}) => ({
   id, service_category_code: 'DRY_CLEAN', price_type: 'PER_PC', default_sell_price: '1.000', min_sell_price: null,
-  turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null, ...over,
+  turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null,
+  base_uom_code: 'PC', min_billable_qty: null, billing_increment: null, ...over,
 });
 
 const baseFixtures = (): Fixtures => ({
@@ -78,6 +79,10 @@ const baseFixtures = (): Fixtures => ({
   org_packing_preference_cf: [{ packing_pref_code: 'HANGER', extra_price: '0.100' }],
   sys_service_category_cd: [{ service_category_code: 'DRY_CLEAN', turnaround_hh: '48' }],
   org_tax_exemptions_cf: [],
+  org_uom_cf: [
+    { uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: 'قطعة', qty_decimals: 0 },
+    { uom_code: 'KG', uom_dimension: 'MASS', unece_code: 'KGM', symbol: 'kg', symbol2: 'كجم', qty_decimals: 3 },
+  ],
 });
 
 const intent = (over: Partial<CommercialOrderIntent> = {}): CommercialOrderIntent => ({
@@ -345,5 +350,49 @@ describe('quoteCommercialOrder', () => {
     expect(resolver.mock.calls[0][0].linesNet.toString()).toBe('9.15');
     expect(quote.result.totals.orderDiscountTotal.toString()).toBe('1');
     expect(quote.orderAdjustments).toHaveLength(1);
+  });
+});
+
+describe('measured lines (UoM)', () => {
+  const LAUNDRY = 'aaaaaaaa-0000-0000-0000-000000000009';
+  const kgFixtures = (): Fixtures => {
+    const f = baseFixtures();
+    f.org_product_data_mst = [
+      product(SHIRT),
+      product(LAUNDRY, { base_uom_code: 'KG', price_type: 'PER_UNIT', default_sell_price: '5.000', min_billable_qty: '3', billing_increment: '0.5' }),
+    ];
+    return f;
+  };
+  const kgLine = (measure: Record<string, string> | null) => intent({
+    lines: [{ lineId: 'L1', productId: LAUNDRY, quantity: 1, measure, serviceSpeed: null, overrideUnitPrice: null, lineDiscounts: [], preferences: [] }],
+    orderPreferences: [],
+  });
+
+  it('prices on the billed measure (minimum and step applied) and snapshots the unit', async () => {
+    const { db } = mockDb(kgFixtures());
+    const it1 = kgLine({ measuredQty: '3.2' });
+    const facts = await loadCommercialFacts(db, TENANT, it1, deps);
+    const { input, prices } = buildCommercialOrderInput(it1, facts);
+    // 3.2 kg, minimum 3, step 0.5 → billed 3.5 kg × 5.000 = 17.500.
+    expect(prices[0].uom).toMatchObject({ unit: { code: 'KG', dimension: 'MASS' }, priceType: 'PER_UNIT' });
+    expect(prices[0].uom?.measure?.billedQty.toString()).toBe('3.5');
+    expect(calculateCommercialOrder(input).lines[0].item.money.grossAmount.toString()).toBe('17.5');
+  });
+
+  it('refuses a measured line with no measure (MEASURE_REQUIRED)', async () => {
+    const { db } = mockDb(kgFixtures());
+    const it1 = kgLine(null);
+    const facts = await loadCommercialFacts(db, TENANT, it1, deps);
+    expect(() => buildCommercialOrderInput(it1, facts)).toThrow(expect.objectContaining({ code: 'MEASURE_REQUIRED' }));
+  });
+
+  it('refuses a measure on a count line (MEASURE_NOT_ALLOWED) and keeps count lines unchanged', async () => {
+    const { db } = mockDb(kgFixtures());
+    const bad = intent({ lines: [{ lineId: 'L1', productId: SHIRT, quantity: 2, measure: { measuredQty: '2' }, serviceSpeed: null, overrideUnitPrice: null, lineDiscounts: [], preferences: [] }], orderPreferences: [] });
+    const facts = await loadCommercialFacts(db, TENANT, bad, deps);
+    expect(() => buildCommercialOrderInput(bad, facts)).toThrow(expect.objectContaining({ code: 'MEASURE_NOT_ALLOWED' }));
+    const ok = intent({ lines: [{ ...bad.lines[0], measure: null }], orderPreferences: [] });
+    const { prices } = buildCommercialOrderInput(ok, facts);
+    expect(prices[0].uom).toMatchObject({ unit: { code: 'PC' }, measure: null, priceType: 'PER_UNIT' });
   });
 });

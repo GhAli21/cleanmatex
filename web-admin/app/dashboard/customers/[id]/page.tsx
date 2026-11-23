@@ -24,6 +24,7 @@ import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-se
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section'
 import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab'
 import { CustomerWhatsAppConsentCard } from '@features/customers/ui/customer-whatsapp-consent-card'
+import { CustomerMarketingConsentCard } from '@features/customers/ui/customer-marketing-consent-card'
 import { CustomerStoredValueTab } from '@features/customers/ui/customer-stored-value-tab'
 import { CustomerLoyaltyTab } from '@features/customers/ui/customer-loyalty-tab'
 import {
@@ -421,6 +422,11 @@ export default function CustomerDetailPage() {
               <div className="space-y-6">
                 {currentTenant?.tenant_id && <CustomerWhatsAppConsentCard
                   key={`${currentTenant.tenant_id}:${customer.id}`}
+                  tenantId={currentTenant.tenant_id}
+                  customerId={customer.id}
+                />}
+                {currentTenant?.tenant_id && <CustomerMarketingConsentCard
+                  key={`marketing:${currentTenant.tenant_id}:${customer.id}`}
                   tenantId={currentTenant.tenant_id}
                   customerId={customer.id}
                 />}

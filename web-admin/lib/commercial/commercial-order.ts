@@ -34,6 +34,8 @@ import {
   type RowMoney,
 } from './levels';
 import { MODIFIER_PLACEMENTS, priceLine, type LinePricingInput, type LinePricingResult, type PriceModifier } from './line-pricing';
+import type { BilledMeasure } from './measure';
+import { UNIT_PRICE_DECIMALS } from '@/lib/constants/uom';
 import { ZERO, sumMoney, toMoney, type Money, type MoneyInput } from './money';
 import { resolveReadyBy, type ReadyByInput, type ReadyByLineInput, type ReadyByLineResult } from './ready-by';
 import type { RoundingRule } from './rounding';
@@ -77,7 +79,15 @@ export interface CommercialPieceInput {
 /** One order line with every fact the calculator needs. */
 export interface CommercialLineInput {
   lineId: string;
+  /** The piece / bag count (`org_order_items_dtl.quantity`, whole). Money uses `measure.billedQty` on a measured line. */
   quantity: MoneyInput;
+  /**
+   * The billed measure of a measured line (`resolveBilledMeasure`), null on a count line.
+   * A measured line is priced on its whole row: `billedQty` replaces `quantity` in the
+   * price, speed premium and minimum-price check, unit prices keep UNIT_PRICE decimals,
+   * and the money basis falls back to the item (MEASURED_UOM).
+   */
+  measure?: BilledMeasure | null;
   /** The product's `price_type`, for the PIECE fallback. */
   priceType: string | null;
   /** Everything `priceLine` needs except quantity and rounding. */
@@ -297,8 +307,10 @@ export function calculateCommercialOrder(input: CommercialOrderInput): Commercia
   const { pricingMode, rounding } = input;
   const decimals = rounding.decimalPlaces;
   const basisOf = input.lines.map((line) => resolveMoneyBasis(input.level, {
-    priceType: line.priceType, quantity: line.quantity, pieceCount: line.pieces.length,
+    priceType: line.priceType, quantity: line.quantity, pieceCount: line.pieces.length, isMeasured: line.measure != null,
   }));
+  // What the price multiplies: the billed measure of a measured line, else the piece quantity.
+  const pricedQty = (line: CommercialLineInput): MoneyInput => (line.measure ? line.measure.billedQty : line.quantity);
 
   // ─── 1. Price the PRICED rows ──────────────────────────────────────────
   const pricedRows: PricedRow[] = input.lines.flatMap((line, lineIndex) => {
@@ -308,7 +320,13 @@ export function calculateCommercialOrder(input: CommercialOrderInput): Commercia
           `Line ${line.lineId} is priced on the item, so a piece cannot have its own discount or speed.`, { lineId: line.lineId });
       }
       const modifiers = [...line.pricing.modifiers, ...line.pieces.flatMap((p) => p.modifiers ?? [])];
-      return [{ rowId: line.lineId, lineIndex, pieceId: null, pricing: priceLine({ ...line.pricing, modifiers, quantity: line.quantity, rounding }) }];
+      return [{
+        rowId: line.lineId, lineIndex, pieceId: null,
+        pricing: priceLine({
+          ...line.pricing, modifiers, quantity: pricedQty(line), rounding,
+          unitPriceDecimals: line.measure ? UNIT_PRICE_DECIMALS : undefined,
+        }),
+      }];
     }
     const adjustmentsOf = pieceAdjustments(line, decimals);
     const firstFollowing = line.pieces.findIndex((p) => !p.speed);

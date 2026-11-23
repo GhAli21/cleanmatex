@@ -31,14 +31,19 @@ export interface PriceListCandidate {
   unitPrice: MoneyInput;
   /** Percent 0–100; NULL means none. */
   discountPercent: MoneyInput | null;
-  /** NULL counts as 1 (the column default). */
-  minQuantity: number | null;
-  maxQuantity: number | null;
+  /**
+   * Tier start (inclusive) in the product base unit; NULL counts as 1 (the column default).
+   * Decimal (QUANTITY class): a measured product's tiers are kg / m / m² amounts.
+   */
+  minQuantity: MoneyInput | null;
+  /** Tier end (inclusive); NULL = no upper bound. */
+  maxQuantity: MoneyInput | null;
 }
 
 /** Everything needed to price one row at standard speed. */
 export interface StandardPriceInput {
-  quantity: number;
+  /** The piece count, or the billed measure of a measured line (decimal). */
+  quantity: MoneyInput;
   /** Business date in the tenant's time zone, `YYYY-MM-DD`. */
   businessDate: string;
   /** The customer's list type (`b2b`, `vip`), or null / `standard` for none. */
@@ -66,20 +71,20 @@ export class PriceNotResolvedError extends CommercialRuleError {
   }
 }
 
-const isEligible = (row: PriceListCandidate, listType: string, quantity: number, date: string): boolean =>
+const isEligible = (row: PriceListCandidate, listType: string, quantity: Money, date: string): boolean =>
   row.listActive
   && row.itemActive
   && row.listType === listType
   && (row.effectiveFrom == null || row.effectiveFrom <= date)
   && (row.effectiveTo == null || row.effectiveTo >= date)
-  && (row.minQuantity ?? 1) <= quantity
-  && (row.maxQuantity == null || row.maxQuantity >= quantity);
+  && toMoney(row.minQuantity ?? 1).lessThanOrEqualTo(quantity)
+  && (row.maxQuantity == null || toMoney(row.maxQuantity).greaterThanOrEqualTo(quantity));
 
 // Same order as get_product_price (priority, then the deepest quantity tier),
 // plus the item id so equal rows always resolve the same way.
 const compareCandidates = (a: PriceListCandidate, b: PriceListCandidate): number =>
   (b.listPriority ?? 0) - (a.listPriority ?? 0)
-  || (b.minQuantity ?? 1) - (a.minQuantity ?? 1)
+  || toMoney(b.minQuantity ?? 1).comparedTo(toMoney(a.minQuantity ?? 1))
   || a.priceListItemId.localeCompare(b.priceListItemId);
 
 /**
@@ -94,8 +99,9 @@ const compareCandidates = (a: PriceListCandidate, b: PriceListCandidate): number
  *   candidates: [], productDefaultPrice: '1.500' }).unitPrice.toString(); // '1.5'
  */
 export function resolveStandardPrice(input: StandardPriceInput): StandardPriceResult {
-  const { quantity, businessDate, candidates } = input;
-  if (!(quantity > 0)) throw new Error(`Quantity must be positive: ${quantity}`);
+  const { businessDate, candidates } = input;
+  const quantity = toMoney(input.quantity);
+  if (!quantity.greaterThan(0)) throw new Error(`Quantity must be positive: ${quantity.toString()}`);
 
   const customerType = input.customerListType && input.customerListType !== STANDARD_PRICE_LIST_TYPE
     ? input.customerListType

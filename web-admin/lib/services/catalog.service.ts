@@ -11,6 +11,9 @@ import { PRODUCT_PRICE_TYPES, SERVICE_SPEEDS, SPEED_PRICE_TYPES, isTaxCategory }
 import { createSpeedRule, listProductExpressRules } from '@/lib/services/catalog/speed-rules.service';
 import { speedRuleCreateSchema, type SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 import { catalogReadClient } from '@/lib/supabase/catalog-read';
+import { legacyUnitToUomCode } from '@/lib/uom/legacy';
+import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
+import { throwIfUomRule } from '@/lib/uom/errors';
 import type {
   ServiceCategory,
   EnabledCategory,
@@ -259,8 +262,11 @@ export async function createProduct(
       hint_text: request.hint_text || null,
       is_retail_item: request.is_retail_item || false,
       product_type: request.product_type || null,
-      price_type: request.price_type || PRODUCT_PRICE_TYPES.PER_PC,
-      product_unit: request.product_unit,
+      price_type: request.price_type || PRODUCT_PRICE_TYPES.PER_UNIT,
+      product_unit: request.product_unit ?? null,
+      base_uom_code: request.base_uom_code ?? legacyUnitToUomCode(request.product_unit) ?? UOM_DEFAULT_COUNT_CODE,
+      min_billable_qty: request.min_billable_qty != null ? Number(request.min_billable_qty) : null,
+      billing_increment: request.billing_increment != null ? Number(request.billing_increment) : null,
       default_sell_price: request.default_sell_price,
       product_cost: request.product_cost || null,
       min_sell_price: request.min_sell_price || null,
@@ -290,6 +296,7 @@ export async function createProduct(
     if (error.code === '23505') {
       throw new Error('Product code already exists');
     }
+    throwIfUomRule(error.message);
     throw new Error('Failed to create product');
   }
 
@@ -326,6 +333,9 @@ export async function updateProduct(
   if (request.product_type !== undefined) updateData.product_type = request.product_type;
   if (request.price_type !== undefined) updateData.price_type = request.price_type;
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
+  if (request.base_uom_code !== undefined) updateData.base_uom_code = request.base_uom_code;
+  if (request.min_billable_qty !== undefined) updateData.min_billable_qty = request.min_billable_qty != null ? Number(request.min_billable_qty) : null;
+  if (request.billing_increment !== undefined) updateData.billing_increment = request.billing_increment != null ? Number(request.billing_increment) : null;
   if (request.default_sell_price !== undefined)
     updateData.default_sell_price = request.default_sell_price;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
@@ -365,6 +375,7 @@ export async function updateProduct(
     if (error.code === '23505') {
       throw new Error('Product code already exists');
     }
+    throwIfUomRule(error.message);
     throw new Error('Failed to update product');
   }
 
@@ -514,6 +525,7 @@ export async function searchProducts(
     category_name2: item.service_category_code,
     default_sell_price: item.default_sell_price,
     product_unit: item.product_unit,
+    base_uom_code: item.base_uom_code ?? null,
     is_active: item.is_active,
     created_at: item.created_at,
     product_image: item.product_image ?? null,

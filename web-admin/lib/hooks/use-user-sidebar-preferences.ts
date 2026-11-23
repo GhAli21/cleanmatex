@@ -137,11 +137,22 @@ export function useUserSidebarPreferences() {
     [mutation, pinnedMap, tenantId, user?.id],
   )
 
+  const clearPins = useCallback(() => {
+    if (!user?.id || !tenantId) return
+    mutation.mutate({
+      ui_sidebar_pinned: {
+        ...pinnedMap,
+        [tenantId]: [],
+      },
+    })
+  }, [mutation, pinnedMap, tenantId, user?.id])
+
   return {
     sidebarTheme,
     pinnedKeys,
     setSidebarTheme,
     togglePin,
+    clearPins,
     isSaving: mutation.isPending,
   }
 }

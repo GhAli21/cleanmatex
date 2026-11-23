@@ -12,19 +12,44 @@ import { requirePermission } from '@/lib/middleware/require-permission'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
 import type { Json } from '@/types/database'
+import {
+  CAMPAIGN_AUDIENCE,
+  CAMPAIGN_CHANNELS_BY_AUDIENCE,
+  CAMPAIGN_CUSTOMER_CHANNELS_LIVE,
+} from '@/lib/constants/notification-campaigns'
 
 const PAGE_SIZE_MAX = 50
 
-const createCampaignSchema = z.object({
+const campaignFields = {
   name:            z.string().min(1).max(500),
   name2:           z.string().max(500).optional(),
   description:     z.string().optional(),
   description2:    z.string().optional(),
-  channel_code:    z.enum(['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH']),
   template_code:   z.string().max(200).optional(),
-  target_segment:  z.record(z.string(), z.unknown()).optional(),
   scheduled_at:    z.string().datetime().optional(),
-})
+}
+
+/**
+ * Audience and channel pairs mirror `ck_ntf_camp_audience` (migration 0818). Staff are named by user id;
+ * customers by id, or every customer who agreed to marketing on the channel (`all_consented`).
+ */
+const createCampaignSchema = z.discriminatedUnion('audience_code', [
+  z.object({
+    ...campaignFields,
+    audience_code:  z.literal(CAMPAIGN_AUDIENCE.STAFF),
+    channel_code:   z.enum(CAMPAIGN_CHANNELS_BY_AUDIENCE.STAFF),
+    target_segment: z.object({ user_ids: z.array(z.string().uuid()).min(1) }),
+  }),
+  z.object({
+    ...campaignFields,
+    audience_code:  z.literal(CAMPAIGN_AUDIENCE.CUSTOMERS),
+    channel_code:   z.enum(CAMPAIGN_CHANNELS_BY_AUDIENCE.CUSTOMERS),
+    target_segment: z.union([
+      z.object({ all_consented: z.literal(true) }),
+      z.object({ customer_ids: z.array(z.string().uuid()).min(1).max(5000) }),
+    ]),
+  }),
+])
 
 // ---------------------------------------------------------------------------
 // GET — campaign list, paginated
@@ -52,7 +77,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('org_ntf_campaigns_mst')
     .select(
-      'id, name, name2, status, channel_code, scheduled_at, started_at, completed_at, ' +
+      'id, name, name2, status, audience_code, channel_code, scheduled_at, started_at, completed_at, ' +
       'total_targets, sent_count, failed_count, skip_count, created_at, updated_at',
       { count: 'exact' }
     )
@@ -105,7 +130,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const parsed = createCampaignSchema.safeParse(body)
+  // Older callers send no audience: they always meant staff.
+  const withAudience = body && typeof body === 'object' && !('audience_code' in body)
+    ? { ...body, audience_code: CAMPAIGN_AUDIENCE.STAFF }
+    : body
+  const parsed = createCampaignSchema.safeParse(withAudience)
   if (!parsed.success) {
     return NextResponse.json(
       { success: false, error: 'Validation failed', details: parsed.error.flatten() },
@@ -115,8 +144,17 @@ export async function POST(request: NextRequest) {
 
   const {
     name, name2, description, description2,
-    channel_code, template_code, target_segment, scheduled_at,
+    audience_code, channel_code, template_code, target_segment, scheduled_at,
   } = parsed.data
+
+  if (audience_code === CAMPAIGN_AUDIENCE.CUSTOMERS
+    && !(CAMPAIGN_CUSTOMER_CHANNELS_LIVE as readonly string[]).includes(channel_code)) {
+    return NextResponse.json({
+      success: false,
+      error: 'WhatsApp campaigns to customers are not available yet: they need an approved WhatsApp marketing template.',
+      code: 'CAMPAIGN_CHANNEL_NOT_AVAILABLE',
+    }, { status: 422 })
+  }
 
   const supabase = createAdminSupabaseClient()
 
@@ -129,9 +167,10 @@ export async function POST(request: NextRequest) {
       description:    description    ?? null,
       description2:   description2   ?? null,
       status:         'DRAFT',
+      audience_code,
       channel_code,
       template_code:  template_code  ?? null,
-      target_segment: (target_segment ?? null) as unknown as Json,
+      target_segment: target_segment as unknown as Json,
       scheduled_at:   scheduled_at   ?? null,
       total_targets:  0,
       sent_count:     0,

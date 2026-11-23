@@ -194,6 +194,14 @@ type ParentItemRow = {
   speed_rule_id: string | null;
   tax_pricing_mode: string | null;
   tax_category_code: string | null;
+  // Unit snapshot (0814): a sub-order line sells the same unit; the measure stays on the parent line.
+  uom_code: string;
+  uom_dimension: string;
+  uom_unece_code: string | null;
+  uom_symbol: string;
+  uom_symbol2: string | null;
+  uom_qty_decimals: number;
+  price_type: string;
 };
 
 type PlannedLine = { item: ParentItemRow; units: number; pieceSeqs: number[] | null };
@@ -500,6 +508,13 @@ export async function splitOrderUnits(input: OrderSplitInput): Promise<OrderSpli
               net_amount: 0,
               tax_pricing_mode: p.item.tax_pricing_mode,
               tax_category_code: p.item.tax_category_code,
+              uom_code: p.item.uom_code,
+              uom_dimension: p.item.uom_dimension,
+              uom_unece_code: p.item.uom_unece_code,
+              uom_symbol: p.item.uom_symbol,
+              uom_symbol2: p.item.uom_symbol2,
+              uom_qty_decimals: p.item.uom_qty_decimals,
+              price_type: p.item.price_type,
               tax_rate: 0,
               taxable_amount: 0,
               tax_amount: 0,

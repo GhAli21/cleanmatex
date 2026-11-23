@@ -4,10 +4,10 @@
 |---|---|---|---|
 | Plan | — | ✅ v5 written 2026-11-23 | [PLAN.md](PLAN.md); D1–D14; v5: seeded copies + real FKs, COUNT whole numbers, optional tenant minimum + billing_increment |
 | Gemini UoM review | — | ✅ 2026-11-23 | PLAN §2a |
-| P0 Re-verify | both | ⏳ | |
-| P1 Precision rule + Migration A | both | ⏳ | stop-and-wait for owner apply |
-| P2 UoM lib + calculator | tenant | ⏳ | |
-| P3 Server + APIs | tenant | ⏳ | |
+| P0 Re-verify | both | ✅ 2026-11-23 | PLAN §2.3; plan amended (retail stock deduction, seed trigger on tenant insert, cart `pricedQty`, tier readers, `get_product_price` NUMERIC, price_type backfill) |
+| P1 Precision rule + Migration A | both | ✅ applied local + remote 2026-11-24 (owner); QA §P1 checks 1–6 + resolver verified on remote; Prisma + types regenerated (web-admin tsc 0 errors) | `docs/dev/rules/numeric-precision.md` + pointers (CLAUDE.md, AGENTS.md, database skill, sql-migration doc, .cursor/.claude/.codex convention docs, HQ CLAUDE.md/AGENTS.md/.claude/.codex docs); migrations 0813, 0814, 0815 (PLAN §3.6b); pglast parse OK |
+| P2 UoM lib + calculator | tenant | ✅ 2026-11-24 | `lib/uom/*`, `lib/commercial/measure.ts`, `lib/validations/uom-schemas.ts`, `lib/constants/uom.ts`; calculator prices measured lines on billed qty (ITEM basis, 6-dp unit price); tiers compare decimals; jest 397/23 suites, tsc 0, eslint clean. Mig 0817 (COUNT-target whole check at 6 dp) applied by owner |
+| P3 Server + APIs | tenant | 🟡 mostly done | DONE: `uom.service.ts`, `uom-http.ts`, routes `/api/v1/uom/*` (perm `uom:view`/`uom:manage`); order write path: `LineIntent.measure` → loader reads product `base_uom_code`/`min_billable_qty`/`billing_increment` + `org_uom_cf`, resolves the billed measure (tiers, speed and money use `billedQty`; `MEASURE_REQUIRED` / `MEASURE_NOT_ALLOWED` / `UOM_QTY_SCALE` refuse the quote and so the commit), writer stores the `uom_*` snapshot + measure columns (`lineUomColumns`), checkout request + both request schemas accept `measure`; order split copies the unit snapshot; tax document items store billed quantity + `uom_code`/`uom_unece_code` (print detail too); catalog + inventory + `/api/v1/products` (POST/PATCH) accept `base_uom_code`, `min_billable_qty`, `billing_increment`, DB `UOM_*` errors surface as `UomRuleError`. Tests: jest commercial/uom/services 414 + `uom-http`, tsc 0, eslint clean. Route tests for all 8 UoM routes done 2026-11-24 (`__tests__/uom/uom-routes.test.ts`, 17 pass: permission gate, 400 validation, session tenant, error mapping). DB-integration tests done (`__tests__/db-integration/uom-rules.db.test.ts`, 5 pass on the local DB, rolled back, covers convert, whole-count, qty scale, unknown unit, reserved code). Public APIs: `/api/v1/public/customer/booking` still reads legacy `product_unit` through the 0814 bridge; moved to P6 (display/public). TODO: Order Edit (pinned lines keep a count unit until P5 `CHANGE_ITEM_MEASURE`; ADD_ITEM of a measured product needs the measure there), cart `pricedQty` sites (UI, with P4), public APIs, DB-integration tests |
 | P4 UI | tenant | ⏳ | perms + nav + access contract |
 | P5 Order Edit measure op | tenant | ⏳ | |
 | P6 Display / prints / public | tenant | ⏳ | |
@@ -16,7 +16,21 @@
 | P9 Migration B (drops) | both | ⏳ | stop-and-wait |
 | P10 Docs | both | ⏳ | |
 
-Follow-ups outside this plan: FX rate column precision; "billed measure by unit" in sales reports; 
+Follow-ups outside this plan: dead `requires_item_count` column (HQ templates); FX rate column precision; "billed measure by unit" in sales reports; 
 entering measures in a non-base unit (lb/ft) in the Measure dialog; UoM L2 with ERP Lite PO.
 
-**Next:** owner approves PLAN.md v5 → start P0.
+**Next:** P3 is closed except Order Edit (P5) and cart `pricedQty` (P4); public APIs moved to P6. Start P4 (UI: unit picker, measure input, Units page). AMOUNT precision settled: `(19,4)` (doc corrected 2026-11-24).
+
+## Session handoff — 2026-11-24
+
+**Done:** P1 migrations 0813–0815 and 0817 applied (local + remote), types and Prisma regenerated. P2 library closed. P3 mostly done: UoM service + 8 routes; order write path (measure intent → billed quantity → `uom_*` snapshot + measure columns); checkout and both request schemas accept `measure`; order split, tax-document items (billed quantity, `uom_code`, `uom_unece_code`), catalog, inventory and `/api/v1/products` (POST/PATCH) on `base_uom_code`, `min_billable_qty`, `billing_increment`. Gates: jest (commercial/uom/services/order-split/tax-document) 414 + `uom-http` 4 pass, tsc 0, eslint clean on changed folders.
+
+**In progress / next:** finish P3 (public APIs; DB-integration tests; route tests for the 8 UoM routes), then P4 (UI: `CmxUomSelect`, `CmxQuantityMeasureInput`, `/dashboard/catalog/units`, product form, cart `pricedQty` sites, Measure dialog, i18n `uom.errors.*`, access contract + nav check).
+
+**Decisions made this session:** AMOUNT stays `(19,4)` (doc corrected). Tenant writes to units/conversions go through the admin client with explicit `tenant_org_id` (tenants have SELECT only). A measured line with no measure refuses the quote, so the commit (`MEASURE_REQUIRED`). Pinned (Edit) lines are count lines until P5. A sub-order from a split copies the unit snapshot, no measure (money stays on the parent).
+
+**Open questions:** (1) Edit `ADD_ITEM` of a measured product needs the measure in P5 (today the DB trigger fills the unit only). (2) `PER_PC` literals remain in older tests. (3) Dead `requires_item_count`. (4) The `pglast` wheel sits in `supabase/migrations/`. (5) No e-invoice (UBL) builder exists yet; tax print detail carries the unit code for it.
+
+**Uncommitted:** everything above is uncommitted (git status shows about 108 changed files in the repo, including unrelated parallel work: Background_Jobs, cmx-workers, preferences). Measured Pricing files: migrations 0813, 0814, 0815, 0817; `web-admin/lib/{uom,commercial,services,api,validations,types,constants}`, `app/api/v1/{uom,products}`, tests under `__tests__/{uom,commercial,services/commercial}`; the three docs here. HQ and mobile repos: untouched so far.
+
+**Migrations to apply:** none. 0813–0815 and 0817 are applied. The next migration number must be taken at write time (live last+1). P9 (Migration B, dropping legacy `product_unit` bridge) is later and needs your review.

@@ -16970,6 +16970,7 @@ export type Database = {
           rec_order: number | null
           rec_status: number
           recipient_address: string | null
+          recipient_customer_id: string | null
           recipient_user_id: string | null
           skip_reason: string | null
           status: string
@@ -16992,6 +16993,7 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           recipient_address?: string | null
+          recipient_customer_id?: string | null
           recipient_user_id?: string | null
           skip_reason?: string | null
           status?: string
@@ -17014,6 +17016,7 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           recipient_address?: string | null
+          recipient_customer_id?: string | null
           recipient_user_id?: string | null
           skip_reason?: string | null
           status?: string
@@ -17023,6 +17026,13 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_ntf_camp_tgt_customer"
+            columns: ["recipient_customer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
           {
             foreignKeyName: "org_notif_campaign_targets_dtl_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -17072,6 +17082,7 @@ export type Database = {
           approval_notes: string | null
           approved_at: string | null
           approved_by: string | null
+          audience_code: string
           cancelled_at: string | null
           channel_code: string
           completed_at: string | null
@@ -17097,6 +17108,7 @@ export type Database = {
           status: string
           target_segment: Json | null
           template_code: string | null
+          template_vars: Json
           tenant_org_id: string
           total_targets: number
           updated_at: string | null
@@ -17107,6 +17119,7 @@ export type Database = {
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          audience_code?: string
           cancelled_at?: string | null
           channel_code: string
           completed_at?: string | null
@@ -17132,6 +17145,7 @@ export type Database = {
           status?: string
           target_segment?: Json | null
           template_code?: string | null
+          template_vars?: Json
           tenant_org_id: string
           total_targets?: number
           updated_at?: string | null
@@ -17142,6 +17156,7 @@ export type Database = {
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          audience_code?: string
           cancelled_at?: string | null
           channel_code?: string
           completed_at?: string | null
@@ -17167,6 +17182,7 @@ export type Database = {
           status?: string
           target_segment?: Json | null
           template_code?: string | null
+          template_vars?: Json
           tenant_org_id?: string
           total_targets?: number
           updated_at?: string | null
@@ -17285,6 +17301,110 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_ntf_channel_cd"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      org_ntf_cust_consent_dtl: {
+        Row: {
+          channel_code: string
+          consent_given_at: string | null
+          consent_source: string
+          consent_withdrawn_at: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          customer_id: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          id: string
+          is_active: boolean
+          marketing_consent: boolean
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          channel_code: string
+          consent_given_at?: string | null
+          consent_source: string
+          consent_withdrawn_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          id?: string
+          is_active?: boolean
+          marketing_consent?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          channel_code?: string
+          consent_given_at?: string | null
+          consent_source?: string
+          consent_withdrawn_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          customer_id?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          id?: string
+          is_active?: boolean
+          marketing_consent?: boolean
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ntf_ccons_customer"
+            columns: ["customer_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_ccons_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_ccons_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_ccons_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
           },
         ]
       }
@@ -18728,6 +18848,7 @@ export type Database = {
           rec_status: number
           route_owner: string
           route_state: string
+          template_code: string | null
           tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
@@ -18755,6 +18876,7 @@ export type Database = {
           rec_status?: number
           route_owner?: string
           route_state?: string
+          template_code?: string | null
           tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
@@ -18782,6 +18904,7 @@ export type Database = {
           rec_status?: number
           route_owner?: string
           route_state?: string
+          template_code?: string | null
           tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -18864,6 +18987,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ntf_route_tmpl"
+            columns: ["template_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_templates_mst"
+            referencedColumns: ["template_code"]
           },
         ]
       }
@@ -21430,6 +21560,8 @@ export type Database = {
       org_order_items_dtl: {
         Row: {
           barcode: string | null
+          billed_qty: number | null
+          billing_increment: number | null
           branch_id: string | null
           brand: string | null
           color: string | null
@@ -21453,7 +21585,11 @@ export type Database = {
           line_disc_amount: number
           line_total_amount: number
           list_unit_price: number
+          measure_length: number | null
+          measure_width: number | null
+          measured_qty: number | null
           metadata: Json | null
+          min_billable_qty: number | null
           money_basis: string
           net_amount: number
           notes: string | null
@@ -21469,6 +21605,7 @@ export type Database = {
           price_override: number | null
           price_per_unit: number
           price_source: string
+          price_type: string
           product_id: string | null
           product_name: string | null
           product_name2: string | null
@@ -21495,12 +21632,20 @@ export type Database = {
           taxable_amount: number
           tenant_org_id: string
           total_price: number
+          uom_code: string
+          uom_dimension: string
+          uom_qty_decimals: number
+          uom_symbol: string
+          uom_symbol2: string | null
+          uom_unece_code: string | null
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
         }
         Insert: {
           barcode?: string | null
+          billed_qty?: number | null
+          billing_increment?: number | null
           branch_id?: string | null
           brand?: string | null
           color?: string | null
@@ -21524,7 +21669,11 @@ export type Database = {
           line_disc_amount: number
           line_total_amount: number
           list_unit_price: number
+          measure_length?: number | null
+          measure_width?: number | null
+          measured_qty?: number | null
           metadata?: Json | null
+          min_billable_qty?: number | null
           money_basis: string
           net_amount: number
           notes?: string | null
@@ -21540,6 +21689,7 @@ export type Database = {
           price_override?: number | null
           price_per_unit: number
           price_source: string
+          price_type: string
           product_id?: string | null
           product_name?: string | null
           product_name2?: string | null
@@ -21566,12 +21716,20 @@ export type Database = {
           taxable_amount: number
           tenant_org_id: string
           total_price: number
+          uom_code: string
+          uom_dimension: string
+          uom_qty_decimals: number
+          uom_symbol: string
+          uom_symbol2?: string | null
+          uom_unece_code?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
         }
         Update: {
           barcode?: string | null
+          billed_qty?: number | null
+          billing_increment?: number | null
           branch_id?: string | null
           brand?: string | null
           color?: string | null
@@ -21595,7 +21753,11 @@ export type Database = {
           line_disc_amount?: number
           line_total_amount?: number
           list_unit_price?: number
+          measure_length?: number | null
+          measure_width?: number | null
+          measured_qty?: number | null
           metadata?: Json | null
+          min_billable_qty?: number | null
           money_basis?: string
           net_amount?: number
           notes?: string | null
@@ -21611,6 +21773,7 @@ export type Database = {
           price_override?: number | null
           price_per_unit?: number
           price_source?: string
+          price_type?: string
           product_id?: string | null
           product_name?: string | null
           product_name2?: string | null
@@ -21637,6 +21800,12 @@ export type Database = {
           taxable_amount?: number
           tenant_org_id?: string
           total_price?: number
+          uom_code?: string
+          uom_dimension?: string
+          uom_qty_decimals?: number
+          uom_symbol?: string
+          uom_symbol2?: string | null
+          uom_unece_code?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
@@ -21676,6 +21845,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_tax_profiles_cf"
             referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_oid_uom"
+            columns: ["tenant_org_id", "uom_code"]
+            isOneToOne: false
+            referencedRelation: "org_uom_cf"
+            referencedColumns: ["tenant_org_id", "uom_code"]
           },
           {
             foreignKeyName: "fk_ord_items_branch"
@@ -25157,6 +25333,8 @@ export type Database = {
       }
       org_product_data_mst: {
         Row: {
+          base_uom_code: string
+          billing_increment: number | null
           created_at: string | null
           created_by: string | null
           created_info: string | null
@@ -25171,11 +25349,12 @@ export type Database = {
           item_type_code: string | null
           last_purchase_cost: number | null
           max_stock_level: number | null
+          min_billable_qty: number | null
           min_quantity: number | null
           min_sell_price: number | null
           min_stock_level: number | null
           pieces_per_product: number | null
-          price_type: string | null
+          price_type: string
           product_code: string
           product_color1: string | null
           product_color2: string | null
@@ -25209,6 +25388,8 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
+          base_uom_code: string
+          billing_increment?: number | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -25223,11 +25404,12 @@ export type Database = {
           item_type_code?: string | null
           last_purchase_cost?: number | null
           max_stock_level?: number | null
+          min_billable_qty?: number | null
           min_quantity?: number | null
           min_sell_price?: number | null
           min_stock_level?: number | null
           pieces_per_product?: number | null
-          price_type?: string | null
+          price_type: string
           product_code: string
           product_color1?: string | null
           product_color2?: string | null
@@ -25261,6 +25443,8 @@ export type Database = {
           updated_info?: string | null
         }
         Update: {
+          base_uom_code?: string
+          billing_increment?: number | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -25275,11 +25459,12 @@ export type Database = {
           item_type_code?: string | null
           last_purchase_cost?: number | null
           max_stock_level?: number | null
+          min_billable_qty?: number | null
           min_quantity?: number | null
           min_sell_price?: number | null
           min_stock_level?: number | null
           pieces_per_product?: number | null
-          price_type?: string | null
+          price_type?: string
           product_code?: string
           product_color1?: string | null
           product_color2?: string | null
@@ -25354,6 +25539,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_tax_category_cd"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_prod_base_uom"
+            columns: ["tenant_org_id", "base_uom_code"]
+            isOneToOne: false
+            referencedRelation: "org_uom_cf"
+            referencedColumns: ["tenant_org_id", "uom_code"]
           },
           {
             foreignKeyName: "fk_product_item_type"
@@ -27033,6 +27225,8 @@ export type Database = {
           tax_document_id: string
           tax_rate: number
           tenant_org_id: string
+          uom_code: string
+          uom_unece_code: string | null
         }
         Insert: {
           created_at?: string
@@ -27056,6 +27250,8 @@ export type Database = {
           tax_document_id: string
           tax_rate?: number
           tenant_org_id: string
+          uom_code: string
+          uom_unece_code?: string | null
         }
         Update: {
           created_at?: string
@@ -27079,6 +27275,8 @@ export type Database = {
           tax_document_id?: string
           tax_rate?: number
           tenant_org_id?: string
+          uom_code?: string
+          uom_unece_code?: string | null
         }
         Relationships: [
           {
@@ -29291,6 +29489,249 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_stng_profiles_mst"
             referencedColumns: ["stng_profile_code"]
+          },
+        ]
+      }
+      org_uom_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          id: string
+          is_active: boolean
+          is_base_unit: boolean
+          is_customized: boolean
+          is_packaging: boolean
+          name: string
+          name2: string | null
+          qty_decimals: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          symbol: string
+          symbol2: string | null
+          sys_uom_code: string | null
+          tenant_org_id: string
+          unece_code: string | null
+          uom_code: string
+          uom_dimension: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          id?: string
+          is_active?: boolean
+          is_base_unit?: boolean
+          is_customized?: boolean
+          is_packaging?: boolean
+          name: string
+          name2?: string | null
+          qty_decimals?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          symbol: string
+          symbol2?: string | null
+          sys_uom_code?: string | null
+          tenant_org_id: string
+          unece_code?: string | null
+          uom_code: string
+          uom_dimension: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          id?: string
+          is_active?: boolean
+          is_base_unit?: boolean
+          is_customized?: boolean
+          is_packaging?: boolean
+          name?: string
+          name2?: string | null
+          qty_decimals?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          symbol?: string
+          symbol2?: string | null
+          sys_uom_code?: string | null
+          tenant_org_id?: string
+          unece_code?: string | null
+          uom_code?: string
+          uom_dimension?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ouom_sys"
+            columns: ["sys_uom_code"]
+            isOneToOne: false
+            referencedRelation: "sys_uom_cd"
+            referencedColumns: ["uom_code"]
+          },
+          {
+            foreignKeyName: "fk_ouom_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ouom_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ouom_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_uom_conv_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          divide_rate: number
+          from_uom_code: string
+          id: string
+          is_active: boolean
+          is_customized: boolean
+          is_from_system: boolean
+          multiply_rate: number
+          product_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          to_uom_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          divide_rate: number
+          from_uom_code: string
+          id?: string
+          is_active?: boolean
+          is_customized?: boolean
+          is_from_system?: boolean
+          multiply_rate: number
+          product_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          to_uom_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          divide_rate?: number
+          from_uom_code?: string
+          id?: string
+          is_active?: boolean
+          is_customized?: boolean
+          is_from_system?: boolean
+          multiply_rate?: number
+          product_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          to_uom_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ouomc_from"
+            columns: ["tenant_org_id", "from_uom_code"]
+            isOneToOne: false
+            referencedRelation: "org_uom_cf"
+            referencedColumns: ["tenant_org_id", "uom_code"]
+          },
+          {
+            foreignKeyName: "fk_ouomc_product"
+            columns: ["tenant_org_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "org_product_data_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_ouomc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ouomc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ouomc_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ouomc_to"
+            columns: ["tenant_org_id", "to_uom_code"]
+            isOneToOne: false
+            referencedRelation: "org_uom_cf"
+            referencedColumns: ["tenant_org_id", "uom_code"]
           },
         ]
       }
@@ -45707,6 +46148,7 @@ export type Database = {
       }
       sys_service_prod_templates_cd: {
         Row: {
+          base_uom_code: string
           created_at: string | null
           created_by: string | null
           created_info: string | null
@@ -45733,7 +46175,7 @@ export type Database = {
           name: string
           name2: string | null
           pieces_per_product: number | null
-          price_type: string | null
+          price_type: string
           product_color1: string | null
           product_color2: string | null
           product_color3: string | null
@@ -45763,6 +46205,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
+          base_uom_code: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -45789,7 +46232,7 @@ export type Database = {
           name: string
           name2?: string | null
           pieces_per_product?: number | null
-          price_type?: string | null
+          price_type: string
           product_color1?: string | null
           product_color2?: string | null
           product_color3?: string | null
@@ -45819,6 +46262,7 @@ export type Database = {
           updated_info?: string | null
         }
         Update: {
+          base_uom_code?: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -45845,7 +46289,7 @@ export type Database = {
           name?: string
           name2?: string | null
           pieces_per_product?: number | null
-          price_type?: string | null
+          price_type?: string
           product_color1?: string | null
           product_color2?: string | null
           product_color3?: string | null
@@ -45875,6 +46319,13 @@ export type Database = {
           updated_info?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_sspt_base_uom"
+            columns: ["base_uom_code"]
+            isOneToOne: false
+            referencedRelation: "sys_uom_cd"
+            referencedColumns: ["uom_code"]
+          },
           {
             foreignKeyName: "fk_template_category"
             columns: ["service_category_code"]
@@ -48559,6 +49010,168 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sys_ui_radius_cd"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      sys_uom_cd: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          is_active: boolean
+          is_base_unit: boolean
+          is_packaging: boolean
+          is_to_seed: boolean
+          name: string
+          name2: string | null
+          qty_decimals: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          symbol: string
+          symbol2: string | null
+          unece_code: string
+          uom_code: string
+          uom_dimension: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          is_active?: boolean
+          is_base_unit?: boolean
+          is_packaging?: boolean
+          is_to_seed?: boolean
+          name: string
+          name2?: string | null
+          qty_decimals?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          symbol: string
+          symbol2?: string | null
+          unece_code: string
+          uom_code: string
+          uom_dimension: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          is_active?: boolean
+          is_base_unit?: boolean
+          is_packaging?: boolean
+          is_to_seed?: boolean
+          name?: string
+          name2?: string | null
+          qty_decimals?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          symbol?: string
+          symbol2?: string | null
+          unece_code?: string
+          uom_code?: string
+          uom_dimension?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: []
+      }
+      sys_uom_conv_cd: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          divide_rate: number
+          from_uom_code: string
+          is_active: boolean
+          multiply_rate: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          to_uom_code: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          divide_rate: number
+          from_uom_code: string
+          is_active?: boolean
+          multiply_rate: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          to_uom_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          divide_rate?: number
+          from_uom_code?: string
+          is_active?: boolean
+          multiply_rate?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          to_uom_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_suomc_from"
+            columns: ["from_uom_code"]
+            isOneToOne: false
+            referencedRelation: "sys_uom_cd"
+            referencedColumns: ["uom_code"]
+          },
+          {
+            foreignKeyName: "fk_suomc_to"
+            columns: ["to_uom_code"]
+            isOneToOne: false
+            referencedRelation: "sys_uom_cd"
+            referencedColumns: ["uom_code"]
           },
         ]
       }
@@ -52105,6 +52718,19 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_ntf_status_apply: {
+        Args: {
+          p_error_message?: string
+          p_outbox_id: string
+          p_provider_code: string
+          p_provider_event_key: string
+          p_provider_message_id: string
+          p_provider_status_raw: string
+          p_receipt_kind: string
+          p_tenant_org_id: string
+        }
+        Returns: string
+      }
       fn_ntf_tenant_is_paused: {
         Args: { p_channel: string; p_tenant_org_id: string }
         Returns: boolean
@@ -52804,6 +53430,54 @@ export type Database = {
         Args: { p_key: string; p_tenant_id: string }
         Returns: string
       }
+      fn_uom_assert_base_conv: {
+        Args: { p_tenant_org_id: string; p_uom_code: string }
+        Returns: undefined
+      }
+      fn_uom_assert_qty_scale: {
+        Args: {
+          p_label?: string
+          p_qty: number
+          p_tenant_org_id: string
+          p_uom_code: string
+        }
+        Returns: undefined
+      }
+      fn_uom_conv_rate: {
+        Args: {
+          p_from: string
+          p_product_id: string
+          p_tenant_org_id: string
+          p_to: string
+        }
+        Returns: number
+      }
+      fn_uom_convert: {
+        Args: {
+          p_from: string
+          p_product_id: string
+          p_qty: number
+          p_require_whole?: boolean
+          p_tenant_org_id: string
+          p_to: string
+        }
+        Returns: number
+      }
+      fn_uom_in_sync: { Args: never; Returns: boolean }
+      fn_uom_legacy_code: { Args: { p_unit: string }; Returns: string }
+      fn_uom_reset_conv: {
+        Args: { p_conv_id: string; p_tenant_org_id: string; p_user?: string }
+        Returns: undefined
+      }
+      fn_uom_reset_unit: {
+        Args: { p_tenant_org_id: string; p_uom_code: string; p_user?: string }
+        Returns: undefined
+      }
+      fn_uom_seed_tenant: {
+        Args: { p_tenant_org_id: string; p_uom_codes?: string[] }
+        Returns: number
+      }
+      fn_uom_sync_all_tenants: { Args: never; Returns: number }
       fn_verify_hq_audit_integrity: {
         Args: { p_limit?: number }
         Returns: {

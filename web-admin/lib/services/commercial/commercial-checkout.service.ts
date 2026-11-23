@@ -41,6 +41,7 @@ import {
   type CommercialDb,
   type CommercialOrderIntent,
   type LineIntent,
+  type LineMeasureIntent,
   type PreferenceIntent,
 } from './commercial-context.loader';
 import type { AdjustmentMeta } from './commercial-line.writer';
@@ -75,7 +76,10 @@ export interface CheckoutLineRequest {
   productId?: string | null;
   /** A line with no catalog product; its price needs `pricing:override` (checked by the caller). */
   customItem?: CheckoutCustomItemRequest | null;
+  /** The piece / bag count (whole). A measured line is priced on `measure`, not on this. */
   quantity: number;
+  /** The entered measure of a measured line (kg, m, length x width); required there, refused on a count line. */
+  measure?: LineMeasureIntent | null;
   /** A cashier unit price; permission and reason are checked by the caller (PF-01). */
   priceOverride?: number | null;
   servicePrefs?: readonly CheckoutPreferenceRequest[];
@@ -198,6 +202,7 @@ export function checkoutIntentOf(params: CheckoutQuoteParams, receivedAt: Date):
       ? { unitPrice: String(item.customItem.unitPrice), serviceCategoryCode: item.customItem.serviceCategoryCode ?? null }
       : null,
     quantity: item.quantity,
+    measure: item.measure ?? null,
     serviceSpeed: item.serviceSpeed ?? null,
     overrideUnitPrice: item.priceOverride != null ? String(item.priceOverride) : null,
     preferences: prefsOf(item.servicePrefs, item.packingPrefCode),

@@ -632,9 +632,12 @@ model org_customers_mst {
   gc_purchased_by            org_gift_cards_mst[]         @relation("gc_purchased_by")
   org_invoice_mst            org_invoice_mst[]
   org_loyalty_accounts_mst   org_loyalty_accounts_mst[]
+  org_ntf_camp_targets_dtl   org_ntf_camp_targets_dtl[]
+  org_ntf_cust_consent_dtl   org_ntf_cust_consent_dtl[]
   org_orders_mst             org_orders_mst[]
 
   @@unique([tenant_org_id, customer_id], map: "ak_global_customer_id_org_cust")
+  @@unique([id, tenant_org_id], map: "uq_org_cust_id_tenant")
   @@index([tenant_org_id], map: "idx_org_customers_tenant")
   @@index([tenant_org_id, customer_category_id], map: "idx_org_customers_category")
   @@schema("public")
@@ -818,7 +821,7 @@ model org_order_items_dtl {
   product_id                      String?                           @db.Uuid
   barcode                         String?
   quantity                        Int?                              @default(1)
-  price_per_unit                  Decimal                           @db.Decimal(19, 4)
+  price_per_unit                  Decimal                           @db.Decimal(21, 6)
   total_price                     Decimal                           @db.Decimal(19, 4)
   status                          String?                           @default("processing")
   notes                           String?
@@ -840,7 +843,7 @@ model org_order_items_dtl {
   item_last_step_at               DateTime?                         @db.Timestamptz(6)
   item_last_step_by               String?                           @db.Uuid
   quantity_ready                  Int?                              @default(0)
-  price_override                  Decimal?                          @db.Decimal(19, 4)
+  price_override                  Decimal?                          @db.Decimal(21, 6)
   override_reason                 String?
   override_by                     String?                           @db.Uuid
   created_info                    String?
@@ -870,7 +873,7 @@ model org_order_items_dtl {
   price_source                    String
   price_list_id                   String?                           @db.Uuid
   speed_rule_id                   String?                           @db.Uuid
-  list_unit_price                 Decimal                           @db.Decimal(19, 4)
+  list_unit_price                 Decimal                           @db.Decimal(21, 6)
   speed_premium_amount            Decimal                           @db.Decimal(19, 4)
   line_disc_amount                Decimal                           @db.Decimal(19, 4)
   order_disc_alloc_amount         Decimal                           @db.Decimal(19, 4)
@@ -883,6 +886,19 @@ model org_order_items_dtl {
   taxable_amount                  Decimal                           @db.Decimal(19, 4)
   tax_amount                      Decimal                           @db.Decimal(19, 4)
   line_total_amount               Decimal                           @db.Decimal(19, 4)
+  uom_code                        String
+  uom_dimension                   String
+  uom_unece_code                  String?
+  uom_symbol                      String
+  uom_symbol2                     String?
+  uom_qty_decimals                Int                               @db.SmallInt
+  price_type                      String
+  min_billable_qty                Decimal?                          @db.Decimal(21, 6)
+  billing_increment               Decimal?                          @db.Decimal(21, 6)
+  measured_qty                    Decimal?                          @db.Decimal(21, 6)
+  measure_length                  Decimal?                          @db.Decimal(21, 6)
+  measure_width                   Decimal?                          @db.Decimal(21, 6)
+  billed_qty                      Decimal?                          @db.Decimal(21, 6)
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_change_ops_dtl        org_order_change_ops_dtl[]
   org_order_discounts_dtl         org_order_discounts_dtl[]
@@ -894,6 +910,7 @@ model org_order_items_dtl {
   org_speed_price_rules_cf        org_speed_price_rules_cf?         @relation(fields: [tenant_org_id, speed_rule_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_oid_speed_rule")
   sys_tax_category_cd             sys_tax_category_cd               @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_tax_category")
   org_tax_profiles_cf             org_tax_profiles_cf?              @relation(fields: [tenant_org_id, tax_profile_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction, map: "fk_oid_tax_profile")
+  org_uom_cf                      org_uom_cf                        @relation(fields: [tenant_org_id, uom_code], references: [tenant_org_id, uom_code], onUpdate: NoAction, map: "fk_oid_uom")
   org_branches_mst                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_items_branch")
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
   org_orders_mst                  org_orders_mst                    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_items_order")
@@ -917,6 +934,7 @@ model org_order_items_dtl {
   @@index([tenant_org_id, barcode], map: "idx_order_items_tenant_barcode")
   @@index([tenant_org_id, order_id], map: "idx_order_items_tenant_order")
   @@index([tenant_org_id, status], map: "idx_order_items_tenant_status")
+  @@index([tenant_org_id, uom_code], map: "idx_oid_tenant_uom")
   @@schema("public")
 }
 
@@ -1494,11 +1512,11 @@ model org_product_data_mst {
   product_group2            String?
   product_group3            String?
   product_type              Int?
-  price_type                String?
+  price_type                String
   product_unit              String?                     @db.VarChar(60)
-  default_sell_price        Decimal?                    @db.Decimal(10, 3)
-  product_cost              Decimal?                    @db.Decimal(10, 3)
-  min_sell_price            Decimal?                    @db.Decimal(10, 3)
+  default_sell_price        Decimal?                    @db.Decimal(21, 6)
+  product_cost              Decimal?                    @db.Decimal(23, 8)
+  min_sell_price            Decimal?                    @db.Decimal(21, 6)
   min_quantity              Int?
   pieces_per_product        Int?
   extra_days                Int?
@@ -1522,16 +1540,19 @@ model org_product_data_mst {
   updated_by                String?
   updated_info              String?
   item_type_code            String?                     @db.VarChar(50)
-  qty_on_hand               Decimal?                    @default(0) @db.Decimal(19, 4)
-  reorder_point             Decimal?                    @default(0) @db.Decimal(19, 4)
-  min_stock_level           Decimal?                    @default(0) @db.Decimal(19, 4)
-  max_stock_level           Decimal?                    @db.Decimal(19, 4)
-  last_purchase_cost        Decimal?                    @db.Decimal(19, 4)
+  qty_on_hand               Decimal?                    @default(0) @db.Decimal(21, 6)
+  reorder_point             Decimal?                    @default(0) @db.Decimal(21, 6)
+  min_stock_level           Decimal?                    @default(0) @db.Decimal(21, 6)
+  max_stock_level           Decimal?                    @db.Decimal(21, 6)
+  last_purchase_cost        Decimal?                    @db.Decimal(23, 8)
   storage_location          String?                     @db.VarChar(100)
   default_packing_pref      String?                     @db.VarChar(50)
   tax_category_code         String                      @default("STANDARD")
   tax_exempt_reason         String?
   tax_item_class_code       String?
+  base_uom_code             String
+  min_billable_qty          Decimal?                    @db.Decimal(21, 6)
+  billing_increment         Decimal?                    @db.Decimal(21, 6)
   org_inv_stock_by_branch   org_inv_stock_by_branch[]
   org_inv_stock_tr          org_inv_stock_tr[]
   org_order_item_pieces_dtl org_order_item_pieces_dtl[]
@@ -1542,15 +1563,18 @@ model org_product_data_mst {
   org_service_category_cf   org_service_category_cf     @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
   org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
   sys_tax_category_cd       sys_tax_category_cd         @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_product_tax_category")
+  org_uom_cf                org_uom_cf                  @relation(fields: [tenant_org_id, base_uom_code], references: [tenant_org_id, uom_code], onUpdate: NoAction, map: "fk_prod_base_uom")
   sys_item_type_cd          sys_item_type_cd?           @relation(fields: [item_type_code], references: [item_type_code], onUpdate: NoAction, map: "fk_product_item_type")
   sys_packing_preference_cd sys_packing_preference_cd?  @relation(fields: [default_packing_pref], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_speed_price_rules_cf  org_speed_price_rules_cf[]
+  org_uom_conv_cf           org_uom_conv_cf[]
 
   @@unique([tenant_org_id, id], map: "uk_org_products_tenant_id")
   @@unique([tenant_org_id, service_category_code, product_code], map: "uq_org_prod_tenant_ctg_code")
   @@index([tenant_org_id, service_category_code], map: "idx_org_products_category")
   @@index([tenant_org_id], map: "idx_org_products_tenant")
   @@index([tenant_org_id, item_type_code], map: "idx_products_item_type")
+  @@index([tenant_org_id, base_uom_code], map: "idx_prod_tenant_uom")
   @@schema("public")
 }
 
@@ -1743,6 +1767,7 @@ model org_tenants_mst {
   org_ntf_audit_dtl                org_ntf_audit_dtl[]
   org_ntf_camp_targets_dtl         org_ntf_camp_targets_dtl[]
   org_ntf_campaigns_mst            org_ntf_campaigns_mst[]
+  org_ntf_cust_consent_dtl         org_ntf_cust_consent_dtl[]
   org_ntf_prov_acct_mst            org_ntf_prov_acct_mst[]
   org_ntf_quota_rsv_dtl            org_ntf_quota_rsv_dtl[]
   org_ntf_receipts_tr              org_ntf_receipts_tr[]
@@ -1818,6 +1843,8 @@ model org_tenants_mst {
   sys_starter_pkg_mst              sys_starter_pkg_mst?               @relation(fields: [starter_pkg_code], references: [pkg_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_otm_starter_pkg")
   sys_main_business_type_cd        sys_main_business_type_cd?         @relation(fields: [business_type_code], references: [business_type_code], onUpdate: NoAction, map: "fk_tenant_business_type")
   sys_stng_profiles_mst            sys_stng_profiles_mst?             @relation(fields: [stng_profile_code], references: [stng_profile_code], onDelete: NoAction, onUpdate: NoAction)
+  org_uom_cf                       org_uom_cf[]
+  org_uom_conv_cf                  org_uom_conv_cf[]
   org_usage_tracking               org_usage_tracking[]
   org_users_mst                    org_users_mst[]
   org_wallet_txn_dtl               org_wallet_txn_dtl[]
@@ -2358,10 +2385,10 @@ model org_price_list_items_dtl {
   tenant_org_id        String               @db.Uuid
   price_list_id        String               @db.Uuid
   product_id           String               @db.Uuid
-  price                Decimal              @db.Decimal(10, 3)
+  price                Decimal              @db.Decimal(21, 6)
   discount_percent     Decimal?             @default(0) @db.Decimal(5, 2)
-  min_quantity         Int?                 @default(1)
-  max_quantity         Int?
+  min_quantity         Decimal?             @default(1) @db.Decimal(21, 6)
+  max_quantity         Decimal?             @db.Decimal(21, 6)
   created_at           DateTime?            @default(now()) @db.Timestamp(6)
   created_by           String?              @db.VarChar(120)
   created_info         String?
@@ -4970,12 +4997,12 @@ model sys_service_prod_templates_cd {
   product_group1                String?                         @db.VarChar(60)
   product_group2                String?                         @db.VarChar(60)
   product_group3                String?                         @db.VarChar(60)
-  price_type                    String?                         @db.VarChar(20)
+  price_type                    String                          @db.VarChar(20)
   product_unit                  String?                         @db.VarChar(60)
-  default_sell_price            Decimal?                        @db.Decimal(19, 4)
-  default_express_sell_price    Decimal?                        @db.Decimal(19, 4)
-  product_cost                  Decimal?                        @db.Decimal(19, 4)
-  min_sell_price                Decimal?                        @db.Decimal(19, 4)
+  default_sell_price            Decimal?                        @db.Decimal(21, 6)
+  default_express_sell_price    Decimal?                        @db.Decimal(21, 6)
+  product_cost                  Decimal?                        @db.Decimal(23, 8)
+  min_sell_price                Decimal?                        @db.Decimal(21, 6)
   min_quantity                  Int?                            @default(1)
   pieces_per_product            Int?                            @default(1)
   turnaround_hh                 Decimal?                        @db.Decimal(4, 2)
@@ -5010,7 +5037,9 @@ model sys_service_prod_templates_cd {
   rec_notes                     String?                         @db.VarChar(200)
   is_active                     Boolean                         @default(true)
   item_code                     String                          @db.VarChar(60)
+  base_uom_code                 String
   sys_business_type_template_cf sys_business_type_template_cf[]
+  sys_uom_cd                    sys_uom_cd                      @relation(fields: [base_uom_code], references: [uom_code], onUpdate: NoAction, map: "fk_sspt_base_uom")
   sys_service_category_cd       sys_service_category_cd         @relation(fields: [service_category_code], references: [service_category_code], onDelete: SetNull, onUpdate: NoAction, map: "fk_template_category")
   sys_items_data_list_cd        sys_items_data_list_cd          @relation(fields: [item_code], references: [item_code], onDelete: Cascade, onUpdate: NoAction, map: "fk_template_item")
   sys_item_type_cd              sys_item_type_cd?               @relation(fields: [item_type_code], references: [item_type_code], onUpdate: NoAction, map: "fk_template_item_type")
@@ -5021,6 +5050,7 @@ model sys_service_prod_templates_cd {
   @@index([item_code, service_category_code], map: "idx_templates_item_category")
   @@index([item_code], map: "idx_templates_item_code")
   @@index([item_type_code], map: "idx_templates_item_type")
+  @@index([base_uom_code], map: "idx_sspt_base_uom")
   @@schema("public")
 }
 
@@ -6190,7 +6220,7 @@ model org_order_item_pieces_dtl {
   scan_state                                                                                                                String?
   barcode                                                                                                                   String?
   quantity                                                                                                                  Int?                        @default(1)
-  price_per_unit                                                                                                            Decimal                     @db.Decimal(19, 4)
+  price_per_unit                                                                                                            Decimal                     @db.Decimal(21, 6)
   total_price                                                                                                               Decimal                     @db.Decimal(19, 4)
   piece_status                                                                                                              String?                     @default("processing")
   piece_stage                                                                                                               String?
@@ -6233,7 +6263,7 @@ model org_order_item_pieces_dtl {
   price_source                                                                                                              String
   price_list_id                                                                                                             String?                     @db.Uuid
   speed_rule_id                                                                                                             String?                     @db.Uuid
-  list_unit_price                                                                                                           Decimal                     @db.Decimal(19, 4)
+  list_unit_price                                                                                                           Decimal                     @db.Decimal(21, 6)
   speed_premium_amount                                                                                                      Decimal                     @db.Decimal(19, 4)
   line_disc_amount                                                                                                          Decimal                     @db.Decimal(19, 4)
   order_disc_alloc_amount                                                                                                   Decimal                     @db.Decimal(19, 4)
@@ -6409,8 +6439,8 @@ model org_price_history_audit {
   entity_id            String                @db.Uuid
   price_list_id        String?               @db.Uuid
   product_id           String?               @db.Uuid
-  old_price            Decimal?              @db.Decimal(19, 4)
-  new_price            Decimal?              @db.Decimal(19, 4)
+  old_price            Decimal?              @db.Decimal(21, 6)
+  new_price            Decimal?              @db.Decimal(21, 6)
   old_discount_percent Decimal?              @db.Decimal(5, 2)
   new_discount_percent Decimal?              @db.Decimal(5, 2)
   change_reason        String?
@@ -6540,11 +6570,11 @@ model org_inv_stock_by_branch {
   tenant_org_id        String               @db.Uuid
   product_id           String               @db.Uuid
   branch_id            String               @db.Uuid
-  qty_on_hand          Decimal?             @default(0) @db.Decimal(19, 4)
-  reorder_point        Decimal?             @default(0) @db.Decimal(19, 4)
-  min_stock_level      Decimal?             @default(0) @db.Decimal(19, 4)
-  max_stock_level      Decimal?             @db.Decimal(19, 4)
-  last_purchase_cost   Decimal?             @db.Decimal(19, 4)
+  qty_on_hand          Decimal?             @default(0) @db.Decimal(21, 6)
+  reorder_point        Decimal?             @default(0) @db.Decimal(21, 6)
+  min_stock_level      Decimal?             @default(0) @db.Decimal(21, 6)
+  max_stock_level      Decimal?             @db.Decimal(21, 6)
+  last_purchase_cost   Decimal?             @db.Decimal(23, 8)
   storage_location     String?              @db.VarChar(100)
   created_at           DateTime?            @default(now()) @db.Timestamptz(6)
   updated_at           DateTime?            @db.Timestamptz(6)
@@ -6572,11 +6602,11 @@ model org_inv_stock_tr {
   transaction_no       String
   transaction_date     DateTime             @default(now()) @db.Timestamptz(6)
   transaction_type     String               @db.VarChar(20)
-  quantity             Decimal              @db.Decimal(19, 4)
-  unit_cost            Decimal?             @db.Decimal(19, 4)
+  quantity             Decimal              @db.Decimal(21, 6)
+  unit_cost            Decimal?             @db.Decimal(23, 8)
   total_cost           Decimal?             @db.Decimal(19, 4)
-  qty_before           Decimal?             @db.Decimal(19, 4)
-  qty_after            Decimal?             @db.Decimal(19, 4)
+  qty_before           Decimal?             @db.Decimal(21, 6)
+  qty_after            Decimal?             @db.Decimal(21, 6)
   reference_type       String?              @db.VarChar(30)
   reference_id         String?              @db.Uuid
   reference_no         String?              @db.VarChar(50)
@@ -12143,12 +12173,15 @@ model org_ntf_camp_targets_dtl {
   rec_notes             String?
   is_active             Boolean               @default(true)
   inbox_id              String?               @db.Uuid
+  recipient_customer_id String?               @db.Uuid
+  org_customers_mst     org_customers_mst?    @relation(fields: [recipient_customer_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ntf_camp_tgt_customer")
   org_ntf_campaigns_mst org_ntf_campaigns_mst @relation(fields: [campaign_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "org_notif_campaign_targets_dtl_campaign_id_fkey")
   org_ntf_outbox_dtl    org_ntf_outbox_dtl?   @relation(fields: [outbox_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "org_notif_campaign_targets_dtl_outbox_id_fkey")
   org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "org_notif_campaign_targets_dtl_tenant_org_id_fkey")
   org_ntf_inbox_mst     org_ntf_inbox_mst?    @relation(fields: [inbox_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([campaign_id, recipient_user_id], map: "uq_ntf_camp_tgt_camp_recip")
+  @@unique([campaign_id, recipient_customer_id], map: "uq_ntf_camp_tgt_camp_cust")
   @@index([campaign_id, status], map: "idx_ntf_camp_tgt_campaign_status")
   @@index([tenant_org_id], map: "idx_ntf_camp_tgt_tenant")
   @@schema("public")
@@ -12190,6 +12223,8 @@ model org_ntf_campaigns_mst {
   rec_notes                String?
   is_active                Boolean                    @default(true)
   queued_count             Int                        @default(0)
+  audience_code            String                     @default("STAFF")
+  template_vars            Json                       @default("{}")
   org_ntf_camp_targets_dtl org_ntf_camp_targets_dtl[]
   sys_ntf_channel_cd       sys_ntf_channel_cd         @relation(fields: [channel_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "org_notification_campaigns_mst_channel_code_fkey")
   sys_ntf_templates_mst    sys_ntf_templates_mst?     @relation(fields: [template_code], references: [template_code], onDelete: NoAction, onUpdate: NoAction, map: "org_notification_campaigns_mst_template_code_fkey")
@@ -14313,6 +14348,7 @@ model sys_ntf_templates_mst {
   is_active                Boolean                    @default(true)
   org_ntf_campaigns_mst    org_ntf_campaigns_mst[]
   org_ntf_inbox_mst        org_ntf_inbox_mst[]
+  org_ntf_route_assign_cf  org_ntf_route_assign_cf[]
   sys_ntf_template_ver_dtl sys_ntf_template_ver_dtl[]
   sys_ntf_events_cd        sys_ntf_events_cd          @relation(fields: [event_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
 
@@ -15901,6 +15937,7 @@ model org_ntf_route_assign_cf {
   private_sender_id         String?                    @db.Uuid
   route_owner               String                     @default("PLATFORM")
   private_revision_id       String?                    @db.Uuid
+  template_code             String?
   sys_ntf_prov_acct_mst     sys_ntf_prov_acct_mst?     @relation(fields: [platform_account_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_acct")
   sys_ntf_channel_cd        sys_ntf_channel_cd         @relation(fields: [channel_code], references: [code], onUpdate: NoAction, map: "fk_ntf_route_chan")
   sys_ntf_events_cd         sys_ntf_events_cd          @relation(fields: [event_code], references: [code], onUpdate: NoAction, map: "fk_ntf_route_event")
@@ -15910,8 +15947,9 @@ model org_ntf_route_assign_cf {
   sys_ntf_prov_tmpl_rev_dtl sys_ntf_prov_tmpl_rev_dtl? @relation(fields: [provider_revision_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_rev")
   sys_ntf_prov_send_mst     sys_ntf_prov_send_mst?     @relation(fields: [platform_sender_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_send")
   org_tenants_mst           org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ntf_route_tenant")
+  sys_ntf_templates_mst     sys_ntf_templates_mst?     @relation(fields: [template_code], references: [template_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ntf_route_tmpl")
 
-  @@unique([tenant_org_id, event_code, channel_code, language_code], map: "uq_ntf_route_scope")
+  @@unique([tenant_org_id, event_code, channel_code, language_code, template_code], map: "uq_ntf_route_scope")
   @@schema("public")
 }
 
@@ -16873,7 +16911,7 @@ model org_speed_price_rules_cf {
   service_category_code     String?
   product_id                String?                     @db.Uuid
   speed_price_type          String
-  default_speed_sell_price  Decimal?                    @db.Decimal(19, 4)
+  default_speed_sell_price  Decimal?                    @db.Decimal(21, 6)
   multiplier_speed          Decimal?                    @db.Decimal(6, 4)
   speed_extra_amount        Decimal?                    @db.Decimal(19, 4)
   price_basis               String?
@@ -16945,8 +16983,8 @@ model org_tax_doc_items_dtl {
   line_no               Int                   @db.SmallInt
   product_name          String
   product_name2         String?
-  quantity              Int
-  price_per_unit        Decimal               @db.Decimal(19, 4)
+  quantity              Decimal               @db.Decimal(21, 6)
+  price_per_unit        Decimal               @db.Decimal(21, 6)
   discount_amount       Decimal               @default(0) @db.Decimal(19, 4)
   net_amount            Decimal               @db.Decimal(19, 4)
   tax_category_code     String
@@ -16959,6 +16997,8 @@ model org_tax_doc_items_dtl {
   created_at            DateTime              @default(now()) @db.Timestamptz(6)
   created_by            String?
   created_info          String?
+  uom_code              String
+  uom_unece_code        String?
   org_order_items_dtl   org_order_items_dtl   @relation(fields: [order_item_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_otdi_order_item")
   sys_tax_category_cd   sys_tax_category_cd   @relation(fields: [tax_category_code], references: [code], onDelete: NoAction, onUpdate: NoAction, map: "fk_otdi_tax_category")
   org_tax_documents_mst org_tax_documents_mst @relation(fields: [tenant_org_id, tax_document_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_otdi_tax_document")
@@ -19371,6 +19411,187 @@ model org_ntf_requests_tr {
 
   @@unique([id, tenant_org_id], map: "uq_onrq_id_tenant")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_onrq_tenant_created")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_uom_cf {
+  id                                                                      String                 @id(map: "pk_org_uom_cf") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                           String                 @db.Uuid
+  uom_code                                                                String
+  sys_uom_code                                                            String?
+  name                                                                    String
+  name2                                                                   String?
+  symbol                                                                  String
+  symbol2                                                                 String?
+  uom_dimension                                                           String
+  is_base_unit                                                            Boolean                @default(false)
+  is_packaging                                                            Boolean                @default(false)
+  qty_decimals                                                            Int                    @default(0) @db.SmallInt
+  unece_code                                                              String?
+  is_customized                                                           Boolean                @default(false)
+  created_at                                                              DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                                                              String?
+  created_info                                                            String?
+  updated_at                                                              DateTime?              @db.Timestamptz(6)
+  updated_by                                                              String?
+  updated_info                                                            String?
+  updated_count                                                           Int                    @default(0)
+  deleted_at                                                              DateTime?              @db.Timestamptz(6)
+  deleted_by                                                              String?
+  deleted_info                                                            String?
+  rec_status                                                              Int                    @default(1) @db.SmallInt
+  rec_order                                                               Int?
+  rec_notes                                                               String?
+  is_active                                                               Boolean                @default(true)
+  org_order_items_dtl                                                     org_order_items_dtl[]
+  org_product_data_mst                                                    org_product_data_mst[]
+  sys_uom_cd                                                              sys_uom_cd?            @relation(fields: [sys_uom_code], references: [uom_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_ouom_sys")
+  org_tenants_mst                                                         org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ouom_tenant")
+  org_uom_conv_cf_org_uom_conv_cf_tenant_org_id_from_uom_codeToorg_uom_cf org_uom_conv_cf[]      @relation("org_uom_conv_cf_tenant_org_id_from_uom_codeToorg_uom_cf")
+  org_uom_conv_cf_org_uom_conv_cf_tenant_org_id_to_uom_codeToorg_uom_cf   org_uom_conv_cf[]      @relation("org_uom_conv_cf_tenant_org_id_to_uom_codeToorg_uom_cf")
+
+  @@unique([tenant_org_id, uom_code], map: "uq_ouom_tenant_code")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_uom_conv_cf {
+  id                                                                 String                @id(map: "pk_org_uom_conv_cf") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                                                      String                @db.Uuid
+  product_id                                                         String?               @db.Uuid
+  from_uom_code                                                      String
+  to_uom_code                                                        String
+  multiply_rate                                                      Decimal               @db.Decimal(28, 12)
+  divide_rate                                                        Decimal               @db.Decimal(28, 12)
+  is_from_system                                                     Boolean               @default(false)
+  is_customized                                                      Boolean               @default(false)
+  created_at                                                         DateTime              @default(now()) @db.Timestamptz(6)
+  created_by                                                         String?
+  created_info                                                       String?
+  updated_at                                                         DateTime?             @db.Timestamptz(6)
+  updated_by                                                         String?
+  updated_info                                                       String?
+  updated_count                                                      Int                   @default(0)
+  deleted_at                                                         DateTime?             @db.Timestamptz(6)
+  deleted_by                                                         String?
+  deleted_info                                                       String?
+  rec_status                                                         Int                   @default(1) @db.SmallInt
+  rec_order                                                          Int?
+  rec_notes                                                          String?
+  is_active                                                          Boolean               @default(true)
+  org_uom_cf_org_uom_conv_cf_tenant_org_id_from_uom_codeToorg_uom_cf org_uom_cf            @relation("org_uom_conv_cf_tenant_org_id_from_uom_codeToorg_uom_cf", fields: [tenant_org_id, from_uom_code], references: [tenant_org_id, uom_code], onUpdate: NoAction, map: "fk_ouomc_from")
+  org_product_data_mst                                               org_product_data_mst? @relation(fields: [tenant_org_id, product_id], references: [tenant_org_id, id], onUpdate: NoAction, map: "fk_ouomc_product")
+  org_tenants_mst                                                    org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_ouomc_tenant")
+  org_uom_cf_org_uom_conv_cf_tenant_org_id_to_uom_codeToorg_uom_cf   org_uom_cf            @relation("org_uom_conv_cf_tenant_org_id_to_uom_codeToorg_uom_cf", fields: [tenant_org_id, to_uom_code], references: [tenant_org_id, uom_code], onUpdate: NoAction, map: "fk_ouomc_to")
+
+  @@index([tenant_org_id, from_uom_code], map: "idx_ouomc_from")
+  @@index([tenant_org_id, to_uom_code], map: "idx_ouomc_to")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_uom_cd {
+  uom_code                                                  String                          @id(map: "pk_sys_uom_cd")
+  name                                                      String
+  name2                                                     String?
+  symbol                                                    String
+  symbol2                                                   String?
+  uom_dimension                                             String
+  is_base_unit                                              Boolean                         @default(false)
+  is_packaging                                              Boolean                         @default(false)
+  qty_decimals                                              Int                             @default(0) @db.SmallInt
+  unece_code                                                String
+  is_to_seed                                                Boolean                         @default(true)
+  created_at                                                DateTime                        @default(now()) @db.Timestamptz(6)
+  created_by                                                String?
+  created_info                                              String?
+  updated_at                                                DateTime?                       @db.Timestamptz(6)
+  updated_by                                                String?
+  updated_info                                              String?
+  updated_count                                             Int                             @default(0)
+  deleted_at                                                DateTime?                       @db.Timestamptz(6)
+  deleted_by                                                String?
+  deleted_info                                              String?
+  rec_status                                                Int                             @default(1) @db.SmallInt
+  rec_order                                                 Int?
+  rec_notes                                                 String?
+  is_active                                                 Boolean                         @default(true)
+  org_uom_cf                                                org_uom_cf[]
+  sys_service_prod_templates_cd                             sys_service_prod_templates_cd[]
+  sys_uom_conv_cd_sys_uom_conv_cd_from_uom_codeTosys_uom_cd sys_uom_conv_cd[]               @relation("sys_uom_conv_cd_from_uom_codeTosys_uom_cd")
+  sys_uom_conv_cd_sys_uom_conv_cd_to_uom_codeTosys_uom_cd   sys_uom_conv_cd[]               @relation("sys_uom_conv_cd_to_uom_codeTosys_uom_cd")
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sys_uom_conv_cd {
+  from_uom_code                                        String
+  to_uom_code                                          String
+  multiply_rate                                        Decimal    @db.Decimal(28, 12)
+  divide_rate                                          Decimal    @db.Decimal(28, 12)
+  created_at                                           DateTime   @default(now()) @db.Timestamptz(6)
+  created_by                                           String?
+  created_info                                         String?
+  updated_at                                           DateTime?  @db.Timestamptz(6)
+  updated_by                                           String?
+  updated_info                                         String?
+  updated_count                                        Int        @default(0)
+  deleted_at                                           DateTime?  @db.Timestamptz(6)
+  deleted_by                                           String?
+  deleted_info                                         String?
+  rec_status                                           Int        @default(1) @db.SmallInt
+  rec_order                                            Int?
+  rec_notes                                            String?
+  is_active                                            Boolean    @default(true)
+  sys_uom_cd_sys_uom_conv_cd_from_uom_codeTosys_uom_cd sys_uom_cd @relation("sys_uom_conv_cd_from_uom_codeTosys_uom_cd", fields: [from_uom_code], references: [uom_code], onUpdate: NoAction, map: "fk_suomc_from")
+  sys_uom_cd_sys_uom_conv_cd_to_uom_codeTosys_uom_cd   sys_uom_cd @relation("sys_uom_conv_cd_to_uom_codeTosys_uom_cd", fields: [to_uom_code], references: [uom_code], onUpdate: NoAction, map: "fk_suomc_to")
+
+  @@id([from_uom_code, to_uom_code], map: "pk_sys_uom_conv_cd")
+  @@index([to_uom_code], map: "idx_suomc_to")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_cust_consent_dtl {
+  id                   String            @id(map: "pk_org_ntf_cust_consent_dtl") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id        String            @db.Uuid
+  customer_id          String            @db.Uuid
+  channel_code         String
+  marketing_consent    Boolean           @default(false)
+  consent_given_at     DateTime?         @db.Timestamptz(6)
+  consent_withdrawn_at DateTime?         @db.Timestamptz(6)
+  consent_source       String
+  created_at           DateTime          @default(now()) @db.Timestamptz(6)
+  created_by           String?
+  created_info         String?
+  updated_at           DateTime?         @db.Timestamptz(6)
+  updated_by           String?
+  updated_info         String?
+  updated_count        Int               @default(0)
+  deleted_at           DateTime?         @db.Timestamptz(6)
+  deleted_by           String?
+  deleted_info         String?
+  rec_status           Int               @default(1) @db.SmallInt
+  rec_order            Int?
+  rec_notes            String?
+  is_active            Boolean           @default(true)
+  org_customers_mst    org_customers_mst @relation(fields: [customer_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ntf_ccons_customer")
+  org_tenants_mst      org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ntf_ccons_tenant")
+
+  @@unique([tenant_org_id, customer_id, channel_code], map: "uq_ntf_ccons_cust_channel")
   @@schema("public")
 }
 

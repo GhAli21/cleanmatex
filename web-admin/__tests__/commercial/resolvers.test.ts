@@ -32,7 +32,7 @@ const row = (over: Partial<PriceListCandidate> = {}): PriceListCandidate => ({
   ...over,
 });
 
-const std = (candidates: PriceListCandidate[], over: { quantity?: number; customerListType?: string | null; productDefaultPrice?: string | null } = {}) =>
+const std = (candidates: PriceListCandidate[], over: { quantity?: number | string; customerListType?: string | null; productDefaultPrice?: string | null } = {}) =>
   resolveStandardPrice({
     quantity: over.quantity ?? 1,
     businessDate: DATE,
@@ -75,6 +75,19 @@ describe('resolveStandardPrice', () => {
     ];
     expect(std(tiers, { quantity: 5 }).unitPrice.toString()).toBe('2');
     expect(std(tiers, { quantity: 10 }).unitPrice.toString()).toBe('1.8');
+  });
+
+  it('matches decimal tiers on a measured quantity (0–9.999 kg, then ≥ 10 kg)', () => {
+    const tiers = [
+      row({ priceListItemId: 'k1', minQuantity: '0.001', maxQuantity: '9.999', unitPrice: '0.9' }),
+      row({ priceListItemId: 'k10', minQuantity: '10', maxQuantity: null, unitPrice: '0.75' }),
+    ];
+    expect(std(tiers, { quantity: '3' }).unitPrice.toString()).toBe('0.9');
+    expect(std(tiers, { quantity: '9.999' }).unitPrice.toString()).toBe('0.9');
+    expect(std(tiers, { quantity: '10' }).unitPrice.toString()).toBe('0.75');
+    expect(std(tiers, { quantity: '10.5' }).unitPrice.toString()).toBe('0.75');
+    // below the first tier: no list row, the product default prices it
+    expect(std(tiers, { quantity: '0.0005' }).source).toBe('PRODUCT_DEFAULT');
   });
 
   it('orders by priority, then deepest tier, then item id (deterministic)', () => {
