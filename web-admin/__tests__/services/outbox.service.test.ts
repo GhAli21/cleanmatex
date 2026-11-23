@@ -68,13 +68,13 @@ describe('outbox.service — emitEventTx', () => {
     mockOutboxCreate.mockResolvedValue({ id: 'evt-1' });
     const tx = makeTx() as Parameters<typeof emitEventTx>[0];
 
-    await emitEventTx(tx, TENANT, 'ORDER_COMPLETED', 'order', 'order-1', { foo: 'bar' });
+    await emitEventTx(tx, TENANT, 'ORDER_SUBMITTED', 'order', 'order-1', { foo: 'bar' });
 
     expect(mockOutboxCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           tenant_org_id:  TENANT,
-          event_type:     'ORDER_COMPLETED',
+          event_type:     'ORDER_SUBMITTED',
           aggregate_type: 'order',
           aggregate_id:   'order-1',
           status:         'PENDING',
@@ -108,7 +108,7 @@ describe('outbox.service — emitEventTx', () => {
     const tx = makeTx() as Parameters<typeof emitEventTx>[0];
     const payload = { customerId: 'c1', points: 50 };
 
-    await emitEventTx(tx, TENANT, 'LOYALTY_EARN', 'order', 'order-2', payload);
+    await emitEventTx(tx, TENANT, 'LOYALTY_EARN_RECALC_REQUESTED', 'order', 'order-2', payload);
 
     const createArg = mockOutboxCreate.mock.calls[0][0];
     expect(createArg.data.payload).toMatchObject(payload);

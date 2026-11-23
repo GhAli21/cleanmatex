@@ -163,6 +163,10 @@ export interface OrderItem {
   // Product
   product_id: string | null;
   service_category_code: string | null;
+  service_category_name?: string | null;
+  service_category_name2?: string | null;
+  service_speed?: string | null;
+  ready_by_at?: string | Date | null;
   order_item_srno: string | null;
   barcode: string | null;
 
@@ -239,6 +243,8 @@ export interface OrderItemPiece {
 
   // Product and service category
   service_category_code: string | null;
+  service_speed?: string | null;
+  ready_by_at?: string | Date | null;
   product_id: string | null;
 
   // Scanning and tracking
@@ -741,6 +747,11 @@ export interface ItemPiece {
   servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
   /** Color preference codes from org_order_preferences_dtl */
   colorPrefs?: string[];
+  serviceCategoryCode?: string | null;
+  serviceSpeed?: string | null;
+  readyByAt?: string | Date | null;
+  lastStepAt?: string | Date | null;
+  tagReleasedAt?: string | Date | null;
 }
 
 /**

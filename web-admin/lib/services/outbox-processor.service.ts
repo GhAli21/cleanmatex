@@ -12,7 +12,7 @@ import { processCashOverShortEvent } from './outbox-handlers/cash-over-short.han
  *
  * A claimed event is fanned out to every handler whose `eventTypes` set
  * contains its `event_type` (there can be more than one — e.g. a future GL
- * handler could also react to ORDER_COMPLETED alongside order-history).
+ * handler could also react to ORDER_SUBMITTED alongside order-history).
  * A handler that doesn't own an event type is simply not invoked for it —
  * there is no "SKIPPED" return contract here because canHandle() ownership
  * is expressed by set membership, decided once per event before any handler
@@ -26,7 +26,7 @@ export interface OutboxHandler {
 
 const orderHistoryHandler: OutboxHandler = {
   name: 'order-history',
-  eventTypes: new Set(['ORDER_COMPLETED', 'VOUCHER_POSTED_AND_WIRED', 'AR_INVOICE_ISSUED', 'PAYMENT_VERIFIED']),
+  eventTypes: new Set(['ORDER_SUBMITTED', 'VOUCHER_POSTED_AND_WIRED', 'AR_INVOICE_ISSUED', 'PAYMENT_VERIFIED']),
   async handle(event) {
     const outcome = await consumeOrderHistoryEvent({
       id: event.id,
@@ -39,20 +39,25 @@ const orderHistoryHandler: OutboxHandler = {
     });
     if (outcome.status === 'SKIPPED_NOT_ORDER_LINKED') {
       logger.info('order-history consumer skipped (not order-linked)', { eventId: event.id });
+    } else if (outcome.status === 'SKIPPED_ORPHAN') {
+      logger.warn('order-history consumer skipped (order no longer exists)', {
+        eventId: event.id,
+        tenantId: event.tenant_org_id,
+      });
     }
   },
 };
 
 const loyaltyEarnHandler: OutboxHandler = {
   name: 'loyalty-earn',
-  eventTypes: new Set(['LOYALTY_EARN']),
+  eventTypes: new Set(['LOYALTY_EARN_RECALC_REQUESTED']),
   handle: processLoyaltyEarnEvent,
 };
 
 /** CLF §4B.9 — posts the ADJUSTMENT_VOUCHER/CASH_OVER_SHORT recognition for an opening/closing drawer variance. */
 const cashOverShortHandler: OutboxHandler = {
   name: 'cash-over-short',
-  eventTypes: new Set(['CASH_DRAWER_OVER_SHORT']),
+  eventTypes: new Set(['CASH_DRAWER_VARIANCE_RECORDED']),
   handle: processCashOverShortEvent,
 };
 

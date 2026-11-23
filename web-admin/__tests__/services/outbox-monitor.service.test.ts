@@ -36,7 +36,7 @@ describe('outbox-monitor.service — buildOutboxWhere', () => {
   it('always scopes to the tenant and composes optional filters', () => {
     const where = buildOutboxWhere('tenant-1', {
       status: 'FAILED',
-      eventType: 'LOYALTY_EARN',
+      eventType: 'LOYALTY_EARN_RECALC_REQUESTED',
       search: 'timeout',
     });
 
@@ -44,7 +44,7 @@ describe('outbox-monitor.service — buildOutboxWhere', () => {
       expect.arrayContaining([
         { tenant_org_id: 'tenant-1' },
         { status: 'FAILED' },
-        { event_type: 'LOYALTY_EARN' },
+        { event_type: 'LOYALTY_EARN_RECALC_REQUESTED' },
         expect.objectContaining({
           OR: expect.arrayContaining([
             { event_type: { contains: 'timeout', mode: 'insensitive' } },

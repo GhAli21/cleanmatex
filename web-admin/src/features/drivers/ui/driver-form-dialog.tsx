@@ -2,11 +2,11 @@
 
 import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm, useWatch, type Resolver } from 'react-hook-form';
+import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
-import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
+import { CmxPhoneInput, CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
 import { createDriverSchema, updateDriverSchema, type CreateDriverFormValues } from '../model/driver-schema';
 import { createDriver, updateDriver } from '@/app/actions/drivers/drivers-actions';
@@ -79,8 +79,21 @@ export function DriverFormDialog({ driver, branches, open, onClose, onSuccess }:
             <CmxInput {...form.register('name2')} dir="rtl" />
           </div>
           <div>
-            <Label>{t('form.phone')}</Label>
-            <CmxInput {...form.register('phone')} placeholder="+968 9xxxxxxx" />
+            <Label htmlFor="driver-phone">{t('form.phone')}</Label>
+            <Controller
+              control={form.control}
+              name="phone"
+              render={({ field, fieldState }) => (
+                <CmxPhoneInput
+                  id="driver-phone"
+                  value={field.value ?? ''}
+                  onChange={(e164) => field.onChange(e164)}
+                  onBlur={field.onBlur}
+                  error={fieldState.error?.message}
+                  disabled={isPending}
+                />
+              )}
+            />
           </div>
           <div>
             <Label>{t('form.branch')}</Label>

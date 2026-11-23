@@ -255,7 +255,7 @@ export async function settleOrderTx(
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
 
     // ── 6. Outbox follow-up (loyalty earn is requested by the snapshot recalc, D27) ──
-    await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.ORDER_COMPLETED, 'order', orderId, {
+    await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.ORDER_SUBMITTED, 'order', orderId, {
       paymentStatus: snapshot.paymentStatus,
       grandTotal: breakdown.grandTotal,
       settled: snapshot.outstandingAmount <= 0,

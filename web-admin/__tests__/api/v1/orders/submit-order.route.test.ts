@@ -7,6 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { POST } from '@/app/api/v1/orders/submit-order/route';
 
+// after() needs a live Next request scope; run deferred work immediately in tests.
+jest.mock('next/server', () => {
+  const actual = jest.requireActual('next/server');
+  return { ...actual, after: (task: unknown) => { if (typeof task === 'function') void task(); } };
+});
+
 const mockAuth = jest.fn();
 const mockCsrf = jest.fn();
 const mockSubmit = jest.fn();

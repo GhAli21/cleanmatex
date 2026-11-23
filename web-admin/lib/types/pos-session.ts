@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database.generated';
+import type { Database } from '@/types/database';
 
 /** Persisted POS session record as generated from the database schema. */
 export type PosSessionRow =

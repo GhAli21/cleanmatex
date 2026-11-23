@@ -5,7 +5,7 @@
  *   - lib/services/order-history-consumer.service.ts
  *
  * Asserts:
- *   1. ORDER_COMPLETED maps directly (aggregate_id IS the order id).
+ *   1. ORDER_SUBMITTED maps directly (aggregate_id IS the order id).
  *   2. VOUCHER_POSTED_AND_WIRED resolves order_id via org_fin_vouchers_mst.
  *   3. AR_INVOICE_ISSUED resolves order_id via org_invoice_mst.
  *   4. Voucher with no linked order → SKIPPED_NOT_ORDER_LINKED (manual voucher).
@@ -22,6 +22,7 @@ const mockHistoryFindFirst = jest.fn();
 const mockVoucherFindFirst = jest.fn();
 const mockInvoiceFindFirst = jest.fn();
 const mockPaymentFindFirst = jest.fn();
+const mockOrderFindFirst = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
@@ -32,6 +33,7 @@ jest.mock('@/lib/db/prisma', () => ({
     org_fin_vouchers_mst: { findFirst: (...a: unknown[]) => mockVoucherFindFirst(...a) },
     org_invoice_mst: { findFirst: (...a: unknown[]) => mockInvoiceFindFirst(...a) },
     org_order_payments_dtl: { findFirst: (...a: unknown[]) => mockPaymentFindFirst(...a) },
+    org_orders_mst: { findFirst: (...a: unknown[]) => mockOrderFindFirst(...a) },
   },
 }));
 
@@ -59,7 +61,7 @@ function baseEvent(overrides: Partial<OutboxEventForHistory>): OutboxEventForHis
   return {
     id: EVENT_ID,
     tenant_org_id: TENANT_A,
-    event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+    event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
     aggregate_type: 'order',
     aggregate_id: ORDER_ID,
     payload: {},
@@ -75,9 +77,30 @@ beforeEach(() => {
 });
 
 describe('consumeOrderHistoryEvent', () => {
-  it('writes ORDER_COMPLETED directly using aggregate_id as order_id', async () => {
+  it('completes as SKIPPED_ORPHAN when the order was deleted (FK violation, order gone)', async () => {
+    mockHistoryCreate.mockRejectedValue(Object.assign(new Error('fk_history_order'), { code: 'P2003' }));
+    mockOrderFindFirst.mockResolvedValue(null);
+
+    const outcome = await consumeOrderHistoryEvent(baseEvent({}));
+
+    expect(outcome).toEqual({ status: 'SKIPPED_ORPHAN' });
+    expect(mockOrderFindFirst).toHaveBeenCalledWith({
+      where: { id: ORDER_ID, tenant_org_id: TENANT_A },
+      select: { id: true },
+    });
+  });
+
+  it('rethrows an FK violation when the order still exists, so the event retries', async () => {
+    const fk = Object.assign(new Error('fk_history_other'), { code: 'P2003' });
+    mockHistoryCreate.mockRejectedValue(fk);
+    mockOrderFindFirst.mockResolvedValue({ id: ORDER_ID });
+
+    await expect(consumeOrderHistoryEvent(baseEvent({}))).rejects.toBe(fk);
+  });
+
+  it('writes ORDER_SUBMITTED directly using aggregate_id as order_id', async () => {
     const event = baseEvent({
-      event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+      event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
       payload: { paymentStatus: 'PAID', grandTotal: 100, settled: true },
     });
 
@@ -91,12 +114,12 @@ describe('consumeOrderHistoryEvent', () => {
         data: expect.objectContaining({
           tenant_org_id: TENANT_A,
           order_id: ORDER_ID,
-          action_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+          action_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
           to_value: 'PAID',
           outbox_event_id: EVENT_ID,
           payload: expect.objectContaining({
             source: 'outbox',
-            event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+            event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
             settled: true,
           }),
         }),
@@ -282,7 +305,7 @@ describe('consumeOrderHistoryEvent', () => {
 
   it('is idempotent — an event that already has a history row is not written again', async () => {
     const event = baseEvent({
-      event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+      event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
       payload: { paymentStatus: 'PAID', settled: true },
     });
 
@@ -304,7 +327,7 @@ describe('consumeOrderHistoryEvent', () => {
     mockHistoryFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'hist-winner' });
     mockHistoryCreate.mockRejectedValueOnce(Object.assign(new Error('unique violation'), { code: 'P2002' }));
     const outcome = await consumeOrderHistoryEvent(
-      baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED, payload: { paymentStatus: 'PAID' } }),
+      baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED, payload: { paymentStatus: 'PAID' } }),
     );
     expect(outcome).toEqual({ status: 'WRITTEN', historyId: 'hist-winner' });
   });
@@ -314,7 +337,7 @@ describe('consumeOrderHistoryEvent', () => {
     mockHistoryCreate.mockRejectedValueOnce(failure);
     await expect(
       consumeOrderHistoryEvent(
-        baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED, payload: { paymentStatus: 'PAID' } }),
+        baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED, payload: { paymentStatus: 'PAID' } }),
       ),
     ).rejects.toBe(failure);
   });
@@ -347,7 +370,7 @@ describe('consumeOrderHistoryBatch', () => {
   it('returns outcomes 1:1 with events, preserving order', async () => {
     mockInvoiceFindFirst.mockResolvedValue({ id: INVOICE_ID, order_id: ORDER_ID, invoice_no: 'ARI-9' });
     const events: OutboxEventForHistory[] = [
-      baseEvent({ id: 'e-1', event_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED }),
+      baseEvent({ id: 'e-1', event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED }),
       baseEvent({ id: 'e-2', event_type: 'PAYMENT_RECEIVED' }),
       baseEvent({
         id: 'e-3',

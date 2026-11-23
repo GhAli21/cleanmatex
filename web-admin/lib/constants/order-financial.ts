@@ -522,20 +522,27 @@ export type ReconciliationRunStatus =
 
 /** Domain outbox event names emitted by Order Fin write paths. */
 export const OUTBOX_EVENT_TYPES = {
-  ORDER_COMPLETED: 'ORDER_COMPLETED',
+  /**
+   * Order submitted from checkout and its financial snapshot saved, paid or not.
+   * Renamed from ORDER_COMPLETED in 0808: it was never workflow completion.
+   */
+  ORDER_SUBMITTED: 'ORDER_SUBMITTED',
   PAYMENT_RECEIVED: 'PAYMENT_RECEIVED',
   REFUND_PROCESSED: 'REFUND_PROCESSED',
   ORDER_FINANCIAL_ADJUSTMENT_CREATED: 'ORDER_FINANCIAL_ADJUSTMENT_CREATED',
-  LOYALTY_EARN: 'LOYALTY_EARN',
-  STORED_VALUE_CHANGED: 'STORED_VALUE_CHANGED',
+  /** Request: recalculate the order's loyalty earn later (renamed from LOYALTY_EARN in 0808). */
+  LOYALTY_EARN_RECALC_REQUESTED: 'LOYALTY_EARN_RECALC_REQUESTED',
+  /** Stored value applied to an order (renamed from STORED_VALUE_CHANGED in 0808; only redemption ever used it). */
+  STORED_VALUE_REDEEMED: 'STORED_VALUE_REDEEMED',
   /**
    * B3 — emitted by stored-value-funding.service.ts once a gift-card sale,
    * wallet top-up, or customer-advance receipt finishes crediting its ledger
-   * (all tender legs confirmed). Distinct from STORED_VALUE_CHANGED (which
+   * (all tender legs confirmed). Distinct from STORED_VALUE_REDEEMED (which
    * today only covers redemption/debit) because the payload shape and the
    * eventual consumer (B6 GL liability posting) are different.
    */
   STORED_VALUE_FUNDING_COMPLETED: 'STORED_VALUE_FUNDING_COMPLETED',
+  /** Reserved in sys_ops_job_event_types_cd (is_reserved): no code writes it yet; planned for gift-card-level reactions. */
   GIFT_CARD_REDEEMED: 'GIFT_CARD_REDEEMED',
   AR_INVOICE_ISSUED: 'AR_INVOICE_ISSUED',
   AR_PAYMENT_ALLOCATED: 'AR_PAYMENT_ALLOCATED',
@@ -548,6 +555,8 @@ export const OUTBOX_EVENT_TYPES = {
   // BVM Wiring — Phase 1A. Emitted by postAndWireBizVoucher() after voucher
   // header POST + all line-wiring side effects commit atomically.
   VOUCHER_POSTED_AND_WIRED: 'VOUCHER_POSTED_AND_WIRED',
+  /** Posted voucher lines were reversed (voucher-line-reversal.service). Catalogued in 0808. */
+  VOUCHER_REVERSED: 'VOUCHER_REVERSED',
   /**
    * BVM Wiring — Phase 6 Sub-item 1. Emitted by the VERIFY payment transition (payment-transition.service.ts; verifyPaymentTx was retired in CLF W10) after
    * a PENDING REAL_PAYMENT leg is flipped to COMPLETED. The Phase 5
@@ -611,17 +620,17 @@ export const OUTBOX_EVENT_TYPES = {
    * Not mapped into org_order_history (the cancel RPC already writes the
    * status row); the history consumer intentionally ignores this type.
    */
-  ORDER_CANCEL_FINANCIAL_UNWIND: 'ORDER_CANCEL_FINANCIAL_UNWIND',
+  ORDER_CANCEL_FINANCIALS_UNWOUND: 'ORDER_CANCEL_FINANCIALS_UNWOUND',
   /**
    * CLF (ADR-057): the cash-drawer ledger gate attached a cash line to a
    * different session than the caller's hint (stale client id, or the hinted
    * session had closed). Audit only — no handler consumes it.
    */
-  CASH_FACT_REDIRECTED: 'CASH_FACT_REDIRECTED',
+  CASH_LINE_SESSION_REDIRECTED: 'CASH_LINE_SESSION_REDIRECTED',
   /** CLF §4B.9 — a drawer session opened. Audit only (Notification Hub, future). */
   CASH_DRAWER_SESSION_OPENED: 'CASH_DRAWER_SESSION_OPENED',
   /** CLF §4B.9 — a drawer session entered the count step. Audit only. */
-  CASH_DRAWER_SESSION_CLOSING: 'CASH_DRAWER_SESSION_CLOSING',
+  CASH_DRAWER_SESSION_CLOSE_STARTED: 'CASH_DRAWER_SESSION_CLOSE_STARTED',
   /** CLF §4B.9 — a drawer session finalized (CLOSED) or was force-closed. Audit only (Notification Hub, future). */
   CASH_DRAWER_SESSION_CLOSED: 'CASH_DRAWER_SESSION_CLOSED',
   /**
@@ -629,7 +638,7 @@ export const OUTBOX_EVENT_TYPES = {
    * tolerance. Consumed by `cash-over-short.handler.ts`, which posts the
    * `ADJUSTMENT_VOUCHER`/`CASH_OVER_SHORT` recognition voucher.
    */
-  CASH_DRAWER_OVER_SHORT: 'CASH_DRAWER_OVER_SHORT',
+  CASH_DRAWER_VARIANCE_RECORDED: 'CASH_DRAWER_VARIANCE_RECORDED',
   /** CLF §4B.9 — a custody (drawer) transaction posted. Audit only (Notification Hub, future). */
   CASH_DRAWER_TRX_POSTED: 'CASH_DRAWER_TRX_POSTED',
   /**
@@ -637,6 +646,8 @@ export const OUTBOX_EVENT_TYPES = {
    * row exists. It does not collect, refund, or rewrite settlement.
    */
   ORDER_CHANGE_APPLIED: 'ORDER_CHANGE_APPLIED',
+  /** A workflow gate decision was accepted for an order action (workflow-gate-decision.service). Catalogued in 0808. */
+  WORKFLOW_GATE_DECISION_ACCEPTED: 'WORKFLOW_GATE_DECISION_ACCEPTED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =
@@ -662,7 +673,7 @@ export const OUTBOX_HANDLER_CATALOG = [
   {
     handler: 'order-history',
     eventTypes: [
-      OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+      OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
       OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
       OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
       OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
@@ -670,7 +681,7 @@ export const OUTBOX_HANDLER_CATALOG = [
   },
   {
     handler: 'loyalty-earn',
-    eventTypes: [OUTBOX_EVENT_TYPES.LOYALTY_EARN],
+    eventTypes: [OUTBOX_EVENT_TYPES.LOYALTY_EARN_RECALC_REQUESTED],
   },
   {
     handler: 'order-change-applied',

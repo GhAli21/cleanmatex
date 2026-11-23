@@ -60,6 +60,11 @@ export function mapDbPieceToItemPiece(
     packingPrefCode: dbPiece.packing_pref_code || null,
     servicePrefs: dbPiece.service_prefs || undefined,
     colorPrefs: dbPiece.color_prefs || undefined,
+    serviceCategoryCode: dbPiece.service_category_code || null,
+    serviceSpeed: dbPiece.service_speed || null,
+    readyByAt: dbPiece.ready_by_at || null,
+    lastStepAt: dbPiece.last_step_at || null,
+    tagReleasedAt: dbPiece.tag_released_at || null,
   };
 }
 

@@ -33,7 +33,7 @@ function makeEvent(overrides: Partial<OutboxEventRow> = {}): OutboxEventRow {
   return {
     id: 'evt-loyalty-1',
     tenant_org_id: TENANT,
-    event_type: 'LOYALTY_EARN',
+    event_type: 'LOYALTY_EARN_RECALC_REQUESTED',
     aggregate_type: 'order',
     aggregate_id: 'order-1',
     payload: { trigger: 'ORDER_FIN_RECALC', sourceId: 'trace-1' },

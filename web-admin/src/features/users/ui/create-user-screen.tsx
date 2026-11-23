@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, UserPlus } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, Label } from '@ui/primitives'
+import { CmxPhoneInput } from '@ui/forms'
 import { CmxSummaryMessage, cmxMessage } from '@ui/feedback'
 import { createUser, lookupGlobalUser } from '@/lib/api/users'
 import { getAllRoles } from '@/lib/api/roles'
@@ -382,20 +383,17 @@ export default function CreateUserScreen() {
                   <Label htmlFor="phone" className="mb-1 block">
                     {t('phone')}
                   </Label>
-                  <CmxInput
-                    type="tel"
+                  <CmxPhoneInput
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => {
+                    onChange={(e164) => {
                       setLookup(null)
-                      setFormData({ ...formData, phone: e.target.value })
+                      setFormData({ ...formData, phone: e164 })
                     }}
                     onBlur={() => {
                       void runLookup()
                     }}
-                    dir="ltr"
-                    className="tabular-nums"
-                    placeholder="+968 9123 4567"
+                    disabled={loading}
                   />
                 </div>
 

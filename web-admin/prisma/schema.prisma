@@ -105,9 +105,11 @@ model users {
   is_anonymous                                         Boolean                           @default(false)
   identities                                           identities[]
   mfa_factors                                          mfa_factors[]
+  mfa_recovery_code_sets                               mfa_recovery_code_sets?
   oauth_authorizations                                 oauth_authorizations[]
   oauth_consents                                       oauth_consents[]
   one_time_tokens                                      one_time_tokens[]
+  scim_users                                           scim_users[]
   sessions                                             sessions[]
   webauthn_challenges                                  webauthn_challenges[]
   webauthn_credentials                                 webauthn_credentials[]
@@ -216,21 +218,22 @@ model mfa_challenges {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model mfa_factors {
-  id                           String           @id @db.Uuid
-  user_id                      String           @db.Uuid
+  id                           String                  @id @db.Uuid
+  user_id                      String                  @db.Uuid
   friendly_name                String?
   factor_type                  factor_type
   status                       factor_status
-  created_at                   DateTime         @db.Timestamptz(6)
-  updated_at                   DateTime         @db.Timestamptz(6)
+  created_at                   DateTime                @db.Timestamptz(6)
+  updated_at                   DateTime                @db.Timestamptz(6)
   secret                       String?
   phone                        String?
-  last_challenged_at           DateTime?        @unique @db.Timestamptz(6)
+  last_challenged_at           DateTime?               @unique @db.Timestamptz(6)
   web_authn_credential         Json?
-  web_authn_aaguid             String?          @db.Uuid
+  web_authn_aaguid             String?                 @db.Uuid
   last_webauthn_challenge_data Json?
   mfa_challenges               mfa_challenges[]
-  users                        users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                        users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mfa_recovery_code_sets       mfa_recovery_code_sets?
 
   @@unique([user_id, phone], map: "unique_phone_factor_per_user")
   @@index([user_id, created_at], map: "factor_id_created_at_idx")
@@ -264,18 +267,21 @@ model oauth_clients {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model one_time_tokens {
-  id         String              @id @db.Uuid
-  user_id    String              @db.Uuid
-  token_type one_time_token_type
-  token_hash String
-  relates_to String
-  created_at DateTime            @default(now()) @db.Timestamp(6)
-  updated_at DateTime            @default(now()) @db.Timestamp(6)
-  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String              @id @db.Uuid
+  user_id         String              @db.Uuid
+  token_type      one_time_token_type
+  token_hash      String
+  relates_to      String
+  created_at      DateTime            @default(now()) @db.Timestamp(6)
+  updated_at      DateTime            @default(now()) @db.Timestamp(6)
+  expires_at      DateTime?           @db.Timestamptz(6)
+  link_token_hash String?
+  users           users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, token_type])
   @@index([relates_to], map: "one_time_tokens_relates_to_hash_idx", type: Hash)
   @@index([token_hash], map: "one_time_tokens_token_hash_hash_idx", type: Hash)
+  @@index([link_token_hash], map: "one_time_tokens_link_token_hash_hash_idx", type: Hash)
   @@schema("auth")
 }
 
@@ -292,6 +298,7 @@ model saml_providers {
   created_at        DateTime?     @db.Timestamptz(6)
   updated_at        DateTime?     @db.Timestamptz(6)
   name_id_format    String?
+  dedicated_scope   Boolean?
   sso_providers     sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([sso_provider_id])
@@ -378,6 +385,8 @@ model sso_providers {
   disabled          Boolean?
   saml_providers    saml_providers[]
   saml_relay_states saml_relay_states[]
+  scim_tokens       scim_tokens[]
+  scim_users        scim_users[]
   sso_domains       sso_domains[]
 
   @@index([resource_id], map: "sso_providers_resource_id_pattern_idx")
@@ -834,7 +843,6 @@ model org_order_items_dtl {
   price_override                  Decimal?                          @db.Decimal(19, 4)
   override_reason                 String?
   override_by                     String?                           @db.Uuid
-  created_by                      String?
   created_info                    String?
   updated_at                      DateTime?                         @db.Timestamp(6)
   updated_by                      String?
@@ -842,6 +850,7 @@ model org_order_items_dtl {
   rec_status                      Int?                              @default(1) @db.SmallInt
   rec_order                       Int?
   rec_notes                       String?
+  created_by                      String?                           @db.VarChar(120)
   branch_id                       String?                           @db.Uuid
   packing_pref_code               String?                           @db.VarChar(50)
   packing_pref_is_override        Boolean?                          @default(false)
@@ -897,9 +906,9 @@ model org_order_items_dtl {
   org_order_preferences_dtl       org_order_preferences_dtl[]
   org_tax_doc_items_dtl           org_tax_doc_items_dtl[]
 
-  @@unique([id, order_id, tenant_org_id])
-  @@unique([id, tenant_org_id])
   @@unique([tenant_org_id, order_item_srno], map: "uq_ord_item_srno")
+  @@unique([id, tenant_org_id], map: "org_order_items_tenant_org_id_id_key")
+  @@unique([id, order_id, tenant_org_id], map: "org_order_items_tenant_org_id_order_id_key")
   @@index([tenant_org_id], map: "idx_order_items_tenant")
   @@index([order_id], map: "idx_org_items_order")
   @@index([tenant_org_id], map: "idx_org_items_tenant")
@@ -1300,7 +1309,7 @@ model org_orders_mst {
   org_wf_gate_decision_mst                                                        org_wf_gate_decision_mst[]
 
   @@unique([tenant_org_id, order_no])
-  @@unique([id, tenant_org_id])
+  @@unique([id, tenant_org_id], map: "org_orders_mst_tenant_org_id_order_id_key")
   @@index([tenant_org_id, preparation_status], map: "idx_orders_preparation_status")
   @@index([tenant_org_id, ready_by], map: "idx_orders_ready_by")
   @@index([tenant_org_id, received_at(sort: Desc)], map: "idx_orders_received_at")
@@ -1589,27 +1598,21 @@ model org_tenants_mst {
   s_current_plan                   String?                            @default("FREE_TRIAL") @db.VarChar(120)
   address                          String?
   city                             String?                            @db.VarChar(100)
-  country                          String?                            @db.VarChar(100)
-  currency                         String?                            @db.VarChar(10)
-  timezone                         String?                            @db.VarChar(50)
-  language                         String?                            @default("en") @db.VarChar(10)
+  country                          String?                            @default("OM") @db.VarChar(2)
+  currency                         String?                            @default("OMR") @db.VarChar(3)
+  timezone                         String?                            @default("Asia/Muscat") @db.VarChar(50)
+  language                         String?                            @default("en") @db.VarChar(5)
   is_active                        Boolean?                           @default(true)
   status                           String?                            @default("trial") @db.VarChar(20)
   created_at                       DateTime?                          @default(now()) @db.Timestamp(6)
-  updated_at                       DateTime?                          @db.Timestamp(6)
-  rec_status                       Int?                               @default(1) @db.SmallInt
-  rec_notes                        String?
-  created_by                       String?
-  created_info                     String?
-  updated_by                       String?
-  updated_info                     String?
+  updated_at                       DateTime?                          @default(now()) @db.Timestamp(6)
   logo_url                         String?                            @db.VarChar(500)
   business_hours                   Json?                              @default("{\"fri\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"mon\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"sat\": {\"open\": \"09:00\", \"close\": \"14:00\"}, \"sun\": null, \"thu\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"tue\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"wed\": {\"open\": \"08:00\", \"close\": \"18:00\"}}")
   feature_flags                    Json?                              @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": true, \"advanced_analytics\": false, \"marketplace_listings\": false}")
   business_type                    String?                            @db.VarChar(50)
   onboarding_completed             Boolean?                           @default(false)
-  country_code                     String?                            @db.VarChar(100)
-  phone_country_code               String?                            @default("+1") @db.VarChar(5)
+  country_code                     String?                            @default("OM") @db.VarChar(2)
+  phone_country_code               String?                            @default("+968") @db.VarChar(5)
   date_format                      String?                            @db.VarChar(20)
   time_format                      String?                            @db.VarChar(5)
   first_day_of_week                Int?
@@ -1617,6 +1620,13 @@ model org_tenants_mst {
   stng_profile_code                String?
   stng_profile_version_applied     Int?
   stng_profile_locked              Boolean?                           @default(false)
+  created_by                       String?
+  created_info                     String?
+  updated_by                       String?
+  updated_info                     String?
+  rec_status                       Int?                               @default(1) @db.SmallInt
+  rec_order                        Int?
+  rec_notes                        String?
   is_hq_test_demo                  Boolean                            @default(false)
   tax_pricing_mode                 String                             @default("TAX_EXCLUSIVE")
   extra_price_pricing_mode         String                             @default("INCLUDED_IN_ITEM_PRICE")
@@ -1742,6 +1752,7 @@ model org_tenants_mst {
   org_ntf_usage_apply_evt          org_ntf_usage_apply_evt[]
   org_ntf_usage_daily              org_ntf_usage_daily[]
   org_oc_edit_policy_asg_cf        org_oc_edit_policy_asg_cf[]
+  org_ops_job_effect_tr            org_ops_job_effect_tr[]
   org_order_adjustments_dtl        org_order_adjustments_dtl[]
   org_order_changes_mst            org_order_changes_mst[]
   org_order_charges_dtl            org_order_charges_dtl[]
@@ -2346,7 +2357,7 @@ model org_price_list_items_dtl {
   tenant_org_id        String               @db.Uuid
   price_list_id        String               @db.Uuid
   product_id           String               @db.Uuid
-  price                Decimal              @db.Decimal(19, 4)
+  price                Decimal              @db.Decimal(10, 3)
   discount_percent     Decimal?             @default(0) @db.Decimal(5, 2)
   min_quantity         Int?                 @default(1)
   max_quantity         Int?
@@ -3128,7 +3139,6 @@ model sys_auth_roles {
   name                              String
   name2                             String?
   description                       String?
-  description2                      String?
   is_system                         Boolean                             @default(false)
   is_active                         Boolean                             @default(true)
   created_at                        DateTime?                           @default(now()) @db.Timestamptz(6)
@@ -3136,6 +3146,7 @@ model sys_auth_roles {
   updated_at                        DateTime?                           @db.Timestamp(6)
   updated_by                        String?                             @db.VarChar(120)
   old_role_id                       String?                             @db.Uuid
+  description2                      String?
   created_info                      String?
   updated_info                      String?
   rec_status                        Int?                                @default(1) @db.SmallInt
@@ -3183,11 +3194,11 @@ model sys_tenant_settings_cd {
   stng_is_required            Boolean                       @default(false)
   stng_allows_null            Boolean                       @default(true)
   stng_required_min_layer     String?
+  stng_edit_policy            String                        @default("FREELY_EDITABLE")
   setting_desc2               String?
   stng_ui_component           String?
   stng_ui_group               String?
   stng_display_order          Int?
-  stng_edit_policy            String                        @default("FREELY_EDITABLE")
   stng_disabled_value_jsonb   Json?
   sys_stng_profile_values_dtl sys_stng_profile_values_dtl[]
   sys_stng_categories_cd      sys_stng_categories_cd?       @relation(fields: [stng_category_code], references: [stng_category_code], onDelete: NoAction, onUpdate: NoAction)
@@ -3938,7 +3949,7 @@ model sys_pln_subscription_plans_mst {
   base_price                             Decimal                                  @default(0) @db.Decimal(19, 4)
   annual_price                           Decimal?                                 @db.Decimal(19, 4)
   setup_fee                              Decimal?                                 @db.Decimal(19, 4)
-  currency                               String
+  currency                               String                                   @default("OMR")
   billing_cycle                          String                                   @default("monthly") @db.VarChar(20)
   trial_days                             Int?                                     @default(0)
   features                               Json                                     @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": false, \"advanced_analytics\": false, \"marketplace_listings\": false}")
@@ -5186,10 +5197,10 @@ model hq_ff_audit_history_tr {
   bulk_operation_id  String?   @db.Uuid
   performed_by       String?   @db.Uuid
   performed_by_email String?   @db.VarChar(255)
-  performed_info     String?
   ip_address         String?   @db.Inet
   user_agent         String?
   created_at         DateTime? @default(now()) @db.Timestamp(6)
+  performed_info     String?
 
   @@index([performed_by, created_at(sort: Desc)], map: "idx_hq_ff_audit_actor")
   @@index([created_at(sort: Desc)], map: "idx_hq_ff_audit_created")
@@ -5200,7 +5211,7 @@ model hq_ff_audit_history_tr {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model hq_ff_feature_flags_mst {
-  flag_key                     String                         @id @db.VarChar(100)
+  flag_key                     String                         @id(map: "hq_feature_flags_mst_pkey") @db.VarChar(100)
   flag_name                    String
   flag_name2                   String?
   flag_description             String?
@@ -5883,7 +5894,7 @@ model sys_dlv_stop_status_cd {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_ff_pln_flag_mappings_dtl {
-  id                             String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                             String                         @id(map: "sys_pln_flag_mappings_dtl_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   plan_code                      String                         @db.VarChar(50)
   flag_key                       String                         @db.VarChar(100)
   plan_specific_value            Json?
@@ -5902,7 +5913,7 @@ model sys_ff_pln_flag_mappings_dtl {
   hq_ff_feature_flags_mst        hq_ff_feature_flags_mst        @relation(fields: [flag_key], references: [flag_key], onUpdate: NoAction, map: "fk_sys_ff_pln_flag_mappings_flag_key")
   sys_pln_subscription_plans_mst sys_pln_subscription_plans_mst @relation(fields: [plan_code], references: [plan_code], onDelete: Cascade, onUpdate: NoAction, map: "sys_pln_flag_mappings_dtl_plan_code_fkey")
 
-  @@unique([plan_code, flag_key])
+  @@unique([plan_code, flag_key], map: "sys_pln_flag_mappings_dtl_plan_code_flag_key_key")
   @@index([is_active, is_enabled], map: "idx_sys_pln_flag_mappings_active")
   @@index([flag_key, is_enabled], map: "idx_sys_pln_flag_mappings_flag")
   @@index([plan_code, is_enabled], map: "idx_sys_pln_flag_mappings_plan")
@@ -6180,7 +6191,6 @@ model org_order_item_pieces_dtl {
   quantity                                                                                                                  Int?                        @default(1)
   price_per_unit                                                                                                            Decimal                     @db.Decimal(19, 4)
   total_price                                                                                                               Decimal                     @db.Decimal(19, 4)
-  is_ready                                                                                                                  Boolean                     @default(false)
   piece_status                                                                                                              String?                     @default("processing")
   piece_stage                                                                                                               String?
   is_rejected                                                                                                               Boolean?                    @default(false)
@@ -6203,6 +6213,7 @@ model org_order_item_pieces_dtl {
   updated_at                                                                                                                DateTime?                   @db.Timestamp(6)
   updated_by                                                                                                                String?
   updated_info                                                                                                              String?
+  is_ready                                                                                                                  Boolean                     @default(false)
   branch_id                                                                                                                 String?                     @db.Uuid
   packing_pref_code                                                                                                         String?                     @db.VarChar(50)
   service_pref_charge                                                                                                       Decimal?                    @default(0) @db.Decimal(19, 4)
@@ -8871,23 +8882,25 @@ model sys_currency_denominations_cd {
 }
 
 model org_domain_events_outbox {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id     String              @db.Uuid
-  event_type        String
-  aggregate_type    String
-  aggregate_id      String              @db.Uuid
-  payload           Json
-  status            String              @default("PENDING")
-  attempts          Int                 @default(0) @db.SmallInt
-  max_attempts      Int                 @default(6) @db.SmallInt
-  next_retry_at     DateTime?           @db.Timestamptz(6)
-  processed_at      DateTime?           @db.Timestamptz(6)
-  error_message     String?
-  created_at        DateTime            @default(now()) @db.Timestamptz(6)
-  org_tenants_mst   org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  org_order_history org_order_history[]
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id              String                     @db.Uuid
+  event_type                 String
+  aggregate_type             String
+  aggregate_id               String                     @db.Uuid
+  payload                    Json
+  status                     String                     @default("PENDING")
+  attempts                   Int                        @default(0) @db.SmallInt
+  max_attempts               Int                        @default(6) @db.SmallInt
+  next_retry_at              DateTime?                  @db.Timestamptz(6)
+  processed_at               DateTime?                  @db.Timestamptz(6)
+  error_message              String?
+  created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
+  sys_ops_job_event_types_cd sys_ops_job_event_types_cd @relation(fields: [event_type], references: [event_code], map: "fk_odeo_event_type")
+  org_tenants_mst            org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_order_history          org_order_history[]
 
   @@index([tenant_org_id, aggregate_id, event_type], map: "idx_outbox_aggregate")
+  @@index([event_type], map: "idx_odeo_event_type")
   @@schema("public")
 }
 
@@ -9447,30 +9460,31 @@ model org_order_change_ops_dtl {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model custom_oauth_providers {
-  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  provider_type         String
-  identifier            String    @unique
-  name                  String
-  client_id             String
-  client_secret         String
-  acceptable_client_ids String[]  @default([])
-  scopes                String[]  @default([])
-  pkce_enabled          Boolean   @default(true)
-  attribute_mapping     Json      @default("{}")
-  authorization_params  Json      @default("{}")
-  enabled               Boolean   @default(true)
-  email_optional        Boolean   @default(false)
-  issuer                String?
-  discovery_url         String?
-  skip_nonce_check      Boolean   @default(false)
-  cached_discovery      Json?
-  discovery_cached_at   DateTime? @db.Timestamptz(6)
-  authorization_url     String?
-  token_url             String?
-  userinfo_url          String?
-  jwks_uri              String?
-  created_at            DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime  @default(now()) @db.Timestamptz(6)
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type           String
+  identifier              String    @unique
+  name                    String
+  client_id               String
+  client_secret           String
+  acceptable_client_ids   String[]  @default([])
+  scopes                  String[]  @default([])
+  pkce_enabled            Boolean   @default(true)
+  attribute_mapping       Json      @default("{}")
+  authorization_params    Json      @default("{}")
+  enabled                 Boolean   @default(true)
+  email_optional          Boolean   @default(false)
+  issuer                  String?
+  discovery_url           String?
+  skip_nonce_check        Boolean   @default(false)
+  cached_discovery        Json?
+  discovery_cached_at     DateTime? @db.Timestamptz(6)
+  authorization_url       String?
+  token_url               String?
+  userinfo_url            String?
+  jwks_uri                String?
+  created_at              DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime  @default(now()) @db.Timestamptz(6)
+  custom_claims_allowlist String[]  @default([])
 
   @@index([created_at])
   @@index([enabled])
@@ -12795,13 +12809,13 @@ model org_service_preference_cf {
   preference_sys_kind        String                       @db.VarChar(30)
   is_show_in_quick_bar       Boolean?                     @default(true)
   is_show_in_all_stages      Boolean?                     @default(true)
-  preference_category        String?                      @db.VarChar(50)
+  preference_category        String?                      @db.VarChar(100)
   applies_to_fabric_types    String[]
   is_incompatible_with       String[]
-  workflow_impact            String?                      @db.VarChar(50)
-  sustainability_score       Int?
+  workflow_impact            String?
+  sustainability_score       Int?                         @default(0)
   keywords                   String[]
-  icon                       String?                      @db.VarChar(120)
+  icon                       String?                      @db.VarChar(100)
   is_color_prefs             Boolean?                     @default(false)
   color_hex                  String?                      @db.VarChar(20)
   is_note_prefs              Boolean?                     @default(false)
@@ -16214,44 +16228,49 @@ model org_ntf_suppression_lst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model sys_ops_job_cf {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  job_code            String                @unique(map: "uq_sys_ops_job_cf_code")
-  name                String
-  name2               String?
-  description         String?
-  description2        String?
-  category            String
-  module              String
-  sub_system          String?
-  kind                String                @default("PG_CRON")
-  cron_job_name       String                @unique(map: "uq_sys_ops_job_cf_cron")
-  default_schedule    String
-  schedule            String?
-  desired_enabled     Boolean               @default(true)
-  run_now_allowed     Boolean               @default(false)
-  completion_mode     String                @default("SYNC")
-  source_migration    String?
-  notes               String?
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  created_by          String?               @db.Uuid
-  created_info        String?
-  updated_at          DateTime              @default(now()) @db.Timestamptz(6)
-  updated_by          String?               @db.Uuid
-  updated_info        String?
-  is_active           Boolean               @default(true)
-  rec_status          Int                   @default(1) @db.SmallInt
-  rec_order           Int?
-  rec_notes           String?
-  restore_command     String?
-  operator_actions    String[]              @default(["OBSERVE"])
-  applied_schedule    String?
-  applied_enabled     Boolean?
-  applied_at          DateTime?             @db.Timestamptz(6)
-  applied_by          String?
-  lifecycle_status    String                @default("ACTIVE")
-  superseded_by       String?
-  sys_ops_job_req_tr  sys_ops_job_req_tr[]
-  sys_ops_job_run_dtl sys_ops_job_run_dtl[]
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_code                  String                     @unique(map: "uq_sys_ops_job_cf_code")
+  name                      String
+  name2                     String?
+  description               String?
+  description2              String?
+  category                  String
+  module                    String
+  sub_system                String?
+  kind                      String                     @default("PG_CRON")
+  cron_job_name             String?                    @unique(map: "uq_sys_ops_job_cf_cron")
+  default_schedule          String?
+  schedule                  String?
+  desired_enabled           Boolean                    @default(true)
+  run_now_allowed           Boolean                    @default(false)
+  completion_mode           String                     @default("SYNC")
+  source_migration          String?
+  notes                     String?
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                String?                    @db.Uuid
+  created_info              String?
+  updated_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by                String?                    @db.Uuid
+  updated_info              String?
+  is_active                 Boolean                    @default(true)
+  rec_status                Int                        @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  restore_command           String?
+  operator_actions          String[]                   @default(["OBSERVE"])
+  applied_schedule          String?
+  applied_enabled           Boolean?
+  applied_at                DateTime?                  @db.Timestamptz(6)
+  applied_by                String?
+  lifecycle_status          String                     @default("ACTIVE")
+  superseded_by             String?
+  target_job_code           String?
+  sys_ops_job_cf            sys_ops_job_cf?            @relation("sys_ops_job_cfTosys_ops_job_cf", fields: [target_job_code], references: [job_code], onDelete: Restrict, map: "fk_sys_ops_job_cf_target")
+  other_sys_ops_job_cf      sys_ops_job_cf[]           @relation("sys_ops_job_cfTosys_ops_job_cf")
+  sys_ops_job_event_subs_cf sys_ops_job_event_subs_cf?
+  sys_ops_job_queue_cf      sys_ops_job_queue_cf?
+  sys_ops_job_req_tr        sys_ops_job_req_tr[]
+  sys_ops_job_run_dtl       sys_ops_job_run_dtl[]
 
   @@index([module, category], map: "idx_sys_ops_job_cf_mod_cat")
   @@schema("public")
@@ -19077,6 +19096,244 @@ model sys_tenant_extra_config_cf {
   @@schema("public")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model mfa_recovery_code_sets {
+  id                        String               @id @db.Uuid
+  user_id                   String               @unique @db.Uuid
+  mfa_factor_id             String               @unique @db.Uuid
+  failed_verification_count Int                  @default(0)
+  verification_locked_until DateTime?            @db.Timestamptz(6)
+  created_at                DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime             @default(now()) @db.Timestamptz(6)
+  mfa_factors               mfa_factors          @relation(fields: [mfa_factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                     users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mfa_recovery_codes        mfa_recovery_codes[]
+
+  @@schema("auth")
+}
+
+model mfa_recovery_codes {
+  id                       String                 @id @db.Uuid
+  mfa_recovery_code_set_id String                 @db.Uuid
+  code_hash                String
+  consumed_at              DateTime?              @db.Timestamptz(6)
+  created_at               DateTime               @default(now()) @db.Timestamptz(6)
+  mfa_recovery_code_sets   mfa_recovery_code_sets @relation(fields: [mfa_recovery_code_set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([mfa_recovery_code_set_id], map: "mfa_recovery_codes_set_id_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model scim_tokens {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  token_hash      String        @unique
+  prefix          String
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  expires_at      DateTime?     @db.Timestamptz(6)
+  revoked_at      DateTime?     @db.Timestamptz(6)
+  last_used_at    DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([revoked_at])
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model scim_users {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  user_id         String?       @db.Uuid
+  resource        Json
+  user_name       String        @default(dbgenerated("lower((resource ->> 'userName'::text))"))
+  external_id     String?       @default(dbgenerated("(resource ->> 'externalId'::text)"))
+  active          Boolean       @default(dbgenerated("COALESCE(((resource ->> 'active'::text))::boolean, true)"))
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
+  deleted_at      DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?        @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([deleted_at])
+  @@index([sso_provider_id])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_currency_cd_b4 {
+  code                String?   @db.VarChar(3)
+  name                String?   @db.VarChar(250)
+  name2               String?   @db.VarChar(250)
+  description         String?
+  description2        String?
+  display_order       Int?
+  icon                String?   @db.VarChar(100)
+  color               String?   @db.VarChar(60)
+  symbol              String?   @db.VarChar(10)
+  symbol_position     String?   @db.VarChar(10)
+  decimal_places      Int?
+  thousands_separator String?   @db.VarChar(5)
+  decimal_separator   String?   @db.VarChar(5)
+  iso_code            String?   @db.VarChar(3)
+  iso_numeric         Int?
+  is_default          Boolean?
+  is_system           Boolean?
+  is_active           Boolean?
+  metadata            Json?
+  created_at          DateTime? @db.Timestamp(6)
+  created_by          String?   @db.Uuid
+  updated_at          DateTime? @db.Timestamp(6)
+  updated_by          String?   @db.Uuid
+  rec_status          Int?      @db.SmallInt
+
+  @@ignore
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ops_job_effect_tr {
+  id              String          @id(map: "pk_org_ops_job_effect_tr") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id   String          @db.Uuid
+  effect_key      String
+  queue_name      String
+  job_id          String          @db.Uuid
+  created_at      DateTime        @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  created_info    String?
+  updated_at      DateTime?       @db.Timestamptz(6)
+  updated_by      String?
+  updated_info    String?
+  updated_count   Int             @default(0)
+  deleted_at      DateTime?       @db.Timestamptz(6)
+  deleted_by      String?
+  deleted_info    String?
+  rec_status      Int             @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?
+  is_active       Boolean         @default(true)
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: NoAction, map: "fk_oojef_tenant")
+
+  @@unique([id, tenant_org_id], map: "uq_oojef_id_tenant")
+  @@unique([tenant_org_id, effect_key], map: "uq_oojef_tnt_key")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ops_job_event_subs_cf {
+  id                         String                     @id(map: "pk_sys_ops_job_event_subs_cf") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  event_code                 String
+  handler_code               String
+  queue_job_code             String                     @unique(map: "uq_sojes_queue")
+  description                String?
+  description2               String?
+  is_enabled                 Boolean                    @default(true)
+  created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?                  @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                        @default(0)
+  deleted_at                 DateTime?                  @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_status                 Int                        @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                    @default(true)
+  sys_ops_job_event_types_cd sys_ops_job_event_types_cd @relation(fields: [event_code], references: [event_code], map: "fk_sojes_event")
+  sys_ops_job_cf             sys_ops_job_cf             @relation(fields: [queue_job_code], references: [job_code], map: "fk_sojes_queue")
+
+  @@unique([event_code, handler_code], map: "uq_sojes_event_handler")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ops_job_event_types_cd {
+  event_code                String                      @id(map: "pk_sys_ops_job_event_types_cd")
+  domain_code               String
+  category_code             String
+  aggregate_type            String?
+  name                      String
+  name2                     String
+  description               String?
+  description2              String?
+  payload_version           Int                         @default(1)
+  is_financial              Boolean
+  can_disable               Boolean
+  is_reserved               Boolean                     @default(false)
+  is_enabled                Boolean                     @default(true)
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  updated_count             Int                         @default(0)
+  deleted_at                DateTime?                   @db.Timestamptz(6)
+  deleted_by                String?
+  deleted_info              String?
+  rec_status                Int                         @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                     @default(true)
+  org_domain_events_outbox  org_domain_events_outbox[]
+  sys_ops_job_event_subs_cf sys_ops_job_event_subs_cf[]
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ops_job_queue_cf {
+  queue_name                 String                 @id(map: "pk_sys_ops_job_queue_cf")
+  consumer_app               String
+  effect_class               String
+  created_at                 DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime?              @db.Timestamptz(6)
+  updated_by                 String?
+  updated_info               String?
+  updated_count              Int                    @default(0)
+  deleted_at                 DateTime?              @db.Timestamptz(6)
+  deleted_by                 String?
+  deleted_info               String?
+  rec_status                 Int                    @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+  is_active                  Boolean                @default(true)
+  retry_limit                Int
+  retry_delay_s              Int
+  retry_backoff              Boolean
+  retry_delay_max_s          Int?
+  expire_s                   Int
+  heartbeat_s                Int?
+  retention_s                Int
+  delete_after_s             Int
+  dead_letter_queue          String?
+  default_priority           Int                    @default(0)
+  local_concurrency          Int                    @default(1)
+  polling_s                  Decimal                @default(30) @db.Decimal(6, 1)
+  sys_ops_job_queue_cf       sys_ops_job_queue_cf?  @relation("sys_ops_job_queue_cfTosys_ops_job_queue_cf", fields: [dead_letter_queue], references: [queue_name], onDelete: Restrict, map: "fk_sojq_dead_letter")
+  other_sys_ops_job_queue_cf sys_ops_job_queue_cf[] @relation("sys_ops_job_queue_cfTosys_ops_job_queue_cf")
+  sys_ops_job_cf             sys_ops_job_cf         @relation(fields: [queue_name], references: [job_code], map: "fk_sojq_registry")
+
+  @@schema("public")
+}
+
 enum aal_level {
   aal1
   aal2
@@ -19103,6 +19360,7 @@ enum factor_type {
   totp
   webauthn
   phone
+  recovery_code
 
   @@schema("auth")
 }

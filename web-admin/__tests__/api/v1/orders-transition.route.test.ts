@@ -32,6 +32,12 @@ jest.mock('@lib/notifications/config', () => ({
 import { POST } from '@/app/api/v1/orders/[id]/transition/route';
 import { isOrderTransitionNotifyEnabled } from '@lib/notifications/config';
 
+// after() needs a live Next request scope; run deferred work immediately in tests.
+jest.mock('next/server', () => {
+  const actual = jest.requireActual('next/server');
+  return { ...actual, after: (task: unknown) => { if (typeof task === 'function') void task(); } };
+});
+
 const AUTH_CONTEXT = {
   tenantId: '11111111-1111-1111-1111-111111111111',
   userId: '22222222-2222-2222-2222-222222222222',

@@ -13,7 +13,7 @@ import { Prisma } from '@prisma/client';
  *
  * | Outbox event              | Aggregate     | History action_type        |
  * |---------------------------|---------------|----------------------------|
- * | ORDER_COMPLETED           | order         | ORDER_COMPLETED            |
+ * | ORDER_SUBMITTED           | order         | ORDER_SUBMITTED            |
  * | VOUCHER_POSTED_AND_WIRED  | fin_voucher   | VOUCHER_POSTED_AND_WIRED   |
  * | AR_INVOICE_ISSUED         | ar_invoice    | AR_INVOICE_ISSUED          |
  * | PAYMENT_VERIFIED          | order_payment | PAYMENT_VERIFIED           |
@@ -76,11 +76,12 @@ export interface OutboxEventForHistory {
 export type ConsumeOutcome =
   | { status: 'WRITTEN'; historyId: string }
   | { status: 'SKIPPED_NOT_ORDER_LINKED' }
-  | { status: 'SKIPPED_UNSUPPORTED_EVENT' };
+  | { status: 'SKIPPED_UNSUPPORTED_EVENT' }
+  | { status: 'SKIPPED_ORPHAN' };
 
 /** Sentinel set of event types the consumer reacts to. */
 const HISTORY_EVENT_TYPES = new Set<OutboxEventType>([
-  OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+  OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
   OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
   OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
   OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
@@ -159,9 +160,19 @@ export async function consumeOrderHistoryEvent(
       // this insert, so the winner's row is the result — same outcome as the replay above.
       // (Matched on the stable Prisma error code rather than `instanceof`, which is not reliable
       // across the client's node / edge / test builds.)
-      if ((error as { code?: unknown } | null)?.code === 'P2002') {
+      const code = (error as { code?: unknown } | null)?.code;
+      if (code === 'P2002') {
         const winner = await findExisting();
         if (winner) return { status: 'WRITTEN', historyId: winner.id };
+      }
+      // The order was deleted after the event was written. Retrying can never succeed, so the
+      // event completes as an orphan instead of exhausting its retries into DEAD_LETTERED.
+      if (code === 'P2003') {
+        const order = await prisma.org_orders_mst.findFirst({
+          where: { id: mapped.order_id, tenant_org_id: tenantOrgId },
+          select: { id: true },
+        });
+        if (!order) return { status: 'SKIPPED_ORPHAN' };
       }
       throw error;
     }
@@ -220,12 +231,12 @@ async function mapEventToHistoryRow(
   const payload = (event.payload ?? {}) as Record<string, unknown>;
 
   switch (event.event_type as OutboxEventType) {
-    case OUTBOX_EVENT_TYPES.ORDER_COMPLETED: {
+    case OUTBOX_EVENT_TYPES.ORDER_SUBMITTED: {
       // The aggregate IS the order — no resolution needed.
       return {
         tenant_org_id: tenantOrgId,
         order_id: event.aggregate_id,
-        action_type: OUTBOX_EVENT_TYPES.ORDER_COMPLETED,
+        action_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
         from_value: null,
         to_value: extractToValue(payload, 'paymentStatus') ?? 'COMPLETED',
         payload: serialisePayload(event, payload),

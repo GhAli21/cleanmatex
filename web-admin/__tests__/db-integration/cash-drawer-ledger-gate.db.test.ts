@@ -233,7 +233,7 @@ describe('cash-drawer ledger gate — real database (CLF R1)', () => {
       const after = await readLine(line.id);
       expect(after.cash_drawer_session_id).toBe(current.sessionId);
       const events = await prisma.org_domain_events_outbox.findMany({
-        where: { tenant_org_id: tenantId, event_type: 'CASH_FACT_REDIRECTED', aggregate_id: line.id },
+        where: { tenant_org_id: tenantId, event_type: 'CASH_LINE_SESSION_REDIRECTED', aggregate_id: line.id },
       });
       expect(events).toHaveLength(1);
     } finally {

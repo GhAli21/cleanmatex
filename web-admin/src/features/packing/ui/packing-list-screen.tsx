@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { resolveScan } from '@features/scan/api/scan-api';
-import { CmxCodeChip } from '@ui/data-display';
+import { CmxCodeChip, CmxPhoneDisplay } from '@ui/data-display';
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults';
 import { CmxStatusBadge } from '@ui/feedback';
 import type { CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
@@ -316,7 +316,11 @@ export function PackingListScreen() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{t('labels.phone')}:</span>
-                    <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
+                    <CmxPhoneDisplay
+                      value={order.customer.phone === t('assembly.phoneUnavailable') ? '' : order.customer.phone}
+                      showFlag
+                      fallback={t('assembly.phoneUnavailable')}
+                    />
                   </div>
                   {order.rack_location ? (
                     <div className="flex items-center gap-2">

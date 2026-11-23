@@ -329,7 +329,7 @@ export async function openSessionTx(tx: Tx, ctx: Ctx, input: OpenSessionInput): 
   }
 
   if (overShortVariances.length > 0) {
-    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_OVER_SHORT, 'cash_drawer_session', session.id, {
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_VARIANCE_RECORDED, 'cash_drawer_session', session.id, {
       session_id: session.id,
       drawer_id: input.drawerId,
       branch_id: drawer.branch_id,
@@ -613,7 +613,7 @@ export async function startCloseTx(tx: Tx, ctx: Ctx, input: StartCloseInput): Pr
       },
     });
 
-    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_SESSION_CLOSING, 'cash_drawer_session', session.id, {
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_SESSION_CLOSE_STARTED, 'cash_drawer_session', session.id, {
       session_id: session.id,
       drawer_id: input.drawerId,
     });
@@ -974,7 +974,7 @@ async function finalizeSessionCoreTx(
   });
 
   if (overShortVariances.length > 0) {
-    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_OVER_SHORT, 'cash_drawer_session', session.id, {
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_VARIANCE_RECORDED, 'cash_drawer_session', session.id, {
       session_id: session.id,
       drawer_id: session.cash_drawer_id,
       branch_id: session.branch_id,
@@ -1162,7 +1162,7 @@ export async function approveVarianceTx(
   }
 
   if (variances.length > 0) {
-    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_OVER_SHORT, 'cash_drawer_session', sessionId, {
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_VARIANCE_RECORDED, 'cash_drawer_session', sessionId, {
       session_id: sessionId,
       drawer_id: session.cash_drawer_id,
       branch_id: session.branch_id,
@@ -1426,7 +1426,7 @@ export async function recordMissingOpeningCountTx(
   const minorUnit = (await tx.sys_currency_cd.findUnique({ where: { code: drawer.currency_code }, select: { minor_unit: true } }))?.minor_unit ?? 2;
   const tolerance = settings.varianceToleranceAmount != null ? new Decimal(settings.varianceToleranceAmount) : new Decimal(varianceToleranceFor(minorUnit));
   if (countResult.varianceAmount.abs().greaterThan(tolerance)) {
-    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_OVER_SHORT, 'cash_drawer_session', session.id, {
+    await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_DRAWER_VARIANCE_RECORDED, 'cash_drawer_session', session.id, {
       session_id: session.id,
       drawer_id: input.drawerId,
       branch_id: session.branch_id,

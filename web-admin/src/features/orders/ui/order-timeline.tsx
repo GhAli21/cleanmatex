@@ -34,7 +34,7 @@ const ACTION_ICONS: Record<string, any> = {
   ISSUE_CREATED: AlertCircle,
   ISSUE_SOLVED: CheckCircle2,
   // BVM Phase 5 — outbox-driven order timeline events
-  ORDER_COMPLETED: ShieldCheck,
+  ORDER_SUBMITTED: ShieldCheck,
   VOUCHER_POSTED_AND_WIRED: FileText,
   AR_INVOICE_ISSUED: Receipt,
 };
@@ -66,7 +66,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
       ISSUE_CREATED: t('actions.issueCreated'),
       ISSUE_SOLVED: t('actions.issueResolved'),
       // BVM Phase 5 — outbox-driven labels
-      ORDER_COMPLETED: t('actions.orderCompleted'),
+      ORDER_SUBMITTED: t('actions.orderSubmitted'),
       VOUCHER_POSTED_AND_WIRED: t('actions.voucherPostedAndWired'),
       AR_INVOICE_ISSUED: t('actions.arInvoiceIssued'),
     };
@@ -127,23 +127,26 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
     });
   };
 
-  const getActionColor = (actionType: string) => {
-    const colors: Record<string, string> = {
-      ORDER_CREATED: '#10b981',
-      STATUS_CHANGE: '#3b82f6',
-      FIELD_UPDATE: '#f59e0b',
-      SPLIT: '#8b5cf6',
-      QA_DECISION: '#ec4899',
-      ITEM_STEP: '#14b8a6',
-      ISSUE_CREATED: '#ef4444',
-      ISSUE_SOLVED: '#22c55e',
-      // BVM Phase 5 — financial events get the Order Fin palette so
-      // operators can scan the timeline for money-side milestones at a glance.
-      ORDER_COMPLETED: '#16a34a',           // green-700: settled & closed
-      VOUCHER_POSTED_AND_WIRED: '#7c3aed',  // violet-600: voucher posted
-      AR_INVOICE_ISSUED: '#0ea5e9',         // sky-500: AR receivable raised
+  /**
+   * Tone classes per history action. Each pairs a tone background with its text token,
+   * so contrast holds in light and dark themes (the icon inherits the text colour).
+   */
+  const getActionToneClass = (actionType: string): string => {
+    const tones: Record<string, string> = {
+      ORDER_CREATED: 'bg-success-bg text-success-text',
+      STATUS_CHANGE: 'bg-info-bg text-info-text',
+      FIELD_UPDATE: 'bg-warning-bg text-warning-text',
+      SPLIT: 'bg-primary-bg text-primary-text',
+      QA_DECISION: 'bg-primary-bg text-primary-text',
+      ITEM_STEP: 'bg-info-bg text-info-text',
+      ISSUE_CREATED: 'bg-danger-bg text-danger-text',
+      ISSUE_SOLVED: 'bg-success-bg text-success-text',
+      // Financial events from the outbox consumer.
+      ORDER_SUBMITTED: 'bg-success-bg text-success-text',
+      VOUCHER_POSTED_AND_WIRED: 'bg-primary-bg text-primary-text',
+      AR_INVOICE_ISSUED: 'bg-info-bg text-info-text',
     };
-    return colors[actionType] || '#6b7280';
+    return tones[actionType] || 'bg-muted text-muted-foreground';
   };
 
   if (loading) {
@@ -180,7 +183,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
         const hasNotes = !!entry.payload?.notes;
         const hasMetadata = entry.payload && Object.keys(entry.payload).length > 0;
         const Icon = ACTION_ICONS[entry.action_type] || Circle;
-        const color = getActionColor(entry.action_type);
+        const toneClass = getActionToneClass(entry.action_type);
         const statusMeta = entry.to_value ? STATUS_META[entry.to_value as OrderStatus] : null;
 
         return (
@@ -188,13 +191,9 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
             {/* Icon and connecting line */}
             <div className="flex flex-col items-center">
               <div
-                className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0"
-                style={{ backgroundColor: `${color}20` }}
+                className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${toneClass}`}
               >
-                <Icon
-                  className="w-4 h-4"
-                  style={{ color }}
-                />
+                <Icon className="w-4 h-4" aria-hidden="true" />
               </div>
               {index < history.length - 1 && (
                 <div className="w-0.5 h-full min-h-[40px] bg-muted" />
@@ -209,11 +208,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
                   <div className="flex-1 text-start">
                     <div className="flex items-center gap-2">
                       <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          backgroundColor: `${color}20`,
-                          color,
-                        }}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${toneClass}`}
                       >
                         {getActionLabel(entry.action_type)}
                       </span>

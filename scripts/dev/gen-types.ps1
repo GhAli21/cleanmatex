@@ -43,14 +43,16 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 if ($Scope -eq "tenant" -or $Scope -eq "all") {
+    # One copy only: web-admin imports '@/types/database'. A second identical copy doubled
+    # TypeScript's work and memory (database.generated.ts was removed on 23 Nov 2026).
     Invoke-GenTypes -OutFile (Join-Path $ProjectRoot "web-admin\types\database.ts")
-    Invoke-GenTypes -OutFile (Join-Path $ProjectRoot "web-admin\types\database.generated.ts")
 }
 
 if ($Scope -eq "hq" -or $Scope -eq "all") {
     Invoke-GenTypes -OutFile (Join-Path $SaasRoot "platform-web\lib\types\database.ts")
+    # One copy only: platform-api imports '@/database/database.types'. The identical
+    # src/database/types/database.types.ts had no importers and was removed on 23 Nov 2026.
     Invoke-GenTypes -OutFile (Join-Path $SaasRoot "platform-api\src\database\database.types.ts")
-    Invoke-GenTypes -OutFile (Join-Path $SaasRoot "platform-api\src\database\types\database.types.ts")
 }
 
 # prisma:pull syncs web-admin's own Prisma schema; irrelevant when only HQ types were requested.

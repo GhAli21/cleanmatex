@@ -189,7 +189,7 @@ export async function unwindOrderFinancialsOnCancel(
       await emitEventTx(
         tx,
         input.tenantId,
-        OUTBOX_EVENT_TYPES.ORDER_CANCEL_FINANCIAL_UNWIND,
+        OUTBOX_EVENT_TYPES.ORDER_CANCEL_FINANCIALS_UNWOUND,
         'ORDER',
         input.orderId,
         {

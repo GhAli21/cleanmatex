@@ -33,6 +33,7 @@ import {
 } from '@features/customers/ui/customer-b2b-tabs'
 import UpgradeProfileModal from '@features/customers/ui/upgrade-profile-modal'
 import { CustomerEditModal } from '@features/orders/ui/customer-edit-modal'
+import { CmxPhoneDisplay } from '@ui/data-display'
 import { FileAttachments } from '@features/file-util'
 import { FILE_CATEGORIES, FILE_SOURCES } from '@/lib/constants/file-util'
 import { useHasPermission } from '@/lib/hooks/use-has-permission'
@@ -269,11 +270,16 @@ export default function CustomerDetailPage() {
                     </div>
                   )}
                   {customer.phone && (
-                    <div>
+                    <div className="inline-flex items-center gap-2">
                       <span className="text-muted-foreground">{t('phone')}:</span>
-                      <span className="ms-2 font-medium text-foreground tabular-nums">
-                        <bdi dir="ltr">{customer.phone}</bdi>
-                      </span>
+                      <CmxPhoneDisplay
+                        value={customer.phone}
+                        showFlag
+                        copyable
+                        telLink
+                        whatsappLink
+                        className="font-medium text-foreground"
+                      />
                       {customer.phoneVerified && (
                         <span className="ms-1 text-success-text" title={t('phoneVerified')}>
                           ✓
@@ -505,8 +511,8 @@ function ProfileTab({
             </div>
             <div>
               <dt className="text-sm font-medium text-muted-foreground">{t('phone')}</dt>
-              <dd className="mt-1 text-sm text-foreground tabular-nums">
-                {customer.phone ? <bdi dir="ltr">{customer.phone}</bdi> : '—'}
+              <dd className="mt-1 text-sm text-foreground">
+                <CmxPhoneDisplay value={customer.phone} showFlag copyable telLink whatsappLink />
               </dd>
             </div>
             <div>

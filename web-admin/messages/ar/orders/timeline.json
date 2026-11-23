@@ -14,7 +14,7 @@
     "processingStep": "خطوة المعالجة",
     "issueCreated": "تم إنشاء المشكلة",
     "issueResolved": "تم حل المشكلة",
-    "orderCompleted": "تمت تسوية الدفعة",
+    "orderSubmitted": "تقديم الطلب",
     "voucherPostedAndWired": "تم ترحيل السند",
     "arInvoiceIssued": "تم إصدار فاتورة الذمم"
   }

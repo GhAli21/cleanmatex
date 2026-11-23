@@ -390,7 +390,7 @@ export async function redeemPointsTx(
 
 /**
  * Ask for the order's loyalty earn to be reconciled (D27). The delta is computed later by
- * the `LOYALTY_EARN` outbox consumer (`reconcileOrderLoyaltyEarnTx`), so this never blocks
+ * the `LOYALTY_EARN_RECALC_REQUESTED` outbox consumer (`reconcileOrderLoyaltyEarnTx`), so this never blocks
  * or fails the money transaction that calls it.
  * @param tx caller's transaction; the request commits with the money change
  * @param params.tenantId tenant of the order
@@ -401,7 +401,7 @@ export async function reconcileOrderLoyaltyEarn(
   tx: PrismaTransactionClient,
   params: { tenantId: string; orderId: string; trigger: LoyaltyReconcileTrigger; sourceId: string },
 ): Promise<void> {
-  await emitEventTx(tx, params.tenantId, OUTBOX_EVENT_TYPES.LOYALTY_EARN, 'order', params.orderId, {
+  await emitEventTx(tx, params.tenantId, OUTBOX_EVENT_TYPES.LOYALTY_EARN_RECALC_REQUESTED, 'order', params.orderId, {
     trigger: params.trigger,
     sourceId: params.sourceId,
   });
@@ -550,7 +550,7 @@ export async function processEarnPoints(
 ) {
   const { tenantId, customerId, orderId, earnPoints, idempotencyKey, earnRate } = params;
 
-  // Idempotency-skip (mirrors redeemPointsTx). The outbox delivers LOYALTY_EARN
+  // Idempotency-skip (mirrors redeemPointsTx). The outbox delivers LOYALTY_EARN_RECALC_REQUESTED
   // at-least-once, so a re-delivery must not double-credit. The DB unique
   // `uq_loyalty_txn_idempotency (tenant_org_id, idempotency_key)` already
   // prevents a duplicate row, but without this graceful skip the second

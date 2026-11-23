@@ -65,14 +65,20 @@ const ORDER_ITEM_STATE_SELECT = `
   net_amount,
   quantity_ready,
   service_category_code,
+  service_speed,
+  ready_by_at,
+  barcode,
   item_last_step,
+  item_last_step_at,
   item_is_rejected,
   item_status,
   packing_pref_code,
   color,
   brand,
   has_stain,
+  stain_notes,
   has_damage,
+  damage_notes,
   status,
   notes,
   product_name,
@@ -148,6 +154,40 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
+    const categoryCodes = Array.from(
+      new Set(
+        (items ?? [])
+          .map((item) => (item as { service_category_code?: string | null }).service_category_code)
+          .filter((code): code is string => Boolean(code && code.trim()))
+      )
+    );
+    const categoryNameMap = new Map<string, { name: string | null; name2: string | null }>();
+    if (categoryCodes.length > 0) {
+      const { data: categories } = await supabase
+        .from('org_service_category_cf')
+        .select('service_category_code, name, name2')
+        .eq('tenant_org_id', tenantId)
+        .in('service_category_code', categoryCodes);
+
+      for (const cat of categories ?? []) {
+        categoryNameMap.set(cat.service_category_code, {
+          name: cat.name ?? null,
+          name2: cat.name2 ?? null,
+        });
+      }
+    }
+
+    const enrichedItems = (items ?? []).map((item) => {
+      const row = item as unknown as Record<string, unknown>;
+      const code = row.service_category_code as string | null | undefined;
+      const cat = code ? categoryNameMap.get(code) : undefined;
+      return {
+        ...row,
+        service_category_name: cat?.name ?? null,
+        service_category_name2: cat?.name2 ?? null,
+      };
+    });
+
     const financialSnapshot = readCanonicalOrderFinancialSnapshot(orderRow);
     const paymentSummary = {
       status: (orderRow.payment_status as string) || 'pending',
@@ -173,7 +213,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({
       success: true,
       order,
-      items: items || [],
+      items: enrichedItems,
       currentStatus: orderRow.current_status,
       allowedTransitions,
       paymentSummary,

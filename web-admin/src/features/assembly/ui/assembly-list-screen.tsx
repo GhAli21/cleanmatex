@@ -15,7 +15,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useAssemblyDashboard, useCreateAssemblyTask } from '@features/assembly/hooks/use-assembly';
 import { AssemblyTaskModal } from '@features/assembly/ui/assembly-task-modal';
 import { resolveScan } from '@features/scan/api/scan-api';
-import { CmxCodeChip } from '@ui/data-display';
+import { CmxCodeChip, CmxPhoneDisplay } from '@ui/data-display';
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults';
 import { CmxStatusBadge } from '@ui/feedback';
 import { useMessage } from '@ui/feedback/useMessage';
@@ -345,7 +345,11 @@ export function AssemblyListScreen() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{t('labels.phone')}:</span>
-                      <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
+                      <CmxPhoneDisplay
+                        value={order.customer.phone === t('assembly.phoneUnavailable') ? '' : order.customer.phone}
+                        showFlag
+                        fallback={t('assembly.phoneUnavailable')}
+                      />
                     </div>
                     {formattedReadyBy ? (
                       <div className="flex items-center gap-2">

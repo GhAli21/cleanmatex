@@ -7902,6 +7902,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_odeo_event_type"
+            columns: ["event_type"]
+            isOneToOne: false
+            referencedRelation: "sys_ops_job_event_types_cd"
+            referencedColumns: ["event_code"]
+          },
+          {
             foreignKeyName: "org_domain_events_outbox_tenant_org_id_fkey"
             columns: ["tenant_org_id"]
             isOneToOne: false
@@ -19383,6 +19390,94 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_oc_edit_asg_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_ops_job_effect_tr: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          effect_key: string
+          id: string
+          is_active: boolean
+          job_id: string
+          queue_name: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          effect_key: string
+          id?: string
+          is_active?: boolean
+          job_id: string
+          queue_name: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          effect_key?: string
+          id?: string
+          is_active?: boolean
+          job_id?: string
+          queue_name?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oojef_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_oojef_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oojef_tenant"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
@@ -42152,8 +42247,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_info: string | null
-          cron_job_name: string
-          default_schedule: string
+          cron_job_name: string | null
+          default_schedule: string | null
           description: string | null
           description2: string | null
           desired_enabled: boolean
@@ -42176,6 +42271,7 @@ export type Database = {
           source_migration: string | null
           sub_system: string | null
           superseded_by: string | null
+          target_job_code: string | null
           updated_at: string
           updated_by: string | null
           updated_info: string | null
@@ -42190,8 +42286,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
-          cron_job_name: string
-          default_schedule: string
+          cron_job_name?: string | null
+          default_schedule?: string | null
           description?: string | null
           description2?: string | null
           desired_enabled?: boolean
@@ -42214,6 +42310,7 @@ export type Database = {
           source_migration?: string | null
           sub_system?: string | null
           superseded_by?: string | null
+          target_job_code?: string | null
           updated_at?: string
           updated_by?: string | null
           updated_info?: string | null
@@ -42228,8 +42325,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
-          cron_job_name?: string
-          default_schedule?: string
+          cron_job_name?: string | null
+          default_schedule?: string | null
           description?: string | null
           description2?: string | null
           desired_enabled?: boolean
@@ -42252,11 +42349,308 @@ export type Database = {
           source_migration?: string | null
           sub_system?: string | null
           superseded_by?: string | null
+          target_job_code?: string | null
           updated_at?: string
           updated_by?: string | null
           updated_info?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sys_ops_job_cf_target"
+            columns: ["target_job_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ops_job_cf"
+            referencedColumns: ["job_code"]
+          },
+        ]
+      }
+      sys_ops_job_event_subs_cf: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          description: string | null
+          description2: string | null
+          event_code: string
+          handler_code: string
+          id: string
+          is_active: boolean
+          is_enabled: boolean
+          queue_job_code: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          description?: string | null
+          description2?: string | null
+          event_code: string
+          handler_code: string
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          queue_job_code: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          description?: string | null
+          description2?: string | null
+          event_code?: string
+          handler_code?: string
+          id?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          queue_job_code?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sojes_event"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ops_job_event_types_cd"
+            referencedColumns: ["event_code"]
+          },
+          {
+            foreignKeyName: "fk_sojes_queue"
+            columns: ["queue_job_code"]
+            isOneToOne: true
+            referencedRelation: "sys_ops_job_cf"
+            referencedColumns: ["job_code"]
+          },
+        ]
+      }
+      sys_ops_job_event_types_cd: {
+        Row: {
+          aggregate_type: string | null
+          can_disable: boolean
+          category_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          description: string | null
+          description2: string | null
+          domain_code: string
+          event_code: string
+          is_active: boolean
+          is_enabled: boolean
+          is_financial: boolean
+          is_reserved: boolean
+          name: string
+          name2: string
+          payload_version: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          aggregate_type?: string | null
+          can_disable: boolean
+          category_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          description?: string | null
+          description2?: string | null
+          domain_code: string
+          event_code: string
+          is_active?: boolean
+          is_enabled?: boolean
+          is_financial: boolean
+          is_reserved?: boolean
+          name: string
+          name2: string
+          payload_version?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          aggregate_type?: string | null
+          can_disable?: boolean
+          category_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          description?: string | null
+          description2?: string | null
+          domain_code?: string
+          event_code?: string
+          is_active?: boolean
+          is_enabled?: boolean
+          is_financial?: boolean
+          is_reserved?: boolean
+          name?: string
+          name2?: string
+          payload_version?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
         Relationships: []
+      }
+      sys_ops_job_queue_cf: {
+        Row: {
+          consumer_app: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          dead_letter_queue: string | null
+          default_priority: number
+          delete_after_s: number
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          effect_class: string
+          expire_s: number
+          heartbeat_s: number | null
+          is_active: boolean
+          local_concurrency: number
+          polling_s: number
+          queue_name: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          retention_s: number
+          retry_backoff: boolean
+          retry_delay_max_s: number | null
+          retry_delay_s: number
+          retry_limit: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          consumer_app: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          dead_letter_queue?: string | null
+          default_priority?: number
+          delete_after_s: number
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          effect_class: string
+          expire_s: number
+          heartbeat_s?: number | null
+          is_active?: boolean
+          local_concurrency?: number
+          polling_s?: number
+          queue_name: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          retention_s: number
+          retry_backoff: boolean
+          retry_delay_max_s?: number | null
+          retry_delay_s: number
+          retry_limit: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          consumer_app?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          dead_letter_queue?: string | null
+          default_priority?: number
+          delete_after_s?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          effect_class?: string
+          expire_s?: number
+          heartbeat_s?: number | null
+          is_active?: boolean
+          local_concurrency?: number
+          polling_s?: number
+          queue_name?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          retention_s?: number
+          retry_backoff?: boolean
+          retry_delay_max_s?: number | null
+          retry_delay_s?: number
+          retry_limit?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sojq_dead_letter"
+            columns: ["dead_letter_queue"]
+            isOneToOne: false
+            referencedRelation: "sys_ops_job_queue_cf"
+            referencedColumns: ["queue_name"]
+          },
+          {
+            foreignKeyName: "fk_sojq_registry"
+            columns: ["queue_name"]
+            isOneToOne: true
+            referencedRelation: "sys_ops_job_cf"
+            referencedColumns: ["job_code"]
+          },
+        ]
       }
       sys_ops_job_req_tr: {
         Row: {

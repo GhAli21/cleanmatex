@@ -1,7 +1,7 @@
 /**
  * Reusable Order Fin View P1B-15 (D27) — loyalty earn follows the order, against the real DB.
  *
- * Drives `reconcileOrderLoyaltyEarnTx` (the LOYALTY_EARN consumer) on a seeded order through
+ * Drives `reconcileOrderLoyaltyEarnTx` (the LOYALTY_EARN_RECALC_REQUESTED consumer) on a seeded order through
  * paid → edited up → refunded with points already spent → cancelled, and checks the ledger:
  * the EARN row records its rate, later deltas reuse it, a clawback never takes the balance
  * below zero and keeps the shortfall in `unreversed_points`, and a replay posts nothing.

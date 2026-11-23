@@ -22,7 +22,7 @@ import { STATUS_META, type OrderStatus } from '@/lib/types/workflow';
 import { resolveScan } from '@features/scan/api/scan-api';
 import { OrderCollectPaymentModal } from '@features/orders/ui/collect-payment/order-collect-payment-modal';
 import { OrderStatusBadge } from '@features/orders/ui/order-status-badge';
-import { CmxCodeChip, CmxEmptyState, CmxKpiStatCard } from '@ui/data-display';
+import { CmxCodeChip, CmxEmptyState, CmxKpiStatCard, CmxPhoneDisplay } from '@ui/data-display';
 import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults';
 import { CmxStatusBadge, CmxSummaryMessage, type CmxBadgeTone } from '@ui/feedback';
 import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
@@ -379,10 +379,10 @@ export function DeliveryListScreen() {
                       </Link>
                       <DeliveryOrderStatusBadge status={order.status} />
                     </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
                       <span>{order.customer.name}</span>
-                      {' • '}
-                      <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
+                      <span aria-hidden>•</span>
+                      <CmxPhoneDisplay value={order.customer.phone} showFlag copyable />
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground tabular-nums">
                       {t('delivery.items')}: {order.total_items}

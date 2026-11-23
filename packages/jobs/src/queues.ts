@@ -1,0 +1,36 @@
+/**
+ * Queue names and payload schemas: the producer side of every pg-boss queue.
+ *
+ * A queue exists only after a migration creates it (`pgboss.create_queue`) and registers it in
+ * `sys_ops_job_cf` + `sys_ops_job_queue_cf`; sending to a missing queue throws. Add the queue here
+ * in the same change that ships its migration, never before.
+ *
+ * Payloads carry ids, codes and small flags only (DESIGN §5.3): strict objects, so an extra field,
+ * a whole entity or personal data is rejected before it reaches the queue table.
+ */
+import { z } from 'zod';
+
+/** Any 8-4-4-4-12 hex id. `z.guid()`, not `z.uuid()`: seeded demo ids are not RFC 4122 versions. */
+export const zId = z.guid();
+
+/** Dead-letter queue. Producers never send to it; pg-boss moves exhausted jobs there. */
+export const DEAD_LETTER_QUEUE = 'dead_letter' as const;
+
+/** Payload schema per producer queue. The key is the pg-boss queue name. */
+export const QUEUE_PAYLOADS = {
+  /** Proves a consumer runs end to end (DESIGN §10 step 3). */
+  'ops.smoke_test': z.strictObject({ runId: zId }),
+} as const;
+
+export type QueueName = keyof typeof QUEUE_PAYLOADS;
+export type QueuePayload<N extends QueueName> = z.infer<(typeof QUEUE_PAYLOADS)[N]>;
+
+/**
+ * Job data for every domain-event subscription queue (DESIGN §20.4). The event row in
+ * `org_domain_events_outbox` holds the facts; the job only points at it.
+ */
+export const DOMAIN_EVENT_JOB = z.strictObject({ tenantOrgId: zId, eventId: zId });
+export type DomainEventJob = z.infer<typeof DOMAIN_EVENT_JOB>;
+
+/** Event codes are past-tense UPPER_SNAKE facts, mirroring `sys_ops_job_event_types_cd.event_code`. */
+export const EVENT_CODE = z.string().regex(/^[A-Z][A-Z0-9_]{2,62}$/);

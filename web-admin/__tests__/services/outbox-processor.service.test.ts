@@ -42,7 +42,7 @@ function makeEvent(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: 'evt-1',
     tenant_org_id: TENANT,
-    event_type: 'ORDER_COMPLETED',
+    event_type: 'ORDER_SUBMITTED',
     aggregate_type: 'order',
     aggregate_id: 'order-1',
     payload: {},
@@ -61,18 +61,18 @@ describe('outbox-processor.service — registry', () => {
   it('registers the order-history and loyalty-earn handlers with distinct, non-overlapping event-type ownership by design', () => {
     const orderHistory = OUTBOX_HANDLERS.find((h) => h.name === 'order-history')!;
     const loyaltyEarn = OUTBOX_HANDLERS.find((h) => h.name === 'loyalty-earn')!;
-    expect(orderHistory.eventTypes.has('ORDER_COMPLETED')).toBe(true);
-    expect(orderHistory.eventTypes.has('LOYALTY_EARN')).toBe(false);
-    expect(loyaltyEarn.eventTypes.has('LOYALTY_EARN')).toBe(true);
-    expect(loyaltyEarn.eventTypes.has('ORDER_COMPLETED')).toBe(false);
+    expect(orderHistory.eventTypes.has('ORDER_SUBMITTED')).toBe(true);
+    expect(orderHistory.eventTypes.has('LOYALTY_EARN_RECALC_REQUESTED')).toBe(false);
+    expect(loyaltyEarn.eventTypes.has('LOYALTY_EARN_RECALC_REQUESTED')).toBe(true);
+    expect(loyaltyEarn.eventTypes.has('ORDER_SUBMITTED')).toBe(false);
   });
 });
 
 describe('outbox-processor.service — processOutboxBatch', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('dispatches ORDER_COMPLETED only to the order-history handler and marks it processed', async () => {
-    mockClaimBatch.mockResolvedValue([makeEvent({ event_type: 'ORDER_COMPLETED' })]);
+  it('dispatches ORDER_SUBMITTED only to the order-history handler and marks it processed', async () => {
+    mockClaimBatch.mockResolvedValue([makeEvent({ event_type: 'ORDER_SUBMITTED' })]);
     mockConsumeOrderHistoryEvent.mockResolvedValue({ status: 'WRITTEN', historyId: 'hist-1' });
 
     const result = await processOutboxBatch();
@@ -83,8 +83,8 @@ describe('outbox-processor.service — processOutboxBatch', () => {
     expect(result).toEqual({ claimed: 1, processed: 1, skipped: 0, failed: 0, deadLettered: 0 });
   });
 
-  it('dispatches LOYALTY_EARN only to the loyalty-earn handler', async () => {
-    mockClaimBatch.mockResolvedValue([makeEvent({ id: 'evt-2', event_type: 'LOYALTY_EARN' })]);
+  it('dispatches LOYALTY_EARN_RECALC_REQUESTED only to the loyalty-earn handler', async () => {
+    mockClaimBatch.mockResolvedValue([makeEvent({ id: 'evt-2', event_type: 'LOYALTY_EARN_RECALC_REQUESTED' })]);
     mockProcessLoyaltyEarnEvent.mockResolvedValue(undefined);
 
     await processOutboxBatch();
@@ -107,8 +107,8 @@ describe('outbox-processor.service — processOutboxBatch', () => {
 
   it('a poison event (handler throws) is marked failed and does NOT block the rest of the batch (H6 regression lock)', async () => {
     mockClaimBatch.mockResolvedValue([
-      makeEvent({ id: 'evt-poison', event_type: 'LOYALTY_EARN' }),
-      makeEvent({ id: 'evt-good', event_type: 'ORDER_COMPLETED' }),
+      makeEvent({ id: 'evt-poison', event_type: 'LOYALTY_EARN_RECALC_REQUESTED' }),
+      makeEvent({ id: 'evt-good', event_type: 'ORDER_SUBMITTED' }),
     ]);
     mockProcessLoyaltyEarnEvent.mockRejectedValue(new Error('boom'));
     mockConsumeOrderHistoryEvent.mockResolvedValue({ status: 'WRITTEN', historyId: 'hist-2' });
@@ -124,7 +124,7 @@ describe('outbox-processor.service — processOutboxBatch', () => {
   });
 
   it('counts a DEAD_LETTERED markFailed outcome separately from a merely-FAILED one', async () => {
-    mockClaimBatch.mockResolvedValue([makeEvent({ id: 'evt-exhausted', event_type: 'LOYALTY_EARN' })]);
+    mockClaimBatch.mockResolvedValue([makeEvent({ id: 'evt-exhausted', event_type: 'LOYALTY_EARN_RECALC_REQUESTED' })]);
     mockProcessLoyaltyEarnEvent.mockRejectedValue(new Error('still broken'));
     mockMarkFailed.mockResolvedValue('DEAD_LETTERED');
 

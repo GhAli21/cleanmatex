@@ -138,7 +138,7 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out"
   },
-  "phone": {
+  "phoneInput": {
     "countryCode": "Country code",
     "searchCountry": "Search country or code...",
     "noCountriesFound": "No countries found",

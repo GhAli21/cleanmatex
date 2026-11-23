@@ -74,7 +74,7 @@ async function activateCampaign(
       .eq('id', campaign.id)
       .eq('tenant_org_id', campaign.tenant_org_id)
 
-    void supabase.from('org_ntf_audit_dtl').insert({
+    const { error: auditError } = await supabase.from('org_ntf_audit_dtl').insert({
       tenant_org_id: campaign.tenant_org_id,
       entity_type:   'CAMPAIGN',
       entity_id:     campaign.id,
@@ -86,6 +86,7 @@ async function activateCampaign(
       rec_status:    1,
       is_active:     true,
     })
+    if (auditError) logger.warn('Campaign audit insert failed', { error: auditError.message, feature: 'notifications-campaigns' })
 
     return { targetsCreated: 0, reason: 'target_segment.user_ids is empty or missing' }
   }
@@ -128,7 +129,7 @@ async function activateCampaign(
     .eq('id', campaign.id)
     .eq('tenant_org_id', campaign.tenant_org_id)
 
-  void supabase.from('org_ntf_audit_dtl').insert({
+  const { error: auditError } = await supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: campaign.tenant_org_id,
     entity_type:   'CAMPAIGN',
     entity_id:     campaign.id,
@@ -140,6 +141,7 @@ async function activateCampaign(
     rec_status:    1,
     is_active:     true,
   })
+  if (auditError) logger.warn('Campaign audit insert failed', { error: auditError.message, feature: 'notifications-campaigns' })
 
   logger.info('process-campaigns: campaign activated', {
     campaignId:     campaign.id,
@@ -479,7 +481,7 @@ async function completeCampaign(
     .select('id')
   if (!completed?.length) return
 
-  void supabase.from('org_ntf_audit_dtl').insert({
+  const { error: auditError } = await supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: campaign.tenant_org_id,
     entity_type:   'CAMPAIGN',
     entity_id:     campaign.id,
@@ -491,6 +493,7 @@ async function completeCampaign(
     rec_status:    1,
     is_active:     true,
   })
+  if (auditError) logger.warn('Campaign audit insert failed', { error: auditError.message, feature: 'notifications-campaigns' })
 
   logger.info('process-campaigns: campaign completed', {
     campaignId: campaign.id, tenantId: campaign.tenant_org_id, feature: 'notifications-campaigns',

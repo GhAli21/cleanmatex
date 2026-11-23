@@ -233,7 +233,7 @@ export function CmxPhoneInput({
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-controls={listboxId}
-          aria-label={tCommon('phone.countryCode')}
+          aria-label={tCommon('phoneInput.countryCode')}
           className={cn(
             'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2.5 text-sm text-foreground transition-colors',
             'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -263,7 +263,7 @@ export function CmxPhoneInput({
             onBlur={handleBlur}
             disabled={disabled}
             required={required}
-            placeholder={placeholder || tCommon('phone.placeholder')}
+            placeholder={placeholder || tCommon('phoneInput.placeholder')}
             aria-invalid={hasError || undefined}
             aria-describedby={ariaDescribedBy}
             className={cn(
@@ -289,8 +289,8 @@ export function CmxPhoneInput({
                   setHighlightedIndex(0)
                 }}
                 onKeyDown={handleSearchKeyDown}
-                placeholder={tCommon('phone.searchCountry')}
-                aria-label={tCommon('phone.searchCountry')}
+                placeholder={tCommon('phoneInput.searchCountry')}
+                aria-label={tCommon('phoneInput.searchCountry')}
                 leftIcon={<Search className="h-3.5 w-3.5" aria-hidden />}
                 className="h-8 text-xs"
               />
@@ -299,12 +299,12 @@ export function CmxPhoneInput({
             <ul
               id={listboxId}
               role="listbox"
-              aria-label={tCommon('phone.countryCode')}
+              aria-label={tCommon('phoneInput.countryCode')}
               className="max-h-56 overflow-y-auto py-1 text-sm"
             >
               {filteredCountries.length === 0 ? (
                 <li className="px-3 py-2 text-xs text-muted-foreground text-center">
-                  {tCommon('phone.noCountriesFound')}
+                  {tCommon('phoneInput.noCountriesFound')}
                 </li>
               ) : (
                 filteredCountries.map((option, idx) => {
@@ -350,7 +350,7 @@ export function CmxPhoneInput({
       {/* Part 3: Canonical E.164 DB Value Preview */}
       {showNormalizedPreview && normalized.e164 ? (
         <div className="flex items-center justify-between gap-2 rounded border border-border bg-muted px-2.5 py-1 text-xs">
-          <span className="text-muted-foreground">{tCommon('phone.normalizedLabel')}</span>
+          <span className="text-muted-foreground">{tCommon('phoneInput.normalizedLabel')}</span>
           <span className="inline-flex items-center gap-1.5">
             <bdi dir="ltr" className="font-mono font-medium text-foreground tabular-nums">
               {normalized.e164}
@@ -358,12 +358,12 @@ export function CmxPhoneInput({
             {normalized.isValid ? (
               <CheckCircle2
                 className="h-3.5 w-3.5 text-success-text"
-                aria-label={tCommon('phone.valid')}
+                aria-label={tCommon('phoneInput.valid')}
               />
             ) : touched ? (
               <AlertCircle
                 className="h-3.5 w-3.5 text-warning-text"
-                aria-label={tCommon('phone.invalid')}
+                aria-label={tCommon('phoneInput.invalid')}
               />
             ) : null}
           </span>
@@ -377,7 +377,7 @@ export function CmxPhoneInput({
         </p>
       ) : showInlineInvalid ? (
         <p role="alert" className="text-xs text-warning-text text-start">
-          {tCommon('phone.invalid')}
+          {tCommon('phoneInput.invalid')}
         </p>
       ) : null}
     </div>

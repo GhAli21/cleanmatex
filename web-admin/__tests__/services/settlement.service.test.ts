@@ -5,7 +5,7 @@
  * - settleOrderTx — writes charge, tax, discount fact rows in the caller's transaction
  * - settleOrderTx — never writes payment / credit-application facts or redeems
  *   stored value (CLF W14: voucher wiring owns them); totals change for cash legs
- * - settleOrderTx — emits ORDER_COMPLETED outbox event
+ * - settleOrderTx — emits ORDER_SUBMITTED outbox event
  * - collectPaymentTx
  */
 
@@ -745,14 +745,14 @@ describe('order-settlement.service — settleOrderTx (CLF W14: wiring owns payme
     expect(mockRedeemWallet).not.toHaveBeenCalled();
   });
 
-  it('emits ORDER_COMPLETED outbox event', async () => {
+  it('emits ORDER_SUBMITTED outbox event', async () => {
     const tx = makeTx();
     mockOutboxCreate.mockResolvedValue({});
 
     await settleOrderTx(tx, { ...baseParams, settlementLegs: [makeCashLeg()] });
 
     expect(mockOutboxCreate).toHaveBeenCalledWith(
-      expect.anything(), TENANT, 'ORDER_COMPLETED',
+      expect.anything(), TENANT, 'ORDER_SUBMITTED',
       expect.any(String), ORDER, expect.any(Object)
     );
   });

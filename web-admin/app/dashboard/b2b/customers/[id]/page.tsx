@@ -1,5 +1,6 @@
 'use client';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton } from '@ui/primitives';
+import { CmxPhoneDisplay } from '@ui/data-display';
 
 /**
  * B2B Customer View Page
@@ -176,8 +177,16 @@ export default function B2BCustomerViewPage() {
                 )}
                 <div className="flex flex-wrap gap-4 mt-2 text-sm">
                   {customer.phone && (
-                    <span className="text-muted-foreground">
-                      {t('phone')}: <strong>{customer.phone}</strong>
+                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                      <span>{t('phone')}:</span>
+                      <CmxPhoneDisplay
+                        value={customer.phone}
+                        showFlag
+                        copyable
+                        telLink
+                        whatsappLink
+                        className="font-semibold text-foreground"
+                      />
                     </span>
                   )}
                   {customer.email && (
@@ -388,7 +397,9 @@ function B2BProfileTab({ customer }: { customer: CustomerWithTenantData }) {
             </div>
             <div>
               <dt className="text-sm font-medium text-muted-foreground">{t('phone')}</dt>
-              <dd className="mt-1 text-sm text-foreground">{customer.phone || '—'}</dd>
+              <dd className="mt-1 text-sm text-foreground">
+                <CmxPhoneDisplay value={customer.phone} showFlag copyable telLink whatsappLink />
+              </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-muted-foreground">{t('email')}</dt>

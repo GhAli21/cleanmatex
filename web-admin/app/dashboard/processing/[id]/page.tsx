@@ -80,13 +80,18 @@ interface ProcessingDetailItem {
   quantity: number;
   quantity_ready: number;
   service_category_code: string | null;
+  service_category_name?: string | null;
+  service_category_name2?: string | null;
+  service_speed?: string | null;
   item_status: string;
   item_last_step: string | null;
   item_is_rejected: boolean;
   color: string | null;
   brand: string | null;
   has_stain: boolean;
+  stain_notes?: string | null;
   has_damage: boolean;
+  damage_notes?: string | null;
   notes: string | null;
 }
 
@@ -271,13 +276,21 @@ export default function ProcessingDetailPage() {
           quantity_ready: Number(item.quantity_ready ?? 0),
           service_category_code:
             (item.service_category_code as string | null | undefined) ?? null,
+          service_category_name:
+            (item.service_category_name as string | null | undefined) ?? null,
+          service_category_name2:
+            (item.service_category_name2 as string | null | undefined) ?? null,
+          service_speed:
+            (item.service_speed as string | null | undefined) ?? null,
           item_status: (item.item_status as string | undefined) || 'pending',
           item_last_step: (item.item_last_step as string | null | undefined) ?? null,
           item_is_rejected: Boolean(item.item_is_rejected),
           color: (item.color as string | null | undefined) ?? null,
           brand: (item.brand as string | null | undefined) ?? null,
           has_stain: Boolean(item.has_stain),
+          stain_notes: (item.stain_notes as string | null | undefined) ?? null,
           has_damage: Boolean(item.has_damage),
+          damage_notes: (item.damage_notes as string | null | undefined) ?? null,
           notes: (item.notes as string | null | undefined) ?? null,
         };
       });
@@ -672,11 +685,28 @@ export default function ProcessingDetailPage() {
                             <span className="font-medium text-foreground">{t('quantity')}:</span>{' '}
                             {item.quantity} ({item.quantity_ready}/{item.quantity} {tModal('ready')})
                           </span>
-                          {item.service_category_code && (
-                            <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">
-                              {item.service_category_code}
+                          {(item.service_category_name ||
+                            item.service_category_name2 ||
+                            item.service_category_code) && (
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">
+                              {getBilingual(
+                                item.service_category_name,
+                                item.service_category_name2
+                              ) || item.service_category_code}
                             </span>
                           )}
+                          {item.service_speed &&
+                            item.service_speed !== 'standard' && (
+                              <CmxStatusBadge
+                                label={
+                                  item.service_speed === 'express'
+                                    ? tModal('speedExpress')
+                                    : item.service_speed
+                                }
+                                tone="warning"
+                                size="sm"
+                              />
+                            )}
                           {item.color && (
                             <span className="rounded bg-muted px-1.5 py-0.5">
                               {tTable('color')}: {item.color}
@@ -688,10 +718,26 @@ export default function ProcessingDetailPage() {
                             </span>
                           )}
                           {item.has_stain && (
-                            <CmxStatusBadge label={tTable('stain')} tone="warning" size="sm" />
+                            <CmxStatusBadge
+                              label={
+                                item.stain_notes
+                                  ? `${tTable('stain')}: ${item.stain_notes}`
+                                  : tTable('stain')
+                              }
+                              tone="warning"
+                              size="sm"
+                            />
                           )}
                           {item.has_damage && (
-                            <CmxStatusBadge label={tTable('damage')} tone="danger" size="sm" />
+                            <CmxStatusBadge
+                              label={
+                                item.damage_notes
+                                  ? `${tTable('damage')}: ${item.damage_notes}`
+                                  : tTable('damage')
+                              }
+                              tone="danger"
+                              size="sm"
+                            />
                           )}
                           {item.item_is_rejected && (
                             <CmxStatusBadge label={tModal('rejected')} tone="danger" size="sm" />

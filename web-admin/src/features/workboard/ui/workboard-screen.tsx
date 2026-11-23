@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { SortingState } from '@tanstack/react-table'
 import { ClipboardList, Copy, ExternalLink, RefreshCw } from 'lucide-react'
 import { CmxButton } from '@ui/primitives'
-import { CmxDataTable, CmxEmptyState } from '@ui/data-display'
+import { CmxDataTable, CmxEmptyState, CmxPhoneDisplay } from '@ui/data-display'
 import type { CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable'
 import { CMX_DEFAULT_PAGE_SIZE, CMX_PAGE_SIZE_OPTIONS } from '@ui/data-display/cmx-table-defaults'
 import { CmxSummaryMessage, CmxStatusBadge, useMessage, type CmxBadgeTone } from '@ui/feedback'
@@ -342,13 +342,7 @@ export function WorkboardScreen() {
             returnUrl={workboardReturnUrl}
           />
           <div className="text-xs text-muted-foreground">
-            {row.customerPhone ? (
-              <span dir="ltr" className="inline-block tabular-nums [unicode-bidi:isolate]">
-                {row.customerPhone}
-              </span>
-            ) : (
-              t('noPhone')
-            )}
+            <CmxPhoneDisplay value={row.customerPhone} showFlag fallback={t('noPhone')} />
           </div>
         </div>
       ),

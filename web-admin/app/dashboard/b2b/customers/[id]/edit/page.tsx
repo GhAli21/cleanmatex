@@ -1,5 +1,6 @@
 'use client';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle, CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { CmxPhoneInput } from '@ui/forms';
 
 /**
  * B2B Customer Edit Page
@@ -12,7 +13,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { getCustomerById, updateCustomer } from '@/lib/api/customers';
 import { fetchCustomerCategories } from '@/lib/api/customer-categories';
-import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRTL } from '@/lib/hooks/useRTL';
 
@@ -20,18 +20,6 @@ import { useMessage } from '@ui/feedback';
 import type { CustomerWithTenantData } from '@/lib/types/customer';
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { B2B_B2B_CUSTOMERS_EDIT_ACCESS } from '@features/b2b/access/b2b-access'
-
-const COUNTRY_CODES = [
-  { code: '+968', label: 'Oman', flag: '🇴🇲' },
-  { code: '+966', label: 'Saudi Arabia', flag: '🇸🇦' },
-  { code: '+971', label: 'UAE', flag: '🇦🇪' },
-  { code: '+965', label: 'Kuwait', flag: '🇰🇼' },
-  { code: '+973', label: 'Bahrain', flag: '🇧🇭' },
-  { code: '+974', label: 'Qatar', flag: '🇶🇦' },
-  { code: '+20', label: 'Egypt', flag: '🇪🇬' },
-  { code: '+962', label: 'Jordan', flag: '🇯🇴' },
-  { code: '+961', label: 'Lebanon', flag: '🇱🇧' },
-];
 
 /**
  *
@@ -56,7 +44,6 @@ export default function B2BCustomerEditPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('+968');
   const [email, setEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyName2, setCompanyName2] = useState('');
@@ -115,17 +102,6 @@ export default function B2BCustomerEditPage() {
     }
   }, [currentTenant?.tenant_id]);
 
-  useEffect(() => {
-    if (currentTenant?.tenant_id) {
-      getPhoneCountryCodeAction(currentTenant.tenant_id)
-        .then((code) => {
-          const found = COUNTRY_CODES.find((c) => c.code === code);
-          setCountryCode(found ? code : '+968');
-        })
-        .catch(() => {});
-    }
-  }, [currentTenant?.tenant_id]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -145,11 +121,10 @@ export default function B2BCustomerEditPage() {
 
     setSaving(true);
     try {
-      const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode}${phone.replace(/\D/g, '')}`;
       await updateCustomer(customerId, {
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
-        phone: fullPhone,
+        phone: phone.trim(),
         email: email.trim() || undefined,
         companyName: companyName.trim(),
         companyName2: companyName2.trim() || undefined,
@@ -244,18 +219,13 @@ export default function B2BCustomerEditPage() {
                 </div>
                 <div>
                   <Label htmlFor="phone" className="mb-1 block text-start">{t('phoneNumber')} <span className="text-danger-text">*</span></Label>
-                  <div className="flex gap-2" dir="ltr">
-                    <div className="w-28 shrink-0">
-                      <CmxSelect
-                        aria-label={t('countryCode') || 'Country code'}
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        disabled={saving}
-                        options={COUNTRY_CODES.map((c) => ({ value: c.code, label: `${c.flag} ${c.code}` }))}
-                      />
-                    </div>
-                    <CmxInput id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className="flex-1 tabular-nums" placeholder="90123456" required disabled={saving} />
-                  </div>
+                  <CmxPhoneInput
+                    id="phone"
+                    value={phone}
+                    onChange={(e164) => setPhone(e164)}
+                    required
+                    disabled={saving}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email" className="mb-1 block text-start">{t('emailOptional')}</Label>

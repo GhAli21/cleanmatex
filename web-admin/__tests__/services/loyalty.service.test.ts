@@ -776,14 +776,14 @@ describe('loyalty.service — syncAvailableLoyaltyPoints', () => {
 describe('loyalty.service — reconcileOrderLoyaltyEarn (D27 request)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('emits LOYALTY_EARN for the order with trigger and source, no amounts', async () => {
+  it('emits LOYALTY_EARN_RECALC_REQUESTED for the order with trigger and source, no amounts', async () => {
     mockOutboxCreate.mockResolvedValue({});
     await reconcileOrderLoyaltyEarn(mockTx as Parameters<typeof reconcileOrderLoyaltyEarn>[0], {
       tenantId: TENANT, orderId: ORDER, trigger: 'ORDER_CANCEL', sourceId: ORDER,
     });
     expect(mockOutboxCreate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
-        event_type: 'LOYALTY_EARN', aggregate_type: 'order', aggregate_id: ORDER,
+        event_type: 'LOYALTY_EARN_RECALC_REQUESTED', aggregate_type: 'order', aggregate_id: ORDER,
         payload: { trigger: 'ORDER_CANCEL', sourceId: ORDER },
       }),
     }));

@@ -222,7 +222,7 @@ describe('unwindOrderFinancialsOnCancel (FN-02)', () => {
     expect(emitEventTx).toHaveBeenCalledWith(
       expect.anything(),
       'tenant-1',
-      'ORDER_CANCEL_FINANCIAL_UNWIND',
+      'ORDER_CANCEL_FINANCIALS_UNWOUND',
       'ORDER',
       'order-1',
       expect.objectContaining({ disposition: 'KEEP_ON_ACCOUNT', paidAmountDisposed: 10 })

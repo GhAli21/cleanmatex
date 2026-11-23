@@ -573,8 +573,13 @@ const OrderRow = React.memo(function OrderRow({
                   </span>
                   <span className="shrink-0 tabular-nums text-muted-foreground">× {item.quantity}</span>
                 </div>
-                {(item.color || item.brand || item.has_stain || item.has_damage) && (
+                {(item.service_name || item.color || item.brand || item.has_stain || item.has_damage) && (
                   <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                    {item.service_name && (
+                      <span className="rounded bg-primary/10 px-1 py-0.5 text-xs font-medium text-primary">
+                        {item.service_name}
+                      </span>
+                    )}
                     {item.color && (
                       <span className="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
                         {item.color}

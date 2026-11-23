@@ -94,7 +94,7 @@ export function CmxPhoneDisplay({
         <a
           href={`tel:${raw}`}
           className="inline-flex items-center gap-1 text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-          aria-label={tCommon('phone.callPhone', { phone: formatted })}
+          aria-label={tCommon('phoneInput.callPhone', { phone: formatted })}
           onClick={(e) => e.stopPropagation()}
         >
           <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -113,8 +113,8 @@ export function CmxPhoneDisplay({
           type="button"
           onClick={handleCopy}
           className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={tCommon('phone.copyPhone', { phone: formatted })}
-          title={tCommon('phone.copyPhone', { phone: formatted })}
+          aria-label={tCommon('phoneInput.copyPhone', { phone: formatted })}
+          title={tCommon('phoneInput.copyPhone', { phone: formatted })}
         >
           {copied ? (
             <Check className="h-3.5 w-3.5 text-success-text" aria-hidden />
@@ -130,8 +130,8 @@ export function CmxPhoneDisplay({
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-success-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={tCommon('phone.whatsappPhone', { phone: formatted })}
-          title={tCommon('phone.whatsappPhone', { phone: formatted })}
+          aria-label={tCommon('phoneInput.whatsappPhone', { phone: formatted })}
+          title={tCommon('phoneInput.whatsappPhone', { phone: formatted })}
           onClick={(e) => e.stopPropagation()}
         >
           <MessageCircle className="h-3.5 w-3.5" aria-hidden />

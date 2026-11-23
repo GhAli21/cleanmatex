@@ -31,7 +31,7 @@ import {
   type ReadyListQuery,
 } from '@/lib/constants/ready-list-focus'
 import { CmxButton, CmxCard, CmxSelect, CmxSkeleton } from '@ui/primitives'
-import { CmxEmptyState } from '@ui/data-display'
+import { CmxEmptyState, CmxPhoneDisplay } from '@ui/data-display'
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults'
 import { CmxStatusBadge, CmxSummaryMessage, type CmxBadgeTone } from '@ui/feedback'
 import { CmxCodeSearchInput, type CodeSearchSubmit } from '@ui/forms/cmx-code-search-input'
@@ -354,9 +354,7 @@ export function ReadyListScreen() {
                     {order.customer.phone ? (
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{t('labels.phone')}:</span>
-                        <bdi dir="ltr" className="inline-block tabular-nums">
-                          {order.customer.phone}
-                        </bdi>
+                        <CmxPhoneDisplay value={order.customer.phone} showFlag copyable />
                       </div>
                     ) : null}
                     {order.rack_location ? (

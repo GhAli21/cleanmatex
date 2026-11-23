@@ -174,8 +174,8 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: 'Failed to update campaign status' }, { status: 500 })
   }
 
-  // Write to audit log (fire-and-forget — non-blocking)
-  void supabase.from('org_ntf_audit_dtl').insert({
+  // Audit write: awaited (an un-awaited PostgREST builder never sends); a failure is logged, not fatal.
+  const { error: auditError } = await supabase.from('org_ntf_audit_dtl').insert({
     tenant_org_id: tenantId,
     entity_type:   'CAMPAIGN',
     entity_id:     id,
@@ -188,6 +188,7 @@ export async function PATCH(
     rec_status:    1,
     is_active:     true,
   })
+  if (auditError) logger.warn('Campaign audit insert failed', { error: auditError.message, feature: 'notifications-campaigns' })
 
   return NextResponse.json({ success: true, data: updated })
 }

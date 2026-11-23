@@ -358,7 +358,7 @@ export async function applyOrderCreditApplication(
     await emitEventTx(
       tx,
       tenantId,
-      OUTBOX_EVENT_TYPES.STORED_VALUE_CHANGED,
+      OUTBOX_EVENT_TYPES.STORED_VALUE_REDEEMED,
       'order',
       orderId,
       {

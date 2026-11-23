@@ -14,18 +14,18 @@ interface CashOverShortPayload {
 }
 
 /**
- * CLF §4B.9 — consumes a `CASH_DRAWER_OVER_SHORT` outbox event, emitted by
+ * CLF §4B.9 — consumes a `CASH_DRAWER_VARIANCE_RECORDED` outbox event, emitted by
  * `cash-drawer-session.service.ts` at open/finalize/approve, and posts the
  * actual recognition voucher(s) via `postOverShortFromEventTx`. Each
  * currency in the payload is independently idempotent, so a redelivery
  * never double-posts.
- * @param event claimed outbox row with event_type === 'CASH_DRAWER_OVER_SHORT'
+ * @param event claimed outbox row with event_type === 'CASH_DRAWER_VARIANCE_RECORDED'
  */
 export async function processCashOverShortEvent(event: OutboxEventRow): Promise<void> {
   const payload = (event.payload ?? {}) as CashOverShortPayload;
 
   if (!payload.session_id || !payload.drawer_id || !payload.branch_id || !payload.phase || !payload.variances?.length) {
-    throw new Error(`CASH_DRAWER_OVER_SHORT event ${event.id} payload missing required fields`);
+    throw new Error(`CASH_DRAWER_VARIANCE_RECORDED event ${event.id} payload missing required fields`);
   }
 
   const variances: OverShortVariance[] = payload.variances

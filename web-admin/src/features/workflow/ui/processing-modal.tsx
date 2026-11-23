@@ -1,58 +1,78 @@
 /**
  * Processing Modal Component
- *
- * Main modal for editing order items in processing.
- * Shows items with expandable piece-level details.
- * Supports batch updates, split orders, and rack location management.
+ * Full piece-level editor for processing orders: dynamic category steps,
+ * service-category/condition filters, bulk piece actions, split orders,
+ * rack management, and dirty-state close confirmation.
  */
 
 'use client';
 
 import * as React from 'react';
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useQueries, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocale, useTranslations } from 'next-intl';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCheck,
+  Loader2,
+  MapPin,
+  Package,
+  Phone,
+  RefreshCw,
+  User,
+} from 'lucide-react';
 import {
   CmxDialog,
   CmxDialogContent,
+  CmxDialogFooter,
   CmxDialogHeader,
   CmxDialogTitle,
-  CmxDialogFooter,
-  CmxDialogClose,
 } from '@ui/overlays';
-import { CmxButton, CmxInput, Label } from '@ui/primitives';
-import { CmxSummaryMessage } from '@ui/feedback';
-import { Loader2, AlertCircle, Package, RefreshCw, User, Phone, Calendar } from 'lucide-react';
+import { CmxButton, CmxInput, CmxSkeleton, Label } from '@ui/primitives';
+import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import {
+  CmxConfirmDialog,
+  CmxStatusBadge,
+  CmxSummaryMessage,
+  cmxMessage,
+  type CmxBadgeTone,
+} from '@ui/feedback';
 import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
-import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
-import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';
-import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import { PRIORITY_LEVELS } from '@/lib/constants/order-types';
+import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
-import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
-import type {
-  Order,
-  OrderItem,
-  ItemPiece,
-  BatchUpdateRequest,
-  SummaryMessage as SummaryMessageType,
-  ProcessingStep,
-  OrderItemPiece,
-  ProcessingStepConfig,
-} from '@/types/order';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { logger } from '@/lib/utils/logger';
+import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
 import { buildColorHexByCode } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
 import { buildPrefNameByCode } from '@/src/features/orders/ui/piece-preferences/pref-display-labels';
+import { pieceTagErrorMessage } from '@/src/features/workflow/lib/piece-tag-error';
 import {
   groupPiecesByItemId,
   hasProcessingPieceChanged,
   normalizeOrderStateResponse,
   toSplitPieceId,
 } from '@features/workflow/lib/processing-piece-map';
-import { ProcessingModalFilters } from './processing-modal-filters';
+import type {
+  BatchUpdateRequest,
+  ItemPiece,
+  Order,
+  OrderItem,
+  OrderItemPiece,
+  ProcessingStep,
+  ProcessingStepConfig,
+  SummaryMessage as SummaryMessageType,
+} from '@/types/order';
 import { ProcessingItemRow } from './processing-item-row';
+import {
+  ProcessingModalFilters,
+  type ProcessingFilterOption,
+  type ProcessingModalFiltersState,
+} from './processing-modal-filters';
 import { SplitConfirmationDialog } from './split-confirmation-dialog';
-import { logger } from '@/lib/utils/logger';
-import { pieceTagErrorMessage } from '@/src/features/workflow/lib/piece-tag-error';
 
 interface ProcessingModalProps {
   isOpen: boolean;
@@ -62,50 +82,55 @@ interface ProcessingModalProps {
   onRefresh?: () => void;
 }
 
-/**
- * Generate pieces from an order item
- * Fallback when pieces are not yet loaded from DB; normally pieces are loaded from DB
- * @param item
- */
+const KNOWN_ORDER_STATUS_KEYS = new Set([
+  'processing',
+  'sorting',
+  'pretreatment',
+  'washing',
+  'drying',
+  'finishing',
+  'in_wash',
+  'in_dry',
+  'in_finish',
+  'qc',
+  'qa',
+  'assembly',
+]);
+
 function generatePieces(item: OrderItem): ItemPiece[] {
   const pieces: ItemPiece[] = [];
-
   for (let i = 1; i <= item.quantity; i++) {
     const isReady = i <= (item.quantity_ready || 0);
     pieces.push({
       id: `${item.id}-piece-${i}`,
       itemId: item.id,
       pieceNumber: i,
-      // is_ready is the source of truth, isReady is computed for backward compatibility
       is_ready: isReady ? true : null,
-      isReady: isReady,
+      isReady,
       currentStep: item.item_last_step as ProcessingStep | undefined,
       piece_stage: null,
       notes: '',
       rackLocation: '',
       isRejected: item.item_is_rejected || false,
+      serviceCategoryCode: item.service_category_code || null,
+      serviceSpeed: item.service_speed || null,
+      readyByAt: item.ready_by_at || null,
     });
   }
-
   return pieces;
 }
 
-/**
- * Map OrderItemPiece (from DB) to ItemPiece (for UI)
- * Converts database piece format to component format
- * @param dbPiece
- * @param itemId
- */
-function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | null }, itemId: string): ItemPiece {
-  // is_ready exists in DB but not in OrderItemPiece type, so we access it via type assertion
-  const isReady = (dbPiece as any).is_ready ?? false;
+function mapDbPieceToItemPiece(
+  dbPiece: OrderItemPiece & { is_ready?: boolean | null },
+  itemId: string
+): ItemPiece {
+  const isReady = dbPiece.is_ready ?? false;
   const pieceStatus = dbPiece.piece_status;
 
   return {
-    id: dbPiece.id, // Use actual DB UUID
-    itemId: itemId,
+    id: dbPiece.id,
+    itemId,
     pieceNumber: dbPiece.piece_seq,
-    // isReady is now computed from is_ready or piece_status for backward compatibility (read-only)
     isReady: isReady || pieceStatus === 'ready',
     currentStep: dbPiece.last_step as ProcessingStep | undefined,
     notes: dbPiece.notes || '',
@@ -116,39 +141,44 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     barcode: dbPiece.barcode || null,
     piece_code: dbPiece.piece_code || null,
     scan_state: dbPiece.scan_state || null,
-    // Status fields - is_ready is the source of truth
     piece_status: pieceStatus || null,
     piece_stage: dbPiece.piece_stage || null,
     is_ready: isReady ?? null,
     issue_id: dbPiece.issue_id ?? null,
-    // Preferences from org_order_preferences_dtl (color/brand columns are legacy)
     packingPrefCode: dbPiece.packing_pref_code || null,
     servicePrefs: dbPiece.service_prefs || undefined,
     colorPrefs: dbPiece.color_prefs || undefined,
+    serviceCategoryCode: dbPiece.service_category_code || null,
+    serviceSpeed: dbPiece.service_speed || null,
+    readyByAt: dbPiece.ready_by_at || null,
+    lastStepAt: dbPiece.last_step_at || null,
+    tagReleasedAt: dbPiece.tag_released_at || null,
   };
 }
 
+const DEFAULT_FILTERS: ProcessingModalFiltersState = {
+  search: '',
+  category: 'all',
+  step: 'all',
+  status: 'all',
+  showRejectedOnTop: false,
+};
+
 /**
- *
- * @param root0
- * @param root0.isOpen
- * @param root0.orderId
- * @param root0.tenantId
- * @param root0.onClose
- * @param root0.onRefresh
+ * Full Processing Editor modal for `/dashboard/processing`.
+ * @param props Modal visibility, order identity, and refresh callbacks.
  */
-export function ProcessingModal({
-  isOpen,
-  orderId,
-  tenantId,
-  onClose,
-  onRefresh,
-}: ProcessingModalProps) {
+export function ProcessingModal(props: ProcessingModalProps) {
+  const { isOpen, orderId, tenantId, onClose, onRefresh } = props;
   const t = useTranslations('processing.modal');
+  const tProcessing = useTranslations('processing');
+  const tTable = useTranslations('processing.table');
+  const tStatus = useTranslations('processing.status');
+  const tCommon = useTranslations('common');
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const { token: csrfToken } = useCSRFToken();
 
-  // Fetch tenant settings
   const {
     splitOrderEnabled: splitOrderSettingEnabled,
     rejectEnabled,
@@ -157,7 +187,7 @@ export function ProcessingModal({
     processingConfirmationEnabled,
     isLoading: settingsLoading,
   } = useTenantSettingsWithDefaults(tenantId, null, null, isOpen);
-  // Split needs the tenant setting AND the user's orders:split permission (the API enforces it too).
+
   const canSplitOrders = useHasPermissionCode('orders:split');
   const splitOrderEnabled = splitOrderSettingEnabled && canSplitOrders;
 
@@ -187,40 +217,32 @@ export function ProcessingModal({
     [servicePrefs, packingPrefs, conditionCatalog, getBilingual]
   );
 
-  // State management
   const [expandedItemIds, setExpandedItemIds] = React.useState<Set<string>>(new Set());
   const [pieceStates, setPieceStates] = React.useState<Map<string, ItemPiece>>(new Map());
-  const [originalPieceStates, setOriginalPieceStates] = React.useState<Map<string, ItemPiece>>(new Map());
+  const [originalPieceStates, setOriginalPieceStates] = React.useState<Map<string, ItemPiece>>(
+    new Map()
+  );
   const [selectedForSplit, setSelectedForSplit] = React.useState<Set<string>>(new Set());
   const [rackLocation, setRackLocation] = React.useState('');
   const [summaryMessage, setSummaryMessage] = React.useState<SummaryMessageType | null>(null);
   const [showSplitDialog, setShowSplitDialog] = React.useState(false);
-  const [showRejectedOnTop, setShowRejectedOnTop] = React.useState(false);
-  const [filters, setFilters] = React.useState<{
-    search: string;
-    step: ProcessingStep | 'all';
-    status: 'all' | 'ready' | 'not_ready';
-    showRejectedOnTop: boolean;
-  }>({
-    search: '',
-    step: 'all',
-    status: 'all',
-    showRejectedOnTop: false,
-  });
+  const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false);
+  const [filters, setFilters] = React.useState<ProcessingModalFiltersState>(DEFAULT_FILTERS);
+
+  const initializedOrderIdRef = React.useRef<string | null>(null);
+  const rackInitializedOrderIdRef = React.useRef<string | null>(null);
 
   const { data: orderData, isLoading: orderLoading, error: orderError } = useQuery({
     queryKey: ['order-processing', orderId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/orders/${orderId}/state`);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
-
       return normalizeOrderStateResponse(await response.json());
     },
-    enabled: isOpen && !!orderId,
+    enabled: isOpen && Boolean(orderId),
     retry: 1,
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
@@ -229,7 +251,10 @@ export function ProcessingModal({
   });
 
   const order: Order | null = (orderData?.order as unknown as Order | null) ?? null;
-  const items: OrderItem[] = (orderData?.items as unknown as OrderItem[]) ?? [];
+  const items = React.useMemo(
+    () => (orderData?.items as unknown as OrderItem[]) ?? [],
+    [orderData?.items]
+  );
   const customerData = (orderData?.customer as Record<string, unknown> | null) ?? null;
 
   const categoryCodesToFetch = React.useMemo(() => {
@@ -242,14 +267,8 @@ export function ProcessingModal({
         codes.add(item.service_category_code);
       }
     });
-    expandedItemIds.forEach((itemId) => {
-      const item = items.find((entry) => entry.id === itemId);
-      if (item?.service_category_code) {
-        codes.add(item.service_category_code);
-      }
-    });
     return Array.from(codes);
-  }, [order, items, expandedItemIds]);
+  }, [order, items]);
 
   const processingStepsQueries = useQueries({
     queries: categoryCodesToFetch.map((serviceCategoryCode) => ({
@@ -258,12 +277,10 @@ export function ProcessingModal({
         const response = await fetch(
           `/api/v1/processing-steps/${encodeURIComponent(serviceCategoryCode)}`
         );
-        if (!response.ok) {
-          return { success: false };
-        }
+        if (!response.ok) return { success: false };
         return response.json();
       },
-      enabled: isOpen && !!tenantId && !!serviceCategoryCode,
+      enabled: isOpen && Boolean(tenantId) && Boolean(serviceCategoryCode),
       staleTime: 5 * 60 * 1000,
     })),
   });
@@ -276,11 +293,38 @@ export function ProcessingModal({
     return map;
   }, [categoryCodesToFetch, processingStepsQueries]);
 
-  const orderProcessingSteps =
-    processingStepsByCategory.get(order?.service_category_code || '') || [];
+  const categoryFilterOptions: ProcessingFilterOption[] = React.useMemo(() => {
+    const map = new Map<string, string>();
+    items.forEach((item) => {
+      const code = item.service_category_code;
+      if (!code || map.has(code)) return;
+      const label =
+        getBilingual(item.service_category_name, item.service_category_name2) || code;
+      map.set(code, label);
+    });
+    return Array.from(map.entries()).map(([code, label]) => ({ code, label }));
+  }, [getBilingual, items]);
 
-  // Fetch all pieces for the order in a single query (optimized)
-  const { data: piecesData, isLoading: piecesLoading, error: piecesError } = useQuery({
+  const dynamicStepFilterOptions: ProcessingFilterOption[] = React.useMemo(() => {
+    const map = new Map<string, { label: string; seq: number }>();
+    processingStepsByCategory.forEach((steps) => {
+      steps
+        .filter((s) => s.is_active)
+        .forEach((s) => {
+          if (!map.has(s.step_code)) {
+            map.set(s.step_code, {
+              label: getBilingual(s.step_name, s.step_name2) || s.step_name,
+              seq: s.step_seq,
+            });
+          }
+        });
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[1].seq - b[1].seq)
+      .map(([code, meta]) => ({ code, label: meta.label }));
+  }, [getBilingual, processingStepsByCategory]);
+
+  const { data: piecesData, isLoading: piecesLoading } = useQuery({
     queryKey: ['order-pieces', orderId],
     queryFn: async () => {
       if (!orderId) return null;
@@ -291,161 +335,95 @@ export function ProcessingModal({
       }
       return response.json();
     },
-    enabled: isOpen && !!orderId && trackByPiece,
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    enabled: isOpen && Boolean(orderId) && trackByPiece,
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
 
-  /** Per-item / per-piece open+total counts for issue status badges */
   const { data: issueSummary } = useQuery({
     queryKey: ['order-issue-summary', orderId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/orders/${orderId}/issue-summary`);
       const json = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(
-          (json as { error?: string }).error || 'Failed to load issue summary'
-        );
+        throw new Error((json as { error?: string }).error || 'Failed to load issue summary');
       }
       return (
-        (json as {
-          data?: {
-            byItem?: Record<string, { open: number; total: number }>;
-            byPiece?: Record<string, { open: number; total: number }>;
-          };
-        }).data ?? {
-          byItem: {},
-          byPiece: {},
-        }
+        (
+          json as {
+            data?: {
+              byItem?: Record<string, { open: number; total: number }>;
+              byPiece?: Record<string, { open: number; total: number }>;
+            };
+          }
+        ).data ?? { byItem: {}, byPiece: {} }
       );
     },
-    enabled: isOpen && !!orderId,
+    enabled: isOpen && Boolean(orderId),
     staleTime: 15_000,
     refetchOnWindowFocus: false,
   });
 
-  const issueByItem = issueSummary?.byItem ?? {};
-  const issueByPiece = issueSummary?.byPiece ?? {};
+  const issueByItem = React.useMemo(() => issueSummary?.byItem ?? {}, [issueSummary?.byItem]);
+  const issueByPiece = React.useMemo(() => issueSummary?.byPiece ?? {}, [issueSummary?.byPiece]);
 
-  // Group DB pieces by itemId for initial hydrate only
   const dbPiecesByItemId = React.useMemo(() => {
     const grouped = new Map<string, ItemPiece[]>();
-
     if (!piecesData?.pieces || !Array.isArray(piecesData.pieces)) {
       return grouped;
     }
-
     piecesData.pieces.forEach((dbPiece: OrderItemPiece) => {
       const itemId = dbPiece.order_item_id;
       const itemPiece = mapDbPieceToItemPiece(dbPiece, itemId);
-
-      if (!grouped.has(itemId)) {
-        grouped.set(itemId, []);
-      }
-      grouped.get(itemId)!.push(itemPiece);
+      const list = grouped.get(itemId) ?? [];
+      list.push(itemPiece);
+      grouped.set(itemId, list);
     });
-
-    grouped.forEach((pieceList) => {
-      pieceList.sort((a, b) => a.pieceNumber - b.pieceNumber);
-    });
-
+    grouped.forEach((list) => list.sort((a, b) => a.pieceNumber - b.pieceNumber));
     return grouped;
   }, [piecesData]);
 
-  // Stable piece arrays for row props (one array ref per item while pieceStates unchanged)
-  const piecesByItemId = React.useMemo(
-    () => groupPiecesByItemId(pieceStates),
-    [pieceStates]
-  );
-
-  // Initialize piece states when items and pieces data load
-  const initializedOrderIdRef = React.useRef<string | null>(null);
+  const piecesByItemId = React.useMemo(() => groupPiecesByItemId(pieceStates), [pieceStates]);
 
   React.useEffect(() => {
     if (!isOpen || !orderId || items.length === 0) return;
 
-    // Only initialize if this is a new order (not already initialized)
     if (initializedOrderIdRef.current !== orderId) {
       if (trackByPiece && piecesLoading) return;
 
       const initialStates = new Map<string, ItemPiece>();
-
-      if (trackByPiece) {
+      if (trackByPiece && dbPiecesByItemId.size > 0) {
         dbPiecesByItemId.forEach((pieces) => {
-          pieces.forEach((piece) => {
-            initialStates.set(piece.id, piece);
-          });
+          pieces.forEach((piece) => initialStates.set(piece.id, piece));
         });
-
-        if (dbPiecesByItemId.size === 0 && !piecesLoading) {
-          items.forEach(item => {
-            const generatedPieces = generatePieces(item);
-            generatedPieces.forEach(piece => {
-              initialStates.set(piece.id, piece);
-            });
-          });
-        }
       } else {
-        // Not tracking by piece, generate pieces from items
-        items.forEach(item => {
-          const generatedPieces = generatePieces(item);
-          generatedPieces.forEach(piece => {
-            initialStates.set(piece.id, piece);
-          });
+        items.forEach((item) => {
+          generatePieces(item).forEach((piece) => initialStates.set(piece.id, piece));
         });
       }
 
       setPieceStates(initialStates);
-      // Store original states for comparison
       setOriginalPieceStates(new Map(initialStates));
       initializedOrderIdRef.current = orderId;
-    } else {
-      // If order is already initialized, merge new pieces without overwriting existing state
-      // This handles cases where items are added after initial load
-      setPieceStates(prev => {
-        const newMap = new Map(prev);
-        let hasNewPieces = false;
 
-        items.forEach(item => {
-          if (trackByPiece && dbPiecesByItemId.has(item.id)) {
-            const dbPieces = dbPiecesByItemId.get(item.id) || [];
-            dbPieces.forEach(piece => {
-              if (!newMap.has(piece.id)) {
-                newMap.set(piece.id, piece);
-                hasNewPieces = true;
-              }
-            });
-          } else {
-            // Generate pieces for new items
-            const pieces = generatePieces(item);
-            pieces.forEach(piece => {
-              if (!newMap.has(piece.id)) {
-                newMap.set(piece.id, piece);
-                hasNewPieces = true;
-              }
-            });
-          }
-        });
-
-        // Only update if there are new pieces
-        return hasNewPieces ? newMap : prev;
-      });
+      if (items.length <= 2) {
+        setExpandedItemIds(new Set(items.map((it) => it.id)));
+      }
     }
   }, [isOpen, orderId, items, trackByPiece, dbPiecesByItemId, piecesLoading]);
 
-  // Set initial rack location from order
   React.useEffect(() => {
-    if (order?.rack_location && !rackLocation) {
-      setRackLocation(order.rack_location);
+    if (!isOpen || !orderId || !order) return;
+    if (rackInitializedOrderIdRef.current !== orderId) {
+      setRackLocation(order.rack_location ?? '');
+      rackInitializedOrderIdRef.current = orderId;
     }
-  }, [order, rackLocation]);
+  }, [isOpen, orderId, order]);
 
-  // Reset state when modal closes
   React.useEffect(() => {
     if (!isOpen) {
-      // Reset all state when modal closes
       setExpandedItemIds(new Set());
       setPieceStates(new Map());
       setOriginalPieceStates(new Map());
@@ -453,12 +431,13 @@ export function ProcessingModal({
       setRackLocation('');
       setSummaryMessage(null);
       setShowSplitDialog(false);
-      setShowRejectedOnTop(false);
+      setShowDiscardConfirm(false);
+      setFilters(DEFAULT_FILTERS);
       initializedOrderIdRef.current = null;
+      rackInitializedOrderIdRef.current = null;
     }
   }, [isOpen]);
 
-  // Batch update mutation
   const updateMutation = useMutation({
     mutationFn: async (request: BatchUpdateRequest) => {
       const response = await fetch(`/api/v1/orders/${orderId}/batch-update`, {
@@ -477,35 +456,28 @@ export function ProcessingModal({
       }
       return response.json();
     },
-    onSuccess: (data, variables) => {
-      // Calculate actual counts from the request (use request data, not API response)
+    onSuccess: (_data, variables) => {
       const actualPiecesUpdated = variables.updates.length;
-      const actualReadyCount = variables.updates.filter(u => u.is_ready === true).length;
-      const actualStepsRecorded = new Set(variables.updates.filter(u => u.currentStep).map(u => u.currentStep)).size;
-      const actualRackLocationsSet = variables.updates.filter(u => u.rackLocation && u.rackLocation.trim() !== '').length;
+      const actualReadyCount = variables.updates.filter((u) => u.is_ready === true).length;
+      const actualStepsRecorded = new Set(
+        variables.updates.filter((u) => u.currentStep).map((u) => u.currentStep)
+      ).size;
+      const actualRackLocationsSet = variables.updates.filter(
+        (u) => u.rackLocation && u.rackLocation.trim() !== ''
+      ).length;
 
-      // Build summary items - always show pieces updated if there are any updates
       const summaryItems: string[] = [];
-
       if (actualPiecesUpdated > 0) {
         summaryItems.push(String(t('summary.piecesUpdated', { count: actualPiecesUpdated })));
       }
-
       if (actualReadyCount > 0) {
         summaryItems.push(String(t('summary.readyCount', { count: actualReadyCount })));
       }
-
       if (actualStepsRecorded > 0) {
         summaryItems.push(String(t('summary.stepsRecorded', { count: actualStepsRecorded })));
       }
-
       if (actualRackLocationsSet > 0) {
         summaryItems.push(String(t('summary.rackLocationsSet', { count: actualRackLocationsSet })));
-      }
-
-      // If no items but we had updates, show a generic success message
-      if (summaryItems.length === 0 && actualPiecesUpdated > 0) {
-        summaryItems.push(String(t('summary.piecesUpdated', { count: actualPiecesUpdated })));
       }
 
       setSummaryMessage({
@@ -513,32 +485,26 @@ export function ProcessingModal({
         title: String(t('summary.updateSuccess')),
         items: summaryItems,
       });
-
-      // Update original states to current states after successful update
+      cmxMessage.success(String(t('summary.updateSuccess')));
       setOriginalPieceStates(new Map(pieceStates));
-
-      // Refresh parent list
       onRefresh?.();
-      // Invalidate both order state and pieces cache to ensure fresh data
+
       if (isOpen && orderId) {
-        queryClient.invalidateQueries({
-          queryKey: ['order-processing', orderId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['order-pieces', orderId],
-        });
+        queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
       }
     },
     onError: (error) => {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
       setSummaryMessage({
         type: 'error',
         title: String(t('error.updateFailed')),
-        items: [String(error instanceof Error ? error.message : 'Unknown error')],
+        items: [msg],
       });
+      cmxMessage.error(String(t('error.updateFailed')), { description: msg });
     },
   });
 
-  // Split order mutation
   const splitMutation = useMutation({
     mutationFn: async ({ pieceIds, reason }: { pieceIds: string[]; reason: string }) => {
       const response = await fetch(`/api/v1/orders/${orderId}/split`, {
@@ -565,44 +531,48 @@ export function ProcessingModal({
           String(t('summary.movedPieces', { count: data.movedPieces })),
         ],
       });
-
-      // Clear split selection
+      cmxMessage.success(String(t('summary.splitSuccess')));
       setSelectedForSplit(new Set());
       setShowSplitDialog(false);
-
-      // Refresh
       onRefresh?.();
-      // Invalidate both order state and pieces cache to ensure fresh data
+
       if (isOpen && orderId) {
-        queryClient.invalidateQueries({
-          queryKey: ['order-processing', orderId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['order-pieces', orderId],
-        });
+        queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
       }
     },
     onError: (error) => {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
       setSummaryMessage({
         type: 'error',
-        title: 'Split Failed',
-        items: [String(error instanceof Error ? error.message : 'Unknown error')],
+        title: String(t('splitFailed')),
+        items: [msg],
       });
+      cmxMessage.error(String(t('splitFailed')), { description: msg });
     },
   });
 
+  const dirtyPiecesCount = React.useMemo(() => {
+    let count = 0;
+    pieceStates.forEach((piece) => {
+      if (hasProcessingPieceChanged(piece, originalPieceStates.get(piece.id))) {
+        count++;
+      }
+    });
+    return count;
+  }, [pieceStates, originalPieceStates]);
+
+  const rackDirty = rackLocation !== (order?.rack_location ?? '');
+  const totalDirtyCount = dirtyPiecesCount + (rackDirty ? 1 : 0);
+  const hasChanges = totalDirtyCount > 0;
+
   const handleUpdate = React.useCallback(() => {
-    // Only collect pieces that have actually changed
     const updates = Array.from(pieceStates.values())
-      .filter(piece => {
-        const original = originalPieceStates.get(piece.id);
-        return hasProcessingPieceChanged(piece, original);
-      })
-      .map(piece => ({
-        pieceId: piece.id, // Use the ID (could be DB ID or generated ID)
+      .filter((piece) => hasProcessingPieceChanged(piece, originalPieceStates.get(piece.id)))
+      .map((piece) => ({
+        pieceId: piece.id,
         itemId: piece.itemId,
         pieceNumber: piece.pieceNumber,
-        // Only send is_ready (source of truth), backend will handle piece_status
         is_ready: piece.is_ready ?? null,
         currentStep: piece.currentStep,
         piece_stage: piece.piece_stage || null,
@@ -614,19 +584,18 @@ export function ProcessingModal({
         has_damage: piece.has_damage || null,
       }));
 
-    // Calculate quantity_ready per item
+    // Compute ready count across ALL pieces of each item (never only edited updates)
     const itemQuantityReady: Record<string, number> = {};
-    items.forEach(item => {
-      const itemPieces = updates.filter(u => u.itemId === item.id);
-      const readyCount = itemPieces.filter(u => u.is_ready === true).length;
-      itemQuantityReady[item.id] = readyCount;
+    items.forEach((item) => {
+      const allForItem = piecesByItemId.get(item.id) ?? [];
+      itemQuantityReady[item.id] = allForItem.filter((p) => p.is_ready === true).length;
     });
 
     logger.info('[ProcessingModal] Saving updates:', {
       feature: 'ordersPieces',
       action: 'Update_ordersPieces',
       orderRackLocation: rackLocation,
-      itemQuantityReady: itemQuantityReady,
+      itemQuantityReady,
       count: updates.length,
     });
 
@@ -635,54 +604,85 @@ export function ProcessingModal({
       itemQuantityReady,
       orderRackLocation: rackLocation,
     });
-  }, [
-    pieceStates,
-    originalPieceStates,
-    items,
-    rackLocation,
-    updateMutation,
-  ]);
+  }, [pieceStates, originalPieceStates, items, piecesByItemId, rackLocation, updateMutation]);
 
-  const handleSplitConfirm = React.useCallback((reason: string) => {
-    const pieceIds = Array.from(selectedForSplit, (selectedId) => {
-      const piece = pieceStates.get(selectedId);
-      return piece ? toSplitPieceId(piece) : selectedId;
-    });
-    splitMutation.mutate({ pieceIds, reason });
-  }, [pieceStates, selectedForSplit, splitMutation]);
+  const handleSplitConfirm = React.useCallback(
+    (reason: string) => {
+      const pieceIds = Array.from(selectedForSplit, (selectedId) => {
+        const piece = pieceStates.get(selectedId);
+        return piece ? toSplitPieceId(piece) : selectedId;
+      });
+      splitMutation.mutate({ pieceIds, reason });
+    },
+    [pieceStates, selectedForSplit, splitMutation]
+  );
 
-  const handlePieceChange = React.useCallback((pieceId: string, updates: Partial<ItemPiece>) => {
-    setPieceStates(prev => {
-      const newMap = new Map(prev);
-      const piece = newMap.get(pieceId);
-      if (piece) {
-        newMap.set(pieceId, { ...piece, ...updates });
-      }
-      return newMap;
+  const handlePieceChange = React.useCallback(
+    (pieceId: string, updates: Partial<ItemPiece>) => {
+      setPieceStates((prev) => {
+        const next = new Map(prev);
+        const piece = next.get(pieceId);
+        if (piece) {
+          next.set(pieceId, { ...piece, ...updates });
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleBulkItemReadyChange = React.useCallback(
+    (itemId: string, ready: boolean) => {
+      setPieceStates((prev) => {
+        const next = new Map(prev);
+        next.forEach((piece, key) => {
+          if (piece.itemId === itemId) {
+            next.set(key, { ...piece, is_ready: ready, isReady: ready });
+          }
+        });
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleBulkOrderReady = React.useCallback((ready: boolean) => {
+    setPieceStates((prev) => {
+      const next = new Map(prev);
+      next.forEach((piece, key) => {
+        next.set(key, { ...piece, is_ready: ready, isReady: ready });
+      });
+      return next;
     });
   }, []);
 
+  const handleApplyOrderRackToPieces = React.useCallback(() => {
+    const rack = rackLocation.trim();
+    if (!rack) return;
+    setPieceStates((prev) => {
+      const next = new Map(prev);
+      next.forEach((piece, key) => {
+        next.set(key, { ...piece, rackLocation: rack });
+      });
+      return next;
+    });
+  }, [rackLocation]);
+
   const handleSplitToggle = React.useCallback((pieceId: string, selected: boolean) => {
-    setSelectedForSplit(prev => {
-      const newSet = new Set(prev);
-      if (selected) {
-        newSet.add(pieceId);
-      } else {
-        newSet.delete(pieceId);
-      }
-      return newSet;
+    setSelectedForSplit((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(pieceId);
+      else next.delete(pieceId);
+      return next;
     });
   }, []);
 
   const handleToggleExpand = React.useCallback((itemId: string) => {
-    setExpandedItemIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
-      }
-      return newSet;
+    setExpandedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
     });
   }, []);
 
@@ -693,53 +693,103 @@ export function ProcessingModal({
     }
   }, [orderId, queryClient]);
 
-  const getPiecesForItem = React.useCallback((itemId: string): ItemPiece[] => {
-    const fromState = piecesByItemId.get(itemId);
-    if (fromState && fromState.length > 0) {
-      return fromState;
-    }
-    if (trackByPiece && dbPiecesByItemId.has(itemId)) {
-      return dbPiecesByItemId.get(itemId) || [];
-    }
-    return [];
-  }, [trackByPiece, piecesByItemId, dbPiecesByItemId]);
+  const getPiecesForItem = React.useCallback(
+    (itemId: string): ItemPiece[] => {
+      const fromState = piecesByItemId.get(itemId);
+      if (fromState && fromState.length > 0) return fromState;
+      if (trackByPiece && dbPiecesByItemId.has(itemId)) {
+        return dbPiecesByItemId.get(itemId) || [];
+      }
+      return [];
+    },
+    [trackByPiece, piecesByItemId, dbPiecesByItemId]
+  );
 
-  // Filter and sort items based on filters
   const filteredAndSortedItems = React.useMemo(() => {
     let filtered = [...items];
 
-    // Apply search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(item => {
-        const productName = (item.org_product_data_mst?.product_name || item.product_name || '').toLowerCase();
-        const productName2 = (item.org_product_data_mst?.product_name2 || item.product_name2 || '').toLowerCase();
-        return productName.includes(searchLower) || productName2.includes(searchLower);
+    if (filters.search.trim()) {
+      const q = filters.search.trim().toLowerCase();
+      filtered = filtered.filter((item) => {
+        const productName = (
+          item.org_product_data_mst?.product_name ||
+          item.product_name ||
+          ''
+        ).toLowerCase();
+        const productName2 = (
+          item.org_product_data_mst?.product_name2 ||
+          item.product_name2 ||
+          ''
+        ).toLowerCase();
+        const catCode = (item.service_category_code || '').toLowerCase();
+        const catName = (item.service_category_name || '').toLowerCase();
+        const catName2 = (item.service_category_name2 || '').toLowerCase();
+        if (
+          productName.includes(q) ||
+          productName2.includes(q) ||
+          catCode.includes(q) ||
+          catName.includes(q) ||
+          catName2.includes(q)
+        ) {
+          return true;
+        }
+        return getPiecesForItem(item.id).some(
+          (piece) =>
+            (piece.piece_code || '').toLowerCase().includes(q) ||
+            (piece.barcode || '').toLowerCase().includes(q) ||
+            (piece.rackLocation || '').toLowerCase().includes(q) ||
+            (piece.notes || '').toLowerCase().includes(q)
+        );
       });
     }
 
-    // Apply step filter
+    if (filters.category !== 'all') {
+      filtered = filtered.filter(
+        (item) => (item.service_category_code || '') === filters.category
+      );
+    }
+
     if (filters.step !== 'all') {
-      filtered = filtered.filter(item => {
+      filtered = filtered.filter((item) => {
         const itemPieces = getPiecesForItem(item.id);
-        return itemPieces.some(piece => piece.currentStep === filters.step);
+        return (
+          item.item_last_step === filters.step ||
+          itemPieces.some((piece) => piece.currentStep === filters.step)
+        );
       });
     }
 
-    // Apply status filter
     if (filters.status !== 'all') {
-      filtered = filtered.filter(item => {
+      filtered = filtered.filter((item) => {
         const itemPieces = getPiecesForItem(item.id);
-        if (filters.status === 'ready') {
-          return itemPieces.some(piece => piece.is_ready === true);
-        } else {
-          return itemPieces.some(piece => piece.is_ready !== true);
+        switch (filters.status) {
+          case 'ready':
+            return itemPieces.some((piece) => piece.is_ready === true);
+          case 'not_ready':
+            return itemPieces.some((piece) => piece.is_ready !== true);
+          case 'has_issues':
+            return (
+              Boolean(item.item_issue_id) ||
+              (issueByItem[item.id]?.open ?? 0) > 0 ||
+              itemPieces.some(
+                (p) => Boolean(p.issue_id) || (issueByPiece[p.id]?.open ?? 0) > 0
+              )
+            );
+          case 'has_condition':
+            return (
+              Boolean(item.has_stain) ||
+              Boolean(item.has_damage) ||
+              itemPieces.some((p) => Boolean(p.has_stain) || Boolean(p.has_damage))
+            );
+          case 'rejected':
+            return Boolean(item.item_is_rejected) || itemPieces.some((p) => p.isRejected);
+          default:
+            return true;
         }
       });
     }
 
-    // Sort by rejected status if enabled
-    if (filters.showRejectedOnTop || showRejectedOnTop) {
+    if (filters.showRejectedOnTop) {
       filtered.sort((a, b) => {
         const aRejected = a.item_is_rejected || false;
         const bRejected = b.item_is_rejected || false;
@@ -750,259 +800,265 @@ export function ProcessingModal({
     }
 
     return filtered;
-  }, [items, filters, showRejectedOnTop, getPiecesForItem]);
+  }, [filters, getPiecesForItem, issueByItem, issueByPiece, items]);
 
-  // Loading states - separate for order vs pieces
-  const isLoading = orderLoading || settingsLoading;
-  const isPiecesLoading = piecesLoading && trackByPiece;
-  const hasChanges = React.useMemo(() => {
-    const piecesDirty = Array.from(pieceStates.values()).some((piece) =>
-      hasProcessingPieceChanged(piece, originalPieceStates.get(piece.id))
-    );
-    const rackDirty = rackLocation !== (order?.rack_location ?? '');
-    return piecesDirty || rackDirty;
-  }, [pieceStates, originalPieceStates, rackLocation, order?.rack_location]);
+  const allFilteredExpanded =
+    filteredAndSortedItems.length > 0 &&
+    filteredAndSortedItems.every((it) => expandedItemIds.has(it.id));
 
-  // Calculate overall progress
-  const overallProgress = React.useMemo(() => {
-    if (!order || items.length === 0) return 0;
-    const allPieces = Array.from(pieceStates.values());
-    const totalPieces = allPieces.length || items.reduce((sum, item) => sum + item.quantity, 0);
-    const readyPieces = allPieces.filter(p => p.is_ready === true).length;
-    return totalPieces > 0 ? (readyPieces / totalPieces) * 100 : 0;
-  }, [order, items, pieceStates]);
-
-  // Calculate overall order step and completed steps using dynamic steps from service category
-  const { overallCurrentStep, overallCompletedSteps } = React.useMemo(() => {
-    const allPieces = Array.from(pieceStates.values());
-    if (allPieces.length === 0 || orderProcessingSteps.length === 0) {
-      return { overallCurrentStep: null, overallCompletedSteps: new Set<ProcessingStep>() };
+  const handleToggleExpandAll = React.useCallback(() => {
+    if (allFilteredExpanded) {
+      setExpandedItemIds(new Set());
+    } else {
+      setExpandedItemIds(new Set(filteredAndSortedItems.map((it) => it.id)));
     }
+  }, [allFilteredExpanded, filteredAndSortedItems]);
 
-    const activeSteps = orderProcessingSteps
-      .filter(step => step.is_active)
-      .sort((a, b) => a.step_seq - b.step_seq)
-      .map(step => step.step_code as ProcessingStep);
-
-    if (activeSteps.length === 0) {
-      return { overallCurrentStep: null, overallCompletedSteps: new Set<ProcessingStep>() };
+  const requestClose = React.useCallback(() => {
+    if (updateMutation.isPending || splitMutation.isPending) return;
+    if (hasChanges) {
+      setShowDiscardConfirm(true);
+      return;
     }
+    onClose();
+  }, [hasChanges, onClose, splitMutation.isPending, updateMutation.isPending]);
 
-    // Get all current steps from pieces
-    const pieceSteps = allPieces
-      .map(p => p.currentStep)
-      .filter((step): step is ProcessingStep => !!step);
-
-    if (pieceSteps.length === 0) {
-      return { overallCurrentStep: null, overallCompletedSteps: new Set<ProcessingStep>() };
-    }
-
-    // Find the minimum step (earliest step) - this represents the overall order progress
-    // If all pieces are at different steps, show the earliest one
-    let minStepIndex = Infinity;
-    let overallStep: ProcessingStep | null = null;
-
-    pieceSteps.forEach(step => {
-      const stepIndex = activeSteps.indexOf(step);
-      if (stepIndex !== -1 && stepIndex < minStepIndex) {
-        minStepIndex = stepIndex;
-        overallStep = step;
-      }
-    });
-
-    // Calculate completed steps (steps before the current step)
-    const completedSteps = new Set<ProcessingStep>();
-    if (overallStep && minStepIndex > 0) {
-      for (let i = 0; i < minStepIndex; i++) {
-        completedSteps.add(activeSteps[i]);
-      }
-    }
-
-    return {
-      overallCurrentStep: overallStep,
-      overallCompletedSteps: completedSteps,
-    };
-  }, [pieceStates, orderProcessingSteps]);
-
-  // Keyboard shortcuts
   React.useEffect(() => {
     if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S to save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         if (hasChanges && !updateMutation.isPending) {
           handleUpdate();
         }
       }
-
-      // Esc to close
-      if (e.key === 'Escape' && !updateMutation.isPending && !splitMutation.isPending) {
-        onClose();
+      if (e.key === 'Escape' && !showDiscardConfirm && !showSplitDialog) {
+        e.preventDefault();
+        requestClose();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, hasChanges, updateMutation.isPending, splitMutation.isPending, onClose, handleUpdate]);
+  }, [
+    isOpen,
+    hasChanges,
+    updateMutation.isPending,
+    handleUpdate,
+    requestClose,
+    showDiscardConfirm,
+    showSplitDialog,
+  ]);
+
+  const isLoading = orderLoading || settingsLoading;
+  const isPiecesLoading = piecesLoading && trackByPiece;
+
+  const allPieceList = React.useMemo(() => Array.from(pieceStates.values()), [pieceStates]);
+  const totalPiecesCount =
+    allPieceList.length || items.reduce((sum, item) => sum + item.quantity, 0);
+  const readyPiecesCount = allPieceList.filter((p) => p.is_ready === true).length;
+  const allOrderPiecesReady =
+    allPieceList.length > 0 && allPieceList.every((p) => p.is_ready === true);
+  const overallProgress =
+    totalPiecesCount > 0 ? (readyPiecesCount / totalPiecesCount) * 100 : 0;
+
+  const displayCustomerName = customerData
+    ? getBilingual(
+        customerData.name as string | undefined,
+        customerData.name2 as string | undefined
+      ) ||
+      String(customerData.display_name || customerData.phone || tProcessing('unknownCustomer'))
+    : tProcessing('unknownCustomer');
+
+  const rawStatus = (order?.current_status || order?.status || 'processing').toLowerCase();
+  const localizedOrderStatus = KNOWN_ORDER_STATUS_KEYS.has(rawStatus)
+    ? tStatus(rawStatus)
+    : rawStatus.replace(/[_-]+/g, ' ');
+
+  const priorityLower = (order?.priority || '').toLowerCase();
+  const priorityBadge: { label: string; tone: CmxBadgeTone } | null =
+    priorityLower === PRIORITY_LEVELS.URGENT
+      ? { label: tTable('priorityUrgent'), tone: 'danger' }
+      : priorityLower === PRIORITY_LEVELS.EXPRESS
+        ? { label: tTable('priorityExpress'), tone: 'brand' }
+        : null;
 
   return (
     <>
-      <CmxDialog open={isOpen} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <CmxDialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) requestClose();
+        }}
+      >
         <CmxDialogContent
-          className="max-w-4xl w-full mx-4 h-[90vh] sm:h-[90vh] flex flex-col"
+          className="mx-4 flex h-[90vh] w-full max-w-5xl flex-col"
           aria-labelledby="processing-modal-title"
           aria-describedby="processing-modal-description"
         >
-          {/* Enhanced Header */}
-          <CmxDialogHeader className="flex-shrink-0 pb-4 border-b">
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <CmxDialogTitle
-                    id="processing-modal-title"
-                    className="text-xl sm:text-2xl font-bold text-foreground mb-2"
-                  >
-                    {order
-                      ? `${t('title')} - ${order.order_no}`
-                      : t('title')}
-                  </CmxDialogTitle>
+          <CmxDialogHeader className="flex-shrink-0 border-b border-border pb-3">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CmxDialogTitle
+                      id="processing-modal-title"
+                      className="text-lg font-bold text-foreground sm:text-xl"
+                    >
+                      {t('title')}
+                    </CmxDialogTitle>
+                    {order?.order_no && (
+                      <CmxCodeChip code={order.order_no} kind="order" size="md" />
+                    )}
+                    {order && (
+                      <CmxStatusBadge label={localizedOrderStatus} tone="info" size="sm" />
+                    )}
+                    {priorityBadge && (
+                      <CmxStatusBadge
+                        label={priorityBadge.label}
+                        tone={priorityBadge.tone}
+                        size="sm"
+                      />
+                    )}
+                    {orderId && (
+                      <OrderIssueRowActions
+                        orderId={orderId}
+                        scopeLevel={ORDER_ISSUE_SCOPE.ORDER}
+                        hasOpenIssue={Boolean(order?.has_issue)}
+                        onChanged={onConfirmSuccess}
+                      />
+                    )}
+                  </div>
                   <p id="processing-modal-description" className="sr-only">
-                    {t('modalDescription') || 'Manage and update processing details for order items and pieces'}
+                    {t('modalDescription')}
                   </p>
                   {order && (
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                      {customerData && (
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-4 w-4" />
-                          <span>
-                            {String(
-                              customerData.name ||
-                                customerData.phone ||
-                                customerData.display_name ||
-                                'Unknown Customer'
-                            )}
-                          </span>
-                        </div>
-                      )}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5" aria-hidden />
+                        <span>{displayCustomerName}</span>
+                      </div>
                       {customerData?.phone ? (
                         <div className="flex items-center gap-1.5">
-                          <Phone className="h-4 w-4" />
-                          <span>{String(customerData.phone)}</span>
+                          <Phone className="h-3.5 w-3.5" aria-hidden />
+                          <bdi dir="ltr" className="tabular-nums">
+                            {String(customerData.phone)}
+                          </bdi>
                         </div>
                       ) : null}
                       {order.ready_by && (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-4 w-4" />
+                        <div className="flex items-center gap-1.5 tabular-nums">
+                          <Calendar className="h-3.5 w-3.5" aria-hidden />
                           <span>
-                            {new Date(order.ready_by).toLocaleDateString()}
+                            {new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            }).format(new Date(order.ready_by))}
                           </span>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-                {order?.status && (
-                  <CmxStatusBadge
-                    label={order.status.replace('_', ' ').toUpperCase()}
-                    tone="info"
-                    size="md"
-                    className="capitalize"
-                  />
+
+                {trackByPiece && allPieceList.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pe-6">
+                    <CmxButton
+                      type="button"
+                      size="xs"
+                      variant={allOrderPiecesReady ? 'outline' : 'secondary'}
+                      onClick={() => handleBulkOrderReady(!allOrderPiecesReady)}
+                    >
+                      <CheckCheck className="me-1 h-3.5 w-3.5" aria-hidden />
+                      {allOrderPiecesReady ? t('unmarkAllReady') : t('markAllReady')}
+                    </CmxButton>
+                  </div>
                 )}
               </div>
 
-              {/* Overall Progress */}
               {order && items.length > 0 && (
-                <div className="pt-2 space-y-3">
-                  <CmxProgressIndicator
-                    value={overallProgress}
-                    size="sm"
-                    variant={overallProgress === 100 ? 'success' : 'default'}
-                    showPercentage={true}
-                    label={`Overall Progress: ${Array.from(pieceStates.values()).filter(p => p.is_ready === true).length} / ${Array.from(pieceStates.values()).length || items.reduce((sum, item) => sum + item.quantity, 0)} pieces ready`}
-                  />
-                </div>
+                <CmxProgressIndicator
+                  value={overallProgress}
+                  size="sm"
+                  variant={overallProgress === 100 ? 'success' : 'default'}
+                  showPercentage
+                  label={t('overallProgress', {
+                    ready: readyPiecesCount,
+                    total: totalPiecesCount,
+                  })}
+                />
               )}
             </div>
           </CmxDialogHeader>
 
-          {/* Loading State */}
           {isLoading && (
-            <div className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary-text" />
+            <div className="flex-1 space-y-3 py-4">
+              <CmxSkeleton className="h-14 w-full" />
+              <CmxSkeleton className="h-32 w-full" />
+              <CmxSkeleton className="h-32 w-full" />
             </div>
           )}
 
-          {/* Error State */}
           {!isLoading && orderError && (
-            <div className="flex-1 flex items-center justify-center p-6">
-              <div className="text-center space-y-4 max-w-md">
-                <AlertCircle className="h-16 w-16 text-danger-text mx-auto" />
+            <div className="flex flex-1 items-center justify-center p-6">
+              <div className="max-w-md space-y-4 text-center">
+                <AlertCircle className="mx-auto h-12 w-12 text-danger-text" aria-hidden />
                 <div>
-                  <h3 className="text-lg font-semibold text-danger-text mb-2">
-                    {t('error.loadingFailed') || 'Failed to Load Order'}
+                  <h3 className="mb-1 text-lg font-semibold text-danger-text">
+                    {t('error.loadingFailed')}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {orderError instanceof Error
-                      ? orderError.message
-                      : 'An unknown error occurred'}
+                  <p className="text-sm text-muted-foreground">
+                    {orderError instanceof Error ? orderError.message : t('error.loadingFailed')}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Order ID: {orderId || 'Unknown'}
-                  </p>
+                  {orderId && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('orderIdLabel', { id: orderId })}
+                    </p>
+                  )}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
-                  <CmxButton variant="secondary" onClick={onClose} className="w-full sm:w-auto">
-                    {t('close') || 'Close'}
+                <div className="flex flex-wrap justify-center gap-3">
+                  <CmxButton variant="secondary" onClick={onClose}>
+                    {t('close')}
                   </CmxButton>
                   <CmxButton
                     variant="primary"
                     onClick={() => {
-                      queryClient.invalidateQueries({
-                        queryKey: ['order-processing', orderId]
-                      });
+                      queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
                     }}
-                    className="w-full sm:w-auto"
                   >
-                    <RefreshCw className="me-2 h-4 w-4" />
-                    {t('retry') || 'Retry'}
+                    <RefreshCw className="me-2 h-4 w-4" aria-hidden />
+                    {t('retry')}
                   </CmxButton>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Content */}
           {!isLoading && !orderError && order && (
             <>
-              {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto space-y-4">
-                {/* Enhanced Filter Bar */}
+              <div className="flex-1 space-y-3 overflow-y-auto py-3">
                 <ProcessingModalFilters
-                  showRejectedOnTop={showRejectedOnTop}
-                  onToggleRejectedOnTop={setShowRejectedOnTop}
                   filters={filters}
                   onFiltersChange={setFilters}
+                  categories={categoryFilterOptions}
+                  stepOptions={dynamicStepFilterOptions}
                   rejectEnabled={rejectEnabled}
+                  allExpanded={allFilteredExpanded}
+                  onToggleExpandAll={handleToggleExpandAll}
+                  showExpandAll={trackByPiece && filteredAndSortedItems.length > 0}
                 />
 
-                {/* Items List */}
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {filteredAndSortedItems.length === 0 ? (
-                    <div className="text-center py-12 px-4">
-                      <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
-                        {t('noItems') || 'No Items Found'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                        {t('noItemsDesc') || 'This order has no items to process. Please check the order details or contact support.'}
+                    <div className="px-4 py-10 text-center">
+                      <Package className="mx-auto mb-3 h-12 w-12 text-muted-foreground" aria-hidden />
+                      <h3 className="mb-1 text-base font-semibold text-foreground">{t('noItems')}</h3>
+                      <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                        {t('noItemsDesc')}
                       </p>
                     </div>
                   ) : (
                     <>
-                      {filteredAndSortedItems.map(item => (
+                      {filteredAndSortedItems.map((item) => (
                         <ProcessingItemRow
                           key={item.id}
                           item={item}
@@ -1010,6 +1066,7 @@ export function ProcessingModal({
                           isExpanded={expandedItemIds.has(item.id)}
                           onToggleExpand={handleToggleExpand}
                           onPieceChange={handlePieceChange}
+                          onBulkReadyChange={handleBulkItemReadyChange}
                           onSplitToggle={handleSplitToggle}
                           selectedForSplit={selectedForSplit}
                           splitOrderEnabled={splitOrderEnabled}
@@ -1030,10 +1087,9 @@ export function ProcessingModal({
                           issueByPiece={issueByPiece}
                         />
                       ))}
-                      {/* Show loading indicator for pieces if still loading */}
                       {isPiecesLoading && trackByPiece && (
-                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin me-2" />
+                        <div className="flex items-center justify-center py-3 text-sm text-muted-foreground">
+                          <Loader2 className="me-2 h-4 w-4 animate-spin" aria-hidden />
                           <span>{t('loadingPieces')}</span>
                         </div>
                       )}
@@ -1042,7 +1098,6 @@ export function ProcessingModal({
                 </div>
               </div>
 
-              {/* Summary Message */}
               {summaryMessage && (
                 <div className="flex-shrink-0">
                   <CmxSummaryMessage
@@ -1052,52 +1107,68 @@ export function ProcessingModal({
                 </div>
               )}
 
-              {/* Footer */}
-              <CmxDialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-6 pt-4">
-                {/* Rack Location Input */}
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="rack-location" className="block text-sm font-medium text-foreground">
-                    {t('rackLocationOrder')}
-                  </Label>
-                  <CmxInput
-                    id="rack-location"
-                    value={rackLocation}
-                    onChange={(e) => setRackLocation(e.target.value)}
-                    placeholder={t('rackLocationPlaceholder') || t('rackLocation')}
-                  />
+              <CmxDialogFooter className="flex-shrink-0 flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end">
+                <div className="flex flex-1 items-end gap-2">
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="rack-location" className="block text-xs font-medium text-foreground">
+                      {t('rackLocationOrder')}
+                    </Label>
+                    <CmxInput
+                      id="rack-location"
+                      value={rackLocation}
+                      onChange={(e) => setRackLocation(e.target.value)}
+                      placeholder={t('rackLocationPlaceholder')}
+                      leftIcon={<MapPin className="h-4 w-4" aria-hidden />}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  {trackByPiece && rackLocation.trim() && (
+                    <CmxButton
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplyOrderRackToPieces}
+                      className="h-9 shrink-0"
+                    >
+                      {t('applyOrderRack')}
+                    </CmxButton>
+                  )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasChanges && (
+                    <CmxStatusBadge
+                      label={t('unsavedChanges', { count: totalDirtyCount })}
+                      tone="warning"
+                      size="sm"
+                    />
+                  )}
+
                   <CmxButton
+                    type="button"
                     onClick={handleUpdate}
                     disabled={!hasChanges || updateMutation.isPending}
-                    className="w-full sm:w-auto"
+                    loading={updateMutation.isPending}
                     aria-label={`${t('update')} (Ctrl+S)`}
                   >
-                    {updateMutation.isPending && (
-                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                    )}
                     {t('update')}
-                    <span className="ms-2 text-xs opacity-70 hidden sm:inline">
-                      (Ctrl+S)
-                    </span>
+                    <span className="ms-1.5 hidden text-xs opacity-75 sm:inline">(Ctrl+S)</span>
                   </CmxButton>
 
                   {splitOrderEnabled && selectedForSplit.size > 0 && (
                     <CmxButton
+                      type="button"
                       variant="destructive"
                       onClick={() => setShowSplitDialog(true)}
                       disabled={splitMutation.isPending}
-                      className="w-full sm:w-auto"
                     >
                       {t('splitOrder')} ({selectedForSplit.size})
                     </CmxButton>
                   )}
 
-                  <CmxDialogClose asChild>
-                    <CmxButton variant="outline" className="w-full sm:w-auto">{t('close')}</CmxButton>
-                  </CmxDialogClose>
+                  <CmxButton type="button" variant="outline" onClick={requestClose}>
+                    {t('close')}
+                  </CmxButton>
                 </div>
               </CmxDialogFooter>
             </>
@@ -1105,7 +1176,6 @@ export function ProcessingModal({
         </CmxDialogContent>
       </CmxDialog>
 
-      {/* Split Confirmation Dialog */}
       {splitOrderEnabled && (
         <SplitConfirmationDialog
           isOpen={showSplitDialog}
@@ -1115,6 +1185,19 @@ export function ProcessingModal({
           isLoading={splitMutation.isPending}
         />
       )}
+
+      <CmxConfirmDialog
+        open={showDiscardConfirm}
+        title={t('discardTitle')}
+        description={t('discardDescription')}
+        confirmLabel={t('discardConfirm')}
+        cancelLabel={tCommon('cancel')}
+        onConfirm={() => {
+          setShowDiscardConfirm(false);
+          onClose();
+        }}
+        onCancel={() => setShowDiscardConfirm(false)}
+      />
     </>
   );
 }

@@ -11,13 +11,13 @@ interface LoyaltyEarnPayload {
 }
 
 /**
- * Consumes a `LOYALTY_EARN` outbox event (emitted by `reconcileOrderLoyaltyEarn`) and brings
+ * Consumes a `LOYALTY_EARN_RECALC_REQUESTED` outbox event (emitted by `reconcileOrderLoyaltyEarn`) and brings
  * the order's earned points to its target (D27). The event carries no amounts: the order
  * and the ledger are read at consume time, inside one transaction with the order row locked.
  *
  * The ledger row's idempotency key is `loyalty-<trigger>-<sourceId>`, so a redelivery never
  * posts twice. Events without a trigger fall back to a per-event key.
- * @param event claimed outbox row with event_type === 'LOYALTY_EARN'; aggregate_id = order id
+ * @param event claimed outbox row with event_type === 'LOYALTY_EARN_RECALC_REQUESTED'; aggregate_id = order id
  */
 export async function processLoyaltyEarnEvent(event: OutboxEventRow): Promise<void> {
   const payload = (event.payload ?? {}) as LoyaltyEarnPayload;

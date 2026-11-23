@@ -12,6 +12,7 @@
  */
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import { CmxPhoneDisplay } from '@ui/data-display';
 import { CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display/cmx-datatable';
 import { CmxStatusBadge, type CmxBadgeTone } from '@ui/feedback/cmx-status-badge';
 import { CmxButton } from '@ui/primitives';
@@ -175,7 +176,7 @@ export function OrdersSimpleTable({
         <>
           <div className="font-medium">{order.customer?.name || '—'}</div>
           <div className="text-xs text-muted-foreground">
-            {order.customer?.phone ? <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi> : '—'}
+            <CmxPhoneDisplay value={order.customer?.phone} showFlag />
           </div>
         </>
       ),

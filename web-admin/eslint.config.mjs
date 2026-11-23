@@ -44,6 +44,11 @@ const GLOBAL_RESTRICTED_PATTERNS = [
     group: ['**/api/v1/orders/create-with-payment/**', '**/api/v1/orders/_legacy_create-with-payment/**'],
     message: 'The legacy create-with-payment route is retired. Use /api/v1/orders/submit-order and the submitOrder() orchestrator.',
   },
+  {
+    // Background Jobs DESIGN §5.3: @cmx/jobs (enqueue / publish / claimEffect) is the only way to create background work.
+    group: ['pg-boss', 'pg-boss/*', 'bullmq', 'bullmq/*'],
+    message: 'Background work goes through @cmx/jobs (enqueue, publish, claimEffect). See docs/features/Background_Jobs/DESIGN.md §5.3.',
+  },
 ];
 
 // Raw Tailwind palette classes (black is allowed: overlays stay black in dark mode).
@@ -68,7 +73,6 @@ const eslintConfig = [...nextVitals, {
     "next-env.d.ts",
     // Generated / very large — skip lint (Babel deoptimises >500KB; not hand-edited)
     "types/database.ts",
-    "types/database.generated.ts",
     "docs/typedoc/**",
     "**/__scratch_*",
     // Playwright artifacts — generated bundles inside trace viewers, never source
@@ -222,6 +226,23 @@ const eslintConfig = [...nextVitals, {
   ignores: ['**/*.stories.tsx'],
   rules: {
     'no-restricted-syntax': ['error', ...RAW_CLASS_RULES],
+  },
+}, {
+  // Background Jobs DESIGN §5.3: server code never fires work and forgets it, and never runs its own
+  // timers. Slow or retryable work is a job (@cmx/jobs); work after the response uses next/server after().
+  // no-restricted-syntax replaces the block above for these files, so the class rules are repeated.
+  files: ['app/api/**', 'lib/services/**'],
+  rules: {
+    'no-restricted-syntax': ['error', ...RAW_CLASS_RULES,
+      {
+        selector: "UnaryExpression[operator='void'] > CallExpression",
+        message: 'Do not fire and forget: await it, enqueue a job with @cmx/jobs, or use after() from next/server. A Supabase query that is not awaited never runs.',
+      },
+      {
+        selector: "CallExpression[callee.name='setInterval']",
+        message: 'No timers in server code: a recurring task is a pg-boss schedule or pg_cron job (docs/features/Background_Jobs/DESIGN.md §6).',
+      },
+    ],
   },
 }, ...storybook.configs["flat/recommended"]];
 

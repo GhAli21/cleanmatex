@@ -1,45 +1,50 @@
 /**
  * Processing Modal Filters Component
- *
- * Enhanced filter bar for the processing modal.
- * Supports search, step filter, status filter, and rejected items filter.
+ * Controlled toolbar with search, service category, dynamic step,
+ * status/condition filters, rejected sort toggle, and expand/collapse all.
  */
 
 'use client';
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { CmxCheckbox, CmxInput } from '@ui/primitives';
-import {
-  CmxSelectDropdown,
-  CmxSelectDropdownContent,
-  CmxSelectDropdownItem,
-  CmxSelectDropdownTrigger,
-  CmxSelectDropdownValue,
-} from '@ui/forms';
-import { Search, X, Filter } from 'lucide-react';
-import { CmxButton } from '@ui/primitives';
+import { ChevronsDownUp, ChevronsUpDown, RotateCcw, Search, X } from 'lucide-react';
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect } from '@ui/primitives';
 import type { ProcessingStep } from '@/types/order';
 
-/**
- *
- */
+export type ProcessingModalStatusFilter =
+  | 'all'
+  | 'ready'
+  | 'not_ready'
+  | 'has_issues'
+  | 'has_condition'
+  | 'rejected';
+
 export interface ProcessingModalFiltersState {
   search: string;
+  category: string;
   step: ProcessingStep | 'all';
-  status: 'all' | 'ready' | 'not_ready';
+  status: ProcessingModalStatusFilter;
   showRejectedOnTop: boolean;
+}
+
+export interface ProcessingFilterOption {
+  code: string;
+  label: string;
 }
 
 interface ProcessingModalFiltersProps {
-  showRejectedOnTop: boolean;
-  onToggleRejectedOnTop: (value: boolean) => void;
-  filters?: ProcessingModalFiltersState;
-  onFiltersChange?: (filters: ProcessingModalFiltersState) => void;
+  filters: ProcessingModalFiltersState;
+  onFiltersChange: (filters: ProcessingModalFiltersState) => void;
+  categories?: ProcessingFilterOption[];
+  stepOptions?: ProcessingFilterOption[];
   rejectEnabled: boolean;
+  allExpanded?: boolean;
+  onToggleExpandAll?: () => void;
+  showExpandAll?: boolean;
 }
 
-const PROCESSING_STEPS: ProcessingStep[] = [
+const FALLBACK_STEP_CODES: ProcessingStep[] = [
   'sorting',
   'pretreatment',
   'washing',
@@ -48,197 +53,187 @@ const PROCESSING_STEPS: ProcessingStep[] = [
 ];
 
 /**
- *
- * @param root0
- * @param root0.showRejectedOnTop
- * @param root0.onToggleRejectedOnTop
- * @param root0.filters
- * @param root0.onFiltersChange
- * @param root0.rejectEnabled
+ * Filter and bulk-view toolbar inside `ProcessingModal`.
+ * @param props Filter state, dynamic category/step options, and expand-all handler.
  */
-export function ProcessingModalFilters({
-  showRejectedOnTop,
-  onToggleRejectedOnTop,
-  filters,
-  onFiltersChange,
-  rejectEnabled,
-}: ProcessingModalFiltersProps) {
+export function ProcessingModalFilters(props: ProcessingModalFiltersProps) {
+  const {
+    filters,
+    onFiltersChange,
+    categories = [],
+    stepOptions = [],
+    rejectEnabled,
+    allExpanded = false,
+    onToggleExpandAll,
+    showExpandAll = false,
+  } = props;
   const t = useTranslations('processing.modal');
+  const tSteps = useTranslations('processing.steps');
   const tCommon = useTranslations('common');
 
-  const [localFilters, setLocalFilters] = React.useState<ProcessingModalFiltersState>({
-    search: filters?.search || '',
-    step: filters?.step || 'all',
-    status: filters?.status || 'all',
-    showRejectedOnTop,
-  });
+  const resolvedStepOptions = React.useMemo(() => {
+    if (stepOptions.length > 0) return stepOptions;
+    return FALLBACK_STEP_CODES.map((code) => ({
+      code,
+      label: tSteps(code as 'sorting' | 'pretreatment' | 'washing' | 'drying' | 'finishing'),
+    }));
+  }, [stepOptions, tSteps]);
 
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const categorySelectOptions = React.useMemo(
+    () => [
+      { value: 'all', label: t('allCategories') },
+      ...categories.map((cat) => ({ value: cat.code, label: cat.label })),
+    ],
+    [categories, t]
+  );
 
-  React.useEffect(() => {
-    setLocalFilters(prev => ({ ...prev, showRejectedOnTop }));
-  }, [showRejectedOnTop]);
+  const stepSelectOptions = React.useMemo(
+    () => [
+      { value: 'all', label: t('allSteps') },
+      ...resolvedStepOptions.map((step) => ({ value: step.code, label: step.label })),
+    ],
+    [resolvedStepOptions, t]
+  );
 
-  const handleFilterChange = (key: keyof ProcessingModalFiltersState, value: any) => {
-    const newFilters = { ...localFilters, [key]: value };
-    setLocalFilters(newFilters);
-    onFiltersChange?.(newFilters);
+  const statusSelectOptions = React.useMemo(() => {
+    const base = [
+      { value: 'all', label: t('allStatus') },
+      { value: 'ready', label: t('ready') },
+      { value: 'not_ready', label: t('notReady') },
+      { value: 'has_issues', label: t('hasIssues') },
+      { value: 'has_condition', label: t('hasCondition') },
+    ];
+    if (rejectEnabled) {
+      base.push({ value: 'rejected', label: t('rejectedOnly') });
+    }
+    return base;
+  }, [rejectEnabled, t]);
+
+  const updateField = <K extends keyof ProcessingModalFiltersState>(
+    key: K,
+    value: ProcessingModalFiltersState[K]
+  ) => {
+    onFiltersChange({ ...filters, [key]: value });
   };
 
   const handleClearFilters = () => {
-    const clearedFilters: ProcessingModalFiltersState = {
+    onFiltersChange({
       search: '',
+      category: 'all',
       step: 'all',
       status: 'all',
       showRejectedOnTop: false,
-    };
-    setLocalFilters(clearedFilters);
-    onFiltersChange?.(clearedFilters);
-    onToggleRejectedOnTop(false);
+    });
   };
 
-  const hasActiveFilters = localFilters.search ||
-    localFilters.step !== 'all' ||
-    localFilters.status !== 'all' ||
-    localFilters.showRejectedOnTop;
+  const hasActiveFilters = Boolean(
+    filters.search ||
+      filters.category !== 'all' ||
+      filters.step !== 'all' ||
+      filters.status !== 'all' ||
+      filters.showRejectedOnTop
+  );
 
   return (
-    <div className="space-y-3">
-      {/* Main Filter Bar */}
-      <div
-        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-muted rounded-lg border"
-        role="search"
-        aria-label="Filter items and pieces"
-      >
-        {/* Search Input */}
-        <div className="flex-1 relative">
-          <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div
+      className="space-y-2 rounded-lg border border-border bg-muted/40 p-2.5"
+      role="search"
+      aria-label={t('searchLabel')}
+    >
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-12">
+        <div className={categories.length > 0 ? 'lg:col-span-4' : 'lg:col-span-6'}>
           <CmxInput
-            type="text"
-            placeholder={t('searchPlaceholder') || tCommon('search') || 'Search items...'}
-            value={localFilters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="ps-9 pe-9 h-10"
-            aria-label={t('searchLabel') || 'Search items'}
+            type="search"
+            placeholder={t('searchPlaceholder')}
+            value={filters.search}
+            onChange={(e) => updateField('search', e.target.value)}
+            leftIcon={<Search className="h-4 w-4" aria-hidden />}
+            trailing={
+              filters.search ? (
+                <CmxButton
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => updateField('search', '')}
+                  aria-label={tCommon('clear')}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </CmxButton>
+              ) : undefined
+            }
+            aria-label={t('searchLabel')}
+            className="h-9 text-xs sm:text-sm"
           />
-          {localFilters.search && (
-            <CmxButton
-              variant="ghost"
-              size="sm"
-              onClick={() => handleFilterChange('search', '')}
-              className="absolute end-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
-              aria-label={tCommon('clear') || 'Clear search'}
-            >
-              <X className="h-4 w-4" />
-            </CmxButton>
-          )}
         </div>
 
-        {/* Quick Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Step Filter */}
-          <CmxSelectDropdown
-            value={localFilters.step}
-            onValueChange={(value) => handleFilterChange('step', value)}
-          >
-            <CmxSelectDropdownTrigger className="h-10 w-full sm:w-[140px]">
-              <CmxSelectDropdownValue
-                placeholder={t('filterByStep') || 'All Steps'}
-                displayValue={localFilters.step === 'all' ? (t('allSteps') || 'All Steps') : t(`steps.${localFilters.step}`)}
-              />
-            </CmxSelectDropdownTrigger>
-            <CmxSelectDropdownContent>
-              <CmxSelectDropdownItem value="all">{t('allSteps') || 'All Steps'}</CmxSelectDropdownItem>
-              {PROCESSING_STEPS.map(step => (
-                <CmxSelectDropdownItem key={step} value={step}>
-                  {t(`steps.${step}`)}
-                </CmxSelectDropdownItem>
-              ))}
-            </CmxSelectDropdownContent>
-          </CmxSelectDropdown>
-
-          {/* Status Filter */}
-          <CmxSelectDropdown
-            value={localFilters.status}
-            onValueChange={(value) => handleFilterChange('status', value)}
-          >
-            <CmxSelectDropdownTrigger className="h-10 w-full sm:w-[140px]">
-              <CmxSelectDropdownValue
-                placeholder={t('filterByStatus') || 'All Status'}
-                displayValue={
-                  localFilters.status === 'all'
-                    ? (t('allStatus') || 'All Status')
-                    : localFilters.status === 'ready'
-                      ? t('ready')
-                      : t('notReady')
-                }
-              />
-            </CmxSelectDropdownTrigger>
-            <CmxSelectDropdownContent>
-              <CmxSelectDropdownItem value="all">{t('allStatus') || 'All Status'}</CmxSelectDropdownItem>
-              <CmxSelectDropdownItem value="ready">{t('ready') || 'Ready'}</CmxSelectDropdownItem>
-              <CmxSelectDropdownItem value="not_ready">{t('notReady') || 'Not Ready'}</CmxSelectDropdownItem>
-            </CmxSelectDropdownContent>
-          </CmxSelectDropdown>
-
-          {/* Rejected Filter */}
-          {rejectEnabled && (
-            <CmxCheckbox
-              checked={localFilters.showRejectedOnTop}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                handleFilterChange('showRejectedOnTop', checked);
-                onToggleRejectedOnTop(checked);
-              }}
-              label={t('showRejectedOnTop') || 'Show Rejected'}
-            />
-          )}
-
-          {/* Clear Filters Button */}
-          {hasActiveFilters && (
-            <CmxButton
-              variant="ghost"
+        {categories.length > 0 && (
+          <div className="lg:col-span-3">
+            <CmxSelect
               size="sm"
-              onClick={handleClearFilters}
-              className="h-10"
-              aria-label={tCommon('clearFilters') || 'Clear all filters'}
-            >
-              <X className="h-4 w-4 me-1" />
-              {tCommon('clearFilters') || 'Clear'}
-            </CmxButton>
-          )}
+              value={filters.category}
+              onChange={(e) => updateField('category', e.target.value)}
+              options={categorySelectOptions}
+              aria-label={t('filterByCategory')}
+            />
+          </div>
+        )}
+
+        <div className={categories.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}>
+          <CmxSelect
+            size="sm"
+            value={filters.step}
+            onChange={(e) => updateField('step', e.target.value as ProcessingStep | 'all')}
+            options={stepSelectOptions}
+            aria-label={t('filterByStep')}
+          />
+        </div>
+
+        <div className="lg:col-span-3">
+          <CmxSelect
+            size="sm"
+            value={filters.status}
+            onChange={(e) => updateField('status', e.target.value as ProcessingModalStatusFilter)}
+            options={statusSelectOptions}
+            aria-label={t('filterByStatus')}
+          />
         </div>
       </div>
 
-      {/* Active Filters Summary */}
-      {hasActiveFilters && (
-        <div className="flex items-center gap-2 flex-wrap text-sm">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground font-medium">
-            {t('activeFilters') || 'Active filters:'}
-          </span>
-          {localFilters.search && (
-            <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs">
-              {t('search') || 'Search'}: {localFilters.search}
-            </span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          {rejectEnabled && (
+            <CmxCheckbox
+              checked={filters.showRejectedOnTop}
+              onChange={(e) => updateField('showRejectedOnTop', e.target.checked)}
+              label={t('showRejectedOnTop')}
+            />
           )}
-          {localFilters.step !== 'all' && (
-            <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs">
-              {t('step') || 'Step'}: {t(`steps.${localFilters.step}`)}
-            </span>
-          )}
-          {localFilters.status !== 'all' && (
-            <span className="px-2 py-1 bg-info-bg text-info-text rounded text-xs">
-              {t('status') || 'Status'}: {localFilters.status === 'ready' ? t('ready') : t('notReady')}
-            </span>
-          )}
-          {localFilters.showRejectedOnTop && (
-            <span className="px-2 py-1 bg-danger-bg text-danger-text rounded text-xs">
-              {t('rejected') || 'Rejected'}
-            </span>
+
+          {hasActiveFilters && (
+            <CmxButton type="button" variant="ghost" size="xs" onClick={handleClearFilters}>
+              <RotateCcw className="me-1 h-3 w-3" aria-hidden />
+              {t('clearFilters')}
+            </CmxButton>
           )}
         </div>
-      )}
+
+        {showExpandAll && onToggleExpandAll && (
+          <CmxButton type="button" variant="outline" size="xs" onClick={onToggleExpandAll}>
+            {allExpanded ? (
+              <>
+                <ChevronsDownUp className="me-1 h-3.5 w-3.5" aria-hidden />
+                {t('collapseAll')}
+              </>
+            ) : (
+              <>
+                <ChevronsUpDown className="me-1 h-3.5 w-3.5" aria-hidden />
+                {t('expandAll')}
+              </>
+            )}
+          </CmxButton>
+        )}
+      </div>
     </div>
   );
 }

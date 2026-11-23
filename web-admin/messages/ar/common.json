@@ -138,7 +138,7 @@
     "zoomIn": "تكبير",
     "zoomOut": "تصغير"
   },
-  "phone": {
+  "phoneInput": {
     "countryCode": "رمز الدولة",
     "searchCountry": "ابحث عن الدولة أو الرمز...",
     "noCountriesFound": "لم يتم العثور على دول",

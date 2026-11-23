@@ -11,6 +11,7 @@ import { generateBizVoucherNo } from './voucher-number.service';
 import type { VoucherType } from '../types/voucher';
 import { isCashFamilyMethod } from '@/lib/utils/cash-method';
 import { VOUCHER_SOURCE_TYPES } from '@/lib/constants/settlement-catalog';
+import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
 import { CUSTOMER_RECEIPT_POST_ERRORS } from '@/lib/types/customer-receipt-allocation';
 
 /**
@@ -398,7 +399,7 @@ export async function reverseVoucherLinesInTx(
   await tx.org_domain_events_outbox.create({
     data: {
       tenant_org_id: tenantOrgId,
-      event_type: 'VOUCHER_REVERSED',
+      event_type: OUTBOX_EVENT_TYPES.VOUCHER_REVERSED,
       aggregate_type: 'fin_voucher',
       aggregate_id: voucherId,
       payload: {

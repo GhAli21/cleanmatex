@@ -225,7 +225,7 @@ export default function CustomerTable({
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap text-start">
                   <div className="text-sm text-foreground text-start">
-                    <CmxPhoneDisplay value={customer.phone} fallback={t('noPhone')} />
+                    <CmxPhoneDisplay value={customer.phone} showFlag fallback={t('noPhone')} />
                   </div>
                   <div className="text-sm text-muted-foreground text-start">
                     {customer.email ? <bdi dir="ltr">{customer.email}</bdi> : t('noEmail')}

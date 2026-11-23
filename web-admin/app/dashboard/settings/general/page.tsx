@@ -23,6 +23,8 @@ import { useTranslations } from 'next-intl'
 import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
+import { CmxPhoneInput } from '@ui/forms'
+import { dialCodeToDefaultCountry } from '@/lib/phone/phone-utils'
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token'
 
 interface GeneralSettings {
@@ -244,13 +246,11 @@ export default function GeneralSettingsPage() {
             }
             error={fieldErrors.phone}
           >
-            <CmxInput
-              type="tel"
+            <CmxPhoneInput
               value={settings.phone}
-              onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-              dir="ltr"
-              className="tabular-nums"
-              placeholder="+968 9123 4567"
+              onChange={(e164) => setSettings({ ...settings, phone: e164 })}
+              defaultCountry={dialCodeToDefaultCountry(settings.country)}
+              disabled={loading}
             />
           </Field>
 

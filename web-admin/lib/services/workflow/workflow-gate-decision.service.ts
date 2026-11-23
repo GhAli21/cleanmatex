@@ -3,14 +3,14 @@ import 'server-only';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
-import { OUTBOX_STATUSES } from '@/lib/constants/order-financial';
+import { OUTBOX_EVENT_TYPES, OUTBOX_STATUSES } from '@/lib/constants/order-financial';
 import { evaluateWorkflowGate, type WorkflowGateBlockedReason, type WorkflowGateOrderFacts, type WorkflowGateRuntimeMode } from '@/lib/services/workflow/workflow-gate-evaluator.service';
 import type { SemanticWorkflowCommandChannel } from '@/lib/services/workflow/semantic-workflow-artifact.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 const ACK_TTL_SECONDS = 300;
-const GATE_DECISION_OUTBOX_EVENT_TYPE = 'WORKFLOW_GATE_DECISION_ACCEPTED';
+const GATE_DECISION_OUTBOX_EVENT_TYPE = OUTBOX_EVENT_TYPES.WORKFLOW_GATE_DECISION_ACCEPTED;
 const OPERATIONAL_CHANNELS = new Set(['staff_web', 'mobile', 'api', 'integration', 'pos']);
 
 export type WorkflowGateDecisionErrorCode =

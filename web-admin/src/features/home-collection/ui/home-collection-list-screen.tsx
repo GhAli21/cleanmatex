@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { WORKFLOW_SCREENS } from '@/lib/constants/workflow-screens';
 import { resolveScan } from '@features/scan/api/scan-api';
-import { CmxCodeChip, CmxDataTable, type CmxDataTableSimpleColumn } from '@ui/data-display';
+import { CmxCodeChip, CmxDataTable, CmxPhoneDisplay, type CmxDataTableSimpleColumn } from '@ui/data-display';
 import { CMX_DEFAULT_PAGE_SIZE } from '@ui/data-display/cmx-table-defaults';
 import { CmxStatusBadge } from '@ui/feedback';
 import type { CodeSearchSubmit } from '@ui/forms/cmx-code-search-input';
@@ -230,7 +230,7 @@ export function HomeCollectionListScreen() {
             </div>
             {order.customer?.phone ? (
               <div className="text-xs text-muted-foreground">
-                <bdi dir="ltr" className="tabular-nums">{order.customer.phone}</bdi>
+                <CmxPhoneDisplay value={order.customer.phone} showFlag />
               </div>
             ) : null}
           </div>

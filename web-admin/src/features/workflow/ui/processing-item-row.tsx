@@ -1,25 +1,30 @@
 /**
  * Processing Item Row Component
- *
- * Displays a single order item with expandable piece details.
- * Shows aggregate status and "Pieces" button to expand/collapse.
+ * Displays a single order item with bilingual service category, condition/speed metadata,
+ * per-item bulk ready toggle, and expandable piece details.
  */
 
 'use client';
-import { CmxCard, CmxCardHeader, CmxCardContent } from '@ui/primitives';
 
 import * as React from 'react';
-import { useTranslations } from 'next-intl';
-import { CmxButton } from '@ui/primitives';
-import { ChevronDown, ChevronUp, Package, AlertTriangle } from 'lucide-react';
-import type { OrderItem, ItemPiece, ProcessingStepConfig } from '@/types/order';
-import { ProcessingPieceRow } from './processing-piece-row';
-
+import { useLocale, useTranslations } from 'next-intl';
+import {
+  AlertTriangle,
+  CheckCheck,
+  ChevronDown,
+  ChevronUp,
+  Package,
+  Tag,
+} from 'lucide-react';
+import { CmxButton, CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives';
 import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
+import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
-import { ORDER_ISSUE_SCOPE } from '@/lib/constants/order-issues';
+import type { ItemPiece, OrderItem, ProcessingStepConfig } from '@/types/order';
+import { ProcessingPieceRow } from './processing-piece-row';
 
 interface ProcessingItemRowProps {
   item: OrderItem;
@@ -27,6 +32,7 @@ interface ProcessingItemRowProps {
   isExpanded: boolean;
   onToggleExpand: (itemId: string) => void;
   onPieceChange: (pieceId: string, updates: Partial<ItemPiece>) => void;
+  onBulkReadyChange?: (itemId: string, ready: boolean) => void;
   onSplitToggle: (pieceId: string, selected: boolean) => void;
   selectedForSplit: Set<string>;
   splitOrderEnabled: boolean;
@@ -35,117 +41,228 @@ interface ProcessingItemRowProps {
   rejectColor: string;
   orderId?: string;
   tenantId?: string;
-  /** Prefetched processing steps for this item's service category */
   processingSteps: ProcessingStepConfig[];
-  /** Show Confirm button for pieces with service prefs (Enterprise) */
   processingConfirmationEnabled?: boolean;
-  /** Called after piece prefs confirmed */
   onConfirmSuccess?: () => void;
-  /** Catalog color code → hex for preference chip borders */
   colorHexByCode?: Map<string, string | null> | null;
-  /** Catalog code → bilingual display name for preference chips */
   nameByCode?: Map<string, string> | null;
-  /** Item-scoped open issue count (from issue-summary) */
   issueOpenCount?: number;
-  /** Item-scoped total issue count (from issue-summary) */
   issueTotalCount?: number;
-  /** Piece id → open/total counts for piece badges */
   issueByPiece?: Record<string, { open: number; total: number }>;
 }
 
-export const ProcessingItemRow = React.memo(function ProcessingItemRow({
-  item,
-  pieces,
-  isExpanded,
-  onToggleExpand,
-  onPieceChange,
-  onSplitToggle,
-  selectedForSplit,
-  splitOrderEnabled,
-  rejectEnabled,
-  trackByPiece,
-  rejectColor,
-  orderId,
-  tenantId,
-  processingSteps,
-  processingConfirmationEnabled = false,
-  onConfirmSuccess,
-  colorHexByCode = null,
-  nameByCode = null,
-  issueOpenCount,
-  issueTotalCount,
-  issueByPiece = {},
-}: ProcessingItemRowProps) {
-  const t = useTranslations('processing.modal');
+const KNOWN_STATUS_KEYS = new Set([
+  'processing',
+  'sorting',
+  'pretreatment',
+  'washing',
+  'drying',
+  'finishing',
+  'in_wash',
+  'in_dry',
+  'in_finish',
+  'qc',
+  'qa',
+  'assembly',
+]);
 
-  const isRejected = item.item_is_rejected || pieces.some(p => p.isRejected);
-  const readyCount = pieces.filter(p => p.is_ready === true).length;
-  const totalCount = item.quantity;
+function formatShortDate(value: string | Date | null | undefined, locale: string): string | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(d);
+}
+
+/**
+ * Item card inside `ProcessingModal` with expandable piece cards and item metadata.
+ */
+export const ProcessingItemRow = React.memo(function ProcessingItemRow(
+  props: ProcessingItemRowProps
+) {
+  const {
+    item,
+    pieces,
+    isExpanded,
+    onToggleExpand,
+    onPieceChange,
+    onBulkReadyChange,
+    onSplitToggle,
+    selectedForSplit,
+    splitOrderEnabled,
+    rejectEnabled,
+    trackByPiece,
+    rejectColor,
+    orderId,
+    tenantId,
+    processingSteps,
+    processingConfirmationEnabled = false,
+    onConfirmSuccess,
+    colorHexByCode = null,
+    nameByCode = null,
+    issueOpenCount,
+    issueTotalCount,
+    issueByPiece = {},
+  } = props;
+
+  const t = useTranslations('processing.modal');
+  const tTable = useTranslations('processing.table');
+  const tStatus = useTranslations('processing.status');
+  const locale = useLocale();
+  const getBilingual = useBilingual();
+
+  const primaryName =
+    getBilingual(
+      item.org_product_data_mst?.product_name || item.product_name,
+      item.org_product_data_mst?.product_name2 || item.product_name2
+    ) || t('unknownItem');
+
+  const categoryLabel =
+    getBilingual(item.service_category_name, item.service_category_name2) ||
+    item.service_category_code ||
+    null;
+
+  const stepDisplay = React.useMemo(() => {
+    if (!item.item_last_step) return null;
+    const match = processingSteps.find((s) => s.step_code === item.item_last_step);
+    if (match) {
+      return getBilingual(match.step_name, match.step_name2) || match.step_name;
+    }
+    const lower = item.item_last_step.toLowerCase();
+    if (KNOWN_STATUS_KEYS.has(lower)) return tStatus(lower);
+    return item.item_last_step.replace(/[_-]+/g, ' ');
+  }, [getBilingual, item.item_last_step, processingSteps, tStatus]);
+
+  const itemStatusLabel = React.useMemo(() => {
+    const raw = (item.item_status || item.status || 'processing').toLowerCase();
+    if (KNOWN_STATUS_KEYS.has(raw)) return tStatus(raw);
+    return raw.replace(/[_-]+/g, ' ');
+  }, [item.item_status, item.status, tStatus]);
+
+  const isRejected = Boolean(item.item_is_rejected) || pieces.some((p) => p.isRejected);
+  const readyCount = pieces.filter((p) => p.is_ready === true).length;
+  const totalCount = pieces.length || item.quantity;
   const progressPercentage = totalCount > 0 ? (readyCount / totalCount) * 100 : 0;
+  const allPiecesReady = pieces.length > 0 && pieces.every((p) => p.is_ready === true);
+  const isExpressSpeed =
+    typeof item.service_speed === 'string' &&
+    item.service_speed.trim().length > 0 &&
+    item.service_speed.toLowerCase() !== 'standard';
+  const itemReadyByFormatted = formatShortDate(item.ready_by_at, locale);
+  const itemStepAtFormatted = formatShortDate(item.item_last_step_at, locale);
 
   return (
     <CmxCard
       className={cn(
-        'overflow-hidden transition-all hover:shadow-md',
+        'overflow-hidden transition-all hover:shadow-sm',
         isRejected && rejectEnabled && 'border-s-4 bg-danger-bg/30'
       )}
       style={{
-        borderLeftColor: isRejected && rejectEnabled ? rejectColor : undefined,
+        borderInlineStartColor: isRejected && rejectEnabled ? rejectColor : undefined,
       }}
       role="article"
-      aria-label={t('itemAriaLabel', {
-        name: item.org_product_data_mst?.product_name || item.product_name || t('unknownItem'),
-      })}
+      aria-label={t('itemAriaLabel', { name: primaryName })}
     >
-      <CmxCardHeader className="pb-3 p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-3 mb-2">
-              <Package className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <h3 className="font-semibold text-lg text-foreground truncate">
-                    {item.org_product_data_mst?.product_name || item.product_name || 'Unknown Item'}
-                  </h3>
-                  {orderId ? (
-                    <OrderIssueRowActions
-                      orderId={orderId}
-                      scopeLevel={ORDER_ISSUE_SCOPE.ITEM}
-                      orderItemId={item.id}
-                      openCount={issueOpenCount}
-                      totalCount={issueTotalCount}
-                      hasOpenIssue={Boolean(item.item_issue_id)}
-                      onChanged={onConfirmSuccess}
-                    />
-                  ) : null}
-                </div>
-                {(item.org_product_data_mst?.product_name2 || item.product_name2) && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {item.org_product_data_mst?.product_name2 || item.product_name2}
-                  </p>
-                )}
-              </div>
+      <CmxCardHeader className="p-3 sm:p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Package className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              <h3 className="truncate text-base font-semibold text-foreground">{primaryName}</h3>
+
+              {categoryLabel && (
+                <CmxStatusBadge
+                  label={categoryLabel}
+                  tone="brand"
+                  size="sm"
+                  icon={Tag}
+                />
+              )}
+
+              {isExpressSpeed && (
+                <CmxStatusBadge
+                  label={
+                    item.service_speed?.toLowerCase() === 'express'
+                      ? t('speedExpress')
+                      : item.service_speed || ''
+                  }
+                  tone="warning"
+                  size="sm"
+                />
+              )}
+
+              {orderId && (
+                <OrderIssueRowActions
+                  orderId={orderId}
+                  scopeLevel={ORDER_ISSUE_SCOPE.ITEM}
+                  orderItemId={item.id}
+                  openCount={issueOpenCount}
+                  totalCount={issueTotalCount}
+                  hasOpenIssue={Boolean(item.item_issue_id)}
+                  onChanged={onConfirmSuccess}
+                />
+              )}
             </div>
 
             {trackByPiece && totalCount > 0 && (
-              <div className="mb-3">
-                <CmxProgressIndicator
-                  value={progressPercentage}
-                  size="sm"
-                  variant={progressPercentage === 100 ? 'success' : 'default'}
-                  showPercentage={true}
-                  label={t('quantityReady', { ready: readyCount, total: totalCount })}
-                />
-              </div>
+              <CmxProgressIndicator
+                value={progressPercentage}
+                size="sm"
+                variant={progressPercentage === 100 ? 'success' : 'default'}
+                showPercentage
+                label={t('quantityReady', { ready: readyCount, total: totalCount })}
+              />
             )}
 
-            <div className="flex items-center gap-3 flex-wrap">
-              {item.item_last_step && (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {stepDisplay && (
                 <CmxStatusBadge
-                  label={`Step: ${item.item_last_step.replace('_', ' ')}`}
+                  label={t('stepBadge', { step: stepDisplay })}
                   tone="info"
                   size="sm"
-                  className="capitalize"
+                />
+              )}
+              {itemStepAtFormatted && (
+                <span className="text-muted-foreground tabular-nums">
+                  {t('lastStepAt')}: {itemStepAtFormatted}
+                </span>
+              )}
+              {itemReadyByFormatted && (
+                <span className="text-muted-foreground tabular-nums">
+                  · {t('readyBy')}: {itemReadyByFormatted}
+                </span>
+              )}
+              {item.packing_pref_code && (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+                  {t('packing')}: {nameByCode?.get(item.packing_pref_code) || item.packing_pref_code}
+                </span>
+              )}
+              {item.color && (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+                  {t('color')}: {item.color}
+                </span>
+              )}
+              {item.brand && (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+                  {t('brand')}: {item.brand}
+                </span>
+              )}
+              {item.has_stain && (
+                <CmxStatusBadge
+                  label={item.stain_notes ? `${t('stainNotes')}: ${item.stain_notes}` : t('hasStain')}
+                  tone="warning"
+                  size="sm"
+                />
+              )}
+              {item.has_damage && (
+                <CmxStatusBadge
+                  label={item.damage_notes ? `${t('damageNotes')}: ${item.damage_notes}` : t('hasDamage')}
+                  tone="danger"
+                  size="sm"
                 />
               )}
               {isRejected && rejectEnabled && (
@@ -163,40 +280,64 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               )}
               {!trackByPiece && (
                 <CmxStatusBadge
-                  label={`Status: ${item.status}`}
+                  label={t('statusBadge', { status: itemStatusLabel })}
                   tone="neutral"
                   size="sm"
-                  className="capitalize"
                 />
               )}
             </div>
           </div>
 
-          {trackByPiece && (
-            <CmxButton
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleExpand(item.id)}
-              className="shrink-0 min-h-[44px] min-w-[44px] touch-manipulation"
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? `${t('collapsePieces') || 'Collapse'} ${pieces.length} ${t('pieces')}` : `${t('expandPieces') || 'Expand'} ${pieces.length} ${t('pieces')}`}
-              aria-controls={`pieces-${item.id}`}
-            >
-              {t('pieces')} ({pieces.length})
-              {isExpanded ? (
-                <ChevronUp className="ms-2 h-4 w-4" aria-hidden="true" />
-              ) : (
-                <ChevronDown className="ms-2 h-4 w-4" aria-hidden="true" />
-              )}
-            </CmxButton>
-          )}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {trackByPiece && onBulkReadyChange && pieces.length > 0 && (
+              <CmxButton
+                type="button"
+                variant={allPiecesReady ? 'outline' : 'secondary'}
+                size="xs"
+                onClick={() => onBulkReadyChange(item.id, !allPiecesReady)}
+                className="h-8"
+              >
+                <CheckCheck className="me-1 h-3.5 w-3.5" aria-hidden />
+                {allPiecesReady ? t('unmarkAllReady') : t('markAllReady')}
+              </CmxButton>
+            )}
+
+            {trackByPiece && (
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onToggleExpand(item.id)}
+                className="h-8 shrink-0 px-2.5"
+                aria-expanded={isExpanded}
+                aria-label={
+                  isExpanded
+                    ? `${t('collapsePieces')} ${pieces.length} ${t('pieces')}`
+                    : `${t('expandPieces')} ${pieces.length} ${t('pieces')}`
+                }
+                aria-controls={`pieces-${item.id}`}
+              >
+                {t('pieces')} ({pieces.length})
+                {isExpanded ? (
+                  <ChevronUp className="ms-1.5 h-4 w-4" aria-hidden />
+                ) : (
+                  <ChevronDown className="ms-1.5 h-4 w-4" aria-hidden />
+                )}
+              </CmxButton>
+            )}
+          </div>
         </div>
       </CmxCardHeader>
 
       {trackByPiece && isExpanded && (
-        <CmxCardContent className="pt-0" id={`pieces-${item.id}`} role="region" aria-label={`Pieces for ${item.org_product_data_mst?.product_name || item.product_name || 'item'}`}>
-          <div className="space-y-3">
-            {pieces.map(piece => (
+        <CmxCardContent
+          className="px-3 pb-3 pt-0 sm:px-4 sm:pb-4"
+          id={`pieces-${item.id}`}
+          role="region"
+          aria-label={`${primaryName} - ${t('pieces')}`}
+        >
+          <div className="space-y-2.5">
+            {pieces.map((piece) => (
               <ProcessingPieceRow
                 key={piece.id}
                 piece={piece}
@@ -210,6 +351,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
                 itemDefaultPacking={item.packing_pref_code}
                 colorHexByCode={colorHexByCode}
                 nameByCode={nameByCode}
+                categoryLabel={categoryLabel}
                 processingConfirmationEnabled={processingConfirmationEnabled}
                 orderId={orderId}
                 itemId={item.id}
@@ -224,20 +366,20 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
       )}
 
       {!trackByPiece && (
-        <CmxCardContent>
-          <div className="text-sm text-muted-foreground space-y-2">
+        <CmxCardContent className="px-3 pb-3 pt-0 sm:px-4 sm:pb-4">
+          <div className="space-y-2 text-sm text-muted-foreground">
             <p className="font-medium">{t('itemLevelTracking')}</p>
             <div className="flex items-center gap-2">
               <span>{t('status')}:</span>
-              <CmxStatusBadge
-                label={item.status}
-                tone="neutral"
-                size="sm"
-                className="capitalize"
-              />
+              <CmxStatusBadge label={itemStatusLabel} tone="neutral" size="sm" />
+              {item.barcode && (
+                <span className="font-mono text-xs text-muted-foreground">
+                  <bdi dir="ltr">{tTable('id')}: {item.barcode}</bdi>
+                </span>
+              )}
             </div>
             {item.notes && (
-              <div className="mt-3 p-3 bg-muted rounded-md">
+              <div className="rounded-md bg-muted p-2.5">
                 <span className="font-medium text-foreground">{t('notesLabel')}</span>
                 <p className="mt-1 text-muted-foreground">{item.notes}</p>
               </div>

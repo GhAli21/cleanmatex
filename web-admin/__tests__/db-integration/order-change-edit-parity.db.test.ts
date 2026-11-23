@@ -390,7 +390,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         // D24 (P1B-10): the total moved, so Apply requests a loyalty reconcile traced to this change.
         const loyaltyRequests = await tx.$queryRaw<Array<{ payload: { trigger: string; sourceId: string } }>>`
           SELECT payload FROM public.org_domain_events_outbox
-          WHERE tenant_org_id = ${tenantId}::uuid AND aggregate_id = ${orderId}::uuid AND event_type = 'LOYALTY_EARN'`;
+          WHERE tenant_org_id = ${tenantId}::uuid AND aggregate_id = ${orderId}::uuid AND event_type = 'LOYALTY_EARN_RECALC_REQUESTED'`;
         expect(loyaltyRequests.map((r) => r.payload)).toContainEqual({
           trigger: 'ORDER_EDIT', sourceId: qty.applied?.ok ? qty.applied.orderChangeId : 'missing',
         });

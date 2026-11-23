@@ -4,10 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus, Truck } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
-import { CmxDataTable } from '@ui/data-display';
+import { CmxDataTable, CmxEmptyState, CmxPhoneDisplay } from '@ui/data-display';
 import { CmxSwitch } from '@ui/primitives';
-
-import { CmxEmptyState } from '@ui/data-display';
 import { CmxSkeletonTable } from '@ui/primitives';
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { CmxConfirmDialog } from '@ui/feedback';
@@ -172,7 +170,9 @@ export function DriversListScreen() {
     {
       key: 'phone',
       header: t('form.phone'),
-      render: (driver: OrgDriver) => driver.phone ?? <span className="text-muted-foreground">—</span>,
+      render: (driver: OrgDriver) => (
+        <CmxPhoneDisplay value={driver.phone} showFlag copyable />
+      ),
     },
     {
       key: 'vehicle',

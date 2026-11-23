@@ -1,6 +1,6 @@
 /**
  * Order Piece Mapper
- * 
+ *
  * Maps database models (from Supabase) to domain types (OrderItemPiece)
  * Handles type conversions, date parsing, and type assertions
  */
@@ -19,9 +19,12 @@ export interface OrderPieceDbModel {
   piece_seq: number;
   piece_code: string;
   service_category_code: string | null;
+  service_speed?: string | null;
+  ready_by_at?: string | null;
   product_id: string | null;
   scan_state: string | null;
   barcode: string | null;
+  tag_released_at?: string | null;
   quantity: number | null;
   price_per_unit: number;
   total_price: number;
@@ -30,7 +33,7 @@ export interface OrderPieceDbModel {
   is_rejected: boolean | null;
   issue_id: string | null;
   rack_location: string | null;
-  last_step_at: string | null; // ISO string from DB
+  last_step_at: string | null;
   last_step_by: string | null;
   last_step: string | null;
   notes: string | null;
@@ -41,13 +44,13 @@ export interface OrderPieceDbModel {
   metadata: Record<string, any>;
   packing_pref_code?: string | null;
   service_pref_charge?: number | null;
-  created_at: string | null; // ISO string from DB
+  created_at: string | null;
   rec_order: number | null;
   rec_notes: string | null;
   rec_status: number | null;
   created_by: string | null;
   created_info: string | null;
-  updated_at: string | null; // ISO string from DB
+  updated_at: string | null;
   updated_by: string | null;
   updated_info: string | null;
   is_ready: boolean;
@@ -61,11 +64,9 @@ export interface OrderPieceDbModel {
 export function mapOrderPieceFromDb(dbPiece: OrderPieceDbModel): OrderItemPiece {
   return {
     ...dbPiece,
-    // Convert ISO date strings to Date objects
     last_step_at: dbPiece.last_step_at ? new Date(dbPiece.last_step_at) : null,
     created_at: dbPiece.created_at ? new Date(dbPiece.created_at) : null,
     updated_at: dbPiece.updated_at ? new Date(dbPiece.updated_at) : null,
-    // Type assertion for scan_state enum
     scan_state: dbPiece.scan_state as 'expected' | 'scanned' | 'missing' | 'wrong' | null,
   };
 }
@@ -90,7 +91,6 @@ export function mapOrderPieceToDbUpdate(
     ...(piece as unknown as Partial<OrderPieceDbModel>),
   };
 
-  // Convert Date objects to ISO strings
   if (piece.last_step_at instanceof Date) {
     update.last_step_at = piece.last_step_at.toISOString();
   } else if (piece.last_step_at === null) {
@@ -111,4 +111,3 @@ export function mapOrderPieceToDbUpdate(
 
   return update;
 }
-

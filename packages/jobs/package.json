@@ -1,0 +1,26 @@
+{
+  "name": "@cmx/jobs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The only way to create background work in CleanMateX: queue names, payload schemas, producer-mode enqueue/publish over pg-boss, and the effect helper.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "pg-boss": "12.39.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.17.1"
+  }
+}

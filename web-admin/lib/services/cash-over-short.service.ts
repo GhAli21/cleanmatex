@@ -22,7 +22,7 @@ import { CASH_GATE_MODES } from '@/lib/constants/cash-drawer';
  * Over/short financial recognition (CLF, ADR-057, plan §4B.9, P7).
  *
  * `postOverShortFromEventTx` is the consumer-side half of a
- * `CASH_DRAWER_OVER_SHORT` outbox event — emitted by
+ * `CASH_DRAWER_VARIANCE_RECORDED` outbox event — emitted by
  * `cash-drawer-session.service.ts` at open (opening count variance), at
  * finalize (closing variance, unless pending B16 approval), or at approval
  * (once a pending variance is approved). One `ADJUSTMENT_VOUCHER` per

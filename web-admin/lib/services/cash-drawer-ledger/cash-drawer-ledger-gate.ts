@@ -355,7 +355,7 @@ export async function stampCashLinesTx(
     line.cash_drawer_session_id = isDrawer ? decision.sessionId : null;
 
     if (isDrawer && hintSessionId && hintSessionId !== decision.sessionId) {
-      await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_FACT_REDIRECTED, 'fin_voucher_line', line.id, {
+      await emitEventTx(tx, ctx.tenantOrgId, OUTBOX_EVENT_TYPES.CASH_LINE_SESSION_REDIRECTED, 'fin_voucher_line', line.id, {
         voucher_id: voucher.id,
         line_id: line.id,
         drawer_id: drawerId,

@@ -12,6 +12,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { CmxInput, CmxTextarea, Label } from '@ui/primitives';
+import { CmxPhoneInput } from '@ui/forms';
 import { EditControlNotice } from '../order-change/edit-control-notice';
 import type { CustomerSnapshotOverride } from '../model/new-order-types';
 
@@ -134,16 +135,11 @@ export function OrderCustomerDetailsSection() {
           <Label htmlFor="order-customer-phone" className="block mb-1">
             {tCommon('phone') || 'Phone'}
           </Label>
-          <CmxInput
+          <CmxPhoneInput
             id="order-customer-phone"
-            type="tel"
             value={phone}
-            readOnly={identityLocked}
-            onChange={(e) => handlePhoneChange(e.target.value)}
-            dir="ltr"
-            className="w-full"
-            placeholder={tCommon('phone') || 'Phone'}
-            aria-label={tCommon('phone') || 'Phone'}
+            disabled={identityLocked}
+            onChange={(e164) => handlePhoneChange(e164)}
           />
         </div>
 

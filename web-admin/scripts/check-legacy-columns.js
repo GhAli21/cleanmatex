@@ -37,7 +37,6 @@ const SKIP_FILE_SUFFIXES = [
 ];
 const SKIP_FILE_NAMES = new Set([
   'check-legacy-columns.js',
-  'database.generated.ts',
   'database.ts',
 ]);
 
