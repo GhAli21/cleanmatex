@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "pg-boss": "12.39.0",
     "zod": "^4.1.12"
   },
