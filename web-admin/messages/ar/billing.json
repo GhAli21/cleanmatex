@@ -856,8 +856,10 @@
       "DEAD_LETTERED": "متوقف نهائيًا"
     },
     "handlers": {
-      "order-history": "سجل الطلب",
-      "loyalty-earn": "اكتساب نقاط الولاء",
+      "order_history": "سجل الطلب",
+      "loyalty_earn": "نقاط الولاء المكتسبة",
+      "cash_over_short": "ترحيل عجز وزيادة درج النقد",
+      "order_change_confirm": "تأكيد تعديل الطلب",
       "none": "بدون مستهلك"
     },
     "health": {
@@ -902,8 +904,8 @@
     },
     "catalog": {
       "title": "مستهلكو الأحداث",
-      "description": "يرسل المعالج كل حدث مُلتقط إلى كل معالج يملك نوعه. الأنواع غير المملوكة تُكمل فورًا.",
-      "unhandledHint": "الأنواع غير المملوكة تُعلَّم كمعالجة دون آثار جانبية."
+      "description": "يُرسل كل حدث إلى قائمة انتظار خلفية لكل تفاعل، ويطبّق المعالج كل تفاعل مرة واحدة.",
+      "unhandledHint": "أنواع الأحداث التي لا تفاعل لها تُعلَّم كمعالجة عند كتابتها، دون أي آثار."
     }
   },
   "pendingPayments": {
@@ -1039,7 +1041,6 @@
       "MANUAL": "يدوي"
     },
     "jobNames": {
-      "outbox_processor": "معالج صندوق الأحداث",
       "gift_card_expiry": "انتهاء صلاحية بطاقات الهدايا",
       "credit_note_expiry": "انتهاء صلاحية إشعارات الائتمان",
       "loyalty_points_expiry": "انتهاء صلاحية نقاط الولاء",
@@ -1048,7 +1049,6 @@
       "pos_session_rollover": "تدوير جلسات نقطة البيع"
     },
     "schedules": {
-      "outbox_processor": "كل دقيقة",
       "gift_card_expiry": "يومياً 02:00",
       "credit_note_expiry": "يومياً 02:05",
       "loyalty_points_expiry": "يومياً 02:10",
@@ -1057,7 +1057,6 @@
       "pos_session_rollover": "كل 15 دقيقة"
     },
     "relatedLinks": {
-      "outbox_processor": "جدول الأحداث",
       "gift_card_expiry": "بطاقات الهدايا",
       "credit_note_expiry": "القيمة المخزّنة",
       "loyalty_points_expiry": "برنامج الولاء",
@@ -1071,10 +1070,9 @@
     },
     "health": {
       "title": "صحة المهام",
-      "secretMissing": "FINANCE_OUTBOX_SECRET غير مُعدّ — لا يمكن لمهام المعالج المجدولة المصادقة.",
+      "secretMissing": "FINANCE_OUTBOX_SECRET غير مُعدّ — لا يمكن لمهام المالية المجدولة المصادقة.",
       "cronInactive": "جدولة {job} غير نشطة أو مفقودة. طبّق الترحيل 0505 وتأكد من pg_cron.",
-      "lastFailed": "فشل آخر تشغيل لـ {job}.",
-      "processorStale": "لم ينبض معالج صندوق الأحداث منذ أكثر من 5 دقائق."
+      "lastFailed": "فشل آخر تشغيل لـ {job}."
     },
     "viewError": "عرض الخطأ كاملاً",
     "copyError": "نسخ الخطأ",

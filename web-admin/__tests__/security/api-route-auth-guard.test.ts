@@ -39,7 +39,7 @@ const EXEMPT = [
   /^app\/api\/docs\/route\.ts$/, // public OpenAPI spec for the /api-docs Swagger viewer; no tenant data
   /^app\/api\/v1\/customers\/(send-otp|verify-otp)\/route\.ts$/, // pre-session phone verification; rate-limited, no session yet
   /^app\/api\/v1\/tenants\/(check-slug|register)\/route\.ts$/, // pre-session tenant signup flow
-  /^app\/api\/(finance\/process-(jobs|outbox)|notifications\/(process-campaigns|process-outbox|reconcile-outbox))\/route\.ts$/, // pg_cron-driven internal jobs: Bearer {OUTBOX_SECRET}, not a user session
+  /^app\/api\/(finance\/process-jobs|notifications\/(process-campaigns|process-outbox|reconcile-outbox))\/route\.ts$/, // pg_cron-driven internal jobs: Bearer {OUTBOX_SECRET}, not a user session
 ];
 
 /** Routes that predate the rule. Review each in a follow-up package; never add to this list. */

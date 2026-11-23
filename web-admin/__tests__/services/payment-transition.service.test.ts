@@ -41,7 +41,7 @@ jest.mock('@/lib/db/prisma', () => {
       findFirstOrThrow: (...a: unknown[]) => mockOrderFindFirstOrThrow(...a),
       update: (...a: unknown[]) => mockOrderUpdate(...a),
     },
-    org_domain_events_outbox: { create: (...a: unknown[]) => mockOutboxCreate(...a) },
+    org_domain_events_outbox: { create: async (...a: unknown[]) => { await mockOutboxCreate(...a); return { id: 'evt-test' }; } },
     org_idempotency_keys: {
       findFirst: (...a: unknown[]) => mockIdempotencyFindFirst(...a),
       upsert: (...a: unknown[]) => mockIdempotencyUpsert(...a),

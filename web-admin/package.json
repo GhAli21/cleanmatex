@@ -52,6 +52,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@cmx/jobs": "*",
     "@hookform/resolvers": "^5.2.2",
     "@mdi/font": "^7.4.47",
     "@prisma/client": "^6.17.1",

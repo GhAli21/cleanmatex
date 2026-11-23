@@ -29,7 +29,7 @@ function buildIdempotencyKey(
 
 /**
  * Deliver an IN_APP notification to one or more recipients.
- * Skips duplicate rows silently via ON CONFLICT (idempotency_key) DO NOTHING.
+ * A duplicate row (unique idempotency_key) counts as delivered: re-running a request is safe.
  * @param event
  * @param rendered
  * @param categoryCode
@@ -80,6 +80,12 @@ export async function deliverInApp(
       .select('id')
       .maybeSingle();
 
+    // The same notification was already delivered (unique idempotency_key): not an error.
+    if (error?.code === '23505') {
+      results.push({ recipientUserId, success: true });
+      continue;
+    }
+
     if (error) {
       logger.error('in-app adapter: insert failed', new Error(error.message), {
         tenantOrgId: event.tenantOrgId,
@@ -91,7 +97,6 @@ export async function deliverInApp(
       continue;
     }
 
-    // data is null when ON CONFLICT DO NOTHING fired (duplicate — not an error)
     results.push({ recipientUserId, success: true, inboxId: data?.id });
   }
 

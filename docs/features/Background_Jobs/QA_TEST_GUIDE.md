@@ -88,3 +88,74 @@ SELECT name FROM pgboss.queue ORDER BY 1;
 
 1. In the tenant app, change a notification campaign's status (for example pause, then resume).
 2. **Expected:** `org_ntf_audit_dtl` gains one `STATUS_CHANGED` row for that campaign per change. Before this fix no row was written.
+
+## Step 3 — `cmx-workers` (Render)
+
+### 3.1 Local proof (developer)
+
+1. Local Supabase running with migrations through 0808.
+2. `npm test --workspace=cmx-workers`.
+3. **Expected:** 9 tests pass in about 25 seconds.
+
+### 3.2 Deploy (Owner, after S-D6)
+
+1. Create the Render Background Worker as in `cmx-workers/README.md` → "Render service", in the database's region.
+2. Set `JOBS_DATABASE_URL` (session pooler, port 5432), `JOBS_DATABASE_CA_CERT` (Supabase CA PEM), `NODE_VERSION` 22.12+, `SENTRY_DSN`.
+3. Deploy. **Expected:** the log shows `worker started` with `queues: ["ops.smoke_test"]`. A log line `invalid environment` names the missing variable.
+
+### 3.3 Prove it on remote
+
+1. HQ → Ops → Jobs. **Expected:** within a minute, `ops.smoke_test` no longer shows "worker not seen".
+2. On your machine, with the same two database variables set: `npm run smoke --workspace=cmx-workers`. **Expected:** `state=completed attempts=1 deadLetter=none`.
+3. `npm run smoke --workspace=cmx-workers -- fail`. **Expected:** `state=failed attempts=3 deadLetter=<id>`, and a Sentry issue tagged `queue: ops.smoke_test`.
+4. HQ → Ops → Jobs: pause `ops.smoke_test`, wait 30 seconds, run step 2. **Expected:** it reports no outcome (the job waits). Resume it: the waiting job completes within 30 seconds.
+5. Render → the worker → Metrics. **Expected:** memory well under 512 MB (about 100 MB idle).
+
+## Step 4 — Finance reactions
+
+### 4.1 Apply 0809 (Owner)
+
+1. Apply `0809_bg_jobs_fin_event_reactions.sql` on local, then remote.
+2. Run in the SQL editor:
+   `select count(*) from pgboss.queue where name like 'fin.%';` **Expected:** 13.
+   `select count(*) from pgboss.subscription where name like 'fin.%';` **Expected:** 13.
+   `select status, count(*) from org_domain_events_outbox group by 1;` **Expected:** no `PENDING` rows for cash drawer session, cash drawer transaction, payment received or refund processed events; the pending order, voucher, loyalty and order-change events are still `PENDING` (published by Dev's drain script after the code ships).
+3. HQ → Ops → Jobs. **Expected:** 13 new rows in category Reaction, each flagged "worker not seen" until `cmx-workers` runs; `fin-outbox-processor` shows as superseded.
+
+### 4.2 Release order (Owner)
+
+1. 0809 is applied (done 23 Nov).
+2. Deploy web-admin with the step 4 code. From then on every new domain event is published to its reaction queues in the same transaction. Until a worker runs, the jobs wait and the events stay `PENDING`; nothing is lost.
+3. Create or update the Render `cmx-workers` service (step 3, after S-D6) with the extra variables in `cmx-workers/README.md`: `DATABASE_URL` (transaction pooler 6543, `pgbouncer=true&connection_limit=3&sslmode=require`), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NODE_ENV=production`, and `TENANT_GUARD_MODE` as on web-admin. Add the build filters `web-admin/lib/**`, `web-admin/prisma/**`, `web-admin/tsconfig.json`, `web-admin/package.json`.
+4. **Expected:** Render log `worker started` lists `ops.smoke_test` and 13 `fin.*` queues. HQ → Ops → Jobs: none of the 13 shows "worker not seen".
+
+### 4.3 Publish the waiting events (Owner, once)
+
+1. On your machine, with `JOBS_DATABASE_URL` and `JOBS_DATABASE_CA_CERT` as on the worker: `npm run publish-events --workspace=cmx-workers -- --dry-run`. **Expected:** a count per event type (order submitted, voucher posted, loyalty, order change, cash variance; the 22 May `ORDER_SUBMITTED` dead letters are included).
+2. Run it without `--dry-run`. **Expected:** `published N event(s)`. Run it again: it lists the same events but creates no new jobs (safe to repeat).
+3. Tenant app → Internal finance → Outbox monitor. **Expected:** the pending count falls to 0 within a few minutes; dead-lettered stays 0, or shows rows whose error message explains the failure.
+
+### 4.4 Check the reactions (Owner, demo tenant)
+
+1. Submit a new order from checkout. Open the order → History. **Expected:** "Order submitted" appears within about 15 seconds.
+2. Cancel or void a pending payment on an order. **Expected:** the matching payment entry appears in the order History (it never did before step 4).
+3. Close a cash drawer session with a variance. **Expected:** the over/short adjustment voucher is posted within a minute.
+4. Outbox monitor → an event with status Dead-lettered (if any) → Retry. **Expected:** it goes to Pending, then Processed; the order History does not get a second entry.
+5. The "Event consumers" card lists Order history, Loyalty points earned, Cash over/short posting and Order change confirmation, in English and Arabic.
+6. Finance jobs hub (same page): no "Outbox Processor" row.
+
+## Step 5 — Notifications
+
+### 5.1 Apply 0810 (Owner)
+
+1. Apply `0810_bg_jobs_ntf_queues_requests.sql` on local, then remote.
+2. SQL editor: `select name from pgboss.queue where name like 'ntf.%' order by 1;` **Expected:** 6 rows.
+3. `select claim_outcome from fn_ntf_worker_claim_one(gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 'qa', 120);` **Expected:** `NOT_FOUND`.
+4. HQ → Ops → Jobs. **Expected:** six new rows in category Notification, all paused. Leave them paused until the step 5 code ships.
+
+### 5.2 Tenant side: requests and preparation (Owner, after the worker runs)
+
+1. Release order: the Render `cmx-workers` service runs (step 3/4), then deploy web-admin, then HQ → Ops → Jobs → `ntf.orchestrate` → switch on. Leave `ntf.deliver`, `ntf.reconcile` and `ntf.status_apply` paused until the HQ consumer ships (5c).
+2. Submit an order on a demo tenant. **Expected:** within about 5 seconds the bell shows "Order created" with the real template text (not the plain fallback).
+3. SQL editor: `select status, result_summary from org_ntf_requests_tr order by created_at desc limit 1;` **Expected:** `PROCESSED`, with `deliverJobs` ≥ 1 when email is on for the tenant.
+4. `select state, count(*) from pgboss.job where name = 'ntf.deliver' group by 1;` **Expected:** jobs in `created` (they wait for HQ API in 5c).

@@ -34,6 +34,8 @@ const customJestConfig = {
     '^@features/(.*)$': '<rootDir>/src/features/$1',
     '^@ui/(.*)$': '<rootDir>/src/ui/$1',
     '^@lib/(.*)$': '<rootDir>/lib/$1',
+    // pg-boss is ESM-only; unit tests use a recording stub of the producer.
+    '^@cmx/jobs$': '<rootDir>/__tests__/__mocks__/cmx-jobs.ts',
   },
 
   // Coverage configuration

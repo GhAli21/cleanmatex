@@ -1,0 +1,11 @@
+{
+  // Strict check of this workspace only. web-admin imports resolve to src/types/web-admin-boundary.d.ts
+  // (no "@/*" path here); tsconfig.json keeps the real paths for tsx and esbuild.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "server-only": ["./src/stubs/server-only.ts"]
+    }
+  },
+  "include": ["src", "test"]
+}

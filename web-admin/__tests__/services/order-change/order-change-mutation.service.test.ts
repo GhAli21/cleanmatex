@@ -5,7 +5,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
-import { OUTBOX_HANDLERS } from '@/lib/services/outbox-processor.service';
+import { mockJobProducer } from '@cmx/jobs';
+import { REACTION_HANDLERS } from '@/lib/services/domain-event-reactions.service';
 import { confirmOrderChangeApplied } from '@/lib/services/order-change/order-change-applied.handler';
 import {
   collectionRequiredForPaymentType,
@@ -149,6 +150,7 @@ function fakeTx(options: {
       create: async (args: { data: Record<string, unknown> }) => {
         calls.push('outbox');
         outbox = args.data;
+        return { id: 'evt-change-1' };
       },
     },
   };
@@ -195,6 +197,10 @@ describe('persistOrderChangeTx', () => {
     expect(tx.change()?.tenant_org_id).toBe('tenant-1');
     expect(tx.outbox()?.aggregate_id).toBe(result.orderChangeId);
     expect(tx.outbox()?.event_type).toBe(OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED);
+    expect(mockJobProducer.publish).toHaveBeenCalledWith(tx, OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED, {
+      tenantOrgId: 'tenant-1',
+      eventId: 'evt-change-1',
+    });
     expect(tx.calls).toEqual(['version', 'change', 'item-insert', 'ops', 'outbox', 'sql']);
     expect(tx.retired()).toEqual(['item-old', 'piece-child', 'pref-child']);
   });
@@ -304,6 +310,6 @@ describe('financial outcome and applied handler', () => {
       { tenant_org_id: 'tenant-1', aggregate_id: 'change-1', payload: { orderId: 'order-1' } },
       async () => ({ id: 'change-1' }),
     )).resolves.toBeUndefined();
-    expect(OUTBOX_HANDLERS.some((handler) => handler.eventTypes.has(OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED))).toBe(true);
+    expect(REACTION_HANDLERS).toHaveProperty('order_change_confirm');
   });
 });

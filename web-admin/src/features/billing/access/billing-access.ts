@@ -1245,8 +1245,8 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
     notes: [
       'B7 — ops-visibility screen for the financial domain-event outbox (pending/failed/dead-lettered counts, event detail, related-record links, bulk retry).',
-      'The scheduled processor route (/api/finance/process-outbox) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry. Manual Run Now for outbox_processor uses POST /api/v1/finance/jobs/[jobCode]/run.',
-      'Jobs hub — outbox processor, gift-card expiry, credit-note expiry, idempotency cleanup, ERP posting-retry. The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry, same as process-outbox.',
+      'Domain events are applied by cmx-workers reaction queues (Background Jobs step 4); the Retry actions here republish an event through POST /api/v1/finance/outbox/[eventId]/retry and the bulk retry route.',
+      'Jobs hub — gift-card, credit-note and loyalty expiry, idempotency cleanup, ERP posting-retry, POS session rollover. The scheduled dispatcher route (/api/finance/process-jobs) is bearer-secret authenticated (pg_cron), not a user-facing route — no contract entry.',
     ],
   },
   {

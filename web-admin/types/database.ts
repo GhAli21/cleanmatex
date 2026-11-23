@@ -18595,6 +18595,116 @@ export type Database = {
           },
         ]
       }
+      org_ntf_requests_tr: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_info: string | null
+          error_message: string | null
+          event_code: string
+          id: string
+          is_active: boolean
+          processed_at: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          request_data: Json
+          result_summary: Json | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_count: number
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          error_message?: string | null
+          event_code: string
+          id?: string
+          is_active?: boolean
+          processed_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_data: Json
+          result_summary?: Json | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_info?: string | null
+          error_message?: string | null
+          event_code?: string
+          id?: string
+          is_active?: boolean
+          processed_at?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          request_data?: Json
+          result_summary?: Json | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_count?: number
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_onrq_event"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "sys_ntf_events_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_onrq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_onrq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_onrq_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
       org_ntf_route_assign_cf: {
         Row: {
           assignment_version: number
@@ -52093,6 +52203,34 @@ export type Database = {
           retry_count: number
           source_entity_id: string
           source_entity_type: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_ntf_worker_claim_one: {
+        Args: {
+          p_claim_token: string
+          p_lease_seconds?: number
+          p_outbox_id: string
+          p_tenant_org_id: string
+          p_worker_id: string
+        }
+        Returns: {
+          channel_code: string
+          claim_outcome: string
+          claim_token: string
+          event_code: string
+          id: string
+          max_retries: number
+          metadata: Json
+          recipient_address: string
+          recipient_user_id: string
+          rendered_body: string
+          rendered_subject: string
+          retry_count: number
+          scheduled_at: string
+          source_entity_id: string
+          source_entity_type: string
+          status: string
           tenant_org_id: string
         }[]
       }

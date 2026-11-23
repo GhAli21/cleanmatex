@@ -282,7 +282,7 @@ provider webhook (API container)
 | Schedules | pg-boss crons and `pg_cron` jobs, next run, last result | Run now |
 | Worker | Version, start time, last heartbeat | None |
 
-- Pause is a row in `sys_job_queue_cf` (`queue_name`, `enabled`). Both consumers, `cmx-workers` and HQ API, read it every 30 seconds and call `offWork` or `work` to match. Jobs stay queued while paused.
+- Pause is the registry's `sys_ops_job_cf.desired_enabled` (§20.9). Both consumers, `cmx-workers` and HQ API, read it every 30 seconds, call `offWork` or `work` to match, and write `applied_enabled` / `applied_at` back. Jobs stay queued while paused.
 - Reading uses the existing HQ permission `hq_ops:read`. Every action uses the existing `hq_ops:manage_jobs` and writes an audit row.
 - Lists show counts, queue names and ids only. No recipients, amounts or message bodies.
 - EN/AR, RTL, Cmx components.
@@ -644,7 +644,7 @@ await boss.start();
 await boss.send('ntf.orchestrate', { tenantOrgId, eventId }, { db: fromPrisma(tx) });
 ```
 
-Queues are created by `cmx-workers` on boot with idempotent `createQueue` and `updateQueue`. HQ API's `work()` on a queue that does not exist yet retries until it does.
+Queues are created only by migrations (`pgboss.create_queue`, §19 P1); no process creates or alters queues on boot.
 
 ### 18.3 Security, restored from the earlier draft
 
@@ -910,3 +910,47 @@ Found while building and testing `packages/jobs` against local Postgres. Each is
 | F2 | `start()` fails through Prisma: the install check `SELECT to_regclass('pgboss.version') as name` returns a `regclass` column that Prisma cannot read. The §18.2 probe used a raw `pg` adapter, so it did not catch this. | Test run: "Failed to deserialize column of type 'regclass'". | The producer's start adapter casts that one query to text. Every `send` still uses `fromPrisma(tx)`. Tied to the pinned 12.39.0 SQL; the integration test fails first if an upgrade changes it. |
 | F3 | Four campaign audit inserts in web-admin were written as `void supabase.from('org_ntf_audit_dtl').insert(...)`. A PostgREST query runs only when awaited, so these audit rows were never written. | `app/api/notifications/process-campaigns/route.ts` (3), `app/api/v1/notifications/campaigns/[id]/status/route.ts` (1). Found by the new lint rule. | Awaited, with a warning log on failure. |
 | F4 | pg-boss is ESM-only, and the web-admin Jest setup is CommonJS. | Package `"type": "module"`. | The package tests run on Node's test runner through `tsx` against local Postgres. Web-admin unit tests mock `@cmx/jobs` when step 4 wires it in. |
+
+### 22.1 Step 3 findings (23 Nov 2026)
+
+| # | Finding | Fix |
+|---|---|---|
+| F5 | Supabase signs the pooler certificate with its own CA, so `pg` cannot verify it without that CA. Turning verification off would allow a man-in-the-middle. | `JOBS_DATABASE_CA_CERT` (the Supabase CA PEM) is required for any non-local database; the worker refuses to start without it. No `sslmode` in the URL, because `pg` lets it override the certificate settings. |
+| F6 | `sys_ops_job_cf.updated_by` is a user UUID, so a process name cannot go there. | The worker writes only `applied_enabled`, `applied_at`, `applied_by`. |
+| F7 | pg-boss keeps stopped instances in `pgboss.instance` as history. | Tests delete their own instance row. In production the HQ screen should read the newest non-stopped row per name. |
+| F8 | There is no SQL function to send a job, so the Owner cannot prove a deployed worker from the SQL editor. | `npm run smoke --workspace=cmx-workers [-- fail]` sends a validated smoke job and reports where it ended. |
+
+### 22.2 Step 4 decisions (23 Nov 2026)
+
+| # | Topic | Decision |
+|---|---|---|
+| D1 | Reactions | 13, one queue each, named `fin.<event>.<handler>`. Order history reacts to all 10 timeline events: the consumer and `chk_history_action_type` already supported payment cancel, fail, void, reverse, capture and settle, but the old router sent it only 4, so those never reached the timeline. |
+| D2 | Event row status | The row stays the audit log and keeps a status for the tenant outbox monitor: `PENDING` = reactions outstanding, `PROCESSED` = every enabled reaction applied (or none exists), `DEAD_LETTERED` = a reaction failed its last retry (`error_message`). `FAILED` and `PROCESSING` belonged to the old processor. |
+| D3 | No reaction | Trigger `trg_odeo_no_reaction` writes such an event as `PROCESSED`. It reads `pgboss.subscription`, the same list `publish()` reads. |
+| D4 | Effect key | `<handler_code>:<event id>`, claimed in the reaction's own transaction. The reaction first locks its event row, so reactions to one event run one after another and the last one sees the others' effect rows when it decides the event is done. |
+| D5 | Orphans | An event row that no longer exists (tenant cleanup) completes as `SKIPPED_ORPHAN`, no retry (§5.6). |
+| D6 | Polling | 10 s for order submitted and loyalty (users see them soon after the action), 30 s for the rest. Idle cost about 0.6 queries per second. Concurrency 1; pg-boss keeps fetching without delay while a fetch comes back full, so a backlog drains fast. |
+| D7 | Retry from the tenant outbox monitor | Sets the row back to `PENDING` and publishes the event again with new job ids. Reactions already applied find their effect row and do nothing. |
+| D8 | Old path | Removed in the same release: `outbox-processor.service.ts`, the two outbox job routes, and `outbox_processor` in the tenant finance-jobs hub. `claim_outbox_batch` is dropped at step 8. |
+
+### 22.3 Step 4 findings (23 Nov 2026)
+
+| # | Finding | Fix |
+|---|---|---|
+| F9 | A started pg-boss producer still refreshes its queue cache every 60 s (`getQueues()`), so each warm web-admin instance sends one light query a minute, and the timer keeps a Node process alive. | Accepted: the refresh is what lets a producer see a queue that a later migration creates. Tests call `jobs.stop()` in teardown. |
+| F10 | tsx loads web-admin `.ts` files as CommonJS (web-admin's `package.json` has no `"type": "module"`), so ESM named imports from them fail under tsx. | cmx-workers tests are bundled by esbuild with the production settings (`node build.mjs --test`) and run with `node --test`: tests run what ships. |
+| F11 | The reaction import chain reaches web-admin modules that create a Supabase client when they load, and that import `next/headers` / `next/server`. | The worker requires the web-admin Supabase variables (validated before the handlers load, so a missing one reads "invalid environment"); esbuild maps `next/headers` and `next/server` to their `.js` files for Node's ESM loader. |
+| F12 | web-admin compiles with `strict: false`; type-checking it under cmx-workers' strict settings fails on code this step does not own. | `npm run typecheck` uses `tsconfig.typecheck.json`, which sees web-admin through `src/types/web-admin-boundary.d.ts`; the integration tests run the real modules, so a signature change fails a test. |
+| F13 | `OUTBOX_HANDLER_CATALOG` (tenant outbox monitor) was a stale copy of the old router: 4 history events, no cash over/short, and an `order-change-applied` handler with no EN/AR label. | It now mirrors `sys_ops_job_event_subs_cf` exactly; cmx-workers' contract test compares code, catalog and database. |
+| F14 | `voucher-posting.service.ts` (dead since BVM) still wrote events without publishing. | Deleted now instead of at step 8. |
+
+### 22.4 Step 5 findings so far (23 Nov 2026)
+
+| # | Finding | Fix |
+|---|---|---|
+| F15 | The database time zone is `Asia/Muscat`; `org_ntf_outbox_dtl.scheduled_at` holds UTC without a zone. The batch claims compare `scheduled_at <= now()`, so a scheduled send (quiet hours) is released 4 hours early. | `fn_ntf_worker_claim_one` compares in UTC. The batch claims go at step 8. |
+| F16 | A notification job may carry ids only, but `emitNotificationEvent` passes recipients and template variables. | `org_ntf_requests_tr` stores the request; `ntf.orchestrate` gets `{ tenantOrgId, requestId }` (STEP5_PLAN.md). |
+| F17 | New queues for code that has not shipped would make the running worker alert "no handler" on every start. | New queues start paused; the runner reports a missing handler only for a switched-on queue. |
+| F18 | `deliverInApp` documented "ON CONFLICT DO NOTHING" but did a plain insert, so a repeat reported a failed in-app delivery (and would fail every `ntf.orchestrate` retry). | A unique-key violation counts as delivered. Found by the cmx-workers notification test. |
+| F19 | The template lookup ordered by `sys_ntf_template_ver_dtl(version_number)` without selecting it, so PostgREST rejected every lookup and all messages used the plain fallback text (local and remote run the same code). | `version_number` added to both embedded selects; lookup errors in the test went from every call to 0. |
+| F20 | In-app notifications are now written by the worker. If web-admin ships before the worker runs (or while `ntf.orchestrate` is paused), new in-app notifications wait. External channels are already not sent today (old dispatcher off; 17 outbox rows waiting on remote) and resume with the HQ consumer (5c). | Release order in QA 5.2: worker first, then web-admin, then switch `ntf.orchestrate` on. |

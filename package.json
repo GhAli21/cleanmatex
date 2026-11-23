@@ -93,6 +93,7 @@
   "workspaces": [
     "web-admin",
     "cmx-api",
+    "cmx-workers",
     "packages/*"
   ],
   "devDependencies": {

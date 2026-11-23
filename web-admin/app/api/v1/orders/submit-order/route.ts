@@ -14,7 +14,7 @@
  */
 
 import { posSessionFinanceErrorResponse } from '@/lib/api/pos-session-finance-errors';
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { WorkflowProfileResolutionError } from '@/lib/services/workflow/workflow-profile-resolution.service';
 import { SemanticInitialStatusResolutionError } from '@/lib/services/workflow/initial-status-resolver.service';
@@ -349,8 +349,8 @@ export async function POST(request: NextRequest) {
       );
     });
 
-    // Build the payload while the request context is live, then send after the response.
-    // after() keeps the function alive on Vercel until the send finishes; `void` did not.
+    // Stored as a notification request and queued before responding (cmx-workers prepares and
+    // HQ API sends it); never throws.
     const orderCreatedEvent: Parameters<typeof emitNotificationEvent>[0] = {
       code: 'order.created',
       tenantOrgId: tenantId,
@@ -363,7 +363,7 @@ export async function POST(request: NextRequest) {
         timeZone: await getTenantTimeZone(),
       }),
     };
-    after(() => emitNotificationEvent(orderCreatedEvent));
+    await emitNotificationEvent(orderCreatedEvent);
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {

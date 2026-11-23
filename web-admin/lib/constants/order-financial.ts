@@ -666,25 +666,36 @@ export const OUTBOX_STATUSES = {
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[keyof typeof OUTBOX_STATUSES];
 
 /**
- * Which processor handlers consume which event types.
- * Keep in sync with `OUTBOX_HANDLERS` in `outbox-processor.service.ts`.
+ * Which reactions run for which event types. Mirrors the enabled rows of
+ * `sys_ops_job_event_subs_cf` (migration 0809) exactly: `handler` = `handler_code`.
+ * cmx-workers' contract test fails when the two differ.
  */
 export const OUTBOX_HANDLER_CATALOG = [
   {
-    handler: 'order-history',
+    handler: 'order_history',
     eventTypes: [
       OUTBOX_EVENT_TYPES.ORDER_SUBMITTED,
       OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
       OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
       OUTBOX_EVENT_TYPES.PAYMENT_VERIFIED,
+      OUTBOX_EVENT_TYPES.PAYMENT_CANCELLED,
+      OUTBOX_EVENT_TYPES.PAYMENT_FAILED,
+      OUTBOX_EVENT_TYPES.PAYMENT_VOIDED,
+      OUTBOX_EVENT_TYPES.PAYMENT_REVERSED,
+      OUTBOX_EVENT_TYPES.PAYMENT_CAPTURED,
+      OUTBOX_EVENT_TYPES.PAYMENT_SETTLED,
     ],
   },
   {
-    handler: 'loyalty-earn',
+    handler: 'loyalty_earn',
     eventTypes: [OUTBOX_EVENT_TYPES.LOYALTY_EARN_RECALC_REQUESTED],
   },
   {
-    handler: 'order-change-applied',
+    handler: 'cash_over_short',
+    eventTypes: [OUTBOX_EVENT_TYPES.CASH_DRAWER_VARIANCE_RECORDED],
+  },
+  {
+    handler: 'order_change_confirm',
     eventTypes: [OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED],
   },
 ] as const;

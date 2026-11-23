@@ -1,4 +1,4 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { isOrderTransitionNotifyEnabled } from '@lib/notifications/config';
@@ -157,8 +157,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const eventCode = ORDER_STATUS_EVENT[result.currentStatus];
       if (eventCode && !result.replay && await isOrderTransitionNotifyEnabled()) {
         const orderNo = await findOrderNo(tenantId, id);
-        // after() keeps the function alive on Vercel until the send finishes; `void` did not.
-        after(() => emitNotificationEvent({
+        // Stored as a notification request and queued before responding; never throws.
+        await emitNotificationEvent({
           code: eventCode,
           tenantOrgId: tenantId,
           recipientUserIds: [userId],
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           sourceEntityId: id,
           // Customers see the order number; the UUID only if the order number cannot be read.
           variables: { order_number: orderNo ?? id },
-        }));
+        });
       }
 
       return NextResponse.json({

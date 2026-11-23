@@ -143,7 +143,7 @@ function installTxMock() {
         findFirst: jest.fn(),
       },
       org_domain_events_outbox: {
-        create: mockOutboxCreate,
+        create: async (...a: unknown[]) => { await mockOutboxCreate(...a); return { id: 'evt-test' }; },
       },
       // B14 — issueCorrectionTaxDocumentTx no-ops when there's no ISSUED
       // original tax document (the case for every tenant today).

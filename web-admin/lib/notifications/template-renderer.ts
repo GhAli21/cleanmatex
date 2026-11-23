@@ -79,6 +79,7 @@ export async function renderNotificationContent(
         subject,
         subject2,
         status,
+        version_number,
         sys_ntf_templates_mst!inner (
           event_code
         )
@@ -92,6 +93,7 @@ export async function renderNotificationContent(
         subject,
         subject2,
         status,
+        version_number,
         template_code
       )
     `;
@@ -108,6 +110,7 @@ export async function renderNotificationContent(
       refLabel(ref),
     )
     .eq('sys_ntf_template_ver_dtl.is_active', true)
+    // version_number must be in the embedded select above, or PostgREST cannot order by it.
     .order('sys_ntf_template_ver_dtl(version_number)', { ascending: false })
     .limit(1)
     .maybeSingle();

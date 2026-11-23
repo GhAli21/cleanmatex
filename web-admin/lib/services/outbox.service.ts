@@ -1,30 +1,28 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
-import { OUTBOX_EVENT_TYPES, OUTBOX_STATUSES } from '@/lib/constants/order-financial';
+import { jobs } from '@/lib/jobs/producer';
+import { OUTBOX_STATUSES } from '@/lib/constants/order-financial';
 import type { OutboxEventType } from '@/lib/constants/order-financial';
 import { Prisma } from '@prisma/client';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
-// Exponential back-off schedule in minutes: 1 → 5 → 15 → 60 → 240 → FAILED
-const RETRY_DELAYS_MINUTES = [1, 5, 15, 60, 240];
-
-function nextRetryAt(attempts: number): Date | null {
-  const delayMinutes = RETRY_DELAYS_MINUTES[attempts] ?? null;
-  if (delayMinutes === null) return null;
-  return new Date(Date.now() + delayMinutes * 60_000);
-}
-
 /**
- * Append a domain event to the outbox within an existing transaction.
- * The worker picks up PENDING rows and publishes them to the event bus.
- * @param tx
- * @param tenantId
- * @param eventType
- * @param aggregateType
- * @param aggregateId
- * @param payload
+ * Append a domain event inside the caller's transaction and publish it to its reactions.
+ *
+ * The row is the permanent event log (`org_domain_events_outbox`). `jobs.publish` adds one pg-boss
+ * job per enabled reaction (`sys_ops_job_event_subs_cf`, mirrored in `pgboss.subscription`) in the
+ * same transaction, with the event id as job id: commit keeps both, rollback removes both.
+ * cmx-workers runs each reaction and marks the row PROCESSED once all have applied. An event with
+ * no reaction is written as PROCESSED by trigger `trg_odeo_no_reaction` (migration 0809).
+ * @param tx caller's interactive transaction
+ * @param tenantId event's Organization
+ * @param eventType catalogued code (`sys_ops_job_event_types_cd`, FK-checked)
+ * @param aggregateType domain object kind, e.g. `order`
+ * @param aggregateId domain object id
+ * @param payload small JSON context; reactions re-read current data by id
+ * @returns the event id
  */
 export async function emitEventTx(
   tx: PrismaTransactionClient,
@@ -33,8 +31,8 @@ export async function emitEventTx(
   aggregateType: string,
   aggregateId: string,
   payload: Record<string, unknown>
-): Promise<void> {
-  await tx.org_domain_events_outbox.create({
+): Promise<string> {
+  const row = await tx.org_domain_events_outbox.create({
     data: {
       tenant_org_id:  tenantId,
       event_type:     eventType,
@@ -42,133 +40,50 @@ export async function emitEventTx(
       aggregate_id:   aggregateId,
       payload: payload as Prisma.InputJsonValue,
       status:         OUTBOX_STATUSES.PENDING,
-      attempts:       0,
-      max_attempts:   6,
-      next_retry_at:  new Date(),
     },
+    select: { id: true },
   });
-}
-
-/** Shape of a claimed row — mirrors org_domain_events_outbox exactly (see 0292/0410 DDL). */
-export interface OutboxEventRow {
-  id: string;
-  tenant_org_id: string;
-  event_type: string;
-  aggregate_type: string;
-  aggregate_id: string;
-  payload: Prisma.JsonValue;
-  status: string;
-  attempts: number;
-  max_attempts: number;
-  next_retry_at: Date | null;
-  processed_at: Date | null;
-  error_message: string | null;
-  created_at: Date;
+  await jobs.publish(tx, eventType, { tenantOrgId: tenantId, eventId: row.id });
+  return row.id;
 }
 
 /**
- * Claim a batch of PENDING or FAILED events ready for processing.
- *
- * B7: calls the `claim_outbox_batch` SQL function (migration 0296) instead of
- * a plain findMany+updateMany — that pair has no row lock at all under
- * Postgres READ COMMITTED, so two concurrent callers could both select and
- * then both flip the SAME rows to PROCESSING. The SQL function takes the
- * claim inside `SELECT ... FOR UPDATE SKIP LOCKED`, so concurrent callers
- * never double-claim the same event (tested — see outbox.service.test.ts
- * "concurrency" suite).
- * @param limit
+ * Re-run the reactions of FAILED or DEAD_LETTERED events (operator retry from the outbox monitor).
+ * One UPDATE moves each row back to PENDING (or straight to PROCESSED when its event no longer has
+ * a reaction) and returns the rows it changed; only those are published again, with new job ids.
+ * A concurrent second retry waits on the row lock, then finds the row no longer retryable, so it
+ * publishes nothing. A reaction that already applied finds its effect row and does nothing.
  */
-export async function claimBatch(limit = 50): Promise<OutboxEventRow[]> {
-  return prisma.$queryRaw<OutboxEventRow[]>`SELECT * FROM claim_outbox_batch(${limit}::integer, NOW())`;
-}
-
-/**
- * Mark an outbox event as successfully processed.
- * @param eventId
- * @param tenantId - the claimed row's own `tenant_org_id` (claimBatch is cross-tenant; follow-up writes are not)
- */
-export async function markProcessed(eventId: string, tenantId: string): Promise<void> {
-  await prisma.org_domain_events_outbox.update({
-    where: { id: eventId, tenant_org_id: tenantId },
-    data:  { status: OUTBOX_STATUSES.PROCESSED, processed_at: new Date() },
+async function requeueEvents(eventIds: string[], tenantId: string): Promise<number> {
+  return prisma.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<{ id: string; event_type: OutboxEventType; status: string }[]>`
+      UPDATE public.org_domain_events_outbox o
+      SET status = CASE WHEN EXISTS (SELECT 1 FROM pgboss.subscription s WHERE s.event = o.event_type)
+                        THEN ${OUTBOX_STATUSES.PENDING} ELSE ${OUTBOX_STATUSES.PROCESSED} END,
+          processed_at = CASE WHEN EXISTS (SELECT 1 FROM pgboss.subscription s WHERE s.event = o.event_type)
+                              THEN NULL ELSE now() END,
+          attempts = 0,
+          error_message = NULL
+      WHERE o.tenant_org_id = ${tenantId}::uuid
+        AND o.id = ANY(${eventIds}::uuid[])
+        AND o.status IN (${OUTBOX_STATUSES.FAILED}, ${OUTBOX_STATUSES.DEAD_LETTERED})
+      RETURNING o.id::text AS id, o.event_type, o.status`;
+    for (const row of rows) {
+      if (row.status !== OUTBOX_STATUSES.PENDING) continue;
+      await jobs.publish(tx, row.event_type, { tenantOrgId: tenantId, eventId: row.id }, { redeliver: true });
+    }
+    return rows.length;
   });
 }
 
 /**
- * Mark an event as FAILED and schedule a retry if attempts < max_attempts,
- * or DEAD_LETTERED once the retry budget is exhausted (B7 — previously this
- * stayed FAILED forever with next_retry_at=NULL, indistinguishable from
- * "about to retry" without inspecting that column).
- * @param eventId
- * @param tenantId - the claimed row's own `tenant_org_id`
- * @param error
- */
-export async function markFailed(
-  eventId: string,
-  tenantId: string,
-  error: string
-): Promise<'FAILED' | 'DEAD_LETTERED'> {
-  const event = await prisma.org_domain_events_outbox.findUniqueOrThrow({
-    where: { id: eventId, tenant_org_id: tenantId },
-  });
-  const attempts = (event.attempts ?? 0) + 1;
-  const retryAt  = nextRetryAt(attempts);
-  const status   = retryAt ? OUTBOX_STATUSES.FAILED : OUTBOX_STATUSES.DEAD_LETTERED;
-
-  await prisma.org_domain_events_outbox.update({
-    where: { id: eventId, tenant_org_id: tenantId },
-    data: {
-      status,
-      attempts,
-      next_retry_at:  retryAt,
-      error_message:  error.slice(0, 2000),
-    },
-  });
-
-  return status;
-}
-
-/**
- * Re-schedule a retry for an event that is still within its attempt budget,
- * or DEAD_LETTERED once exhausted (see markFailed).
- * @param eventId
- * @param tenantId - the event row's own `tenant_org_id`
- * @param currentAttempts
- */
-export async function scheduleRetry(eventId: string, tenantId: string, currentAttempts: number): Promise<void> {
-  const retryAt = nextRetryAt(currentAttempts);
-  await prisma.org_domain_events_outbox.update({
-    where: { id: eventId, tenant_org_id: tenantId },
-    data: {
-      status:        retryAt ? OUTBOX_STATUSES.FAILED : OUTBOX_STATUSES.DEAD_LETTERED,
-      attempts:      currentAttempts,
-      next_retry_at: retryAt,
-    },
-  });
-}
-
-/**
- * Manually re-queue a FAILED or DEAD_LETTERED event (ops action, B7).
- * Resets attempts to 0 and next_retry_at to now so the next processor tick
- * picks it up immediately; clears the prior error message.
+ * Manually re-run one FAILED or DEAD_LETTERED event (ops action).
  * @param eventId
  * @param tenantId
  */
 export async function manualRetry(eventId: string, tenantId: string): Promise<void> {
-  const updated = await prisma.org_domain_events_outbox.updateMany({
-    where: {
-      id: eventId,
-      tenant_org_id: tenantId,
-      status: { in: [OUTBOX_STATUSES.FAILED, OUTBOX_STATUSES.DEAD_LETTERED] },
-    },
-    data: {
-      status:        OUTBOX_STATUSES.PENDING,
-      attempts:      0,
-      next_retry_at: new Date(),
-      error_message: null,
-    },
-  });
-  if (updated.count === 0) {
+  const count = await requeueEvents([eventId], tenantId);
+  if (count === 0) {
     throw new Error('EVENT_NOT_FOUND_OR_NOT_RETRYABLE');
   }
 }
@@ -185,18 +100,5 @@ export const OUTBOX_BULK_RETRY_MAX = 50;
 export async function manualRetryMany(eventIds: string[], tenantId: string): Promise<number> {
   const unique = [...new Set(eventIds)].slice(0, OUTBOX_BULK_RETRY_MAX);
   if (unique.length === 0) return 0;
-  const updated = await prisma.org_domain_events_outbox.updateMany({
-    where: {
-      id: { in: unique },
-      tenant_org_id: tenantId,
-      status: { in: [OUTBOX_STATUSES.FAILED, OUTBOX_STATUSES.DEAD_LETTERED] },
-    },
-    data: {
-      status:        OUTBOX_STATUSES.PENDING,
-      attempts:      0,
-      next_retry_at: new Date(),
-      error_message: null,
-    },
-  });
-  return updated.count;
+  return requeueEvents(unique, tenantId);
 }

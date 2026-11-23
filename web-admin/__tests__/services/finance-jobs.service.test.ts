@@ -19,7 +19,6 @@ const mockExecuteRaw = jest.fn();
 const mockExpireGiftCard = jest.fn();
 const mockExpireCreditNotes = jest.fn();
 const mockExpireLoyaltyPoints = jest.fn();
-const mockProcessOutboxBatch = jest.fn();
 const mockRetry = jest.fn();
 const mockLoggerError = jest.fn();
 const mockRolloverSweep = jest.fn();
@@ -53,10 +52,6 @@ jest.mock('@/lib/services/stored-value.service', () => ({
 
 jest.mock('@/lib/services/loyalty.service', () => ({
   expireLoyaltyPoints: (...a: unknown[]) => mockExpireLoyaltyPoints(...a),
-}));
-
-jest.mock('@/lib/services/outbox-processor.service', () => ({
-  processOutboxBatch: (...a: unknown[]) => mockProcessOutboxBatch(...a),
 }));
 
 jest.mock('@/lib/services/erp-lite-posting-engine.service', () => ({
@@ -173,7 +168,7 @@ describe('runFinanceJob — erp_posting_retry', () => {
 
 describe('runFinanceJob — run-log lifecycle', () => {
   it('creates a RUNNING row before executing, then finalizes SUCCESS', async () => {
-    mockTenantsFindMany.mockResolvedValue([]);
+    mockQueryRaw.mockResolvedValue([]); // no gift cards due (fn_fin_gift_card_exp_due)
 
     await runFinanceJob({ jobCode: FINANCE_JOB_CODES.GIFT_CARD_EXPIRY, triggerSource: 'SCHEDULE' });
 
@@ -189,7 +184,7 @@ describe('runFinanceJob — run-log lifecycle', () => {
   });
 
   it('a job that throws still finalizes the run as FAILED (never left stuck RUNNING)', async () => {
-    mockTenantsFindMany.mockRejectedValue(new Error('db down'));
+    mockQueryRaw.mockRejectedValue(new Error('db down'));
 
     const result = await runFinanceJob({ jobCode: FINANCE_JOB_CODES.GIFT_CARD_EXPIRY, triggerSource: 'SCHEDULE' });
 
@@ -218,34 +213,13 @@ describe('listFinanceJobsLastRun', () => {
 
     const result = await listFinanceJobsLastRun();
 
-    expect(result).toHaveLength(7);
-    expect(result[0].jobCode).toBe(FINANCE_JOB_CODES.OUTBOX_PROCESSOR);
+    // The domain-event outbox is no longer a finance job (cmx-workers reactions, Background Jobs step 4).
+    expect(result).toHaveLength(6);
+    expect(result.map((r) => r.jobCode)).not.toContain('outbox_processor');
+    expect(result[0].jobCode).toBe(FINANCE_JOB_CODES.GIFT_CARD_EXPIRY);
     expect(result[0].lastRun?.status).toBe('SUCCESS');
-    expect(result[1].jobCode).toBe(FINANCE_JOB_CODES.GIFT_CARD_EXPIRY);
+    expect(result[1].jobCode).toBe(FINANCE_JOB_CODES.CREDIT_NOTE_EXPIRY);
     expect(result[1].lastRun).toBeNull();
-  });
-});
-
-describe('runFinanceJob — outbox_processor', () => {
-  it('maps processOutboxBatch counts into processed/failed and prunes idle ticks', async () => {
-    mockProcessOutboxBatch.mockResolvedValue({
-      claimed: 3,
-      processed: 2,
-      skipped: 1,
-      failed: 0,
-      deadLettered: 0,
-    });
-    mockExecuteRaw.mockResolvedValue(1);
-
-    const result = await runFinanceJob({
-      jobCode: FINANCE_JOB_CODES.OUTBOX_PROCESSOR,
-      triggerSource: 'SCHEDULE',
-    });
-
-    expect(result.status).toBe('SUCCESS');
-    expect(result.processedCount).toBe(3);
-    expect(result.failedCount).toBe(0);
-    expect(mockExecuteRaw).toHaveBeenCalled();
   });
 });
 
@@ -325,13 +299,13 @@ describe('runFinanceJob — overlap', () => {
     });
 
     const result = await runFinanceJob({
-      jobCode: FINANCE_JOB_CODES.OUTBOX_PROCESSOR,
+      jobCode: FINANCE_JOB_CODES.GIFT_CARD_EXPIRY,
       triggerSource: 'SCHEDULE',
     });
 
     expect(result.skippedBecauseRunning).toBe(true);
     expect(result.status).toBe('SUCCESS');
-    expect(mockProcessOutboxBatch).not.toHaveBeenCalled();
+    expect(mockQueryRaw).not.toHaveBeenCalled();
   });
 });
 

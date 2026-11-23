@@ -26,12 +26,13 @@ import { Prisma } from '@prisma/client';
  *
  * Design invariants (PRD §22 + Phase 5 resume doc):
  *
- *  1. **Asynchronous.** History rows are written by the outbox worker
+ *  1. **Asynchronous.** History rows are written by the cmx-workers
+ *     `order_history` reaction (one pg-boss queue per event, migration 0809)
  *     AFTER the order/voucher/invoice transaction commits. The submit-order
  *     transaction is never enlarged for audit writes.
- *  2. **Idempotent.** Every write upserts on the partial unique index
- *     `(tenant_org_id, outbox_event_id)` introduced by migration 0330.
- *     Re-claiming a FAILED outbox row never produces duplicate history.
+ *  2. **Idempotent.** The reaction claims its effect key first, and the write
+ *     is keyed on the partial unique index `(tenant_org_id, outbox_event_id)`
+ *     (migration 0330), so a retried or duplicated job never adds a second row.
  *  3. **Tenant-safe.** Every Prisma call runs inside `withTenantContext`
  *     so RLS enforces tenant isolation. Each `where` clause additionally
  *     filters by `tenant_org_id` explicitly.
@@ -46,7 +47,8 @@ import { Prisma } from '@prisma/client';
  *     OUTBOX_EVENT_TYPES constant values and the `chk_history_action_type`
  *     CHECK enum (mig 0330).
  *
- * @see lib/services/outbox.service.ts — emitEventTx / claimBatch contracts
+ * @see lib/services/outbox.service.ts — emitEventTx (writes and publishes the event)
+ * @see lib/services/domain-event-reactions.service.ts — runs this consumer as the `order_history` reaction
  * @see supabase/migrations/0330_phase5_order_history_bvm_action_types.sql
  */
 
@@ -54,7 +56,7 @@ import { Prisma } from '@prisma/client';
 
 /**
  * Minimal projection of an outbox row that the consumer needs to write
- * a history entry. Matches the shape returned by `outbox.claimBatch`.
+ * a history entry (a subset of the `org_domain_events_outbox` row).
  */
 export interface OutboxEventForHistory {
   id: string;
@@ -95,120 +97,59 @@ const HISTORY_EVENT_TYPES = new Set<OutboxEventType>([
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
+/** Prisma client or interactive transaction; the reaction runner passes its transaction. */
+export type HistoryDb = Prisma.TransactionClient;
+
 /**
- * Process a single outbox event into an `org_order_history` row.
+ * Process a single domain event into an `org_order_history` row.
  *
- * Always safe to re-call with the same event — the unique constraint
- * on `(tenant_org_id, outbox_event_id)` collapses the second write into
- * a no-op (SKIPPED_DUPLICATE outcome).
+ * Safe to re-run with the same event: an existing row for `(tenant_org_id, outbox_event_id)`
+ * is returned untouched. The cmx-workers reaction runner calls it inside its transaction,
+ * after locking the event row and claiming the reaction's effect key, so two runs of one
+ * event never overlap. Every lookup runs on `db`, so nothing here fails the transaction
+ * on an expected condition (a duplicate or a deleted order is checked, not caught).
  *
- * @param event Outbox row claimed by the worker.
- * @returns Outcome describing what happened. Worker uses this to decide
- *          markProcessed vs. markFailed.
- *
- * @example
- * ```ts
- * const events = await claimBatch(50);
- * for (const event of events) {
- *   try {
- *     await consumeOrderHistoryEvent(event);
- *     await markProcessed(event.id, event.tenant_org_id);
- *   } catch (err) {
- *     await markFailed(event.id, event.tenant_org_id, String(err));
- *   }
- * }
- * ```
+ * @param event the domain event row.
+ * @param db the reaction transaction (defaults to the app client).
+ * @returns what happened; the runner records it as the job output.
  */
 export async function consumeOrderHistoryEvent(
   event: OutboxEventForHistory,
+  db: HistoryDb = prisma,
 ): Promise<ConsumeOutcome> {
-  // Fast filter — only react to BVM history events. Other event types
-  // (PAYMENT_RECEIVED, REFUND_ISSUED, etc.) are owned by their own
-  // consumers and are not order-timeline rows.
+  // Fast filter — only react to the order-timeline events.
   if (!HISTORY_EVENT_TYPES.has(event.event_type as OutboxEventType)) {
     return { status: 'SKIPPED_UNSUPPORTED_EVENT' };
   }
 
-  // Tenant resolved from the event row, not from session — the worker
-  // runs out of any user session. RLS is still enforced because
-  // withTenantContext seeds the AsyncLocalStorage scope.
+  // Tenant comes from the event row, not a session: the worker runs outside any user session.
   return withTenantContext(event.tenant_org_id, async (tenantOrgId) => {
-    const mapped = await mapEventToHistoryRow(tenantOrgId, event);
+    const mapped = await mapEventToHistoryRow(tenantOrgId, event, db);
     if (!mapped) {
       return { status: 'SKIPPED_NOT_ORDER_LINKED' };
     }
 
-    // Idempotent write keyed on the partial unique index uq_history_outbox_event (mig 0330:
-    // (tenant_org_id, outbox_event_id) WHERE outbox_event_id IS NOT NULL). Prisma cannot model a
-    // partial unique index — `db pull` never emits it — so the key is checked explicitly instead
-    // of through `upsert`. An existing row is returned untouched (a hand-edited row, e.g. a payload
-    // backfill, is never clobbered on the retry path).
-    const findExisting = () =>
-      prisma.org_order_history.findFirst({
-        where: { tenant_org_id: tenantOrgId, outbox_event_id: event.id },
-        select: { id: true },
-      });
-
-    const existing = await findExisting();
+    // Keyed on the partial unique index uq_history_outbox_event (mig 0330: (tenant_org_id,
+    // outbox_event_id) WHERE outbox_event_id IS NOT NULL). Prisma cannot model a partial unique
+    // index, so the key is checked explicitly. An existing row is returned untouched (a
+    // hand-edited row, e.g. a payload backfill, is never clobbered on a re-run).
+    const existing = await db.org_order_history.findFirst({
+      where: { tenant_org_id: tenantOrgId, outbox_event_id: event.id },
+      select: { id: true },
+    });
     if (existing) return { status: 'WRITTEN', historyId: existing.id };
 
-    try {
-      const row = await prisma.org_order_history.create({ data: mapped, select: { id: true } });
-      return { status: 'WRITTEN', historyId: row.id };
-    } catch (error) {
-      // A concurrent consumer of the same event won the race: the partial unique index rejected
-      // this insert, so the winner's row is the result — same outcome as the replay above.
-      // (Matched on the stable Prisma error code rather than `instanceof`, which is not reliable
-      // across the client's node / edge / test builds.)
-      const code = (error as { code?: unknown } | null)?.code;
-      if (code === 'P2002') {
-        const winner = await findExisting();
-        if (winner) return { status: 'WRITTEN', historyId: winner.id };
-      }
-      // The order was deleted after the event was written. Retrying can never succeed, so the
-      // event completes as an orphan instead of exhausting its retries into DEAD_LETTERED.
-      if (code === 'P2003') {
-        const order = await prisma.org_orders_mst.findFirst({
-          where: { id: mapped.order_id, tenant_org_id: tenantOrgId },
-          select: { id: true },
-        });
-        if (!order) return { status: 'SKIPPED_ORPHAN' };
-      }
-      throw error;
-    }
-  });
-}
+    // The order was deleted after the event was written. Retrying can never succeed, so the
+    // reaction completes as an orphan instead of exhausting its retries into the dead letters.
+    const order = await db.org_orders_mst.findFirst({
+      where: { id: mapped.order_id, tenant_org_id: tenantOrgId },
+      select: { id: true },
+    });
+    if (!order) return { status: 'SKIPPED_ORPHAN' };
 
-/**
- * Convenience wrapper that processes a batch produced by `claimBatch`.
- * Returns a per-event outcome list so the worker can mark each event
- * processed or failed individually. Non-history events in the batch are
- * returned as SKIPPED_UNSUPPORTED_EVENT and SHOULD still be marked
- * processed by the worker (they were claimed by their own consumer
- * earlier in the chain — this consumer is a no-op for them).
- *
- * @param events Batch of claimed outbox rows.
- * @returns Outcome list aligned 1:1 with `events`.
- *
- * @example
- * ```ts
- * const events = await claimBatch(50);
- * const outcomes = await consumeOrderHistoryBatch(events);
- * await Promise.all(outcomes.map((o, i) =>
- *   o.status === 'WRITTEN' || o.status === 'SKIPPED_DUPLICATE'
- *     ? markProcessed(events[i].id, events[i].tenant_org_id)
- *     : Promise.resolve(),
- * ));
- * ```
- */
-export async function consumeOrderHistoryBatch(
-  events: OutboxEventForHistory[],
-): Promise<ConsumeOutcome[]> {
-  const results: ConsumeOutcome[] = [];
-  for (const event of events) {
-    results.push(await consumeOrderHistoryEvent(event));
-  }
-  return results;
+    const row = await db.org_order_history.create({ data: mapped, select: { id: true } });
+    return { status: 'WRITTEN', historyId: row.id };
+  });
 }
 
 // ─── Internal mapping ──────────────────────────────────────────────────────
@@ -223,10 +164,12 @@ export async function consumeOrderHistoryBatch(
  * lookups; RLS scopes them automatically.
  * @param tenantOrgId
  * @param event
+ * @param db client or transaction for the linkage lookups
  */
 async function mapEventToHistoryRow(
   tenantOrgId: string,
   event: OutboxEventForHistory,
+  db: HistoryDb,
 ): Promise<Prisma.org_order_historyUncheckedCreateInput | null> {
   const payload = (event.payload ?? {}) as Record<string, unknown>;
 
@@ -250,7 +193,7 @@ async function mapEventToHistoryRow(
       // Voucher events emit aggregate_id = voucher id. Resolve to its
       // linked order — manual financial vouchers with NULL order_id are
       // outside the order-timeline scope and skipped.
-      const voucher = await prisma.org_fin_vouchers_mst.findFirst({
+      const voucher = await db.org_fin_vouchers_mst.findFirst({
         where: { id: event.aggregate_id, tenant_org_id: tenantOrgId },
         select: { id: true, order_id: true, voucher_no: true },
       });
@@ -273,7 +216,7 @@ async function mapEventToHistoryRow(
       // AR invoice events emit aggregate_id = invoice id. Resolve to the
       // linked order via `org_invoice_mst.order_id` — multi-order
       // invoices have NULL order_id and surface only on the AR audit.
-      const invoice = await prisma.org_invoice_mst.findFirst({
+      const invoice = await db.org_invoice_mst.findFirst({
         where: { id: event.aggregate_id, tenant_org_id: tenantOrgId },
         select: { id: true, order_id: true, invoice_no: true },
       });
@@ -300,7 +243,7 @@ async function mapEventToHistoryRow(
       // Returning null guards against hard-deleted payment rows so the
       // worker can mark the event processed without blocking the queue.
       const paymentId = event.aggregate_id;
-      const payment = await prisma.org_order_payments_dtl.findFirst({
+      const payment = await db.org_order_payments_dtl.findFirst({
         where: { id: paymentId, tenant_org_id: tenantOrgId },
         select: { id: true, order_id: true, payment_method_code: true },
       });
@@ -336,7 +279,7 @@ async function mapEventToHistoryRow(
       // the transition-service payload — no literal assumption needed here
       // since multiple source statuses are possible per action (D001).
       const paymentId = event.aggregate_id;
-      const payment = await prisma.org_order_payments_dtl.findFirst({
+      const payment = await db.org_order_payments_dtl.findFirst({
         where: { id: paymentId, tenant_org_id: tenantOrgId },
         select: { id: true, order_id: true, payment_method_code: true },
       });

@@ -18,8 +18,21 @@ export const DEAD_LETTER_QUEUE = 'dead_letter' as const;
 
 /** Payload schema per producer queue. The key is the pg-boss queue name. */
 export const QUEUE_PAYLOADS = {
-  /** Proves a consumer runs end to end (DESIGN §10 step 3). */
-  'ops.smoke_test': z.strictObject({ runId: zId }),
+  /**
+   * Proves a consumer runs end to end (DESIGN §10 step 3). `mode: 'fail'` makes the handler throw,
+   * to prove retry with backoff, the dead-letter queue and redrive on any environment.
+   */
+  'ops.smoke_test': z.strictObject({ runId: zId, mode: z.enum(['ok', 'fail']).optional() }),
+  /**
+   * One notification request (`org_ntf_requests_tr`, migration 0810) → in-app and outbox rows.
+   * Job id = request id, so a request is prepared by one job.
+   */
+  'ntf.orchestrate': z.strictObject({ tenantOrgId: zId, requestId: zId }),
+  /**
+   * One outbox row (`org_ntf_outbox_dtl`) → its provider, run by HQ API. The job id is the claim
+   * token (`fn_ntf_worker_claim_one`); the first send of a row uses the outbox id.
+   */
+  'ntf.deliver': z.strictObject({ tenantOrgId: zId, outboxId: zId }),
 } as const;
 
 export type QueueName = keyof typeof QUEUE_PAYLOADS;

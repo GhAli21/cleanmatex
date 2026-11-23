@@ -74,6 +74,18 @@ describe('@cmx/jobs producer mode', () => {
     });
   });
 
+  it('publish with redeliver adds a new job even when the event id job exists', async () => {
+    const eventId = randomUUID();
+    await inRollback(async (tx) => {
+      await tx.$executeRawUnsafe(`INSERT INTO pgboss.subscription (event, name) VALUES ('JOBS_TEST_HAPPENED', $1)`, QUEUE);
+      const data = { tenantOrgId: randomUUID(), eventId };
+      await producer.publish(tx, 'JOBS_TEST_HAPPENED', data);
+      await producer.publish(tx, 'JOBS_TEST_HAPPENED', data, { redeliver: true });
+      const rows = await tx.$queryRawUnsafe<{ n: number }[]>(`SELECT count(*)::int n FROM pgboss.job WHERE name = $1 AND data->>'eventId' = $2`, QUEUE, eventId);
+      assert.equal(rows[0].n, 2);
+    });
+  });
+
   it('publish without subscribers creates nothing and does not throw', async () => {
     await inRollback(async (tx) => {
       await producer.publish(tx, 'JOBS_TEST_NOBODY_LISTENS', { tenantOrgId: randomUUID(), eventId: randomUUID() });

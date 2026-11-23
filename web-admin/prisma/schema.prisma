@@ -1746,6 +1746,7 @@ model org_tenants_mst {
   org_ntf_prov_acct_mst            org_ntf_prov_acct_mst[]
   org_ntf_quota_rsv_dtl            org_ntf_quota_rsv_dtl[]
   org_ntf_receipts_tr              org_ntf_receipts_tr[]
+  org_ntf_requests_tr              org_ntf_requests_tr[]
   org_ntf_route_assign_cf          org_ntf_route_assign_cf[]
   org_ntf_soft_bounce_lst          org_ntf_soft_bounce_lst[]
   org_ntf_suppression_lst          org_ntf_suppression_lst[]
@@ -14129,6 +14130,7 @@ model sys_ntf_events_cd {
   is_active               Boolean                   @default(true)
   org_ntf_inbox_mst       org_ntf_inbox_mst[]
   org_ntf_outbox_dtl      org_ntf_outbox_dtl[]
+  org_ntf_requests_tr     org_ntf_requests_tr[]
   org_ntf_route_assign_cf org_ntf_route_assign_cf[]
   org_ntf_user_prefs_dtl  org_ntf_user_prefs_dtl[]
   sys_ntf_event_chan_map  sys_ntf_event_chan_map[]
@@ -19331,6 +19333,42 @@ model sys_ops_job_queue_cf {
   other_sys_ops_job_queue_cf sys_ops_job_queue_cf[] @relation("sys_ops_job_queue_cfTosys_ops_job_queue_cf")
   sys_ops_job_cf             sys_ops_job_cf         @relation(fields: [queue_name], references: [job_code], map: "fk_sojq_registry")
 
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ntf_requests_tr {
+  id                 String            @id(map: "pk_org_ntf_requests_tr") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String            @db.Uuid
+  event_code         String
+  source_entity_type String?
+  source_entity_id   String?
+  request_data       Json
+  status             String            @default("PENDING")
+  processed_at       DateTime?         @db.Timestamptz(6)
+  result_summary     Json?
+  error_message      String?
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  created_by         String?
+  created_info       String?
+  updated_at         DateTime?         @db.Timestamptz(6)
+  updated_by         String?
+  updated_info       String?
+  updated_count      Int               @default(0)
+  deleted_at         DateTime?         @db.Timestamptz(6)
+  deleted_by         String?
+  deleted_info       String?
+  rec_status         Int               @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?
+  is_active          Boolean           @default(true)
+  sys_ntf_events_cd  sys_ntf_events_cd @relation(fields: [event_code], references: [code], map: "fk_onrq_event")
+  org_tenants_mst    org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_onrq_tenant")
+
+  @@unique([id, tenant_org_id], map: "uq_onrq_id_tenant")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_onrq_tenant_created")
   @@schema("public")
 }
 

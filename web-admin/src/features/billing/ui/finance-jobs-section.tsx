@@ -22,7 +22,6 @@ import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 
 type JobCode =
-  | 'outbox_processor'
   | 'gift_card_expiry'
   | 'credit_note_expiry'
   | 'loyalty_points_expiry'
@@ -49,7 +48,7 @@ interface FinanceJobRow {
   cronActive: boolean | null;
   nextRunAt: string | null;
   relatedHref: string | null;
-  secretConfigured: boolean | null;
+  secretConfigured: boolean;
   isRunning: boolean;
   lastRun: JobLastRun | null;
 }
@@ -115,8 +114,9 @@ function ErrorCellActions({ errorMessage, onExpand, onCopy, viewLabel, copyLabel
 }
 
 /**
- * Scheduled finance jobs hub (outbox processor, gift-card expiry,
- * credit-note expiry, idempotency cleanup, ERP posting-retry).
+ * Scheduled finance jobs hub (gift-card, credit-note and loyalty expiry, idempotency
+ * cleanup, ERP posting-retry, POS session rollover). Domain events are run by
+ * cmx-workers reactions instead (docs/features/Background_Jobs).
  */
 export function FinanceJobsSection() {
   const t = useTranslations('billing.financeJobs');
@@ -213,22 +213,15 @@ export function FinanceJobsSection() {
 
   const healthItems = useMemo(() => {
     const items: string[] = [];
+    if (jobs.some((job) => !job.secretConfigured)) {
+      items.push(t('health.secretMissing'));
+    }
     for (const job of jobs) {
-      if (job.jobCode === 'outbox_processor' && job.secretConfigured === false) {
-        items.push(t('health.secretMissing'));
-      }
       if (job.cronActive === false) {
         items.push(t('health.cronInactive', { job: t(`jobNames.${job.jobCode}`) }));
       }
       if (job.lastRun?.status === 'FAILED') {
         items.push(t('health.lastFailed', { job: t(`jobNames.${job.jobCode}`) }));
-      }
-      if (
-        job.jobCode === 'outbox_processor' &&
-        job.lastRun?.startedAt &&
-        Date.now() - new Date(job.lastRun.startedAt).getTime() > 5 * 60 * 1000
-      ) {
-        items.push(t('health.processorStale'));
       }
     }
     return items;

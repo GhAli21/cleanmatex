@@ -53,6 +53,11 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname, ".."), // same as outputFileTracingRoot (repo root)
   },
 
+  // Background jobs producer (packages/jobs, TypeScript source). pg-boss stays a plain
+  // Node dependency on the server instead of being bundled (DESIGN Background_Jobs §18.2).
+  transpilePackages: ['@cmx/jobs'],
+  serverExternalPackages: ['pg-boss'],
+
   // The production builder is 2 cores / 8 GB. A custom webpack() function
   // disables Next's compile worker, so one process holds the whole graph and
   // the container is SIGKILL'd once RAM is full.

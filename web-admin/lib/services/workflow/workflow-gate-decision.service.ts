@@ -1,9 +1,9 @@
 import 'server-only';
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
-import { OUTBOX_EVENT_TYPES, OUTBOX_STATUSES } from '@/lib/constants/order-financial';
+import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
+import { emitEventTx } from '@/lib/services/outbox.service';
 import { evaluateWorkflowGate, type WorkflowGateBlockedReason, type WorkflowGateOrderFacts, type WorkflowGateRuntimeMode } from '@/lib/services/workflow/workflow-gate-evaluator.service';
 import type { SemanticWorkflowCommandChannel } from '@/lib/services/workflow/semantic-workflow-artifact.service';
 
@@ -467,25 +467,13 @@ async function persistAcceptedDecision(
       'The gate decision could not be recorded.',
     );
   }
-  await input.tx.org_domain_events_outbox.create({
-    data: {
-      tenant_org_id: input.tenantId,
-      event_type: GATE_DECISION_OUTBOX_EVENT_TYPE,
-      aggregate_type: 'workflow_gate_decision',
-      aggregate_id: decisionId,
-      payload: {
-        orderId: input.orderId,
-        actionCode: input.actionCode,
-        screen: input.screen,
-        gateCode: decision.gateCode,
-        decisionMode: decision.mode,
-        channel: input.channel,
-        fingerprint: decision.fingerprint,
-      } as Prisma.InputJsonValue,
-      status: OUTBOX_STATUSES.PENDING,
-      attempts: 0,
-      max_attempts: 6,
-      next_retry_at: new Date(),
-    },
+  await emitEventTx(input.tx, input.tenantId, GATE_DECISION_OUTBOX_EVENT_TYPE, 'workflow_gate_decision', decisionId, {
+    orderId: input.orderId,
+    actionCode: input.actionCode,
+    screen: input.screen,
+    gateCode: decision.gateCode,
+    decisionMode: decision.mode,
+    channel: input.channel,
+    fingerprint: decision.fingerprint,
   });
 }

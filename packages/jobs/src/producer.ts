@@ -26,9 +26,11 @@ export interface JobProducer {
   /**
    * Fans a domain event out to every enabled subscription queue (`pgboss.subscription`), inside `tx`.
    * Each job's id is the event id, so publishing the same event twice adds nothing.
+   * `redeliver: true` uses new job ids instead, to run the reactions again (operator retry); a reaction
+   * that already applied finds its effect row and does nothing.
    * No subscribers: no jobs, no error.
    */
-  publish(tx: PrismaTransactionLike, eventCode: string, data: DomainEventJob): Promise<void>;
+  publish(tx: PrismaTransactionLike, eventCode: string, data: DomainEventJob, options?: { redeliver?: boolean }): Promise<void>;
   /** Releases the instance (tests, graceful shutdown). */
   stop(): Promise<void>;
 }
@@ -70,10 +72,10 @@ export function createJobProducer(client: PrismaTransactionLike): JobProducer {
       const payload = QUEUE_PAYLOADS[name].parse(data);
       return (await boss()).send(name, payload, { ...options, db: fromPrisma(tx) });
     },
-    async publish(tx, eventCode, data) {
+    async publish(tx, eventCode, data, options = {}) {
       const code = EVENT_CODE.parse(eventCode);
       const payload = DOMAIN_EVENT_JOB.parse(data);
-      await (await boss()).publish(code, payload, { id: payload.eventId, db: fromPrisma(tx) });
+      await (await boss()).publish(code, payload, { ...(options.redeliver ? {} : { id: payload.eventId }), db: fromPrisma(tx) });
     },
     async stop() {
       if (!started) return;

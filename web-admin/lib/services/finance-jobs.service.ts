@@ -5,7 +5,6 @@ import { logger } from '@/lib/utils/logger';
 import { expireGiftCard } from './gift-card-service';
 import { expireCreditNotes } from './stored-value.service';
 import { expireLoyaltyPoints } from './loyalty.service';
-import { processOutboxBatch } from './outbox-processor.service';
 import { ErpLitePostingEngineService } from './erp-lite-posting-engine.service';
 import { runPosSessionRolloverSweep } from './pos-session-rollover.service';
 
@@ -24,7 +23,6 @@ import { runPosSessionRolloverSweep } from './pos-session-rollover.service';
  */
 
 export const FINANCE_JOB_CODES = {
-  OUTBOX_PROCESSOR: 'outbox_processor',
   GIFT_CARD_EXPIRY: 'gift_card_expiry',
   CREDIT_NOTE_EXPIRY: 'credit_note_expiry',
   LOYALTY_POINTS_EXPIRY: 'loyalty_points_expiry',
@@ -39,7 +37,6 @@ export const FINANCE_JOB_CODE_VALUES: readonly FinanceJobCode[] = Object.values(
 /** Minutes after which a stuck RUNNING row is released so a new run can start. */
 const STALE_RUNNING_MS = 15 * 60 * 1000;
 /** Idle every-minute processor SUCCESS ticks older than this are pruned. */
-const OUTBOX_IDLE_RETENTION = '36 hours';
 
 export interface FinanceJobCatalogEntry {
   jobCode: FinanceJobCode;
@@ -49,12 +46,6 @@ export interface FinanceJobCatalogEntry {
 }
 
 export const FINANCE_JOB_CATALOG: readonly FinanceJobCatalogEntry[] = [
-  {
-    jobCode: FINANCE_JOB_CODES.OUTBOX_PROCESSOR,
-    cronName: 'fin-outbox-processor',
-    cronExpr: '* * * * *',
-    relatedHref: '/dashboard/internal_fin/outbox#outbox-events',
-  },
   {
     jobCode: FINANCE_JOB_CODES.GIFT_CARD_EXPIRY,
     cronName: 'fin-gift-card-expiry',
@@ -140,14 +131,6 @@ export function nextCronOccurrence(cronExpr: string, from: Date = new Date()): D
     }
   }
   return null;
-}
-
-async function runOutboxProcessor(): Promise<FinanceJobOutcome> {
-  const result = await processOutboxBatch();
-  return {
-    processedCount: result.processed + result.skipped,
-    failedCount: result.failed + result.deadLettered,
-  };
 }
 
 /** One scheduled pass. The due function does not change a card. */
@@ -292,7 +275,6 @@ async function runPosSessionRollover(): Promise<FinanceJobOutcome> {
 }
 
 const JOB_RUNNERS: Record<FinanceJobCode, () => Promise<FinanceJobOutcome>> = {
-  [FINANCE_JOB_CODES.OUTBOX_PROCESSOR]: runOutboxProcessor,
   [FINANCE_JOB_CODES.GIFT_CARD_EXPIRY]: runGiftCardExpiry,
   [FINANCE_JOB_CODES.CREDIT_NOTE_EXPIRY]: runCreditNoteExpiry,
   [FINANCE_JOB_CODES.LOYALTY_POINTS_EXPIRY]: runLoyaltyPointsExpiry,
@@ -357,29 +339,6 @@ function overlapResult(
   };
 }
 
-async function pruneIdleOutboxProcessorRuns(keepId: string): Promise<void> {
-  try {
-    await prisma.$executeRaw`
-      DELETE FROM public.sys_fin_job_run_log
-      WHERE job_code = 'outbox_processor'
-        AND status = 'SUCCESS'
-        AND trigger_source = 'SCHEDULE'
-        AND COALESCE(processed_count, 0) = 0
-        AND COALESCE(failed_count, 0) = 0
-        AND started_at < NOW() - INTERVAL '36 hours'
-        AND id <> ${keepId}::uuid
-    `;
-  } catch (err) {
-    logger.warn('Idle outbox processor run-log prune failed', {
-      feature: 'finance-jobs',
-      action: 'prune-idle',
-      error: err instanceof Error ? err.message : String(err),
-      keepId,
-      retention: OUTBOX_IDLE_RETENTION,
-    });
-  }
-}
-
 /**
  * Run one finance job, wrapped by a `sys_fin_job_run_log` row.
  * The row is created RUNNING before the body executes and always finalized
@@ -426,9 +385,6 @@ export async function runFinanceJob(params: RunJobParams): Promise<RunJobResult>
         finished_at: new Date(),
       },
     });
-    if (jobCode === FINANCE_JOB_CODES.OUTBOX_PROCESSOR) {
-      await pruneIdleOutboxProcessorRuns(run.id);
-    }
     return { runId: run.id, status: 'SUCCESS', ...outcome };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'JOB_FAILED';
@@ -465,7 +421,8 @@ export interface FinanceJobListItem {
   cronActive: boolean | null;
   nextRunAt: string | null;
   relatedHref: string | null;
-  secretConfigured: boolean | null;
+  /** FINANCE_OUTBOX_SECRET is set: the scheduled job routes can authenticate their caller. */
+  secretConfigured: boolean;
   isRunning: boolean;
   lastRun: FinanceJobRunView | null;
 }
@@ -556,7 +513,7 @@ export async function listFinanceJobs(): Promise<FinanceJobListItem[]> {
       cronActive: cronKnown ? (cronByCode.get(entry.jobCode) ?? false) : null,
       nextRunAt: next?.toISOString() ?? null,
       relatedHref: entry.relatedHref,
-      secretConfigured: entry.jobCode === FINANCE_JOB_CODES.OUTBOX_PROCESSOR ? secretConfigured : null,
+      secretConfigured,
       isRunning: lastRun?.status === 'RUNNING',
       lastRun,
     });
@@ -566,39 +523,12 @@ export async function listFinanceJobs(): Promise<FinanceJobListItem[]> {
 
 const RUN_HISTORY_MAX = 50;
 
-/**
- * Recent run history for one job. The every-minute outbox processor only
- * returns productive / failed / manual ticks plus the latest heartbeat so
- * the dialog is not 50 idle SUCCESS rows.
- */
+/** Recent run history for one job, newest first. */
 export async function listFinanceJobRuns(
   jobCode: FinanceJobCode,
   limit = 30,
 ): Promise<FinanceJobRunView[]> {
   const take = Math.min(Math.max(limit, 1), RUN_HISTORY_MAX);
-
-  if (jobCode === FINANCE_JOB_CODES.OUTBOX_PROCESSOR) {
-    const latest = await prisma.sys_fin_job_run_log.findFirst({
-      where: { job_code: jobCode },
-      orderBy: { started_at: 'desc' },
-      select: { id: true },
-    });
-    const rows = await prisma.sys_fin_job_run_log.findMany({
-      where: {
-        job_code: jobCode,
-        OR: [
-          { trigger_source: 'MANUAL' },
-          { status: { in: ['FAILED', 'RUNNING'] } },
-          { processed_count: { gt: 0 } },
-          { failed_count: { gt: 0 } },
-          ...(latest ? [{ id: latest.id }] : []),
-        ],
-      },
-      orderBy: { started_at: 'desc' },
-      take,
-    });
-    return rows.map(toRunView);
-  }
 
   const rows = await prisma.sys_fin_job_run_log.findMany({
     where: { job_code: jobCode },

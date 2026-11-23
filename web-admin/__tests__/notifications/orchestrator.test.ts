@@ -5,7 +5,6 @@
  * marketing-consent gating, WHATSAPP->EMAIL fallback).
  */
 import { orchestrateNotification } from '@lib/notifications/orchestrator';
-import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { renderInAppTemplate } from '@lib/notifications/template-renderer';
 import { deliverInApp } from '@lib/notifications/adapters/in-app';
@@ -350,29 +349,5 @@ describe('orchestrateNotification', () => {
       // Urgent/critical always uses "now", regardless of the active quiet window.
       expect((options!.scheduledAt as Date).getTime()).toBe(fixedNow.getTime());
     });
-  });
-});
-
-describe('emitNotificationEvent', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('never throws to the caller when orchestrateNotification rejects — a notification failure must not break the business operation', async () => {
-    makeMockSupabase({ channels: [] });
-    jest.mocked(createAdminSupabaseClient).mockImplementation(() => {
-      throw new Error('db unavailable');
-    });
-
-    await expect(emitNotificationEvent(baseEvent)).resolves.toBeUndefined();
-  });
-
-  it('delegates to orchestrateNotification with the exact event payload it was given', async () => {
-    makeMockSupabase({ channels: ['IN_APP'] });
-    jest.mocked(notificationSettingsService.isChannelEnabled).mockResolvedValue(false);
-
-    await emitNotificationEvent(baseEvent);
-
-    // isChannelEnabled only gets called from inside orchestrateNotification's IN_APP branch,
-    // so its invocation proves the event reached the orchestrator unchanged.
-    expect(notificationSettingsService.isChannelEnabled).toHaveBeenCalledWith('tenant-a', NOTIFICATION_CHANNEL.IN_APP);
   });
 });

@@ -1,0 +1,30 @@
+{
+  "name": "cmx-workers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CleanMateX background worker: the one container that consumes tenant-code pg-boss queues (docs/features/Background_Jobs).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "npm run prisma:generate --workspace=web-admin && node build.mjs",
+    "start": "node --enable-source-maps dist/main.js",
+    "dev": "node build.mjs && node --enable-source-maps dist/main.js",
+    "smoke": "tsx src/tools/send-smoke.ts",
+    "test": "node build.mjs --test && node --enable-source-maps --test --test-concurrency=1 \"dist-test/*.test.js\"",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "publish-events": "tsx src/tools/publish-events.ts"
+  },
+  "dependencies": {
+    "@cmx/jobs": "*",
+    "@prisma/client": "^6.17.1",
+    "@sentry/node": "^10.32.1",
+    "pg-boss": "12.39.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "esbuild": "^0.27.4"
+  }
+}

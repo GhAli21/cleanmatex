@@ -14,7 +14,8 @@
  *   7. Idempotency: upsert uses the (tenant_org_id, outbox_event_id) composite
  *      key, replays return WRITTEN without creating duplicates.
  *   8. Multi-tenant: tenant id forwarded into every Prisma where clause.
- *   9. consumeOrderHistoryBatch returns outcomes 1:1 with events.
+ *   9. A deleted order completes as SKIPPED_ORPHAN without an insert.
+ *  10. Every query runs on the client passed in (the reaction transaction).
  */
 
 const mockHistoryCreate = jest.fn();
@@ -43,7 +44,7 @@ jest.mock('@/lib/db/tenant-context', () => ({
 
 import {
   consumeOrderHistoryEvent,
-  consumeOrderHistoryBatch,
+  type HistoryDb,
   type OutboxEventForHistory,
 } from '@/lib/services/order-history-consumer.service';
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
@@ -74,11 +75,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockHistoryCreate.mockResolvedValue({ id: 'hist-1' });
   mockHistoryFindFirst.mockResolvedValue(null);
+  mockOrderFindFirst.mockResolvedValue({ id: ORDER_ID });
 });
 
 describe('consumeOrderHistoryEvent', () => {
-  it('completes as SKIPPED_ORPHAN when the order was deleted (FK violation, order gone)', async () => {
-    mockHistoryCreate.mockRejectedValue(Object.assign(new Error('fk_history_order'), { code: 'P2003' }));
+  it('completes as SKIPPED_ORPHAN without inserting when the order was deleted', async () => {
     mockOrderFindFirst.mockResolvedValue(null);
 
     const outcome = await consumeOrderHistoryEvent(baseEvent({}));
@@ -88,14 +89,22 @@ describe('consumeOrderHistoryEvent', () => {
       where: { id: ORDER_ID, tenant_org_id: TENANT_A },
       select: { id: true },
     });
+    expect(mockHistoryCreate).not.toHaveBeenCalled();
   });
 
-  it('rethrows an FK violation when the order still exists, so the event retries', async () => {
-    const fk = Object.assign(new Error('fk_history_other'), { code: 'P2003' });
-    mockHistoryCreate.mockRejectedValue(fk);
-    mockOrderFindFirst.mockResolvedValue({ id: ORDER_ID });
+  it('runs every query on the client it is given (the reaction transaction)', async () => {
+    const txCreate = jest.fn().mockResolvedValue({ id: 'hist-tx' });
+    const tx = {
+      org_order_history: { findFirst: jest.fn().mockResolvedValue(null), create: txCreate },
+      org_orders_mst: { findFirst: jest.fn().mockResolvedValue({ id: ORDER_ID }) },
+    } as unknown as HistoryDb;
 
-    await expect(consumeOrderHistoryEvent(baseEvent({}))).rejects.toBe(fk);
+    const outcome = await consumeOrderHistoryEvent(baseEvent({}), tx);
+
+    expect(outcome).toEqual({ status: 'WRITTEN', historyId: 'hist-tx' });
+    expect(txCreate).toHaveBeenCalledTimes(1);
+    expect(mockHistoryCreate).not.toHaveBeenCalled();
+    expect(mockHistoryFindFirst).not.toHaveBeenCalled();
   });
 
   it('writes ORDER_SUBMITTED directly using aggregate_id as order_id', async () => {
@@ -323,16 +332,7 @@ describe('consumeOrderHistoryEvent', () => {
     });
   });
 
-  it('treats a lost insert race (partial unique index, P2002) as the the winning row, not a failure', async () => {
-    mockHistoryFindFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'hist-winner' });
-    mockHistoryCreate.mockRejectedValueOnce(Object.assign(new Error('unique violation'), { code: 'P2002' }));
-    const outcome = await consumeOrderHistoryEvent(
-      baseEvent({ event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED, payload: { paymentStatus: 'PAID' } }),
-    );
-    expect(outcome).toEqual({ status: 'WRITTEN', historyId: 'hist-winner' });
-  });
-
-  it('rethrows any other insert failure so the worker marks the event failed', async () => {
+  it('rethrows an insert failure so the reaction job retries', async () => {
     const failure = new Error('connection reset');
     mockHistoryCreate.mockRejectedValueOnce(failure);
     await expect(
@@ -363,28 +363,5 @@ describe('consumeOrderHistoryEvent', () => {
         data: expect.objectContaining({ tenant_org_id: TENANT_B }),
       }),
     );
-  });
-});
-
-describe('consumeOrderHistoryBatch', () => {
-  it('returns outcomes 1:1 with events, preserving order', async () => {
-    mockInvoiceFindFirst.mockResolvedValue({ id: INVOICE_ID, order_id: ORDER_ID, invoice_no: 'ARI-9' });
-    const events: OutboxEventForHistory[] = [
-      baseEvent({ id: 'e-1', event_type: OUTBOX_EVENT_TYPES.ORDER_SUBMITTED }),
-      baseEvent({ id: 'e-2', event_type: 'PAYMENT_RECEIVED' }),
-      baseEvent({
-        id: 'e-3',
-        event_type: OUTBOX_EVENT_TYPES.AR_INVOICE_ISSUED,
-        aggregate_type: 'ar_invoice',
-        aggregate_id: INVOICE_ID,
-      }),
-    ];
-
-    const outcomes = await consumeOrderHistoryBatch(events);
-
-    expect(outcomes).toHaveLength(3);
-    expect(outcomes[0].status).toBe('WRITTEN');
-    expect(outcomes[1].status).toBe('SKIPPED_UNSUPPORTED_EVENT');
-    expect(outcomes[2].status).toBe('WRITTEN');
   });
 });

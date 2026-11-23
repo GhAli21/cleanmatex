@@ -83,7 +83,8 @@ async function insertOutboxRow(
       ...logContext,
       feature: 'notifications',
     });
-    return null;
+    // Throw so the ntf.orchestrate job retries; a duplicate key above is the only expected skip.
+    throw new Error(`NTF_OUTBOX_INSERT_FAILED: ${error.message}`);
   }
   return data?.id ?? null;
 }

@@ -1,10 +1,13 @@
 /**
  * Persists one applied Change inside the caller's transaction.
  * Pricing, tax, settlement, and workflow transitions stay with their owners.
- * This module does not import the global Prisma client.
+ * Every query runs on the caller's transaction; this module does not import the global Prisma client.
+ * The ORDER_CHANGE_APPLIED event is published to its reactions on that same transaction.
  */
 
 import { randomUUID } from 'crypto';
+
+import { jobs } from '@/lib/jobs/producer';
 
 import { OUTBOX_EVENT_TYPES, OUTBOX_STATUSES, SETTLEMENT_TYPE_CODES } from '@/lib/constants/order-financial';
 import {
@@ -189,8 +192,10 @@ export interface OrderChangeWriteTx extends IdempotencyWriteTx {
   org_order_item_pieces_dtl: RowDelegate;
   org_order_preferences_dtl: RowDelegate;
   org_domain_events_outbox: {
-    create(args: { data: Record<string, unknown> }): Promise<unknown>;
+    create(args: { data: Record<string, unknown>; select: { id: true } }): Promise<{ id: string }>;
   };
+  /** Used by the job producer to publish the event inside this transaction. */
+  $queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>;
 }
 
 interface RowDelegate {
@@ -487,7 +492,8 @@ export async function persistOrderChangeTx(
     });
   }
 
-  await tx.org_domain_events_outbox.create({
+  // Same row and publish as emitEventTx, written through this module's narrow transaction type.
+  const event = await tx.org_domain_events_outbox.create({
     data: {
       tenant_org_id: input.tenantId,
       event_type: OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED,
@@ -495,11 +501,10 @@ export async function persistOrderChangeTx(
       aggregate_id: orderChangeId,
       payload: { orderId: input.orderId, changeNo, requestHash },
       status: OUTBOX_STATUSES.PENDING,
-      attempts: 0,
-      max_attempts: 6,
-      next_retry_at: input.appliedAt,
     },
+    select: { id: true },
   });
+  await jobs.publish(tx, OUTBOX_EVENT_TYPES.ORDER_CHANGE_APPLIED, { tenantOrgId: input.tenantId, eventId: event.id });
   await completeIdempotencyKeyTx(
     tx,
     input.tenantId,

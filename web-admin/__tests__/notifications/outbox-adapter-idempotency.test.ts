@@ -89,8 +89,8 @@ describe('enqueueOutbox idempotency (row 1: same business occurrence processed t
     await expect(enqueueOutbox(event, NOTIFICATION_CHANNEL.EMAIL)).resolves.toBeUndefined();
   });
 
-  it('a non-duplicate insert error is also swallowed (logged, not thrown) rather than breaking the caller', async () => {
+  it('a non-duplicate insert error is thrown, so the ntf.orchestrate job retries instead of losing the message', async () => {
     mockInsertOnce(async () => ({ data: null, error: { code: '42501', message: 'permission denied' } }));
-    await expect(enqueueOutbox(event, NOTIFICATION_CHANNEL.EMAIL)).resolves.toBeUndefined();
+    await expect(enqueueOutbox(event, NOTIFICATION_CHANNEL.EMAIL)).rejects.toThrow('NTF_OUTBOX_INSERT_FAILED: permission denied');
   });
 });
