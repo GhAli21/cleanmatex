@@ -28,7 +28,7 @@ import { useLoginBrand } from '@features/auth/ui/login-brand'
 import type { TenantChoiceResult } from '@/types/auth'
 
 interface LoginFormValues {
-  /** User code or email. */
+  /** User code or email address. */
   identifier: string
   password: string
   rememberMe: boolean
