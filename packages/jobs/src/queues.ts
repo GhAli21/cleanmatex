@@ -54,6 +54,8 @@ export const QUEUE_PAYLOADS = {
   'fin.gift_card_expiry.item': z.strictObject({ tenantOrgId: zId, giftCardId: zId }),
   /** One loyalty account with points past the program's expiry days. Job id = account + UTC day. */
   'fin.loyalty_expiry.item': z.strictObject({ tenantOrgId: zId, accountId: zId }),
+  /** One POS rollover sweep over every live session (step 6b, migration 0824). The 15-minute schedule sends `{}`. */
+  'fin.pos_rollover.sweep': z.strictObject({}),
 } as const;
 
 export type QueueName = keyof typeof QUEUE_PAYLOADS;
