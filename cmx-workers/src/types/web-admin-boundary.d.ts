@@ -94,3 +94,8 @@ declare module '@/lib/services/finance-expiry-jobs.service' {
   export function runGiftCardExpiryItem(tenantOrgId: string, giftCardId: string): Promise<ExpiryItemOutcome>;
   export function runLoyaltyExpiryItem(tenantOrgId: string, accountId: string): Promise<ExpiryItemOutcome>;
 }
+
+declare module '@/lib/services/pos-session-rollover.service' {
+  export interface PosSessionRolloverOutcome { processedCount: number; failedCount: number }
+  export function runPosSessionRolloverSweep(options?: { now?: Date; tenantId?: string; sessionIds?: readonly string[] }): Promise<PosSessionRolloverOutcome>;
+}
