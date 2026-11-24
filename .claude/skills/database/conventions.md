@@ -1,5 +1,7 @@
 # Database Conventions - Full Reference
 
+Instants, including `created_at` and `updated_at`, are `timestamptz`. A business date is a `date` written once with the location zone, else the organization zone, and that IANA name is stored with it. Local times of day stay `time`. Full rule: `docs/dev/rules/time-and-timezone.md`.
+
 ## Naming Patterns
 
 ### Prefix Rules (Apply to ALL Database Objects)

@@ -57,15 +57,19 @@ See [feature-abbreviations.md](./feature-abbreviations.md) for complete feature 
 
 **For existing database objects**, take the exact name from the live database (Supabase remote MCP, read-only) or `web-admin/prisma/schema.prisma`. Never take a name from memory or an old list; the old grandfathered registry is archived in `docs/_archive/2026-11/grandfathered-objects/`.
 
+## Time and timezone
+
+Instants, civil dates, local times of day, schedules, logs, and audit timestamps follow `docs/dev/rules/time-and-timezone.md`. New instant columns, including `created_at` and `updated_at`, are `timestamptz`. A business date is a `date` written once with the location zone (else the organization zone) and that IANA name. Do not compare `timestamp without time zone` to `now()`, and do not use `utc_offset_hours` to convert.
+
 ## Required Audit Fields
 
 Include in EVERY table:
 
 ```sql
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 created_by TEXT,
 created_info TEXT,
-updated_at TIMESTAMP,
+updated_at TIMESTAMPTZ,
 updated_by TEXT,
 updated_info TEXT,
 rec_status SMALLINT DEFAULT 1,
@@ -307,10 +311,10 @@ CREATE TABLE org_example_mst (
   description2 TEXT,             -- Arabic description
 
   -- Audit fields
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by TEXT,
   created_info TEXT,
-  updated_at TIMESTAMP,
+  updated_at TIMESTAMPTZ,
   updated_by TEXT,
   updated_info TEXT,
   rec_status SMALLINT DEFAULT 1,

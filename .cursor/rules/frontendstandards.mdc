@@ -10,6 +10,7 @@ This document defines the **frontend standards** for CleanMateX and is fully ali
 - Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md
 - **Pagination Always should be Server-Side Pagination (API-Driven)**
 - For editable money fields, apply `docs/dev/rules/no-silent-money-mutation.md`
+- For dates and times, apply `docs/dev/rules/time-and-timezone.md`. Format an operational date only with the branch zone, else the organization zone, after that zone is known.
 
 Authoritative folder structure:
 

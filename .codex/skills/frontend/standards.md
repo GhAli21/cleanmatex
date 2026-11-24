@@ -264,7 +264,7 @@ Never physical classes (`ml-`, `mr-`, `pl-`, `pr-`, `left-`, `right-`, `text-lef
 
 ## 10. Styling rules
 
-The full rules, with the token table and the fixes, are `docs/dev/rules/cmx-design-system.md`. No `dark:` classes: dark mode follows `<html data-mode>`, and the tokens switch by themselves.
+The full rules, with the token table and the fixes, are `docs/dev/rules/cmx-design-system.md`. No `dark:` classes: dark mode follows `<html data-mode>`, and the tokens switch by themselves. Dates and times follow `docs/dev/rules/time-and-timezone.md`.
 
 Do:
 

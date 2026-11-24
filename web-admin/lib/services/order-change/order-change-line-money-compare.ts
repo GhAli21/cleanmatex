@@ -24,6 +24,26 @@ export function sameOptionalMoney(left: string | null, right: string | null): bo
   return Number(left) === Number(right);
 }
 
+/** A line's measure as both sides carry it (decimal text; blank or absent means not entered). */
+export interface LineMeasureLike {
+  measuredQty?: string | null;
+  length?: string | null;
+  width?: string | null;
+}
+
+/**
+ * True when two measures are the same numbers (`3.2` and `3.200000` agree; absent and blank agree).
+ * A count line has no measure, so two absent measures are the same.
+ * @param left a measure or nothing
+ * @param right a measure or nothing
+ * @returns whether they are equal
+ * @example sameMeasure({ measuredQty: '3.2' }, { measuredQty: '3.200000' }); // true
+ */
+export function sameMeasure(left: LineMeasureLike | null | undefined, right: LineMeasureLike | null | undefined): boolean {
+  const n = (value: string | null | undefined) => (value == null || value === '' ? null : Number(value));
+  return n(left?.measuredQty) === n(right?.measuredQty) && n(left?.length) === n(right?.length) && n(left?.width) === n(right?.width);
+}
+
 /**
  * True when two line discounts are the same entry (type, value and reason).
  * @param left a discount or null

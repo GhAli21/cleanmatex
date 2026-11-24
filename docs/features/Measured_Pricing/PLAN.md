@@ -412,8 +412,8 @@ Every phase ends with: STATUS.md + PLAN progress, QA_TEST_GUIDE.md, RESUME_CONTI
 | P1 | both | Precision rule doc + pointers in both repos. **Migration A**: `sys_uom_cd` + seed, `org_uom_cf`, `sys_uom_conv_cd` + seed, `org_uom_conv_cf`, save fns, `fn_uom_seed_tenant` + HQ sync triggers + backfill all tenants, locked-field trigger, `fn_uom_convert`, `fn_uom_assert_qty_scale`, product/template/item/price-list/stock columns + composite FKs + backfill, permissions, nav component. **STOP for owner apply**, then `/pull-prisma`. | owner applied |
 | P2 | tenant | `lib/uom/*`, constants/types/Zod, calculator changes + unit tests. | jest green |
 | P3 | tenant | UoM services + routes; order schema/loader/checkout; tax/e-invoice unit; inventory + catalog services; public APIs. | jest + DB integration |
-| P4 | tenant | `CmxUomSelect`, `CmxQuantityMeasureInput` (+stories); Units & Conversions page; product form + Units tab; inventory modals; Measure dialog + cart; access contract, nav. **Progress 2026-11-24:** all done except inventory modals, design review, keypad in the dialog (see STATUS). | build, eslint, check:i18n, check:ui, check:ui-access-contract, design review |
-| P5 | tenant | Order Edit `CHANGE_ITEM_MEASURE`. | jest order-change + build |
+| P4 | tenant | `CmxUomSelect`, `CmxQuantityMeasureInput` (+stories); Units & Conversions page; product form + Units tab; inventory modals; Measure dialog + cart; access contract, nav. **Progress 2026-11-24:** all done except keypad in the dialog (adjust-stock decimals + `product_unit` sync done; inventory add/edit modals on `CmxUomSelect` 2026-11-24; design review and services table fix done by owner). | build, eslint, check:i18n, check:ui, check:ui-access-contract, design review |
+| P5 | tenant | Order Edit `CHANGE_ITEM_MEASURE`. **Progress 2026-11-24:** code done (see STATUS); ITEM only, like the line price (owner decision); the PIECE catalog pair from 0821 is unused. | jest order-change + build |
 | P6 | tenant | Display: items list, detail, prints, Order Fin View, public tracking (allowlist test). | tests + build |
 | P7 | HQ | `uom-config` module + screens; Products & Items Config registry, bulk, tenant-products, comparison; setup-health checks. | HQ jest + build |
 | P8 | mobile | Customer app model, booking, detail, tracking, l10n. | flutter analyze + tests |
@@ -432,3 +432,5 @@ Every phase ends with: STATUS.md + PLAN progress, QA_TEST_GUIDE.md, RESUME_CONTI
 
 ## Progress note (2026-11-24)
 Owner approved v5. P1 and P2 are done and applied; P3 is mostly done. Details, decisions and open questions: [STATUS.md](STATUS.md) → Session handoff.
+
+**P5 progress 2026-11-24:** migration `0821_oc_change_item_measure.sql` written (awaiting owner apply). Code design in RESUME_CONTINUATION (section P5).

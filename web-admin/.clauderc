@@ -42,6 +42,7 @@ styling:
     - "p-4 md:p-6 lg:p-8"
     - "text-start ms-2 pe-4 (logical classes only; never text-left/ml-/pr-)"
   design_system_rules: "docs/dev/rules/cmx-design-system.md (check: npm run check:ui; review: /cmx-ui-design-review)"
+  time_rules: "docs/dev/rules/time-and-timezone.md (instants UTC; operational display uses the branch zone, else the organization zone)"
 
 # i18n (Internationalization)
 i18n:

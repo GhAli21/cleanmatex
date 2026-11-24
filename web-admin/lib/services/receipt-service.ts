@@ -16,6 +16,15 @@ import { buildAbsolutePublicTrackingUrl } from '@/lib/utils/public-order-trackin
 import { logger } from '@/lib/utils/logger';
 import { AppError } from '@/lib/errors/base-errors';
 import { catalogReadClient } from '@/lib/supabase/catalog-read'
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
+import { renderChannelTemplate } from '@/lib/notifications/template-renderer';
+import { IMMEDIATE_SEND_PRIORITY, queueImmediateSendTx } from '@/lib/notifications/immediate-send.service';
+
+/** Notification event of a sent receipt (sys_ntf_events_cd, 0820). */
+const RECEIPT_EVENT_CODE = 'order.receipt_sent';
+/** A second send of the same order and channel within this window returns the first one (double click). */
+const RECEIPT_DEDUPE_MS = 30_000;
 
 export class ReceiptGenerationError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
@@ -65,7 +74,18 @@ export interface GenerateReceiptResult {
   contentText?: string;
   contentHtml?: string;
   qrCode?: string;
+  /** What the receipt message needs: template variables and the customer's addresses. */
+  notify?: ReceiptNotifyData;
   error?: string;
+}
+
+export interface ReceiptNotifyData {
+  orderNumber: string;
+  customerName: string;
+  totalAmount: string;
+  trackingUrl: string;
+  phone: string | null;
+  email: string | null;
 }
 
 export interface SendReceiptParams {
@@ -76,9 +96,18 @@ export interface SendReceiptParams {
   language?: string;
 }
 
+export interface ReceiptChannelSend {
+  channel: string;
+  /** Outbox row of the message (email / WhatsApp); follow it with GET /api/v1/notifications/outbox/[id]/status. */
+  outboxId?: string;
+  /** Why nothing was queued, e.g. NO_RECIPIENT_ADDRESS. */
+  error?: string;
+}
+
 export interface SendReceiptResult {
   success: boolean;
   receiptIds?: string[];
+  sends?: ReceiptChannelSend[];
   error?: string;
 }
 
@@ -240,12 +269,24 @@ export class ReceiptService {
         receiptId: receipt.id,
       });
 
+      const customer = (order.customer ?? {}) as { customer_name?: string | null; customer_name2?: string | null; phone?: string | null; email?: string | null };
       return {
         success: true,
         receiptId: receipt.id,
         contentText,
         contentHtml,
         qrCode,
+        notify: {
+          orderNumber: order.order_no || '',
+          customerName: (language === 'ar' ? customer.customer_name2 || customer.customer_name : customer.customer_name) || '',
+          // The order snapshot total, in the order's own currency (order-fin-rules §1).
+          totalAmount: formatMoneyAmountWithCode(Number(order.total_amount ?? 0), {
+            currencyCode: order.currency_code ?? currencyCode, decimalPlaces, locale: language === 'ar' ? 'ar' : 'en',
+          }),
+          trackingUrl: publicTrackingUrl,
+          phone: customer.phone || null,
+          email: customer.email || null,
+        },
       };
     } catch (error) {
       logger.error('Failed to generate receipt', error as Error, {
@@ -297,48 +338,33 @@ export class ReceiptService {
         );
       }
 
-      const receiptIds: string[] = [];
-
-      // Send via each channel
+      const receiptId = generateResult.receiptId;
+      const sends: ReceiptChannelSend[] = [];
       for (const channel of deliveryChannels) {
+        if (channel === 'app') {
+          // In-app receipts are already available
+          await this.updateReceiptStatus(receiptId, tenantId, 'delivered');
+          sends.push({ channel });
+          continue;
+        }
+        if (channel !== 'whatsapp' && channel !== 'email') {
+          sends.push({ channel, error: 'UNSUPPORTED_CHANNEL' });
+          continue;
+        }
         try {
-          if (channel === 'whatsapp') {
-            await this.sendViaWhatsApp(
-              generateResult.receiptId,
-              tenantId,
-              generateResult.contentText || '',
-              generateResult.qrCode
-            );
-          } else if (channel === 'email') {
-            await this.sendViaEmail(
-              generateResult.receiptId,
-              tenantId,
-              generateResult.contentHtml || '',
-              generateResult.qrCode
-            );
-          } else if (channel === 'app') {
-            // In-app receipts are already available
-            await this.updateReceiptStatus(
-              generateResult.receiptId,
-              tenantId,
-              'delivered'
-            );
-          }
-
-          receiptIds.push(generateResult.receiptId);
+          const outboxId = await this.queueReceiptMessage(tenantId, orderId, receiptId, channel, language, generateResult);
+          sends.push(outboxId ? { channel, outboxId } : { channel, error: 'NO_RECIPIENT_ADDRESS' });
         } catch (channelError) {
-          logger.error(`Failed to send via ${channel}`, channelError as Error, {
-            tenantId,
-            orderId,
-            channel,
-          });
-          // Continue with other channels
+          logger.error(`Failed to queue receipt via ${channel}`, channelError as Error, { tenantId, orderId, channel });
+          sends.push({ channel, error: 'QUEUE_FAILED' });
         }
       }
+      if (sends.some((x) => x.outboxId)) await this.updateReceiptStatus(receiptId, tenantId, 'queued');
 
       return {
         success: true,
-        receiptIds,
+        receiptIds: [receiptId],
+        sends,
       };
     } catch (error) {
       logger.error('Failed to send receipt', error as Error, {
@@ -421,7 +447,7 @@ export class ReceiptService {
           ? customer.customer_name2 || customer.customer_name || ''
           : customer.customer_name || '',
       '{{orderDate}}': new Date(order.created_at).toLocaleDateString(),
-      '{{total}}': order.total?.toString() || '0',
+      '{{total}}': order.total_amount?.toString() ?? '0',
       '{{items}}': this.formatItemsList(items, language, opts),
       '{{preferences_summary}}': preferencesSummary,
       '{{service_pref_charge}}': formatMoneyAmountWithCode(servicePrefCharge, {
@@ -590,7 +616,7 @@ export class ReceiptService {
         </div>
         ` : ''}
         <div class="total">
-          <p>${isRTL ? 'المجموع' : 'Total'}: ${order.total}</p>
+          <p>${isRTL ? 'المجموع' : 'Total'}: ${order.total_amount}</p>
         </div>
       </body>
       </html>
@@ -609,163 +635,64 @@ export class ReceiptService {
   }
 
   /**
-   * Send receipt via WhatsApp
+   * Queues one receipt message (email or WhatsApp) through the notification outbox; HQ API sends it.
+   * The outbox source is the order, so WhatsApp uses the order customer's opt-in and an HQ route of
+   * order.receipt_sent (approved template; text only, no QR image). Returns null when the customer
+   * has no address for the channel.
    */
-  private static async sendViaWhatsApp(
-    receiptId: string,
+  private static async queueReceiptMessage(
     tenantId: string,
-    content: string,
-    qrCode?: string
-  ): Promise<void> {
-    try {
-      const { createWhatsAppClient } = await import('@/lib/integrations/whatsapp-client');
-      const { createClient } = await import('@/lib/supabase/server');
-      
-      const supabase = await createClient();
-      
-      // Get receipt with order and customer
-      const { data: receipt, error: receiptError } = await supabase
-        .from('org_rcpt_receipts_mst')
-        .select(
-          `
-          *,
-          order:org_orders_mst(
-            customer:org_customers_mst(phone)
-          )
-        `
-        )
-        .eq('id', receiptId)
-        .eq('tenant_org_id', tenantId)
-        .single();
-
-      if (receiptError || !receipt) {
-        throw new Error('Receipt not found');
-      }
-
-      const phoneNumber = (receipt.order as any)?.customer?.phone;
-      if (!phoneNumber) {
-        throw new WhatsAppDeliveryError('Customer phone number not found', {
-          tenantId,
-          receiptId,
-        });
-      }
-
-      const client = createWhatsAppClient(tenantId);
-      if (!client) {
-        throw new WhatsAppDeliveryError('WhatsApp client not configured', {
-          tenantId,
-        });
-      }
-
-      // Send text message with receipt content
-      if (qrCode) {
-        // Send image if QR code available
-        await client.sendWithRetry(() =>
-          client.sendImageMessage({
-            to: phoneNumber,
-            imageUrl: qrCode,
-            caption: content,
-            tenantId,
-          })
-        );
-      } else {
-        // Send text only
-        await client.sendWithRetry(() =>
-          client.sendTextMessage({
-            to: phoneNumber,
-            message: content,
-            tenantId,
-          })
-        );
-      }
-
-      // Update receipt status
-      await this.updateReceiptStatus(receiptId, tenantId, 'sent');
-
-      logger.info('Receipt sent via WhatsApp successfully', {
-        tenantId,
-        receiptId,
-        phoneNumber: client['maskPhoneNumber'](phoneNumber),
-      });
-    } catch (error) {
-      logger.error('Failed to send receipt via WhatsApp', error as Error, {
-        tenantId,
-        receiptId,
-      });
-      
-      // Update receipt status to failed
-      await this.updateReceiptStatus(receiptId, tenantId, 'failed');
-      
-      throw error instanceof WhatsAppDeliveryError
-        ? error
-        : new WhatsAppDeliveryError('Failed to send WhatsApp message', {
-            tenantId,
-            receiptId,
-            originalError: (error as Error).message,
-          });
-    }
-  }
-
-  /**
-   * Send receipt via Email
-   */
-  private static async sendViaEmail(
+    orderId: string,
     receiptId: string,
-    tenantId: string,
-    htmlContent: string,
-    qrCode?: string
-  ): Promise<void> {
-    try {
-      const { sendEmail } = await import('@/lib/notifications/email-sender');
-      const { createClient } = await import('@/lib/supabase/server');
+    channel: 'whatsapp' | 'email',
+    language: string,
+    generated: GenerateReceiptResult,
+  ): Promise<string | null> {
+    const notify = generated.notify;
+    const channelCode = channel === 'email' ? 'EMAIL' : 'WHATSAPP';
+    const address = channelCode === 'EMAIL' ? notify?.email : notify?.phone;
+    if (!notify || !address) return null;
 
-      const supabase = await createClient();
-      const { data: receipt, error: receiptError } = await supabase
-        .from('org_rcpt_receipts_mst')
-        .select('recipient_email, order:org_orders_mst(customer:org_customers_mst(email))')
-        .eq('id', receiptId)
-        .eq('tenant_org_id', tenantId)
-        .single();
+    const vars = {
+      order_number: notify.orderNumber,
+      customer_name: notify.customerName,
+      total_amount: notify.totalAmount,
+      tracking_url: notify.trackingUrl,
+    };
+    const rendered = await renderChannelTemplate(RECEIPT_EVENT_CODE, channelCode, vars);
+    const arabic = language === 'ar';
 
-      if (receiptError || !receipt) {
-        throw new Error('Receipt not found');
-      }
-
-      const r = receipt as {
-        recipient_email?: string | null;
-        order?: { customer?: { email?: string | null } } | null;
-      };
-      const recipientEmail =
-        r.recipient_email ||
-        r.order?.customer?.email;
-      if (!recipientEmail) {
-        throw new Error('Customer email not found for receipt');
-      }
-
-      const sent = await sendEmail({
-        to: recipientEmail,
-        subject: 'Your CleanMateX Receipt',
-        html: htmlContent,
+    return withTenantContext(tenantId, () => prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`receipt:${tenantId}:${orderId}:${channelCode}`}::text, 0))`;
+      const recent = await tx.org_ntf_outbox_dtl.findFirst({
+        where: {
+          tenant_org_id: tenantId,
+          event_code: RECEIPT_EVENT_CODE,
+          source_entity_type: 'order',
+          source_entity_id: orderId,
+          channel_code: channelCode,
+          scheduled_at: { gt: new Date(Date.now() - RECEIPT_DEDUPE_MS) },
+        },
+        orderBy: { scheduled_at: 'desc' },
+        select: { id: true },
       });
-
-      if (!sent) {
-        throw new Error('Failed to send email');
-      }
-
-      await this.updateReceiptStatus(receiptId, tenantId, 'sent');
-      logger.info('Receipt sent via Email successfully', {
-        tenantId,
-        receiptId,
-        recipient: recipientEmail.slice(0, 3) + '***',
-      });
-    } catch (error) {
-      logger.error('Failed to send receipt via Email', error as Error, {
-        tenantId,
-        receiptId,
-      });
-      await this.updateReceiptStatus(receiptId, tenantId, 'failed');
-      throw error;
-    }
+      if (recent) return recent.id;
+      return queueImmediateSendTx(tx, {
+        tenantOrgId: tenantId,
+        channel: channelCode,
+        recipientAddress: address,
+        eventCode: RECEIPT_EVENT_CODE,
+        sourceEntityType: 'order',
+        sourceEntityId: orderId,
+        idempotencyKey: `receipt:${receiptId}:${channelCode}`,
+        subject: (arabic && rendered.title2) || rendered.title,
+        // Email carries the receipt itself; WhatsApp is sent from the HQ template with `metadata`.
+        body: channelCode === 'EMAIL' ? generated.contentHtml || '' : (arabic && rendered.body2) || rendered.body,
+        metadata: { variables: vars, receipt_id: receiptId },
+        maxRetries: 3,
+        createdBy: 'receipts',
+      }, IMMEDIATE_SEND_PRIORITY.RECEIPT);
+    }));
   }
 
   /**

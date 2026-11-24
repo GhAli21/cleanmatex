@@ -8,7 +8,7 @@ Every object created, altered, or removed in a migration requires a concise Engl
 
 For every created/altered object supporting PostgreSQL catalog comments, also include the appropriate `COMMENT ON ... IS '...'` statement in the migration. Place it after creation/alteration while the object exists. For removed objects, explain removal intent and dependency/retention implications before removal. A migration header or shared block does not replace object-specific documentation.
 
-Comments explain WHY and meaningful semantics: units/currency, NULL/default meaning, actor/tenant ownership, FK timing/delete behavior, index query rationale and security boundary as applicable. Standard columns are not exempt; keep explanations short. Do not include secrets or unnecessary personal data.
+Comments explain WHY and meaningful semantics: units/currency, NULL/default meaning, actor/tenant ownership, FK timing/delete behavior, index query rationale and security boundary as applicable. Standard columns are not exempt; keep explanations short. Do not include secrets or unnecessary personal data. An instant column is `timestamptz` and its comment says Instant (UTC). A civil date names the zone column that owns it. Full rule: `docs/dev/rules/time-and-timezone.md`.
 
 Never rewrite historical/applied migrations to retrofit this rule. Catalog-documentation corrections on deployed objects require a new forward migration and operator review. Fully document new unapplied drafts before their first application; explicitly authorized documentation passes may complete those drafts.
 

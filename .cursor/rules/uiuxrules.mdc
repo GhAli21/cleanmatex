@@ -40,6 +40,7 @@ alwaysApply: true
 - Validate inputs inline with clear error messages.
 - Group related fields and use progressive disclosure for complex forms.
 - For editable money fields, apply `docs/dev/rules/no-silent-money-mutation.md`: prevent invalid entry first, explain unavoidable adjustments inline, and never rewrite typed money as a side effect of a toggle or mode change.
+- For dates and times, apply `docs/dev/rules/time-and-timezone.md`: store instants in UTC, store civil dates as dates, and format operational clocks with the branch zone, else the organization zone.
 
 ## Branding & Theme
 - Apply CleanMateX brand colors, fonts, and iconography consistently.

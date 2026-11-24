@@ -64,6 +64,7 @@ For menu-visible routes, load the `/navigation` skill before writing route code.
 26. Do not hand-edit generated files, inventories, access contracts, or generated route/permission outputs unless the file explicitly says it is manually maintained.
 27. Before finishing, run the mandatory frontend verification commands listed in `standards.md`, including `npm run check:ui` (0 errors on changed files), then run `/cmx-ui-design-review` on the changed UI and fix its Critical and Important findings.
 28. No silent money mutation: apply `docs/dev/rules/no-silent-money-mutation.md`. Prevent invalid entry first, explain unavoidable adjustments inline at the moment they occur, and never rewrite user-entered money as a side effect of a toggle, mode switch, or dialog close.
+29. Time and timezone: apply `docs/dev/rules/time-and-timezone.md`. Format an absolute date only after the branch zone (else the organization zone) is known, and format with that zone. Submit shop dates as civil values. Do not use the browser zone, `toISOString().slice(0, 10)`, or local `getHours` / `setHours` as a business date.
 
 ## 3. Canonical folder structure
 

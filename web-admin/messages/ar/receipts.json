@@ -44,6 +44,11 @@
     "historyLoadFailed": "تعذّر تحميل سجل الإيصالات. حاول مرة أخرى.",
     "channelRequired": "اختر قناة إرسال واحدة على الأقل.",
     "sendSuccess": "تم إرسال الإيصال بنجاح.",
-    "sendFailed": "تعذّر إرسال الإيصال. حاول مرة أخرى."
+    "sendFailed": "تعذّر إرسال الإيصال. حاول مرة أخرى.",
+    "queued": "جارٍ إرسال الإيصال.",
+    "channelSent": "تم إرسال الإيصال عبر {channel}.",
+    "channelFailed": "تعذّر إرسال الإيصال عبر {channel}.",
+    "channelPending": "ما زال الإيصال قيد الإرسال عبر {channel}.",
+    "channelNoAddress": "لا يوجد لدى العميل عنوان لـ {channel}."
   }
 }

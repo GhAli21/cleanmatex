@@ -120,3 +120,21 @@ Needs a product with unit KG, price type per unit, price 5.000, minimum 3, step 
 | 18 | Pay and save the order | Complete payment | Order saves; the stored item has `uom_code='KG'`, `measured_qty=3.2`, `billed_qty=3.5`; an issued tax invoice item shows 3.5 and KG. (Showing the measure on the order detail and prints is P6.) |
 | 19 | Arabic locale | Switch to Arabic | Dialog and note mirror (RTL), symbol uses the Arabic text, numbers stay left-to-right |
 | 20 | Edit an existing order, click the KG product | Click it | Message that measured items cannot be added or re-measured while editing yet (P5) |
+
+| 21 | Inventory > Add item | Open the Unit field | Lists your organization's units as `CODE - name (symbol)`; saving a KG item stores `base_uom_code='KG'` |
+| 22 | Inventory > Edit an item | Open it | Unit shows the item's current unit (not 'piece'); changing and saving updates the stock table's Unit column |
+| 23 | Inventory > Adjust stock on a piece item | Enter 1.5 | Error: this unit allows fewer decimal places; a KG item accepts 1.5 |
+| 24 | Edit an item's unit to KG, save | Check the booking catalog / list | `product_unit` text shows KG too, no stale 'piece' |
+
+## P5 - Order Edit: measured line
+
+Before: HQ must publish an Edit policy rule for `CHANGE_ITEM_MEASURE` (target Item), otherwise the control stays closed ("not allowed").
+
+| # | Page | Do | Expect |
+|---|---|---|---|
+| 25 | Edit an order that has a KG line (3.2 kg, billed 3.5) | Open the line's "Change measure", enter 4.1, Save | The line shows 4.5 kg (4.1 measured); Review lists one "Change item measure" with the old and new measure and the new total |
+| 26 | Same | Enter 1 (below the minimum 3) | Billed 3 kg; total = 3 x unit price; message "Raised to the minimum" |
+| 27 | Same | Enter the same measure again | Review says no change |
+| 28 | Edit an order, click a measured product | Enter a measure, Add | New line with its unit; Review lists "Add an item" with the measure; saving stores uom + measure + billed qty |
+| 29 | Edit an order that has only count lines | Try to measure one (no button is shown) | Count lines have no "Change measure" |
+| 30 | Order history / audit of the edited order | Open it | The measure change is recorded (target: item) with before/after measure |

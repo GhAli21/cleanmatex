@@ -263,6 +263,6 @@ describe('campaigns on local Supabase', () => {
     assert.equal(outbox.channel_code, 'WHATSAPP');
     assert.equal(outbox.event_code, 'campaign.send');
     assert.equal(outbox.recipient_address, customer.phone);
-    assert.equal(outbox.metadata.offer, '20% off');
+    assert.equal((outbox.metadata.variables as Record<string, string>).offer, '20% off');
   });
 });

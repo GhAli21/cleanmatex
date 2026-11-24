@@ -10,6 +10,7 @@ import {
   type EditCustomItemDraft,
   type EditLineDiscountDraft,
   type EditLineDraft,
+  type EditMeasureDraft,
   type EditOrderBaseline,
   type EditPieceDraft,
   type EditPreferenceDraft,
@@ -155,13 +156,14 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       invalidateReview();
     },
     /** @param input a catalog `productId` or a `customItem` (P6-02d), never both */
-    addItem(input: { productId?: string; customItem?: EditCustomItemDraft; quantity: number; priceOverride?: string; overrideReason?: string; serviceSpeed?: string; lineDiscount?: EditLineDiscountDraft; confirmedUnitPrice?: string }): EditRowIdentity {
+    addItem(input: { productId?: string; customItem?: EditCustomItemDraft; quantity: number; measure?: EditMeasureDraft; priceOverride?: string; overrideReason?: string; serviceSpeed?: string; lineDiscount?: EditLineDiscountDraft; confirmedUnitPrice?: string }): EditRowIdentity {
       const identity = localRef(createId);
       requireDraft().lines.push({
         identity,
         productId: input.productId,
         customItem: input.customItem,
         quantity: input.quantity,
+        measure: input.measure,
         priceOverride: input.priceOverride,
         overrideReason: input.overrideReason,
         serviceSpeed: input.serviceSpeed,
@@ -178,6 +180,13 @@ export function createEditOrderController(options: EditOrderControllerOptions = 
       const current = line(identity);
       if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
       current.serviceSpeed = serviceSpeed;
+      invalidateReview();
+    },
+    /** @param measure what was measured on the line (Measured Pricing P5); the server resolves the billed quantity */
+    setLineMeasure(identity: EditRowIdentity, measure: EditMeasureDraft): void {
+      const current = line(identity);
+      if (!current) throw new Error('EDIT_LINE_NOT_FOUND');
+      current.measure = measure;
       invalidateReview();
     },
     /** @param priceOverride the line's cashier price as money text, or null for its standard price (P6-02c) */

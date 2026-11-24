@@ -46,6 +46,13 @@ export interface EditCustomItemDraft {
   serviceCategoryCode?: string | null;
 }
 
+/** What staff measured: a measure, or length and width for an area unit (decimal text). */
+export interface EditMeasureDraft {
+  measuredQty?: string;
+  length?: string;
+  width?: string;
+}
+
 export interface EditLineDraft {
   identity: EditRowIdentity;
   /** The catalog product; absent for a custom line. */
@@ -53,6 +60,8 @@ export interface EditLineDraft {
   /** New custom lines only; a stored custom line is edited like any other line. */
   customItem?: EditCustomItemDraft;
   quantity: number;
+  /** What was measured on a measured line (Measured Pricing P5), as decimal text; absent on a count line. */
+  measure?: EditMeasureDraft;
   priceOverride?: string;
   overrideReason?: string;
   /** The line's cashier discount; absent when it has none (P6-02c). */
@@ -112,6 +121,9 @@ export interface LoadedEditItem {
   override_reason?: string | null;
   line_discount?: { type: string; value: string; reason: string | null } | null;
   service_speed?: string | null;
+  measured_qty?: string | null;
+  measure_length?: string | null;
+  measure_width?: string | null;
   pieces?: LoadedEditPiece[];
   service_prefs?: LoadedEditPreference[];
 }
@@ -193,6 +205,13 @@ export function mapLoadedOrderToEditBaseline(order: LoadedEditOrder, orderId: st
       identity: { kind: 'persisted', id: item.id },
       ...(item.product_id ? { productId: item.product_id } : {}),
       quantity: item.quantity,
+      ...(item.measured_qty != null || item.measure_length != null ? {
+        measure: {
+          ...(item.measured_qty != null ? { measuredQty: item.measured_qty } : {}),
+          ...(item.measure_length != null ? { length: item.measure_length } : {}),
+          ...(item.measure_width != null ? { width: item.measure_width } : {}),
+        },
+      } : {}),
       priceOverride: priceOverride(item.price_override),
       overrideReason: item.override_reason ?? undefined,
       ...(item.line_discount ? {
@@ -274,6 +293,9 @@ export function mapChangeContextToEditBaseline(context: OrderChangeContext): Edi
       id: item.id,
       product_id: item.productId ?? undefined,
       quantity: item.quantity ?? undefined,
+      measured_qty: item.measuredQty ?? null,
+      measure_length: item.measureLength ?? null,
+      measure_width: item.measureWidth ?? null,
       price_override: item.priceOverride,
       override_reason: item.overrideReason ?? null,
       line_discount: item.lineDiscount ?? null,

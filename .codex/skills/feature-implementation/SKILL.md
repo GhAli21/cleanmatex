@@ -31,3 +31,4 @@ Use this skill when implementing a focused feature or enhancement.
 - Do not modify infra, secrets, or migrations.
 - Keep the diff surgical.
 - **React lint:** follow `docs/dev/rules/react-lint-verification-checklist.md`, `react-effects-patterns.md`, `react-rhf-and-table-lint.md` — `npx eslint . --quiet` before done; `useWatch` not `form.watch`; no `setState` in `useEffect`; `next/link` for internal routes
+- **Time and timezone:** follow `docs/dev/rules/time-and-timezone.md` for every instant, civil date, local time-of-day, schedule, log timestamp, and audit timestamp

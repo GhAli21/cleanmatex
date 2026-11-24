@@ -27,6 +27,7 @@ import 'server-only';
 import type { PrismaClient } from '@prisma/client';
 import { toMoney, type AdjustmentInput, type StandardPriceResult } from '@/lib/commercial';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
+import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import { PRICE_SOURCES, TAX_CATEGORIES, type CommercialLevel, type DiscAllocBasis, type DiscAllocMode } from '@/lib/constants/commercial';
 import { DISCOUNT_CALC_TYPE, DISCOUNT_SOURCE_TYPE, MANUAL_LINE_DISCOUNT_LABEL, type DiscountCalcType } from '@/lib/constants/discount-source-type';
 import { CHARGE_TYPES, type ExtraPricePricingMode, type TaxPricingMode } from '@/lib/constants/order-financial';
@@ -38,7 +39,7 @@ import {
   type CommercialLoaderDeps,
   type CommercialOrderIntent,
   type CustomItemIntent,
-  type LineIntent, type PieceIntent,
+  type LineIntent, type LineMeasureIntent, type PieceIntent,
   type PreferenceIntent,
   type ProductFacts,
   type RecordedCommercialSnapshot,
@@ -97,6 +98,14 @@ export interface EditStoredItem {
   priceOverride: string | null;
   taxCategoryCode: string | null;
   taxExemptReason: string | null;
+  /** The unit the line was sold in (snapshot); null on an order written before units. */
+  uomCode: string | null;
+  /** What was measured and billed (decimal text); null on a count line. */
+  measure: LineMeasureIntent | null;
+  billedQty: string | null;
+  /** The product's minimum and step as agreed at drop-off. */
+  minBillableQty: string | null;
+  billingIncrement: string | null;
 }
 
 /** One active piece row, in `piece_seq` order. */
@@ -235,6 +244,8 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
         id: true, product_id: true, quantity: true, service_category_code: true, service_speed: true, ready_by_at: true,
         price_source: true, price_list_id: true, speed_rule_id: true, list_unit_price: true, price_per_unit: true,
         speed_premium_amount: true, price_override: true, tax_category_code: true, tax_exempt_reason: true,
+        uom_code: true, measured_qty: true, measure_length: true, measure_width: true, billed_qty: true,
+        min_billable_qty: true, billing_increment: true,
       },
     }),
     db.org_order_item_pieces_dtl.findMany({
@@ -369,6 +380,13 @@ export async function readEditOrderRecord(db: EditRecordDb, tenantOrgId: string,
       priceOverride: text(i.price_override),
       taxCategoryCode: i.tax_category_code,
       taxExemptReason: i.tax_exempt_reason,
+      uomCode: i.uom_code,
+      measure: i.measured_qty != null || i.measure_length != null
+        ? { measuredQty: text(i.measured_qty), length: text(i.measure_length), width: text(i.measure_width) }
+        : null,
+      billedQty: text(i.billed_qty),
+      minBillableQty: text(i.min_billable_qty),
+      billingIncrement: text(i.billing_increment),
     })),
     pieces: pieces.map((p) => ({
       id: p.id,
@@ -485,6 +503,8 @@ export interface EditProjectedLine {
   overrideUnitPrice?: string | null;
   /** The line's cashier discount; on a stored line, absent keeps its own and null removes it (P6-02c). */
   lineDiscount?: EditLineDiscount | null;
+  /** What was measured (Measured Pricing P5): a new measured line's measure, or the new measure of a stored one; absent keeps the stored measure. */
+  measure?: LineMeasureIntent | null;
 }
 
 /** One active preference row after the edit, with its price. */
@@ -589,7 +609,7 @@ const metaOf = (row: EditStoredDiscount): AdjustmentMeta => ({
 function storedSpeed(item: EditStoredItem): { unitPremium: string; linePremium: string; ruleId: string | null } {
   if (item.priceOverride != null) return { unitPremium: '0', linePremium: '0', ruleId: item.speedRuleId };
   const unitPremium = toMoney(item.pricePerUnit).minus(toMoney(item.listUnitPrice as string));
-  const linePremium = toMoney(item.speedPremiumAmount ?? '0').minus(unitPremium.times(item.quantity));
+  const linePremium = toMoney(item.speedPremiumAmount ?? '0').minus(unitPremium.times(item.billedQty ?? item.quantity));
   return { unitPremium: unitPremium.toString(), linePremium: linePremium.toString(), ruleId: item.speedRuleId };
 }
 
@@ -711,6 +731,7 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
         customItem: line.customItem ?? null,
         overrideUnitPrice: line.overrideUnitPrice ?? null,
         lineDiscounts: manualDiscount(line.id, line.lineDiscount),
+        measure: line.measure ?? null,
       };
     }
 
@@ -750,6 +771,8 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
     return {
       ...base,
       productId: item.productId,
+      // The edit's measure wins; otherwise the stored one (the unit and rules below are the snapshot, not today's product).
+      measure: line.measure !== undefined ? line.measure : item.measure,
       // A custom line keeps its entered price as its list price.
       customItem: item.productId ? null : { unitPrice: listUnitPrice, serviceCategoryCode: item.serviceCategoryCode },
       overrideUnitPrice,
@@ -766,6 +789,10 @@ export function buildEditIntent(record: EditOrderRecord, projection: EditProject
           taxCategoryCode: item.taxCategoryCode ?? 'STANDARD',
           taxExemptReason: item.taxExemptReason,
           taxItemClassCode: product?.taxItemClassCode ?? null,
+          // The unit and its rules as sold (snapshot); an order written before units is counted.
+          baseUomCode: item.uomCode ?? UOM_DEFAULT_COUNT_CODE,
+          minBillableQty: item.minBillableQty,
+          billingIncrement: item.billingIncrement,
         },
         standard,
         // A changed speed reads the rule in force today; the ready-by is counted again.

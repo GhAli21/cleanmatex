@@ -46,6 +46,10 @@ Use this skill only when the task explicitly matches **database**. Keep the acti
 - Keep output concise.
 - Public-key grants, `search_path`, and catalog views: follow **Public-key grants** in `conventions.md`. New objects do not inherit `anon` or `authenticated` grants.
 
+## Time and timezone
+
+Instants, civil dates, local times of day, schedules, logs, and audit timestamps follow `docs/dev/rules/time-and-timezone.md`. New instant columns, including `created_at` and `updated_at`, are `timestamptz`. A business date is a `date` written once with the location zone (else the organization zone) and that IANA name. Do not compare `timestamp without time zone` to `now()`, and do not use `utc_offset_hours` to convert.
+
 ## Multi-Currency Transaction Standard (base == functional)
 
 Normal monetary transaction:

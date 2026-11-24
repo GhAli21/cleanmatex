@@ -7,7 +7,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CmxButton, CmxInput, Label } from '@ui/primitives'
+import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -17,6 +17,8 @@ import {
 } from '@ui/overlays'
 import { upgradeCustomerProfile, sendOTP } from '@/lib/api/customers'
 import type { Customer } from '@/lib/types/customer'
+import { OTP_SEND_ERROR, type OtpChannel } from '@/lib/constants/otp'
+import { useOutboxDeliveryReport } from '@features/notifications/hooks/use-outbox-delivery-report'
 
 interface UpgradeProfileModalProps {
   customer: Customer
@@ -26,6 +28,16 @@ interface UpgradeProfileModalProps {
 }
 
 type Step = 'confirm' | 'otp' | 'details'
+
+/** Server refusal code → message key under customers.otp. */
+const OTP_ERROR_KEYS: Record<string, string> = {
+  [OTP_SEND_ERROR.INVALID_PHONE]: 'invalidPhone',
+  [OTP_SEND_ERROR.COUNTRY_NOT_ALLOWED]: 'countryNotAllowed',
+  [OTP_SEND_ERROR.EMAIL_REQUIRED]: 'emailRequired',
+  [OTP_SEND_ERROR.CHANNEL_OFF]: 'channelOff',
+  [OTP_SEND_ERROR.RATE_LIMITED]: 'rateLimited',
+}
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /**
  *
@@ -53,6 +65,8 @@ export default function UpgradeProfileModal({
   const [error, setError] = useState<string | null>(null)
   const [otpSent, setOtpSent] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
+  const [channel, setChannel] = useState<OtpChannel>('SMS')
+  const reportDelivery = useOutboxDeliveryReport()
 
   const handleSendOTP = async () => {
     if (!customer.phone) {
@@ -60,11 +74,28 @@ export default function UpgradeProfileModal({
       return
     }
 
+    if (channel === 'EMAIL' && !EMAIL_PATTERN.test(email.trim())) {
+      setError(tOTP('emailRequired'))
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
-      await sendOTP({ phone: customer.phone, purpose: 'verification' })
+      const sent = await sendOTP({
+        phone: customer.phone,
+        purpose: 'verification',
+        channel,
+        email: channel === 'EMAIL' ? email.trim() : undefined,
+        customerId: customer.id,
+      })
+      // The code is queued; report when it is sent or failed, without blocking the code entry.
+      void reportDelivery(sent.outboxId, {
+        sent: tOTP('codeSent'),
+        failed: tOTP('codeNotSent'),
+        pending: tOTP('codeStillSending'),
+      })
       setOtpSent(true)
       setStep('otp')
 
@@ -80,7 +111,8 @@ export default function UpgradeProfileModal({
         })
       }, 1000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('failedToSendOTP'))
+      const key = err instanceof Error ? OTP_ERROR_KEYS[err.message] : undefined
+      setError(key ? tOTP(key) : t('failedToSendOTP'))
     } finally {
       setLoading(false)
     }
@@ -178,10 +210,46 @@ export default function UpgradeProfileModal({
                 </li>
               </ul>
 
+              <div className="mt-4 space-y-3">
+                <CmxSelect
+                  label={tOTP('sendCodeBy')}
+                  value={channel}
+                  onChange={(e) => {
+                    setChannel(e.target.value as OtpChannel)
+                    setError(null)
+                  }}
+                  options={[
+                    { value: 'SMS', label: tOTP('channelSms') },
+                    { value: 'WHATSAPP', label: tOTP('channelWhatsapp') },
+                    { value: 'EMAIL', label: tOTP('channelEmail') },
+                  ]}
+                />
+                {channel === 'EMAIL' && (
+                  <div>
+                    <Label htmlFor="upgrade-otp-email" className="mb-2 block text-start">
+                      {tOTP('emailForCode')}
+                    </Label>
+                    <CmxInput
+                      id="upgrade-otp-email"
+                      type="email"
+                      dir="ltr"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <div className="mt-4 bg-danger-bg border-s-4 border-e-0 border-destructive p-4" role="alert">
+                  <p className="text-sm text-danger-text text-start">{error}</p>
+                </div>
+              )}
+
               <div className="mt-4 p-3 bg-info-bg rounded-md text-start">
                 <p className="text-sm text-primary-text">
                   <strong>{t('phoneVerificationRequired')}</strong> {t('willSendCodeTo')}{' '}
-                  <bdi dir="ltr" className="font-mono tabular-nums">{customer.phone}</bdi>
+                  <bdi dir="ltr" className="font-mono tabular-nums">{channel === 'EMAIL' ? email.trim() : customer.phone}</bdi>
                 </p>
               </div>
             </div>

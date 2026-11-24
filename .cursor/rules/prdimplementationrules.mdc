@@ -21,6 +21,7 @@ author: CleanMateX Team
 - ❌ Don't skip error handling
 - ❌ Don't commit code without tests for business logic
 - ❌ **NEVER create duplicate `getTenantIdFromSession()` implementations** — Always use centralized version from `@/lib/db/tenant-context`
+- ❌ Don't store an instant as `timestamp without time zone`, and don't format an operational date before the branch or organization zone is known (`docs/dev/rules/time-and-timezone.md`)
 
 ---
 

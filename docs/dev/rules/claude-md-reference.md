@@ -188,6 +188,7 @@ docs/         # All documentation
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
 - **Settings Reference:** `.claude/docs/settings-reference.md`
 - **Preferences (unified):** `docs/dev/preferences-architecture-reference.md` (canonical)
+- **Time and timezone:** `docs/dev/rules/time-and-timezone.md` (instants UTC; civil dates stored once; UI converts with the location or organization zone)
 
 ---
 
@@ -204,7 +205,7 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`, `order-fin.mdc` (path-scoped), `cmx-design-system.mdc`
+   Current rule files: `constants-db-mirror.mdc`, `cmx-message.mdc`, `navigation-dual-write.mdc`, `no-silent-money-mutation.mdc`, `permissions-migration.mdc`, `feature-flag-migration.mdc`, `ui-access-contract-pattern.mdc`, `order-fin.mdc` (path-scoped), `cmx-design-system.mdc`, `time-and-timezone.mdc`
    **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.

@@ -17,7 +17,7 @@ These rules govern AI-generated backend code for this Project services when usin
 - **@supabase/supabase-js** + generated `Database` types
 - **No Prisma ORM**
 
-Follow user instructions and higher-priority repository rules. Preserve module-specific patterns within explicit security, tenant, money and authorization requirements; examples do not authorize bypasses.
+Follow user instructions and higher-priority repository rules. Preserve module-specific patterns within explicit security, tenant, money and authorization requirements; examples do not authorize bypasses. Instants, civil dates, schedules, logs, and audit timestamps follow `docs/dev/rules/time-and-timezone.md`.
 
 ---
 

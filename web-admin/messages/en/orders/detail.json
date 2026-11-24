@@ -531,6 +531,7 @@
       "ADD_ITEM": "Add item",
       "REMOVE_ITEM": "Remove item",
       "CHANGE_ITEM_QUANTITY": "Change quantity",
+      "CHANGE_ITEM_MEASURE": "Change measure",
       "ADD_PIECE": "Add piece",
       "REMOVE_PIECE": "Remove piece",
       "ADD_PREFERENCE": "Add preference",

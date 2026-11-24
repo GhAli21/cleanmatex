@@ -365,7 +365,8 @@ export async function runCampaignChunk(tenantOrgId: string, campaignId: string, 
           ...templateVars,
         },
       });
-      const rendered: RenderedContent = { ...built, metadata: { ...(built.metadata ?? {}), ...templateVars } };
+      // HQ API fills WhatsApp template slots from metadata.variables (same key the orchestrator writes).
+      const rendered: RenderedContent = { ...built, metadata: { ...(built.metadata ?? {}), variables: templateVars } };
 
       const content: CampaignContent = { tenantOrgId, campaignId, channel: campaign.channel_code, channelConfig, rendered };
       for (const t of pending) {

@@ -32,7 +32,8 @@ function formatReadyByLabel(
 
 /**
  * Variables for `order.created` (IN_APP, EMAIL, WHATSAPP templates).
- * Includes `date` alias for Twilio Content templates using {{date}}.
+ * Includes `date` alias for Twilio Content templates using {{date}}. `customer_name`, `order_items`
+ * and `track_code` (the tracking link token) are added when known (loadOrderCreatedFacts).
  */
 export function buildOrderCreatedNotificationVariables(params: {
   orderNo: string;
@@ -40,6 +41,9 @@ export function buildOrderCreatedNotificationVariables(params: {
   locale?: string;
   /** The organization's IANA timezone (getTenantTimeZone) used to format the ready time. */
   timeZone?: string;
+  customerName?: string;
+  orderItems?: string;
+  trackCode?: string;
 }): Record<string, string> {
   const estimatedReadyAt = formatReadyByLabel(params.readyByAt, params.locale ?? 'en', params.timeZone);
 
@@ -47,5 +51,8 @@ export function buildOrderCreatedNotificationVariables(params: {
     order_number:         params.orderNo,
     estimated_ready_at:   estimatedReadyAt,
     date:                 estimatedReadyAt,
+    ...(params.customerName ? { customer_name: params.customerName } : {}),
+    ...(params.orderItems ? { order_items: params.orderItems } : {}),
+    ...(params.trackCode ? { track_code: params.trackCode } : {}),
   };
 }

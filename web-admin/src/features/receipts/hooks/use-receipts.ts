@@ -23,6 +23,13 @@ export interface ReceiptRecord {
   retryCount: number;
 }
 
+/** One channel of a send: the queued outbox row, or why nothing was queued. */
+export interface ReceiptChannelSend {
+  channel: string;
+  outboxId?: string;
+  error?: string;
+}
+
 /**
  *
  * @param orderId
@@ -84,7 +91,8 @@ export function useSendReceipt() {
       if (result.success) {
         return {
           success: true,
-          receiptIds: result.receiptIds,
+          receiptIds: result.receiptIds as string[],
+          sends: (result.sends ?? []) as ReceiptChannelSend[],
         };
       }
       throw new Error(result.error || 'Failed to send receipt');

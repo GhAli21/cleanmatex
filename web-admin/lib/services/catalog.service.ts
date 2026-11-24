@@ -263,7 +263,7 @@ export async function createProduct(
       is_retail_item: request.is_retail_item || false,
       product_type: request.product_type || null,
       price_type: request.price_type || PRODUCT_PRICE_TYPES.PER_UNIT,
-      product_unit: request.product_unit ?? null,
+      product_unit: request.product_unit ?? request.base_uom_code ?? null,
       base_uom_code: request.base_uom_code ?? legacyUnitToUomCode(request.product_unit) ?? UOM_DEFAULT_COUNT_CODE,
       min_billable_qty: request.min_billable_qty != null ? Number(request.min_billable_qty) : null,
       billing_increment: request.billing_increment != null ? Number(request.billing_increment) : null,
@@ -333,6 +333,7 @@ export async function updateProduct(
   if (request.product_type !== undefined) updateData.product_type = request.product_type;
   if (request.price_type !== undefined) updateData.price_type = request.price_type;
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
+  else if (request.base_uom_code !== undefined) updateData.product_unit = request.base_uom_code;
   if (request.base_uom_code !== undefined) updateData.base_uom_code = request.base_uom_code;
   if (request.min_billable_qty !== undefined) updateData.min_billable_qty = request.min_billable_qty != null ? Number(request.min_billable_qty) : null;
   if (request.billing_increment !== undefined) updateData.billing_increment = request.billing_increment != null ? Number(request.billing_increment) : null;

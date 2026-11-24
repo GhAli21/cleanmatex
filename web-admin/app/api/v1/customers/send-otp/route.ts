@@ -1,113 +1,56 @@
 /**
- * PRD-003: Customer Management API
- * Send OTP for phone verification
+ * POST /api/v1/customers/send-otp — send a customer verification code (staff session).
+ *
+ * Body: { phone, purpose: 'registration' | 'login' | 'verification', channel?: 'SMS' | 'WHATSAPP' | 'EMAIL',
+ *         email? (required for EMAIL), customerId? }
+ * 202: { success, message, expiresAt, phone (masked), outboxId } — the message is queued; follow it with
+ *      GET /api/v1/notifications/outbox/[outboxId]/status.
+ * 400/422/429: { error, code } with code from OTP_SEND_ERROR.
  */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { sendOTP } from '@/lib/services/otp.service';
-import type { SendOTPRequest } from '@/lib/types/customer';
+import { z } from 'zod';
+import { getAuthContext } from '@/lib/middleware/require-permission';
+import { getClientIp } from '@/lib/services/auth/session/request-meta';
+import { OtpSendError, sendOTP } from '@/lib/services/otp.service';
+import { OTP_CHANNELS } from '@/lib/constants/otp';
+import { logger } from '@/lib/utils/logger';
 
-// ==================================================================
-// POST /api/v1/customers/send-otp - Send OTP Code
-// ==================================================================
+const bodySchema = z.object({
+  phone: z.string().trim().min(1).max(50),
+  purpose: z.enum(['registration', 'login', 'verification']),
+  channel: z.enum(OTP_CHANNELS).default('SMS'),
+  email: z.string().trim().max(255).optional(),
+  customerId: z.string().uuid().optional(),
+});
 
-/**
- * Send OTP code to phone number for verification
- *
- * Request Body: {
- *   phone: string,
- *   purpose: 'registration' | 'login' | 'verification'
- * }
- *
- * Response: {
- *   success: true,
- *   message: 'OTP sent successfully',
- *   expiresAt: string (ISO timestamp),
- *   phone: string (masked, e.g., "+968901****56")
- * }
- * @param request
- */
 export async function POST(request: NextRequest) {
+  let auth: Awaited<ReturnType<typeof getAuthContext>>;
   try {
-    // 1. Parse request body
-    const body: SendOTPRequest = await request.json();
+    auth = await getAuthContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    // 2. Validate required fields
-    if (!body.phone) {
-      return NextResponse.json(
-        { error: 'phone is required' },
-        { status: 400 }
-      );
-    }
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 });
+  }
 
-    if (!body.purpose) {
-      return NextResponse.json(
-        { error: 'purpose is required' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Validate purpose
-    const validPurposes = ['registration', 'login', 'verification'];
-    if (!validPurposes.includes(body.purpose)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid purpose. Must be: registration, login, or verification',
-        },
-        { status: 400 }
-      );
-    }
-
-    // 4. Send OTP via service
-    const result = await sendOTP(body);
-
-    // 5. Return success response
-    return NextResponse.json({
-      success: true,
-      message: result.message,
-      expiresAt: result.expiresAt,
-      phone: result.phone, // Masked phone number
+  try {
+    const result = await sendOTP({
+      tenantId: auth.tenantId,
+      userId: auth.userId,
+      ...parsed.data,
+      requestIp: getClientIp(request.headers),
     });
+    return NextResponse.json(result, { status: 202 });
   } catch (error) {
-    console.error('Error sending OTP:', error);
-
-    if (error instanceof Error) {
-      // Handle rate limiting error
-      if (error.message.includes('Please wait')) {
-        return NextResponse.json(
-          {
-            error: error.message,
-            type: 'RATE_LIMIT',
-          },
-          { status: 429 }
-        );
-      }
-
-      // Handle invalid phone format
-      if (error.message.includes('Invalid phone')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
-      }
-
-      // Handle SMS sending failure
-      if (error.message.includes('Failed to send')) {
-        return NextResponse.json(
-          {
-            error: 'Failed to send SMS. Please try again later.',
-            details: { message: error.message },
-          },
-          { status: 503 }
-        );
-      }
-
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof OtpSendError) {
+      return NextResponse.json({ error: error.code, code: error.code }, { status: error.status });
     }
-
-    return NextResponse.json(
-      { error: 'Failed to send OTP code' },
-      { status: 500 }
-    );
+    logger.error('send-otp failed', error instanceof Error ? error : new Error(String(error)), {
+      feature: 'customer-otp', tenantId: auth.tenantId,
+    });
+    return NextResponse.json({ error: 'Failed to send verification code' }, { status: 500 });
   }
 }

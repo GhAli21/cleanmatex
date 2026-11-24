@@ -80,6 +80,32 @@ describe('the shared reviewed and stored operation contract', () => {
     expect(audit.afterValues.taxAmount).toBe('0.0001');
   });
 
+  it('Measured Pricing P5: Review signs the measure Apply stores (3.2 typed, 3.200000 stored)', () => {
+    const operations = [{ seq: 1, code: 'CHANGE_ITEM_MEASURE' as const, target: { kind: 'PERSISTED_ITEM' as const, id: itemId }, payload: { measure: { measuredQty: '4.1' } } }];
+    const orderMoney = { total_amount: '22.5000', total_tax_amount: '0.0000' };
+    const stored = { ...item, price_per_unit: '5.0000', total_price: '17.5000', measured_qty: '3.200000', billed_qty: '3.500000' };
+    const context = { orderId, pieces: [], items: [], workflow: { currentStatus: 'processing' } } as unknown as OrderChangeContext;
+    const preview = buildPreviewOperationAudits({
+      context, operations,
+      lines: [{ id: itemId, unitPrice: '5.0000', merchandiseAmount: '22.5000', embeddedExtra: '0' }],
+      catalog: [],
+      auditFacts: { order: { total_amount: '17.5000', total_tax_amount: '0.0000' }, items: { [itemId]: stored }, pieces: {}, preferences: {}, products: {} },
+      projectedTotal: orderMoney.total_amount, projectedTax: orderMoney.total_tax_amount,
+    });
+    const applied = buildOrderChangeOperationAudit({
+      operation: operations[0], orderId,
+      before: stored,
+      after: { ...stored, measured_qty: '4.100000', billed_qty: '4.500000', price_per_unit: '5.0000', total_price: '22.5000' },
+      orderBefore: { total_amount: '17.5000', total_tax_amount: '0.0000' }, orderAfter: orderMoney,
+    });
+    const reviewed = preview.find((row) => row.code === 'CHANGE_ITEM_MEASURE');
+    expect(reviewed?.afterValues).toMatchObject({ measuredQty: '4.1', totalPrice: '22.5000' });
+    expect(applied.afterValues.measuredQty).toBe('4.1');
+    expect(applied.beforeValues.measuredQty).toBe('3.2');
+    expect(reviewed?.beforeValues.measuredQty).toBe('3.2');
+    expect(digestOrderChangeOperationAudits([applied])).toBe(digestOrderChangeOperationAudits([reviewed!]));
+  });
+
   it('signs the piece gross Apply stores when a preference extra changes the line', () => {
     const itemRef = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const pieceRef = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';

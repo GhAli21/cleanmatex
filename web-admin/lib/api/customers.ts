@@ -19,6 +19,7 @@ import type {
   CreateAddressRequest,
   UpdateAddressRequest,
   SendOTPRequest,
+  SendOTPResponse,
   VerifyOTPRequest,
   MergeCustomersRequest,
   CustomerStatistics,
@@ -308,12 +309,7 @@ export async function upgradeCustomerProfile(
 /**
  * Send OTP code to phone number
  */
-export async function sendOTP(request: SendOTPRequest): Promise<{
-  success: boolean;
-  message: string;
-  expiresAt: string;
-  phone: string;
-}> {
+export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse> {
   const csrfToken = await getCSRFToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
@@ -325,8 +321,9 @@ export async function sendOTP(request: SendOTPRequest): Promise<{
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to send OTP');
+    const error = await response.json().catch(() => ({}));
+    // The message is the error code (OTP_SEND_ERROR) when the server refused; the screen translates it.
+    throw new Error(error.code || error.error || 'Failed to send OTP');
   }
 
   return response.json();

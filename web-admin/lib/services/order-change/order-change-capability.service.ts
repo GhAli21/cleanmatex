@@ -201,7 +201,8 @@ export function resolveOrderChangeCapabilityTarget(
 ): OrderChangeCapabilityTargetType {
   if (operationCode === 'ADD_ITEM') return 'ORDER';
   if (operationCode === 'REMOVE_ITEM' || operationCode === 'CHANGE_ITEM_QUANTITY'
-    || operationCode === 'CHANGE_ITEM_PRODUCT' || operationCode === 'CHANGE_ITEM_SERVICE' || operationCode === 'CHANGE_ITEM_PRICE') return 'ITEM';
+    || operationCode === 'CHANGE_ITEM_PRODUCT' || operationCode === 'CHANGE_ITEM_SERVICE' || operationCode === 'CHANGE_ITEM_PRICE'
+    || operationCode === 'CHANGE_ITEM_MEASURE') return 'ITEM';
   if (operationCode === 'ADD_PIECE') return 'ITEM';
   if (operationCode === 'REMOVE_PIECE' || operationCode === 'CHANGE_PIECE_BRAND' || operationCode === 'CHANGE_PIECE_RACK') return 'PIECE';
   if (operationCode === 'ADD_PREFERENCE') {

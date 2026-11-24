@@ -396,6 +396,12 @@ export interface UpdateAddressRequest {
 export interface SendOTPRequest {
   phone: string;
   purpose: OTPPurpose;
+  /** SMS when omitted. */
+  channel?: 'SMS' | 'WHATSAPP' | 'EMAIL';
+  /** Required for EMAIL; the code still verifies `phone`. */
+  email?: string;
+  /** Known customer: the message uses their language. */
+  customerId?: string;
 }
 
 /**
@@ -423,6 +429,8 @@ export interface SendOTPResponse {
   message: string;
   expiresAt: string;
   phone: string; // Masked phone (e.g., "+968901****56")
+  /** Outbox row of the message; GET /api/v1/notifications/outbox/[id]/status follows it. */
+  outboxId: string;
 }
 
 // ==================================================================

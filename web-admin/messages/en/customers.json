@@ -156,7 +156,20 @@
     "failedToSendOTP": "Failed to send OTP",
     "invalidVerificationCode": "Invalid verification code",
     "verificationFailed": "Verification failed",
-    "willSend6DigitCode": "We'll send a 6-digit verification code to this number"
+    "willSend6DigitCode": "We'll send a 6-digit verification code to this number",
+    "sendCodeBy": "Send the code by",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "channelEmail": "Email",
+    "emailForCode": "Email address for the code",
+    "emailRequired": "Enter a valid email address to send the code by email.",
+    "invalidPhone": "The customer's phone number is not valid.",
+    "countryNotAllowed": "Codes can only be sent to numbers in the countries we serve. Send it by email instead.",
+    "channelOff": "This channel is switched off for your Organization. Choose another one.",
+    "rateLimited": "Wait a minute before asking for a new code. One phone can get at most 5 codes an hour.",
+    "codeSent": "Verification code sent.",
+    "codeNotSent": "The verification code could not be sent. Try another channel.",
+    "codeStillSending": "The code is still being sent. Ask the customer to wait a moment."
   },
   "modals": {
     "addCustomer": {

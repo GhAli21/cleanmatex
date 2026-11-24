@@ -16,10 +16,10 @@
 Include for every table:
 
 ```
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 created_by VARCHAR(120),
 created_info TEXT,
-updated_at TIMESTAMP,
+updated_at TIMESTAMPTZ,
 updated_by VARCHAR(120),
 updated_info TEXT,
 rec_status SMALLINT DEFAULT 1,
@@ -27,6 +27,8 @@ rec_order INTEGER,
 rec_notes VARCHAR(200),
 is_active BOOLEAN NOT NULL DEFAULT true
 ```
+
+Instant columns in that block are `timestamptz`. Civil dates use `date`. Local times of day use `time`. Full rule: `docs/dev/rules/time-and-timezone.md`.
 
 ## Bilingual Fields
 
@@ -424,10 +426,10 @@ Last File seq+1 xxxx Not Timestamp
 
 ```sql
 -- Audit fields (standard pattern)
-created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
 created_by      VARCHAR(120), -- current user or system_admin
 created_info    TEXT,
-updated_at      TIMESTAMP,
+updated_at      TIMESTAMPTZ,
 updated_by      VARCHAR(120),
 updated_info    TEXT,
 
@@ -530,9 +532,9 @@ CREATE TABLE org_example_mst (
   example_icon VARCHAR(120),
 
   -- Audit fields
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by VARCHAR(120),
-  updated_at TIMESTAMP,
+  updated_at TIMESTAMPTZ,
   updated_by VARCHAR(120),
   rec_status SMALLINT DEFAULT 1,
   is_active BOOLEAN DEFAULT true
@@ -577,9 +579,9 @@ BEGIN
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
       %s,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       created_by VARCHAR(120),
-      updated_at TIMESTAMP,
+      updated_at TIMESTAMPTZ,
       updated_by VARCHAR(120),
       rec_status SMALLINT DEFAULT 1,
       is_active BOOLEAN NOT NULL DEFAULT true
@@ -595,9 +597,9 @@ $$ LANGUAGE plpgsql;
 --   tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
 --   -- Business columns here
 --   -- Standard audit fields below
---   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 --   created_by VARCHAR(120),
---   updated_at TIMESTAMP,
+--   updated_at TIMESTAMPTZ,
 --   updated_by VARCHAR(120),
 --   rec_status SMALLINT DEFAULT 1,
 --   is_active BOOLEAN NOT NULL DEFAULT true
@@ -749,9 +751,9 @@ ALTER TABLE org_customers_mst
 CREATE OR REPLACE FUNCTION add_audit_fields(table_name TEXT) RETURNS void AS $$
 BEGIN
   EXECUTE format('
-    ALTER TABLE %I ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    ALTER TABLE %I ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS created_by VARCHAR(120);
-    ALTER TABLE %I ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+    ALTER TABLE %I ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS updated_by VARCHAR(120);
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS rec_status SMALLINT DEFAULT 1;
     ALTER TABLE %I ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;

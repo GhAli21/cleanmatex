@@ -2,6 +2,8 @@
 
 **As of:** 2026-11-07 · WP01–WP18 code proof complete; WP17 column guard (migration 0702) applied and proved. See [WP18 report](WP18_Release_Proof_v3.0.md) and the [plan ledger](Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md). These items need you.
 
+**2026-11-24:** the same follow-ups are split by subject in [Remaining_Work_Index.md](Remaining_Work_Index.md) (operator gate, test guide, implementation plan, production path, closed operations, already finished). This file stays the original checklist.
+
 ## 1. UI retest (the only open WP18 gate)
 
 - [ ] Walk MAN-UI-001 to MAN-UI-014 in `F:\jhapp\cleanmatex\docs\features\Order_Edit_V2\CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_ACTIVE_ONLY\CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Manual_UI_Test_Guide.md`. Each covers the matching OC-UI-001 to 012 row in `CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Test_Guide_and_Scenario_Matrix.md` (lines 211–222). No Playwright spec exists for them yet.
@@ -26,7 +28,7 @@
 
 ## 3. HQ Edit policy rules
 
-- [ ] Per workflow profile (HQ › Order Change › Edit Policies → new draft → publish): rules for `CHANGE_SERVICE_SPEED` on `ITEM` and `PIECE`, `CHANGE_DISCOUNT` on `ITEM` and `PIECE`, `CHANGE_ITEM_PRICE` on `ITEM`. Without them those controls stay disabled with the reason.
+- [ ] Keep the policy at **Pilot** (owner decision 2026-11-24: do not publish). On the Pilot policy the organization already uses as its override, set `CHANGE_SERVICE_SPEED` on `ITEM` and `PIECE`, `CHANGE_DISCOUNT` on `ITEM` and `PIECE`, and `CHANGE_ITEM_PRICE` on `ITEM`. Without those cells the controls stay disabled with the reason. A version default or a profile default cannot point at a Pilot policy.
 - [ ] How to reach those cells (checked 2026-11-13): the rules list shows only cells the policy already has, so a policy cloned before these pairs existed hides them. In the draft: "Check coverage against a workflow version" → Check → **Smart fill (missing)** (or "Fill missing as deny"), then set the five cells. All seven catalog pairs are active on remote.
 
 ## 4. Later (after sign-off)

@@ -9,11 +9,14 @@ import {
   CmxDialogTitle,
   CmxDialogFooter,
 } from '@ui/overlays';
-import { CmxButton, CmxInput, CmxCard, CmxSelect, Label } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxCard, Label } from '@ui/primitives';
 import { CmxTabsPanel } from '@ui/navigation';
 import { Package, MapPin } from 'lucide-react';
 import { cmxMessage } from '@ui/feedback';
-import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
+import { CmxUomSelect } from '@ui/forms/cmx-uom-select';
+import { useUomUnits } from '@features/uom/hooks/use-uom-units';
+import { legacyUnitToUomCode } from '@/lib/uom/legacy';
+import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import {
   updateInventoryItemAction,
   updateBranchStockAction,
@@ -46,6 +49,7 @@ export default function EditItemModal({
   onSuccess,
 }: EditItemModalProps) {
   const t = useTranslations('inventory');
+  const { data: units = [] } = useUomUnits();
   const tc = useTranslations('common');
 
   const [saving, setSaving] = useState(false);
@@ -54,7 +58,7 @@ export default function EditItemModal({
 
   const [productName, setProductName] = useState(item.product_name || '');
   const [productName2, setProductName2] = useState(item.product_name2 || '');
-  const [productUnit, setProductUnit] = useState(item.product_unit || 'piece');
+  const [productUnit, setProductUnit] = useState<string>(item.base_uom_code ?? legacyUnitToUomCode(item.product_unit) ?? UOM_DEFAULT_COUNT_CODE);
   const [reorderPoint, setReorderPoint] = useState(String(item.reorder_point || 0));
   const [productCost, setProductCost] = useState(String(item.product_cost || 0));
   const [sellPrice, setSellPrice] = useState(String(item.default_sell_price || 0));
@@ -84,7 +88,7 @@ export default function EditItemModal({
       id: item.id,
       product_name: productName.trim(),
       product_name2: productName2.trim() || undefined,
-      product_unit: productUnit,
+      base_uom_code: productUnit,
       product_cost: parseFloat(productCost) || 0,
       default_sell_price: parseFloat(sellPrice) || 0,
     };
@@ -155,11 +159,6 @@ export default function EditItemModal({
     }
   }
 
-  const unitOptions = Object.values(UNITS_OF_MEASURE).map((u) => ({
-    value: u,
-    label: t(`units.${u}`),
-  }));
-
   const productFields = (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">{t('messages.productMasterDescription')}</p>
@@ -188,11 +187,7 @@ export default function EditItemModal({
           <Label className="block text-sm font-medium text-foreground mb-1">
             {t('labels.unit')}
           </Label>
-          <CmxSelect
-            value={productUnit}
-            onChange={(e) => setProductUnit(e.target.value)}
-            options={unitOptions}
-          />
+          <CmxUomSelect units={units} value={productUnit} onChange={setProductUnit} />
         </div>
         <div>
           <Label className="block text-sm font-medium text-foreground mb-1">

@@ -14,6 +14,7 @@
 | Dashboard route gating | Golden path in `.cursor/rules/ui-access-contract-pattern.mdc` + `/rebuild-ui-access-contract` |
 | Feature flag create (`hq_ff_feature_flags_mst`) | `/create-feature-flag` |
 | Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit tenant `docs/features/Workflow_Order_Advance/generated/` |
+| Date, time, timezone, schedule, log or audit timestamp | `docs/dev/rules/time-and-timezone.md` |
 
 **Skipping these rules = build failure and rejected PR.**
 
@@ -69,6 +70,7 @@ Always:
 16. **Always use `cmxMessage` when applicable** — apply `docs/dev/rules/cmx-message.md`. All web-admin user-facing success/error/warning/info/loading/confirm feedback must use `cmxMessage` or `useMessage()` from `@ui/feedback`. Do not add new legacy toast helpers (`showSuccessToast` / raw `toast()` / `alert()`). Not for field validation, `CmxSummaryMessage`, `CmxConfirmDialog`, or static i18n labels.
 17. **Always reuse shared Cmx components** — apply `docs/dev/rules/cmx-shared-components.md`. Build UI only from shared Cmx components in `src/ui/`; search there before writing markup. If a shared component lacks something, improve the shared component (backward compatible) instead of creating a feature-local copy. Shared defaults (for example `CMX_DEFAULT_PAGE_SIZE` in `cmx-table-defaults.ts`) are imported, never hardcoded.
 18. **HQ is the usual name for the SaaS Backoffice** — use HQ for `cleanmatexsaas`. SaaS Backoffice, platform, platform level, Platform HQ Console, SaaS Backoffice Admin and Management, and Headquarters mean the same application. HQ is not a tenant organization's headquarters. When a reader could confuse them, add the meaning once: HQ (the SaaS Backoffice). The Organization app is `cleanmatex`; tenant app, client app, and Tenant-Facing Application mean that app. The customer business is the Organization / المنشأة, and the database identifier stays `tenant_org_id`. Arabic for HQ is إدارة المنصة. Existing code and file identifiers that already contain HQ stay unchanged. Glossary: `docs/dev/i18n_docs/GLOSSARY.md`.
+19. **Time and timezone** — apply `docs/dev/rules/time-and-timezone.md`. Instants are UTC (`timestamptz`, RFC 3339 `Z`) through storage, APIs, jobs, logs, and audit. Convert only in the UI, with the branch zone or else the organization zone, after that zone is known. Civil dates and local times of day are stored as calendar facts and are not re-derived from UTC on read.
 
 ---
 
@@ -117,6 +119,7 @@ Before writing ANY code, ALWAYS apply the relevant domain rules first. No except
 | Dashboard route/action/API access gating | `/rebuild-ui-access-contract` + `ui-access-contract-pattern.mdc` |
 | Creating a new feature flag (`hq_ff_feature_flags_mst` + plan mappings) | `/create-feature-flag` |
 | Workflow Check-policy issue catalog (add/update/retire codes) | Switch to HQ (`cleanmatexsaas`) and load `/manage-wf-policy-issues-catalog`. Do not hand-edit the tenant generated catalog pin |
+| Any date, time, timezone, schedule, log timestamp, or audit timestamp | `docs/dev/rules/time-and-timezone.md` |
 
 ---
 
@@ -192,6 +195,7 @@ npm run prisma:pull                # Sync Prisma from repo root (no cd web-admin
 - Numbers by class (`docs/dev/rules/numeric-precision.md`): amounts `DECIMAL(19,4)`, unit prices `(21,6)`, unit costs `(23,8)`, quantities `(21,6)`, conversion rates `(28,12)`
 - String columns: **always `TEXT`**, never `VARCHAR`
 - No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
+- **Time and timezone** — instants are `timestamptz` (UTC); civil dates are `date`; local times of day are `time`. Convert only at presentation with the branch zone, else the organization zone. Full rule: `docs/dev/rules/time-and-timezone.md`.
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. See CRITICAL RULE #10.
 - **Feature flags require a migration** — every new feature flag must be registered via a migration into `hq_ff_feature_flags_mst` (+ `sys_ff_pln_flag_mappings_dtl` plan mappings when `plan_bound`), then synced into `web-admin/lib/constants/feature-flags.ts`. Use the `/create-feature-flag` skill.

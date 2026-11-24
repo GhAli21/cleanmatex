@@ -11,6 +11,7 @@ Authority note:
 - use this skill as backend guidance, not as proof that one tenant-handling pattern fits every module
 - `web-admin` and `cmx-api` may use different server-side access patterns
 - preserve module-specific patterns from current code and module READMEs within explicit repository security, tenant, money and authorization rules; current implementation never overrides those rules
+- instants, civil dates, schedules, logs, and audit timestamps follow `docs/dev/rules/time-and-timezone.md`
 
 ## Performance engineering
 

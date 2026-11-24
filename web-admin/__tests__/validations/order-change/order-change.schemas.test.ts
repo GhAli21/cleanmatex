@@ -34,6 +34,22 @@ describe('Order Change V1 request schema', () => {
     expect(speed('')).toBe(false);
   });
 
+  it('Measured Pricing P5: a line measure is a measure or a length and width, once per line, and never on a custom item', () => {
+    const item = { kind: 'PERSISTED_ITEM', id: '11111111-1111-4111-8111-111111111111' };
+    const op = (payload: Record<string, unknown>) => orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: item, payload }] }).success;
+    expect(op({ measure: { measuredQty: '3.25' } })).toBe(true);
+    expect(op({ measure: { length: '2', width: '1.5' } })).toBe(true);
+    expect(op({ measure: { length: '2' } })).toBe(false);
+    expect(op({ measure: {} })).toBe(false);
+    expect(op({ measure: { measuredQty: '-1' } })).toBe(false);
+    expect(op({ measure: { measuredQty: '1.1234567' } })).toBe(false);
+    const twice = { ...request, operations: [1, 2].map((seq) => ({ seq, code: 'CHANGE_ITEM_MEASURE', target: item, payload: { measure: { measuredQty: '2' } } })) };
+    expect(orderChangeRequestSchema.safeParse(twice).success).toBe(false);
+    const add = (payload: Record<string, unknown>) => orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: '33333333-3333-4333-8333-333333333333', quantity: 1, ...payload } }] }).success;
+    expect(add({ productId: '44444444-4444-4444-8444-444444444444', measure: { measuredQty: '3' } })).toBe(true);
+    expect(add({ customItem: { name: 'Gift', unitPrice: '2' }, measure: { measuredQty: '3' } })).toBe(false);
+  });
+
   it('P6-02c: accepts a line price with its reason and a line discount, and rejects what would not read back', () => {
     const op = (code: string, payload: Record<string, unknown>, target: Record<string, unknown> = { kind: 'PERSISTED_ITEM', id: '11111111-1111-4111-8111-111111111111' }) =>
       orderChangeRequestSchema.safeParse({ ...request, operations: [{ seq: 1, code, target, payload }] }).success;

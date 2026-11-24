@@ -1,12 +1,32 @@
 ---
-version: v1.1.0
-last_updated: 2025-11-14
+version: v1.2.0
+last_updated: 2026-11-24
 author: CleanMateX Team
 ---
 
 # 🛡️ Supabase Usage Guidelines
 
 **CRITICAL**: Follow these rules for all Supabase database operations and RLS policies.
+
+Schema authority is `.claude/skills/database/` (`SKILL.md`, `conventions.md`, `reference-original.md`) plus `CLAUDE.md`. This file is the Supabase client, RLS, and migration usage guide. When they disagree, the database skill wins.
+
+---
+
+## Schema rules
+
+These rules apply to every new migration, function, and `org_*` / `sys_*` query.
+
+- **Names:** at most 30 characters for every database object (tables, functions, views, indexes, constraints, policies, triggers). `sys_` is global (no `tenant_org_id`). `org_` is tenant-scoped. New objects use `{scope}_{feature}_{object}_{suffix}` (`_mst`, `_dtl`, `_tr`, `_cd`, `_cf`). Existing objects keep their live names.
+- **ERP Lite:** new ERP Lite objects insert `erplt` immediately after the scope prefix: `org_erplt_{sub_feature}_{object}_{suffix}` (example: `org_erplt_fin_acct_mst`). Do not bulk-rename grandfathered `org_fin_*` objects.
+- **Strings:** `TEXT`. Do not add `VARCHAR` / `CHAR`.
+- **Time:** instants, including `created_at` and `updated_at`, are `timestamptz` (UTC). A business date is `date`, written once with the location zone, else the organization zone, and that IANA name is stored with it. Local times of day are `time`. Do not compare `timestamp without time zone` to `now()`, and do not convert with `utc_offset_hours`. Full rule: `docs/dev/rules/time-and-timezone.md`.
+- **Numbers:** pick the class (`docs/dev/rules/numeric-precision.md`) and comment it on the column. `AMOUNT` `DECIMAL(19,4)` · `UNIT_PRICE` `(21,6)` · `UNIT_COST` `(23,8)` · `QUANTITY` `(21,6)` · `RATE` `(28,12)`. Piece counts stay `INTEGER`. Never `FLOAT` / `REAL` / `DOUBLE PRECISION` for money or FX.
+- **Money:** `currency_code TEXT NOT NULL` FK → `sys_currency_cd(code)`, no default, plus `amount DECIMAL(19,4) NOT NULL`. Base-currency valuation also stores `base_currency_code`, `base_amount DECIMAL(19,4)`, `fx_rate DECIMAL(22,10)`, `fx_rate_date DATE`, `fx_rate_source`, `fx_rate_id`. Direction is `base_amount = amount × fx_rate`. Same currency means `base_amount = amount` and the FX columns are `NULL`. No default on currency, country, city, timezone, or locale columns.
+- **Composite FKs (Prisma 6):** child FK, 1:1 UNIQUE, and the referenced parent key use the same columns in the same order. Parent `(id, tenant_org_id)` → child `(parent_id, tenant_org_id)` (tenant second; this is `0553`). Parent `(tenant_org_id, id)` → child `(tenant_org_id, parent_id)`. List indexes stay tenant-first. Do not `ON DELETE SET NULL` on a composite that includes required `tenant_org_id`. After a pull, from the repo root run `npm run prisma:pull` (no `cd web-admin`).
+- **Tenant predicate:** every queried or joined `org_*` table has an explicit `tenant_org_id` predicate. Writes set it and filter it. RLS, a parent lookup, and the Prisma guard do not replace that predicate.
+- **Public-key grants:** migrations run as `postgres`. New tables, sequences, and functions in `public` do not grant `anon`, `authenticated`, or `PUBLIC`. Grant only what the caller needs in the same migration. `org_*` user-JWT access: `GRANT` to `authenticated` plus RLS; do not grant `anon`. `sys_*` and `hq_*` stay closed to `anon` and `authenticated`; the app reads them with the service role after its own authorization check (`catalogReadClient`). A user-JWT function `GRANT EXECUTE` to `authenticated` only, and the body rejects a caller who is not the session user. `current_tenant_id()` and `is_admin()` stay executable by `anon` and `authenticated`. `SECURITY DEFINER` is only for work the caller cannot do. `search_path` is `pg_catalog, public`, then only schemas the body names (`auth`, `extensions`, `net`, `storage`, `cron`, `vault`), and `pg_temp` is last. Catalog views set `security_invoker = true` and are not granted to `anon` or `authenticated`. Detail: `conventions.md` → Public-key grants.
+- **Document every object** in the migration: concise English comments for purpose and invariants, including audit and identity columns, plus PostgreSQL `COMMENT ON` for every created or altered object that supports it. Explain grants, revokes, and removals beside their statements. Do not rewrite an applied migration to add comments; a deployed catalog-comment change is a new migration.
+- **Human-friendly codes:** codes people see are generated only by the database and are immutable. One row in `sys_doc_seq_type_cd` per code type. GENERAL types use `fn_doc_seq_assign_code`. Never `MAX()+1` in app code. Never expose a UUID as a business id. A new coded table has `NOT NULL` + `UNIQUE (tenant_org_id, <code>)`, the config row, assign and guard triggers, and backfill plus counter seed in the same migration. Full rule: `conventions.md`.
 
 ---
 
@@ -19,9 +39,10 @@ author: CleanMateX Team
 ```sql
 -- ✅ Good: Enable RLS
 CREATE TABLE org_orders_mst (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
   tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
   -- ... other columns
+  constraint PK_org_orders_mst primary key (id, tenant_org_id)
 );
 
 ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
@@ -36,25 +57,17 @@ CREATE TABLE org_orders_mst (
 
 #### Tenant Isolation Policy
 
+Policy name is `tenant_isolation_<table_name>` when that name is at most 30 characters. Always include both `USING` and `WITH CHECK`. The tenant predicate is `current_tenant_id()`. Do not read the tenant from `auth.jwt()`, and do not look it up from a user row inside the policy.
+
 ```sql
-
-Best Approach is this Standard tenant isolation policy:
-CREATE POLICY tenant_isolation ON org_orders_mst
+DROP POLICY IF EXISTS tenant_isolation_org_orders_mst ON org_orders_mst;
+CREATE POLICY tenant_isolation_org_orders_mst ON org_orders_mst
   FOR ALL
-  USING (
-    tenant_org_id = (
-      SELECT tenant_org_id
-      FROM org_users_mst
-      WHERE user_id = auth.uid()
-    )
-  );
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
 
--- Or Second Option using JWT claims (if tenant_org_id is in JWT)
-CREATE POLICY tenant_isolation_jwt ON org_orders_mst
-  FOR ALL
-  USING (
-    tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id')
-  );
+COMMENT ON POLICY tenant_isolation_org_orders_mst ON org_orders_mst IS
+  'Authenticated session may access rows of its current tenant only.';
 ```
 
 #### Role-Based Policies
@@ -63,24 +76,14 @@ CREATE POLICY tenant_isolation_jwt ON org_orders_mst
 -- Admin can see all orders in their tenant
 CREATE POLICY admin_full_access ON org_orders_mst
   FOR ALL
-  USING (
-    tenant_org_id = (
-      SELECT tenant_org_id
-      FROM org_users_mst
-      WHERE user_id = auth.uid()
-      AND role = 'admin'
-    )
-  );
+  USING (tenant_org_id = current_tenant_id() AND is_admin())
+  WITH CHECK (tenant_org_id = current_tenant_id() AND is_admin());
 
 -- Staff can only see assigned orders
 CREATE POLICY staff_assigned_access ON org_orders_mst
   FOR SELECT
   USING (
-    tenant_org_id = (
-      SELECT tenant_org_id
-      FROM org_users_mst
-      WHERE user_id = auth.uid()
-    )
+    tenant_org_id = current_tenant_id()
     AND (
       assigned_to = auth.uid()
       OR created_by = auth.uid()
@@ -172,7 +175,7 @@ const { data } = await supabase
     *,
     customer:org_customers_mst(*),
     items:org_order_items_dtl(*)
-  `
+  `,
   )
   .eq("tenant_org_id", tenantId);
 
@@ -197,87 +200,97 @@ for (const order of orders) {
 
 ### Migration Naming Convention
 
+List `supabase/migrations/` (skip `archive/`, `seeds/`, and `x_*` / `xproduction/`). Take the highest numeric `NNNN` prefix and add 1, zero-padded to 4 digits. Do not use a timestamp prefix.
+
 ```
-YYYYMMDDHHMMSS_description.sql
+{next_NNNN}_{descriptive_snake_case}.sql
 
 Examples:
-20250116103000_create_orders_table.sql
-20250116104500_add_order_status_index.sql
-20250116110000_add_rls_policies.sql
+0083_org_ord_orders_mst.sql
+0084_org_ord_orders_status_idx.sql
+0085_org_ord_orders_rls.sql
 ```
 
 ### Migration Best Practices
 
 ```sql
--- ✅ Good: One logical change per migration
--- Migration: 20250116103000_create_orders_table.sql
+-- 0083_org_ord_orders_mst.sql
+-- One logical change. Write the file, then stop for review. Do not apply it here.
 
 BEGIN;
 
--- Create table
-CREATE TABLE org_orders_mst (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
-  order_number VARCHAR(50) NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-  total_amount DECIMAL(10,2) NOT NULL,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-	  created_by TEXT,
-	  created_info TEXT,
-	  
-	  updated_at TIMESTAMPTZ,
-	  updated_by TEXT,
-	  updated_info TEXT,
-	  updated_count INTEGER DEFAULT 0, -- then on update updated_count=updated_count+1
-	  
-	  deleted_at TIMESTAMPTZ,
-	  deleted_by TEXT,
-	  deleted_info TEXT,
-	  
-	  rec_status SMALLINT DEFAULT 1, -- 0 for soft delete 
-	  rec_order INTEGER,
-	  rec_notes TEXT,
-	  is_active BOOLEAN DEFAULT true
+CREATE TABLE org_ord_orders_mst (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_org_id UUID NOT NULL,
+  order_no TEXT NOT NULL,
+  status_code TEXT NOT NULL,
+  total_amount DECIMAL(19, 4) NOT NULL, -- AMOUNT
+  currency_code TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by TEXT,
+  created_info TEXT,
+  updated_at TIMESTAMPTZ,
+  updated_by TEXT,
+  updated_info TEXT,
+  updated_count INTEGER NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMPTZ,
+  deleted_by TEXT,
+  deleted_info TEXT,
+  rec_status SMALLINT NOT NULL DEFAULT 1, -- 0 = soft delete
+  rec_order INTEGER,
+  rec_notes TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  CONSTRAINT pk_org_ord_orders_mst PRIMARY KEY (id, tenant_org_id),
+  CONSTRAINT uq_org_ord_orders_no UNIQUE (tenant_org_id, order_no),
+  CONSTRAINT fk_org_ord_orders_tenant FOREIGN KEY (tenant_org_id) REFERENCES org_tenants_mst (id),
+  CONSTRAINT fk_org_ord_orders_ccy FOREIGN KEY (currency_code) REFERENCES sys_currency_cd (code)
 );
 
--- Add indexes
-CREATE INDEX idx_orders_tenant ON org_orders_mst(tenant_org_id);
-CREATE INDEX idx_orders_tenant_status ON org_orders_mst(tenant_org_id, status);
-CREATE INDEX idx_orders_created ON org_orders_mst(tenant_org_id, created_at DESC);
+COMMENT ON TABLE org_ord_orders_mst IS
+  'Tenant orders. order_no is the human-friendly code; id is the only join key.';
+COMMENT ON COLUMN org_ord_orders_mst.total_amount IS 'AMOUNT. DECIMAL(19,4).';
+COMMENT ON COLUMN org_ord_orders_mst.currency_code IS
+  'Currency code. No default. FK to sys_currency_cd(code).';
+-- Comment every remaining column the same way, including audit and identity columns.
+-- Child FKs copy this primary key order: (order_id, tenant_org_id).
 
--- Enable RLS
-ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
+CREATE INDEX idx_ord_orders_tenant ON org_ord_orders_mst (tenant_org_id);
+CREATE INDEX idx_ord_orders_active ON org_ord_orders_mst (tenant_org_id, is_active);
+CREATE INDEX idx_ord_orders_created ON org_ord_orders_mst (tenant_org_id, created_at DESC);
 
--- Create RLS policy
-Best approach:
-CREATE POLICY tenant_isolation_org_customers ON org_customers_mst
+ALTER TABLE org_ord_orders_mst ENABLE ROW LEVEL SECURITY;
+
+-- tenant_isolation_org_ord_orders_mst is 35 characters, so the policy name is shortened.
+CREATE POLICY tenant_isolation_ord_orders ON org_ord_orders_mst
   FOR ALL
   USING (tenant_org_id = current_tenant_id())
   WITH CHECK (tenant_org_id = current_tenant_id());
 
-Second Option:
-CREATE POLICY tenant_isolation ON org_orders_mst
-  FOR ALL
-  USING (
-    tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id')
-  );
+COMMENT ON POLICY tenant_isolation_ord_orders ON org_ord_orders_mst IS
+  'Session may access org_ord_orders_mst rows of its current tenant only.';
+
+REVOKE ALL ON TABLE org_ord_orders_mst FROM PUBLIC, anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE org_ord_orders_mst TO authenticated;
 
 COMMIT;
 
--- Rollback instructions (in comments)
--- DROP POLICY tenant_isolation ON org_orders_mst;
--- DROP TABLE org_orders_mst;
+-- Rollback (comment only; a fix is a new migration, not an edit of this file):
+-- DROP POLICY tenant_isolation_ord_orders ON org_ord_orders_mst;
+-- DROP TABLE org_ord_orders_mst RESTRICT;
 ```
 
 ### Migration Rules
 
-1. **One logical change per migration** - Don't mix unrelated changes
-2. **Use transactions** - Wrap migrations in BEGIN/COMMIT
-3. **Test locally first** - Always test migrations before applying
-4. **Never modify existing migrations** - Create new migrations for fixes
-5. **Include rollback instructions** - Comment rollback SQL
-6. **Add indexes after data** - Create indexes after table creation
-7. **Document complex logic** - Add comments for complex migrations
+1. **Next numeric sequence only** — `{NNNN}_{descriptive_snake_case}.sql`. Never a `YYYYMMDDHHMMSS` prefix. Never reuse or skip a number.
+2. **One logical change per migration.**
+3. **Wrap the migration in `BEGIN` / `COMMIT`.**
+4. **Never modify an existing migration.** A fix is a new file.
+5. **Never apply a migration and never run `supabase db reset`.** Write the SQL file, then stop for review.
+6. **`DROP ... RESTRICT`.** `DROP ... CASCADE` is banned unless there is no safer alternative, a full dependency manifest, and recreate plus rollback in the same file, and the user has confirmed. See `docs/dev/drop-cascade-migration-workflow.md`.
+7. **Comment rollback with `RESTRICT`.** Do not put a destructive reset in the guide or the migration.
+8. **Index after the table, tenant-first, names ≤ 30 characters.** Index column order and Prisma 1:1 unique order are different rules.
+9. **Document every object and add `COMMENT ON`.** Grants and revokes sit next to the object they change.
+10. **A coded column** also gets its `sys_doc_seq_type_cd` row, assign trigger, and guard trigger in that migration (`conventions.md`).
 
 ---
 
@@ -286,61 +299,53 @@ COMMIT;
 ### Creating Functions
 
 ```sql
--- ✅ Good: Use PostgreSQL functions for complex logic
-CREATE OR REPLACE FUNCTION calculate_order_total(order_id UUID)
-RETURNS DECIMAL(10,2) AS $$
-DECLARE
-  total DECIMAL(10,2);
+-- Invoker is the default. The caller must already be allowed to read the rows.
+-- search_path: pg_catalog, public, then only schemas the body names, pg_temp last.
+CREATE FUNCTION org_ord_user_fn()
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $$
 BEGIN
-  SELECT COALESCE(SUM(quantity * unit_price), 0)
-  INTO total
-  FROM org_order_items_dtl
-  WHERE order_id = calculate_order_total.order_id;
-
-  RETURN total;
+  NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Expose via Supabase RPC
--- In Supabase dashboard or migration:
--- This function is automatically available as RPC
+-- SECURITY DEFINER only when the body must do work the caller cannot.
+-- This body calls auth.uid(), so auth is on the path. pg_temp stays last.
+-- New functions are not granted to anon or authenticated until this migration says so.
+CREATE FUNCTION org_ord_admin_fn()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, auth, pg_temp
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not authenticated';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.org_ord_admin_fn() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.org_ord_admin_fn() TO service_role;
 ```
+
+A new function is not callable with the public key until the migration grants `EXECUTE`. See **Public-key grants** in `.claude/skills/database/conventions.md`. `org_*` function bodies still filter `tenant_org_id` in the SQL itself.
 
 ### Using Functions via RPC
 
 ```typescript
 // Call PostgreSQL function via Supabase RPC
-const { data, error } = await supabase.rpc("calculate_order_total", {
-  order_id: orderId,
+const { data, error } = await supabase.rpc("org_ord_calc_total", {
+  p_order_id: orderId,
+  p_tenant_org_id: tenantId,
 });
 ```
 
 ### Function Security
 
-```sql
--- ✅ Good: Use SECURITY DEFINER only when necessary
-CREATE FUNCTION admin_function()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER -- Only if function needs elevated privileges
-SET search_path = public
-AS $$
-BEGIN
-  -- Function body
-END;
-$$;
-
--- ✅ Good: Default SECURITY INVOKER (safer)
-CREATE FUNCTION user_function()
-RETURNS void
-LANGUAGE plpgsql
-SECURITY INVOKER -- Uses caller's privileges
-AS $$
-BEGIN
-  -- Function body
-END;
-$$;
-```
+Use the invoker and definer examples above. `search_path` is `pg_catalog, public`, then only schemas the body names (`auth`, `extensions`, `net`, `storage`, `cron`, `vault`). `pg_temp` is last.
 
 ---
 
@@ -349,14 +354,16 @@ $$;
 ### Database-Level Validation
 
 ```sql
--- ✅ Good: Add constraints at database level
-CREATE TABLE org_orders_mst (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
-  order_number VARCHAR(50) NOT NULL UNIQUE,
-  status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING', 'PROCESSING', 'READY', 'DELIVERED')),
-  total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Constraints use TEXT and the amount class. Codes are unique per tenant, not globally.
+CREATE TABLE org_ord_orders_mst (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_org_id UUID NOT NULL,
+  order_no TEXT NOT NULL,
+  status_code TEXT NOT NULL CHECK (status_code IN ('PENDING', 'PROCESSING', 'READY', 'DELIVERED')),
+  total_amount DECIMAL(19, 4) NOT NULL CHECK (total_amount >= 0), -- AMOUNT
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT pk_org_ord_orders_mst PRIMARY KEY (id, tenant_org_id),
+  CONSTRAINT uq_org_ord_orders_no UNIQUE (tenant_org_id, order_no)
 );
 ```
 
@@ -394,7 +401,7 @@ import { logger } from "@/lib/utils/logger";
 async function createOrder(
   orderData: CreateOrderDto,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   const startTime = Date.now();
 
@@ -455,6 +462,7 @@ async function createOrder(
 - Background jobs
 - System-level operations
 - Never use in client-side code
+- `sys_*` and `hq_*` catalog reads on the server, via `catalogReadClient`. Do not switch the whole client when the same function also reads `org_*`.
 
 ```typescript
 // ✅ Good: Server-side admin operation
@@ -462,7 +470,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Server-side only
+  process.env.SUPABASE_SERVICE_ROLE_KEY!, // Server-side only
 );
 
 // Admin operation
@@ -478,32 +486,26 @@ const { data } = await supabaseAdmin.from("org_tenants_mst").select("*");
 
 ### Function Naming
 
-- **Database Functions**: `snake_case` with descriptive name (e.g., `calculate_order_total`, `get_active_orders`)
-- **RPC Functions**: `snake_case` (e.g., `create_order`, `update_order_status`)
-- **Validation Functions**: Prefix with `validate_` (e.g., `validate_phone_number`, `validate_email`)
-- **Helper Functions**: Descriptive `snake_case` (e.g., `format_phone_number`, `calculate_discount`)
+New functions carry the scope prefix and stay within 30 characters: `org_ord_calc_total`, `sys_auth_validate_token`. A `validate_` or helper name still needs that prefix. Grandfathered functions keep the name already in the database.
 
 ### Policy Naming
 
-- **RLS Policies**: `{purpose}_{scope}` (e.g., `tenant_isolation`, `admin_full_access`, `staff_assigned_access`)
-- **Policy Names**: Descriptive and indicate purpose (e.g., `tenant_isolation`, `user_own_data`)
+`tenant_isolation_<table_name>`, with both `USING` and `WITH CHECK`. If that name exceeds 30 characters, shorten it and put the table name in `COMMENT ON POLICY`.
 
 ### Migration Naming
 
-- **Migrations**: `YYYYMMDDHHMMSS_{description}.sql` (e.g., `20250116103000_create_orders_table.sql`)
-- **Descriptions**: Use `snake_case` and be descriptive
+`{NNNN}_{descriptive_snake_case}.sql`, where `NNNN` is the next 4-digit sequence in `supabase/migrations/`. Do not use a timestamp prefix.
 
 ### Examples
 
 ```sql
--- ✅ Good: Clear, descriptive function names
-CREATE FUNCTION calculate_order_total(order_id UUID) ...
-CREATE FUNCTION get_active_orders(tenant_id UUID) ...
-CREATE FUNCTION validate_phone_number(phone VARCHAR) ...
+-- Clear, scoped, and within 30 characters
+CREATE FUNCTION org_ord_calc_total(p_order_id UUID, p_tenant_org_id UUID) ...
+CREATE FUNCTION org_ord_list_active(p_tenant_org_id UUID) ...
 
--- ❌ Bad: Unclear or abbreviated names
-CREATE FUNCTION calc(o_id UUID) ... -- Should be calculate_order_total
-CREATE FUNCTION get_ord(t_id UUID) ... -- Should be get_active_orders
+-- Too vague, and missing the scope prefix
+CREATE FUNCTION calc(o_id UUID) ...
+CREATE FUNCTION get_ord(t_id UUID) ...
 ```
 
 ---
@@ -524,7 +526,7 @@ export async function queryWithTenant<T>(
     filters?: Record<string, unknown>;
     orderBy?: { column: string; ascending?: boolean };
     limit?: number;
-  }
+  },
 ) {
   let query = supabase
     .from(table)
@@ -615,7 +617,7 @@ export async function insertWithAudit<T>(
   table: string,
   data: Partial<T>,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   const { data: result, error } = await supabase
     .from(table)
@@ -646,7 +648,7 @@ const order = await insertWithAudit(
   "org_orders_mst",
   orderData,
   tenantId,
-  userId
+  userId,
 );
 
 // ❌ Bad: Duplicate insert logic
@@ -669,7 +671,7 @@ export async function updateWithAudit<T>(
   id: string,
   updates: Partial<T>,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   const { data: result, error } = await supabase
     .from(table)
@@ -703,7 +705,7 @@ const updatedOrder = await updateWithAudit(
   orderId,
   { status: "PROCESSING" },
   tenantId,
-  userId
+  userId,
 );
 ```
 
@@ -716,7 +718,7 @@ export async function softDelete(
   table: string,
   id: string,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   return await updateWithAudit(
     supabase,
@@ -727,7 +729,7 @@ export async function softDelete(
       rec_status: 0,
     } as any,
     tenantId,
-    userId
+    userId,
   );
 }
 
@@ -741,31 +743,38 @@ await softDelete(supabase, "org_orders_mst", orderId, tenantId, userId);
 
 ### ✅ DO
 
-- Always enable RLS on `org_*` tables
+- Always enable RLS on `org_*` tables, with `USING` and `WITH CHECK` against `current_tenant_id()`
 - Always filter by `tenant_org_id` in queries — Applies to Prisma, Supabase client, raw SQL, SQL functions, joins and INSERT/UPDATE/DELETE writes: `tenant_org_id` MUST appear directly in the query whenever the table has that column. RLS / Prisma guard / prior parent lookup are defense in depth only, never a substitute; by-`id`-only access is a violation.
-- Use composite foreign keys for tenant-scoped joins
+- Match composite FK and 1:1 UNIQUE column order to the parent key that already exists
+- Store instants as `timestamptz`, amounts as `DECIMAL(19,4)`, and strings as `TEXT`
+- Grant `authenticated` only where the user JWT must touch an `org_*` object; leave `sys_*` / `hq_*` closed
+- Add `COMMENT ON` for every new or altered object
 - Test RLS policies with different user roles
 - Use transactions for multi-step operations
 - Validate data before insert/update
-- Log all mutations with context
+- Log all mutations with context (UTC instants; no secrets)
 - Use pagination for large datasets
 - Select only needed columns
 - Extract common query patterns to helper functions
 - Use reusable RPC wrappers
-- Follow naming conventions consistently
+- Follow naming conventions consistently, including the 30-character limit
 
 ### ❌ DON'T
 
 - Don't disable RLS on tenant tables
-- Don't query without tenant filter
-- Don't use service role key in client code
-- Don't modify existing migrations
+- Don't query without a tenant filter
+- Don't use the service role key in client code
+- Don't modify an existing migration, apply a migration, or run `supabase db reset`
+- Don't `DROP ... CASCADE` unless the user confirmed the full dependency workflow
+- Don't use `VARCHAR`, `DECIMAL(10,2)`, or `FLOAT` for new columns
+- Don't grant `anon` on new tables, sequences, or functions
+- Don't use `auth.jwt() ->> 'tenant_org_id'` as the RLS tenant predicate
 - Don't skip validation
-- Don't forget to add indexes
+- Don't forget indexes, and don't treat index order as the Prisma unique order
 - Don't expose sensitive data in logs
 - Don't use N+1 query patterns
-- Don't duplicate query logic - extract to helpers
-- Don't repeat error handling - use wrapper functions
+- Don't duplicate query logic — extract to helpers
+- Don't repeat error handling — use wrapper functions
 
 ---
 
@@ -793,21 +802,19 @@ SELECT * FROM org_orders_mst;
 
 ### Migration Issues
 
+Do not reset the database and do not apply a migration from this guide. A fix is a new `{NNNN}_*.sql` file. Stop after writing it so the user can review.
+
+Read-only check of what is already on disk or recorded as applied:
+
 ```bash
-# Reset database (development only)
-supabase db reset
-
-# Check migration status
 supabase migration list
-
-# Apply specific migration
-supabase migration up --version 20250116103000
 ```
 
 ---
 
 ## Related Documentation
 
+- Database skill (authority): `.claude/skills/database/SKILL.md`, `conventions.md`, `reference-original.md`
 - [Database Conventions](./database_conventions.md) - Database schema standards
 - [Multi-Tenancy](./multitenancy.md) - Multi-tenant security patterns
 - [Logging Rules](./logging-rules.md) - Logging database operations

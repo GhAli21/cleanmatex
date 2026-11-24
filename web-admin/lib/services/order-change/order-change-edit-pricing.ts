@@ -126,6 +126,19 @@ export function lineMoneyChangesOf(operations: readonly ChangeOperation[]): {
 }
 
 /**
+ * The measures the reviewed operations set on stored lines (Measured Pricing P5). The last operation for a line wins.
+ * @param operations the reviewed operations
+ * @returns the new measure by lower-case item id
+ */
+export function measureChangesOf(operations: readonly ChangeOperation[]): Map<string, { measuredQty?: string; length?: string; width?: string }> {
+  const measures = new Map<string, { measuredQty?: string; length?: string; width?: string }>();
+  for (const operation of operations) {
+    if (operation.code === 'CHANGE_ITEM_MEASURE') measures.set(operation.target.id.toLowerCase(), operation.payload.measure);
+  }
+  return measures;
+}
+
+/**
  * Lines whose speed the request would change although they are already ready (some
  * pieces ready, or the line itself): a ready line keeps the speed it was made at.
  * @param context the order before the edit
@@ -176,6 +189,7 @@ export function editProjectionOf(input: {
 }): EditProjection {
   const { orderSpeed: speedChange, lineSpeeds, pieceSpeeds } = speedChangesOf(input.operations);
   const { prices, discounts, pieceDiscounts } = lineMoneyChangesOf(input.operations);
+  const measures = measureChangesOf(input.operations);
   const serviceSpeed = speedChange ?? input.context.order.serviceSpeed ?? 'STANDARD';
   const added = new Map(input.operations.flatMap((operation) => (
     operation.code === 'ADD_ITEM' ? [[operation.payload.clientRef, operation.payload] as const] : []
@@ -212,7 +226,9 @@ export function editProjectionOf(input: {
           customItem: add.customItem ? { unitPrice: add.customItem.unitPrice, serviceCategoryCode: add.customItem.serviceCategoryCode ?? null } : null,
           overrideUnitPrice: add.priceOverride ?? null,
           lineDiscount: add.lineDiscount ?? null,
+          measure: add.measure ?? null,
         } : {}),
+        ...(measures.has(key) ? { measure: measures.get(key) } : {}),
         ...(prices.has(key) ? { overrideUnitPrice: prices.get(key)?.priceOverride ?? null } : {}),
         ...(discounts.has(key) ? { lineDiscount: discounts.get(key) ?? null } : {}),
       };

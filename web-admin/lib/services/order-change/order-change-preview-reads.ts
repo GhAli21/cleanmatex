@@ -170,6 +170,7 @@ export async function loadOrderChangePreviewFacts(input: {
           status: true, item_status: true, item_stage: true, item_is_rejected: true, notes: true, stain_notes: true,
           damage_notes: true, packing_pref_code: true, packing_pref_is_override: true, packing_pref_source: true,
           has_stain: true, has_damage: true, rec_status: true,
+          uom_code: true, measured_qty: true, measure_length: true, measure_width: true, billed_qty: true,
         },
       });
       const auditPieces = pieceIds.length === 0 ? [] : await tx.org_order_item_pieces_dtl.findMany({
@@ -324,6 +325,11 @@ export async function loadOrderChangePreviewFacts(input: {
           total_price: auditMoney(row.total_price),
           price_override: auditMoney(row.price_override),
           override_reason: row.override_reason,
+          uom_code: row.uom_code,
+          measured_qty: row.measured_qty?.toString() ?? null,
+          measure_length: row.measure_length?.toString() ?? null,
+          measure_width: row.measure_width?.toString() ?? null,
+          billed_qty: row.billed_qty?.toString() ?? null,
           service_pref_charge: auditMoney(row.service_pref_charge),
           status: row.status,
           item_status: row.item_status,

@@ -47,7 +47,7 @@ These reports are evidence for the living plan. They do not replace it. WP07–W
 - [WP17 committed writer closure](WP17_Committed_Writer_Closure_v3.0.md)
 - [WP17 postponed column guard](WP17_Postponed_Committed_Column_Guard_v3.0.md)
 
-WP17 is closed. The direct-grant column guard is postponed and is not part of WP18. Next package: WP18, target preflight, backfill, and concurrency/security release proof. It is not started.
+WP17 is closed. The committed-column guard (migration 0702) was applied and proved on 2026-11-07. WP18 code proof is complete. What remains is indexed in [Remaining_Work_Index.md](Remaining_Work_Index.md): the operator gate, the human test guide, the production-path pilot, and operations that stay closed until a workflow needs them.
 
 ## Review and export classification
 

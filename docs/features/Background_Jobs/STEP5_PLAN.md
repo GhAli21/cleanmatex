@@ -1,6 +1,6 @@
 # Step 5 — Notifications on pg-boss: implementation plan
 
-Status (23 Nov): 0810 applied local + remote. **5b done in code:** tenant producer (`lib/notifications/request.service.ts`, `event-emitter.ts`), cmx-workers `ntf.orchestrate`, payloads in `@cmx/jobs`, tests 19/19. **5c done in code:** HQ API `queue-consumer` module (`ntf.deliver`, `ntf.reconcile`), BullMQ queue removed, per-attempt idempotency key, Resend `Idempotency-Key`. **`ntf.status_apply` done in code:** the webhook verifies, stores the event and queues `{ eventId }` (job id = event id), or answers 503 so the provider retries; the job applies STOP/START (`fn_ntf_carrier_opt_apply`) or a receipt (dispatch log + `fn_ntf_status_apply` from migration 0812: SENT → DELIVERED → READ, SENT → FAILED_PERMANENT on a bounce, receipt in `org_ntf_receipts_tr`). 0812 waits for the Owner. **5d push done in code (24 Nov):** HQ code item 8 below; 0816 waits for the Owner. 4 and 4b done in code. **4c done in code (24 Nov), 0819 applied local + remote.** Next: 5d OTP / receipts, then 5e deletions. Design: [DESIGN.md](DESIGN.md) §7, §14.5, §15, §16.
+Status (23 Nov): 0810 applied local + remote. **5b done in code:** tenant producer (`lib/notifications/request.service.ts`, `event-emitter.ts`), cmx-workers `ntf.orchestrate`, payloads in `@cmx/jobs`, tests 19/19. **5c done in code:** HQ API `queue-consumer` module (`ntf.deliver`, `ntf.reconcile`), BullMQ queue removed, per-attempt idempotency key, Resend `Idempotency-Key`. **`ntf.status_apply` done in code:** the webhook verifies, stores the event and queues `{ eventId }` (job id = event id), or answers 503 so the provider retries; the job applies STOP/START (`fn_ntf_carrier_opt_apply`) or a receipt (dispatch log + `fn_ntf_status_apply` from migration 0812: SENT → DELIVERED → READ, SENT → FAILED_PERMANENT on a bounce, receipt in `org_ntf_receipts_tr`). 0812 waits for the Owner. **5d push done in code (24 Nov):** HQ code item 8 below; 0816 waits for the Owner. 4 and 4b done in code. **4c done in code (24 Nov), 0819 applied local + remote.** **5d OTP / receipts: done in code (24 Nov), 0820 applied; 0820 + 0822 applied.** Then 5e deletions. Design: [DESIGN.md](DESIGN.md) §7, §14.5, §15, §16.
 
 ## What 0810 adds
 
@@ -46,7 +46,81 @@ Dry run in a rolled-back transaction on local Postgres (23 Nov): all objects cre
 
    **Deferred by the Owner (24 Nov): one marketing template for many Organizations** — options, recommendation and open questions in [CAMPAIGN_IN_HQ_SHARED_TEMPLATES.md](CAMPAIGN_IN_HQ_SHARED_TEMPLATES.md).
 5. **Immediate sends (§16)** — receipt send/resend and OTP write the outbox row and enqueue `ntf.deliver` at the highest priority in one transaction; return `202` with the outbox id. New tenant route `GET /api/v1/notifications/outbox/[id]/status` (tenant-filtered, status and failure reason only). Server-side dedupe key `receipt:<id>:<channel>` with `singletonKey` + `singletonSeconds: 30`. OTP: real code generation (replaces the fixed test code), per-phone and per-IP limits, allowed countries, `retryLimit: 2`, skip when expired, 24 h retention of OTP rows. Screens poll the status for up to 15 s and report through `cmxMessage` (EN/AR, `check:ui`).
-6. **Delete** the tenant provider adapters that call providers directly, `lib/integrations/whatsapp-client.ts`, and the `app/api/notifications/process-outbox` / `reconcile-outbox` / `process-campaigns` / `jobs/campaign-expansion` routes once their callers are gone (step 8 drops the SQL).
+
+   **Done in code 24 Nov, not committed.** 0820 applied local + remote by the Owner. **0822 (`0822_ntf_otp_channels.sql`) applied local + remote by the Owner (24 Nov)** (0820 left `sys_otp_codes.code` as VARCHAR(6), too short for the hash). See "Built" below.
+
+   **What was found (24 Nov):**
+   - `sendOTP` stores the fixed code `123456` and sends nothing. The code is stored in plain text. `verifyOTP` reads, then writes, the attempt count, so parallel guesses can exceed the 3-attempt limit. `RESEND_COOLDOWN_SECONDS` exists but is never checked.
+   - **Security (launch blocker):** the customer "verification token" (`generateVerificationToken`) is plain base64 JSON `{phone, exp}` with no signature. The public customer routes (`/api/v1/public/customer/session`, `orders`, `addresses`, `booking`, `password`, financial view) accept it as a bearer token, so anyone can forge one for any phone number and act as that customer.
+   - Callers: send-otp from the staff dashboard only (`upgrade-profile-modal.tsx`); verify from `customers` POST and `customers/[id]/upgrade`. The send route is behind the staff session (not in `PUBLIC_ROUTES`) but never reads the tenant.
+   - Receipts call the WhatsApp client (free text and image) and the email sender directly. Remote has 0 receipts. `org_rcpt_receipts_mst` keeps one channel and one status per row. `receipts/[id]/resend` reads `params` without `await`.
+   - No event existed for either message. HQ sends SMS and email from `rendered_body`, and WhatsApp only through a route per event (order source → customer opt-in → approved template).
+
+   **Design (decided 24 Nov):**
+   - **0820:** `sys_otp_codes.request_ip` plus a per-IP index. The `code` column holds an HMAC. Events `customer.otp_generated` (CUSTOMER, URGENT, SMS) and `order.receipt_sent` (ORDER, HIGH, EMAIL + WHATSAPP), each with an approved EN/AR template. `fn_ntf_short_retention_run`, run by the hourly pg_cron job `ntf-short-retention` (registered in `sys_ops_job_cf`), does three things, each capped at 5000 rows per tick:
+     - deletes OTP rows 24 h after they expire;
+     - replaces the code text in OTP outbox rows older than 24 h with `[removed]`;
+     - clears `request_data` of requests PROCESSED more than 30 days ago. FAILED requests keep their data while the dead letter can be redriven.
+   - **OTP send:**
+     - The route reads the staff session and tenant.
+     - The phone must parse with `normalizePhoneInput` and be in one of the six GCC countries (`OTP_ALLOWED_COUNTRIES`).
+     - Limits: per phone, a 60 s cooldown and at most 5 per hour; per IP, at most 30 per hour. Windows are counted on `expires_at`, which is UTC; `created_at` is database-local time.
+     - The code comes from `crypto.randomInt`, 6 digits. The stored value is HMAC-SHA256 of `phone:code` with the new env `OTP_HMAC_SECRET`, failing closed when it is missing.
+     - The SMS text comes from the template, in the customer's language when the customer is known, otherwise the tenant's.
+     - One transaction writes the OTP row, the outbox row and the `ntf.deliver` job:
+       - outbox row: SMS, source `otp` / the OTP row id, idempotency key `otp:<id>`, `max_retries` 2, metadata `expires_at`;
+       - `ntf.deliver` job: id = outbox id, priority 20, above every other send.
+     - It returns `202 {outboxId, expiresAt, phone (masked)}`.
+   - **OTP verify:** `timingSafeEqual` on the HMAC. The attempt counter is a conditional update (`attempts = n` → `n+1`), so parallel guesses cannot pass 3.
+   - **Verification token:** signed with HMAC (same secret, `v1.<payload>.<sig>`). Old unsigned tokens stop working. That is intended, since they were forgeable.
+   - **HQ API:** an outbox row whose metadata `expires_at` has passed is not sent (`POLICY_BLOCKED`, not retried), so a late OTP is dropped.
+   - **Receipts:** for each channel, one transaction writes an outbox row and its `ntf.deliver` job (priority 15):
+     - EMAIL: the receipt HTML, with the subject from the template.
+     - WHATSAPP: source = the order, so HQ checks the customer's opt-in and uses an HQ route of `order.receipt_sent`. Metadata carries `order_number`, `customer_name`, `total_amount`, `tracking_url`. The QR image is not sent: a template sends text only.
+     - Dedupe: an advisory lock on `receipt:<id>:<channel>`, plus "a row for this receipt and channel scheduled in the last 30 s" returns that row instead of a new one.
+     - `app` stays as it is.
+     - The send and resend routes return `202` with the outbox ids. Resend awaits `params` and stops calling the provider.
+   - **Status:** `GET /api/v1/notifications/outbox/[id]/status` (staff session, tenant-filtered) returns `{status, skipReason}` only, never provider errors.
+   - **Screens:** the upgrade modal and the receipt preview poll for up to 15 s and report sent / failed / still sending through `cmxMessage` (EN/AR).
+   - **Changed by the Owner (24 Nov): a code can go by SMS, WhatsApp or email**, and the staff member chooses. The code still verifies the customer's phone: both verify flows check the phone. An email code proves the email inbox, not the phone. The allowed-country rule applies to SMS and WhatsApp only. WhatsApp goes through an HQ route of `customer.otp_generated`, which HQ activates only with a Meta AUTHENTICATION template. The code travels in `metadata.variables.otp_code` (with `tenant_name` and `expires_minutes`, so any of the three can be bound); HQ's WhatsApp eligibility reads the OTP row (unverified and unexpired), and there is no opt-in because the person asked for the code. The route uses the tenant's language.
+   - Not built: a public OTP route for the customer app (none exists today), a per-tenant OTP cap, the customer's language for WhatsApp OTP (HQ picks the route by the tenant's language).
+
+   **Built (24 Nov):**
+   - **Migration 0822:**
+     - `sys_otp_codes.code` becomes TEXT;
+     - `customer.otp_generated` gains the WHATSAPP and EMAIL channels and their template rows;
+     - the purge also removes `metadata.variables.otp_code`.
+   - Dry-run (local, rolled back):
+     - `code` takes a 64-character value;
+     - the event has three channels and three template rows;
+     - an old WhatsApp OTP row loses its text and `otp_code` but keeps other values.
+   - **web-admin:**
+     - `lib/constants/otp.ts` (channels, GCC countries, limits, error codes);
+     - `lib/notifications/immediate-send.service.ts` (`queueImmediateSendTx`: outbox row + `ntf.deliver` job in the caller's transaction; priority OTP 20, receipt 15);
+     - `lib/services/otp.service.ts` rewritten (signed token, HMAC code, limits under an advisory lock, template text in the customer's or the tenant's language, attempt counted before the compare; unused `cleanupExpiredOTPs` / `invalidatePhoneOTPs` removed; the hourly purge replaces them);
+     - `app/api/v1/customers/send-otp/route.ts` (staff session, Zod, `202` or `{error, code}`);
+     - `app/api/v1/notifications/outbox/[id]/status/route.ts` (new);
+     - `lib/services/receipt-service.ts`: email and WhatsApp through the outbox, the 30 s dedupe by order and channel, the direct WhatsApp / email senders removed;
+     - receipt send and resend routes: `202` with `sends`, `params` awaited, the resend counter now tenant-filtered;
+     - `src/features/notifications/api/outbox-status-api.ts` + `hooks/use-outbox-delivery-report.ts` (polls 15 s, reports through `cmxMessage`);
+     - `upgrade-profile-modal.tsx` (channel choice, email field, coded errors, delivery report);
+     - `receipt-preview.tsx` + `use-receipts.ts` (report per channel);
+     - EN/AR keys under `customers.otp.*` and `receipts.messages.*`.
+   - **4c bug fixed here:**
+     - HQ fills WhatsApp template slots from `metadata.variables`, but campaign rows stored the values at the top of metadata, so campaign WhatsApp messages would have gone out with empty slots;
+     - `campaign-jobs.service.ts` now writes `metadata.variables`, and the cmx-workers test checks it.
+   - **HQ API:**
+     - `isExpired` in `outbox-delivery.service.ts`: a row whose `metadata.expires_at` has passed is dropped, not retried;
+     - WhatsApp eligibility: `otp` source branch;
+     - route resolution: a null customer uses the tenant's language;
+     - route activation requires AUTHENTICATION for `customer.otp_generated`.
+     - Twilio import (`twilio-content-importer.service.ts`): a `whatsapp/authentication` template gets its code slot `1`. It has no text, so placeholder scanning found no slot and the code could not be bound (spec added; provider-templates 56/56).
+   - **Tests:**
+     - web-admin `__tests__/lib/services/otp.service.test.ts` 7/7 (token round trip, forged and unsigned tokens refused, missing secret fails closed, hash, SMS/WhatsApp/email sends, country / email / phone refusals, cooldown and hourly limits);
+     - the auth-guard test no longer exempts `send-otp`;
+     - HQ routes + outbox-policy + outbox-delivery 53/53 (new: AUTHENTICATION route, OTP eligibility, `isExpired`).
+   - **New env:** `OTP_HMAC_SECRET` on web-admin (32+ characters). Without it, send, verify and every customer-token route fail closed.
+6. (Done early, 24 Nov: the inline WhatsApp send in `adapters/outbox.ts` and its switch `ntf.app.outbox_inline_dispatch`, because it ran in cmx-workers and failed every WhatsApp order message.) **Delete** the tenant provider adapters that call providers directly, `lib/integrations/whatsapp-client.ts`, and the `app/api/notifications/process-outbox` / `reconcile-outbox` / `process-campaigns` / `jobs/campaign-expansion` routes once their callers are gone (step 8 drops the SQL).
 7. **Tests** — cmx-workers integration: request → orchestrate → outbox row + deliver job; re-run writes nothing; campaign chunking; tenant isolation. web-admin Jest for the producer, OTP limits and the status route.
 
 ## HQ code (`cleanmatexsaas/platform-api`)

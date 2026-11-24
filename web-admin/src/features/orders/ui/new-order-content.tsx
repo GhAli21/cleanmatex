@@ -479,7 +479,6 @@ export function NewOrderContent() {
         // A product with a unit we cannot read yet is never added as a count: the server would refuse it as unmeasured.
         if (product.base_uom_code && !uomUnits.data) { cmxMessage.error(tUom('errors.GENERIC')); return; }
         if (uom) {
-          if (state.state.isEditMode) { cmxMessage.error(tUom('measure.editNotReady')); return; }
           setMeasureTarget({ product, uom });
           return;
         }

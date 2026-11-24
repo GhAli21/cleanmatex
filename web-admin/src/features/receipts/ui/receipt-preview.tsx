@@ -12,6 +12,7 @@ import { CmxButton, CmxCheckbox, CmxSelect, Label } from '@ui/primitives';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useReceipts, useSendReceipt } from '../hooks/use-receipts';
 import { useMessage } from '@ui/feedback/useMessage';
+import { useOutboxDeliveryReport } from '@features/notifications/hooks/use-outbox-delivery-report';
 import { Receipt, Send, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 interface ReceiptPreviewProps {
@@ -37,7 +38,8 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
   const { data: receipts } = useReceipts(orderId);
   const { mutate: sendReceipt, isPending: isSending } = useSendReceipt();
-  const { showSuccess, showError } = useMessage();
+  const { showSuccess, showError, showInfo } = useMessage();
+  const reportDelivery = useOutboxDeliveryReport();
 
   const receiptTypeOptions = [
     { value: 'whatsapp_text', label: t('receiptTypes.whatsapp_text') },
@@ -65,8 +67,27 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
         language,
       },
       {
-        onSuccess: () => {
-          showSuccess(t('messages.sendSuccess'));
+        onSuccess: ({ sends }) => {
+          const channelName = (code: string) =>
+            code === 'whatsapp' || code === 'email' || code === 'app' ? t(`deliveryChannels.${code}`) : code;
+          const queued = sends.filter((x) => x.outboxId);
+          if (queued.length > 0) showInfo(t('messages.queued'));
+          else if (sends.every((x) => !x.error)) showSuccess(t('messages.sendSuccess'));
+          for (const send of sends) {
+            const channel = channelName(send.channel);
+            if (send.outboxId) {
+              // Queued email / WhatsApp: report each channel once HQ has sent it or given up.
+              void reportDelivery(send.outboxId, {
+                sent: t('messages.channelSent', { channel }),
+                failed: t('messages.channelFailed', { channel }),
+                pending: t('messages.channelPending', { channel }),
+              });
+            } else if (send.error === 'NO_RECIPIENT_ADDRESS') {
+              showError(t('messages.channelNoAddress', { channel }));
+            } else if (send.error) {
+              showError(t('messages.channelFailed', { channel }));
+            }
+          }
         },
         onError: (error) => {
           showError(error.message || t('messages.sendFailed'));

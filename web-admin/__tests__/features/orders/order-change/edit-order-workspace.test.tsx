@@ -226,6 +226,30 @@ describe('shared edit workspace adapter', () => {
     expect(operations.some((operation) => operation.code === 'CHANGE_UNLISTED')).toBe(false);
   });
 
+  it('Measured Pricing P5: a stored measured line shows its unit and measure, and a re-measure becomes one CHANGE_ITEM_MEASURE', () => {
+    const base = context();
+    base.items[0] = { ...base.items[0], quantity: 1, uomCode: 'KG', uomDimension: 'MASS', uomSymbol: 'kg', uomSymbol2: null, uomQtyDecimals: 3,
+      measuredQty: '3.2', billedQty: '3.5', minBillableQty: '3', billingIncrement: '0.5' };
+    const mapped = mapChangeContextToEditBaseline(base);
+    if (!mapped.ok) throw new Error('baseline');
+    expect(mapped.baseline.lines[0].measure).toEqual({ measuredQty: '3.2' });
+    const visual = projectEditVisualOrder(base);
+    expect(visual.items[0]).toMatchObject({
+      uom: { code: 'KG', dimension: 'MASS', symbol: 'kg', minBillableQty: '3', billingIncrement: '0.5' },
+      measure: { measuredQty: '3.2', length: '', width: '' },
+    });
+    // A count line carries no unit or measure in the cart.
+    expect(visual.items[1].uom).toBeUndefined();
+    const run = (items: typeof visual.items) => {
+      const controller = createEditOrderController({ createId: () => 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' });
+      applyVisualDraftToController(controller, mapped.baseline, { notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com', items });
+      return controller.buildOperations();
+    };
+    expect(run(visual.items)).toEqual([]);
+    const remeasured = visual.items.map((item, index) => (index === 0 ? { ...item, measure: { measuredQty: '4.1', length: '', width: '' } } : item));
+    expect(run(remeasured)).toEqual([{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: ITEM_A }, payload: { measure: { measuredQty: '4.1' } } }]);
+  });
+
   it('P6-02e: a new catalog line sends the price the cart showed; an overridden line does not', () => {
     const mapped = mapChangeContextToEditBaseline(context());
     if (!mapped.ok) throw new Error('baseline');

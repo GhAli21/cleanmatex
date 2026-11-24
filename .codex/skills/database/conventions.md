@@ -121,6 +121,10 @@ Last file Seq+1 Not Timestamp
 1113_org_stng_create_settings_table.sql
 ```
 
+## Time and timezone
+
+Instants, including `created_at` and `updated_at`, are `timestamptz`. A business date is a `date` written once with the location zone, else the organization zone, and that IANA name is stored with it. Local times of day stay `time`. Full rule: `docs/dev/rules/time-and-timezone.md`.
+
 ## Example Table Creation
 
 ```sql
@@ -140,10 +144,10 @@ CREATE TABLE org_example_mst (
   example_icon VARCHAR(120),
 
   -- Audit fields
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by TEXT,
   created_info TEXT,
-  updated_at TIMESTAMP,
+  updated_at TIMESTAMPTZ,
   updated_by TEXT,
   updated_info TEXT,
   rec_status SMALLINT DEFAULT 1,
@@ -186,9 +190,9 @@ BEGIN
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
       %s,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       created_by VARCHAR(120),
-      updated_at TIMESTAMP,
+      updated_at TIMESTAMPTZ,
       updated_by VARCHAR(120),
       rec_status SMALLINT DEFAULT 1,
       is_active BOOLEAN NOT NULL DEFAULT true

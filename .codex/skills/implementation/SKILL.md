@@ -14,7 +14,8 @@ user-invocable: true
 4. **Review database conventions**: Use `/database` skill
 5. **for frontend rules follow**: Use `/frontend` skill
 6. **Review money-field behavior**: `docs/dev/rules/no-silent-money-mutation.md`
-7. **for dashboard route/action/API access changes follow**: `/rebuild-ui-access-contract` + `.cursor/rules/ui-access-contract-pattern.mdc` (`lib/constants/permissions/`, `*-access.ts`, gates)
+7. **Review time and timezone**: `docs/dev/rules/time-and-timezone.md`
+8. **for dashboard route/action/API access changes follow**: `/rebuild-ui-access-contract` + `.cursor/rules/ui-access-contract-pattern.mdc` (`lib/constants/permissions/`, `*-access.ts`, gates)
 
 ## Implementation Checklist
 
@@ -26,6 +27,7 @@ user-invocable: true
 - [ ] Plan API endpoints structure
 - [ ] Design UI components structure
 - [ ] Identify any user-editable money fields and apply `docs/dev/rules/no-silent-money-mutation.md`
+- [ ] Classify each date or time as an instant, a civil date, or a local time-of-day and apply `docs/dev/rules/time-and-timezone.md`
 
 ### Phase 2: Database
 - [ ] Check if tables exist (use table-check-workflow)
@@ -71,6 +73,7 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] Test CRUD operations
 - [ ] Test edge cases
 - [ ] Test money-entry flows against `docs/dev/rules/no-silent-money-mutation.md`
+- [ ] Test instants, business dates, and displayed clocks against `docs/dev/rules/time-and-timezone.md`
 - [ ] Update common_issues.md if new issues found
 
 ### Phase 6: Documentation
@@ -134,9 +137,11 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] New navigation entries updated in both `navigation.ts` AND `sys_components_cd` migration
 - [ ] New permission codes have a DB seed migration
 - [ ] No silent mutation of user-editable money fields; blocked/gated flows explain why and how to proceed
+- [ ] Instants are UTC; civil dates are stored once; operational screens format with the branch zone, else the organization zone (`docs/dev/rules/time-and-timezone.md`)
 
 ## Additional Resources
 
 - [prd-rules.md](./prd-rules.md) - PRD implementation rules
 - [code-review.md](./code-review.md) - Code review checklist
 - `docs/dev/rules/no-silent-money-mutation.md` - Canonical money-field behavior rule
+- `docs/dev/rules/time-and-timezone.md` - Canonical instant, civil-date, schedule, log, and audit timestamp rule

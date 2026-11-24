@@ -46,6 +46,7 @@ jest.mock('@/lib/services/workflow/initial-status-resolver.service', () => ({ Se
 jest.mock('@/lib/utils/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn() } }));
 jest.mock('@lib/notifications/event-emitter', () => ({ emitNotificationEvent: (...args: unknown[]) => mockNotify(...args) }));
 jest.mock('@lib/notifications/order-event-variables', () => ({ buildOrderCreatedNotificationVariables: (value: unknown) => value }));
+jest.mock('@lib/notifications/order-created-facts', () => ({ loadOrderCreatedFacts: async () => ({}) }));
 jest.mock('@/lib/utils/request-audit', () => ({ getRequestAuditContext: () => ({ userIp: '127.0.0.1', userAgent: 'WP01' }) }));
 
 const tenant = '11111111-1111-4111-8111-111111111111';

@@ -17,6 +17,16 @@ const operationBaseSchema = z.object({ seq: z.number().int().positive() }).stric
 const moneyTextSchema = z.string().regex(/^\d+(\.\d{1,4})?$/);
 
 /**
+ * What was measured on a measured line (Measured Pricing P5), as decimal text: a measure, or length and
+ * width for an area unit. Shape only; the unit's decimals, minimum and step are enforced by the server's resolver.
+ */
+const measureChangeSchema = z.object({
+  measuredQty: z.string().regex(/^\d+(\.\d{1,6})?$/).optional(),
+  length: z.string().regex(/^\d+(\.\d{1,6})?$/).optional(),
+  width: z.string().regex(/^\d+(\.\d{1,6})?$/).optional(),
+}).strict().refine((m) => m.measuredQty !== undefined || (m.length !== undefined && m.width !== undefined), 'A measure or a length and width is required');
+
+/**
  * A cashier discount on one line (P6-02c), as on Create (P5-03c) but always with
  * its reason. A percent has at most 2 decimals (`discount_rate` is NUMERIC(5,2)),
  * so the stored rate reads back exactly as reviewed.
@@ -47,10 +57,12 @@ const customItemChangeSchema = z.object({
 export const orderChangeOperationSchema = z.discriminatedUnion('code', [
   operationBaseSchema.extend({
     code: z.literal('ADD_ITEM'), target: orderTargetSchema,
-    payload: z.object({ clientRef: clientRefSchema, productId: uuidSchema.optional(), customItem: customItemChangeSchema.optional(), quantity: z.number().int().min(1).max(999), priceOverride: moneyTextSchema.optional(), overrideReason: z.string().max(500).optional(), serviceSpeed: serviceSpeedCodeSchema.optional(), lineDiscount: lineDiscountChangeSchema.optional(), confirmedUnitPrice: moneyTextSchema.optional() }).strict()
+    payload: z.object({ clientRef: clientRefSchema, productId: uuidSchema.optional(), customItem: customItemChangeSchema.optional(), quantity: z.number().int().min(1).max(999), priceOverride: moneyTextSchema.optional(), overrideReason: z.string().max(500).optional(), serviceSpeed: serviceSpeedCodeSchema.optional(), lineDiscount: lineDiscountChangeSchema.optional(), measure: measureChangeSchema.optional(), confirmedUnitPrice: moneyTextSchema.optional() }).strict()
       // A line is a catalog product or a custom item, never both; a custom item already has its entered price.
       .refine((value) => (value.productId !== undefined) !== (value.customItem !== undefined), { message: 'A line needs a product or a custom item, not both', path: ['productId'] })
       .refine((value) => value.customItem === undefined || value.priceOverride === undefined, { message: 'A custom item has no price override', path: ['priceOverride'] })
+      // A measure belongs to a catalog product (its unit decides whether it is required); a custom item is counted.
+      .refine((value) => value.measure === undefined || value.customItem === undefined, { message: 'A custom item has no measure', path: ['measure'] })
       // The price the cart showed (P6-02e) is confirmed only for a catalog price; an entered price is the one charged.
       .refine((value) => value.confirmedUnitPrice === undefined || (value.customItem === undefined && value.priceOverride === undefined), { message: 'Only a catalog price is confirmed', path: ['confirmedUnitPrice'] }),
   }),
@@ -66,6 +78,8 @@ export const orderChangeOperationSchema = z.discriminatedUnion('code', [
   // P6-02c: a stored line's cashier price (null returns it to its standard price); a set price needs its reason.
   operationBaseSchema.extend({ code: z.literal('CHANGE_ITEM_PRICE'), target: persistedItemTargetSchema, payload: z.object({ priceOverride: moneyTextSchema.nullable(), overrideReason: z.string().trim().min(1).max(500).optional() }).strict().refine((value) => value.priceOverride === null || value.overrideReason !== undefined, { message: 'A price override needs its reason', path: ['overrideReason'] }) }),
   // P6-02c: a stored line's cashier discount (null removes it).
+  // Measured Pricing P5: what was measured on a stored measured line; the server resolves the billed quantity.
+  operationBaseSchema.extend({ code: z.literal('CHANGE_ITEM_MEASURE'), target: persistedItemTargetSchema, payload: z.object({ measure: measureChangeSchema }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_DISCOUNT'), target: z.union([persistedItemTargetSchema, persistedPieceTargetSchema]), payload: z.object({ lineDiscount: lineDiscountChangeSchema.nullable() }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_READY_BY'), target: orderTargetSchema, payload: z.object({ readyBy: z.string().datetime({ offset: true }).nullable() }).strict() }),
   operationBaseSchema.extend({ code: z.literal('CHANGE_ORDER_NOTES'), target: orderTargetSchema, payload: z.object({ notes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional(), customerNotes: z.string().max(ORDER_CHANGE_LIMITS.MAX_ORDER_NOTE_LENGTH).optional() }).strict().refine((value) => value.notes !== undefined || value.customerNotes !== undefined, 'At least one note field is required') }),
@@ -97,10 +111,10 @@ export const orderChangeRequestSchema = z.object({
       }
       seen.add(operation.seq);
     });
-    // One price and one discount per line: each operation's audit is the line's final state.
+    // One price, one discount and one measure per line: each operation's audit is the line's final state.
     const lineMoney = new Set<string>();
     operations.forEach((operation, index) => {
-      if ((operation.code !== 'CHANGE_ITEM_PRICE' && operation.code !== 'CHANGE_DISCOUNT') || operation.target.kind !== 'PERSISTED_ITEM') return;
+      if ((operation.code !== 'CHANGE_ITEM_PRICE' && operation.code !== 'CHANGE_DISCOUNT' && operation.code !== 'CHANGE_ITEM_MEASURE') || operation.target.kind !== 'PERSISTED_ITEM') return;
       const key = `${operation.code}:${operation.target.id.toLowerCase()}`;
       if (lineMoney.has(key)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [index, 'target'], message: `${operation.code} may appear once per line` });
       lineMoney.add(key);

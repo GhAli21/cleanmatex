@@ -37,7 +37,7 @@ const EXEMPT = [
   /^app\/api\/v1\/public\//, // customer app and tracking links: own token auth
   /\/webhooks?\//, // provider callbacks: signature verification
   /^app\/api\/docs\/route\.ts$/, // public OpenAPI spec for the /api-docs Swagger viewer; no tenant data
-  /^app\/api\/v1\/customers\/(send-otp|verify-otp)\/route\.ts$/, // pre-session phone verification; rate-limited, no session yet
+  /^app\/api\/v1\/customers\/verify-otp\/route\.ts$/, // phone verification check; send-otp needs the staff session since 5d
   /^app\/api\/v1\/tenants\/(check-slug|register)\/route\.ts$/, // pre-session tenant signup flow
   /^app\/api\/(finance\/process-jobs|notifications\/(process-campaigns|process-outbox|reconcile-outbox))\/route\.ts$/, // pg_cron-driven internal jobs: Bearer {OUTBOX_SECRET}, not a user session
 ];

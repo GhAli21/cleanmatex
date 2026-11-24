@@ -234,6 +234,7 @@
       "ADD_ITEM": "Add an item",
       "REMOVE_ITEM": "Remove an item",
       "CHANGE_ITEM_QUANTITY": "Change item quantity",
+      "CHANGE_ITEM_MEASURE": "Change item measure",
       "ADD_PIECE": "Add a piece",
       "REMOVE_PIECE": "Remove a piece",
       "ADD_PREFERENCE": "Add a preference",
@@ -349,6 +350,9 @@
     },
     "fields": {
       "priceOverride": "Price override",
+      "measuredQty": "Measured",
+      "measureLength": "Length",
+      "measureWidth": "Width",
       "preferenceCharge": "Preference charge",
       "service": "Service",
       "pieceNumber": "Piece number",

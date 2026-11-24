@@ -364,7 +364,7 @@ export default function StockPage() {
                         item.qty_on_hand
                       )}
                     </TableCell>
-                    <TableCell className="px-4 py-3">{item.product_unit || '-'}</TableCell>
+                    <TableCell className="px-4 py-3">{item.base_uom_code ?? item.product_unit ?? "-"}</TableCell>
                     {branchId && (
                       <TableCell className="px-4 py-3 text-muted-foreground">{item.storage_location || '-'}</TableCell>
                     )}

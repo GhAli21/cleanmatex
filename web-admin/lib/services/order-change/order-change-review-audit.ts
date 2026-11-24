@@ -5,6 +5,7 @@
 
 import { createHash } from 'node:crypto';
 import { toMoneyString } from '@/lib/utils/money';
+import { toMoney } from '@/lib/commercial';
 import { reviewedItemTotal } from './order-change-edit-pricing';
 import { PREFS_LEVEL, PREFS_OWNER_TYPE, PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
 import type { OrderChangeContext } from '@/lib/types/order-change';
@@ -89,6 +90,11 @@ function itemFromContext(item: OrderChangeContext['items'][number]): Record<stri
     total_price: item.totalPrice,
     price_override: item.priceOverride,
     override_reason: item.overrideReason,
+    uom_code: item.uomCode,
+    measured_qty: item.measuredQty,
+    measure_length: item.measureLength,
+    measure_width: item.measureWidth,
+    billed_qty: item.billedQty,
     service_pref_charge: item.preferenceCharge,
     packing_pref_code: item.packingPreferenceCode,
     rec_status: 1,
@@ -198,6 +204,23 @@ function projectPreviewOperationRows(input: {
           price_override: operation.payload.priceOverride ?? null,
           override_reason: operation.payload.overrideReason ?? null,
           ...(operation.payload.lineDiscount ? lineDiscountAuditFields(operation.payload.lineDiscount) : {}),
+        }),
+      };
+    }
+    if (operation.code === 'CHANGE_ITEM_MEASURE') {
+      const before = itemById(operation.target.id) ?? {};
+      const line = lineFor(operation.target.id);
+      const { measuredQty, length, width } = operation.payload.measure;
+      return {
+        seq: operation.seq,
+        before,
+        after: compact({
+          ...before,
+          measured_qty: measuredQty ?? null,
+          measure_length: length ?? null,
+          measure_width: width ?? null,
+          price_per_unit: line?.unitPrice ?? before.price_per_unit,
+          total_price: line ? reviewedItemTotal(line) : before.total_price,
         }),
       };
     }
@@ -351,6 +374,11 @@ function amount(value: unknown): string | null {
   return value == null ? null : toMoneyString(String(value));
 }
 
+/** A measure as decimal text without trailing zeros, so the reviewed `3.2` and the stored `3.200000` agree. */
+function qty(value: unknown): string | null {
+  return value == null || value === '' ? null : toMoney(String(value)).toString();
+}
+
 function time(value: unknown): string | null {
   return value == null ? null : new Date(String(value)).toISOString();
 }
@@ -415,6 +443,14 @@ export function buildOrderChangeOperationAudit(input: {
       result.orderItemId = operation.target.id;
       result.priceOverride = amount(row.price_override);
       result.overrideReason = read(row, 'override_reason');
+      result.pricePerUnit = amount(row.price_per_unit);
+      result.totalPrice = amount(row.total_price);
+      money();
+    } else if (operation.code === 'CHANGE_ITEM_MEASURE') {
+      result.orderItemId = operation.target.id;
+      result.measuredQty = qty(row.measured_qty);
+      result.measureLength = qty(row.measure_length);
+      result.measureWidth = qty(row.measure_width);
       result.pricePerUnit = amount(row.price_per_unit);
       result.totalPrice = amount(row.total_price);
       money();

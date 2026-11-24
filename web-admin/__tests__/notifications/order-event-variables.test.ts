@@ -12,6 +12,14 @@ describe('buildOrderCreatedNotificationVariables', () => {
     expect(vars.estimated_ready_at).toBe(vars.date);
   });
 
+  it('adds customer name, items and tracking token only when known', () => {
+    const bare = buildOrderCreatedNotificationVariables({ orderNo: 'A' });
+    expect(bare).not.toHaveProperty('customer_name');
+    expect(bare).not.toHaveProperty('track_code');
+    const full = buildOrderCreatedNotificationVariables({ orderNo: 'A', customerName: 'Sara', orderItems: '2 × Shirt', trackCode: 'abc123' });
+    expect(full).toMatchObject({ customer_name: 'Sara', order_items: '2 × Shirt', track_code: 'abc123' });
+  });
+
   it('formats a date-only value as that calendar day, independent of the server zone', () => {
     const spy = jest.spyOn(Date.prototype, 'toLocaleDateString');
     const vars = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15', locale: 'en' });

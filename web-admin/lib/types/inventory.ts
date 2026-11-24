@@ -69,6 +69,7 @@ export interface InventoryItemListItem {
   product_name2: string | null;
   item_type_code: string | null;
   product_unit: string | null;
+  base_uom_code?: string | null;
   product_cost: number | null;
   default_sell_price: number | null;
   id_sku: string | null;

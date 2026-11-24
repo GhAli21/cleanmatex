@@ -26,14 +26,17 @@ import {
   buildCommercialChildRows,
   headerServiceSpeed,
   lineMoneyColumns,
+  lineUomColumns,
   type ChargeMeta,
+  type LineUomColumns,
   type LineMoneyColumns,
 } from './commercial-line.writer';
 import { writeOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
 
 /** The §6.1 columns of every active row, and the header facts that move with them. */
 export interface EditMoneyColumns {
-  items: ReadonlyMap<string, LineMoneyColumns>;
+  /** A new line also carries its unit snapshot; a stored line only its measure (its snapshot is what was sold). */
+  items: ReadonlyMap<string, LineMoneyColumns & Partial<LineUomColumns>>;
   pieces: ReadonlyMap<string, LineMoneyColumns>;
   /** `org_orders_mst.speed_premium_amount` */
   speedPremiumAmount: string;
@@ -54,14 +57,19 @@ export interface EditMoneyColumns {
  */
 export function editMoneyColumns(edit: EditQuote): EditMoneyColumns {
   const { result, prices, facts } = edit.quote;
-  const items = new Map<string, LineMoneyColumns>();
+  const items = new Map<string, LineMoneyColumns & Partial<LineUomColumns>>();
   const pieces = new Map<string, LineMoneyColumns>();
   for (const line of result.lines) {
     const price = prices.find((p) => p.lineId === line.lineId);
     const intent = edit.intent.lines.find((l) => l.lineId === line.lineId);
     if (!price || !intent) throw new Error(`The Edit quote has no price for line ${line.lineId}.`);
     const isOverride = intent.overrideUnitPrice != null;
-    items.set(line.lineId, lineMoneyColumns(line.item, line, price, isOverride, facts.pricingMode));
+    const uom = lineUomColumns(price);
+    // A stored line keeps the unit it was sold in (symbol, decimals); only what was measured and billed can move.
+    const uomColumns = intent.pinned
+      ? { measured_qty: uom.measured_qty, measure_length: uom.measure_length, measure_width: uom.measure_width, billed_qty: uom.billed_qty }
+      : uom;
+    items.set(line.lineId, { ...lineMoneyColumns(line.item, line, price, isOverride, facts.pricingMode), ...uomColumns });
     for (const piece of line.pieces) pieces.set(piece.rowId, lineMoneyColumns(piece, line, price, isOverride, facts.pricingMode));
   }
   const recounted = result.lines.some((line) => line.readyBy.source !== TURNAROUND_SOURCES.RECORDED);

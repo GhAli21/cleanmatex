@@ -141,6 +141,20 @@ describe('edit order controller', () => {
     expect(operations.find((operation) => operation.code === 'ADD_ITEM')?.payload).toMatchObject({ lineDiscount: { type: 'PERCENTAGE', value: '5.00', reason: 'Promo' } });
   });
 
+  it('Measured Pricing P5: a changed measure is one CHANGE_ITEM_MEASURE; the same measure sends nothing; a new measured item carries its measure', () => {
+    const controller = createEditOrderController({ createId: () => '12121212-1212-4121-8121-121212121212' });
+    const base = baseline();
+    controller.load({ ...base, lines: base.lines.map((line, index) => (index === 0 ? { ...line, measure: { measuredQty: '3.2' } } : line)) });
+    controller.setLineMeasure({ kind: 'persisted', id: ITEM_A }, { measuredQty: '3.200000' });
+    expect(controller.buildOperations()).toEqual([]);
+    controller.setLineMeasure({ kind: 'persisted', id: ITEM_A }, { measuredQty: '4.1' });
+    controller.addItem({ productId: PRODUCT, quantity: 1, measure: { length: '2', width: '1.5' } });
+    const operations = requestOf(controller).operations;
+    expect(operations.find((operation) => operation.code === 'CHANGE_ITEM_MEASURE')).toEqual(
+      { seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: ITEM_A }, payload: { measure: { measuredQty: '4.1' } } });
+    expect(operations.find((operation) => operation.code === 'ADD_ITEM')?.payload).toMatchObject({ measure: { length: '2', width: '1.5' } });
+  });
+
   it('cancels a local item that is removed before commit', () => {
     const controller = createEditOrderController({ createId: () => '12121212-1212-4212-8212-121212121212' });
     controller.load(baseline());

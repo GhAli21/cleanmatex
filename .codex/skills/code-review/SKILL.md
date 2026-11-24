@@ -19,6 +19,7 @@ Use this skill to review existing changes or diffs before accepting them.
 - tenant / auth / permission safety
 - API contract safety
 - money-field behavior safety (`docs/dev/rules/no-silent-money-mutation.md`)
+- time and timezone (`docs/dev/rules/time-and-timezone.md`): instants are UTC, civil dates are stored as dates, operational UI uses the branch zone or else the organization zone
 - UI design system (`docs/dev/rules/cmx-design-system.md`; for a full UI pass use the `cmx-ui-design-review` skill and `npm run check:ui`)
 - UI state handling:
   - loading

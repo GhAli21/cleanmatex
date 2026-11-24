@@ -11,6 +11,7 @@ import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getStockStatus, TRANSACTION_TYPES, ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import { legacyUnitToUomCode } from '@/lib/uom/legacy';
 import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
+import { assertQtyScale } from '@/lib/uom/scale';
 import { throwIfUomRule } from '@/lib/uom/errors';
 import type {
   InventoryItem,
@@ -120,7 +121,8 @@ export async function createInventoryItem(
     is_retail_item: true,
     item_type_code: request.item_type_code || 'RETAIL_GOODS',
     service_category_code: 'RETAIL_ITEMS',
-    product_unit: request.product_unit || 'piece',
+    // Legacy text kept in step with the unit code until Migration B.
+    product_unit: request.product_unit || (request.base_uom_code && request.base_uom_code !== UOM_DEFAULT_COUNT_CODE ? request.base_uom_code : 'piece'),
     product_cost: request.product_cost ?? 0,
     default_sell_price: request.default_sell_price ?? 0,
     id_sku: request.id_sku || null,
@@ -212,6 +214,7 @@ export async function updateInventoryItem(
   if (request.hint_text !== undefined) updateData.hint_text = request.hint_text;
   if (request.item_type_code !== undefined) updateData.item_type_code = request.item_type_code;
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
+  else if (request.base_uom_code !== undefined) updateData.product_unit = request.base_uom_code;
   if (request.base_uom_code !== undefined) updateData.base_uom_code = request.base_uom_code;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
   if (request.default_sell_price !== undefined) updateData.default_sell_price = request.default_sell_price;
@@ -461,6 +464,7 @@ export async function searchInventoryItems(
       product_name2: row.product_name2 as string | null,
       item_type_code: row.item_type_code as string | null,
       product_unit: row.product_unit as string | null,
+      base_uom_code: (row.base_uom_code as string | null) ?? null,
       product_cost: productCost,
       default_sell_price: row.default_sell_price != null ? Number(row.default_sell_price) : null,
       id_sku: idSku,
@@ -585,7 +589,7 @@ export async function adjustStock(
   // Get current item for product_cost and branch upsert fields
   const { data: item, error: itemError } = await supabase
     .from('org_product_data_mst')
-    .select('id, qty_on_hand, product_cost, reorder_point, min_stock_level, max_stock_level, last_purchase_cost, storage_location, id_sku')
+    .select('id, base_uom_code, qty_on_hand, product_cost, reorder_point, min_stock_level, max_stock_level, last_purchase_cost, storage_location, id_sku')
     .eq('tenant_org_id', tenantId)
     .eq('id', request.product_id)
     .eq('service_category_code', 'RETAIL_ITEMS')
@@ -594,6 +598,17 @@ export async function adjustStock(
 
   if (itemError || !item) {
     throw new Error('Inventory item not found');
+  }
+
+  // The quantity may carry only the decimals the item's unit allows (D11).
+  if (item.base_uom_code) {
+    const { data: unit } = await supabase
+      .from('org_uom_cf')
+      .select('qty_decimals')
+      .eq('tenant_org_id', tenantId)
+      .eq('uom_code', item.base_uom_code)
+      .maybeSingle();
+    if (unit) assertQtyScale(request.quantity, { code: item.base_uom_code, qtyDecimals: unit.qty_decimals });
   }
 
   // Get current branch-level quantity

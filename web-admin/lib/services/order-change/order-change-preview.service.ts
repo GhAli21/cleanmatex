@@ -35,6 +35,7 @@ import {
   editPricingErrorCode,
   editProjectionOf,
   lineMoneyChangesOf,
+  measureChangesOf,
   lockedSpeedLineIds,
   orderChangeNeedsPricing,
   reviewedItemTotal,
@@ -49,7 +50,7 @@ import { findEditPriceChanges, type EditPriceChangedLine } from '@/lib/services/
 import { DISCOUNT_CHANGE_OUTCOMES, DISCOUNT_REMOVED_GATE, discountRemovedGateCode, type DiscountChange } from '@/lib/services/commercial/edit-discount-reevaluation';
 import { ORDERS_PERMISSIONS } from '@/lib/constants/permissions/orders-perm';
 import { PRICE_OVERRIDE_ERRORS } from '@/lib/services/price-override-policy.service';
-import { sameLineDiscount, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
+import { sameLineDiscount, sameMeasure, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import {
   projectOrderChangeFinancialResult,
   type OrderChangeFinancialResult,
@@ -378,7 +379,7 @@ export async function previewOrderChange(input: {
   // A cashier price or discount (P6-02c) targets a stored line that stays on the order.
   const activeLineIds = new Set(structure.items.filter((item) => item.active).map((item) => item.id.toLowerCase()));
   const storedLineIds = new Set(input.context.items.map((item) => item.id.toLowerCase()));
-  const strayLineMoney = input.request.operations.find((operation) => (operation.code === 'CHANGE_ITEM_PRICE' || operation.code === 'CHANGE_DISCOUNT')
+  const strayLineMoney = input.request.operations.find((operation) => (operation.code === 'CHANGE_ITEM_PRICE' || operation.code === 'CHANGE_DISCOUNT' || operation.code === 'CHANGE_ITEM_MEASURE')
     && !(operation.target.kind === 'PERSISTED_PIECE'
       ? input.context.pieces.some((piece) => piece.id.toLowerCase() === operation.target.id.toLowerCase())
       : storedLineIds.has(operation.target.id.toLowerCase()) && activeLineIds.has(operation.target.id.toLowerCase())));
@@ -470,8 +471,14 @@ export async function previewOrderChange(input: {
       || (price.priceOverride !== null && price.overrideReason !== (item.overrideReason ?? null)));
     return priceMoved || (discounts.has(key) && !sameLineDiscount(discounts.get(key) ?? null, item.lineDiscount ?? null));
   });
+  // A measure equal to the stored one changes nothing (Measured Pricing P5).
+  const measures = measureChangesOf(input.request.operations);
+  const lineMeasureChanged = input.context.items.some((item) => {
+    const next = measures.get(item.id.toLowerCase());
+    return next !== undefined && !sameMeasure(next, { measuredQty: item.measuredQty, length: item.measureLength, width: item.measureWidth });
+  });
   const unlisted = input.request.operations.some((operation) => operation.code === 'CHANGE_UNLISTED');
-  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || lineSpeedChanged || lineMoneyChanged || pieceMoneyChanged || unlisted;
+  const createsChange = structure.createsChange || projectedPreferences.createsChange || header || lineSpeedChanged || lineMoneyChanged || lineMeasureChanged || pieceMoneyChanged || unlisted;
   const activeItemIds = structure.items.filter((item) => item.active).map((item) => item.id);
   if (!createsChange || denied) {
     return {

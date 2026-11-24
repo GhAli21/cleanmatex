@@ -50,6 +50,10 @@ rewrite money as a side effect of a toggle, mode switch, or dialog close —
 block the transition with guidance instead.
 Canonical source: `docs/dev/rules/no-silent-money-mutation.md`
 
+### Time and timezone (hard rule)
+
+Instants (created, posted, ready-by, promise expiry) stay UTC. The business day, opening hours, and ready-by promise are resolved in the branch zone, else the organization zone, and a system-assigned business date is stored once. Canonical source: `docs/dev/rules/time-and-timezone.md`.
+
 ### Base Pricing
 
 - Price per item based on service type

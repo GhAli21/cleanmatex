@@ -14,7 +14,7 @@ import { enqueueOutbox } from '@lib/notifications/adapters/outbox';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { renderChannelTemplate } from '@lib/notifications/template-renderer';
 import { resolveRecipientAddress } from '@lib/notifications/recipient-resolver';
-import { isOutboxInlineDispatchEnabled, isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
+import { isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
 import { NOTIFICATION_CHANNEL } from '@lib/notifications/types';
 import type { NotificationEvent } from '@lib/notifications/types';
 
@@ -23,7 +23,6 @@ jest.mock('@lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() 
 jest.mock('@lib/notifications/template-renderer', () => ({ renderChannelTemplate: jest.fn() }));
 jest.mock('@lib/notifications/recipient-resolver', () => ({ resolveRecipientAddress: jest.fn() }));
 jest.mock('@lib/notifications/config', () => ({
-  isOutboxInlineDispatchEnabled: jest.fn(),
   isWhatsappEmailFallbackEnabled: jest.fn(),
 }));
 jest.mock('@lib/notifications/settings-service', () => ({ notificationSettingsService: { getActiveProvider: jest.fn() } }));
@@ -60,7 +59,6 @@ describe('enqueueOutbox idempotency (row 1: same business occurrence processed t
     jest.clearAllMocks();
     jest.mocked(renderChannelTemplate).mockResolvedValue({ title: 'Order ready', body: 'Your order ORD-001 is ready', metadata: {} });
     jest.mocked(resolveRecipientAddress).mockResolvedValue('customer@example.com');
-    jest.mocked(isOutboxInlineDispatchEnabled).mockResolvedValue(false);
     jest.mocked(isWhatsappEmailFallbackEnabled).mockResolvedValue(false);
   });
 

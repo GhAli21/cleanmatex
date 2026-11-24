@@ -253,3 +253,84 @@ Campaigns now run as jobs: approving (or scheduling, starting, resuming) a campa
 17. Suspend the step 13 route in HQ, then send `POST /api/v1/notifications/campaigns` with that `template_code` and `channel_code: WHATSAPP`. **Expected:** 422 `CAMPAIGN_TEMPLATE_NOT_AVAILABLE`. A customer whose preferred language has no route for the template is blocked by HQ with "No active WhatsApp route is available for this delivery".
 
 **If not:** campaign stays **Approved** → `ntf.campaign_start` is off or cmx-workers is down (HQ → Ops → Jobs). Targets stay **Pending** with the channel switched off for the tenant → expected: the chunk checks again every 15 minutes until the channel is on or the campaign is cancelled.
+
+### 5.7 OTP and receipts (STEP5_PLAN item 5)
+
+**Database (Owner, now):**
+
+1. Apply `0820_ntf_otp_receipt_send.sql` on local, then remote. **Expected:** it commits. In SQL:
+   - `sys_otp_codes` has `request_ip` and index `idx_otp_ip_expires`;
+   - `sys_ntf_events_cd` has `customer.otp_generated` and `order.receipt_sent`;
+   - each has an APPROVED `.default` template: SMS for the OTP, EMAIL + WHATSAPP for the receipt;
+   - `cron.job` has `ntf-short-retention` at `23 * * * *`, and `sys_ops_job_cf` has the same row.
+2. After the next hour's minute 23: `select * from cron.job_run_details where command like '%short_retention%' order by start_time desc limit 1` shows `succeeded`. The 32 old test rows in `sys_otp_codes` (fixed code, expired) are gone.
+
+2a. Apply `0822_ntf_otp_channels.sql` on local, then remote, **before deploying the 5d code**. **Expected:**
+   - `sys_otp_codes.code` is `text`;
+   - `sys_ntf_event_chan_map` has SMS, WHATSAPP and EMAIL for `customer.otp_generated`;
+   - `sys_ntf_template_chan_dtl` has the same three rows for `customer.otp_generated.default`.
+
+**One-time setup (Owner):**
+
+- **`OTP_HMAC_SECRET`:** 64 random hex characters. Generate it with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (or `openssl rand -hex 32`). Set the same value on every web-admin environment that shares a database (Vercel Production and Preview, local `.env.local`). Changing it invalidates codes in flight and signs every customer out of the customer app. Never commit it.
+- **WhatsApp routes in HQ**, per Organization. SMS and email need none. Do this once per template and language:
+  1. In Twilio Content Template Builder, create the template and submit it to WhatsApp:
+     - **OTP:** Create new template → **WhatsApp authentication**. Fill in:
+       - the name (for example `customer_otp_en`);
+       - the language;
+       - **Code expiration** 5 minutes (it matches the app);
+       - **Add security recommendation** on;
+       - a **Copy code** button.
+       
+       Meta writes the text ("<code> is your verification code"); its one parameter is the code. HQ shows it as slot `1` (fixed 24 Nov; before that HQ found no slot).
+     - **Receipt:** category **Utility**, for example "Hello {{1}}, your receipt for order #{{2}}: total {{3}}. Track: {{4}}".
+     
+     Wait until Twilio shows it approved, then copy its Content SID (starts with `HX`).
+  2. HQ → Notifications → **Providers** → **Import Twilio template**:
+     - pick the verified account, the language, and the HQ template (`customer.otp_generated.default` or `order.receipt_sent.default`);
+     - paste the SID → **Fetch and review**;
+     - check that the category shows AUTHENTICATION or UTILITY;
+     - **Confirm import**.
+  3. On the imported revision → **Define bindings**: map each provider parameter to the typed variable.
+     - OTP: parameter 1 → `otp_code`.
+     - Receipt: `customer_name`, `order_number`, `total_amount`, `tracking_url`, in the template's order.
+     
+     The tenant sends exactly these keys (OTP also sends `tenant_name` and `expires_minutes`). Bindings cannot be changed later; a correction needs a new import.
+  4. HQ → Notifications → **Tenant config** → the Organization's WhatsApp row → **Routes** → **Add route**:
+     - choose the event (`customer.otp_generated` or `order.receipt_sent`) and the imported template revision;
+     - save → **Activate**.
+     - HQ refuses an OTP route whose template is not AUTHENTICATION. Repeat for Arabic if the Organization's language is Arabic: OTP routes use the Organization's language, and receipt routes use the customer's.
+
+**Order-created WhatsApp with a tracking button (`order_confirmation_with_track_link`, 24 Nov):** the order-created event now also sends `customer_name`, `order_items` (one line: "2 × Shirt, 1 × Dishdasha", at most 10 items) and `track_code` (the order's public tracking token), as well as `order_number`, `estimated_ready_at` and `date`. Needs web-admin and HQ API (edit a suspended route) and platform-web deployed.
+1. HQ → Notifications → Templates → `order.create_confirm`: create a new version whose English text uses all five keys, for example: `Hi {{customer_name}}, your order {{order_number}} is confirmed. Items: {{order_items}}. Ready: {{estimated_ready_at}}. Track: {{track_code}}`. Approve it. (Variables come from the placeholders of the latest approved version; v1 has no `track_code`, so its slot cannot be bound.)
+2. Providers → **Import Twilio template** → template `order.create_confirm`, language EN, SID `HX0cdf6c5865d51a1efd61fde52656a42c` → Fetch and review. **Expected:** 5 variables, including `track_code`, and a "creates a new revision" note. Confirm.
+3. On the new revision → **Define bindings**: each slot to the variable of the same name (`track_code`, `customer_name`, `order_number`, `order_items`, `estimated_ready_at`).
+4. Tenant config → Demo Laundry LLC → WhatsApp → **Routes**: on the `order.created` / en route, **Suspend**, then **Edit**, then pick the new revision, Save, then **Activate**. **Expected:** active. (Editing a suspended route is new; before, a route's template could never be switched, because one row per scope also blocks a new route after Retire.)
+5. Customer: phone with WhatsApp, language English (or empty when the Organization is English), and **WhatsApp notifications on** (customer → Preferences). Without the opt-in, HQ skips with "Customer has not opted in to WhatsApp notifications", as every recent WhatsApp order message on remote was.
+6. Create an order for that customer. **Expected:** within about a minute, a WhatsApp message with the name, order number, items and ready date, and a **Track Your Order** button opening `https://cmx.cleanmatex.com/track/<token>`. That page shows the order. The outbox row is `SENT`, and its `metadata.variables` holds the five values.
+7. To go back to the old template: Suspend → Edit → pick revision `order_created_v4` → Activate.
+
+**Code (Owner, after deploy):** needs:
+- web-admin, cmx-workers and HQ API deployed, and the `ntf.deliver` queue on;
+- `OTP_HMAC_SECRET` (32+ random characters) set on web-admin;
+- SMS, WhatsApp and Email switched on for the Organization (Settings → Notifications) for the channels you test.
+
+3. Customers → a stub customer → **Upgrade profile**. **Expected:** a **Send the code by** list (SMS, WhatsApp, Email).
+   - Keep SMS and send. **Expected:** the code-entry step opens at once. Within about 15 s a message says "Verification code sent". A real 6-digit SMS arrives, in Arabic when the customer's language is Arabic.
+   - In SQL, `sys_otp_codes.code` holds a 64-character hash, not the code.
+   - Enter the code. **Expected:** the profile is upgraded.
+4. Choose **Email**: an email field appears with the customer's email. Clear it and send. **Expected:** "Enter a valid email address…". With an address: the email arrives with the code.
+5. Choose **WhatsApp**. Without an HQ route for `customer.otp_generated`: the message ends with "could not be sent". HQ → Notifications → the Organization → Routes: add a route on `customer.otp_generated` with a **UTILITY** template. **Expected:** Activate refuses with "…AUTHENTICATION category". With an approved **AUTHENTICATION** template (its code variable bound to `otp_code`): activate it, send again. **Expected:** the WhatsApp code arrives.
+6. Send again at once. **Expected:** "Wait a minute before asking for a new code…". Six sends within one hour for the same phone: the sixth is refused.
+7. A customer with a phone outside the GCC (for example +44): SMS is refused with "Codes can only be sent to numbers in the countries we serve…". Email still works.
+8. Enter a wrong code 3 times, then the right one. **Expected:** the 4th try is refused. A new code then works.
+9. Stop HQ API, send a code, wait 6 minutes, start HQ API. **Expected:** no late message. The outbox row ends failed with "The message expired before it could be sent". The screen said "The code is still being sent…" after 15 s.
+10. Forged token: `GET /api/v1/public/customer/orders` with `Authorization: Bearer <base64 of {"phone":"+968…","exp":9999999999999}>`. **Expected:** 401. A token from a real customer login still works. Tokens issued before the deploy stop working (customers sign in again).
+11. Orders → an order → Receipts → tick WhatsApp and Email → Send. **Expected:**
+    - "The receipt is being sent." first, then within 15 s one message per channel: "Receipt sent by Email." / "Receipt sent by WhatsApp." or "could not be sent".
+    - The email holds the receipt.
+    - WhatsApp needs the customer's WhatsApp opt-in and an HQ route of `order.receipt_sent` (UTILITY template, variables `order_number`, `customer_name`, `total_amount`, `tracking_url`). Without them it reports "could not be sent".
+    - A customer without an email gets "The customer has no address for Email."
+    - Click Send twice within 30 s. **Expected:** one outbox row per channel.
+12. 25 hours after step 3: the OTP outbox rows have the text `[removed]`, and the WhatsApp one has no `otp_code` in `metadata.variables`.
+13. WhatsApp campaign regression (4c, QA 5.6 step 15): the outbox row's `metadata.variables` holds the campaign values, and the WhatsApp message arrives with them filled in.

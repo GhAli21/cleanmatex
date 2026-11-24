@@ -10,6 +10,8 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxRadio, CmxSelect, Label } from '@ui/primitives';
+import { useUomUnits } from '@features/uom/hooks/use-uom-units';
+import { isQtyScaleValid } from '@/lib/uom/scale';
 import { ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import { stockAdjustmentSchema } from '@/lib/validations/inventory-schemas';
 import { adjustStockAction } from '@/app/actions/inventory/inventory-actions';
@@ -37,6 +39,10 @@ interface AdjustStockModalProps {
 export default function AdjustStockModal({ item, onClose, onSuccess, branchId: initialBranchId, branches = [] }: AdjustStockModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
+  const tUom = useTranslations('uom');
+  const { data: units = [] } = useUomUnits(false);
+  // Decimals the item's unit allows (unknown unit: 3, the platform default).
+  const qtyDecimals = units.find((u) => u.code === (item.base_uom_code ?? ''))?.qtyDecimals ?? 3;
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +79,11 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
         reason: issues.fieldErrors.reason?.[0],
       });
       setError(issues.formErrors?.[0] ?? issues.fieldErrors.quantity?.[0] ?? issues.fieldErrors.reason?.[0] ?? null);
+      return;
+    }
+
+    if (!isQtyScaleValid(parsed.data.quantity, qtyDecimals)) {
+      setFieldErrors({ quantity: tUom('errors.UOM_QTY_SCALE') });
       return;
     }
 
@@ -154,7 +165,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">{t('labels.currentQty')}</p>
               <p className="text-2xl font-semibold tabular-nums">
-                {item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.product_unit}</span>
+                {item.qty_on_hand} <span className="text-sm font-normal text-muted-foreground">{item.base_uom_code ?? item.product_unit}</span>
               </p>
             </div>
 
@@ -179,7 +190,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
               <Label className="block mb-1">{t('labels.quantity')} <span className="text-danger-text">*</span></Label>
               <CmxInput
                 type="number"
-                step="0.01"
+                step={qtyDecimals > 0 ? `0.${'0'.repeat(qtyDecimals - 1)}1` : '1'}
                 min={action === ADJUSTMENT_ACTIONS.SET ? undefined : '0'}
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}

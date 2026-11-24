@@ -1,7 +1,7 @@
 /**
  * Receipts API - Generate and Send Receipt
  * POST /api/v1/receipts/orders/:orderId
- * Generates and sends receipt via specified channels
+ * Generates the receipt and queues it on the chosen channels (notification outbox, sent by HQ API)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,7 +17,7 @@ import { getAuthContext } from '@/lib/middleware/require-permission';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const authContext = await getAuthContext();
@@ -29,7 +29,7 @@ export async function POST(
     }
 
     const { tenantId } = authContext;
-    const { orderId } = params;
+    const { orderId } = await params;
     const body = await request.json();
     const { receiptTypeCode, deliveryChannels, language } = body;
 
@@ -55,10 +55,12 @@ export async function POST(
       );
     }
 
+    // 202: email / WhatsApp are queued; the screen follows each outboxId in `sends`.
     return NextResponse.json({
       success: true,
       receiptIds: result.receiptIds,
-    });
+      sends: result.sends,
+    }, { status: 202 });
   } catch (error) {
     return NextResponse.json(
       {
@@ -80,7 +82,7 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const authContext = await getAuthContext();
@@ -92,7 +94,7 @@ export async function GET(
     }
 
     const { tenantId } = authContext;
-    const { orderId } = params;
+    const { orderId } = await params;
 
     const receipts = await ReceiptService.getReceipts({
       orderId,

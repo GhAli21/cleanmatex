@@ -12,7 +12,7 @@ jest.mock('@lib/notifications/settings-service', () => ({ notificationSettingsSe
 jest.mock('@lib/notifications/whatsapp-customer-eligibility', () => ({ resolveWhatsAppCustomerEligibility: jest.fn() }));
 jest.mock('@lib/notifications/recipient-resolver', () => ({ resolveRecipientAddress: jest.fn() }));
 jest.mock('@lib/notifications/template-renderer', () => ({ renderChannelTemplate: jest.fn().mockResolvedValue({ title: 'Order', body: 'Created' }) }));
-jest.mock('@lib/notifications/config', () => ({ isOutboxInlineDispatchEnabled: jest.fn().mockResolvedValue(true), isWhatsappEmailFallbackEnabled: jest.fn().mockResolvedValue(true) }));
+jest.mock('@lib/notifications/config', () => ({ isWhatsappEmailFallbackEnabled: jest.fn().mockResolvedValue(true) }));
 jest.mock('@lib/notifications/adapters/whatsapp', () => ({ deliverWhatsAppOutbox: jest.fn() }));
 
 describe('production WhatsApp outbox consent', () => {
@@ -60,7 +60,10 @@ describe('production WhatsApp outbox consent', () => {
     expect(resolveWhatsAppCustomerEligibility).toHaveBeenCalledWith('tenant-a', 'order', 'order-a');
     expect(resolveRecipientAddress).not.toHaveBeenCalled();
     expect(inserted[0]).toMatchObject({ status: 'QUEUED', recipient_address: '+96890123456', metadata: { whatsapp_production_template: true } });
-    expect(deliverWhatsAppOutbox).toHaveBeenCalledWith(expect.objectContaining({ source_entity_type: 'order', source_entity_id: 'order-a', recipient_address: '+96890123456' }));
+    expect(inserted[0]).toMatchObject({ source_entity_type: 'order', source_entity_id: 'order-a' });
+    // The row waits for HQ API (ntf.deliver); nothing is sent from here.
+    expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
+    expect(updated).toHaveLength(0);
   });
 
   it('records denied consent as SKIPPED and never starts inline dispatch or email fallback', async () => {
@@ -79,20 +82,6 @@ describe('production WhatsApp outbox consent', () => {
     expect(inserted[0]).toMatchObject({ status: 'FAILED_TEMPORARY', recipient_address: null, next_retry_at: expect.any(String), metadata: { whatsapp_eligibility_pending: true } });
     expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
     expect(resolveRecipientAddress).not.toHaveBeenCalled();
-  });
-
-  it('persists inline consent revocation as SKIPPED without converting it to permanent failure', async () => {
-    jest.mocked(deliverWhatsAppOutbox).mockResolvedValue({ success: false, skipped: true, errorMessage: 'Consent revoked' });
-    await enqueueOutbox(event, 'WHATSAPP');
-    expect(updated.at(-1)).toMatchObject({ status: 'SKIPPED', skip_reason: 'Consent revoked' });
-    expect(inserted).toHaveLength(2);
-    expect(inserted[1]).toMatchObject({ outbox_id: 'outbox-a', status: 'SKIPPED', attempt_number: 1 });
-  });
-
-  it('does not dispatch when another processor already claimed the row', async () => {
-    canClaim = false;
-    await enqueueOutbox(event, 'WHATSAPP');
-    expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
   });
 
   it('keeps quiet-hours scheduled notifications queued until their due time', async () => {

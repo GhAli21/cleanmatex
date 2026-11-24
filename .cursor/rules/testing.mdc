@@ -26,6 +26,8 @@
 
 Apply `docs/dev/rules/no-silent-money-mutation.md` to payment, pricing, refund, wallet, voucher, and discount tests. Cover blocked transitions, inline explanations, and the absence of silent money rewrites.
 
+Apply `docs/dev/rules/time-and-timezone.md` when a change stores, compares, formats, schedules, logs, or audits a date or time. Cover a local-midnight instant, a missing operations zone, and durations as differences of instants.
+
 ```
         /\
        /E2E\      <- 10% - Critical user flows

@@ -1,11 +1,11 @@
 import { MONEY_BASIS } from '@/lib/constants/commercial';
 import type { OrderChangeContext, OrderChangeContextPreference } from '@/lib/types/order-change';
-import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '@features/orders/model/new-order-types';
+import type { OrderItem, OrderItemMeasure, OrderItemServicePref, PreSubmissionPiece } from '@features/orders/model/new-order-types';
 import type { EditUnlistedChange } from './change-builder';
 import { DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
 import { CUSTOM_ITEM_KEY_PREFIX } from '@features/orders/model/checkout-line-intent';
-import type { EditLineDiscountDraft, EditOrderBaseline, EditPieceDraft, EditPreferenceDraft, EditRowIdentity } from './edit-order-view-model';
-import { sameLineDiscount, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
+import type { EditLineDiscountDraft, EditMeasureDraft, EditOrderBaseline, EditPieceDraft, EditPreferenceDraft, EditRowIdentity } from './edit-order-view-model';
+import { sameLineDiscount, sameMeasure, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import type { EditOrderController } from './edit-order-controller';
 
 /** Header fields and the current cart. Review copies both into the Edit controller. */
@@ -80,6 +80,15 @@ export function projectEditVisualOrder(context: OrderChangeContext): {
         serviceCategoryCode: item.serviceCategoryCode ?? undefined,
         serviceSpeed: ownSpeed,
         piecePriced: item.moneyBasis === MONEY_BASIS.ROLLUP,
+        // A measured line (Measured Pricing P5): its unit as sold and what was measured, so staff can re-measure it.
+        ...(item.uomCode && item.uomDimension && item.uomDimension !== 'COUNT' ? {
+          uom: {
+            code: item.uomCode, dimension: item.uomDimension, qtyDecimals: item.uomQtyDecimals ?? 3,
+            symbol: item.uomSymbol ?? item.uomCode, symbol2: item.uomSymbol2 ?? null,
+            minBillableQty: item.minBillableQty ?? null, billingIncrement: item.billingIncrement ?? null,
+          },
+          measure: { measuredQty: item.measuredQty ?? '', length: item.measureLength ?? '', width: item.measureWidth ?? '' },
+        } : {}),
         // The line's cashier price and discount (P6-02c), editable from the cart like on Create.
         priceOverride: item.priceOverride == null ? null : Number(item.priceOverride),
         overrideReason: item.overrideReason ?? null,
@@ -174,6 +183,7 @@ function applyVisualLines(controller: EditOrderController, baseline: EditOrderBa
     syncPersistedLine(controller, line, current);
     const speed = lineSpeedOf(current, orderSpeed);
     if (speed && speed !== line.serviceSpeed) controller.setLineSpeed(line.identity, speed);
+    if (current.measure && lineMeasureChanged(line, current)) controller.setLineMeasure(line.identity, measureDraft(current.measure));
     if (linePriceChanged(line, current)) {
       controller.setLinePrice(line.identity, moneyOverride(current.priceOverride) ?? null, current.overrideReason ?? undefined);
     }
@@ -189,6 +199,7 @@ function applyVisualLines(controller: EditOrderController, baseline: EditOrderBa
         ? { customItem: { name: item.customItem.name, name2: item.customItem.name2, unitPrice: item.customItem.unitPrice.toFixed(4), serviceCategoryCode: item.serviceCategoryCode ?? null } }
         : { productId: item.productId }),
       quantity: item.quantity,
+      ...(item.measure && !item.customItem ? { measure: measureDraft(item.measure) } : {}),
       ...(override && !item.customItem ? { priceOverride: override } : {}),
       ...(item.overrideReason && !item.customItem ? { overrideReason: item.overrideReason } : {}),
       ...(item.serviceSpeed ? { serviceSpeed: item.serviceSpeed } : {}),
@@ -266,6 +277,7 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
     const speed = lineSpeedOf(current, orderSpeed);
     const movedByOrderSpeed = current.serviceSpeed == null && orderSpeed !== baseline.serviceSpeed;
     if (speed !== line.serviceSpeed && !movedByOrderSpeed) count += 1;
+    if (current.measure && lineMeasureChanged(line, current)) count += 1;
     if (linePriceChanged(line, current)) count += 1;
     if (!sameLineDiscount(line.lineDiscount ?? null, lineDiscountDraft(current))) count += 1;
     count += preferenceChangeCount(line.preferences, current.servicePrefs);
@@ -286,6 +298,20 @@ function visualLineChangeCount(baseline: EditOrderBaseline, items: readonly Orde
     }
   }
   return count;
+}
+
+/** The measure the cart holds as an Edit draft: only what was typed (blank parts are left out). */
+function measureDraft(measure: OrderItemMeasure): EditMeasureDraft {
+  return {
+    ...(measure.measuredQty ? { measuredQty: measure.measuredQty } : {}),
+    ...(measure.length ? { length: measure.length } : {}),
+    ...(measure.width ? { width: measure.width } : {}),
+  };
+}
+
+/** True when the cart's measure differs from the stored one (`3.2` and `3.200000` agree). */
+function lineMeasureChanged(line: EditOrderBaseline['lines'][number], item: OrderItem): boolean {
+  return !sameMeasure(line.measure, measureDraft(item.measure as OrderItemMeasure));
 }
 
 /** True when the cart's cashier price (or its reason) differs from the stored one (P6-02c). */

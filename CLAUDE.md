@@ -23,6 +23,7 @@ Less-frequent rules, role definition, inventories, skills catalog and doc index:
 | Dashboard route gating | `/refill-ui-access-contract-permissions` + `/rebuild-ui-access-contract` |
 | RBAC role create/update | `/update-rbac-role` |
 | New feature flag | `/create-feature-flag` |
+| Date, time, timezone, schedule, log or audit timestamp | `docs/dev/rules/time-and-timezone.md` |
 | WF Check-policy issue catalog | Switch to HQ, load `/manage-wf-policy-issues-catalog`; never hand-edit tenant `docs/features/Workflow_Order_Advance/generated/` |
 
 If you wrote code without the skill: stop, load it, verify, fix.
@@ -52,6 +53,7 @@ If you wrote code without the skill: stop, load it, verify, fix.
 15. Settings (`sys_stng_*`) and feature flags (`sys_feature_flags_*`) are consumed via HQ API — never queried directly here. Cross-project: `docs/dev/rules/integration-contracts.md`.
 16. Performance-relevant changes follow `docs/dev/rules/performance-engineering.md`.
 17. **Design system:** `docs/dev/rules/cmx-design-system.md` is the source for UI look and behaviour — theme tokens only (no palette classes, hex, `dark:`), logical RTL classes, paper `data-mode="LIGHT"`, states, a11y. Before UI work is done: `npm run check:ui` (0 errors on changed files) and `/cmx-ui-design-review`.
+18. **Time and timezone:** `docs/dev/rules/time-and-timezone.md`. Instants are UTC (`timestamptz`, RFC 3339 `Z`) through storage, APIs, jobs, logs, and audit. Convert only in the UI, with the branch zone or else the organization zone, after that zone is known. Civil dates and local times of day are stored as calendar facts and are not re-derived from UTC on read.
 
 ## Database quick rules
 - `sys_*` global, `org_*` tenant (RLS). Max 30 chars per object name. TEXT not VARCHAR. Numbers by class (`docs/dev/rules/numeric-precision.md`): amounts `DECIMAL(19,4)`, unit prices `(21,6)`, unit costs `(23,8)`, quantities `(21,6)`, conversion rates `(28,12)`.
@@ -60,6 +62,7 @@ If you wrote code without the skill: stop, load it, verify, fix.
 - `DROP … CASCADE` banned by default; use `RESTRICT` (`docs/dev/drop-cascade-migration-workflow.md`, ask first).
 - Audit fields `created_at/_by/_info`, `updated_at/_by/_info`; bilingual `name/name2`; soft delete `is_active=false, rec_status=0`.
 - No defaults for currency/country/city/timezone/locale columns.
+- Instants are `timestamptz`; civil dates are `date`; local times of day are `time`. Full rule: `docs/dev/rules/time-and-timezone.md`.
 - Prisma-safe composite FKs: child FK, 1:1 UNIQUE and parent key use the same column order; never `ON DELETE SET NULL` on a composite that includes `tenant_org_id`.
 - New ERP Lite objects/identifiers carry `erplt` (`org_erplt_fin_acct_mst`, `erplt_fin:read`, `ERPLT_FIN_ENABLED`).
 - Human-facing codes are DB-generated via `sys_doc_seq_type_cd` (`.claude/skills/database/conventions.md`).

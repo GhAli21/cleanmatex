@@ -95,6 +95,8 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
         service_category_code: true, quantity: true, price_per_unit: true, total_price: true,
         price_override: true, override_reason: true, service_pref_charge: true, packing_pref_code: true,
         service_speed: true, quantity_ready: true, ready_at: true,
+        uom_code: true, measured_qty: true, measure_length: true, measure_width: true, billed_qty: true,
+        uom_dimension: true, uom_symbol: true, uom_symbol2: true, uom_qty_decimals: true, min_billable_qty: true, billing_increment: true,
       },
     });
     const itemIds = new Set(items.map((item) => item.id));
@@ -222,6 +224,13 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
         priceOverride: item.price_override == null ? null : decimalText(item.price_override), overrideReason: item.override_reason,
         lineDiscount: lineDiscounts.get(item.id.toLowerCase()) ?? null, preferenceCharge: decimalText(item.service_pref_charge), packingPreferenceCode: item.packing_pref_code,
         serviceSpeed: item.service_speed, quantityReady: item.quantity_ready, readyAt: toIso(item.ready_at), active: true,
+        uomCode: item.uom_code, measuredQty: item.measured_qty == null ? null : decimalText(item.measured_qty),
+        measureLength: item.measure_length == null ? null : decimalText(item.measure_length),
+        measureWidth: item.measure_width == null ? null : decimalText(item.measure_width),
+        billedQty: item.billed_qty == null ? null : decimalText(item.billed_qty),
+        uomDimension: item.uom_dimension, uomSymbol: item.uom_symbol, uomSymbol2: item.uom_symbol2, uomQtyDecimals: item.uom_qty_decimals,
+        minBillableQty: item.min_billable_qty == null ? null : decimalText(item.min_billable_qty),
+        billingIncrement: item.billing_increment == null ? null : decimalText(item.billing_increment),
       })),
       pieces: pieces.map((piece) => ({ id: piece.id, orderId: piece.order_id, orderItemId: piece.order_item_id, pieceSeq: piece.piece_seq, pieceStatus: piece.piece_status, pieceStage: piece.piece_stage, scanState: piece.scan_state, serviceSpeed: piece.service_speed, lineDiscount: pieceDiscounts.get(piece.id.toLowerCase()) ?? null, active: true })),
       preferences: preferences.map((preference) => ({

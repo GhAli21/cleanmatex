@@ -2160,7 +2160,7 @@ model org_tenant_order_sources_cf {
 model sys_otp_codes {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone        String    @db.VarChar(50)
-  code         String    @db.VarChar(6)
+  code         String
   purpose      String    @db.VarChar(20)
   expires_at   DateTime  @db.Timestamp(6)
   verified_at  DateTime? @db.Timestamp(6)
@@ -2174,6 +2174,7 @@ model sys_otp_codes {
   rec_status   Int?      @default(1) @db.SmallInt
   rec_order    Int?
   rec_notes    String?
+  request_ip   String?
 
   @@index([expires_at], map: "idx_otp_expires")
   @@index([phone, expires_at], map: "idx_otp_phone")

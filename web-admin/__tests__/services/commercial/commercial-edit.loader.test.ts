@@ -57,6 +57,7 @@ import { activeTaxSetup, taxCodeColumns } from '../../helpers/tax-engine-fixture
 
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const SHIRT = 'aaaaaaaa-0000-0000-0000-000000000001';
+const SOAP_KG = 'aaaaaaaa-0000-0000-0000-000000000002';
 type Rec = Record<string, unknown>;
 
 /** Catalog reads behind the quote. */
@@ -66,6 +67,11 @@ function catalogDb(): CommercialDb {
     org_product_data_mst: [{
       id: SHIRT, service_category_code: 'LAUNDRY', price_type: 'PER_PC', default_sell_price: '2.000', min_sell_price: null,
       turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null,
+    }, {
+      // A measured product: kg, minimum 3, billed in steps of 0.5 (Measured Pricing).
+      id: SOAP_KG, service_category_code: 'LAUNDRY', price_type: 'PER_UNIT', default_sell_price: '5.000', min_sell_price: null,
+      turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null,
+      base_uom_code: 'KG', min_billable_qty: '3', billing_increment: '0.5',
     }],
     sys_service_speed_cd: [{ code: 'STANDARD' }],
     org_tax_profiles_cf: [{
@@ -74,7 +80,10 @@ function catalogDb(): CommercialDb {
     }],
     ...activeTaxSetup('VAT_STD'),
     sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
-    org_uom_cf: [{ uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: null, qty_decimals: 0 }],
+    org_uom_cf: [
+      { uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: null, qty_decimals: 0 },
+      { uom_code: 'KG', uom_dimension: 'MASS', unece_code: 'KGM', symbol: 'kg', symbol2: null, qty_decimals: 3 },
+    ],
     org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 0, branch_id: null }],
     sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 0 }],
     org_packing_preference_cf: [{ packing_pref_code: 'HANG', extra_price: '0.100' }],
@@ -495,3 +504,68 @@ describe('P6-01c Edit writes the calculated order', () => {
 });
 
 const toMoneyText = (value: string) => sumMoney([value]);
+
+describe('Measured Pricing P5: Edit re-measures a stored measured line', () => {
+  beforeEach(() => mockExtraMode.mockResolvedValue('INCLUDED_IN_ITEM_PRICE'));
+
+  /** An order with one 3.2 kg line (billed 3.5 kg at 5.000). */
+  async function measuredOrder() {
+    const request: CheckoutQuoteParams = {
+      tenantId: TENANT, items: [{ productId: SOAP_KG, quantity: 1, measure: { measuredQty: '3.2' } }],
+    } as CheckoutQuoteParams;
+    const checkout = await quoteCheckout({ db: catalogDb(), ...request });
+    const { tx, rows } = recordingTx();
+    const result = await OrderService.createOrderInTransaction(tx as never, {
+      tenantId: TENANT, customerId: 'cust-1', branchId: 'branch-1', orderTypeId: 'POS', userId: 'user-1', userName: 'Cashier',
+      currencyCode: 'OMR',
+      items: [{ productId: SOAP_KG, quantity: 1, pricePerUnit: 99, totalPrice: 99, measure: { measuredQty: '3.2' } }],
+      totals: { subtotal: checkout.totals.subtotal, total: checkout.totals.saleTotal },
+      commercial: checkout,
+    } as unknown as CreateOrderParams);
+    expect(result.success).toBe(true);
+    const record = await readEditOrderRecord(storedDb(rows), TENANT, rows.org_orders_mst[0].id as string);
+    return { rows, record, checkout };
+  }
+
+  it('reads the stored unit, measure and billed quantity of the line', async () => {
+    const { record } = await measuredOrder();
+    expect(record.items[0]).toMatchObject({ uomCode: 'KG', billedQty: '3.500000', measure: { measuredQty: '3.200000' }, minBillableQty: '3.000000', billingIncrement: '0.500000' });
+  });
+
+  it('no change: the line is priced on its stored measure, so the total is unchanged', async () => {
+    const { record, checkout } = await measuredOrder();
+    const edit = await quoteOrderEdit(catalogDb(), TENANT, record, unchanged(record), DEPS);
+    expect(edit.quote.result.totals.totalAmount.toFixed(4)).toBe(checkout.quote.result.totals.totalAmount.toFixed(4));
+    expect(edit.quote.result.lines[0].item.money.grossAmount.toFixed(4)).toBe('17.5000');
+  });
+
+  it('a new measure bills the new quantity at the stored unit price (4.1 kg → 4.5 kg → 22.5)', async () => {
+    const { record } = await measuredOrder();
+    const projection = unchanged(record);
+    const edit = await quoteOrderEdit(catalogDb(), TENANT, record, {
+      ...projection, lines: [{ ...projection.lines[0], measure: { measuredQty: '4.1' } }],
+    }, DEPS);
+    expect(edit.quote.result.lines[0].item.money.grossAmount.toFixed(4)).toBe('22.5000');
+    // A stored line keeps the unit it was sold in: only the measure columns are rewritten (never its symbol or decimals).
+    const columns = editMoneyColumns(edit).items.get(record.items[0].id);
+    expect(columns).toMatchObject({ measured_qty: '4.100000', billed_qty: '4.500000' });
+    expect(columns).not.toHaveProperty('uom_symbol');
+  });
+
+  it('a measure below the stored minimum is billed at the minimum', async () => {
+    const { record } = await measuredOrder();
+    const projection = unchanged(record);
+    const edit = await quoteOrderEdit(catalogDb(), TENANT, record, {
+      ...projection, lines: [{ ...projection.lines[0], measure: { measuredQty: '1' } }],
+    }, DEPS);
+    expect(edit.quote.result.lines[0].item.money.grossAmount.toFixed(4)).toBe('15.0000');
+  });
+
+  it('a count line refuses a measure (MEASURE_NOT_ALLOWED), nothing is dropped silently', async () => {
+    const { record } = await storedOrder();
+    const projection = unchanged(record);
+    await expect(quoteOrderEdit(catalogDb(), TENANT, record, {
+      ...projection, lines: [{ ...projection.lines[0], measure: { measuredQty: '2' } }],
+    }, DEPS)).rejects.toMatchObject({ code: 'MEASURE_NOT_ALLOWED' });
+  });
+});

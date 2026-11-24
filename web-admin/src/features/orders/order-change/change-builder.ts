@@ -4,12 +4,13 @@
  */
 
 import { isOrderChangeOperationWriterAvailable, resolveOrderChangeKnownFieldOperation } from '@/lib/constants/order-change';
-import { sameLineDiscount, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
+import { sameLineDiscount, sameMeasure, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import type { orderChangeRequestSchema } from '@/lib/validations/order-change/order-change.schemas';
 import type { z } from 'zod';
 import {
   identityKey,
   type EditLineDraft,
+  type EditMeasureDraft,
   type EditOrderBaseline,
   type EditPieceDraft,
   type EditPreferenceDraft,
@@ -152,6 +153,10 @@ function appendLineChanges(
   }
   // P6-02c: the line's cashier price and discount, sent only when they differ from the stored ones.
   const target = { kind: 'PERSISTED_ITEM' as const, id: baseline.identity.id };
+  // Measured Pricing P5: what was measured, sent only when it differs from the stored measure.
+  if (draft.measure && !sameMeasure(baseline.measure, draft.measure)) {
+    push({ code: 'CHANGE_ITEM_MEASURE', target, payload: { measure: draft.measure } });
+  }
   const priceChanged = !sameOptionalMoney(baseline.priceOverride ?? null, draft.priceOverride ?? null)
     || (draft.priceOverride != null && text(baseline.overrideReason) !== text(draft.overrideReason));
   if (priceChanged) {
@@ -213,6 +218,7 @@ function appendAddedLine(line: EditLineDraft, orderSpeed: string | undefined, pu
       // A custom line (P6-02d) carries its name and entered price instead of a product.
       ...(line.customItem ? { customItem: line.customItem } : { productId: line.productId }),
       quantity: line.quantity,
+      ...(line.measure && !line.customItem ? { measure: line.measure } : {}),
       ...(line.priceOverride ? { priceOverride: line.priceOverride, ...(line.overrideReason ? { overrideReason: line.overrideReason } : {}) } : {}),
       // A new line takes the order speed unless it has its own.
       ...(line.serviceSpeed && line.serviceSpeed !== orderSpeed ? { serviceSpeed: line.serviceSpeed } : {}),

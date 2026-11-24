@@ -217,9 +217,9 @@ CREATE TABLE IF NOT EXISTS org_example_mst (
   name2 VARCHAR(250),
 
   -- Audit fields
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by VARCHAR(120),
-  updated_at TIMESTAMP,
+  updated_at TIMESTAMPTZ,
   updated_by VARCHAR(120),
   is_active BOOLEAN DEFAULT true
 );

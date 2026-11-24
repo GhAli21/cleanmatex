@@ -12,7 +12,9 @@ import {
 import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import { TAX_CATEGORIES } from '@/lib/constants/commercial';
 import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
-import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
+import { CmxUomSelect } from '@ui/forms/cmx-uom-select';
+import { useUomUnits } from '@features/uom/hooks/use-uom-units';
+import { UOM_DEFAULT_COUNT_CODE } from '@/lib/constants/uom';
 import { createInventoryItemAction } from '@/app/actions/inventory/inventory-actions';
 import type { BranchOption } from '@/lib/services/inventory-service';
 
@@ -33,6 +35,7 @@ interface AddItemModalProps {
  */
 export default function AddItemModal({ onClose, onSuccess, branchId, branches = [] }: AddItemModalProps) {
   const t = useTranslations('inventory');
+  const { data: units = [] } = useUomUnits();
   const tc = useTranslations('common');
 
   const [saving, setSaving] = useState(false);
@@ -43,7 +46,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
   const [productName, setProductName] = useState('');
   const [productName2, setProductName2] = useState('');
   const [hintText, setHintText] = useState('');
-  const [productUnit, setProductUnit] = useState('piece');
+  const [productUnit, setProductUnit] = useState<string>(UOM_DEFAULT_COUNT_CODE);
   const [sku, setSku] = useState('');
 
   // Pricing
@@ -89,7 +92,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
       product_name: productName.trim(),
       product_name2: productName2.trim() || undefined,
       hint_text: hintText.trim() || undefined,
-      product_unit: productUnit,
+      base_uom_code: productUnit,
       product_cost: parseFloat(productCost) || 0,
       default_sell_price: parseFloat(sellPrice) || 0,
       min_sell_price: minSellPrice ? parseFloat(minSellPrice) : undefined,
@@ -123,11 +126,6 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
       setError(result.error || t('messages.createFailed'));
     }
   }
-
-  const unitOptions = Object.values(UNITS_OF_MEASURE).map((u) => ({
-    value: u,
-    label: t(`units.${u}`),
-  }));
 
   const selectedBranch = branchId ? branches.find((b) => b.id === branchId) : null;
 
@@ -190,11 +188,11 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={hintText}
                   onChange={(e) => setHintText(e.target.value)}
                 />
-                <CmxSelect
+                <CmxUomSelect
                   label={t('labels.unit')}
+                  units={units}
                   value={productUnit}
-                  onChange={(e) => setProductUnit(e.target.value)}
-                  options={unitOptions}
+                  onChange={setProductUnit}
                 />
                 <CmxInput
                   label={t('labels.sku')}

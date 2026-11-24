@@ -44,6 +44,11 @@
     "historyLoadFailed": "Could not load receipt history. Try again.",
     "channelRequired": "Select at least one delivery channel.",
     "sendSuccess": "Receipt sent successfully.",
-    "sendFailed": "Could not send the receipt. Try again."
+    "sendFailed": "Could not send the receipt. Try again.",
+    "queued": "The receipt is being sent.",
+    "channelSent": "Receipt sent by {channel}.",
+    "channelFailed": "The receipt could not be sent by {channel}.",
+    "channelPending": "The receipt is still being sent by {channel}.",
+    "channelNoAddress": "The customer has no address for {channel}."
   }
 }

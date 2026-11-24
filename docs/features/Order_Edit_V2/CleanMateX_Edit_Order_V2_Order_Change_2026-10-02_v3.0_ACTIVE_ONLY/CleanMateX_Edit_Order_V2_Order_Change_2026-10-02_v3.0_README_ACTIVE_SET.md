@@ -1,6 +1,6 @@
 # CleanMateX Edit Order V2 active source index
 
-Use the [v3.0 README](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_README.md) for the exact authority order and active specialized source links. The sole living plan is [Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md](Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md).
+Use the [v3.0 README](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_README.md) for the exact authority order and active specialized source links. The sole living plan is [Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md](Edit_Order_V2_Final_Implementation_Plan_Current_Codebase_v3.0.md). What is still open after WP18 code proof is indexed in [Remaining_Work_Index.md](Remaining_Work_Index.md). That index does not replace the living plan.
 
 All WP work must also follow [Implementation Governance](CleanMateX_Edit_Order_V2_Order_Change_2026-10-02_v3.0_Implementation_Governance.md), which owns reuse-first discovery, domain ownership, separation of concerns, legacy Edit migration/deprecation, architecture verification, documentation synchronization, and the WP Definition of Done.
 

@@ -22,6 +22,10 @@
 **i18n**
 - Translation keys, bilingual fields, RTL checks, locale currency/date
 
+**Time and timezone**
+- Instants are UTC `timestamptz` / RFC 3339 `Z`; civil dates are `date`; local times of day stay local (`docs/dev/rules/time-and-timezone.md`)
+- Operational UI uses the branch zone, else the organization zone, and does not paint an absolute date before that zone is known
+
 **User-facing feedback (web-admin)**
 - Applicable success/error/warning/info/confirm uses `cmxMessage` / `useMessage()` from `@ui/feedback`
 - No new legacy `showSuccessToast` / raw `toast()` / `alert()` in changed feature code

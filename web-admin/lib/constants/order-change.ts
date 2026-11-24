@@ -32,6 +32,7 @@ export const ORDER_CHANGE_OPERATION_CODES = [
   'CHANGE_ITEM_PRODUCT',
   'CHANGE_ITEM_SERVICE',
   'CHANGE_ITEM_PRICE',
+  'CHANGE_ITEM_MEASURE',
   'CHANGE_PIECE_BRAND',
   'CHANGE_PIECE_RACK',
   /** Residual fields require their own live catalog rule, just like every other operation. */
@@ -121,6 +122,7 @@ export function isOrderChangeOperationWriterAvailable(code: OrderChangeOperation
 /** Known editable fields must use their governed operation rather than a residual-rule permission. */
 const ORDER_CHANGE_KNOWN_FIELD_OPERATIONS: Readonly<Record<string, OrderChangeOperationCode>> = {
   productId: 'CHANGE_ITEM_PRODUCT', serviceCategoryCode: 'CHANGE_ITEM_SERVICE', pricePerUnit: 'CHANGE_ITEM_PRICE',
+  measuredQty: 'CHANGE_ITEM_MEASURE', measureLength: 'CHANGE_ITEM_MEASURE', measureWidth: 'CHANGE_ITEM_MEASURE',
   priceOverride: 'CHANGE_ITEM_PRICE', overrideReason: 'CHANGE_ITEM_PRICE', brand: 'CHANGE_PIECE_BRAND', rackLocation: 'CHANGE_PIECE_RACK',
   customerId: 'CHANGE_CUSTOMER', branchId: 'CHANGE_BRANCH', orderTypeId: 'CHANGE_ORDER_TYPE',
   express: 'CHANGE_EXPRESS', isQuickDrop: 'CHANGE_QUICK_DROP', quickDropQuantity: 'CHANGE_QUICK_DROP',
@@ -135,6 +137,7 @@ const ORDER_CHANGE_KNOWN_FIELD_OPERATIONS: Readonly<Record<string, OrderChangeOp
   isDefaultCustomer: 'CHANGE_CUSTOMER_SNAPSHOT', customerDetails: 'CHANGE_CUSTOMER_SNAPSHOT',
   'order.readyBy': 'CHANGE_READY_BY', readyBy: 'CHANGE_READY_BY',
   'item.productId': 'CHANGE_ITEM_PRODUCT', 'item.serviceCategoryCode': 'CHANGE_ITEM_SERVICE',
+  'item.measure': 'CHANGE_ITEM_MEASURE', 'item.measuredQty': 'CHANGE_ITEM_MEASURE',
   'item.pricePerUnit': 'CHANGE_ITEM_PRICE', 'item.priceOverride': 'CHANGE_ITEM_PRICE', 'item.overrideReason': 'CHANGE_ITEM_PRICE',
   'piece.brand': 'CHANGE_PIECE_BRAND', 'piece.rackLocation': 'CHANGE_PIECE_RACK',
   'item.packing': 'ADD_PREFERENCE', 'item.stain': 'ADD_PREFERENCE', 'item.stainNotes': 'ADD_PREFERENCE',

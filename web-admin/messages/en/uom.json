@@ -100,7 +100,6 @@
     "stepRule": "Billed in steps of {qty}",
     "minimumApplied": "Raised to the minimum for this item.",
     "incrementApplied": "Rounded up to the billing step.",
-    "editNotReady": "Measured items can't be added or re-measured while editing an order yet.",
     "lineNote": "measured {measured} · billed {billed}",
     "edit": "Change measure"
   },

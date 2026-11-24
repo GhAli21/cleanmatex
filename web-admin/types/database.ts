@@ -43750,6 +43750,7 @@ export type Database = {
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
+          request_ip: string | null
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
@@ -43768,6 +43769,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          request_ip?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
@@ -43786,6 +43788,7 @@ export type Database = {
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
+          request_ip?: string | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
@@ -52706,6 +52709,7 @@ export type Database = {
         Args: { p_new_secret: string }
         Returns: Json
       }
+      fn_ntf_short_retention_run: { Args: never; Returns: number }
       fn_ntf_soft_bounce_record: {
         Args: {
           p_address: string

@@ -49,8 +49,8 @@ const EMPTY_COMMERCIAL_FACTS: CommercialWriteFacts = {
 
 type ApplyRequest = z.infer<typeof orderChangeApplyRequestSchema>;
 
-/** A stored line's cashier price or discount (P6-02c): priced by the calculator, written on the line. */
-const LINE_MONEY_CODES: ReadonlySet<string> = new Set(['CHANGE_ITEM_PRICE', 'CHANGE_DISCOUNT']);
+/** A stored line's cashier price, discount (P6-02c) or measure (Measured Pricing P5): priced by the calculator, written on the line. */
+const LINE_MONEY_CODES: ReadonlySet<string> = new Set(['CHANGE_ITEM_PRICE', 'CHANGE_DISCOUNT', 'CHANGE_ITEM_MEASURE']);
 
 function finiteMoney(value: string | null | undefined): value is string {
   return value != null && value.trim() !== '' && Number.isFinite(Number(value));
@@ -257,6 +257,12 @@ interface ItemBeforeRow {
   total_price: string | null;
   price_override: string | null;
   override_reason: string | null;
+  /** What was measured and billed (Measured Pricing P5); null on a count line. */
+  uom_code?: string | null;
+  measured_qty?: string | null;
+  measure_length?: string | null;
+  measure_width?: string | null;
+  billed_qty?: string | null;
   /** The line's cashier discount (`MANUAL` rows), read only when the request sets one (P6-02c). */
   line_disc_type?: string | null;
   line_disc_value?: string | null;
@@ -367,6 +373,11 @@ function itemSnapshot(row: ItemBeforeRow): Record<string, unknown> {
     total_price: storedMoney(row.total_price),
     price_override: storedMoney(row.price_override),
     override_reason: row.override_reason,
+    uom_code: row.uom_code,
+    measured_qty: row.measured_qty,
+    measure_length: row.measure_length,
+    measure_width: row.measure_width,
+    billed_qty: row.billed_qty,
     line_disc_type: row.line_disc_type,
     line_disc_value: row.line_disc_value,
     line_disc_reason: row.line_disc_reason,
@@ -612,7 +623,9 @@ async function loadOperationBeforeFacts(
              price_override::text AS price_override, service_pref_charge::text AS service_pref_charge, service_speed,
              status, item_status, item_stage, item_is_rejected,
              notes, stain_notes, damage_notes, packing_pref_code, packing_pref_is_override, packing_pref_source,
-             has_stain, has_damage, rec_status
+             has_stain, has_damage, rec_status,
+             uom_code, measured_qty::text AS measured_qty, measure_length::text AS measure_length,
+             measure_width::text AS measure_width, billed_qty::text AS billed_qty
       FROM org_order_items_dtl
       WHERE id = ${itemId}::uuid
         AND tenant_org_id = ${tenantId}::uuid
@@ -711,7 +724,7 @@ function afterValuesFor(
     const created = createdRow(operation.payload.clientRef, rowData(structural?.itemInserts, operation.payload.clientRef));
     return operation.payload.lineDiscount ? { ...created, ...lineDiscountAuditFields(operation.payload.lineDiscount) } : created;
   }
-  if (operation.code === 'CHANGE_ITEM_PRICE') {
+  if (operation.code === 'CHANGE_ITEM_PRICE' || operation.code === 'CHANGE_ITEM_MEASURE') {
     return compact({ ...before, ...writtenFields(rowData(itemRows, operation.target.id)) });
   }
   if (operation.code === 'CHANGE_DISCOUNT') return { ...before, ...lineDiscountAuditFields(operation.payload.lineDiscount) };

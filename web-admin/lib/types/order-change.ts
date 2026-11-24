@@ -36,6 +36,19 @@ export interface OrderChangeContextItem {
   priceOverride: string | null;
   /** Why the cashier set `priceOverride` (`override_reason`). */
   overrideReason?: string | null;
+  /** The unit the line was sold in and what was measured and billed (Measured Pricing P5); null on a count line. */
+  uomCode?: string | null;
+  measuredQty?: string | null;
+  measureLength?: string | null;
+  measureWidth?: string | null;
+  billedQty?: string | null;
+  /** The unit as sold: its dimension, symbols, decimals and the minimum and step agreed at drop-off. */
+  uomDimension?: string | null;
+  uomSymbol?: string | null;
+  uomSymbol2?: string | null;
+  uomQtyDecimals?: number | null;
+  minBillableQty?: string | null;
+  billingIncrement?: string | null;
   /** The line's cashier discount (its `MANUAL` discount rows), or null (P6-02c). */
   lineDiscount?: { type: string; value: string; reason: string | null } | null;
   preferenceCharge: string;

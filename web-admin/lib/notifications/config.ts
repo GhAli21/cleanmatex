@@ -28,7 +28,6 @@ export const NTF_CONFIG_KEYS = {
   WA_USE_SANDBOX_TEMPLATE: { key: 'ntf.app.wa_use_sandbox_template', env: 'TWILIO_WHATSAPP_USE_SANDBOX_TEMPLATE' },
   WA_SANDBOX_CONTENT_SID: { key: 'ntf.app.wa_sandbox_content_sid', env: 'TWILIO_WHATSAPP_SANDBOX_CONTENT_SID' },
   WA_SANDBOX_TO_PHONE: { key: 'ntf.app.wa_sandbox_to_phone', env: 'TWILIO_WHATSAPP_SANDBOX_TO' },
-  OUTBOX_INLINE_DISPATCH: { key: 'ntf.app.outbox_inline_dispatch', env: 'NTF_OUTBOX_INLINE_DISPATCH' },
   TWILIO_SMS_FROM: { key: 'ntf.app.twilio_sms_from', env: 'TWILIO_SMS_FROM' },
   TWILIO_WHATSAPP_FROM: { key: 'ntf.app.twilio_whatsapp_from', env: 'TWILIO_WHATSAPP_FROM' },
   DISPATCH_VIA_HQ: { key: 'ntf.app.dispatch_via_hq', env: 'NTF_DISPATCH_VIA_HQ' },
@@ -78,11 +77,6 @@ export async function getTwilioWhatsappSandboxContentSid(): Promise<string | und
  */
 export async function getTwilioWhatsappSandboxToPhone(): Promise<string | undefined> {
   return getNtfConfig(NTF_CONFIG_KEYS.WA_SANDBOX_TO_PHONE)
-}
-
-/** When true, WhatsApp outbox rows are dispatched in-process instead of waiting for pg_cron. */
-export async function isOutboxInlineDispatchEnabled(): Promise<boolean> {
-  return getConfigBool(NTF_CONFIG_KEYS.OUTBOX_INLINE_DISPATCH, false)
 }
 
 /** Twilio SMS From number (E.164). */

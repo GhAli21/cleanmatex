@@ -25,6 +25,12 @@ agents:
 - Create test data for multiple tenants
 - Verify cross-tenant access is blocked
 
+### Time and Timezone Testing
+- Apply `docs/dev/rules/time-and-timezone.md` when a change stores, compares, formats, schedules, logs, or audits a date or time
+- Verify an instant near local midnight lands on the operations-zone business date
+- Verify a missing operations zone fails closed and the UI does not paint an absolute date first in another zone
+- Verify durations are differences of instants
+
 ### Money-Field Behavior Testing
 - Apply `docs/dev/rules/no-silent-money-mutation.md` for any payment, pricing, refund, wallet, discount, or voucher flow
 - Verify invalid money entry is prevented or clearly blocked
@@ -226,11 +232,13 @@ jest.mock('@/lib/db/tenant-context', () => ({
 - [ ] Input validation tests
 - [ ] RLS policy tests
 - [ ] Money-field rule tests: no silent mutation, blocked transitions, inline explanation, permission-gated guidance with permission name + code
+- [ ] Time and timezone tests from `docs/dev/rules/time-and-timezone.md` for every changed instant, civil date, schedule, or displayed clock
 
 ## Additional Resources
 
 - See [reference.md](./reference.md) for complete testing documentation
 - `docs/dev/rules/no-silent-money-mutation.md` - Canonical money-field behavior rule
+- `docs/dev/rules/time-and-timezone.md` - Canonical instant, civil-date, schedule, log, and audit timestamp rule
 
 ## Validating performance-sensitive changes
 

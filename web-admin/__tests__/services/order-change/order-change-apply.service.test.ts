@@ -86,6 +86,7 @@ function calculatedEdit(lines: Array<{ id: string; unitPrice: string; quantity?:
         lineId: line.id, productId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', serviceSpeed: line.speed ?? 'STANDARD',
         standard: { unitPrice: toMoney(line.unitPrice), source: 'PRODUCT_DEFAULT', priceListId: null, priceListItemId: null, priceListDiscountPercent: toMoney(0) },
         speed: { ruleId: null },
+        uom: { unit: { code: 'PC', dimension: 'COUNT', uneceCode: 'C62', symbol: 'pc', symbol2: null, qtyDecimals: 0 }, measure: null, priceType: 'PER_UNIT', minBillableQty: null, billingIncrement: null },
       })),
       facts: { pricingMode: 'TAX_EXCLUSIVE', speedRanks: new Map([['STANDARD', 2], ['EXPRESS', 4]]), taxProfileLabels: new Map([['vat', { label: 'VAT', label2: null }]]) },
       orderAdjustments: [],

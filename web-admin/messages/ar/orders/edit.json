@@ -234,6 +234,7 @@
       "ADD_ITEM": "إضافة صنف",
       "REMOVE_ITEM": "حذف صنف",
       "CHANGE_ITEM_QUANTITY": "تغيير كمية الصنف",
+      "CHANGE_ITEM_MEASURE": "تغيير قياس الصنف",
       "ADD_PIECE": "إضافة قطعة",
       "REMOVE_PIECE": "حذف قطعة",
       "ADD_PREFERENCE": "إضافة تفضيل",
@@ -349,6 +350,9 @@
     },
     "fields": {
       "priceOverride": "تجاوز السعر",
+      "measuredQty": "المقاس",
+      "measureLength": "الطول",
+      "measureWidth": "العرض",
       "preferenceCharge": "رسوم التفضيل",
       "service": "الخدمة",
       "pieceNumber": "رقم القطعة",

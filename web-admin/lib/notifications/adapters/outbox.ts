@@ -5,7 +5,6 @@
  * WHATSAPP → EMAIL fallback when phone/provider unavailable (see config.ts).
  */
 
-import { randomUUID } from 'node:crypto';
 import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { logger } from '@lib/utils/logger';
 import type { Database } from '@/types/database';
@@ -13,8 +12,7 @@ import type { NotificationEvent, OutboxStatus } from '@lib/notifications/types';
 import { NOTIFICATION_CHANNEL, OUTBOX_STATUS } from '@lib/notifications/types';
 import { renderChannelTemplate } from '@lib/notifications/template-renderer';
 import { resolveRecipientAddress } from '@lib/notifications/recipient-resolver';
-import { isOutboxInlineDispatchEnabled, isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
-import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
+import { isWhatsappEmailFallbackEnabled } from '@lib/notifications/config';
 import { notificationSettingsService } from '@lib/notifications/settings-service';
 import { isTwilioProductionTemplateProvider } from '@lib/notifications/adapters/whatsapp-template-config';
 import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility';
@@ -87,146 +85,6 @@ async function insertOutboxRow(
     throw new Error(`NTF_OUTBOX_INSERT_FAILED: ${error.message}`);
   }
   return data?.id ?? null;
-}
-
-/**
- * Send a just-queued WhatsApp row immediately so local/sandbox tests do not wait for pg_cron.
- * @param row Snapshot of the inserted outbox row
- */
-async function dispatchWhatsAppInline(row: {
-  id: string
-  tenant_org_id: string
-  recipient_address: string | null
-  rendered_body: string
-  rendered_subject: string | null
-  event_code: string | null
-  source_entity_type: string | null
-  source_entity_id: string | null
-  metadata?: Record<string, unknown> | null
-}): Promise<void> {
-  const supabase = createAdminSupabaseClient();
-  const claimToken = randomUUID();
-  const claimedAt = new Date();
-  const leaseExpiresAt = new Date(claimedAt.getTime() + 5 * 60_000).toISOString();
-  const { data: claimed, error: claimError } = await supabase
-    .from('org_ntf_outbox_dtl')
-    .update({
-      status: OUTBOX_STATUS.PROCESSING,
-      claim_token: claimToken,
-      claimed_by: 'notifications-inline-whatsapp',
-      lease_expires_at: leaseExpiresAt,
-      updated_at: claimedAt.toISOString(),
-    })
-    .eq('id', row.id)
-    .eq('tenant_org_id', row.tenant_org_id)
-    .eq('status', OUTBOX_STATUS.QUEUED)
-    .is('claim_token', null)
-    .is('reconcile_state', null)
-    .select('id, claim_token')
-    .maybeSingle();
-
-  // Only the worker that atomically claimed the queued row may call the provider.
-  if (claimError || !claimed || claimed.claim_token !== claimToken) return;
-
-  let result: Awaited<ReturnType<typeof deliverWhatsAppOutbox>>;
-  try {
-    result = await deliverWhatsAppOutbox({
-      id: row.id,
-      tenant_org_id: row.tenant_org_id,
-      recipient_address: row.recipient_address,
-      rendered_body: row.rendered_body,
-      rendered_subject: row.rendered_subject,
-      event_code: row.event_code,
-      source_entity_type: row.source_entity_type,
-      source_entity_id: row.source_entity_id,
-      retry_count: 0,
-      metadata: row.metadata,
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    // A thrown transport call may already have reached the provider. Keep its
-    // claim and require reconciliation instead of guessing that retry is safe.
-    await supabase
-      .from('org_ntf_outbox_dtl')
-      .update({
-        reconcile_state: 'ACCEPTANCE_UNCERTAIN',
-        error_message: errorMessage,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', row.id)
-      .eq('tenant_org_id', row.tenant_org_id)
-      .eq('status', OUTBOX_STATUS.PROCESSING)
-      .eq('claim_token', claimToken)
-      .is('reconcile_state', null);
-    return;
-  }
-
-  const finalStatus = result.skipped
-    ? OUTBOX_STATUS.SKIPPED
-    : result.success
-    ? OUTBOX_STATUS.SENT
-    : result.permanent
-      ? OUTBOX_STATUS.FAILED_PERMANENT
-      : OUTBOX_STATUS.FAILED_TEMPORARY;
-
-  const finalizedAt = new Date().toISOString();
-  const { data: finalized, error: finalizeError } = await supabase
-    .from('org_ntf_outbox_dtl')
-    .update({
-      status: finalStatus,
-      error_message: result.errorMessage ?? null,
-      skip_reason: result.skipped ? result.errorMessage ?? 'WhatsApp delivery skipped' : null,
-      sent_at: result.success ? finalizedAt : null,
-      finalized_at: finalizedAt,
-      claim_token: null,
-      claimed_by: null,
-      lease_expires_at: null,
-      reconcile_state: null,
-      ...(result.providerMessageId ? { provider_message_id: result.providerMessageId } : {}),
-      ...(finalStatus === OUTBOX_STATUS.FAILED_TEMPORARY ? {
-        retry_count: 1,
-        // Match the processor's first retry backoff so inline transport failures remain dispatchable.
-        next_retry_at: new Date(Date.now() + 15 * 60_000).toISOString(),
-      } : { next_retry_at: null }),
-      updated_at: finalizedAt,
-    })
-    .eq('id', row.id)
-    .eq('tenant_org_id', row.tenant_org_id)
-    .eq('status', OUTBOX_STATUS.PROCESSING)
-    .eq('claim_token', claimToken)
-    .is('reconcile_state', null)
-    .select('id')
-    .maybeSingle();
-
-  if (finalizeError || !finalized) return;
-
-  const { error: logError } = await supabase
-    .from('org_ntf_delivery_log_dtl')
-    .insert({
-      tenant_org_id: row.tenant_org_id,
-      outbox_id: row.id,
-      attempt_number: 1,
-      status: finalStatus,
-      provider_message_id: result.providerMessageId ?? null,
-      error_message: result.errorMessage ?? null,
-      logged_at: finalizedAt,
-      rec_status: 1,
-    });
-
-  if (logError) {
-    logger.error('outbox adapter: inline attempt audit write failed', new Error(logError.message), {
-      outboxId: row.id,
-      tenantOrgId: row.tenant_org_id,
-      feature: 'notifications',
-    });
-  }
-
-  logger.info('outbox adapter: inline WhatsApp dispatch', {
-    outboxId: row.id,
-    finalStatus,
-    errorMessage: result.errorMessage,
-    feature: 'notifications',
-  });
 }
 
 /**
@@ -451,25 +309,6 @@ export async function enqueueOutbox(
       },
     );
 
-    if (
-      outboxId &&
-      !skipReason &&
-      !eligibilityPending &&
-      scheduledAt.getTime() <= Date.now() &&
-      channelCode === NOTIFICATION_CHANNEL.WHATSAPP &&
-      await isOutboxInlineDispatchEnabled()
-    ) {
-      await dispatchWhatsAppInline({
-        id: outboxId,
-        tenant_org_id: event.tenantOrgId,
-        recipient_address: recipientAddress,
-        rendered_body: rendered.body,
-        rendered_subject: rendered.title,
-        event_code: event.code,
-        source_entity_type: event.sourceEntityType ?? null,
-        source_entity_id: event.sourceEntityId ?? null,
-        metadata,
-      });
-    }
+    // Sending is HQ API's job (ntf.deliver, queued by runNotificationRequest); never send from here.
   }
 }

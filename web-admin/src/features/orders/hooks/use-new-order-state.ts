@@ -165,8 +165,8 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemMeasure: (productId: string, measure: OrderItemMeasure) => {
-      // Order Edit changes a measure through its own operation (P5), never through the cart.
-      if (state.isEditMode) return;
+      // Order Edit: a stored line's measure is its own policy cell (CHANGE_ITEM_MEASURE / ITEM, Measured Pricing P5).
+      if (blocked('CHANGE_ITEM_MEASURE', 'ITEM')) return;
       dispatch({ type: 'UPDATE_ITEM_MEASURE', payload: { productId, measure } });
     },
 

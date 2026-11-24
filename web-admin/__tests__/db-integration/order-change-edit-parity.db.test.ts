@@ -119,6 +119,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
     const customerId = randomUUID();
     const shirt = randomUUID();
     const trouser = randomUUID();
+    const soap = randomUUID();
 
     await expect(prisma.$transaction(async (tx) => {
       (globalThis as { __editParityTx?: unknown }).__editParityTx = tx;
@@ -134,7 +135,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         const rules: Array<[string, string]> = [
           ['CHANGE_ORDER_NOTES', 'ORDER'], ['CHANGE_ITEM_QUANTITY', 'ITEM'], ['ADD_ITEM', 'ORDER'], ['REMOVE_ITEM', 'ITEM'],
           ['ADD_PREFERENCE', 'ITEM'], ['REMOVE_PREFERENCE', 'PREFERENCE'], ['CHANGE_SERVICE_SPEED', 'ORDER'], ['ADD_PIECE', 'ITEM'],
-          ['CHANGE_SERVICE_SPEED', 'ITEM'], ['CHANGE_ITEM_PRICE', 'ITEM'], ['CHANGE_DISCOUNT', 'ITEM'],
+          ['CHANGE_SERVICE_SPEED', 'ITEM'], ['CHANGE_ITEM_PRICE', 'ITEM'], ['CHANGE_DISCOUNT', 'ITEM'], ['CHANGE_ITEM_MEASURE', 'ITEM'],
           ['CHANGE_SERVICE_SPEED', 'PIECE'], ['CHANGE_DISCOUNT', 'PIECE'],
         ];
         for (const [code, target] of rules) {
@@ -159,6 +160,11 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
             default_sell_price, turnaround_hh, tax_category_code, is_active, rec_status)
           VALUES (${shirt}::uuid, ${tenantId}::uuid, ${`PAR-S-${shirt.slice(0, 8)}`}, 'Parity shirt', 'WASH_AND_IRON', 'PER_PC', 2, 24, 'STANDARD', true, 1),
                  (${trouser}::uuid, ${tenantId}::uuid, ${`PAR-T-${trouser.slice(0, 8)}`}, 'Parity trouser', 'WASH_AND_IRON', 'PER_PC', 5, 24, 'STANDARD', true, 1)`;
+        // A measured product (Measured Pricing P5): kg, minimum 3, billed in steps of 0.5, 5.000 per kg.
+        await tx.$executeRaw`
+          INSERT INTO public.org_product_data_mst(id, tenant_org_id, product_code, product_name, service_category_code, price_type,
+            default_sell_price, turnaround_hh, tax_category_code, base_uom_code, min_billable_qty, billing_increment, is_active, rec_status)
+          VALUES (${soap}::uuid, ${tenantId}::uuid, ${`PAR-K-${soap.slice(0, 8)}`}, 'Parity bulk soap', 'WASH_AND_IRON', 'PER_UNIT', 5, 24, 'STANDARD', 'KG', 3, 0.5, true, 1)`;
         await tx.$executeRaw`
           INSERT INTO public.org_speed_price_rules_cf(tenant_org_id, service_speed, product_id, speed_price_type, default_speed_sell_price,
             turnaround_hh_speed, effective_from, is_active, rec_status)
@@ -485,6 +491,31 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
           WHERE tenant_org_id = ${tenantId}::uuid AND id = ${customRef}::uuid AND rec_status = 1`)[0];
         expect(custom).toMatchObject({ product_id: null, product_name: 'Parity curtain' });
         expect(money(custom.total_price)).toBe(money(7.25));
+
+        // ─── 12b. Measured line (Measured Pricing P5): add with a measure, re-measure, minimum, count line refused ──
+        const soapRef = randomUUID();
+        const soapRow = async () => (await tx.$queryRaw<Array<{ uom_code: string; uom_symbol: string; measured_qty: string | null; billed_qty: string | null; total_price: string }>>`
+          SELECT uom_code, uom_symbol, measured_qty::text AS measured_qty, billed_qty::text AS billed_qty, total_price::text AS total_price
+          FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND id = ${soapRef}::uuid AND rec_status = 1`)[0];
+        await edit([{ seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: soapRef, productId: soap, quantity: 1, measure: { measuredQty: '3.2' } } }]);
+        // 3.2 kg in steps of 0.5 is billed 3.5 kg: 17.5.
+        expect(await soapRow()).toMatchObject({ uom_code: 'KG', uom_symbol: 'kg', billed_qty: '3.500000' });
+        expect(money((await soapRow()).total_price)).toBe(money(17.5));
+        await edit([{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: soapRef }, payload: { measure: { measuredQty: '4.1' } } }]);
+        expect(await soapRow()).toMatchObject({ uom_code: 'KG', uom_symbol: 'kg', measured_qty: '4.100000', billed_qty: '4.500000' });
+        expect(money((await soapRow()).total_price)).toBe(money(22.5));
+        // Below the minimum of 3 kg the line is billed the minimum.
+        await edit([{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: soapRef }, payload: { measure: { measuredQty: '1' } } }]);
+        expect(await soapRow()).toMatchObject({ measured_qty: '1.000000', billed_qty: '3.000000' });
+        expect(money((await soapRow()).total_price)).toBe(money(15));
+        const measureOps = await tx.$queryRaw<Array<{ target_type: string }>>`
+          SELECT target_type FROM public.org_order_change_ops_dtl
+          WHERE tenant_org_id = ${tenantId}::uuid AND order_item_id = ${soapRef}::uuid AND operation_code = 'CHANGE_ITEM_MEASURE'`;
+        expect(measureOps).toHaveLength(2);
+        expect(measureOps.every((row) => row.target_type === 'ITEM')).toBe(true);
+        // A count line is counted, not measured: the edit is refused, nothing is dropped silently.
+        const refused = await edit([{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: trouserLine.id }, payload: { measure: { measuredQty: '2' } } }], true);
+        expect(refused.preview.ok).toBe(false);
 
         // ─── 13. Price the cart showed (P6-02e): a stale price is listed, Apply charges today's ──
         const shownRef = randomUUID();

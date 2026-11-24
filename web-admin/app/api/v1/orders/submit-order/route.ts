@@ -44,6 +44,7 @@ import {
 } from '@/lib/utils/idempotency';
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
+import { loadOrderCreatedFacts } from '@lib/notifications/order-created-facts';
 import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
 import {
   extractThrownErrorDetails,
@@ -357,11 +358,13 @@ export async function POST(request: NextRequest) {
       recipientUserIds: [userId],
       sourceEntityType: 'order',
       sourceEntityId: result.order.id,
-      variables: buildOrderCreatedNotificationVariables({
-        orderNo: result.order.orderNo,
-        readyByAt: input.readyByAt,
-        timeZone: await getTenantTimeZone(),
-      }),
+      variables: await loadOrderCreatedFacts(tenantId, result.order.id).then(async (facts) =>
+        buildOrderCreatedNotificationVariables({
+          orderNo: result.order.orderNo,
+          readyByAt: input.readyByAt,
+          timeZone: await getTenantTimeZone(),
+          ...facts,
+        })),
     };
     await emitNotificationEvent(orderCreatedEvent);
 

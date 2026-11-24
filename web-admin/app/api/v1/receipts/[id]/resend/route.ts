@@ -1,7 +1,7 @@
 /**
  * Receipts API - Resend Receipt
  * POST /api/v1/receipts/:id/resend
- * Resends a failed receipt
+ * Queues the receipt again on its channel (notification outbox, sent by HQ API)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,7 +18,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authContext = await getAuthContext();
@@ -30,7 +30,7 @@ export async function POST(
     }
 
     const { tenantId } = authContext;
-    const { id: receiptId } = params;
+    const { id: receiptId } = await params;
     const supabase = await createClient();
 
     // Get receipt
@@ -64,23 +64,24 @@ export async function POST(
       deliveryChannels: [receipt.delivery_channel_code],
     });
 
-    if (!result.success) {
-      // Update retry count
-      await supabase
-        .from('org_rcpt_receipts_mst')
-        .update({
-          retry_count: receipt.retry_count + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', receiptId);
+    // Each resend counts toward max_retries, whatever the outcome (delivery itself is retried by HQ API).
+    await supabase
+      .from('org_rcpt_receipts_mst')
+      .update({
+        retry_count: receipt.retry_count + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', receiptId)
+      .eq('tenant_org_id', tenantId);
 
+    if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, sends: result.sends }, { status: 202 });
   } catch (error) {
     return NextResponse.json(
       {
