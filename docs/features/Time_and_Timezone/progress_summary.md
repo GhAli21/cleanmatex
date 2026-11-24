@@ -18,10 +18,11 @@ Nothing in application code. No migration file for this program exists yet.
 
 - Shared zone resolver and formatters (Phase 1).
 - Ready By read-path, lockout, and outbox schedule (Phase 2), after provenance.
-- Screen and print sweep (Phase 3).
+- Screen and print sweep, plus customer message text (Phase 3).
+- Routes, server actions, SQL functions, document numbers, pickers, exports, logs, `cmx-api`, and mobile (Phase 6).
 - The other naive event columns (Phase 4).
 - `created_at` / `updated_at` batches (Phase 5).
-- CI guard (Phase 6).
+- CI guard for `web-admin`, `cmx-api`, and new SQL (Phase 7).
 
 ## Counts that define the pending work
 

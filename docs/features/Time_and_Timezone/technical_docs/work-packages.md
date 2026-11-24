@@ -119,16 +119,113 @@ Prefix-sized migrations for the 398 `created_at` / `updated_at` columns. Skip a 
 - The same check fails on new `toISOString().slice(0, 10)` and unzoned `new Date('YYYY-MM-DD')` under `web-admin`.
 - The T and E cases that can run without a browser live next to `business-date` tests.
 
+## WP10 — HTTP APIs, webhooks, and Zod
+
+**Depends on** the parser from WP1.
+
+Refresh the route list, then change every hit. The 2026-11-24 start set includes:
+
+- `app/api/v1/orders/route.ts`, `orders/[id]/route.ts`, `orders/[id]/state/route.ts`
+- `app/api/v1/public/customer/booking/route.ts` and `public/customer/orders/route.ts`
+- `app/api/v1/delivery/routes/route.ts`
+- `app/api/v1/notifications/campaigns/route.ts` and `campaigns/[id]/status/route.ts`
+- `app/api/notifications/process-outbox/route.ts` and `process-campaigns/route.ts`
+- `app/api/v1/marketing/promotions/route.ts` and `promotions/[promoId]/route.ts`
+- `app/api/v1/finance/vouchers/route.ts` and `finance/reconciliation/runs/route.ts`
+- `app/api/v1/settings/tax/exemptions/route.ts`
+- `app/api/v1/customers/[id]/credit-note/issue/route.ts`
+- `app/api/v1/price-lists/route.ts`, `price-lists/[id]/route.ts`, `pricing/history/route.ts`
+- `app/api/v1/cash-drawers/trx/route.ts` and `variance-report/route.ts`
+
+An instant field accepts only RFC 3339 with an offset and is stored as UTC. A civil date accepts only `YYYY-MM-DD`. A shop appointment accepts civil fields and is converted with the branch zone, else the organization zone. Responses emit instants with `Z`. Webhook bodies follow the same two shapes. Zod schemas live next to those routes and reject the other shapes.
+
+**Done when** a fresh search of `web-admin/app/api` finds no write route that parses a date outside the shared parser.
+
+## WP11 — Server actions
+
+Same contract as WP10 for `web-admin/app/actions`. The 2026-11-24 start set includes promotions, gift cards, discount rules, loyalty, tax, refunds, reconciliation, drivers, cash drawers, payment methods, and terminals.
+
+**Done when** a fresh search of `app/actions` finds no action that builds a business date or an instant outside the shared helpers.
+
+## WP12 — SQL functions, triggers, views, and cron
+
+Search `supabase/migrations` and the live catalog (read-only) for functions and triggers that compare a `timestamp without time zone` to `now()`, cast an instant without an IANA zone, or call `AT TIME ZONE` with a session zone. Starting files: `0625`, `0630`, `0670`, `0807`, `0810`, `0715`, `0739`.
+
+Each hit is either already correct, fixed in a new migration, or listed with a reason it is civil. Do not edit an applied migration.
+
+**Done when** the function list is in `technical_docs/sql-clock-inventory.md` and every open hit has a new migration waiting for review.
+
+## WP13 — Document numbers
+
+`fn_doc_seq_next` in `0670_doc_seq_engine_fns.sql` uses the tenant timezone and, when that value is null or invalid, substitutes `hq_general_config.timezone`. A new migration replaces that fallback with a failure for tenant-scoped types. SYS and HQ types keep the HQ clock. Issued numbers are not rewritten. Callers in services must pass a real instant, not a naive wall clock.
+
+**Tests:** T9, and a case where the tenant zone is null and issue is refused.
+
+## WP14 — Date pickers, filters, and dialogs
+
+Refresh the picker list. Starting screens: order filters, report filters, processing filters, ready-by picker, promo and gift-card dialogs, FX rate dialog, voucher dialogs, B2B contract dialog, AR invoice wizard, tax setup, ERP Lite expenses and PO, reconciliation filters.
+
+Classify each control. A day filter submits `YYYY-MM-DD`. An appointment submits civil date and time. The server converts. The control does not send the result of the browser's `Date`.
+
+## WP15 — Customer message text
+
+`web-admin/lib/notifications/order-event-variables.ts` formats Ready By with `toLocaleDateString`. With no valid zone it uses the server zone. Templates for SMS, email, WhatsApp, and in-app text take the operations zone into that formatter. A missing zone omits the clock rather than printing the server's day. `delivery-policy.ts` remains the quiet-hours civil rule. The outbox instant stays WP4.
+
+## WP16 — Exports and imports
+
+Refresh export and import routes. Starting routes: `app/api/v1/customers/export`, `products/export`, `ar/invoices/export`, `pricing/export`, and the FX import tab. An instant column is RFC 3339 `Z`. A human-facing export also has the civil date and the zone id. An import row with a datetime and no zone is rejected.
+
+## WP17 — Logs and audit screens
+
+Log formatters in `web-admin`, `cmx-api/src/common/utils/logger.ts`, and `cmx_mobile_apps/packages/mobile_core/lib/src/app_logger.dart` write UTC ISO-8601. A line about a civil decision adds the zone id. Audit screens format the stored instant with the operations zone. They do not display the naive column when a `timestamptz` twin exists.
+
+## WP18 — Jobs besides the notification outbox
+
+`finance-jobs.service.ts`, the POS session rollover, and the background-job claim functions from `0807` and `0810` compare `timestamptz` to `now()`. A job defined as local time stores the civil rule and a materialized UTC fire time. Operator screens that show a UTC cron say UTC.
+
+## WP19 — `cmx-api`
+
+Search `cmx-api/src` again at the start of the package. The 2026-11-24 search matched the logger only. Any later controller, DTO, or service that accepts or returns a date uses the same contract as WP10. If the search is still empty aside from the logger, the package records that result and stops.
+
+## WP20 — Mobile apps
+
+`cmx_mobile_apps` booking, tracking, and `app_date_time_picker_widget.dart` submit civil fields for a shop appointment and display instants in the shop zone returned by the API. The phone zone is not the converter. Customer-facing strings stay in the app's EN and AR catalogs.
+
+## WP21 — HQ readers
+
+Before WP7 batch B6, and before any other column a platform worker reads, write `technical_docs/hq-readers.md`. Each row names the table, the column, and the HQ file or job. Converting that column waits until the list is reviewed. Changes inside `cleanmatexsaas` are a sibling pack. This tenant pack does not edit them.
+
+## WP22 — Page completeness
+
+Build the page list from `web-admin/app/dashboard/**/page.tsx` and the feature screens those pages render. Every page that shows a date is either on the WP6 list or marked as chrome that uses the organization zone on purpose. Operational pages pass `resolveOperationalTimeZone`. Settings pages that edit `org_tenants_mst.timezone` and `org_branches_mst.timezone_code` keep requiring an explicit choice. A cache key or a default of "today" includes the civil date and the zone id.
+
+**Done when** the page list is checked in as `technical_docs/page-clock-inventory.md` and every operational page is either migrated or has a written exception.
+
 ## Coverage checklist
 
-| Topic | This program |
+| Topic | Package |
 |---|---|
 | Permissions | None new |
 | Navigation | None new |
-| Settings | Existing organization `timezone` and branch `timezone_code`. No new default |
+| Settings screens | WP22. Existing zone fields. No new default |
 | Feature flags | None |
-| i18n | Missing-zone and rejected-datetime strings, EN and AR |
-| API | Reject offset-less instants at the boundary in WP1's parser, then call it from write routes the sweep touches |
-| Migrations | WP3, WP4, WP5, WP7, WP8. New files only. Not applied here |
-| Constants | IANA codes stay `sys_timezone_cd.code`. Do not add offset constants for conversion |
+| i18n | WP1, WP15, WP20. EN and AR |
+| HTTP API and webhooks | WP10 |
+| Server actions | WP11 |
+| Services | WP1, WP4, WP15, WP18 |
+| SQL functions, triggers, views, cron | WP12, WP13, WP18 |
+| Document numbers | WP13 |
+| Date pickers and filters | WP14 |
+| Pages, screens, print | WP6, WP22 |
+| Customer message text | WP15 |
+| Exports and imports | WP16 |
+| Logs and audit UI | WP17 |
+| `cmx-api` | WP19 |
+| Mobile apps | WP20 |
+| HQ readers | WP21, then a sibling pack |
+| Columns and migrations | WP3, WP4, WP5, WP7, WP8, WP12, WP13. New files only. Not applied here |
+| Constants | IANA codes stay `sys_timezone_cd.code` |
 | Env vars | None. Process `TZ=UTC` is an operations note in the deploy guide |
+| CI | WP9, and it covers `web-admin`, `cmx-api`, and new SQL |
+
+The surface map is [`surface-map.md`](./surface-map.md). A package that does not refresh its row on that map is not done.

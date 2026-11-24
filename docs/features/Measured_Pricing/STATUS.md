@@ -21,6 +21,12 @@ entering measures in a non-base unit (lb/ft) in the Measure dialog; UoM L2 with 
 
 **Owner (2026-11-24):** 0821 applied; HQ adds the policy rule for `CHANGE_ITEM_MEASURE`/ITEM; manual QA steps 25-30. **Next:** P5 (design in RESUME_CONTINUATION, section P5); P4 is closed apart from the two TODOs above; start P5 (Order Edit measure op). Earlier note: P3 is closed except Order Edit (P5) and cart `pricedQty` (P4); public APIs moved to P6. Start P4 (UI: unit picker, measure input, Units page). AMOUNT precision settled: `(19,4)` (doc corrected 2026-11-24).
 
+## Remaining to close the plan (2026-11-24, after P5)
+
+Code phases left: **P6** display/public (order detail, receipts, invoices, Order Fin View line rows, public tracking, public booking route still on `product_unit`); **P7** HQ uom-config + product config (`cleanmatexsaas`); **P8** mobile app (`cmx_mobile_apps`); **P9** Migration B, drop the legacy `product_unit` bridge (owner review, stop-and-wait); **P10** docs.
+Owner tasks: HQ policy rule `CHANGE_ITEM_MEASURE`/ITEM in each Edit policy draft; manual QA steps 1-30; commit.
+Open/minor: 10 `__tests__/features/orders` suites fail via barrel imports (pre-existing); `next build --webpack` not run for P5; optional migration to set the unused 0821 PIECE pair `is_active=false`; `CmxKeypadPopover` in the Measure dialog; non-base-unit entry (lb/ft); UoM L2 with ERP Lite PO. Decided: measure is line-level (ITEM only), no per-piece lengths.
+
 ## Session handoff — 2026-11-24
 
 **Done:** P1 migrations 0813–0815 and 0817 applied (local + remote), types and Prisma regenerated. P2 library closed. P3 mostly done: UoM service + 8 routes; order write path (measure intent → billed quantity → `uom_*` snapshot + measure columns); checkout and both request schemas accept `measure`; order split, tax-document items (billed quantity, `uom_code`, `uom_unece_code`), catalog, inventory and `/api/v1/products` (POST/PATCH) on `base_uom_code`, `min_billable_qty`, `billing_increment`. Gates: jest (commercial/uom/services/order-split/tax-document) 414 + `uom-http` 4 pass, tsc 0, eslint clean on changed folders.

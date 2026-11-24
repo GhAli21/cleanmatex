@@ -31,7 +31,7 @@ The shape to copy is `org_pos_sessions_mst`: `opened_at timestamptz`, `business_
 | You are | Read |
 |---|---|
 | Anyone (status) | [`current_status.md`](./current_status.md), [`progress_summary.md`](./progress_summary.md) |
-| Planner | [`development_plan.md`](./development_plan.md), [`technical_docs/work-packages.md`](./technical_docs/work-packages.md) |
+| Planner | [`development_plan.md`](./development_plan.md), [`technical_docs/work-packages.md`](./technical_docs/work-packages.md), [`technical_docs/surface-map.md`](./technical_docs/surface-map.md) |
 | Developer | [`developer_guide.md`](./developer_guide.md), [`developer_guide_mermaid.md`](./developer_guide_mermaid.md) |
 | Staff / admin | [`user_guide.md`](./user_guide.md), [`user_guide_mermaid.md`](./user_guide_mermaid.md) |
 | Whoever applies a migration | [`deploy_guide.md`](./deploy_guide.md) |
@@ -40,9 +40,9 @@ The shape to copy is `org_pos_sessions_mst`: `opened_at timestamptz`, `business_
 
 ## Scope
 
-In scope: `web-admin`, `cmx-api`, SQL functions shipped from this repo, workers that this repo owns, exports, receipts, notifications, and reports.
+In scope: every surface in [`technical_docs/surface-map.md`](./technical_docs/surface-map.md). That includes the database, SQL functions, jobs, services, HTTP APIs, webhooks, server actions, pages, screens, date pickers, print, customer message text, exports, logs, `cmx-api`, and the mobile apps.
 
-Out of scope for the first implementation pass: rewriting HQ (`cleanmatexsaas`) workers. Note the boundary in the work package and stop. A later HQ pack consumes the same rule.
+HQ application code is changed in the HQ repo. This pack still requires the reader list before a column those readers use is converted. A tenant package that skips a row on the surface map is incomplete.
 
 ## Non-negotiable
 

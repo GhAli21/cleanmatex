@@ -285,7 +285,6 @@ export async function createProduct(
       product_color3: request.product_color3 || null,
       product_icon: request.product_icon || null,
       product_image: request.product_image || null,
-      rec_notes2: null,
       rec_status: 1,
     })
     .select()
@@ -304,7 +303,6 @@ export async function createProduct(
     throw new Error('Failed to create product: no data returned');
   }
 
-  // Type assertion: Supabase returns all fields including rec_notes2 (even if null)
   return data as unknown as Product;
 }
 
@@ -384,7 +382,6 @@ export async function updateProduct(
     throw new Error('Failed to update product: no data returned');
   }
 
-  // Type assertion: Supabase returns all fields including rec_notes2 (even if null)
   return data as unknown as Product;
 }
 
@@ -430,7 +427,6 @@ export async function getProductById(id: string): Promise<Product> {
     throw new Error('Product not found');
   }
 
-  // Type assertion: Supabase returns all fields including rec_notes2 (even if null)
   return data as unknown as Product;
 }
 

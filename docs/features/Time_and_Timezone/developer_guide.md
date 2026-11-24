@@ -15,6 +15,8 @@ Read [`docs/dev/rules/time-and-timezone.md`](../../dev/rules/time-and-timezone.m
 
 `getTenantTimeZone` stays. Add a resolver beside it. Do not make the organization helper silently start returning a branch zone, or every screen that meant "organization" changes meaning.
 
+Every other layer is a required package, not a later idea. The checklist is [`technical_docs/surface-map.md`](./technical_docs/surface-map.md): SQL functions, document numbers, HTTP routes, webhooks, server actions, Zod, date pickers, pages, print, customer message text, exports, logs, `cmx-api`, mobile, and the HQ reader list.
+
 ## Resolver
 
 ```text

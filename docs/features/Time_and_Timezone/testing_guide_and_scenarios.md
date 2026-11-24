@@ -18,6 +18,12 @@ Zone under test: `Asia/Muscat` (UTC+4, no daylight saving) plus one daylight-sav
 | T8 | 3 | List that contains two branches in two zones. | Each row uses its own zone, and the zone abbreviation is visible. |
 | T9 | 1 | Create an order at 21:00Z with zone `Asia/Muscat`. | Business date and the day inside the order number are the next calendar day. |
 | T10 | 4 | Change the organization zone after T9. | The issued number and the stored business date stay. New orders use the new zone. |
+| T11 | 6 | Create an order when the organization zone is null. | No order number is issued. The error tells the user to set the zone. The HQ timezone is not used. |
+| T12 | 6 | Public booking for 17:00 from a phone set to another zone. | The stored instant is 17:00 in the branch zone. |
+| T13 | 6 | Order-created SMS, email, and WhatsApp for an order at 23:30 in Muscat. | The message names the Muscat calendar day. |
+| T14 | 6 | Download a customer export and an invoice export. | Instant columns end with `Z`. A human export also has the civil date and the zone id. |
+| T15 | 6 | Import an FX or other file whose datetime has no zone. | The row is rejected. |
+| T16 | 6 | Open the mobile booking schedule and the order tracking screen. | The shop clock is shown. The phone zone does not change the submitted appointment. |
 
 ## Edge
 

@@ -120,6 +120,12 @@ Dry run in a rolled-back transaction on local Postgres (23 Nov): all objects cre
      - the auth-guard test no longer exempts `send-otp`;
      - HQ routes + outbox-policy + outbox-delivery 53/53 (new: AUTHENTICATION route, OTP eligibility, `isExpired`).
    - **New env:** `OTP_HMAC_SECRET` on web-admin (32+ characters). Without it, send, verify and every customer-token route fail closed.
+   **Owner question (24 Nov): two WhatsApp messages after an order is created.** Today it is one per event: one route per tenant/event/channel/language (`uq_ntf_route_scope`; `template_code` only for `campaign.send`), and one outbox row per event/channel/source/recipient (idempotency key). Options:
+   - (A) one message with everything (`order_confirmation_with_track_link`). Recommended: WhatsApp bills per message, and two in a row raises block/report risk to the number's quality rating.
+   - (B) a second event (e.g. `order.tracking_link`) with its own template and route; submit-order emits both. Small migration + code.
+   - (C) several templates per event. Not recommended: routes, idempotency, HQ resolution and the CHECK all change.
+   
+   Waiting for the Owner; build B only if asked.
 6. (Done early, 24 Nov: the inline WhatsApp send in `adapters/outbox.ts` and its switch `ntf.app.outbox_inline_dispatch`, because it ran in cmx-workers and failed every WhatsApp order message.) **Delete** the tenant provider adapters that call providers directly, `lib/integrations/whatsapp-client.ts`, and the `app/api/notifications/process-outbox` / `reconcile-outbox` / `process-campaigns` / `jobs/campaign-expansion` routes once their callers are gone (step 8 drops the SQL).
 7. **Tests** — cmx-workers integration: request → orchestrate → outbox row + deliver job; re-run writes nothing; campaign chunking; tenant isolation. web-admin Jest for the producer, OTP limits and the status route.
 

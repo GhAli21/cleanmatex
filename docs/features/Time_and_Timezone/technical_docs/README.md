@@ -2,6 +2,7 @@
 
 | File | Contents |
 |---|---|
+| [`surface-map.md`](./surface-map.md) | Every required surface: database, SQL, jobs, APIs, actions, services, pages, pickers, messages, exports, logs, `cmx-api`, mobile, HQ |
 | [`column-inventory.md`](./column-inventory.md) | The 90 naive non-audit columns and the 398 audit columns, with the conversion class |
 | [`work-packages.md`](./work-packages.md) | Phase tasks, files, and stop conditions |
 

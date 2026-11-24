@@ -60,9 +60,26 @@ Convert one domain per migration: orders, notifications, delivery, finance, subs
 
 398 `created_at` / `updated_at` columns are still `@db.Timestamp`. They are last. Sample writers per table family. Many were filled by `now()` under a Muscat session; others were filled from a UTC ISO string. Mixed provenance inside one column is a stop: split the backfill, do not average the two interpretations.
 
-## Phase 6 — Guard
+## Phase 6 — Every other surface
 
-A check that fails CI when a new migration adds `timestamp without time zone` for an instant, and when feature code adds `toISOString().slice(0, 10)` or an unzoned `Date` parse for a business date. The test list in the rule becomes a permanent suite.
+The column and screen work is not the whole program. [`technical_docs/surface-map.md`](./technical_docs/surface-map.md) is the list. Each row has a package. A package starts by refreshing that row's file list, then changes every hit.
+
+Included here, not left as a follow-up:
+
+- HTTP routes, webhooks, and Zod inputs.
+- Server actions.
+- SQL functions, triggers, views, and cron, including the document-number function that today falls back to the HQ timezone.
+- Date pickers and filter bars.
+- The date and clock written inside SMS, email, WhatsApp, and in-app text.
+- CSV and other exports and imports.
+- Logs in `web-admin`, `cmx-api`, and the mobile apps.
+- `cmx-api` as its own pass.
+- Flutter booking, tracking, and the shared date picker.
+- A named list of HQ readers before any column those readers use is converted.
+
+## Phase 7 — Guard
+
+A check that fails CI when a new migration adds `timestamp without time zone` for an instant, and when feature code adds `toISOString().slice(0, 10)` or an unzoned `Date` parse for a business date. The same check covers `web-admin`, `cmx-api`, and new SQL functions. The test list in the rule becomes a permanent suite.
 
 ## Sequence
 
@@ -70,13 +87,14 @@ A check that fails CI when a new migration adds `timestamp without time zone` fo
 Phase 0 contract
     -> Phase 1 helpers and read-path
         -> Phase 2 provenance + lockout + outbox + ready-by
-            -> Phase 3 screens and prints
-                -> Phase 4 domain column batches
-                    -> Phase 5 audit stamps
-                        -> Phase 6 CI guard
+            -> Phase 3 screens, prints, and customer message text
+                -> Phase 6 routes, actions, SQL, jobs, exports, logs, API, mobile
+                    -> Phase 4 domain column batches
+                        -> Phase 5 audit stamps
+                            -> Phase 7 CI guard
 ```
 
-Phase 3 can overlap Phase 2 once the Ready By read-path in Phase 1 is done. Phase 4 does not overlap Phase 2 on the same column.
+Phase 3 and the read-only parts of Phase 6 can overlap Phase 2. Phase 4 does not overlap Phase 2 on the same column. Phase 6's document-number change is a new function migration and does not renumber issued codes. HQ application code stays in the HQ repo. This plan still blocks a tenant conversion until the HQ reader list exists.
 
 ## Explicitly not in this plan
 
@@ -86,4 +104,4 @@ Phase 3 can overlap Phase 2 once the Ready By read-path in Phase 1 is done. Phas
 - Renumbering issued orders.
 - Rewriting frozen `business_date` values.
 - A per-user display zone in the back office.
-- HQ worker changes, until a separate pack in `cleanmatexsaas`.
+- Editing HQ source during a tenant work package. The required HQ artifact is the reader list, then a sibling pack.

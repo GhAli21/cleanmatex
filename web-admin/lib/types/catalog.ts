@@ -106,7 +106,6 @@ export interface Product {
   product_icon: string | null;
   product_image: string | null;
   rec_order: number | null;
-  rec_notes2: string | null;
   rec_status: number;
   created_at: string;
   created_by: string | null;

@@ -16,11 +16,12 @@
 
 ## Next action
 
-Phase 1 in [`technical_docs/work-packages.md`](./technical_docs/work-packages.md): shared helpers, Ready By readers, and removal of the UTC-date fallback. No migration in that phase.
+Phase 1 in [`technical_docs/work-packages.md`](./technical_docs/work-packages.md): shared helpers, Ready By readers, and removal of the UTC-date fallback. No migration in that phase. The surface map is the completeness check for every later package.
 
 ## Evidence already on record
 
 - Background jobs F15: naive `scheduled_at` compared with `now()` under `Asia/Muscat`.
 - User session QA: lockout text said 255 minutes. `org_users_mst.locked_until` is `@db.Timestamp(6)`.
 - Line-level money snapshot QA: `ready_by` printed 06:00; `ready_by_at_new` is the 10:00 Muscat instant.
-- All Orders QA: first paint showed 1:00 PM, later paint showed 5:00 PM.
+- `fn_doc_seq_next` substitutes the HQ timezone when the tenant zone is missing or invalid. Tenant numbering will fail closed. That fix is a new migration, not an edit of `0670`.
+- Customer message text in `order-event-variables.ts` formats Ready By with `toLocaleDateString` and can fall through to the server zone.
