@@ -21,6 +21,8 @@ import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
 import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color-utils';
 import type { CartQuoteLine } from '@/lib/types/cart-quote';
+import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
+import { CartMeasureNote } from './cart-measure-note';
 import { ServiceSpeedSelect } from './service-speed-select';
 import { useServiceSpeeds } from '../hooks/use-service-speeds';
 import type { SpeedOptionPreviewSource } from '../hooks/use-speed-option-previews';
@@ -111,6 +113,10 @@ interface SummaryCartItemProps {
   itemId: string;
   productName: string;
   productName2?: string;
+  /** A measured line: its unit, what staff measured, and the re-measure action. */
+  uom?: OrderItemUom;
+  measure?: OrderItemMeasure;
+  onEditMeasure?: () => void;
   quantity: number;
   totalPrice: number;
   conditions?: string[];
@@ -136,6 +142,9 @@ function SummaryCartItemComponent({
   itemNumber,
   productName,
   productName2,
+  uom,
+  measure,
+  onEditMeasure,
   quantity,
   totalPrice,
   conditions = [],
@@ -408,6 +417,12 @@ function SummaryCartItemComponent({
           {pieceRows}
         </dl>
       ) : null}
+
+      {uom && (
+        <div className="px-2 pb-1 ps-8">
+          <CartMeasureNote uom={uom} measure={measure} quoted={quote?.line?.measure} onEdit={onEditMeasure} />
+        </div>
+      )}
 
       {quote?.line && expanded ? (
         <dl

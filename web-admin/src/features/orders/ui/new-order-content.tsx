@@ -68,8 +68,13 @@ import { PosSessionHub } from '@features/pos-sessions/ui/pos-session-hub';
 import type {
   Product,
   OrderItem,
+  OrderItemMeasure,
+  OrderItemUom,
   PreSubmissionPiece,
 } from '../model/new-order-types';
+import { MeasureLineDialog } from './measure-line-dialog';
+import { useUomUnits } from '@features/uom/hooks/use-uom-units';
+import { pricedQty } from '@/lib/utils/order-item-helpers';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { readyByBlockReason } from '@/lib/utils/ready-by-calculator';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
@@ -451,8 +456,34 @@ export function NewOrderContent() {
   // A line's own speed is its own policy cell (CHANGE_SERVICE_SPEED / ITEM, P6-02b).
   const lineSpeedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED'], 'ITEM');
 
+  // Measured products (kg, m, m²…) are added through the Measure dialog; the unit list decides which are measured.
+  const uomUnits = useUomUnits(true);
+  const tUom = useTranslations('uom');
+  const [measureTarget, setMeasureTarget] = useState<{ product: Pick<Product, 'id' | 'product_code' | 'product_name' | 'product_name2'>; uom: OrderItemUom } | null>(null);
+  const uomOf = useCallback(
+    (product: Product): OrderItemUom | null => {
+      const unit = uomUnits.data?.find((u) => u.code === product.base_uom_code);
+      if (!unit || unit.dimension === 'COUNT') return null;
+      return {
+        code: unit.code, dimension: unit.dimension, qtyDecimals: unit.qtyDecimals, symbol: unit.symbol, symbol2: unit.symbol2,
+        minBillableQty: product.min_billable_qty ?? null, billingIncrement: product.billing_increment ?? null,
+      };
+    },
+    [uomUnits.data],
+  );
+
   const handleAddItem = useCallback(
-    async (product: Product) => {
+    async (product: Product, measured?: { uom: OrderItemUom; measure: OrderItemMeasure }) => {
+      if (!measured) {
+        const uom = uomOf(product);
+        // A product with a unit we cannot read yet is never added as a count: the server would refuse it as unmeasured.
+        if (product.base_uom_code && !uomUnits.data) { cmxMessage.error(tUom('errors.GENERIC')); return; }
+        if (uom) {
+          if (state.state.isEditMode) { cmxMessage.error(tUom('measure.editNotReady')); return; }
+          setMeasureTarget({ product, uom });
+          return;
+        }
+      }
       const isNewRetail =
         product.service_category_code === 'RETAIL_ITEMS' ||
         (product as { is_retail_item?: boolean }).is_retail_item;
@@ -523,7 +554,9 @@ export function NewOrderContent() {
         productName2: product.product_name2,
         quantity: 1,
         pricePerUnit,
-        totalPrice: pricePerUnit + servicePrefCharge,
+        ...(measured ? { uom: measured.uom, measure: measured.measure } : {}),
+        // pre-quote estimate; the server quote line is what the cart shows
+        totalPrice: pricedQty({ quantity: 1, ...measured }) * pricePerUnit + servicePrefCharge,
         defaultSellPrice: product.default_sell_price ?? null,
         serviceCategoryCode: product.service_category_code || undefined,
         servicePrefs:
@@ -548,9 +581,24 @@ export function NewOrderContent() {
       trackByPiece,
       trackItemAddition,
       t,
+      tUom,
+      uomOf,
+      uomUnits.data,
       autoApplyCustomerPrefs,
       servicePrefs,
     ],
+  );
+
+  /** Measure dialog confirm: a measured product already in the cart is re-measured, else added. */
+  const confirmMeasure = useCallback(
+    (measure: OrderItemMeasure) => {
+      if (!measureTarget) return;
+      const { product, uom } = measureTarget;
+      setMeasureTarget(null);
+      if (state.state.items.some((i) => i.productId === product.id)) state.updateItemMeasure(product.id, measure);
+      else void handleAddItem(product as Product, { uom, measure });
+    },
+    [measureTarget, state, handleAddItem],
   );
 
   const handleRemoveItem = useCallback(
@@ -795,6 +843,8 @@ export function NewOrderContent() {
           notes: item.notes,
           pieces: item.pieces,
           piecePriced: item.piecePriced,
+          uom: item.uom,
+          measure: item.measure,
           conditions,
           hasStain,
           hasDamage,
@@ -1037,6 +1087,10 @@ export function NewOrderContent() {
     // Bags
     bags: state.state.bags,
     onBagsChange: state.setBags,
+    onEditItemMeasure: (productId: string) => {
+      const item = state.state.items.find((i) => i.productId === productId);
+      if (item?.uom) setMeasureTarget({ product: { id: item.productId, product_code: item.productId, product_name: item.productName, product_name2: item.productName2 }, uom: item.uom });
+    },
     // Edit item preferences — piece-level preferences tab (track-by-piece) or Order Items tab, focused on the item
     onEditItemPreferences: (itemId: string) => {
       if (trackByPiece) {
@@ -1545,6 +1599,14 @@ export function NewOrderContent() {
           onRemove={() => state.setItemLineDiscount(discountItem.productId, null)}
         />
       ) : null}
+      <MeasureLineDialog
+        open={!!measureTarget}
+        productName={measureTarget ? getBilingual(measureTarget.product.product_name, measureTarget.product.product_name2) || measureTarget.product.product_code : ''}
+        uom={measureTarget?.uom ?? { code: '', dimension: 'MASS', qtyDecimals: 0, symbol: '', symbol2: null, minBillableQty: null, billingIncrement: null }}
+        initial={measureTarget ? state.state.items.find((i) => i.productId === measureTarget.product.id)?.measure : undefined}
+        onConfirm={confirmMeasure}
+        onClose={() => setMeasureTarget(null)}
+      />
     </section>
   );
 }

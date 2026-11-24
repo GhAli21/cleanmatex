@@ -46,6 +46,23 @@ export function checkoutLineIntentOf(item: OrderItem, gates: CheckoutIntentGates
   };
 }
 
+/**
+ * The measure of a measured cart line, as every request sends it (decimal text; empty fields are left out).
+ * A count line has none. The server computes the billed quantity and refuses a missing or invalid measure.
+ * @param item the cart line
+ * @returns `{ measuredQty }` or `{ length, width }`, or null for a count line
+ * @example measureOf(kgLine); // { measuredQty: '3.2' }
+ */
+export function measureOf(item: Pick<OrderItem, 'uom' | 'measure'>) {
+  if (!item.uom) return null;
+  const { measuredQty, length, width } = item.measure ?? { measuredQty: '', length: '', width: '' };
+  return {
+    ...(measuredQty ? { measuredQty } : {}),
+    ...(length ? { length } : {}),
+    ...(width ? { width } : {}),
+  };
+}
+
 /** Cart key prefix of a custom item: its `productId` in the cart is never a catalog id. */
 export const CUSTOM_ITEM_KEY_PREFIX = 'custom:';
 
@@ -70,6 +87,7 @@ export function checkoutLineOf(item: OrderItem, gates: CheckoutIntentGates) {
       }
       : { productId: item.productId }),
     quantity: item.quantity,
+    measure: measureOf(item),
     priceOverride: item.priceOverride ?? null,
     ...checkoutLineIntentOf(item, gates),
   };

@@ -404,7 +404,6 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         key: 'catalog_units',
         label: 'Units & Conversions',
         path: '/dashboard/catalog/units',
-        roles: ['super_admin', 'tenant_admin'],
         permissions: ['uom:view'],
       },
     ],

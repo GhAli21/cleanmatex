@@ -41,6 +41,7 @@ jest.mock('@/lib/services/pricing-mode-resolver.service', () => ({
 import { TAX_ENGINE_MODELS, activeTaxSetup, taxCodeColumns } from '../../helpers/tax-engine-fixtures';
 const TENANT = '11111111-1111-1111-1111-111111111111';
 const SHIRT = 'aaaaaaaa-0000-0000-0000-000000000001';
+const SOAP_KG = 'aaaaaaaa-0000-0000-0000-000000000002';
 
 /** A read-only Prisma mock; `findMany` calls are counted per model. */
 function mockDb() {
@@ -49,6 +50,10 @@ function mockDb() {
     org_product_data_mst: [{
       id: SHIRT, service_category_code: 'LAUNDRY', price_type: 'PER_PC', default_sell_price: '2.000', min_sell_price: null,
       turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null,
+    }, {
+      id: SOAP_KG, service_category_code: 'LAUNDRY', price_type: 'PER_UNIT', default_sell_price: '5.000', min_sell_price: null,
+      turnaround_hh: '24', tax_category_code: 'STANDARD', tax_exempt_reason: null,
+      base_uom_code: 'KG', min_billable_qty: '3', billing_increment: '0.5',
     }],
     sys_service_speed_cd: [{ code: 'STANDARD' }, { code: 'EXPRESS' }],
     org_tax_profiles_cf: [{
@@ -57,7 +62,10 @@ function mockDb() {
     }],
     ...activeTaxSetup('VAT_STD'),
     sys_currency_rounding_rules_cf: [{ rounding_mode: 'HALF_UP' }],
-    org_uom_cf: [{ uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: null, qty_decimals: 0 }],
+    org_uom_cf: [
+      { uom_code: 'PC', uom_dimension: 'COUNT', unece_code: 'H87', symbol: 'pc', symbol2: null, qty_decimals: 0 },
+      { uom_code: 'KG', uom_dimension: 'MASS', unece_code: 'KGM', symbol: 'kg', symbol2: 'كغ', qty_decimals: 3 },
+    ],
     org_service_preference_cf: [{ preference_code: 'STARCH', extra_price: '0.200', extra_turnaround_minutes: 0, branch_id: null }],
     sys_service_preference_cd: [{ code: 'STARCH', default_extra_price: '0.500', extra_turnaround_minutes: 0 }],
   };
@@ -226,6 +234,21 @@ describe('toCartQuote (P5-03 cart)', () => {
     expect(cart.disclosures).toEqual([{ code: 'ORDER_CHARGE_TAXED', amount: 0.01 }]);
     // The resolver's order ready-by is the latest line ready-by.
     expect(cart.readyByAt).toBe(cart.lines[0].readyByAt);
+  });
+
+  it('a measured line carries the server-resolved billed measure; a count line carries none', async () => {
+    const { db } = mockDb();
+    const cart = toCartQuote(await quoteCheckout(params({
+      db, orderServicePrefs: [],
+      items: [{ productId: SHIRT, quantity: 1 }, { productId: SOAP_KG, quantity: 1, measure: { measuredQty: '3.2' } }],
+    })), 'req-m');
+    expect(cart.lines[0].measure).toBeNull();
+    // 3.2 kg, step 0.5 → billed 3.5 kg; the line is priced on 3.5 (5.000 × 3.5).
+    expect(cart.lines[1].measure).toEqual({
+      uomCode: 'KG', symbol: 'kg', symbol2: 'كغ', measuredQty: '3.2', length: null, width: null,
+      billedQty: '3.5', minimumApplied: false, incrementApplied: true,
+    });
+    expect(cart.lines[1].grossAmount).toBe(17.5);
   });
 
   it('no disclosure without an order charge', async () => {

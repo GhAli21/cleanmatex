@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
-import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, CmxSwitch, Label } from '@ui/primitives';
+import { CmxButton, CmxCheckbox, CmxInput, CmxSelect, CmxSkeleton, CmxSkeletonTable, CmxSwitch } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
+import { CmxEmptyState } from '@ui/data-display';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
-import { CmxStatusBadge, useMessage } from '@ui/feedback';
+import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, useMessage } from '@ui/feedback';
 import { UOM_DIMENSION_ORDER, UOM_DIMENSIONS, type UomDimension } from '@/lib/constants/uom';
 import type { UomUnit } from '@/lib/types/uom';
 import { uomApi } from '../api/uom-api';
@@ -34,6 +35,7 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
   const [edit, setEdit] = useState<{ code: string | null; draft: Draft } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
+  const [resetCode, setResetCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = () => { qc.invalidateQueries({ queryKey: UOM_UNITS_KEY }); qc.invalidateQueries({ queryKey: ['uom', 'addable'] }); };
@@ -62,17 +64,39 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
   return (
     <div className="space-y-4">
       {canManage && (
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end">
           <CmxButton variant="outline" onClick={() => { setPicked([]); setAddOpen(true); }}>
-            <Plus className="h-4 w-4 me-2" />{t('units.addFromSystem')}
+            <Plus className="h-4 w-4 me-2" aria-hidden />{t('units.addFromSystem')}
           </CmxButton>
           <CmxButton onClick={() => setEdit({ code: null, draft: EMPTY })}>
-            <Plus className="h-4 w-4 me-2" />{t('units.addCustom')}
+            <Plus className="h-4 w-4 me-2" aria-hidden />{t('units.addCustom')}
           </CmxButton>
         </div>
       )}
 
-      {units.isLoading ? <p className="py-8 text-center text-muted-foreground">{tCommon('loading')}</p> : (
+      {units.isLoading ? (
+        <CmxSkeletonTable rows={5} columns={canManage ? 8 : 7} />
+      ) : units.isError ? (
+        <CmxSummaryMessage type="error" message={uomErrorText(units.error, t)}>
+          <div className="mt-2">
+            <CmxButton size="sm" variant="outline" onClick={() => void units.refetch()}>
+              {tCommon('retry')}
+            </CmxButton>
+          </div>
+        </CmxSummaryMessage>
+      ) : (units.data ?? []).length === 0 ? (
+        <CmxEmptyState
+          title={t('units.emptyTitle')}
+          description={t('units.emptyDescription')}
+          action={
+            canManage ? (
+              <CmxButton onClick={() => { setPicked([]); setAddOpen(true); }}>
+                <Plus className="h-4 w-4 me-2" aria-hidden />{t('units.addFromSystem')}
+              </CmxButton>
+            ) : undefined
+          }
+        />
+      ) : (
         <div className="overflow-x-auto">
           <Table className="min-w-full text-sm">
             <TableHeader>
@@ -90,12 +114,12 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
             <TableBody>
               {(units.data ?? []).map((u) => (
                 <TableRow key={u.code}>
-                  <TableCell className="font-mono">{u.code}</TableCell>
+                  <TableCell className="font-mono"><bdi>{u.code}</bdi></TableCell>
                   <TableCell>{label(u)}</TableCell>
                   <TableCell>{sym(u)}</TableCell>
                   <TableCell>{t(`dimensions.${u.dimension}`)}</TableCell>
-                  <TableCell className="text-end">{u.qtyDecimals}</TableCell>
-                  <TableCell className="text-end">{u.productCount ?? 0}</TableCell>
+                  <TableCell className="text-end tabular-nums">{u.qtyDecimals}</TableCell>
+                  <TableCell className="text-end tabular-nums">{u.productCount ?? 0}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <CmxStatusBadge size="sm" tone={u.isActive ? 'success' : 'neutral'}>{u.isActive ? tCommon('active') : tCommon('inactive')}</CmxStatusBadge>
@@ -111,10 +135,10 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
                           aria-label={t('units.toggleActive', { code: u.code })}
                           onCheckedChange={(v) => run(() => uomApi.updateUnit(u.code, { isActive: v }), 'units.updated')}
                         />
-                        <CmxButton variant="ghost" size="sm" aria-label={tCommon('edit')} onClick={() => openEdit(u)}><Pencil className="h-4 w-4" /></CmxButton>
+                        <CmxButton variant="ghost" size="sm" aria-label={tCommon('edit')} onClick={() => openEdit(u)}><Pencil className="h-4 w-4" aria-hidden /></CmxButton>
                         {u.origin === 'CUSTOMIZED' && (
-                          <CmxButton variant="ghost" size="sm" aria-label={t('units.resetToSystem')} disabled={busy} onClick={() => run(() => uomApi.resetUnit(u.code), 'units.reset')}>
-                            <RotateCcw className="h-4 w-4" />
+                          <CmxButton variant="ghost" size="sm" aria-label={t('units.resetToSystem')} disabled={busy} onClick={() => setResetCode(u.code)}>
+                            <RotateCcw className="h-4 w-4" aria-hidden />
                           </CmxButton>
                         )}
                       </div>
@@ -132,23 +156,49 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
           <CmxDialogHeader><CmxDialogTitle>{edit?.code ? t('units.editTitle', { code: edit.code }) : t('units.createTitle')}</CmxDialogTitle></CmxDialogHeader>
           {edit && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><Label>{t('units.colCode')} *</Label>
-                <CmxInput className="font-mono" value={edit.draft.code} disabled={locked}
-                  onChange={(e) => patch({ code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 20) })} /></div>
-              <div><Label>{t('units.colDimension')} *</Label>
-                <CmxSelect value={edit.draft.dimension} disabled={locked}
-                  onChange={(e) => patch({ dimension: e.target.value as UomDimension, qtyDecimals: e.target.value === UOM_DIMENSIONS.COUNT ? 0 : edit.draft.qtyDecimals })}
-                  options={UOM_DIMENSION_ORDER.map((d) => ({ value: d, label: t(`dimensions.${d}`) }))} /></div>
-              <div><Label>{t('units.nameEn')} *</Label><CmxInput value={edit.draft.name} onChange={(e) => patch({ name: e.target.value })} /></div>
-              <div><Label>{t('units.nameAr')}</Label><CmxInput dir="rtl" value={edit.draft.name2} onChange={(e) => patch({ name2: e.target.value })} /></div>
-              <div><Label>{t('units.symbolEn')} *</Label><CmxInput value={edit.draft.symbol} onChange={(e) => patch({ symbol: e.target.value })} /></div>
-              <div><Label>{t('units.symbolAr')}</Label><CmxInput dir="rtl" value={edit.draft.symbol2} onChange={(e) => patch({ symbol2: e.target.value })} /></div>
-              <div><Label>{t('units.colDecimals')}</Label>
-                <CmxInput type="number" min={0} max={6} value={edit.draft.qtyDecimals} disabled={isCount}
-                  onChange={(e) => patch({ qtyDecimals: Math.min(6, Math.max(0, Math.trunc(Number(e.target.value) || 0))) })} />
-                {isCount && <p className="text-xs text-muted-foreground mt-1">{t('units.countWhole')}</p>}</div>
-              {!edit.code && <div><Label>{t('units.unece')}</Label><CmxInput className="font-mono" maxLength={3} value={edit.draft.uneceCode}
-                onChange={(e) => patch({ uneceCode: e.target.value.toUpperCase() })} /></div>}
+              <CmxInput
+                label={t('units.colCode')}
+                required
+                dir="ltr"
+                className="font-mono"
+                value={edit.draft.code}
+                disabled={locked}
+                onChange={(e) => patch({ code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '').slice(0, 20) })}
+              />
+              <CmxSelect
+                label={t('units.colDimension')}
+                required
+                value={edit.draft.dimension}
+                disabled={locked}
+                onChange={(e) => patch({ dimension: e.target.value as UomDimension, qtyDecimals: e.target.value === UOM_DIMENSIONS.COUNT ? 0 : edit.draft.qtyDecimals })}
+                options={UOM_DIMENSION_ORDER.map((d) => ({ value: d, label: t(`dimensions.${d}`) }))}
+              />
+              <CmxInput label={t('units.nameEn')} required value={edit.draft.name} onChange={(e) => patch({ name: e.target.value })} />
+              <CmxInput label={t('units.nameAr')} dir="rtl" value={edit.draft.name2} onChange={(e) => patch({ name2: e.target.value })} />
+              <CmxInput label={t('units.symbolEn')} required value={edit.draft.symbol} onChange={(e) => patch({ symbol: e.target.value })} />
+              <CmxInput label={t('units.symbolAr')} dir="rtl" value={edit.draft.symbol2} onChange={(e) => patch({ symbol2: e.target.value })} />
+              <CmxInput
+                label={t('units.colDecimals')}
+                type="number"
+                dir="ltr"
+                className="tabular-nums"
+                min={0}
+                max={6}
+                value={edit.draft.qtyDecimals}
+                disabled={isCount}
+                helpText={isCount ? t('units.countWhole') : undefined}
+                onChange={(e) => patch({ qtyDecimals: Math.min(6, Math.max(0, Math.trunc(Number(e.target.value) || 0))) })}
+              />
+              {!edit.code && (
+                <CmxInput
+                  label={t('units.unece')}
+                  dir="ltr"
+                  className="font-mono"
+                  maxLength={3}
+                  value={edit.draft.uneceCode}
+                  onChange={(e) => patch({ uneceCode: e.target.value.toUpperCase() })}
+                />
+              )}
             </div>
           )}
           <CmxDialogFooter>
@@ -161,14 +211,30 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
       <CmxDialog open={addOpen} onOpenChange={setAddOpen}>
         <CmxDialogContent className="max-w-xl w-full mx-4">
           <CmxDialogHeader><CmxDialogTitle>{t('units.addFromSystem')}</CmxDialogTitle></CmxDialogHeader>
-          {(addable.data ?? []).length === 0 ? <p className="text-muted-foreground">{t('units.nothingToAdd')}</p> : (
+          {addable.isLoading ? (
+            <div className="space-y-2 py-2">
+              <CmxSkeleton className="h-6 w-full" />
+              <CmxSkeleton className="h-6 w-full" />
+              <CmxSkeleton className="h-6 w-3/4" />
+            </div>
+          ) : addable.isError ? (
+            <CmxSummaryMessage type="error" message={uomErrorText(addable.error, t)}>
+              <div className="mt-2">
+                <CmxButton size="sm" variant="outline" onClick={() => void addable.refetch()}>
+                  {tCommon('retry')}
+                </CmxButton>
+              </div>
+            </CmxSummaryMessage>
+          ) : (addable.data ?? []).length === 0 ? (
+            <p className="text-muted-foreground">{t('units.nothingToAdd')}</p>
+          ) : (
             <ul className="max-h-80 overflow-y-auto space-y-1">
               {addable.data!.map((u) => (
                 <li key={u.code}>
                   <CmxCheckbox
                     checked={picked.includes(u.code)}
                     onChange={(e) => setPicked((p) => (e.target.checked ? [...p, u.code] : p.filter((c) => c !== u.code)))}
-                    label={<span><span className="font-mono">{u.code}</span> {label(u)} <span className="text-muted-foreground text-xs">{t(`dimensions.${u.dimension}`)}</span></span>}
+                    label={<span><bdi className="font-mono">{u.code}</bdi> {label(u)} <span className="text-muted-foreground text-xs">{t(`dimensions.${u.dimension}`)}</span></span>}
                   />
                 </li>
               ))}
@@ -180,6 +246,19 @@ export function UomUnitsPanel({ canManage }: { canManage: boolean }) {
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
+
+      <CmxConfirmDialog
+        open={!!resetCode}
+        title={resetCode ? t('units.resetConfirmTitle', { code: resetCode }) : ''}
+        description={t('units.resetConfirmDescription')}
+        confirmLabel={tCommon('reset')}
+        cancelLabel={tCommon('cancel')}
+        onCancel={() => setResetCode(null)}
+        onConfirm={async () => {
+          if (!resetCode) return;
+          await run(() => uomApi.resetUnit(resetCode), 'units.reset');
+        }}
+      />
     </div>
   );
 }

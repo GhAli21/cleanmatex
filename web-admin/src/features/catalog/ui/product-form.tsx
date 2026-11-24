@@ -21,6 +21,8 @@ import {
 import { CmxButton, CmxCard, CmxCardContent, CmxCardDescription, CmxCardHeader, CmxCardTitle, CmxInput, CmxMoneyField, CmxSelect, CmxSwitch } from '@ui/primitives';
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { CmxUomSelect } from '@ui/forms'
+import { useUomUnits } from '@features/uom/hooks/use-uom-units'
 import { useTaxItemClassOptions } from '../hooks/use-tax-item-class-options'
 import { ProductSpeedPricingSection } from './product-speed-pricing-section'
 
@@ -58,7 +60,12 @@ export interface ProductFormValues {
   product_code?: string
   product_name: string
   product_name2?: string
-  product_unit: 'piece' | 'kg' | 'item'
+  /** Organization unit code (org_uom_cf); a COUNT unit means a normal counted item. */
+  base_uom_code: string
+  /** Optional minimum billable measure, decimal text; empty = none. Measured units only. */
+  min_billable_qty?: string | null
+  /** Optional billing step, decimal text; empty = none. Measured units only. */
+  billing_increment?: string | null
   default_sell_price: number
   min_quantity?: number
   turnaround_hh?: number
@@ -87,6 +94,7 @@ interface ProductFormProps {
 export default function ProductForm({ initialValues, mode, onSuccess }: ProductFormProps) {
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')
+  const tUom = useTranslations('uom')
   const isRtl = useRTL()
   const { decimalPlaces } = useTenantCurrency()
   const taxItemClassOptions = useTaxItemClassOptions()
@@ -106,7 +114,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         product_code: z.string().trim().optional(),
         product_name: z.string().trim().min(1, tCommon('required')),
         product_name2: z.string().trim().optional(),
-        product_unit: z.enum(['piece', 'kg', 'item']),
+        base_uom_code: z.string().trim().min(1, tCommon('required')),
+        min_billable_qty: z.string().nullable().optional(),
+        billing_increment: z.string().nullable().optional(),
         default_sell_price: z.number().min(0, tCommon('required')),
         min_quantity: z.number().min(0).optional(),
         turnaround_hh: z.number().min(0).optional(),
@@ -125,7 +135,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
       product_code: initialValues?.product_code ?? '',
       product_name: initialValues?.product_name ?? '',
       product_name2: initialValues?.product_name2 ?? '',
-      product_unit: initialValues?.product_unit ?? 'piece',
+      base_uom_code: initialValues?.base_uom_code ?? 'PC',
+      min_billable_qty: initialValues?.min_billable_qty ?? '',
+      billing_increment: initialValues?.billing_increment ?? '',
       default_sell_price: Number(initialValues?.default_sell_price ?? 0),
       min_quantity:
         initialValues?.min_quantity !== undefined ? Number(initialValues.min_quantity) : undefined,
@@ -154,11 +166,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
     label: isRtl ? category.name2 || category.name : category.name,
   }))
 
-  const unitOptions = [
-    { value: 'piece', label: t('unitPiece') },
-    { value: 'kg', label: t('unitKg') },
-    { value: 'item', label: t('unitItem') },
-  ]
+  const units = useUomUnits(true).data ?? []
+  const pickedUnit = units.find((u) => u.code === currentValues.base_uom_code)
+  const isMeasured = !!pickedUnit && pickedUnit.dimension !== 'COUNT'
 
   useEffect(() => {
     let mounted = true
@@ -213,7 +223,10 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
       product_code: values.product_code || undefined,
       product_name: values.product_name,
       product_name2: values.product_name2 || undefined,
-      product_unit: values.product_unit,
+      base_uom_code: values.base_uom_code,
+      // Count units take neither; the server refuses them (MEASURE_NOT_ALLOWED).
+      min_billable_qty: isMeasured ? values.min_billable_qty || null : null,
+      billing_increment: isMeasured ? values.billing_increment || null : null,
       default_sell_price: Number(values.default_sell_price),
       min_quantity: values.min_quantity !== undefined ? Number(values.min_quantity) : undefined,
       turnaround_hh: values.turnaround_hh !== undefined ? Number(values.turnaround_hh) : undefined,
@@ -345,21 +358,28 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
               )}
             </CmxFormField>
 
-            <CmxFormField name="product_unit" label={t('unit')} required>
-              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
-                <CmxSelect
-                  id={id}
-                  name={name}
-                  ref={ref}
-                  value={String(value ?? '')}
-                  onChange={(event) => onChange(event.target.value)}
-                  onBlur={onBlur}
-                  options={unitOptions}
-                  aria-describedby={describedBy}
-                  aria-invalid={invalid}
-                />
+            <CmxFormField name="base_uom_code" label={t('unit')} required>
+              {({ id, value, onChange }) => (
+                <CmxUomSelect id={id} units={units} value={String(value ?? '')} onChange={onChange} />
               )}
             </CmxFormField>
+
+            {isMeasured && (
+              <>
+                <CmxFormField name="min_billable_qty" label={tUom('product.minBillable')} description={tUom('product.minBillableHelp')}>
+                  {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                    <CmxInput id={id} name={name} ref={ref} dir="ltr" inputMode="decimal" value={String(value ?? '')}
+                      onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-describedby={describedBy} aria-invalid={invalid} />
+                  )}
+                </CmxFormField>
+                <CmxFormField name="billing_increment" label={tUom('product.billingIncrement')} description={tUom('product.billingIncrementHelp')}>
+                  {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                    <CmxInput id={id} name={name} ref={ref} dir="ltr" inputMode="decimal" value={String(value ?? '')}
+                      onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-describedby={describedBy} aria-invalid={invalid} />
+                  )}
+                </CmxFormField>
+              </>
+            )}
 
             <CmxFormField
               name="is_active"

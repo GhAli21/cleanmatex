@@ -15,8 +15,8 @@ import type { Json } from '@/types/database'
 import {
   CAMPAIGN_AUDIENCE,
   CAMPAIGN_CHANNELS_BY_AUDIENCE,
-  CAMPAIGN_CUSTOMER_CHANNELS_LIVE,
 } from '@/lib/constants/notification-campaigns'
+import { checkWhatsAppCampaignTemplate } from '@/lib/notifications/campaign-wa-templates.service'
 
 const PAGE_SIZE_MAX = 50
 
@@ -26,6 +26,8 @@ const campaignFields = {
   description:     z.string().optional(),
   description2:    z.string().optional(),
   template_code:   z.string().max(200).optional(),
+  /** Values for the template's variables by variable_key (migration 0819); used by WhatsApp campaigns. */
+  template_vars:   z.record(z.string(), z.string().max(1000)).optional(),
   scheduled_at:    z.string().datetime().optional(),
 }
 
@@ -144,16 +146,32 @@ export async function POST(request: NextRequest) {
 
   const {
     name, name2, description, description2,
-    audience_code, channel_code, template_code, target_segment, scheduled_at,
+    audience_code, channel_code, template_code, template_vars, target_segment, scheduled_at,
   } = parsed.data
 
-  if (audience_code === CAMPAIGN_AUDIENCE.CUSTOMERS
-    && !(CAMPAIGN_CUSTOMER_CHANNELS_LIVE as readonly string[]).includes(channel_code)) {
-    return NextResponse.json({
-      success: false,
-      error: 'WhatsApp campaigns to customers are not available yet: they need an approved WhatsApp marketing template.',
-      code: 'CAMPAIGN_CHANNEL_NOT_AVAILABLE',
-    }, { status: 422 })
+  // WhatsApp marketing goes only through an approved MARKETING template the Organization has a route for.
+  let storedVars: Record<string, string> = {}
+  if (channel_code === 'WHATSAPP') {
+    let check: Awaited<ReturnType<typeof checkWhatsAppCampaignTemplate>>
+    try {
+      check = await checkWhatsAppCampaignTemplate(tenantId, template_code, template_vars)
+    } catch (err) {
+      logger.error('POST /api/v1/notifications/campaigns template check failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId, feature: 'notifications-campaigns',
+      })
+      return NextResponse.json({ success: false, error: 'Failed to check the WhatsApp template' }, { status: 500 })
+    }
+    if (check.error) {
+      return NextResponse.json({
+        success: false,
+        code: check.error,
+        missing: check.missing,
+        error: check.error === 'CAMPAIGN_TEMPLATE_NOT_AVAILABLE'
+          ? 'Choose an approved WhatsApp marketing template available to this Organization.'
+          : `Fill in the template values: ${(check.missing ?? []).join(', ')}`,
+      }, { status: 422 })
+    }
+    storedVars = check.templateVars ?? {}
   }
 
   const supabase = createAdminSupabaseClient()
@@ -170,6 +188,7 @@ export async function POST(request: NextRequest) {
       audience_code,
       channel_code,
       template_code:  template_code  ?? null,
+      template_vars:  storedVars,
       target_segment: target_segment as unknown as Json,
       scheduled_at:   scheduled_at   ?? null,
       total_targets:  0,

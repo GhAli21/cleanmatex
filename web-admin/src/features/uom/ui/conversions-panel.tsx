@@ -5,10 +5,12 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus, RotateCcw } from 'lucide-react';
-import { CmxButton, CmxInput, CmxSelect, CmxSwitch, Label } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSkeletonTable, CmxSwitch } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
+import { CmxUomSelect } from '@ui/forms';
+import { CmxEmptyState } from '@ui/data-display';
 import { CmxDialog, CmxDialogContent, CmxDialogFooter, CmxDialogHeader, CmxDialogTitle } from '@ui/overlays';
-import { CmxStatusBadge, useMessage } from '@ui/feedback';
+import { CmxConfirmDialog, CmxStatusBadge, CmxSummaryMessage, useMessage } from '@ui/feedback';
 import { reciprocalRate } from '@/lib/uom';
 import type { UomConversion } from '@/lib/types/uom';
 import { uomApi } from '../api/uom-api';
@@ -34,6 +36,7 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
   const units = useUomUnits(true);
   const convs = useQuery({ queryKey: CONV_KEY, queryFn: () => uomApi.listConversions() });
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [resetConv, setResetConv] = useState<UomConversion | null>(null);
   const [busy, setBusy] = useState(false);
 
   const run = async (fn: () => Promise<unknown>, okKey: string, done?: () => void) => {
@@ -44,7 +47,6 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
   // The divide rate follows 1 / multiply until the user types their own (shown, never hidden).
   const onMultiply = (v: string) => patch({ multiplyRate: v, ...(draft && !draft.divideTouched && validRate(v) ? { divideRate: reciprocalRate(v).toString() } : {}) });
   const openEdit = (c: UomConversion) => setDraft({ id: c.id, fromCode: c.fromCode, toCode: c.toCode, multiplyRate: c.multiplyRate, divideRate: c.divideRate, notes: c.notes ?? '', divideTouched: true });
-  const unitOptions = [{ value: '', label: t('conversions.pickUnit') }, ...(units.data ?? []).map((u) => ({ value: u.code, label: `${u.code} — ${u.name}` }))];
   const ready = !!draft && !!draft.fromCode && !!draft.toCode && draft.fromCode !== draft.toCode && validRate(draft.multiplyRate) && validRate(draft.divideRate);
 
   const save = () => {
@@ -61,10 +63,32 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
     <div className="space-y-4">
       {canManage && (
         <div className="flex justify-end">
-          <CmxButton onClick={() => setDraft(EMPTY)}><Plus className="h-4 w-4 me-2" />{t('conversions.add')}</CmxButton>
+          <CmxButton onClick={() => setDraft(EMPTY)}><Plus className="h-4 w-4 me-2" aria-hidden />{t('conversions.add')}</CmxButton>
         </div>
       )}
-      {convs.isLoading ? <p className="py-8 text-center text-muted-foreground">{tCommon('loading')}</p> : (
+      {convs.isLoading ? (
+        <CmxSkeletonTable rows={5} columns={canManage ? 6 : 5} />
+      ) : convs.isError ? (
+        <CmxSummaryMessage type="error" message={uomErrorText(convs.error, t)}>
+          <div className="mt-2">
+            <CmxButton size="sm" variant="outline" onClick={() => void convs.refetch()}>
+              {tCommon('retry')}
+            </CmxButton>
+          </div>
+        </CmxSummaryMessage>
+      ) : (convs.data ?? []).length === 0 ? (
+        <CmxEmptyState
+          title={t('conversions.emptyTitle')}
+          description={t('conversions.emptyDescription')}
+          action={
+            canManage ? (
+              <CmxButton onClick={() => setDraft(EMPTY)}>
+                <Plus className="h-4 w-4 me-2" aria-hidden />{t('conversions.add')}
+              </CmxButton>
+            ) : undefined
+          }
+        />
+      ) : (
         <div className="overflow-x-auto">
           <Table className="min-w-full text-sm">
             <TableHeader>
@@ -80,10 +104,10 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
             <TableBody>
               {(convs.data ?? []).map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-mono">{c.fromCode}</TableCell>
-                  <TableCell className="font-mono">{c.toCode}</TableCell>
-                  <TableCell className="text-end font-mono" dir="ltr">{c.multiplyRate}</TableCell>
-                  <TableCell className="text-end font-mono" dir="ltr">{c.divideRate}</TableCell>
+                  <TableCell className="font-mono"><bdi>{c.fromCode}</bdi></TableCell>
+                  <TableCell className="font-mono"><bdi>{c.toCode}</bdi></TableCell>
+                  <TableCell className="text-end font-mono tabular-nums" dir="ltr">{c.multiplyRate}</TableCell>
+                  <TableCell className="text-end font-mono tabular-nums" dir="ltr">{c.divideRate}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <CmxStatusBadge size="sm" tone={c.isActive ? 'success' : 'neutral'}>{c.isActive ? tCommon('active') : tCommon('inactive')}</CmxStatusBadge>
@@ -93,12 +117,12 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
                   {canManage && (
                     <TableCell className="text-end">
                       <div className="flex justify-end items-center gap-1">
-                        <CmxSwitch checked={c.isActive} disabled={busy} aria-label={t('conversions.toggleActive')}
+                        <CmxSwitch checked={c.isActive} disabled={busy} aria-label={t('conversions.toggleActiveFor', { from: c.fromCode, to: c.toCode })}
                           onCheckedChange={(v) => run(() => uomApi.updateConversion(c.id, { multiplyRate: c.multiplyRate, divideRate: c.divideRate, isActive: v, notes: c.notes }), 'conversions.updated')} />
-                        <CmxButton variant="ghost" size="sm" aria-label={tCommon('edit')} onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></CmxButton>
+                        <CmxButton variant="ghost" size="sm" aria-label={tCommon('edit')} onClick={() => openEdit(c)}><Pencil className="h-4 w-4" aria-hidden /></CmxButton>
                         {c.isFromSystem && c.isCustomized && (
-                          <CmxButton variant="ghost" size="sm" aria-label={t('units.resetToSystem')} disabled={busy} onClick={() => run(() => uomApi.resetConversion(c.id), 'conversions.reset')}>
-                            <RotateCcw className="h-4 w-4" />
+                          <CmxButton variant="ghost" size="sm" aria-label={t('units.resetToSystem')} disabled={busy} onClick={() => setResetConv(c)}>
+                            <RotateCcw className="h-4 w-4" aria-hidden />
                           </CmxButton>
                         )}
                       </div>
@@ -116,18 +140,47 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
           <CmxDialogHeader><CmxDialogTitle>{draft?.id ? t('conversions.editTitle') : t('conversions.createTitle')}</CmxDialogTitle></CmxDialogHeader>
           {draft && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><Label>{t('conversions.from')} *</Label>
-                <CmxSelect value={draft.fromCode} disabled={!!draft.id} options={unitOptions} onChange={(e) => patch({ fromCode: e.target.value })} /></div>
-              <div><Label>{t('conversions.to')} *</Label>
-                <CmxSelect value={draft.toCode} disabled={!!draft.id} options={unitOptions} onChange={(e) => patch({ toCode: e.target.value })} /></div>
-              <div><Label>{t('conversions.multiply')} *</Label>
-                <CmxInput dir="ltr" inputMode="decimal" value={draft.multiplyRate} onChange={(e) => onMultiply(e.target.value)} />
-                <p className="text-xs text-muted-foreground mt-1">{t('conversions.multiplyHelp')}</p></div>
-              <div><Label>{t('conversions.divide')} *</Label>
-                <CmxInput dir="ltr" inputMode="decimal" value={draft.divideRate} onChange={(e) => patch({ divideRate: e.target.value, divideTouched: true })} />
-                <p className="text-xs text-muted-foreground mt-1">{t('conversions.divideHelp')}</p></div>
-              <div className="sm:col-span-2"><Label>{t('conversions.notes')}</Label>
-                <CmxInput value={draft.notes} onChange={(e) => patch({ notes: e.target.value })} /></div>
+              <CmxUomSelect
+                label={t('conversions.from')}
+                required
+                placeholder={t('conversions.pickUnit')}
+                units={units.data ?? []}
+                value={draft.fromCode}
+                disabled={!!draft.id}
+                onChange={(code) => patch({ fromCode: code })}
+              />
+              <CmxUomSelect
+                label={t('conversions.to')}
+                required
+                placeholder={t('conversions.pickUnit')}
+                units={units.data ?? []}
+                value={draft.toCode}
+                disabled={!!draft.id}
+                onChange={(code) => patch({ toCode: code })}
+              />
+              <CmxInput
+                label={t('conversions.multiply')}
+                required
+                dir="ltr"
+                className="tabular-nums"
+                inputMode="decimal"
+                value={draft.multiplyRate}
+                helpText={t('conversions.multiplyHelp')}
+                onChange={(e) => onMultiply(e.target.value)}
+              />
+              <CmxInput
+                label={t('conversions.divide')}
+                required
+                dir="ltr"
+                className="tabular-nums"
+                inputMode="decimal"
+                value={draft.divideRate}
+                helpText={t('conversions.divideHelp')}
+                onChange={(e) => patch({ divideRate: e.target.value, divideTouched: true })}
+              />
+              <div className="sm:col-span-2">
+                <CmxInput label={t('conversions.notes')} value={draft.notes} onChange={(e) => patch({ notes: e.target.value })} />
+              </div>
             </div>
           )}
           <CmxDialogFooter>
@@ -136,6 +189,19 @@ export function UomConversionsPanel({ canManage }: { canManage: boolean }) {
           </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
+
+      <CmxConfirmDialog
+        open={!!resetConv}
+        title={resetConv ? t('conversions.resetConfirmTitle', { from: resetConv.fromCode, to: resetConv.toCode }) : ''}
+        description={t('conversions.resetConfirmDescription')}
+        confirmLabel={tCommon('reset')}
+        cancelLabel={tCommon('cancel')}
+        onCancel={() => setResetConv(null)}
+        onConfirm={async () => {
+          if (!resetConv) return;
+          await run(() => uomApi.resetConversion(resetConv.id), 'conversions.reset');
+        }}
+      />
     </div>
   );
 }

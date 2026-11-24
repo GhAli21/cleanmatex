@@ -13,7 +13,7 @@ import type { RenderedContent } from '@lib/notifications/template-renderer';
 import { NOTIFICATION_CHANNEL } from '@lib/notifications/types';
 import { collapseUserPrefRows } from '@lib/notifications/user-prefs';
 import { normalizePhone } from '@lib/services/customers.service';
-import { CAMPAIGN_AUDIENCE, CAMPAIGN_CUSTOMER_CHANNELS_LIVE } from '@lib/constants/notification-campaigns';
+import { CAMPAIGN_AUDIENCE, CAMPAIGN_SEND_EVENT } from '@lib/constants/notification-campaigns';
 
 /**
  * Campaigns on pg-boss (docs/features/Background_Jobs/STEP5_PLAN.md, tenant item 4).
@@ -38,7 +38,6 @@ export const CAMPAIGN_CHUNK_SIZE = 50;
 export const CAMPAIGN_DELIVER_PRIORITY = -10;
 /** A chunk whose channel the tenant switched off waits this long, then checks again. */
 const CHANNEL_OFF_RECHECK_MS = 15 * 60_000;
-const CAMPAIGN_EVENT_CODE = 'campaign.send';
 const STARTABLE = new Set(['APPROVED', 'SCHEDULED', 'RUNNING']);
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -74,7 +73,7 @@ async function completeIfDoneTx(tx: Tx, tenantOrgId: string, campaignId: string)
 }
 
 export interface CampaignStartOutcome {
-  outcome: 'STARTED' | 'NOT_DUE' | 'NOT_STARTABLE' | 'NO_TARGETS' | 'UNSUPPORTED' | 'COMPLETED' | 'SKIPPED_ORPHAN';
+  outcome: 'STARTED' | 'NOT_DUE' | 'NOT_STARTABLE' | 'NO_TARGETS' | 'COMPLETED' | 'SKIPPED_ORPHAN';
   chunks: number;
 }
 
@@ -120,7 +119,7 @@ export async function startCampaign(tenantOrgId: string, campaignId: string): Pr
     }
 
     const isCustomers = campaign.audience_code === CAMPAIGN_AUDIENCE.CUSTOMERS;
-    const failStart = async (outcome: 'NO_TARGETS' | 'UNSUPPORTED', reason: string): Promise<CampaignStartOutcome> => {
+    const failStart = async (outcome: 'NO_TARGETS', reason: string): Promise<CampaignStartOutcome> => {
       await tx.org_ntf_campaigns_mst.updateMany({
         where: { id: campaignId, tenant_org_id: tenantOrgId },
         data: { status: 'FAILED', updated_at: new Date(), updated_info: `ntf.campaign_start: ${reason}` },
@@ -128,10 +127,6 @@ export async function startCampaign(tenantOrgId: string, campaignId: string): Pr
       await auditCampaign(tx, tenantOrgId, campaignId, 'ACTIVATION_FAILED', { status: campaign.status }, { status: 'FAILED', reason });
       return { outcome, chunks: 0 };
     };
-    if (isCustomers && !(CAMPAIGN_CUSTOMER_CHANNELS_LIVE as readonly string[]).includes(campaign.channel_code)) {
-      // The create route refuses this too; a row written another way still must not send free text on WhatsApp.
-      return failStart('UNSUPPORTED', `${campaign.channel_code} campaigns to customers are not available yet`);
-    }
 
     // The audience is fixed by the first start: a resume never adds customers who agreed later.
     let total = await tx.org_ntf_camp_targets_dtl.count({ where: { tenant_org_id: tenantOrgId, campaign_id: campaignId } });
@@ -252,7 +247,7 @@ async function processTarget(c: CampaignContent, targetId: string, r: TargetReci
     }
 
     const content = {
-      tenant_org_id: c.tenantOrgId, recipient_user_id: userId, event_code: CAMPAIGN_EVENT_CODE,
+      tenant_org_id: c.tenantOrgId, recipient_user_id: userId, event_code: CAMPAIGN_SEND_EVENT,
       source_entity_type: 'campaign', source_entity_id: c.campaignId, idempotency_key: idempotencyKey, rec_status: 1,
     };
 
@@ -302,7 +297,7 @@ export async function runCampaignChunk(tenantOrgId: string, campaignId: string, 
     const result: CampaignChunkOutcome = { outcome: 'PROCESSED', queued: 0, sentNow: 0, skipped: 0, completed: false };
     const campaign = await prisma.org_ntf_campaigns_mst.findFirst({
       where: { id: campaignId, tenant_org_id: tenantOrgId, is_active: true },
-      select: { status: true, audience_code: true, channel_code: true, template_code: true, name: true, name2: true, description: true, description2: true },
+      select: { status: true, audience_code: true, channel_code: true, template_code: true, template_vars: true, name: true, name2: true, description: true, description2: true },
     });
     if (!campaign) return { ...result, outcome: 'SKIPPED_ORPHAN' };
     if (campaign.status !== 'RUNNING') return { ...result, outcome: 'NOT_RUNNING' }; // a resume queues the page again
@@ -355,16 +350,22 @@ export async function runCampaignChunk(tenantOrgId: string, campaignId: string, 
         return { userId: null, customerId, hasConsent: customerAgreed.has(customerId), customerAddress };
       };
 
-      // The message does not vary per recipient: render once per chunk.
-      const rendered = await renderBuiltContent({
+      // The message does not vary per recipient: render once per chunk. template_vars (0819) are the
+      // campaign's values for the template's variables; for WhatsApp, HQ fills the provider template slots
+      // from the outbox metadata, so they go there too.
+      const templateVars = Object.fromEntries(Object.entries((campaign.template_vars ?? {}) as Record<string, unknown>)
+        .filter((e): e is [string, string] => typeof e[1] === 'string'));
+      const built = await renderBuiltContent({
         channel: campaign.channel_code,
         template: campaign.template_code ? { kind: 'code', templateCode: campaign.template_code } : null,
         inline: { title: campaign.name, title2: campaign.name2 ?? null, body: campaign.description ?? campaign.name, body2: campaign.description2 ?? null },
         variables: {
           campaign_name: campaign.name, campaign_name2: campaign.name2 ?? '',
           campaign_description: campaign.description ?? '', campaign_description2: campaign.description2 ?? '',
+          ...templateVars,
         },
       });
+      const rendered: RenderedContent = { ...built, metadata: { ...(built.metadata ?? {}), ...templateVars } };
 
       const content: CampaignContent = { tenantOrgId, campaignId, channel: campaign.channel_code, channelConfig, rendered };
       for (const t of pending) {

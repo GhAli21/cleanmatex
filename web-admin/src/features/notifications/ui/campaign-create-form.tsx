@@ -11,10 +11,12 @@ import { CmxRadioGroup, CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDr
 import {
   CAMPAIGN_AUDIENCE,
   CAMPAIGN_CHANNELS_BY_AUDIENCE,
-  CAMPAIGN_CUSTOMER_CHANNELS_LIVE,
   type CampaignAudience,
 } from '@/lib/constants/notification-campaigns'
+import { useAuth } from '@/lib/auth/auth-context'
 import { CampaignCustomerPicker, type CampaignCustomer } from './campaign-customer-picker'
+import { CampaignWhatsAppTemplateFields, missingTemplateVars, type CampaignWhatsAppTemplateValue } from './campaign-wa-template-fields'
+import { useCampaignWhatsAppTemplates } from '../hooks/use-campaign-wa-templates'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation schema
@@ -22,11 +24,8 @@ import { CampaignCustomerPicker, type CampaignCustomer } from './campaign-custom
 
 const CHANNELS = ['IN_APP', 'EMAIL', 'SMS', 'WHATSAPP', 'PUSH'] as const
 
-/** Channels offered per audience. Customer WhatsApp waits for template choice (STEP5_PLAN 4c). */
-const FORM_CHANNELS: Record<CampaignAudience, readonly (typeof CHANNELS)[number][]> = {
-  STAFF: CAMPAIGN_CHANNELS_BY_AUDIENCE.STAFF,
-  CUSTOMERS: CAMPAIGN_CUSTOMER_CHANNELS_LIVE,
-}
+/** Channels offered per audience (`ck_ntf_camp_audience`). Customer WhatsApp sends a chosen approved template. */
+const FORM_CHANNELS: Record<CampaignAudience, readonly (typeof CHANNELS)[number][]> = CAMPAIGN_CHANNELS_BY_AUDIENCE
 
 const schema = z.object({
   name:            z.string().min(1, 'Required').max(500),
@@ -62,6 +61,11 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
   const [allConsented, setAllConsented] = useState(true)
   const [customers, setCustomers] = useState<CampaignCustomer[]>([])
   const [recipientsError, setRecipientsError] = useState<string | null>(null)
+  const [waTemplate, setWaTemplate] = useState<CampaignWhatsAppTemplateValue>({ templateCode: '', vars: {} })
+  const [waMissing, setWaMissing] = useState<string[]>([])
+  const [waTemplateError, setWaTemplateError] = useState<string | null>(null)
+  const { currentTenant } = useAuth()
+  const tenantId = currentTenant?.tenant_id ?? ''
 
   const {
     register,
@@ -75,6 +79,9 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
   })
 
   const channelCode = useWatch({ control, name: 'channel_code' }) ?? 'IN_APP'
+  const isWhatsApp = audience === CAMPAIGN_AUDIENCE.CUSTOMERS && channelCode === 'WHATSAPP'
+  // Same query as the template fields (shared cache): the submit check needs the chosen template's variables.
+  const waTemplates = useCampaignWhatsAppTemplates(tenantId, isWhatsApp)
 
   const changeAudience = (next: CampaignAudience) => {
     setAudience(next)
@@ -103,6 +110,14 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
       targetSegment = { customer_ids: customers.map(c => c.id) }
     }
 
+    if (isWhatsApp) {
+      setWaTemplateError(null)
+      if (!waTemplate.templateCode) { setWaTemplateError(t('campaigns.form.waTemplateRequired')); return }
+      const missing = missingTemplateVars(waTemplates.data?.find(tpl => tpl.templateCode === waTemplate.templateCode), waTemplate.vars)
+      setWaMissing(missing)
+      if (missing.length > 0) return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -117,10 +132,14 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
           channel_code:   values.channel_code,
           target_segment: targetSegment,
           scheduled_at:   values.scheduled_at || undefined,
+          ...(isWhatsApp ? { template_code: waTemplate.templateCode, template_vars: waTemplate.vars } : {}),
         }),
       })
 
       const json = await res.json()
+      // The API re-checks the template: it may have been suspended in HQ since the list loaded.
+      if (json.code === 'CAMPAIGN_TEMPLATE_VARS_MISSING') { setWaMissing(json.missing ?? []); return }
+      if (json.code === 'CAMPAIGN_TEMPLATE_NOT_AVAILABLE') { setWaTemplateError(t('campaigns.form.waTemplateUnavailable')); void waTemplates.refetch(); return }
       if (!res.ok || !json.success) throw new Error(json.error ?? 'Failed to create campaign')
 
       onSuccess()
@@ -195,10 +214,17 @@ export function CampaignCreateForm({ onSuccess, onCancel }: Props) {
         {errors.channel_code && (
           <p className="text-xs text-danger-text">{errors.channel_code.message}</p>
         )}
-        {audience === CAMPAIGN_AUDIENCE.CUSTOMERS && (
-          <p className="text-xs text-muted-foreground">{t('campaigns.form.whatsappLater')}</p>
-        )}
       </div>
+
+      {isWhatsApp && (
+        <CampaignWhatsAppTemplateFields
+          tenantId={tenantId}
+          value={waTemplate}
+          onChange={next => { setWaTemplate(next); setWaMissing([]); setWaTemplateError(null) }}
+          missing={waMissing}
+          templateError={waTemplateError ?? undefined}
+        />
+      )}
 
       {/* Description */}
       <div className="space-y-1">

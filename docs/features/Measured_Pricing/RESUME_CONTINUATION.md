@@ -16,6 +16,17 @@
 6. Order write path (P3): `LineIntent.measure` → `buildCommercialOrderInput` resolves `resolveBilledMeasure` per line (`ResolvedLinePrice.uom`), `lineUomColumns` writes the snapshot, `CheckoutLineRequest.measure` carries what staff typed. Pinned (Edit) lines are count lines until P5.
 7. Next step: see STATUS.md "Next".
 
+## P4 progress — 2026-11-24 (later)
+
+Built: Units page + Conversions tab, `CmxUomSelect`, `CmxQuantityMeasureInput`, product form on `base_uom_code` (+ min/step), `uom.json` EN/AR, access contract, nav config. No new migration needed: the menu row `catalog_units` is in 0815 (0820 was drafted by mistake and deleted). Left in P4: New Order cart `pricedQty` sites and the Measure dialog (use `CmxQuantityMeasureInput`; server computes billed qty, UI only previews via `/api/v1/uom/convert`/quote), `/cmx-ui-design-review`. Use `MSYS_NO_PATHCONV=1` when running `npm run check:ui-access-contract -- --route=/...` from Git Bash.
+
+## P4 cart + Measure dialog — 2026-11-24 (later still)
+
+Flow: `new-order-content.tsx` `handleAddItem(product, measured?)` — a product whose `base_uom_code` unit is not COUNT (from `useUomUnits`) opens `MeasureLineDialog` instead of adding; confirm adds the line with `uom` + `measure` (or re-measures a line already in the cart via `state.updateItemMeasure`). The cart row shows `CartMeasureNote` (server `CartQuoteLine.measure` once quoted, typed measure before) with "Change measure". Money: the client only keeps a pre-quote estimate through `pricedQty(item)` (`lib/utils/order-item-helpers.ts`, calls `resolveBilledMeasure`); the cart/summary/payment figures are the server quote. `checkoutLineOf` and `use-order-submission` send `measure` (`measureOf`). Server: `toCartQuote` maps `quote.prices[].uom` to `CartQuoteLine.measure`; `searchProducts` returns `min_billable_qty`/`billing_increment`.
+Decisions: Order Edit (`isEditMode`) refuses a measured add or re-measure with `uom.measure.editNotReady` until P5 (`CHANGE_ITEM_MEASURE`). One cart line per product, so a measured product already in the cart is re-measured, not duplicated. The dialog imports components by file (`@ui/primitives/cmx-button`, `@ui/overlays/cmx-dialog`) because the barrels pull a server action into jest. Not done: `CmxKeypadPopover` in the dialog; inventory modals still on `product_unit`; `/cmx-ui-design-review`.
+Gates: `next build --webpack` exit 0, tsc 0, eslint clean, i18n pass. Next: inventory modals → `/cmx-ui-design-review` → fix `services/page.tsx` raw table → P5.
+Known: 10 jest suites under `__tests__/features/orders` (payment dialogs, orders-simple-table, summary-panel ergonomics) fail with `Request is not defined` / parse errors via the `@ui/forms` and `@ui/primitives` barrels — the barrel import chain exists at HEAD (not verified against a clean baseline).
+
 ## Session handoff — 2026-11-24
 
 **Done:** P1 migrations 0813–0815 and 0817 applied (local + remote), types and Prisma regenerated. P2 library closed. P3 mostly done: UoM service + 8 routes; order write path (measure intent → billed quantity → `uom_*` snapshot + measure columns); checkout and both request schemas accept `measure`; order split, tax-document items (billed quantity, `uom_code`, `uom_unece_code`), catalog, inventory and `/api/v1/products` (POST/PATCH) on `base_uom_code`, `min_billable_qty`, `billing_increment`. Gates: jest (commercial/uom/services/order-split/tax-document) 414 + `uom-http` 4 pass, tsc 0, eslint clean on changed folders.

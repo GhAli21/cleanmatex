@@ -169,8 +169,11 @@ If nothing fits: compose Cmx parts in the feature folder. If it will be reused, 
   - empty → `CmxEmptyState` with a next step;
   - error → a translated message and a retry when it makes sense;
   - forbidden → the action is hidden or disabled with a reason.
-- Mutations:
-  - the button shows it is busy and is disabled while busy;
+- Mutations and form submit locking:
+  - separate `isLoading` (initial data/session fetch → skeleton or neutral disabled state), `isSubmitting` (user submit in flight), and `isRedirecting` (navigation after a successful submit);
+  - while `isSubmitting` or `isRedirecting`, lock the entire form (`CmxForm` wraps children in `<fieldset disabled>` and drops duplicate submits via a synchronous ref), show a loading indicator on the active submit control, and block modal close/cancel actions;
+  - re-enable controls only after a non-redirecting response or error — never unlock in `finally` before a `window.location.assign` / route transition completes;
+  - pair UI submit locking with backend idempotency protection for critical operations (orders, payments, refunds, postings);
   - the result goes through `cmxMessage`;
   - form errors sit under the field;
   - no silent money changes.

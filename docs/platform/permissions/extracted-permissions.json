@@ -1,5 +1,5 @@
 {
-  "extractedAt": "2026-11-20T20:21:08.324Z",
+  "extractedAt": "2026-11-23T23:37:48.292Z",
   "schemaVersion": 3,
   "screens": [
     {
@@ -31,23 +31,7 @@
       "route": "/dashboard/customers/[id]",
       "permission": "customers:update",
       "component": "useHasPermission",
-      "line": 71,
-      "surface": "screen"
-    },
-    {
-      "file": "app/dashboard/delivery/page.tsx",
-      "route": "/dashboard/delivery",
-      "permission": "drivers:read",
-      "component": "useHasPermissionCode",
-      "line": 120,
-      "surface": "screen"
-    },
-    {
-      "file": "app/dashboard/delivery/page.tsx",
-      "route": "/dashboard/delivery",
-      "permission": "orders:collect_payment",
-      "component": "useHasPermissionCode",
-      "line": 121,
+      "line": 75,
       "surface": "screen"
     },
     {
@@ -151,7 +135,7 @@
       "route": "src/features/auth/ui/RequirePermission.tsx",
       "permission": "orders:create",
       "component": "RequirePermission",
-      "line": 33,
+      "line": 50,
       "surface": "screen"
     },
     {
@@ -419,6 +403,14 @@
       "surface": "screen"
     },
     {
+      "file": "src/features/customers/ui/customer-marketing-consent-card.tsx",
+      "route": "src/features/customers/ui/customer-marketing-consent-card.tsx",
+      "permission": "customers:update",
+      "component": "useHasPermission",
+      "line": 26,
+      "surface": "screen"
+    },
+    {
       "file": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "route": "src/features/customers/ui/customer-stored-value-tab.tsx",
       "permission": "stored_value:issue_wallet_credit",
@@ -440,6 +432,22 @@
       "permission": "customers:update",
       "component": "useHasPermission",
       "line": 27,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/delivery/ui/delivery-list-screen.tsx",
+      "route": "src/features/delivery/ui/delivery-list-screen.tsx",
+      "permission": "drivers:read",
+      "component": "useHasPermissionCode",
+      "line": 128,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/delivery/ui/delivery-list-screen.tsx",
+      "route": "src/features/delivery/ui/delivery-list-screen.tsx",
+      "permission": "orders:collect_payment",
+      "component": "useHasPermissionCode",
+      "line": 129,
       "surface": "screen"
     },
     {
@@ -511,7 +519,15 @@
       "route": "src/features/orders/ui/issues/orders-issues-queue-page.tsx",
       "permission": "orders:update",
       "component": "useHasPermissionCode",
-      "line": 56,
+      "line": 75,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/orders/ui/issues/orders-issues-queue-page.tsx",
+      "route": "src/features/orders/ui/issues/orders-issues-queue-page.tsx",
+      "permission": "orders:transition",
+      "component": "useHasPermissionCode",
+      "line": 76,
       "surface": "screen"
     },
     {
@@ -664,6 +680,14 @@
       "permission": "orders:read",
       "component": "useHasPermission",
       "line": 158,
+      "surface": "screen"
+    },
+    {
+      "file": "src/features/pickup/ui/ready-list-screen.tsx",
+      "route": "src/features/pickup/ui/ready-list-screen.tsx",
+      "permission": "orders:collect_payment",
+      "component": "useHasPermissionCode",
+      "line": 89,
       "surface": "screen"
     },
     {
@@ -887,7 +911,7 @@
       "route": "src/features/workflow/ui/processing-modal.tsx",
       "permission": "orders:split",
       "component": "useHasPermissionCode",
-      "line": 161,
+      "line": 191,
       "surface": "screen"
     },
     {
@@ -2181,6 +2205,22 @@
       "surface": "api"
     },
     {
+      "file": "app/api/v1/customers/[id]/marketing-consent/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/marketing-consent",
+      "permission": "customers:read",
+      "line": 36,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/customers/[id]/marketing-consent/route.ts",
+      "method": "GET",
+      "route": "/api/v1/customers/[id]/marketing-consent",
+      "permission": "customers:update",
+      "line": 58,
+      "surface": "api"
+    },
+    {
       "file": "app/api/v1/customers/[id]/open-balances/route.ts",
       "method": "GET",
       "route": "/api/v1/customers/[id]/open-balances",
@@ -2697,7 +2737,7 @@
       "method": "GET",
       "route": "/api/v1/notifications/campaigns",
       "permission": "notifications:manage",
-      "line": 38,
+      "line": 63,
       "surface": "api"
     },
     {
@@ -2705,7 +2745,7 @@
       "method": "GET",
       "route": "/api/v1/notifications/campaigns",
       "permission": "notifications:manage",
-      "line": 96,
+      "line": 121,
       "surface": "api"
     },
     {
@@ -2721,7 +2761,7 @@
       "method": "PATCH",
       "route": "/api/v1/notifications/campaigns/[id]/status",
       "permission": "notifications:manage",
-      "line": 61,
+      "line": 70,
       "surface": "api"
     },
     {
@@ -2729,7 +2769,7 @@
       "method": "PATCH",
       "route": "/api/v1/notifications/campaigns/[id]/status",
       "permission": "notifications:configure",
-      "line": 121,
+      "line": 130,
       "surface": "api"
     },
     {
@@ -3433,7 +3473,7 @@
       "method": "GET",
       "route": "/api/v1/orders/[id]/state",
       "permission": "orders:read",
-      "line": 87,
+      "line": 100,
       "surface": "api"
     },
     {
@@ -3689,7 +3729,7 @@
       "method": "GET",
       "route": "/api/v1/products",
       "permission": "products:read",
-      "line": 52,
+      "line": 55,
       "surface": "api"
     },
     {
@@ -3697,7 +3737,7 @@
       "method": "GET",
       "route": "/api/v1/products",
       "permission": "products:create",
-      "line": 169,
+      "line": 172,
       "surface": "api"
     },
     {
@@ -3713,7 +3753,7 @@
       "method": "GET",
       "route": "/api/v1/products/[id]",
       "permission": "products:read",
-      "line": 36,
+      "line": 39,
       "surface": "api"
     },
     {
@@ -3721,7 +3761,7 @@
       "method": "GET",
       "route": "/api/v1/products/[id]",
       "permission": "products:update",
-      "line": 88,
+      "line": 91,
       "surface": "api"
     },
     {
@@ -3729,7 +3769,7 @@
       "method": "GET",
       "route": "/api/v1/products/[id]",
       "permission": "products:delete",
-      "line": 161,
+      "line": 175,
       "surface": "api"
     },
     {
@@ -4002,6 +4042,86 @@
       "route": "/api/v1/tax/rules/[id]",
       "permission": "tax:manage_config",
       "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/catalog/route.ts",
+      "method": "GET",
+      "route": "/api/v1/uom/catalog",
+      "permission": "uom:manage",
+      "line": 12,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/conversions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/uom/conversions",
+      "permission": "uom:view",
+      "line": 17,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/conversions/route.ts",
+      "method": "GET",
+      "route": "/api/v1/uom/conversions",
+      "permission": "uom:manage",
+      "line": 28,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/conversions/[id]/reset/route.ts",
+      "method": "POST",
+      "route": "/api/v1/uom/conversions/[id]/reset",
+      "permission": "uom:manage",
+      "line": 13,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/conversions/[id]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/uom/conversions/[id]",
+      "permission": "uom:manage",
+      "line": 14,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/convert/route.ts",
+      "method": "POST",
+      "route": "/api/v1/uom/convert",
+      "permission": "uom:view",
+      "line": 14,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/units/route.ts",
+      "method": "GET",
+      "route": "/api/v1/uom/units",
+      "permission": "uom:view",
+      "line": 16,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/units/route.ts",
+      "method": "GET",
+      "route": "/api/v1/uom/units",
+      "permission": "uom:manage",
+      "line": 26,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/units/[code]/reset/route.ts",
+      "method": "POST",
+      "route": "/api/v1/uom/units/[code]/reset",
+      "permission": "uom:manage",
+      "line": 13,
+      "surface": "api"
+    },
+    {
+      "file": "app/api/v1/uom/units/[code]/route.ts",
+      "method": "PATCH",
+      "route": "/api/v1/uom/units/[code]",
+      "permission": "uom:manage",
+      "line": 13,
       "surface": "api"
     },
     {

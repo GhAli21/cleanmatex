@@ -22,12 +22,15 @@ const ORDER_CHARGE_PREFIX = 'order:';
 export function toCartQuote(checkout: CheckoutQuote, requestId: string): CartQuoteData {
   const { totals, quote } = checkout;
   const { result } = quote;
+  const priceOf = new Map(quote.prices.map((p) => [p.lineId, p]));
   const n = (value: { toNumber(): number }) => value.toNumber();
 
   const lines = result.lines.map((line) => {
     // `L{i+1}` is cart position i (`checkoutLineId`).
     const index = Number(line.lineId.slice(1)) - 1;
     const money = line.item.money;
+    const m = priceOf.get(line.lineId)?.uom?.measure;
+    const unit = priceOf.get(line.lineId)?.uom?.unit;
     return {
       index,
       unitPrice: n(money.unitPrice),
@@ -43,6 +46,11 @@ export function toCartQuote(checkout: CheckoutQuote, requestId: string): CartQuo
       taxAmount: n(money.taxAmount),
       lineTotalAmount: n(money.lineTotalAmount),
       readyByAt: line.readyBy.readyByAt.toISOString(),
+      measure: m && unit ? {
+        uomCode: unit.code, symbol: unit.symbol, symbol2: unit.symbol2,
+        measuredQty: m.measuredQty.toString(), length: m.length?.toString() ?? null, width: m.width?.toString() ?? null,
+        billedQty: m.billedQty.toString(), minimumApplied: m.minimumApplied, incrementApplied: m.incrementApplied,
+      } : null,
       pieces: line.pieces.filter((p) => p.pricing).map((p) => ({
         unitPrice: n(p.money.unitPrice),
         grossAmount: n(p.money.grossAmount),

@@ -8,7 +8,7 @@ import { useNewOrderContext } from '../ui/context/new-order-context';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { resolveEditControlCapability, resolveEditControlGroup } from '../order-change/edit-control-capability';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
-import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
+import type { NewOrderState, MinimalCustomer, OrderItem, OrderItemMeasure, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
 import type { OrderSourceCode } from '@/lib/constants/order-sources';
 import type { OrderTypeId } from '@/lib/constants/order-types';
 
@@ -40,6 +40,8 @@ export interface UseNewOrderStateWithDispatchReturn {
   addItem: (item: OrderItem) => void;
   removeItem: (productId: string) => boolean;
   updateItemQuantity: (productId: string, quantity: number) => void;
+  /** Changes what was measured on a measured line (kg, m, length × width). */
+  updateItemMeasure: (productId: string, measure: OrderItemMeasure) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
   updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
   updateOrderServicePrefs: (servicePrefs: OrderItemServicePref[]) => void;
@@ -160,6 +162,12 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
         type: 'UPDATE_ITEM_QUANTITY',
         payload: { productId, quantity },
       });
+    },
+
+    updateItemMeasure: (productId: string, measure: OrderItemMeasure) => {
+      // Order Edit changes a measure through its own operation (P5), never through the cart.
+      if (state.isEditMode) return;
+      dispatch({ type: 'UPDATE_ITEM_MEASURE', payload: { productId, measure } });
     },
 
     updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => {

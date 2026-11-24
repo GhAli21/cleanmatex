@@ -257,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     isLoggingInRef.current = true
     setIsLoading(true)
+    let redirecting = false
     const t0 = Date.now()
     console.log('[LOGIN:client] ▶ start')
     try {
@@ -374,13 +375,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const destination = getSafeRedirectPath(redirectTo)
       console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ done — redirecting to ${destination}`)
       // Full load: the root layout holds the per-user theme and brand, and router.push never re-renders it.
+      // Keep the auth lock engaged while the browser navigates away so the form cannot re-enable mid-redirect.
+      redirecting = true
       window.location.assign(destination)
     } catch (error: unknown) {
       // Error handling is done in API route, just re-throw
       throw error
     } finally {
-      setIsLoading(false)
-      isLoggingInRef.current = false
+      if (!redirecting) {
+        setIsLoading(false)
+        isLoggingInRef.current = false
+      }
     }
   }, [])
 
@@ -394,6 +399,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoggingInRef.current) return
     isLoggingInRef.current = true
     setIsLoading(true)
+    let redirecting = false
     try {
       const csrfToken = await getCSRFToken()
       const response = await fetch('/api/auth/choose-tenant', {
@@ -440,10 +446,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions(authData.permissions)
       permissionsLoadedForTenantRef.current = activeTenant.tenant_id
       setIsTenantContextReady(true)
+      redirecting = true
       window.location.assign(getSafeRedirectPath(redirectTo))
     } finally {
-      setIsLoading(false)
-      isLoggingInRef.current = false
+      if (!redirecting) {
+        setIsLoading(false)
+        isLoggingInRef.current = false
+      }
     }
   }, [])
 

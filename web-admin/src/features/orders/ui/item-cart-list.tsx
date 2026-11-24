@@ -8,6 +8,7 @@
 
 import type { CartQuoteRequest } from '@/lib/validations/new-order-payment-schemas';
 import { memo } from 'react';
+import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
 import { useTranslations } from 'next-intl';
 import { SummaryCartItem } from './summary-cart-item';
 import { ShoppingCart } from 'lucide-react';
@@ -48,6 +49,9 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  /** A measured line (kg, m, m²…): its unit and what staff measured. */
+  uom?: OrderItemUom;
+  measure?: OrderItemMeasure;
   /** Order Edit: the line is priced per piece (P9-01). */
   piecePriced?: boolean;
   serviceCategoryCode?: string;
@@ -69,6 +73,7 @@ interface ItemCartListProps {
   items: CartItem[];
   onEditItem?: (itemId: string) => void;
   onEditItemPreferences?: (itemId: string) => void;
+  onEditItemMeasure?: (productId: string) => void;
   onDeleteItem: (itemId: string) => void;
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
   onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
@@ -89,6 +94,7 @@ function ItemCartListComponent({
   items,
   onEditItem,
   onEditItemPreferences,
+  onEditItemMeasure,
   onDeleteItem,
   trackByPiece = false,
   currencyCode = '',
@@ -145,6 +151,9 @@ function ItemCartListComponent({
             itemId={item.id}
             productName={item.productName}
             productName2={item.productName2}
+            uom={item.uom}
+            measure={item.measure}
+            onEditMeasure={item.uom && onEditItemMeasure ? () => onEditItemMeasure(item.productId) : undefined}
             quantity={item.quantity}
             totalPrice={item.totalPrice}
             conditions={item.conditions}

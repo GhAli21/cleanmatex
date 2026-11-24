@@ -43,7 +43,11 @@
     "updated": "Unit saved",
     "created": "Unit created",
     "added": "Units added",
-    "reset": "Unit reset to system values"
+    "reset": "Unit reset to system values",
+    "emptyTitle": "No units yet",
+    "emptyDescription": "Add units from the system catalog or create a custom unit.",
+    "resetConfirmTitle": "Reset {code} to system values?",
+    "resetConfirmDescription": "Your custom names, symbols, and decimal settings for this unit will be replaced with the system defaults."
   },
   "conversions": {
     "add": "New conversion",
@@ -58,9 +62,14 @@
     "editTitle": "Edit conversion",
     "createTitle": "New conversion",
     "toggleActive": "Switch this conversion on or off",
+    "toggleActiveFor": "Switch conversion {from} to {to} on or off",
     "created": "Conversion created",
     "updated": "Conversion saved",
-    "reset": "Conversion reset to system values"
+    "reset": "Conversion reset to system values",
+    "emptyTitle": "No conversions yet",
+    "emptyDescription": "Add a conversion pair to convert quantities between units.",
+    "resetConfirmTitle": "Reset conversion {from} → {to} to system values?",
+    "resetConfirmDescription": "Your custom multiply and divide rates for this conversion will be replaced with the system defaults."
   },
   "errors": {
     "GENERIC": "Something went wrong. Please try again.",
@@ -80,5 +89,25 @@
     "UOM_FIXED_PRICE_MEASURED": "A fixed price cannot be used with a measured unit.",
     "MEASURE_REQUIRED": "Enter the measure for this item.",
     "MEASURE_NOT_ALLOWED": "This unit does not take a measure."
+  },
+  "measure": {
+    "label": "Measure ({unit})",
+    "length": "Length (m)",
+    "width": "Width (m)",
+    "billed": "Billed: {qty}",
+    "dialogTitle": "Measure — {product}",
+    "minRule": "Minimum billed: {qty}",
+    "stepRule": "Billed in steps of {qty}",
+    "minimumApplied": "Raised to the minimum for this item.",
+    "incrementApplied": "Rounded up to the billing step.",
+    "editNotReady": "Measured items can't be added or re-measured while editing an order yet.",
+    "lineNote": "measured {measured} · billed {billed}",
+    "edit": "Change measure"
+  },
+  "product": {
+    "minBillable": "Minimum billable",
+    "minBillableHelp": "Smallest measure charged. Optional; leave empty for none.",
+    "billingIncrement": "Billing step",
+    "billingIncrementHelp": "Measure is rounded up to this step. Optional."
   }
 }

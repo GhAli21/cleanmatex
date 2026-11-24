@@ -10,8 +10,9 @@
  *  - "Start now" (status RUNNING with no targets yet) creates the targets and sends;
  *  - a campaign with no user ids fails with an audit row;
  *  - customers (0818): a named customer who agreed gets an outbox row to their own email and no user,
- *    one who did not is SKIPPED; "all who agreed" targets only agreeing customers; customer WhatsApp
- *    fails at start until STEP5_PLAN 4c.
+ *    one who did not is SKIPPED; "all who agreed" targets only agreeing customers;
+ *  - WhatsApp to customers (0819, STEP5_PLAN 4c): the outbox row has event campaign.send, the customer's
+ *    E.164 phone and the campaign's template_vars as metadata (HQ fills the template slots from them).
  * Uses the demo tenant; switches both queues on for the run and restores them.
  */
 import { LOCAL_DB, LOCAL_ENV } from './env';
@@ -28,6 +29,7 @@ const db = new pg.Pool({ connectionString: LOCAL_DB, max: 2 });
 const q = async <T = Record<string, unknown>>(sql: string, args: unknown[] = []) => (await db.query(sql, args)).rows as T[];
 const INSTANCE = 'cmx-workers-ctest';
 const QUEUES = ['ntf.campaign_start', 'ntf.campaign_chunk'];
+const WA_TEMPLATE = 'jobs_test.wa_marketing';
 
 async function waitFor<T>(what: string, fn: () => Promise<T | undefined | null | false>, timeoutMs = 60_000): Promise<T> {
   const end = Date.now() + timeoutMs;
@@ -60,11 +62,11 @@ describe('campaigns on local Supabase', () => {
     return id;
   }
 
-  async function createCustomerCampaign(channel: string, segment: object): Promise<string> {
+  async function createCustomerCampaign(channel: string, segment: object, template?: { code: string; vars: object }): Promise<string> {
     const [{ id }] = await q<{ id: string }>(
-      `INSERT INTO public.org_ntf_campaigns_mst (tenant_org_id, name, description, status, audience_code, channel_code, target_segment, created_by)
-       VALUES ($1, 'Jobs test customer campaign', 'Hello customers', 'APPROVED', 'CUSTOMERS', $2, $3, 'cmx-workers-test') RETURNING id::text AS id`,
-      [tenant, channel, JSON.stringify(segment)]);
+      `INSERT INTO public.org_ntf_campaigns_mst (tenant_org_id, name, description, status, audience_code, channel_code, target_segment, template_code, template_vars, created_by)
+       VALUES ($1, 'Jobs test customer campaign', 'Hello customers', 'APPROVED', 'CUSTOMERS', $2, $3, $4, $5, 'cmx-workers-test') RETURNING id::text AS id`,
+      [tenant, channel, JSON.stringify(segment), template?.code ?? null, JSON.stringify(template?.vars ?? {})]);
     campaignIds.push(id);
     return id;
   }
@@ -133,6 +135,7 @@ describe('campaigns on local Supabase', () => {
     await q(`DELETE FROM public.org_ntf_campaigns_mst WHERE tenant_org_id = $1 AND id = ANY($2::uuid[])`, [tenant, campaignIds]);
     await q(`DELETE FROM public.org_ntf_user_prefs_dtl WHERE tenant_org_id = $1 AND id = ANY($2::uuid[])`, [tenant, prefIds]);
     await q(`DELETE FROM public.org_ntf_cust_consent_dtl WHERE tenant_org_id = $1 AND id = ANY($2::uuid[])`, [tenant, consentIds]);
+    await q(`DELETE FROM public.sys_ntf_templates_mst WHERE template_code = $1`, [WA_TEMPLATE]);
     await q(`DELETE FROM pgboss.instance WHERE name = $1`, [INSTANCE]);
     await q(`UPDATE public.sys_ops_job_cf SET applied_enabled = NULL, applied_at = NULL, applied_by = NULL WHERE applied_by = $1`, [INSTANCE]);
     await jobs.stop();
@@ -235,11 +238,31 @@ describe('campaigns on local Supabase', () => {
     assert.ok(!rows.some((t) => t.recipient_customer_id === otherCustomer));
   });
 
-  it('a WhatsApp campaign to customers fails at start until templates can be chosen', async () => {
-    const id = await createCustomerCampaign('WHATSAPP', { all_consented: true });
-    assert.equal((await startAndWait(id, ['FAILED', 'COMPLETED'])).status, 'FAILED');
-    assert.equal((await targets(id)).length, 0);
-    const audit = await q(`SELECT 1 FROM public.org_ntf_audit_dtl WHERE tenant_org_id = $1 AND entity_id = $2 AND action_code = 'ACTIVATION_FAILED'`, [tenant, id]);
-    assert.equal(audit.length, 1);
+  it('WhatsApp to a customer who agreed: outbox row with campaign.send, E.164 phone and the template values', async () => {
+    const [customer] = await q<{ id: string; phone: string }>(
+      `SELECT id::text, phone FROM public.org_customers_mst
+        WHERE tenant_org_id = $1 AND is_active AND coalesce(rec_status, 1) = 1 AND phone ~ '^\\+[1-9][0-9]{7,14}$' ORDER BY id LIMIT 1`, [tenant]);
+    assert.ok(customer, 'the demo tenant needs a customer with an E.164 phone');
+    await q(`DELETE FROM public.org_ntf_cust_consent_dtl WHERE tenant_org_id = $1 AND customer_id = $2 AND channel_code = 'WHATSAPP' AND created_by = 'cmx-workers-test'`, [tenant, customer.id]);
+    const [{ id: consentId }] = await q<{ id: string }>(
+      `INSERT INTO public.org_ntf_cust_consent_dtl (tenant_org_id, customer_id, channel_code, marketing_consent, consent_given_at, consent_source, created_by)
+       VALUES ($1, $2, 'WHATSAPP', true, now(), 'STAFF', 'cmx-workers-test') RETURNING id::text AS id`, [tenant, customer.id]);
+    consentIds.push(consentId);
+    // A campaign must name an existing template (0819); this one has no version, so the display text falls back to the campaign name.
+    await q(`INSERT INTO public.sys_ntf_templates_mst (template_code, event_code, name) VALUES ($1, 'campaign.send', 'Jobs test WhatsApp marketing') ON CONFLICT DO NOTHING`, [WA_TEMPLATE]);
+
+    const id = await createCustomerCampaign('WHATSAPP', { customer_ids: [customer.id] }, { code: WA_TEMPLATE, vars: { offer: '20% off' } });
+    const campaign = await startAndWait(id, ['COMPLETED', 'FAILED']);
+    assert.equal(campaign.status, 'COMPLETED');
+    assert.equal(campaign.queued_count, 1);
+
+    const [outbox] = await q<{ recipient_address: string; event_code: string; channel_code: string; metadata: Record<string, unknown> }>(
+      `SELECT o.recipient_address, o.event_code, o.channel_code, o.metadata FROM public.org_ntf_outbox_dtl o
+         JOIN public.org_ntf_camp_targets_dtl t ON t.outbox_id = o.id AND t.tenant_org_id = o.tenant_org_id
+        WHERE t.campaign_id = $1 AND t.tenant_org_id = $2`, [id, tenant]);
+    assert.equal(outbox.channel_code, 'WHATSAPP');
+    assert.equal(outbox.event_code, 'campaign.send');
+    assert.equal(outbox.recipient_address, customer.phone);
+    assert.equal(outbox.metadata.offer, '20% off');
   });
 });

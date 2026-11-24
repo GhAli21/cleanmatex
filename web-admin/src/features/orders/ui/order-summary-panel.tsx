@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, memo, useCallback, useMemo, type Ref } from 'react';
+import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import {
@@ -45,6 +46,9 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  /** A measured line (kg, m, m²…): its unit and what staff measured. */
+  uom?: OrderItemUom;
+  measure?: OrderItemMeasure;
   /** Order Edit: the line is priced per piece (P9-01). */
   piecePriced?: boolean;
   serviceCategoryCode?: string;
@@ -131,6 +135,8 @@ interface OrderSummaryPanelProps {
   onBagsChange?: (count: number) => void;
   // Edit item notes (navigates to pieces tab)
   onEditItemPreferences?: (itemId: string) => void;
+  /** Opens the Measure dialog for a measured line. */
+  onEditItemMeasure?: (productId: string) => void;
   showPaymentModalVersionSelector?: boolean;
   paymentModalVersion?: PaymentModalVersion;
   onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
@@ -189,6 +195,7 @@ function OrderSummaryPanelComponent({
   bags = 0,
   onBagsChange,
   onEditItemPreferences,
+  onEditItemMeasure,
   showPaymentModalVersionSelector = false,
   paymentModalVersion = PAYMENT_MODAL_VERSIONS.V4,
   onPaymentModalVersionChange,
@@ -334,6 +341,7 @@ function OrderSummaryPanelComponent({
             items={items}
             onEditItem={onEditItem}
             onEditItemPreferences={onEditItemPreferences}
+            onEditItemMeasure={onEditItemMeasure}
             onDeleteItem={handleDeleteItem}
             onPiecesChange={onPiecesChange}
             onCopyPieceToAll={onCopyPieceToAll}

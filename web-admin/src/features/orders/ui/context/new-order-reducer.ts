@@ -7,6 +7,7 @@ import type { NewOrderState, NewOrderAction, OrderItem, PreSubmissionPiece } fro
 import { NEW_ORDER_DEFAULT_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
+import { pricedQty } from '@/lib/utils/order-item-helpers';
 
 /**
  * Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty).
@@ -18,12 +19,15 @@ import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
  */
 function itemLineBasePlusPrefCharges(item: {
   quantity: number;
+  /** A measured line multiplies by its billed measure (`pricedQty`), not by `quantity`. */
+  uom?: OrderItem['uom'];
+  measure?: OrderItem['measure'];
   pricePerUnit: number;
   servicePrefCharge?: number;
   packingPrefCharge?: number;
 }): number {
   return (
-    item.quantity * item.pricePerUnit +
+    pricedQty(item) * item.pricePerUnit +
     (item.servicePrefCharge ?? 0) +
     (item.packingPrefCharge ?? 0)
   );
@@ -207,6 +211,8 @@ export function newOrderReducer(
                 quantity: item.quantity + 1,
                 totalPrice: itemLineBasePlusPrefCharges({
                   quantity: item.quantity + 1,
+                  uom: item.uom,
+                  measure: item.measure,
                   pricePerUnit: item.pricePerUnit,
                   servicePrefCharge: item.servicePrefCharge,
                   packingPrefCharge: item.packingPrefCharge,
@@ -286,6 +292,8 @@ export function newOrderReducer(
             quantity,
             totalPrice: itemLineBasePlusPrefCharges({
               quantity,
+              uom: item.uom,
+              measure: item.measure,
               pricePerUnit: item.pricePerUnit,
               servicePrefCharge: item.servicePrefCharge,
               packingPrefCharge: item.packingPrefCharge,
@@ -293,6 +301,29 @@ export function newOrderReducer(
             pieces,
           };
         }),
+      };
+    }
+
+    case 'UPDATE_ITEM_MEASURE': {
+      const { productId, measure } = action.payload;
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.productId === productId
+            ? {
+                ...item,
+                measure,
+                totalPrice: itemLineBasePlusPrefCharges({
+                  quantity: item.quantity,
+                  uom: item.uom,
+                  measure,
+                  pricePerUnit: item.pricePerUnit,
+                  servicePrefCharge: item.servicePrefCharge,
+                  packingPrefCharge: item.packingPrefCharge,
+                }),
+              }
+            : item
+        ),
       };
     }
 
@@ -314,6 +345,8 @@ export function newOrderReducer(
             quantity,
             totalPrice: itemLineBasePlusPrefCharges({
               quantity,
+              uom: item.uom,
+              measure: item.measure,
               pricePerUnit: item.pricePerUnit,
               servicePrefCharge: item.servicePrefCharge,
               packingPrefCharge: item.packingPrefCharge,
@@ -334,6 +367,8 @@ export function newOrderReducer(
                 servicePrefCharge,
                 totalPrice: itemLineBasePlusPrefCharges({
                   quantity: item.quantity,
+                  uom: item.uom,
+                  measure: item.measure,
                   pricePerUnit: item.pricePerUnit,
                   servicePrefCharge,
                   packingPrefCharge: item.packingPrefCharge,
@@ -386,6 +421,8 @@ export function newOrderReducer(
                 }),
             totalPrice: itemLineBasePlusPrefCharges({
               quantity: item.quantity,
+              uom: item.uom,
+              measure: item.measure,
               pricePerUnit: item.pricePerUnit,
               servicePrefCharge: item.servicePrefCharge,
               packingPrefCharge:
@@ -408,6 +445,8 @@ export function newOrderReducer(
                 packingPrefCharge: pk,
                 totalPrice: itemLineBasePlusPrefCharges({
                   quantity: item.quantity,
+                  uom: item.uom,
+                  measure: item.measure,
                   pricePerUnit: item.pricePerUnit,
                   servicePrefCharge: item.servicePrefCharge,
                   packingPrefCharge: pk,
@@ -452,6 +491,8 @@ export function newOrderReducer(
             pricePerUnit: effectivePrice,
             totalPrice: itemLineBasePlusPrefCharges({
               quantity: item.quantity,
+              uom: item.uom,
+              measure: item.measure,
               pricePerUnit: effectivePrice,
               servicePrefCharge: item.servicePrefCharge,
               packingPrefCharge: item.packingPrefCharge,

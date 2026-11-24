@@ -11,8 +11,10 @@ import {
   calculateOrderTotal,
   hasDuplicateProducts,
   getItemCount,
+  pricedQty,
 } from '@/lib/utils/order-item-helpers';
 import type { OrderItem } from '@/src/features/orders/model/new-order-types';
+import { measureOf } from '@/src/features/orders/model/checkout-line-intent';
 
 describe('Order Item Helpers', () => {
   const mockItem: OrderItem = {
@@ -184,5 +186,40 @@ describe('Order Item Helpers', () => {
       expect(getItemCount([mockItem, mockItem2])).toBe(3); // 1 + 2
     });
   });
-});
 
+  describe('measured lines (pricedQty)', () => {
+    const kg: OrderItem = {
+      ...mockItem, pricePerUnit: 5, totalPrice: 0,
+      uom: { code: 'KG', dimension: 'MASS', qtyDecimals: 3, symbol: 'kg', symbol2: null, minBillableQty: '3', billingIncrement: '0.5' },
+      measure: { measuredQty: '3.2', length: '', width: '' },
+    };
+    const area: OrderItem = {
+      ...kg, uom: { ...kg.uom!, code: 'M2', dimension: 'AREA', minBillableQty: null, billingIncrement: null },
+      measure: { measuredQty: '', length: '2', width: '1.5' },
+    };
+
+    it('a count line multiplies by its quantity', () => {
+      expect(pricedQty(mockItem2)).toBe(2);
+    });
+    it('a measured line multiplies by the billed measure (step 0.5: 3.2 → 3.5; minimum 3)', () => {
+      expect(pricedQty(kg)).toBe(3.5);
+      expect(pricedQty({ ...kg, measure: { measuredQty: '1', length: '', width: '' } })).toBe(3);
+    });
+    it('an area line is length × width', () => {
+      expect(pricedQty(area)).toBe(3);
+    });
+    it('no measure or an invalid one is 0, never the bag count', () => {
+      expect(pricedQty({ ...kg, measure: undefined })).toBe(0);
+      expect(pricedQty({ ...kg, measure: { measuredQty: '1.2345', length: '', width: '' } })).toBe(0); // 4 decimals on a 3-decimal unit
+    });
+    it('line total multiplies the unit price by the billed measure, not the bag count', () => {
+      expect(calculateItemTotal({ ...kg, totalPrice: undefined as unknown as number, quantity: 2 })).toBe(17.5);
+      expect(updateItemQuantity([kg], 'product-1', 3)[0].totalPrice).toBe(17.5);
+    });
+    it('measureOf sends only what was typed, and nothing for a count line', () => {
+      expect(measureOf(mockItem)).toBeNull();
+      expect(measureOf(kg)).toEqual({ measuredQty: '3.2' });
+      expect(measureOf(area)).toEqual({ length: '2', width: '1.5' });
+    });
+  });
+});

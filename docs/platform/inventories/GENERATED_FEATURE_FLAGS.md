@@ -3,56 +3,56 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-20T20:21:15.167Z
+Generated: 2026-11-23T23:37:53.059Z
 
 | Flag key | Surface | File | Line | Context |
 | --- | --- | --- | --- | --- |
-| advanced_analytics | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 689 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ Advanced Analytics</li>} |
-| advanced_analytics | navigation | config/navigation.ts | 618 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
+| advanced_analytics | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 708 | {selectedPlan.feature_flags.advanced_analytics && <li>✓ {t('featureAdvancedAnalyticsFull')}</li>} |
 | advanced_analytics | navigation | config/navigation.ts | 625 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 632 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 639 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
 | advanced_analytics | navigation | config/navigation.ts | 646 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
-| advanced_analytics | navigation | config/navigation.ts | 655 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
-| advanced_analytics | navigation | config/navigation.ts | 664 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
-| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 562 | {plan.feature_flags.api_access && ( |
-| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 690 | {selectedPlan.feature_flags.api_access && <li>✓ API Access</li>} |
-| b2b_contracts | screen | src/features/customers/ui/customer-create-modal.tsx | 55 | const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS) |
+| advanced_analytics | navigation | config/navigation.ts | 653 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
+| advanced_analytics | navigation | config/navigation.ts | 662 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
+| advanced_analytics | navigation | config/navigation.ts | 671 | featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS, |
+| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 579 | {plan.feature_flags.api_access && ( |
+| api_access | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 709 | {selectedPlan.feature_flags.api_access && <li>✓ {t('featureApiFull')}</li>} |
+| b2b_contracts | screen | src/features/customers/ui/customer-create-modal.tsx | 56 | const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS) |
 | b2b_contracts | navigation | config/navigation.ts | 317 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 325 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 333 | //featureFlag: 'b2b_contracts', |
 | b2b_contracts | navigation | config/navigation.ts | 341 | //featureFlag: 'b2b_contracts', |
-| campaigns_enabled | navigation | config/navigation.ts | 884 | featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED, |
-| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 556 | {plan.feature_flags.driver_app && ( |
-| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 687 | {selectedPlan.feature_flags.driver_app && <li>✓ Driver App</li>} |
-| erp_lite_ap_enabled | navigation | config/navigation.ts | 796 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
-| erp_lite_ar_enabled | navigation | config/navigation.ts | 788 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
-| erp_lite_bank_recon_enabled | navigation | config/navigation.ts | 820 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
-| erp_lite_branch_pl_enabled | navigation | config/navigation.ts | 828 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
+| campaigns_enabled | navigation | config/navigation.ts | 891 | featureFlag: FLAG_KEYS.CAMPAIGNS_ENABLED, |
+| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 573 | {plan.feature_flags.driver_app && ( |
+| driver_app | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 706 | {selectedPlan.feature_flags.driver_app && <li>✓ {t('featureDriverAppFull')}</li>} |
+| erp_lite_ap_enabled | navigation | config/navigation.ts | 803 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
+| erp_lite_ar_enabled | navigation | config/navigation.ts | 795 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
+| erp_lite_bank_recon_enabled | navigation | config/navigation.ts | 827 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
+| erp_lite_branch_pl_enabled | navigation | config/navigation.ts | 835 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
 | erp_lite_enabled | service | lib/services/erp-lite-feature-guard.ts | 11 | await requireFeature(tenantId, FEATURE_FLAG_KEYS.ERP_LITE_ENABLED); |
-| erp_lite_enabled | navigation | config/navigation.ts | 691 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 699 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 708 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 716 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 724 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 732 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 740 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 748 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 756 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 764 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 772 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 780 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 788 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 796 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 804 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 812 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 820 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 828 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
-| erp_lite_enabled | navigation | config/navigation.ts | 836 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
-| erp_lite_expenses_enabled | navigation | config/navigation.ts | 812 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
-| erp_lite_gl_enabled | navigation | config/navigation.ts | 764 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_gl_enabled | navigation | config/navigation.ts | 772 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
-| erp_lite_po_enabled | navigation | config/navigation.ts | 804 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 698 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 706 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 715 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 723 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 731 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 739 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 747 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 755 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 763 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 771 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 779 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 787 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 795 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 803 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 811 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 819 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 827 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 835 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED, |
+| erp_lite_enabled | navigation | config/navigation.ts | 843 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED, |
+| erp_lite_expenses_enabled | navigation | config/navigation.ts | 819 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED, |
+| erp_lite_gl_enabled | navigation | config/navigation.ts | 771 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_gl_enabled | navigation | config/navigation.ts | 779 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED, |
+| erp_lite_po_enabled | navigation | config/navigation.ts | 811 | featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED, |
 | getFeatureFlags | api | app/api/feature-flags/route.ts | 23 | const flags = await Promise.race([getFeatureFlags(tenantId), timeoutPromise]) |
 | getFeatureFlags | api | app/api/navigation/route.ts | 91 | const flags = await withTimeout(getFeatureFlags(tenantId), 3000) |
 | getFeatureFlags | api | app/api/settings/tenants/[tenantId]/feature-flags/route.ts | 34 | const flags = await hqApiClient.getFeatureFlags({ |
@@ -77,8 +77,8 @@ Generated: 2026-11-20T20:21:15.167Z
 | getFeatureFlags | service | lib/services/ui-theme.service.ts | 69 | getFeatureFlags(tenantId), |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 227 | const featureFlags = await getFeatureFlags(tenantId); |
 | getFeatureFlags | service | lib/services/workflow-service-enhanced.ts | 448 | const flags = await getFeatureFlags(tenantId); |
-| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 559 | {plan.feature_flags.multi_branch && ( |
-| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 688 | {selectedPlan.feature_flags.multi_branch && <li>✓ Multi-Branch Support</li>} |
+| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 576 | {plan.feature_flags.multi_branch && ( |
+| multi_branch | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 707 | {selectedPlan.feature_flags.multi_branch && <li>✓ {t('featureMultiBranchFull')}</li>} |
 | multi_currency_fx | screen | src/features/fx/ui/currency-fx-screen.tsx | 32 | const multiCurrencyAllowed = useFeature('multi_currency_fx'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 382 | const bookingEnabled = await canAccess(tenantId, 'online_booking'); |
 | online_booking | api | app/api/v1/public/customer/booking/route.ts | 711 | const bookingEnabled = await canAccess(body.tenantId, 'online_booking'); |
@@ -93,9 +93,9 @@ Generated: 2026-11-20T20:21:15.167Z
 | order_fin_voucher_unwind | screen | app/dashboard/internal_fin/vouchers/[voucherId]/page.tsx | 91 | const unwindEnabled = await canAccess(auth.tenantId, 'order_fin_voucher_unwind'); |
 | order_fin_voucher_unwind | service | lib/services/voucher-reversal.service.ts | 88 | const unwindEnabled = await canAccess(tenantOrgId, 'order_fin_voucher_unwind'); |
 | pdf_invoices | service | lib/services/feature-flags.service.ts | 402 | *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES); |
-| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 550 | {plan.feature_flags.pdf_invoices && ( |
-| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 685 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>} |
+| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 567 | {plan.feature_flags.pdf_invoices && ( |
+| pdf_invoices | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 704 | {selectedPlan.feature_flags.pdf_invoices && <li>✓ {t('featurePdfFull')}</li>} |
 | usePlanFlags | hook | src/features/orders/hooks/use-plan-flags.ts | 30 | export function usePlanFlags() { |
 | usePlanFlags | screen | src/features/orders/ui/new-order-content.tsx | 110 | usePlanFlags(); |
-| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 553 | {plan.feature_flags.whatsapp_receipts && ( |
-| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 686 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ WhatsApp Receipts</li>} |
+| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 570 | {plan.feature_flags.whatsapp_receipts && ( |
+| whatsapp_receipts | screen | src/features/tenant-admin/ui/subscription/tenant-admin-subscription-screen.tsx | 705 | {selectedPlan.feature_flags.whatsapp_receipts && <li>✓ {t('featureWhatsappFull')}</li>} |

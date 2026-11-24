@@ -3,15 +3,15 @@
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
 
-Generated: 2026-11-20T20:21:15.167Z
+Generated: 2026-11-23T23:37:53.059Z
 
 ## By surface (counts)
 
 | Surface | Count |
 | --- | --- |
-| api | 375 |
+| api | 387 |
 | middleware | 4 |
-| screen | 117 |
+| screen | 120 |
 | service | 5 |
 
 ## All permission usages
@@ -166,11 +166,14 @@ Generated: 2026-11-20T20:21:15.167Z
 | customers:delete | api | app/api/v1/customers/[id]/route.ts | 229 | /api/v1/customers/[id] |
 | customers:read | api | app/api/v1/customer-categories/route.ts | 23 | /api/v1/customer-categories |
 | customers:read | api | app/api/v1/customer-categories/[code]/route.ts | 27 | /api/v1/customer-categories/[code] |
+| customers:read | api | app/api/v1/customers/[id]/marketing-consent/route.ts | 36 | /api/v1/customers/[id]/marketing-consent |
 | customers:read | api | app/api/v1/customers/[id]/route.ts | 43 | /api/v1/customers/[id] |
 | customers:read | api | app/api/v1/customers/[id]/service-prefs/route.ts | 26 | /api/v1/customers/[id]/service-prefs |
 | customers:receipt_allocate | screen | src/features/customers/ui/customer-account-receipt-client.tsx | 57 | src/features/customers/ui/customer-account-receipt-client.tsx |
-| customers:update | screen | app/dashboard/customers/[id]/page.tsx | 71 | /dashboard/customers/[id] |
+| customers:update | screen | app/dashboard/customers/[id]/page.tsx | 75 | /dashboard/customers/[id] |
+| customers:update | screen | src/features/customers/ui/customer-marketing-consent-card.tsx | 26 | src/features/customers/ui/customer-marketing-consent-card.tsx |
 | customers:update | screen | src/features/customers/ui/customer-whatsapp-consent-card.tsx | 27 | src/features/customers/ui/customer-whatsapp-consent-card.tsx |
+| customers:update | api | app/api/v1/customers/[id]/marketing-consent/route.ts | 58 | /api/v1/customers/[id]/marketing-consent |
 | customers:update | api | app/api/v1/customers/[id]/route.ts | 132 | /api/v1/customers/[id] |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 74 | /api/v1/customers/[id]/service-prefs |
 | customers:update | api | app/api/v1/customers/[id]/service-prefs/route.ts | 140 | /api/v1/customers/[id]/service-prefs |
@@ -181,7 +184,7 @@ Generated: 2026-11-20T20:21:15.167Z
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/cancel/route.ts | 34 | /api/v1/delivery/routes/[id]/cancel |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/orders/route.ts | 32 | /api/v1/delivery/routes/[id]/orders |
 | delivery:routes | api | app/api/v1/delivery/routes/[id]/stops/[stopId]/route.ts | 26 | /api/v1/delivery/routes/[id]/stops/[stopId] |
-| drivers:read | screen | app/dashboard/delivery/page.tsx | 120 | /dashboard/delivery |
+| drivers:read | screen | src/features/delivery/ui/delivery-list-screen.tsx | 128 | src/features/delivery/ui/delivery-list-screen.tsx |
 | drivers:read | api | app/api/v1/delivery/routes/route.ts | 23 | /api/v1/delivery/routes |
 | fin_voucher_lines:delete_draft | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 43 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
 | fin_voucher_lines:update | api | app/api/v1/finance/vouchers/[voucherId]/lines/[lineId]/route.ts | 17 | /api/v1/finance/vouchers/[voucherId]/lines/[lineId] |
@@ -246,17 +249,17 @@ Generated: 2026-11-20T20:21:15.167Z
 | loyalty:view_config | api | app/api/v1/loyalty/config/route.ts | 15 | /api/v1/loyalty/config |
 | loyalty:view_customer_points | api | app/api/v1/customers/[id]/loyalty/route.ts | 24 | /api/v1/customers/[id]/loyalty |
 | notifications:configure | screen | src/features/notifications/ui/notification-settings-page.tsx | 61 | src/features/notifications/ui/notification-settings-page.tsx |
-| notifications:configure | api | app/api/v1/notifications/campaigns/[id]/status/route.ts | 121 | /api/v1/notifications/campaigns/[id]/status |
+| notifications:configure | api | app/api/v1/notifications/campaigns/[id]/status/route.ts | 130 | /api/v1/notifications/campaigns/[id]/status |
 | notifications:configure | api | app/api/v1/notifications/settings/providers/route.ts | 34 | /api/v1/notifications/settings/providers |
 | notifications:configure | api | app/api/v1/notifications/settings/providers/route.ts | 79 | /api/v1/notifications/settings/providers |
 | notifications:configure | api | app/api/v1/notifications/settings/providers/route.ts | 154 | /api/v1/notifications/settings/providers |
 | notifications:configure | api | app/api/v1/notifications/settings/providers/route.ts | 239 | /api/v1/notifications/settings/providers |
 | notifications:configure | api | app/api/v1/notifications/settings/route.ts | 21 | /api/v1/notifications/settings |
 | notifications:configure | api | app/api/v1/notifications/settings/route.ts | 53 | /api/v1/notifications/settings |
-| notifications:manage | api | app/api/v1/notifications/campaigns/route.ts | 38 | /api/v1/notifications/campaigns |
-| notifications:manage | api | app/api/v1/notifications/campaigns/route.ts | 96 | /api/v1/notifications/campaigns |
+| notifications:manage | api | app/api/v1/notifications/campaigns/route.ts | 63 | /api/v1/notifications/campaigns |
+| notifications:manage | api | app/api/v1/notifications/campaigns/route.ts | 121 | /api/v1/notifications/campaigns |
 | notifications:manage | api | app/api/v1/notifications/campaigns/[id]/route.ts | 24 | /api/v1/notifications/campaigns/[id] |
-| notifications:manage | api | app/api/v1/notifications/campaigns/[id]/status/route.ts | 61 | /api/v1/notifications/campaigns/[id]/status |
+| notifications:manage | api | app/api/v1/notifications/campaigns/[id]/status/route.ts | 70 | /api/v1/notifications/campaigns/[id]/status |
 | notifications:manage | api | app/api/v1/notifications/campaigns/[id]/test/route.ts | 64 | /api/v1/notifications/campaigns/[id]/test |
 | notifications:manage | api | app/api/v1/notifications/read-all/route.ts | 16 | /api/v1/notifications/read-all |
 | notifications:manage | api | app/api/v1/notifications/user-prefs/route.ts | 34 | /api/v1/notifications/user-prefs |
@@ -273,12 +276,13 @@ Generated: 2026-11-20T20:21:15.167Z
 | orders:approve_refund | api | app/api/v1/orders/refunds/[refundId]/approve/route.ts | 19 | /api/v1/orders/refunds/[refundId]/approve |
 | orders:cancel_payment | screen | src/features/billing/ui/pending-payments-worklist-page.tsx | 73 | src/features/billing/ui/pending-payments-worklist-page.tsx |
 | orders:cancel_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 78 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:collect_payment | screen | app/dashboard/delivery/page.tsx | 121 | /dashboard/delivery |
+| orders:collect_payment | screen | src/features/delivery/ui/delivery-list-screen.tsx | 129 | src/features/delivery/ui/delivery-list-screen.tsx |
 | orders:collect_payment | screen | src/features/delivery/ui/delivery-order-detail-screen.tsx | 51 | src/features/delivery/ui/delivery-order-detail-screen.tsx |
 | orders:collect_payment | screen | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx | 205 | src/features/orders/ui/collect-payment/order-collect-payment-modal.tsx |
+| orders:collect_payment | screen | src/features/pickup/ui/ready-list-screen.tsx | 89 | src/features/pickup/ui/ready-list-screen.tsx |
 | orders:collect_payment | api | app/api/v1/orders/[id]/collect-payment/route.ts | 41 | /api/v1/orders/[id]/collect-payment |
 | orders:collect_payment | api | app/api/v1/orders/[id]/payments/route.ts | 45 | /api/v1/orders/[id]/payments |
-| orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 33 | src/features/auth/ui/RequirePermission.tsx |
+| orders:create | screen | src/features/auth/ui/RequirePermission.tsx | 50 | src/features/auth/ui/RequirePermission.tsx |
 | orders:create | api | app/api/v1/orders/payment-quote/route.ts | 59 | /api/v1/orders/payment-quote |
 | orders:create | api | app/api/v1/orders/preview-payment/route.ts | 32 | /api/v1/orders/preview-payment |
 | orders:create | api | app/api/v1/orders/quote/route.ts | 31 | /api/v1/orders/quote |
@@ -337,7 +341,7 @@ Generated: 2026-11-20T20:21:15.167Z
 | orders:read | api | app/api/v1/orders/[id]/rack-bags/route.ts | 16 | /api/v1/orders/[id]/rack-bags |
 | orders:read | api | app/api/v1/orders/[id]/report/invoices-payments-rprt/route.ts | 53 | /api/v1/orders/[id]/report/invoices-payments-rprt |
 | orders:read | api | app/api/v1/orders/[id]/report/payments-rprt/route.ts | 44 | /api/v1/orders/[id]/report/payments-rprt |
-| orders:read | api | app/api/v1/orders/[id]/state/route.ts | 87 | /api/v1/orders/[id]/state |
+| orders:read | api | app/api/v1/orders/[id]/state/route.ts | 100 | /api/v1/orders/[id]/state |
 | orders:read | api | app/api/v1/orders/[id]/transitions/route.ts | 13 | /api/v1/orders/[id]/transitions |
 | orders:read | api | app/api/v1/preferences/last-order/route.ts | 22 | /api/v1/preferences/last-order |
 | orders:read | api | app/api/v1/preferences/resolve/route.ts | 21 | /api/v1/preferences/resolve |
@@ -347,11 +351,12 @@ Generated: 2026-11-20T20:21:15.167Z
 | orders:read | api | app/api/v1/scan/resolve/route.ts | 17 | /api/v1/scan/resolve |
 | orders:rebill_authorize | screen | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx | 93 | src/features/orders/ui/order-financial/refund-initiate-dialog.tsx |
 | orders:reverse_payment | screen | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx | 83 | src/features/orders/ui/order-financial/order-payments-credits-tables.tsx |
-| orders:split | screen | src/features/workflow/ui/processing-modal.tsx | 161 | src/features/workflow/ui/processing-modal.tsx |
+| orders:split | screen | src/features/workflow/ui/processing-modal.tsx | 191 | src/features/workflow/ui/processing-modal.tsx |
 | orders:split | screen | src/features/workflow/ui/simple-processing-dialog.tsx | 132 | src/features/workflow/ui/simple-processing-dialog.tsx |
 | orders:split | api | app/api/v1/orders/[id]/split/route.ts | 34 | /api/v1/orders/[id]/split |
 | orders:transition | screen | src/features/orders/ui/issues/order-issue-row-actions.tsx | 52 | src/features/orders/ui/issues/order-issue-row-actions.tsx |
 | orders:transition | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 73 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
+| orders:transition | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 76 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
 | orders:transition | screen | src/features/orders/ui/order-actions.tsx | 49 | src/features/orders/ui/order-actions.tsx |
 | orders:transition | screen | src/features/orders/ui/order-stage-files.tsx | 40 | src/features/orders/ui/order-stage-files.tsx |
 | orders:transition | screen | src/features/orders/ui/pieces/piece-photos.tsx | 114 | src/features/orders/ui/pieces/piece-photos.tsx |
@@ -373,7 +378,7 @@ Generated: 2026-11-20T20:21:15.167Z
 | orders:transition | api | app/api/v1/preparation/[id]/start/route.ts | 26 | /api/v1/preparation/[id]/start |
 | orders:update | screen | app/dashboard/orders/[id]/order-detail-client.tsx | 145 | /dashboard/orders/[id]/order-detail-client.tsx |
 | orders:update | screen | src/features/orders/ui/issues/order-issues-list-dialog.tsx | 74 | src/features/orders/ui/issues/order-issues-list-dialog.tsx |
-| orders:update | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 56 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
+| orders:update | screen | src/features/orders/ui/issues/orders-issues-queue-page.tsx | 75 | src/features/orders/ui/issues/orders-issues-queue-page.tsx |
 | orders:update | screen | src/features/orders/ui/order-actions.tsx | 50 | src/features/orders/ui/order-actions.tsx |
 | orders:update | screen | src/features/orders/ui/order-stage-files.tsx | 39 | src/features/orders/ui/order-stage-files.tsx |
 | orders:update | screen | src/features/orders/ui/pieces/piece-photos.tsx | 113 | src/features/orders/ui/pieces/piece-photos.tsx |
@@ -454,15 +459,15 @@ Generated: 2026-11-20T20:21:15.167Z
 | products:categories | api | app/api/v1/categories/route.ts | 188 | /api/v1/categories |
 | products:create | service | app/dashboard/catalog/services/page.tsx | 54 | /dashboard/catalog/services |
 | products:create | api | app/api/v1/products/import/route.ts | 33 | /api/v1/products/import |
-| products:create | api | app/api/v1/products/route.ts | 169 | /api/v1/products |
-| products:delete | api | app/api/v1/products/[id]/route.ts | 161 | /api/v1/products/[id] |
+| products:create | api | app/api/v1/products/route.ts | 172 | /api/v1/products |
+| products:delete | api | app/api/v1/products/[id]/route.ts | 175 | /api/v1/products/[id] |
 | products:export | service | app/dashboard/catalog/services/page.tsx | 55 | /dashboard/catalog/services |
 | products:export | api | app/api/v1/products/export/route.ts | 28 | /api/v1/products/export |
-| products:read | api | app/api/v1/products/route.ts | 52 | /api/v1/products |
+| products:read | api | app/api/v1/products/route.ts | 55 | /api/v1/products |
 | products:read | api | app/api/v1/products/tax-classes/route.ts | 8 | /api/v1/products/tax-classes |
-| products:read | api | app/api/v1/products/[id]/route.ts | 36 | /api/v1/products/[id] |
+| products:read | api | app/api/v1/products/[id]/route.ts | 39 | /api/v1/products/[id] |
 | products:update | screen | src/features/catalog/ui/product-form.tsx | 98 | src/features/catalog/ui/product-form.tsx |
-| products:update | api | app/api/v1/products/[id]/route.ts | 88 | /api/v1/products/[id] |
+| products:update | api | app/api/v1/products/[id]/route.ts | 91 | /api/v1/products/[id] |
 | promotions:manage | api | app/api/v1/marketing/promotions/route.ts | 50 | /api/v1/marketing/promotions |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 61 | /api/v1/marketing/promotions/[promoId] |
 | promotions:manage | api | app/api/v1/marketing/promotions/[promoId]/route.ts | 109 | /api/v1/marketing/promotions/[promoId] |
@@ -517,6 +522,16 @@ Generated: 2026-11-20T20:21:15.167Z
 | tax:view_config | api | app/api/v1/tax/rules/route.ts | 11 | /api/v1/tax/rules |
 | tax:view_reports | api | app/api/v1/tax/returns/lines/route.ts | 9 | /api/v1/tax/returns/lines |
 | tax:view_reports | api | app/api/v1/tax/returns/route.ts | 9 | /api/v1/tax/returns |
+| uom:manage | api | app/api/v1/uom/catalog/route.ts | 12 | /api/v1/uom/catalog |
+| uom:manage | api | app/api/v1/uom/conversions/route.ts | 28 | /api/v1/uom/conversions |
+| uom:manage | api | app/api/v1/uom/conversions/[id]/reset/route.ts | 13 | /api/v1/uom/conversions/[id]/reset |
+| uom:manage | api | app/api/v1/uom/conversions/[id]/route.ts | 14 | /api/v1/uom/conversions/[id] |
+| uom:manage | api | app/api/v1/uom/units/route.ts | 26 | /api/v1/uom/units |
+| uom:manage | api | app/api/v1/uom/units/[code]/reset/route.ts | 13 | /api/v1/uom/units/[code]/reset |
+| uom:manage | api | app/api/v1/uom/units/[code]/route.ts | 13 | /api/v1/uom/units/[code] |
+| uom:view | api | app/api/v1/uom/conversions/route.ts | 17 | /api/v1/uom/conversions |
+| uom:view | api | app/api/v1/uom/convert/route.ts | 14 | /api/v1/uom/convert |
+| uom:view | api | app/api/v1/uom/units/route.ts | 16 | /api/v1/uom/units |
 | user_sessions:read | screen | src/features/users/ui/user-detail-screen.tsx | 42 | src/features/users/ui/user-detail-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/tenant-sessions-screen.tsx | 32 | src/features/auth-session/ui/tenant-sessions-screen.tsx |
 | user_sessions:revoke | screen | src/features/auth-session/ui/user-sessions-tab.tsx | 41 | src/features/auth-session/ui/user-sessions-tab.tsx |

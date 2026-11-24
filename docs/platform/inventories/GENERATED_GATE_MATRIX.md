@@ -1,17 +1,17 @@
 # GENERATED Gate Matrix
 > **Do not edit by hand.** Regenerate with `npm run rebuild:platform-info-inventories`.
 
-Generated: 2026-11-20T20:21:15.167Z
-Git SHA: 41d1f552
+Generated: 2026-11-23T23:37:53.059Z
+Git SHA: ed7c5996
 ## Summary
 | Domain | Count |
 | --- | --- |
-| Access contracts | 172 |
-| Permission usages | 501 |
+| Access contracts | 173 |
+| Permission usages | 516 |
 | Feature flag usages | 92 |
 | Setting usages | 23 |
 | Plan limit usages | 2 |
-| Navigation entries | 111 |
+| Navigation entries | 112 |
 | Flag catalog entries | 295 |
 ## Access contracts
 | Route | Label | Page permissions | Page flags | Actions |
@@ -41,6 +41,7 @@ Git SHA: 41d1f552
 | /dashboard/catalog/services/[id] | Catalog Service Details | admin:manage | — | 0 |
 | /dashboard/catalog/services/new | New Catalog Service | admin:manage | — | 0 |
 | /dashboard/catalog/speed-pricing | Speed Pricing | pricing:read | — | 4 |
+| /dashboard/catalog/units | Units & Conversions | uom:view | — | 0 |
 | /dashboard/customers | Customers | — | — | 0 |
 | /dashboard/customers/[id] | Customer Details | — | — | 1 |
 | /dashboard/customers/account-receipt | Customer Account Receipt | customers:receipt_allocate | — | 0 |

@@ -526,6 +526,8 @@ export async function searchProducts(
     default_sell_price: item.default_sell_price,
     product_unit: item.product_unit,
     base_uom_code: item.base_uom_code ?? null,
+    min_billable_qty: item.min_billable_qty != null ? String(item.min_billable_qty) : null,
+    billing_increment: item.billing_increment != null ? String(item.billing_increment) : null,
     is_active: item.is_active,
     created_at: item.created_at,
     product_image: item.product_image ?? null,

@@ -47,13 +47,13 @@ function getLoginErrorMessage(error: unknown, fallbackMessage: string): string {
  *
  * @returns Compact locale switcher for auth screens.
  */
-function LoginLanguageSwitcher() {
+function LoginLanguageSwitcher({ disabled = false }: { disabled?: boolean }) {
   const router = useRouter()
   const locale = useLocale() as Locale
   const t = useTranslations('auth.login')
 
   const handleLanguageChange = (nextLocale: Locale) => {
-    if (nextLocale === locale) {
+    if (disabled || nextLocale === locale) {
       return
     }
 
@@ -66,6 +66,7 @@ function LoginLanguageSwitcher() {
       <CmxButton
         type="button"
         size="sm"
+        disabled={disabled}
         variant={locale === 'en' ? 'primary' : 'ghost'}
         className={`h-9 rounded-full px-4 text-xs font-semibold tracking-[0.18em] ${
           locale === 'en'
@@ -81,6 +82,7 @@ function LoginLanguageSwitcher() {
       <CmxButton
         type="button"
         size="sm"
+        disabled={disabled}
         variant={locale === 'ar' ? 'primary' : 'ghost'}
         className={`h-9 rounded-full px-4 text-xs font-semibold ${
           locale === 'ar'
@@ -121,6 +123,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [picker, setPicker] = useState<TenantChoiceResult | null>(null)
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const [choosingOrgUserId, setChoosingOrgUserId] = useState<string | null>(null)
 
   // Why the user is here (idle timeout, revoked, ...) and where to return to after signing in. Both come from
   // the URL, so both are validated: unknown reasons show nothing; the return path must be a safe internal path.
@@ -131,7 +135,10 @@ export default function LoginPage() {
     control: form.control,
     name: 'rememberMe',
   })
-  const isSubmitting = form.formState.isSubmitting || isLoading
+  // Separate initial auth hydration (`isLoading`) from user-triggered submit/redirect so the button never
+  // shows "Signing in..." before a submit, yet stays locked across the browser navigation to /dashboard.
+  const isFormSubmitting = form.formState.isSubmitting || isRedirecting || choosingOrgUserId !== null
+  const isPickerSubmitting = choosingOrgUserId !== null || isRedirecting
 
   const handleSubmit = async (values: LoginFormValues) => {
     setGeneralError(null)
@@ -166,8 +173,11 @@ export default function LoginPage() {
       const result = await signIn(normalizeLoginIdentifier(values.identifier), values.password, values.rememberMe, redirectTo)
       if (result?.chooseTenant) {
         setPicker(result)
+      } else {
+        setIsRedirecting(true)
       }
     } catch (error: unknown) {
+      setIsRedirecting(false)
       // Unknown identifier and wrong password share one server code (no account enumeration).
       const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined
       setGeneralError(
@@ -188,16 +198,22 @@ export default function LoginPage() {
         open={picker !== null}
         tenants={picker?.tenants ?? []}
         lastChosenTenantId={picker?.lastChosenTenantId ?? null}
-        isSubmitting={isSubmitting}
+        isSubmitting={isPickerSubmitting}
+        choosingOrgUserId={choosingOrgUserId}
         title={t('login.chooseOrganization')}
         hint={t('login.chooseOrganizationHint')}
         lastLabel={t('login.lastOrganization')}
         cancelLabel={t('login.cancelSignIn')}
         onChoose={async (orgUserId) => {
+          if (choosingOrgUserId || isRedirecting) return
           setGeneralError(null)
+          setChoosingOrgUserId(orgUserId)
           try {
             await chooseTenant(orgUserId, redirectTo)
+            setIsRedirecting(true)
           } catch (error: unknown) {
+            setChoosingOrgUserId(null)
+            setIsRedirecting(false)
             const code = error instanceof Error ? (error as Error & { code?: string }).code : undefined
             setGeneralError(
               code === SESSION_ERROR_CODES.SESSION_LIMIT_REACHED
@@ -209,6 +225,7 @@ export default function LoginPage() {
           }
         }}
         onCancel={() => {
+          if (isPickerSubmitting) return
           setPicker(null)
           void signOut('user')
         }}
@@ -256,7 +273,7 @@ export default function LoginPage() {
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="w-full max-w-6xl">
           <div className="mb-6 flex justify-end">
-            <LoginLanguageSwitcher />
+            <LoginLanguageSwitcher disabled={isFormSubmitting} />
           </div>
 
           <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_31rem] xl:gap-12">
@@ -352,6 +369,7 @@ export default function LoginPage() {
                 <CmxForm
                   form={form}
                   onSubmit={handleSubmit}
+                  isPending={isFormSubmitting}
                   className="space-y-5"
                 >
                   {loginReason ? (
@@ -459,7 +477,11 @@ export default function LoginPage() {
 
                     <Link
                       href="/forgot-password"
-                      className="font-medium text-primary-text transition-colors hover:text-foreground"
+                      aria-disabled={isFormSubmitting || undefined}
+                      tabIndex={isFormSubmitting ? -1 : undefined}
+                      className={`font-medium text-primary-text transition-colors hover:text-foreground ${
+                        isFormSubmitting ? 'pointer-events-none opacity-50' : ''
+                      }`}
                     >
                       {t('login.forgotPassword')}
                     </Link>
@@ -467,11 +489,11 @@ export default function LoginPage() {
 
                   <CmxButton
                     type="submit"
-                    disabled={isSubmitting}
-                    loading={isSubmitting}
+                    disabled={isFormSubmitting || isLoading}
+                    loading={isFormSubmitting}
                     className="h-12 w-full rounded-xl bg-foreground text-base font-semibold text-background shadow-[0_18px_32px_rgba(15,23,42,0.18)] hover:bg-foreground/90"
                   >
-                    {isSubmitting ? t('login.submitting') : t('login.submit')}
+                    {isFormSubmitting ? t('login.submitting') : t('login.submit')}
                   </CmxButton>
 
                   <div className="space-y-2 pt-1 text-center">
@@ -479,7 +501,11 @@ export default function LoginPage() {
                       {t('login.noAccount')}{' '}
                       <Link
                         href="/register"
-                        className="font-semibold text-primary-text transition-colors hover:text-foreground"
+                        aria-disabled={isFormSubmitting || undefined}
+                        tabIndex={isFormSubmitting ? -1 : undefined}
+                        className={`font-semibold text-primary-text transition-colors hover:text-foreground ${
+                          isFormSubmitting ? 'pointer-events-none opacity-50' : ''
+                        }`}
                       >
                         {t('login.signUp')}
                       </Link>

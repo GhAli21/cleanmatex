@@ -5,11 +5,13 @@ import { useTranslations } from 'next-intl';
 import { CmxTabs, CmxTabsContent, CmxTabsList, CmxTabsTrigger } from '@ui/primitives/tabs';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { UOM_PERMISSIONS } from '@/lib/constants/permissions/uom-perm';
+import { RequireAnyPermission, PagePermissionDeniedFallback } from '@features/auth/ui/RequirePermission';
+import { CATALOG_UNITS_ACCESS } from '@features/catalog/access/catalog-access';
 import { UomConversionsPanel } from './conversions-panel';
 import { UomUnitsPanel } from './units-panel';
 
-/** The Units & Conversions screen. */
-export function UnitsScreen() {
+/** Screen body. */
+function UnitsContent() {
   const t = useTranslations('uom');
   const canManage = useHasPermissionCode(UOM_PERMISSIONS.MANAGE);
 
@@ -28,5 +30,14 @@ export function UnitsScreen() {
         <CmxTabsContent value="conversions"><UomConversionsPanel canManage={canManage} /></CmxTabsContent>
       </CmxTabs>
     </div>
+  );
+}
+
+/** The Units & Conversions screen, gated by the page contract. */
+export function UnitsScreen() {
+  return (
+    <RequireAnyPermission permissions={CATALOG_UNITS_ACCESS.page.permissions ?? []} fallback={<PagePermissionDeniedFallback />}>
+      <UnitsContent />
+    </RequireAnyPermission>
   );
 }

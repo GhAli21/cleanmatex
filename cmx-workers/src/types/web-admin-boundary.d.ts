@@ -41,7 +41,7 @@ declare module '@/lib/notifications/campaign-jobs.service' {
   export const CAMPAIGN_CHUNK_SIZE: number;
   export const CAMPAIGN_DELIVER_PRIORITY: number;
   export interface CampaignStartOutcome {
-    outcome: 'STARTED' | 'NOT_DUE' | 'NOT_STARTABLE' | 'NO_TARGETS' | 'UNSUPPORTED' | 'COMPLETED' | 'SKIPPED_ORPHAN';
+    outcome: 'STARTED' | 'NOT_DUE' | 'NOT_STARTABLE' | 'NO_TARGETS' | 'COMPLETED' | 'SKIPPED_ORPHAN';
     chunks: number;
   }
   export interface CampaignChunkOutcome {

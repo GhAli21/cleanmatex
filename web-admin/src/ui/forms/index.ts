@@ -22,3 +22,5 @@ export * from './cmx-code-search-input';
 export * from './cmx-file-drop-zone';
 export * from './cmx-phone-input';
 export * from './cmx-form-phone-field';
+export * from './cmx-uom-select';
+export * from './cmx-quantity-measure-input';

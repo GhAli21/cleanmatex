@@ -132,6 +132,9 @@ export interface ProductListItem {
   product_unit: ProductUnit | null;
   /** The unit the product is priced in. */
   base_uom_code: string | null;
+  /** Optional minimum billable measure and billing step (decimal text; null = none). Used by a measured product. */
+  min_billable_qty: string | null;
+  billing_increment: string | null;
   is_active: boolean;
   created_at: string;
   product_image?: string | null;

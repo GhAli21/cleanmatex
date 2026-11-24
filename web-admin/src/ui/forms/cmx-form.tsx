@@ -7,7 +7,7 @@
 'use client'
 
 import { FormProvider, type FieldErrors, type FieldValues, type UseFormReturn } from 'react-hook-form'
-import { useId, useMemo, type ReactNode } from 'react'
+import { useId, useMemo, useRef, type ReactNode } from 'react'
 import { cmxFocusField } from './cmx-focus-field'
 import { CmxFormStatusBanner } from './cmx-form-status-banner'
 
@@ -45,6 +45,8 @@ interface CmxFormProps<TFieldValues extends FieldValues = FieldValues> {
   density?: CmxFormDensity
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | 'full'
   isPending?: boolean
+  /** Lock all nested controls and block duplicate submits while pending/submitting. Defaults to true. */
+  lockOnSubmit?: boolean
   isDirty?: boolean
   stickyActions?: boolean
   showErrorSummary?: boolean
@@ -81,6 +83,7 @@ export function CmxForm<TFieldValues extends FieldValues = FieldValues>({
   density = 'comfortable',
   maxWidth = 'full',
   isPending = false,
+  lockOnSubmit = true,
   isDirty,
   stickyActions = false,
   showErrorSummary = false,
@@ -88,10 +91,26 @@ export function CmxForm<TFieldValues extends FieldValues = FieldValues>({
   errorSummaryTitle = 'Please review the highlighted fields.',
 }: CmxFormProps<TFieldValues>) {
   const formId = useId()
+  const inFlightRef = useRef(false)
+  const isBusy = isPending || form.formState.isSubmitting
+  const isLocked = lockOnSubmit && isBusy
   const errorEntries = useMemo(
     () => collectErrorEntries(form.formState.errors as FieldErrors<FieldValues>),
     [form.formState.errors]
   )
+
+  // Synchronous ref lock drops rapid double-clicks / Enter presses before React commits isSubmitting.
+  const handleGuardedSubmit = async (values: TFieldValues) => {
+    if (lockOnSubmit && (inFlightRef.current || isPending)) {
+      return
+    }
+    inFlightRef.current = true
+    try {
+      await onSubmit(values)
+    } finally {
+      inFlightRef.current = false
+    }
+  }
 
   const maxWidthClass = {
     sm: 'max-w-xl',
@@ -115,7 +134,7 @@ export function CmxForm<TFieldValues extends FieldValues = FieldValues>({
       <div className={maxWidth !== 'full' ? `mx-auto ${maxWidthClass}` : undefined}>
         <form
           id={formId}
-          onSubmit={form.handleSubmit(onSubmit, () => {
+          onSubmit={form.handleSubmit(handleGuardedSubmit, () => {
             const firstError = collectErrorEntries(form.formState.errors as FieldErrors<FieldValues>)[0]
             if (firstError) {
               cmxFocusField({ name: firstError.name })
@@ -129,7 +148,7 @@ export function CmxForm<TFieldValues extends FieldValues = FieldValues>({
           data-density={density}
           data-tone={tone}
           data-dirty={isDirty ? '' : undefined}
-          aria-busy={isPending}
+          aria-busy={isBusy}
           noValidate
         >
           {showErrorSummary && errorEntries.length > 0 ? (
@@ -141,7 +160,9 @@ export function CmxForm<TFieldValues extends FieldValues = FieldValues>({
               }
             />
           ) : null}
-          {children}
+          <fieldset disabled={isLocked} className="contents">
+            {children}
+          </fieldset>
         </form>
       </div>
     </FormProvider>

@@ -21,6 +21,7 @@ import { FILE_CATEGORIES, FILE_PURPOSES, FILE_SOURCES } from '@/lib/constants/fi
 import { validateProductIds } from '@/lib/utils/validation-helpers';
 import { sanitizeOrderNotes, sanitizeInput } from '@/lib/utils/security-helpers';
 import type { PaymentFormData } from '../model/payment-form-schema';
+import { measureOf } from '../model/checkout-line-intent';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
@@ -326,6 +327,8 @@ export function useOrderSubmission() {
                         productName: item.productName ?? undefined,
                         productName2: item.productName2 ?? undefined,
                         quantity: item.quantity,
+                        // A measured line: what staff measured; the server computes the billed quantity.
+                        measure: measureOf(item),
                         pricePerUnit: item.pricePerUnit ?? 0,
                         totalPrice: item.totalPrice ?? 0,
                         serviceCategoryCode: item.serviceCategoryCode,

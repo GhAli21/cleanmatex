@@ -29,6 +29,25 @@ export interface CartQuoteLine {
   readyByAt: string;
   /** Each piece's figures when the line is priced per piece (PIECE level, P9-01); else empty. */
   pieces: CartQuotePiece[];
+  /** The unit and billed measure of a measured line (kg, m, m²…), from the same resolver that prices it; null on a count line. */
+  measure: CartQuoteLineMeasure | null;
+}
+
+/** What the server billed for a measured line; quantities are decimal text, never recomputed by the client. */
+export interface CartQuoteLineMeasure {
+  uomCode: string;
+  symbol: string;
+  symbol2: string | null;
+  measuredQty: string;
+  /** Area lines only. */
+  length: string | null;
+  width: string | null;
+  /** The quantity the unit price is multiplied by. */
+  billedQty: string;
+  /** The product minimum raised the measure. */
+  minimumApplied: boolean;
+  /** The billing step raised the measure. */
+  incrementApplied: boolean;
 }
 
 /** One piece of a piece-priced line, in the order Create writes the pieces. */

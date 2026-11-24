@@ -70,6 +70,11 @@ export interface Product {
   is_retail_item?: boolean;
   product_image?: string | null;
   product_icon?: string | null;
+  /** The unit the product is priced in; a measured unit (not COUNT) opens the Measure dialog on add. */
+  base_uom_code?: string | null;
+  /** Optional minimum billable measure and billing step (decimal text). */
+  min_billable_qty?: string | null;
+  billing_increment?: string | null;
 }
 
 // ==================================================================
@@ -144,6 +149,25 @@ export interface OrderItemLineDiscount {
   reason: string;
 }
 
+/** What staff typed for a measured line (decimal text; empty = not entered). The server computes the billed quantity. */
+export interface OrderItemMeasure {
+  measuredQty: string;
+  length: string;
+  width: string;
+}
+
+/** The unit of a measured cart line, as the Organization defines it (for the client estimate and the labels). */
+export interface OrderItemUom {
+  code: string;
+  dimension: string;
+  qtyDecimals: number;
+  symbol: string;
+  symbol2: string | null;
+  /** The product's optional minimum and billing step (decimal text). */
+  minBillableQty: string | null;
+  billingIncrement: string | null;
+}
+
 /**
  * Order Item
  */
@@ -153,10 +177,14 @@ export interface OrderItem {
   productId: string;
   productName: string | null;
   productName2: string | null;
+  /** Pieces or bags. A measured line is priced on `measure`, not on this. */
   quantity: number;
   pricePerUnit: number;
   totalPrice: number;
   defaultSellPrice: number | null;
+  /** Set on a measured line (kg, m, m²…): the unit and what staff measured. */
+  uom?: OrderItemUom;
+  measure?: OrderItemMeasure;
   serviceCategoryCode?: string;
   notes?: string;
   /** Line-level condition flags (optional; often mirrored on pieces) */
@@ -339,6 +367,7 @@ export type NewOrderAction =
   | { type: 'ADD_ITEM'; payload: OrderItem }
   | { type: 'REMOVE_ITEM'; payload: string } // productId
   | { type: 'UPDATE_ITEM_QUANTITY'; payload: { productId: string; quantity: number } }
+  | { type: 'UPDATE_ITEM_MEASURE'; payload: { productId: string; measure: OrderItemMeasure } }
   | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
   | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
   | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { productId: string; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }

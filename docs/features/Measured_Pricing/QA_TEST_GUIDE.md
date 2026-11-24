@@ -86,3 +86,37 @@ AMOUNT precision stays `(19,4)`; 0817 fixes `fn_uom_convert` so a COUNT target i
 4. **Measured order** (quote or payment-quote with `measure:{"measuredQty":"3.2"}`, quantity 1): the quote bills `3.5` kg (minimum 3, step 0.5). Without `measure` the answer is 422 `MEASURE_REQUIRED`; `measuredQty` with 4 decimals on KG (3 allowed) is 422 `UOM_QTY_SCALE`; a measure on a piece product is 422 `MEASURE_NOT_ALLOWED`. After creating the order, `org_order_items_dtl` has `uom_code='KG'`, `measured_qty=3.2`, `billed_qty=3.5`, `price_type='PER_UNIT'`.
 5. **Piece orders unchanged**: an order of piece products prices and prints exactly as before; its lines have `uom_code='PC'`, no measure.
 6. **Invoice**: issue a tax document for the measured order; its item shows quantity `3.5` and `uom_code='KG'`, `uom_unece_code='KGM'`.
+
+## P4 — Units page and product form
+
+The menu entry "Units & Conversions" under Catalog & Pricing comes from migration 0815 (already applied). Sign in as a tenant admin.
+
+| # | Page | What to do | Expected |
+|---|---|---|---|
+| 1 | Catalog & Pricing → Units & Conversions (`/dashboard/catalog/units`) | Open it | Units tab lists the seeded units (PC, KG, M, SQM, L, HR …) with Active and System badges; product counts shown |
+| 2 | Units → Add from system catalog | Tick one unit, add | Toast "Units added"; the unit appears in the list |
+| 3 | Units → New custom unit | Code `BUNDLE`, dimension Count | Decimals locked to 0 with a note; save succeeds; try code `KG` → "belongs to a system unit" |
+| 4 | Units → edit a system unit | Change the Arabic name, save | Badge becomes Customized; reset icon appears; reset returns the system value |
+| 5 | Units → switch off a unit used by products | Toggle | Refused with "used by products"; base units cannot be switched off (toggle disabled) |
+| 6 | Conversions tab → New conversion | From KG to LB, multiply 2.20462 | Divide fills in as 1 ÷ multiply (you can overtype it); save; a non-reciprocal pair is refused |
+| 7 | Arabic locale | Switch to Arabic | Page mirrors (RTL), names and symbols use the Arabic text, numbers stay left-to-right |
+| 8 | User without `uom:manage` | Open the page | Read-only: no add/edit/toggle buttons |
+| 9 | Catalog → Services → edit a product | Open the Unit field | Picker lists your units; choosing KG reveals Minimum billable and Billing step; choosing a count unit hides them |
+| 10 | Same form | Save a KG product with min 3 and step 0.5 | Saved; reopening shows both values |
+
+## P4 — New Order: measured product and Measure dialog
+
+Needs a product with unit KG, price type per unit, price 5.000, minimum 3, step 0.5 (see the product form checks above), and the product grid on New Order.
+
+| # | Page | What to do | Expected |
+|---|---|---|---|
+| 11 | New Order → click the KG product | Click the product card | The Measure dialog opens (not added yet); shows "Minimum billed: 3 kg" and "Billed in steps of 0.5 kg"; Add is disabled |
+| 12 | Same dialog | Type 3.2 | "Billed: 3.5 kg" and "Rounded up to the billing step."; typing a 4th decimal is not possible |
+| 13 | Same dialog | Type 1 | "Billed: 3 kg" and "Raised to the minimum for this item." |
+| 14 | Same dialog | Add | Line appears with the kg note under the name ("measured 3.2 kg · billed 3.5 kg"); line total and order total come from the server quote (5.000 × 3.5 = 17.500 before tax) |
+| 15 | Cart row | Click "Change measure", set 6, Save | Same line is re-measured (no second line); billed 6 kg; total updates |
+| 16 | Area product (unit m²) | Open its dialog | Length and Width fields; Add stays disabled until both are filled; billed = length × width |
+| 17 | Piece product | Click it | Added immediately as before (no dialog) |
+| 18 | Pay and save the order | Complete payment | Order saves; the stored item has `uom_code='KG'`, `measured_qty=3.2`, `billed_qty=3.5`; an issued tax invoice item shows 3.5 and KG. (Showing the measure on the order detail and prints is P6.) |
+| 19 | Arabic locale | Switch to Arabic | Dialog and note mirror (RTL), symbol uses the Arabic text, numbers stay left-to-right |
+| 20 | Edit an existing order, click the KG product | Click it | Message that measured items cannot be added or re-measured while editing yet (P5) |

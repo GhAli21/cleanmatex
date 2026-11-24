@@ -17,10 +17,10 @@ export const CAMPAIGN_CHANNELS_BY_AUDIENCE = {
 } as const satisfies Record<CampaignAudience, readonly string[]>;
 
 /**
- * Customer channels that can be sent today. WhatsApp marketing needs an approved Meta template chosen
- * on the campaign (Background_Jobs STEP5_PLAN item 4c), so it is refused until then.
+ * Event of every campaign send (sys_ntf_events_cd, MARKETING, not transactional). Its WhatsApp routes name
+ * the marketing template a campaign picks (org_ntf_route_assign_cf.template_code, migration 0819).
  */
-export const CAMPAIGN_CUSTOMER_CHANNELS_LIVE = ['EMAIL', 'SMS'] as const;
+export const CAMPAIGN_SEND_EVENT = 'campaign.send';
 
 /** Channels a customer can agree to marketing on (one org_ntf_cust_consent_dtl row each). */
 export const MARKETING_CONSENT_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP'] as const;
