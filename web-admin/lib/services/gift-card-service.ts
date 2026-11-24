@@ -1237,10 +1237,13 @@ function giftCardAmount(value: { toNumber(): number } | number | string): number
  * Mark a gift card as EXPIRED and insert an EXPIRE ledger row.
  * The row lock is held for the status change and the ledger insert so a
  * second caller waits, then sees the card already expired and writes nothing.
+ * `onlyIfDue` (the expiry job): under the same lock, the card must be past its
+ * expiry date (or already EXPIRED), else error GIFT_CARD_NOT_DUE and no change.
  */
 export async function expireGiftCard(
   id: string,
-  tenantOrgId: string
+  tenantOrgId: string,
+  opts: { onlyIfDue?: boolean } = {},
 ): Promise<{ success: boolean; error?: string }> {
   return withTenantContext(tenantOrgId, async () => {
     try {
@@ -1260,9 +1263,10 @@ export async function expireGiftCard(
             AND is_active = true
             AND rec_status = 1
             AND status IN ('ACTIVE', 'PARTIALLY_REDEEMED', 'GENERATED', 'EXPIRED')
+            AND (${opts.onlyIfDue !== true} OR status = 'EXPIRED' OR (expiry_date IS NOT NULL AND expiry_date <= now()))
           FOR UPDATE
         `;
-        if (!locked.length) throw new Error('GIFT_CARD_NOT_FOUND');
+        if (!locked.length) throw new Error(opts.onlyIfDue ? 'GIFT_CARD_NOT_DUE' : 'GIFT_CARD_NOT_FOUND');
 
         const card = locked[0];
         if (card.status === GIFT_CARD_STATUS.EXPIRED) {
@@ -1322,6 +1326,8 @@ export async function expireGiftCard(
 
       return { success: true };
     } catch (error) {
+      // Not due is the expiry job's normal "leave it alone" answer, not a failure.
+      if (error instanceof Error && error.message === 'GIFT_CARD_NOT_DUE') return { success: false, error: error.message };
       logger.error('Error expiring gift card', error as Error, {
         feature: 'gift-cards',
         action: 'expire',

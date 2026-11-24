@@ -4,7 +4,6 @@ import { createAdminSupabaseClient } from '@lib/supabase/server';
 import { notificationSettingsService } from '@lib/notifications/settings-service';
 import { resolveWhatsAppCustomerEligibility } from '@lib/notifications/whatsapp-customer-eligibility';
 import { resolveRecipientAddress } from '@lib/notifications/recipient-resolver';
-import { deliverWhatsAppOutbox } from '@lib/notifications/adapters/whatsapp';
 
 jest.mock('@lib/supabase/server', () => ({ createAdminSupabaseClient: jest.fn() }));
 jest.mock('@lib/utils/logger', () => ({ logger: { info: jest.fn(), error: jest.fn() } }));
@@ -13,7 +12,6 @@ jest.mock('@lib/notifications/whatsapp-customer-eligibility', () => ({ resolveWh
 jest.mock('@lib/notifications/recipient-resolver', () => ({ resolveRecipientAddress: jest.fn() }));
 jest.mock('@lib/notifications/template-renderer', () => ({ renderChannelTemplate: jest.fn().mockResolvedValue({ title: 'Order', body: 'Created' }) }));
 jest.mock('@lib/notifications/config', () => ({ isWhatsappEmailFallbackEnabled: jest.fn().mockResolvedValue(true) }));
-jest.mock('@lib/notifications/adapters/whatsapp', () => ({ deliverWhatsAppOutbox: jest.fn() }));
 
 describe('production WhatsApp outbox consent', () => {
   const event: NotificationEvent = { tenantOrgId: 'tenant-a', code: 'order.created', recipientUserIds: ['staff-a'], sourceEntityType: 'order', sourceEntityId: 'order-a', variables: { order_number: 'ORD-001' } };
@@ -28,7 +26,6 @@ describe('production WhatsApp outbox consent', () => {
     canClaim = true;
     jest.mocked(notificationSettingsService.getActiveProvider).mockResolvedValue({ providerCode: 'TWILIO_WHATSAPP', config: { content_templates: {} } });
     jest.mocked(resolveWhatsAppCustomerEligibility).mockResolvedValue({ allowed: true, customerId: 'customer-a', recipientAddress: '+96890123456' });
-    jest.mocked(deliverWhatsAppOutbox).mockResolvedValue({ success: true });
     jest.mocked(createAdminSupabaseClient).mockReturnValue({
       from: () => {
         let isClaim = false;
@@ -62,7 +59,6 @@ describe('production WhatsApp outbox consent', () => {
     expect(inserted[0]).toMatchObject({ status: 'QUEUED', recipient_address: '+96890123456', metadata: { whatsapp_production_template: true } });
     expect(inserted[0]).toMatchObject({ source_entity_type: 'order', source_entity_id: 'order-a' });
     // The row waits for HQ API (ntf.deliver); nothing is sent from here.
-    expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
     expect(updated).toHaveLength(0);
   });
 
@@ -71,7 +67,6 @@ describe('production WhatsApp outbox consent', () => {
     await enqueueOutbox(event, 'WHATSAPP');
     expect(inserted).toHaveLength(1);
     expect(inserted[0]).toMatchObject({ channel_code: 'WHATSAPP', status: 'SKIPPED', skip_reason: 'Customer has not opted in to WhatsApp notifications' });
-    expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
     expect(resolveRecipientAddress).not.toHaveBeenCalled();
   });
 
@@ -80,7 +75,6 @@ describe('production WhatsApp outbox consent', () => {
     await enqueueOutbox(event, 'WHATSAPP');
     expect(inserted).toHaveLength(1);
     expect(inserted[0]).toMatchObject({ status: 'FAILED_TEMPORARY', recipient_address: null, next_retry_at: expect.any(String), metadata: { whatsapp_eligibility_pending: true } });
-    expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
     expect(resolveRecipientAddress).not.toHaveBeenCalled();
   });
 
@@ -88,7 +82,6 @@ describe('production WhatsApp outbox consent', () => {
     await enqueueOutbox(event, 'WHATSAPP', { scheduledAt: new Date(Date.now() + 60_000) });
     expect(inserted[0]).toMatchObject({ status: 'QUEUED', scheduled_at: expect.any(String), metadata: { whatsapp_production_template: true } });
     expect(updated).toHaveLength(0);
-    expect(deliverWhatsAppOutbox).not.toHaveBeenCalled();
   });
 
   it('keeps legacy recipient resolution unchanged without a production template catalog', async () => {

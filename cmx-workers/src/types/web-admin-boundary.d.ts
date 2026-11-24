@@ -82,3 +82,15 @@ declare module '@/lib/services/outbox.service' {
 declare module '@/lib/constants/order-financial' {
   export const OUTBOX_HANDLER_CATALOG: readonly { handler: string; eventTypes: readonly string[] }[];
 }
+
+declare module '@/lib/services/finance-expiry-jobs.service' {
+  export type ExpiryKind = 'gift_card' | 'loyalty';
+  export const EXPIRY_SWEEP_PAGE: number;
+  export const EXPIRY_SWEEP_MAX_PAGES: number;
+  export interface ExpirySweepOutcome { found: number; queued: number; nextPage: number | null }
+  export interface ExpiryItemOutcome { outcome: 'EXPIRED' | 'SKIPPED_ORPHAN'; reason?: string }
+  export function loyaltyExpiryJobId(accountId: string, at?: Date): string;
+  export function runExpirySweep(kind: ExpiryKind, page?: number): Promise<ExpirySweepOutcome>;
+  export function runGiftCardExpiryItem(tenantOrgId: string, giftCardId: string): Promise<ExpiryItemOutcome>;
+  export function runLoyaltyExpiryItem(tenantOrgId: string, accountId: string): Promise<ExpiryItemOutcome>;
+}

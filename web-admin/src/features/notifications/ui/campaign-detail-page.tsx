@@ -10,6 +10,7 @@ import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { CmxAuditInfoCard } from '@ui/data-display'
 import { CmxSkeleton } from '@ui/primitives/cmx-skeleton'
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message'
+import { useOutboxDeliveryReport } from '../hooks/use-outbox-delivery-report'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -116,13 +117,28 @@ export function CampaignDetailPage({ id }: Props) {
     onError: (err: Error) => setFeedback({ type: 'error', msg: err.message }),
   })
 
+  const reportDelivery = useOutboxDeliveryReport()
+
   const testMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/v1/notifications/campaigns/${id}/test`, { method: 'POST' })
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error ?? 'Failed')
+      return (json.data?.outboxId as string | undefined) ?? null
     },
-    onSuccess: () => setFeedback({ type: 'success', msg: t('campaigns.detail.testSent') }),
+    onSuccess: (outboxId) => {
+      if (!outboxId) {
+        setFeedback({ type: 'success', msg: t('campaigns.detail.testSent') })
+        return
+      }
+      // Other channels are sent by HQ API: say it is queued, then report how it went.
+      setFeedback({ type: 'success', msg: t('campaigns.detail.testQueued') })
+      void reportDelivery(outboxId, {
+        sent: t('campaigns.detail.testSent'),
+        failed: t('campaigns.detail.testFailed'),
+        pending: t('campaigns.detail.testStillSending'),
+      })
+    },
     onError:   (err: Error) => setFeedback({ type: 'error', msg: err.message }),
   })
 

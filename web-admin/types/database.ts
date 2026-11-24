@@ -52477,10 +52477,27 @@ export type Database = {
       fn_expire_gift_cards: { Args: never; Returns: number }
       fn_file_util_expire_pending: { Args: never; Returns: number }
       fn_fin_code_lvl: { Args: { p_code: string }; Returns: number }
+      fn_fin_credit_note_expire_one: {
+        Args: {
+          p_actor?: string
+          p_credit_note_id: string
+          p_only_if_due?: boolean
+          p_tenant_org_id: string
+        }
+        Returns: string
+      }
+      fn_fin_credit_note_expiry_run: { Args: never; Returns: Json }
       fn_fin_gift_card_exp_due: {
         Args: { p_limit?: number }
         Returns: {
           gift_card_id: string
+          tenant_org_id: string
+        }[]
+      }
+      fn_fin_loyalty_exp_due: {
+        Args: { p_limit?: number }
+        Returns: {
+          account_id: string
           tenant_org_id: string
         }[]
       }
@@ -53108,6 +53125,14 @@ export type Database = {
       fn_ops_job_run_now_v2: {
         Args: { p_actor: string; p_job_code: string }
         Returns: Json
+      }
+      fn_ops_job_sched_claim_manual: {
+        Args: { p_consumer: string; p_worker: string }
+        Returns: {
+          job_code: string
+          request_id: string
+          target_queue: string
+        }[]
       }
       fn_ops_job_set_state: {
         Args: {

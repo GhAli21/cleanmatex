@@ -26,7 +26,6 @@ jest.mock('@lib/notifications/config', () => ({
   isWhatsappEmailFallbackEnabled: jest.fn(),
 }));
 jest.mock('@lib/notifications/settings-service', () => ({ notificationSettingsService: { getActiveProvider: jest.fn() } }));
-jest.mock('@lib/notifications/adapters/whatsapp', () => ({ deliverWhatsAppOutbox: jest.fn() }));
 jest.mock('@lib/notifications/adapters/whatsapp-template-config', () => ({ isTwilioProductionTemplateProvider: jest.fn(() => false) }));
 jest.mock('@lib/notifications/whatsapp-customer-eligibility', () => ({ resolveWhatsAppCustomerEligibility: jest.fn() }));
 

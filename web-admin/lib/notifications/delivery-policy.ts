@@ -2,7 +2,7 @@
  * Notification Hub — delivery policy (pure, no I/O).
  *
  * The single place that decides WHETHER and WHEN a notification may go out, shared by events
- * (orchestrator), campaigns (process-campaigns) and test sends (plan NTF-06). Callers gather the inputs
+ * (orchestrator), campaigns (campaign-jobs.service) and test sends (plan NTF-06). Callers gather the inputs
  * (channel configuration, consent, transactional flag); this module only decides, so every rule is unit
  * testable with an injected clock.
  */

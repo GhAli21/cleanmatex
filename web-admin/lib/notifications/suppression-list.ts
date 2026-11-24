@@ -2,7 +2,7 @@
  * Notification Hub — provider-reported suppression list (migration
  * 0603_ntf_suppression_list.sql).
  *
- * Distinct from `customer-dispatch-consent.ts`: that module enforces the
+ * Distinct from customer consent (HQ API's customer-dispatch-consent service), which enforces the
  * CUSTOMER's own opt-out preference (`org_customers_mst.preferences`).
  * This module enforces a PROVIDER-reported fact — an email bounce/complaint
  * or an SMS carrier opt-out (STOP) — against a specific normalized address or

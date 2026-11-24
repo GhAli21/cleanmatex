@@ -13,12 +13,14 @@ import { jobs } from '@/lib/jobs/producer';
 type Tx = Prisma.TransactionClient;
 
 /** pg-boss priority of the first send. Order messages use at most 10 and campaigns −10. */
-export const IMMEDIATE_SEND_PRIORITY = { OTP: 20, RECEIPT: 15 } as const;
+export const IMMEDIATE_SEND_PRIORITY = { OTP: 20, RECEIPT: 15, CAMPAIGN_TEST: 15 } as const;
 
 export interface ImmediateSend {
   tenantOrgId: string;
-  channel: 'SMS' | 'WHATSAPP' | 'EMAIL';
-  recipientAddress: string;
+  channel: 'SMS' | 'WHATSAPP' | 'EMAIL' | 'PUSH';
+  /** Null for PUSH: HQ API sends to the user's active devices. */
+  recipientAddress: string | null;
+  recipientUserId?: string | null;
   eventCode: string;
   sourceEntityType: string;
   sourceEntityId: string;
@@ -43,6 +45,7 @@ export async function queueImmediateSendTx(tx: Tx, send: ImmediateSend, priority
       tenant_org_id: send.tenantOrgId,
       channel_code: send.channel,
       recipient_address: send.recipientAddress,
+      recipient_user_id: send.recipientUserId ?? null,
       rendered_subject: send.subject,
       rendered_body: send.body,
       metadata: send.metadata as Prisma.InputJsonValue,

@@ -5,6 +5,7 @@ import type { JobHandler } from './handlers/types';
 import { errorText, log } from './log';
 import { readRegistry, reportApplied } from './registry';
 import { type FinalFailure, QueueRunner } from './runner';
+import { applySchedules, readSchedules, reportSchedules, runManualRequests } from './schedules';
 
 export interface RunningWorker {
   boss: PgBoss;
@@ -36,6 +37,9 @@ export async function startWorker(
   const syncNow = async () => {
     const applied = await runner.sync(await readRegistry(db));
     await reportApplied(db, config.WORKER_INSTANCE_NAME, applied);
+    const schedules = await applySchedules(boss, await readSchedules(db, handlers));
+    await reportSchedules(db, config.WORKER_INSTANCE_NAME, schedules);
+    await runManualRequests(boss, db, config.WORKER_INSTANCE_NAME, handlers);
   };
 
   let stopping = false;
@@ -44,7 +48,7 @@ export async function startWorker(
     try {
       await syncNow();
     } catch (err) {
-      log('error', 'registry sync failed', { error: errorText(err) });
+      if (!stopping) log('error', 'registry sync failed', { error: errorText(err) }); // a sync cut off by stop() is expected
     } finally {
       if (!stopping) timer = setTimeout(loop, config.REGISTRY_POLL_SECONDS * 1000);
     }

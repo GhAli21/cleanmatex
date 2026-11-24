@@ -195,6 +195,9 @@
       "launch": "Launch Now",
       "cancel": "Cancel Campaign",
       "testSent": "Test notification dispatched to your account",
+      "testQueued": "Test message queued for your account",
+      "testFailed": "The test message could not be sent",
+      "testStillSending": "The test message is still being sent.",
       "loadFailed": "Failed to load campaign",
       "transitioned": "Campaign status updated to {status}"
     }

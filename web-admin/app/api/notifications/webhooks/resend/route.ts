@@ -24,8 +24,8 @@
  * ordering (tenant/leg resolved AFTER the event is matched, before any
  * write), this route resolves the owning tenant by looking up
  * `org_ntf_outbox_dtl.provider_message_id = data.email_id` (now captured at
- * send time — see lib/notifications/email-sender.ts `sendEmailWithId` /
- * lib/notifications/adapters/email.ts) and takes `tenant_org_id` from that
+ * send time — by HQ API's email provider, which sends every outbox email since
+ * Background Jobs step 5e) and takes `tenant_org_id` from that
  * single matched row. Every subsequent write (the suppression upsert) then
  * carries that resolved tenant_org_id as an explicit predicate. An event with
  * no matching outbox row (e.g. a transactional email sent through a

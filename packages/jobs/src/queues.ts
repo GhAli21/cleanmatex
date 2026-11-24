@@ -43,6 +43,17 @@ export const QUEUE_PAYLOADS = {
    * campaign starts). Each PENDING target gets its outbox row and `ntf.deliver` job in one transaction.
    */
   'ntf.campaign_chunk': z.strictObject({ tenantOrgId: zId, campaignId: zId, chunk: z.number().int().min(0).max(100_000) }),
+  /**
+   * Expiry sweeps (step 6a, migration 0823; credit notes are pg_cron, not a queue). The daily schedule
+   * sends `{}`; a full page of 100 due ids re-sends the sweep with `page` + 1, up to
+   * EXPIRY_SWEEP_MAX_PAGES. Each due id becomes one item job.
+   */
+  'fin.gift_card_expiry.sweep': z.strictObject({ page: z.number().int().min(0).max(50).optional() }),
+  'fin.loyalty_expiry.sweep': z.strictObject({ page: z.number().int().min(0).max(50).optional() }),
+  /** One gift card past its expiry date. Job id = gift card id (a card expires once). */
+  'fin.gift_card_expiry.item': z.strictObject({ tenantOrgId: zId, giftCardId: zId }),
+  /** One loyalty account with points past the program's expiry days. Job id = account + UTC day. */
+  'fin.loyalty_expiry.item': z.strictObject({ tenantOrgId: zId, accountId: zId }),
 } as const;
 
 export type QueueName = keyof typeof QUEUE_PAYLOADS;

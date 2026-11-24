@@ -334,3 +334,41 @@ Campaigns now run as jobs: approving (or scheduling, starting, resuming) a campa
     - Click Send twice within 30 s. **Expected:** one outbox row per channel.
 12. 25 hours after step 3: the OTP outbox rows have the text `[removed]`, and the WhatsApp one has no `otp_code` in `metadata.variables`.
 13. WhatsApp campaign regression (4c, QA 5.6 step 15): the outbox row's `metadata.variables` holds the campaign values, and the WhatsApp message arrives with them filled in.
+
+### 5.8 Campaign test send after 5e (STEP5_PLAN item 6)
+
+Needs web-admin and HQ API deployed with 5e, and `ntf.deliver` on. Your staff user (Settings → Users) has an email and a phone.
+
+1. Notifications → Campaigns → open a **DRAFT** EMAIL campaign → **Send Test**.
+   **Expected:** "Test message queued for your account", then within about 15 s "Test notification dispatched to your account". The email arrives once. In SQL: one `org_ntf_outbox_dtl` row with `source_entity_type = 'campaign_test'`, `recipient_user_id` = you, status `SENT`. The campaign's counters do not change.
+2. Click **Send Test** again. **Expected:** a second, separate email (every click is a new message).
+3. Repeat for an SMS campaign, and for a PUSH campaign on a browser that allowed notifications. **Expected:** as step 1. With no registered device, push shows "The test message could not be sent" (row `SKIPPED`).
+4. WhatsApp campaign whose template has an ACTIVE `campaign.send` route (QA 5.6). **Expected:** the WhatsApp arrives on your staff phone with the campaign's variable values. Remove your staff phone and try again: "Your staff account has no phone number on file".
+5. IN_APP campaign. **Expected:** "Test notification dispatched to your account" at once, and the bell shows it.
+6. Launch the campaign, then try **Send Test**. **Expected:** refused (only DRAFT / PENDING_APPROVAL / APPROVED can be tested).
+7. The old routes are gone: `POST /api/notifications/process-outbox` (and `reconcile-outbox`, `process-campaigns`, `jobs/campaign-expansion`) on the deployed web-admin. **Expected:** 404.
+8. Create an order for a WhatsApp-opted-in customer. **Expected:** the order WhatsApp still arrives (sent by HQ API, not web-admin).
+
+## Step 6 — Sweeps and delayed jobs
+
+### 6.1 Gift card, credit note and loyalty expiry (STEP6_PLAN 6a)
+
+Credit notes run in the database (pg_cron); gift cards and loyalty run in cmx-workers.
+
+**Database (Owner):**
+
+1. Apply `0823_bg_jobs_fin_expiry_sweeps.sql` on local, then remote. **Expected:** it commits. In SQL: `cron.job` has `fin-credit-note-expiry` (`5 2 * * *`, active = false); `sys_ops_job_cf` row `fin-credit-note-expiry` has kind `PG_CRON`; four `fin.gift_card_expiry.*` / `fin.loyalty_expiry.*` queues in `pgboss.queue`; two `… .daily` rows with kind `PGBOSS_SCHEDULE`; `fin-gift-card-expiry` and `fin-loyalty-points-expiry` are `SUPERSEDED`.
+2. On your machine: `npm test --workspace=cmx-workers`. **Expected:** all pass, including `expiry.test.ts`.
+
+**Release:**
+
+3. Deploy web-admin and cmx-workers (only after step 1 on remote). **Expected:** the worker starts; its log shows no "registry sync failed".
+4. HQ → Ops → Jobs: switch on "Credit note expiry"; switch on the four `fin.gift_card_expiry.*` / `fin.loyalty_expiry.*` queues, then the two `… (daily)` schedules. **Expected:** the credit note job shows active at 02:05; within about 30 seconds each schedule shows as applied (02:00, 02:10 UTC). In SQL: `SELECT name, key, cron, timezone, options->>'missed' FROM pgboss.schedule` lists the two, timezone `UTC`, missed `once`.
+
+**Behaviour (demo Organization):**
+
+5. **Credit note spent after its date (fix):** a customer with an active credit note whose expiry date was yesterday. New order → payment → store credit. **Expected:** the note is not offered; forcing it through the API gives "Credit note has expired". The customer's credit note list does not show it.
+6. HQ → Ops → Jobs → "Credit note expiry" → **Run now**. **Expected:** SUCCESS in its run history; the note becomes **Expired**, balance 0, one EXPIRY row. Run now again: nothing new (still one EXPIRY row). A note expiring in the future is untouched.
+7. A gift card whose expiry date has passed. "Gift card expiry (daily)" → **Run now**. **Expected:** "Queued…", then SUCCESS in its run history ("Sent one job to fin.gift_card_expiry.sweep"); within about 10 minutes (300 s polling, twice) the card shows **Expired** with one EXPIRE row. Run now again: still one EXPIRE row. A card expiring in the future is untouched.
+8. Loyalty: an Organization with points expiry days set (for example 30), a customer whose points were earned more than that many days ago. Run "Loyalty points expiry (daily)". **Expected:** those points leave the balance once; newer points stay.
+9. Switch a schedule off. **Expected:** within 30 seconds it is gone from `pgboss.schedule` and shows as off.

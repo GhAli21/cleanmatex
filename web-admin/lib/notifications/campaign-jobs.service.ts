@@ -291,6 +291,38 @@ async function processTarget(c: CampaignContent, targetId: string, r: TargetReci
   });
 }
 
+/** The campaign fields its message is built from. */
+export interface CampaignContentSource {
+  channel_code: string;
+  template_code: string | null;
+  template_vars: unknown;
+  name: string;
+  name2: string | null;
+  description: string | null;
+  description2: string | null;
+}
+
+/**
+ * The campaign's message, used by the campaign send and by the staff test send.
+ * template_vars (0819) are the campaign's values for the template's variables; for WhatsApp, HQ API
+ * fills the provider template slots from metadata.variables (same key the orchestrator writes).
+ */
+export async function renderCampaignContent(campaign: CampaignContentSource): Promise<RenderedContent> {
+  const templateVars = Object.fromEntries(Object.entries((campaign.template_vars ?? {}) as Record<string, unknown>)
+    .filter((e): e is [string, string] => typeof e[1] === 'string'));
+  const built = await renderBuiltContent({
+    channel: campaign.channel_code,
+    template: campaign.template_code ? { kind: 'code', templateCode: campaign.template_code } : null,
+    inline: { title: campaign.name, title2: campaign.name2 ?? null, body: campaign.description ?? campaign.name, body2: campaign.description2 ?? null },
+    variables: {
+      campaign_name: campaign.name, campaign_name2: campaign.name2 ?? '',
+      campaign_description: campaign.description ?? '', campaign_description2: campaign.description2 ?? '',
+      ...templateVars,
+    },
+  });
+  return { ...built, metadata: { ...(built.metadata ?? {}), variables: templateVars } };
+}
+
 /** The `ntf.campaign_chunk` job: targets chunk*50 .. chunk*50+49 of the campaign, in id order. */
 export async function runCampaignChunk(tenantOrgId: string, campaignId: string, chunk: number): Promise<CampaignChunkOutcome> {
   return withTenantContext(tenantOrgId, async () => {
@@ -350,23 +382,8 @@ export async function runCampaignChunk(tenantOrgId: string, campaignId: string, 
         return { userId: null, customerId, hasConsent: customerAgreed.has(customerId), customerAddress };
       };
 
-      // The message does not vary per recipient: render once per chunk. template_vars (0819) are the
-      // campaign's values for the template's variables; for WhatsApp, HQ fills the provider template slots
-      // from the outbox metadata, so they go there too.
-      const templateVars = Object.fromEntries(Object.entries((campaign.template_vars ?? {}) as Record<string, unknown>)
-        .filter((e): e is [string, string] => typeof e[1] === 'string'));
-      const built = await renderBuiltContent({
-        channel: campaign.channel_code,
-        template: campaign.template_code ? { kind: 'code', templateCode: campaign.template_code } : null,
-        inline: { title: campaign.name, title2: campaign.name2 ?? null, body: campaign.description ?? campaign.name, body2: campaign.description2 ?? null },
-        variables: {
-          campaign_name: campaign.name, campaign_name2: campaign.name2 ?? '',
-          campaign_description: campaign.description ?? '', campaign_description2: campaign.description2 ?? '',
-          ...templateVars,
-        },
-      });
-      // HQ API fills WhatsApp template slots from metadata.variables (same key the orchestrator writes).
-      const rendered: RenderedContent = { ...built, metadata: { ...(built.metadata ?? {}), variables: templateVars } };
+      // The message does not vary per recipient: render once per chunk.
+      const rendered = await renderCampaignContent(campaign);
 
       const content: CampaignContent = { tenantOrgId, campaignId, channel: campaign.channel_code, channelConfig, rendered };
       for (const t of pending) {

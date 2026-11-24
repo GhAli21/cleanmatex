@@ -41,6 +41,7 @@ jest.mock('@/lib/db/prisma', () => ({
       create: (...a: unknown[]) => mockCreditNoteCreate(...a),
       findMany: (...a: unknown[]) => mockCreditNoteFindMany(...a),
     },
+    $queryRaw: (...a: unknown[]) => mockTxQueryRaw(...a),
     $transaction: (fn: (tx: unknown) => Promise<unknown>) => fn({
       $queryRaw: (...a: unknown[]) => mockTxQueryRaw(...a),
       org_credit_notes_mst: { update: (...a: unknown[]) => mockExpireCnUpdate(...a) },
@@ -84,6 +85,7 @@ import {
   redeemWalletTx,
   redeemAdvanceTx,
   redeemCreditNoteTx,
+  getCreditNotes,
   issueCreditNote,
   issueCreditNoteTx,
   creditNoteNoForInsert,
@@ -588,70 +590,68 @@ describe('Phase 2 — redeemCreditNoteTx idempotency-skip + voucher backlink', (
   });
 });
 
-describe('expireCreditNote / expireCreditNotes', () => {
+describe('expireCreditNote / expireCreditNotes (fn_fin_credit_note_expire_one, migration 0823)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('writes an EXPIRY ledger row and zeros remaining_balance', async () => {
-    mockExpireCnTxnFindFirst.mockResolvedValue(null);
-    mockTxQueryRaw.mockResolvedValue([{
-      id: 'cn-1',
-      remaining_balance: 25,
-      currency_code: 'OMR',
-      status: 'ACTIVE',
-      customer_id: CUST,
-    }]);
-    mockExpireCnUpdate.mockResolvedValue({ id: 'cn-1' });
-    mockExpireCnTxnCreate.mockResolvedValue({ id: 'cn-txn-exp' });
+  const sqlOf = (call: unknown[]) => (call[0] as TemplateStringsArray).join('?');
 
-    const result = await expireCreditNote('cn-1', TENANT);
+  it('calls the database function with the tenant, the note and onlyIfDue', async () => {
+    mockTxQueryRaw.mockResolvedValue([{ outcome: 'EXPIRED' }]);
 
-    expect(result.success).toBe(true);
-    expect(mockExpireCnUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: 'EXPIRED', remaining_balance: 0 }),
-      }),
-    );
-    expect(mockExpireCnTxnCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          txn_type: 'EXPIRY',
-          amount: -25,
-          balance_before: 25,
-          balance_after: 0,
-          idempotency_key: 'cn-expiry-cn-1',
-        }),
-      }),
-    );
+    const result = await expireCreditNote('cn-1', TENANT, { onlyIfDue: true });
+
+    expect(result).toEqual({ success: true });
+    const call = mockTxQueryRaw.mock.calls[0];
+    expect(sqlOf(call)).toContain('fn_fin_credit_note_expire_one');
+    expect(call.slice(1, 4)).toEqual([TENANT, 'cn-1', true]);
   });
 
-  it('is a no-op success when the note is already EXPIRED', async () => {
-    mockExpireCnTxnFindFirst.mockResolvedValue(null);
-    mockTxQueryRaw.mockResolvedValue([{
-      id: 'cn-1',
-      remaining_balance: 0,
-      currency_code: 'OMR',
-      status: 'EXPIRED',
-      customer_id: CUST,
-    }]);
-
-    const result = await expireCreditNote('cn-1', TENANT);
-    expect(result.success).toBe(true);
-    expect(mockExpireCnTxnCreate).not.toHaveBeenCalled();
+  it('ALREADY_EXPIRED is success; NOT_DUE and NOT_FOUND are errors', async () => {
+    mockTxQueryRaw.mockResolvedValueOnce([{ outcome: 'ALREADY_EXPIRED' }]);
+    expect(await expireCreditNote('cn-1', TENANT)).toEqual({ success: true });
+    mockTxQueryRaw.mockResolvedValueOnce([{ outcome: 'NOT_DUE' }]);
+    expect(await expireCreditNote('cn-1', TENANT, { onlyIfDue: true })).toEqual({ success: false, error: 'CREDIT_NOTE_NOT_DUE' });
+    mockTxQueryRaw.mockResolvedValueOnce([{ outcome: 'NOT_FOUND' }]);
+    expect(await expireCreditNote('cn-1', TENANT)).toEqual({ success: false, error: 'CREDIT_NOTE_NOT_FOUND' });
   });
 
   it('loops eligible notes and does not stop on a single failure', async () => {
     mockCreditNoteFindMany.mockResolvedValue([{ id: 'cn-ok' }, { id: 'cn-bad' }]);
-    mockExpireCnTxnFindFirst.mockResolvedValue(null);
     mockTxQueryRaw
-      .mockResolvedValueOnce([{
-        id: 'cn-ok', remaining_balance: 10, currency_code: 'OMR', status: 'ACTIVE', customer_id: CUST,
-      }])
-      .mockResolvedValueOnce([]);
-    mockExpireCnUpdate.mockResolvedValue({ id: 'cn-ok' });
-    mockExpireCnTxnCreate.mockResolvedValue({ id: 'cn-txn' });
+      .mockResolvedValueOnce([{ outcome: 'EXPIRED' }])
+      .mockRejectedValueOnce(new Error('lock timeout'));
 
     const result = await expireCreditNotes(TENANT);
     expect(result.expiredCount).toBe(1);
     expect(result.failedCount).toBe(1);
+  });
+});
+
+describe('credit notes past their expiry date are not spendable', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('redeemCreditNoteTx refuses a note whose expires_at is before today (UTC) and changes nothing', async () => {
+    const update = jest.fn();
+    const create = jest.fn();
+    mockTxQueryRaw.mockResolvedValue([{ id: 'cn-1', remaining_balance: 30, currency_code: 'OMR', is_expired: true }]);
+    const tx = {
+      $queryRaw: (...a: unknown[]) => mockTxQueryRaw(...a),
+      org_credit_notes_mst: { update },
+      org_credit_note_txn_dtl: { findFirst: jest.fn().mockResolvedValue(null), create },
+    };
+
+    await expect(redeemCreditNoteTx(tx as unknown as Parameters<typeof redeemCreditNoteTx>[0], {
+      tenantId: TENANT, customerId: CUST, creditNoteId: 'cn-1', amount: 5, orderId: ORDER, idempotencyKey: 'k-1',
+    })).rejects.toThrow('Credit note has expired');
+    expect(update).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('getCreditNotes lists only notes with no expiry date or one from today on', async () => {
+    mockCreditNoteFindMany.mockResolvedValue([]);
+    await getCreditNotes(TENANT, CUST);
+    const where = mockCreditNoteFindMany.mock.calls[0][0].where;
+    expect(where).toMatchObject({ tenant_org_id: TENANT, customer_id: CUST, status: 'ACTIVE' });
+    expect(where.OR).toEqual([{ expires_at: null }, { expires_at: { gte: expect.any(Date) } }]);
   });
 });
