@@ -24,7 +24,7 @@
 
 **Time and timezone**
 - Instants are UTC `timestamptz` / RFC 3339 `Z`; civil dates are `date`; local times of day stay local (`docs/dev/rules/time-and-timezone.md`)
-- Operational UI uses the branch zone, else the organization zone, and does not paint an absolute date before that zone is known
+- Operational UI uses the feature's documented scope, then the organization zone, and does not paint an absolute date before that zone is known. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only.
 
 **User-facing feedback (web-admin)**
 - Applicable success/error/warning/info/confirm uses `cmxMessage` / `useMessage()` from `@ui/feedback`

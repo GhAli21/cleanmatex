@@ -29,8 +29,25 @@ export interface MeasureLineDialogProps {
   notice?: string;
   /** A refusal of the last Confirm, shown above the buttons. */
   refusal?: string;
+  /**
+   * Adding an article: the lines that could take it instead of a new line (Cart Line Grouping §4.1).
+   * Asked when staff press Add; null or no options adds a new line at once.
+   */
+  mergeChoice?: (measure: OrderItemMeasure) => MeasureMergeChoice | null;
+  /** Staff chose to add the article to an existing line. */
+  onMerge?: (lineKey: string, measure: OrderItemMeasure) => void;
   onConfirm: (measure: OrderItemMeasure) => void;
   onClose: () => void;
+}
+
+/** The choice shown after Add when a line with this measure is already in the order. All text is ready to show. */
+export interface MeasureMergeChoice {
+  title: string;
+  options: Array<{ lineKey: string; label: string; result: string; priceNote?: string }>;
+  newLineLabel: string;
+  newLinePriceNote?: string;
+  /** Shown when the minimum or billing step applies to the line total. */
+  note?: string;
 }
 
 /** The resolver's verdict on what was typed: the billed result, or the `uom.errors` code to show. */
@@ -48,16 +65,58 @@ function check(uom: OrderItemUom, value: MeasureValue) {
 }
 
 /** Dialog body; remounted on every open so it starts from `initial`. */
-function MeasureForm({ productName, uom, initial, notice, refusal, onConfirm, onClose }: Omit<MeasureLineDialogProps, 'open'>) {
+function MeasureForm({ productName, uom, initial, notice, refusal, mergeChoice, onMerge, onConfirm, onClose }: Omit<MeasureLineDialogProps, 'open'>) {
   const t = useTranslations('uom');
   const tCommon = useTranslations('common');
   const ar = useLocale() === 'ar';
   const [value, setValue] = useState<MeasureValue>(initial ?? EMPTY);
+  const [choice, setChoice] = useState<MeasureMergeChoice | null>(null);
+  const add = () => {
+    const found = mergeChoice?.(value);
+    if (found && found.options.length > 0 && onMerge) setChoice(found);
+    else onConfirm(value);
+  };
+
   const symbol = ar && uom.symbol2 ? uom.symbol2 : uom.symbol;
   const result = useMemo(() => check(uom, value), [uom, value]);
   const typed = !!(value.measuredQty || value.length || value.width);
   // Silent until staff start typing; then the resolver's reason is shown next to the field.
   const error = typed && !result.ok ? (t.has(`errors.${result.code}`) ? t(`errors.${result.code}`) : t('errors.GENERIC')) : undefined;
+
+  if (choice) {
+    return (
+      <>
+        <CmxDialogHeader><CmxDialogTitle>{choice.title}</CmxDialogTitle></CmxDialogHeader>
+        <div className="space-y-2">
+          {choice.options.map((option, index) => (
+            <CmxButton
+              key={option.lineKey}
+              variant={index === 0 ? 'primary' : 'outline'}
+              className="h-auto w-full flex-col items-start gap-0.5 py-2 text-start pointer-coarse:min-h-11"
+              autoFocus={index === 0}
+              onClick={() => onMerge?.(option.lineKey, value)}
+            >
+              <span>{option.label}</span>
+              <span className="text-xs font-normal opacity-90 tabular-nums" aria-live="polite">{option.result}</span>
+              {option.priceNote && <span className="text-xs font-normal opacity-90 tabular-nums">{option.priceNote}</span>}
+            </CmxButton>
+          ))}
+          <CmxButton
+            variant="outline"
+            className="h-auto w-full flex-col items-start gap-0.5 py-2 text-start pointer-coarse:min-h-11"
+            onClick={() => onConfirm(value)}
+          >
+            <span>{choice.newLineLabel}</span>
+            {choice.newLinePriceNote && <span className="text-xs font-normal text-muted-foreground tabular-nums">{choice.newLinePriceNote}</span>}
+          </CmxButton>
+          {choice.note && <p className="text-xs text-muted-foreground">{choice.note}</p>}
+        </div>
+        <CmxDialogFooter>
+          <CmxButton variant="ghost" className="pointer-coarse:min-h-11" onClick={() => setChoice(null)}>{tCommon('back')}</CmxButton>
+        </CmxDialogFooter>
+      </>
+    );
+  }
 
   return (
     <>
@@ -86,7 +145,7 @@ function MeasureForm({ productName, uom, initial, notice, refusal, onConfirm, on
       </div>
       <CmxDialogFooter>
         <CmxButton variant="outline" className="pointer-coarse:min-h-11" onClick={onClose}>{tCommon('cancel')}</CmxButton>
-        <CmxButton className="pointer-coarse:min-h-11" disabled={!result.ok} onClick={() => onConfirm(value)}>{notice ? tCommon('confirm') : initial ? tCommon('save') : tCommon('add')}</CmxButton>
+        <CmxButton className="pointer-coarse:min-h-11" disabled={!result.ok} onClick={() => (notice || initial ? onConfirm(value) : add())}>{notice ? tCommon('confirm') : initial ? tCommon('save') : tCommon('add')}</CmxButton>
       </CmxDialogFooter>
     </>
   );

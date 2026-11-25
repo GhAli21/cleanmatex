@@ -39,6 +39,8 @@ export interface ItemCartListQuoteProps {
 interface CartItem {
   /** The line's cart key (Cart Line Grouping P1). */
   id: LineKey;
+  /** Set only when the product has more than one line (§5.5). */
+  lineNumber?: number | null;
   productId: string;
   productName: string;
   productName2?: string;
@@ -75,6 +77,8 @@ interface ItemCartListProps {
   onEditItem?: (itemId: LineKey) => void;
   onEditItemPreferences?: (itemId: LineKey) => void;
   onEditItemMeasure?: (lineKey: LineKey) => void;
+  /** Move one equal share of a measured line to a new line (§4.3). */
+  onSplitMeasuredShare?: (lineKey: LineKey) => void;
   onDeleteItem: (itemId: LineKey) => void;
   onPiecesChange?: (itemId: LineKey, pieces: PreSubmissionPiece[]) => void;
   onCopyPieceToAll?: (itemId: LineKey, pieceId: string) => void;
@@ -96,6 +100,7 @@ function ItemCartListComponent({
   onEditItem,
   onEditItemPreferences,
   onEditItemMeasure,
+  onSplitMeasuredShare,
   onDeleteItem,
   trackByPiece = false,
   currencyCode = '',
@@ -155,6 +160,8 @@ function ItemCartListComponent({
             uom={item.uom}
             measure={item.measure}
             onEditMeasure={item.uom && onEditItemMeasure ? () => onEditItemMeasure(item.id) : undefined}
+            lineNumber={item.lineNumber}
+            onSplitMeasuredShare={item.uom && onSplitMeasuredShare ? () => onSplitMeasuredShare(item.id) : undefined}
             quantity={item.quantity}
             totalPrice={item.totalPrice}
             conditions={item.conditions}

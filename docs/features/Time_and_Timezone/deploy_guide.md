@@ -4,7 +4,7 @@ This pack does not deploy anything. Each work package that needs a migration pro
 
 ## Before any migration is applied
 
-1. Read the provenance note inside that migration. It must say whether the naive values are UTC wall clocks or `Asia/Muscat` wall clocks, and which sample rows were checked.
+1. Read the provenance note inside that migration. It must name one proven stored clock, UTC wall or `Asia/Muscat` wall, and the sample rows that were checked. A note that assumes UTC without those rows is not ready. Mixed or unproven columns stay out of the file. The rollout is expand-and-contract: twin, dual-write, bounded backfill, then readers. The old column is dropped only in a later migration.
 2. Apply on a copy or local database first. Compare a known row (a lockout, a Ready By, a scheduled send) before and after.
 3. Do not apply the next domain batch until that comparison matches the real-world time.
 
@@ -20,7 +20,7 @@ From the repo root:
 npm run prisma:pull
 ```
 
-That includes the post-pull `@ignore` patch. Then typecheck the touched `web-admin` code.
+That includes the post-pull `@ignore` patch. Then typecheck the touched `web-admin` code. Update `progress_summary.md` and `current_status.md` from Written, not applied to Applied by user.
 
 ## Database session
 

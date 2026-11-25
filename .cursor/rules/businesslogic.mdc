@@ -173,7 +173,7 @@ async function canMoveToReady(orderId: string): Promise<{
 
 Apply `docs/dev/rules/no-silent-money-mutation.md` to any user-editable money flow, including payments, discounts, credits, refunds, vouchers, and totals adjustments.
 
-Apply `docs/dev/rules/time-and-timezone.md` to instants, business dates, opening hours, and ready-by promises. Instants stay UTC. The business day uses the branch zone, else the organization zone, and a system-assigned business date is stored once.
+Apply `docs/dev/rules/time-and-timezone.md` to instants, business dates, opening hours, and ready-by promises. Instants stay UTC. The business day uses the feature's documented scope, then the organization zone, and a system-assigned business date is stored once. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only.
 
 ### Basic Pricing Structure
 ```typescript

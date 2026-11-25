@@ -1,0 +1,16 @@
+{
+  "lineNumber": "Line {number}",
+  "measureMatchTitle": "A line with this measure is already in the order",
+  "addToLine": "Add to line {number}",
+  "addToLineResult": "Becomes {pieces, plural, one {# piece} other {# pieces}} · {measure}",
+  "addAsNewLine": "Add as a new line",
+  "agreedPrice": "Agreed price {price}",
+  "todaysPrice": "Today's price {price}",
+  "measureMinimumNote": "The minimum and billing step apply to the line total.",
+  "moveOneShare": "Move one piece to a new line",
+  "moveOneShareFor": "Move one piece of {item} to a new line",
+  "shareNotExact": "This line's measure can't be divided into equal shares. Change the measure first.",
+  "savedPieceCannotMove": "Saved pieces can't be moved to another line yet.",
+  "moveBlocked": "The order's edit policy doesn't allow this change now.",
+  "movedToLine": "Moved to line {number}"
+}

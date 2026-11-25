@@ -147,3 +147,14 @@ Page: New Order, and Order Edit of an order with a measured line (e.g. Delicate 
 32. Press Cancel. **Expected:** the cart still shows 2 pieces and 2.5 m. Repeat with step 2 `+` / `-`, Add piece, remove piece in the pieces manager: same dialog each time, Cancel leaves the count.
 33. Press `+` again, change the total to 3.75, Confirm. **Expected:** 3 pieces, 3.75 m, the line total follows the billed measure. Press `+` and Confirm without changing the total: 4 pieces, same total (allowed, explicit).
 34. A normal count product: `+`/`-` change at once, no dialog. Remove a measured line with `-` at 1 piece: removed, no dialog. In Order Edit, with the HQ rule for `CHANGE_ITEM_MEASURE` missing: changing the total and Confirm shows "this order does not allow changing it"; keeping the total works.
+
+
+## P6 - customer-facing line qualifier (steps 35-40)
+
+Use an order with a measured line (e.g. a rug in m, 2.5) and, in Order Edit, a second line of the same product with the same measure; plus one count line with its own speed (Express on a Standard order).
+35. Order detail, Items tab: the measured line shows "2.5 m" after the product name; the Express line shows "Express"; two identical lines show "(1)" and "(2)". A plain line shows nothing extra.
+36. Ready screen and Print (receipt + details): same text under each product name, Arabic shows the Arabic unit symbol and speed name.
+37. Money view (order detail, `public` preset in the tracking page): the line labels carry the qualifier; no extra field leaks (only measure, speed name, number).
+38. Public tracking link and the customer app order detail API: items show the qualifier; a line removed by an Edit no longer appears on Ready detail or prints.
+39. WhatsApp/email receipt text: "Rug · 2.5 m² x1 - 12.500 OMR".
+40. Customer app booking: a measured product is not offered; a forged submit returns `booking_item_needs_measure`.

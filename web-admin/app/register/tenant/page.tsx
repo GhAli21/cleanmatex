@@ -7,10 +7,11 @@
 'use client';
 
 import { CmxSummaryMessage } from '@ui/feedback/cmx-summary-message';
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { getCountryCallingCode, type CountryCode } from 'libphonenumber-js';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
 import {
   CmxCard,
@@ -20,10 +21,18 @@ import {
   CmxCardContent,
 } from '@ui/primitives/cmx-card';
 import type { TenantRegistrationRequest } from '@/lib/types/tenant';
+import {
+  REGISTRATION_SERVER_DEFAULTS,
+  currencyForCountry,
+  readBrowserRegistrationDefaults,
+  subscribeRegistrationDefaults,
+  type RegistrationLocaleDefaults,
+} from '@/lib/utils/registration-browser-defaults';
 
 type Step = 1 | 2 | 3;
 
 const COUNTRIES = [
+  { value: 'US', label: 'United States (الولايات المتحدة)' },
   { value: 'OM', label: 'Oman (عمان)' },
   { value: 'SA', label: 'Saudi Arabia (السعودية)' },
   { value: 'AE', label: 'UAE (الإمارات)' },
@@ -33,6 +42,7 @@ const COUNTRIES = [
 ];
 
 const CURRENCIES = [
+  { value: 'USD', label: 'USD - US Dollar' },
   { value: 'OMR', label: 'OMR - Omani Rial' },
   { value: 'SAR', label: 'SAR - Saudi Riyal' },
   { value: 'AED', label: 'AED - UAE Dirham' },
@@ -42,6 +52,7 @@ const CURRENCIES = [
 ];
 
 const TIMEZONES = [
+  { value: 'UTC', label: 'UTC (UTC+0)' },
   { value: 'Asia/Muscat', label: 'Asia/Muscat (UTC+4)' },
   { value: 'Asia/Riyadh', label: 'Asia/Riyadh (UTC+3)' },
   { value: 'Asia/Dubai', label: 'Asia/Dubai (UTC+4)' },
@@ -54,6 +65,54 @@ const LANGUAGES = [
   { value: 'en', label: 'English' },
   { value: 'ar', label: 'Arabic (العربية)' },
 ];
+
+function ensureOption(
+  options: Array<{ value: string; label: string }>,
+  value: string,
+  label: string,
+): Array<{ value: string; label: string }> {
+  return options.some((option) => option.value === value) ? options : [{ value, label }, ...options];
+}
+
+function regionOptionLabel(code: string): string {
+  try {
+    const english = new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code;
+    const arabic = new Intl.DisplayNames(['ar'], { type: 'region' }).of(code);
+    return arabic && arabic !== code ? `${english} (${arabic})` : english;
+  } catch {
+    return code;
+  }
+}
+
+function currencyOptionLabel(code: string): string {
+  try {
+    const name = new Intl.DisplayNames(['en'], { type: 'currency' }).of(code);
+    return name ? `${code} - ${name}` : code;
+  } catch {
+    return code;
+  }
+}
+
+function timezoneOptionLabel(zone: string): string {
+  try {
+    const offset = new Intl.DateTimeFormat('en', {
+      timeZone: zone,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date()).find((part) => part.type === 'timeZoneName')?.value;
+    return offset ? `${zone} (${offset})` : zone;
+  } catch {
+    return zone;
+  }
+}
+
+function phonePlaceholder(country: string): string {
+  if (!/^[A-Z]{2}$/.test(country)) return '+1';
+  try {
+    return `+${getCountryCallingCode(country as CountryCode)}`;
+  } catch {
+    return '+1';
+  }
+}
 
 /**
  *
@@ -68,16 +127,24 @@ export default function TenantRegisterPage() {
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [slugChecking, setSlugChecking] = useState(false);
 
+  const suggestedLocale = useSyncExternalStore(
+    subscribeRegistrationDefaults,
+    readBrowserRegistrationDefaults,
+    () => REGISTRATION_SERVER_DEFAULTS,
+  );
+  const [localeChoice, setLocaleChoice] = useState<RegistrationLocaleDefaults | null>(null);
+  const locale = localeChoice ?? suggestedLocale;
+
   const [formData, setFormData] = useState<TenantRegistrationRequest>({
     businessName: '',
     businessNameAr: '',
     slug: '',
     email: '',
     phone: '',
-    country: 'OM',
-    currency: 'OMR',
-    timezone: 'Asia/Muscat',
-    language: 'en',
+    country: REGISTRATION_SERVER_DEFAULTS.country,
+    currency: REGISTRATION_SERVER_DEFAULTS.currency,
+    timezone: REGISTRATION_SERVER_DEFAULTS.timezone,
+    language: REGISTRATION_SERVER_DEFAULTS.language,
     adminUser: {
       email: '',
       password: '',
@@ -146,9 +213,9 @@ export default function TenantRegisterPage() {
     }
 
     if (currentStep === 2) {
-      if (!formData.country) newErrors.country = t('errors.countryRequired');
-      if (!formData.currency) newErrors.currency = t('errors.currencyRequired');
-      if (!formData.timezone) newErrors.timezone = t('errors.timezoneRequired');
+      if (!locale.country) newErrors.country = t('errors.countryRequired');
+      if (!locale.currency) newErrors.currency = t('errors.currencyRequired');
+      if (!locale.timezone) newErrors.timezone = t('errors.timezoneRequired');
     }
 
     if (currentStep === 3) {
@@ -190,7 +257,13 @@ export default function TenantRegisterPage() {
       const response = await fetch('/api/v1/tenants/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          country: locale.country,
+          currency: locale.currency,
+          timezone: locale.timezone,
+          language: locale.language,
+        }),
       });
 
       const data = await response.json();
@@ -355,7 +428,7 @@ export default function TenantRegisterPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, phone: e.target.value }))
                   }
-                  placeholder="+968 9012 3456"
+                  placeholder={phonePlaceholder(locale.country)}
                   required
                   className="w-full"
                 />
@@ -370,11 +443,15 @@ export default function TenantRegisterPage() {
               <div>
                 <Label className="block mb-1">{t('country')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
-                  value={formData.country}
+                  value={locale.country}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, country: e.target.value }))
+                    setLocaleChoice((prev) => ({
+                      ...(prev ?? suggestedLocale),
+                      country: e.target.value,
+                      currency: currencyForCountry(e.target.value),
+                    }))
                   }
-                  options={COUNTRIES}
+                  options={ensureOption(COUNTRIES, locale.country, regionOptionLabel(locale.country))}
                   required
                 />
               </div>
@@ -382,11 +459,11 @@ export default function TenantRegisterPage() {
               <div>
                 <Label className="block mb-1">{t('currency')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
-                  value={formData.currency}
+                  value={locale.currency}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, currency: e.target.value }))
+                    setLocaleChoice((prev) => ({ ...(prev ?? suggestedLocale), currency: e.target.value }))
                   }
-                  options={CURRENCIES}
+                  options={ensureOption(CURRENCIES, locale.currency, currencyOptionLabel(locale.currency))}
                   required
                 />
                 <p className="mt-1 text-xs text-muted-foreground">{t('currencyHint')}</p>
@@ -395,11 +472,11 @@ export default function TenantRegisterPage() {
               <div>
                 <Label className="block mb-1">{t('timezone')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
-                  value={formData.timezone}
+                  value={locale.timezone}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, timezone: e.target.value }))
+                    setLocaleChoice((prev) => ({ ...(prev ?? suggestedLocale), timezone: e.target.value }))
                   }
-                  options={TIMEZONES}
+                  options={ensureOption(TIMEZONES, locale.timezone, timezoneOptionLabel(locale.timezone))}
                   required
                 />
                 <p className="mt-1 text-xs text-muted-foreground">{t('timezoneHint')}</p>
@@ -408,9 +485,12 @@ export default function TenantRegisterPage() {
               <div>
                 <Label className="block mb-1">{t('defaultLanguage')} <span className="text-danger-text">*</span></Label>
                 <CmxSelect
-                  value={formData.language}
+                  value={locale.language}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, language: e.target.value }))
+                    setLocaleChoice((prev) => ({
+                      ...(prev ?? suggestedLocale),
+                      language: e.target.value === 'ar' ? 'ar' : 'en',
+                    }))
                   }
                   options={LANGUAGES}
                   required

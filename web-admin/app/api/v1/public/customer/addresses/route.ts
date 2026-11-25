@@ -160,6 +160,19 @@ export async function POST(request: NextRequest) {
     }
 
     const isDefault = (existingAddressCount ?? 0) === 0;
+    // The address follows the organization. US is only the initial value when that country is unset.
+    const { data: tenantRow, error: tenantError } = await supabase
+      .from('org_tenants_mst')
+      .select('country')
+      .eq('id', body.tenantId)
+      .maybeSingle();
+    if (tenantError) {
+      throw tenantError;
+    }
+    const tenantCountry = tenantRow?.country;
+    const country = typeof tenantCountry === 'string' && /^[A-Z]{2}$/.test(tenantCountry)
+      ? tenantCountry
+      : 'US';
     const { data: address, error } = await supabase
       .from('org_customer_addresses')
       .insert({
@@ -170,7 +183,7 @@ export async function POST(request: NextRequest) {
         area: body.area,
         city: body.city,
         address_type: 'home',
-        country: 'OM',
+        country,
         is_default: isDefault,
         is_active: true,
         rec_status: 1,

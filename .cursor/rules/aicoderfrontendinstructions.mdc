@@ -10,7 +10,7 @@ The **final, authoritative folder structure** is:
 - `src/features/` – Feature modules (domain UI + logic)
 - `lib/` – Shared infrastructure (root-level: API, hooks, utils, config)
 
-These rules are **mandatory** for all generated code. Dates and times follow `docs/dev/rules/time-and-timezone.md`: instants stay UTC, and an operational clock is formatted with the branch zone, else the organization zone, only after that zone is known.
+These rules are **mandatory** for all generated code. Dates and times follow `docs/dev/rules/time-and-timezone.md`: instants stay UTC, and an operational clock is formatted with the feature's documented scope, then the organization zone, only after that zone is known. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only.
 
 ---
 

@@ -127,6 +127,7 @@ model users {
   org_order_status_history                             org_order_status_history[]
   org_orders_mst_org_orders_mst_edit_blocked_byTousers org_orders_mst[]                  @relation("org_orders_mst_edit_blocked_byTousers")
   org_orders_mst_org_orders_mst_committed_byTousers    org_orders_mst[]                  @relation("org_orders_mst_committed_byTousers")
+  org_prc_trx_mst                                      org_prc_trx_mst[]
   org_users_mst                                        org_users_mst[]
   sys_audit_log                                        sys_audit_log[]
   sys_auth_audit_log                                   sys_auth_audit_log[]
@@ -482,6 +483,8 @@ model org_branches_mst {
   org_orders_mst                                                                               org_orders_mst[]
   org_pck_packing_lists_mst                                                                    org_pck_packing_lists_mst[]
   org_pos_sessions_mst                                                                         org_pos_sessions_mst[]
+  org_prc_trx_dtl                                                                              org_prc_trx_dtl[]
+  org_prc_trx_mst                                                                              org_prc_trx_mst[]
   org_qa_decisions_tr                                                                          org_qa_decisions_tr[]
   org_rcpt_receipts_mst                                                                        org_rcpt_receipts_mst[]
   org_speed_price_rules_cf                                                                     org_speed_price_rules_cf[]
@@ -509,7 +512,7 @@ model org_customer_addresses {
   street            String?           @db.VarChar(200)
   area              String?           @db.VarChar(100)
   city              String?           @db.VarChar(100)
-  country           String?           @default("OM") @db.VarChar(2)
+  country           String?           @default("US") @db.VarChar(2)
   postal_code       String?           @db.VarChar(20)
   latitude          Decimal?          @db.Decimal(10, 8)
   longitude         Decimal?          @db.Decimal(11, 8)
@@ -899,6 +902,7 @@ model org_order_items_dtl {
   measure_length                  Decimal?                          @db.Decimal(21, 6)
   measure_width                   Decimal?                          @db.Decimal(21, 6)
   billed_qty                      Decimal?                          @db.Decimal(21, 6)
+  notes_followup                  Json                              @default("[]")
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_change_ops_dtl        org_order_change_ops_dtl[]
   org_order_discounts_dtl         org_order_discounts_dtl[]
@@ -921,6 +925,7 @@ model org_order_items_dtl {
   sys_packing_preference_cd       sys_packing_preference_cd?        @relation(fields: [packing_pref_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
   org_order_piece_hist_tr         org_order_piece_hist_tr[]
   org_order_preferences_dtl       org_order_preferences_dtl[]
+  org_prc_trx_dtl                 org_prc_trx_dtl[]
   org_tax_doc_items_dtl           org_tax_doc_items_dtl[]
 
   @@unique([tenant_org_id, order_item_srno], map: "uq_ord_item_srno")
@@ -990,6 +995,7 @@ model org_order_preferences_dtl {
   org_order_items_dtl       org_order_items_dtl?       @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_order_item_pieces_dtl org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_tenants_mst           org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_prc_trx_dtl           org_prc_trx_dtl[]
 
   @@unique([id, tenant_org_id], map: "oc_pref_identity_uq")
   @@index([tenant_org_id, order_id], map: "idx_ord_pref_tenant_order")
@@ -1276,6 +1282,7 @@ model org_orders_mst {
   speed_premium_amount                                                            Decimal?                          @db.Decimal(19, 4)
   root_order_id                                                                   String?                           @db.Uuid
   doc_type_code                                                                   String                            @default("ORDER")
+  notes_followup                                                                  Json                              @default("[]")
   org_asm_tasks_mst                                                               org_asm_tasks_mst?
   org_dlv_stops_dtl                                                               org_dlv_stops_dtl[]
   org_fin_overpay_disp_dtl                                                        org_fin_overpay_disp_dtl[]
@@ -1321,6 +1328,7 @@ model org_orders_mst {
   sys_order_sources_cd                                                            sys_order_sources_cd              @relation(fields: [order_source_code], references: [order_source_code], map: "fk_org_orders_order_source")
   sys_workflow_template_cd                                                        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
   org_pck_packing_lists_mst                                                       org_pck_packing_lists_mst?
+  org_prc_trx_mst                                                                 org_prc_trx_mst[]
   org_qa_decisions_tr                                                             org_qa_decisions_tr[]
   org_rcpt_receipts_mst                                                           org_rcpt_receipts_mst[]
   org_tax_documents_mst                                                           org_tax_documents_mst[]
@@ -1622,21 +1630,21 @@ model org_tenants_mst {
   s_current_plan                   String?                            @default("FREE_TRIAL") @db.VarChar(120)
   address                          String?
   city                             String?                            @db.VarChar(100)
-  country                          String?                            @default("OM") @db.VarChar(2)
-  currency                         String?                            @default("OMR") @db.VarChar(3)
-  timezone                         String?                            @default("Asia/Muscat") @db.VarChar(50)
+  country                          String?                            @default("US") @db.VarChar(2)
+  currency                         String?                            @default("USD") @db.VarChar(3)
+  timezone                         String?                            @default("UTC") @db.VarChar(50)
   language                         String?                            @default("en") @db.VarChar(5)
   is_active                        Boolean?                           @default(true)
   status                           String?                            @default("trial") @db.VarChar(20)
   created_at                       DateTime?                          @default(now()) @db.Timestamp(6)
   updated_at                       DateTime?                          @default(now()) @db.Timestamp(6)
   logo_url                         String?                            @db.VarChar(500)
-  business_hours                   Json?                              @default("{\"fri\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"mon\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"sat\": {\"open\": \"09:00\", \"close\": \"14:00\"}, \"sun\": null, \"thu\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"tue\": {\"open\": \"08:00\", \"close\": \"18:00\"}, \"wed\": {\"open\": \"08:00\", \"close\": \"18:00\"}}")
+  business_hours                   Json?                              @default("{\"fri\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"mon\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"sat\": null, \"sun\": null, \"thu\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"tue\": {\"open\": \"09:00\", \"close\": \"17:00\"}, \"wed\": {\"open\": \"09:00\", \"close\": \"17:00\"}}")
   feature_flags                    Json?                              @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": true, \"advanced_analytics\": false, \"marketplace_listings\": false}")
   business_type                    String?                            @db.VarChar(50)
   onboarding_completed             Boolean?                           @default(false)
-  country_code                     String?                            @default("OM") @db.VarChar(2)
-  phone_country_code               String?                            @default("+968") @db.VarChar(5)
+  country_code                     String?                            @default("US") @db.VarChar(2)
+  phone_country_code               String?                            @default("+1") @db.VarChar(5)
   date_format                      String?                            @db.VarChar(20)
   time_format                      String?                            @db.VarChar(5)
   first_day_of_week                Int?
@@ -1806,6 +1814,8 @@ model org_tenants_mst {
   org_pos_session_events_dtl       org_pos_session_events_dtl[]
   org_pos_sessions_mst             org_pos_sessions_mst[]
   org_pos_shift_z_rpt_tr           org_pos_shift_z_rpt_tr[]
+  org_prc_trx_dtl                  org_prc_trx_dtl[]
+  org_prc_trx_mst                  org_prc_trx_mst[]
   org_preference_bundles_cf        org_preference_bundles_cf[]
   org_preference_kind_cf           org_preference_kind_cf[]
   org_price_history_audit          org_price_history_audit[]
@@ -3978,7 +3988,7 @@ model sys_pln_subscription_plans_mst {
   base_price                             Decimal                                  @default(0) @db.Decimal(19, 4)
   annual_price                           Decimal?                                 @db.Decimal(19, 4)
   setup_fee                              Decimal?                                 @db.Decimal(19, 4)
-  currency                               String                                   @default("OMR")
+  currency                               String                                   @default("USD")
   billing_cycle                          String                                   @default("monthly") @db.VarChar(20)
   trial_days                             Int?                                     @default(0)
   features                               Json                                     @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": false, \"advanced_analytics\": false, \"marketplace_listings\": false}")
@@ -6278,6 +6288,7 @@ model org_order_item_pieces_dtl {
   tax_amount                                                                                                                Decimal                     @db.Decimal(19, 4)
   line_total_amount                                                                                                         Decimal                     @db.Decimal(19, 4)
   tag_released_at                                                                                                           DateTime?                   @db.Timestamptz(6)
+  notes_followup                                                                                                            Json                        @default("[]")
   org_order_change_ops_dtl                                                                                                  org_order_change_ops_dtl[]
   org_order_discounts_dtl                                                                                                   org_order_discounts_dtl[]
   org_order_issues                                                                                                          org_order_issues[]
@@ -6298,6 +6309,7 @@ model org_order_item_pieces_dtl {
   org_order_piece_hist_tr_org_order_piece_hist_tr_order_piece_idToorg_order_item_pieces_dtl                                 org_order_piece_hist_tr[]   @relation("org_order_piece_hist_tr_order_piece_idToorg_order_item_pieces_dtl")
   org_order_piece_hist_tr_org_order_piece_hist_tr_tenant_org_id_order_id_order_item_id_piece_seqToorg_order_item_pieces_dtl org_order_piece_hist_tr[]   @relation("org_order_piece_hist_tr_tenant_org_id_order_id_order_item_id_piece_seqToorg_order_item_pieces_dtl")
   org_order_preferences_dtl                                                                                                 org_order_preferences_dtl[]
+  org_prc_trx_dtl                                                                                                           org_prc_trx_dtl[]
 
   @@unique([id, tenant_org_id], map: "oc_piece_identity_uq")
   @@unique([tenant_org_id, order_id, order_item_id, piece_seq], map: "ak_piece_seq_unique_ord_item")
@@ -19142,105 +19154,6 @@ model sys_tenant_extra_config_cf {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model mfa_recovery_code_sets {
-  id                        String               @id @db.Uuid
-  user_id                   String               @unique @db.Uuid
-  mfa_factor_id             String               @unique @db.Uuid
-  failed_verification_count Int                  @default(0)
-  verification_locked_until DateTime?            @db.Timestamptz(6)
-  created_at                DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at                DateTime             @default(now()) @db.Timestamptz(6)
-  mfa_factors               mfa_factors          @relation(fields: [mfa_factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users                     users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  mfa_recovery_codes        mfa_recovery_codes[]
-
-  @@schema("auth")
-}
-
-model mfa_recovery_codes {
-  id                       String                 @id @db.Uuid
-  mfa_recovery_code_set_id String                 @db.Uuid
-  code_hash                String
-  consumed_at              DateTime?              @db.Timestamptz(6)
-  created_at               DateTime               @default(now()) @db.Timestamptz(6)
-  mfa_recovery_code_sets   mfa_recovery_code_sets @relation(fields: [mfa_recovery_code_set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([mfa_recovery_code_set_id], map: "mfa_recovery_codes_set_id_idx")
-  @@schema("auth")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model scim_tokens {
-  id              String        @id @db.Uuid
-  sso_provider_id String        @db.Uuid
-  token_hash      String        @unique
-  prefix          String
-  created_at      DateTime      @default(now()) @db.Timestamptz(6)
-  expires_at      DateTime?     @db.Timestamptz(6)
-  revoked_at      DateTime?     @db.Timestamptz(6)
-  last_used_at    DateTime?     @db.Timestamptz(6)
-  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([expires_at])
-  @@index([revoked_at])
-  @@index([sso_provider_id])
-  @@schema("auth")
-}
-
-model scim_users {
-  id              String        @id @db.Uuid
-  sso_provider_id String        @db.Uuid
-  user_id         String?       @db.Uuid
-  resource        Json
-  user_name       String        @default(dbgenerated("lower((resource ->> 'userName'::text))"))
-  external_id     String?       @default(dbgenerated("(resource ->> 'externalId'::text)"))
-  active          Boolean       @default(dbgenerated("COALESCE(((resource ->> 'active'::text))::boolean, true)"))
-  created_at      DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
-  deleted_at      DateTime?     @db.Timestamptz(6)
-  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users           users?        @relation(fields: [user_id], references: [id], onUpdate: NoAction)
-
-  @@index([deleted_at])
-  @@index([sso_provider_id])
-  @@index([user_id])
-  @@schema("auth")
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model sys_currency_cd_b4 {
-  code                String?   @db.VarChar(3)
-  name                String?   @db.VarChar(250)
-  name2               String?   @db.VarChar(250)
-  description         String?
-  description2        String?
-  display_order       Int?
-  icon                String?   @db.VarChar(100)
-  color               String?   @db.VarChar(60)
-  symbol              String?   @db.VarChar(10)
-  symbol_position     String?   @db.VarChar(10)
-  decimal_places      Int?
-  thousands_separator String?   @db.VarChar(5)
-  decimal_separator   String?   @db.VarChar(5)
-  iso_code            String?   @db.VarChar(3)
-  iso_numeric         Int?
-  is_default          Boolean?
-  is_system           Boolean?
-  is_active           Boolean?
-  metadata            Json?
-  created_at          DateTime? @db.Timestamp(6)
-  created_by          String?   @db.Uuid
-  updated_at          DateTime? @db.Timestamp(6)
-  updated_by          String?   @db.Uuid
-  rec_status          Int?      @db.SmallInt
-
-  @@ignore
-  @@schema("public")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_ops_job_effect_tr {
@@ -19593,6 +19506,193 @@ model org_ntf_cust_consent_dtl {
   org_tenants_mst      org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ntf_ccons_tenant")
 
   @@unique([tenant_org_id, customer_id, channel_code], map: "uq_ntf_ccons_cust_channel")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model mfa_recovery_code_sets {
+  id                        String               @id @db.Uuid
+  user_id                   String               @unique @db.Uuid
+  mfa_factor_id             String               @unique @db.Uuid
+  failed_verification_count Int                  @default(0)
+  verification_locked_until DateTime?            @db.Timestamptz(6)
+  created_at                DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime             @default(now()) @db.Timestamptz(6)
+  mfa_factors               mfa_factors          @relation(fields: [mfa_factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                     users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mfa_recovery_codes        mfa_recovery_codes[]
+
+  @@schema("auth")
+}
+
+model mfa_recovery_codes {
+  id                       String                 @id @db.Uuid
+  mfa_recovery_code_set_id String                 @db.Uuid
+  code_hash                String
+  consumed_at              DateTime?              @db.Timestamptz(6)
+  created_at               DateTime               @default(now()) @db.Timestamptz(6)
+  mfa_recovery_code_sets   mfa_recovery_code_sets @relation(fields: [mfa_recovery_code_set_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([mfa_recovery_code_set_id], map: "mfa_recovery_codes_set_id_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model scim_tokens {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  token_hash      String        @unique
+  prefix          String
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  expires_at      DateTime?     @db.Timestamptz(6)
+  revoked_at      DateTime?     @db.Timestamptz(6)
+  last_used_at    DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([revoked_at])
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+model scim_users {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  user_id         String?       @db.Uuid
+  resource        Json
+  user_name       String        @default(dbgenerated("lower((resource ->> 'userName'::text))"))
+  external_id     String?       @default(dbgenerated("(resource ->> 'externalId'::text)"))
+  active          Boolean       @default(dbgenerated("COALESCE(((resource ->> 'active'::text))::boolean, true)"))
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
+  deleted_at      DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?        @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([deleted_at])
+  @@index([sso_provider_id])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_prc_trx_dtl {
+  id                        String                     @id(map: "pk_org_prc_trx_dtl") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id             String                     @db.Uuid
+  branch_id                 String?                    @db.Uuid
+  order_id                  String                     @db.Uuid
+  trx_id                    String                     @db.Uuid
+  line_seq                  Int
+  target_level              String
+  target_level_text         String?
+  order_item_id             String?                    @db.Uuid
+  order_item_piece_id       String?                    @db.Uuid
+  order_preference_id       String?                    @db.Uuid
+  trans_dtl_type            String
+  trans_dtl_description     String?
+  step_code                 String?
+  from_value                String?
+  to_value                  String?
+  before_values             Json                       @default("{}")
+  after_values              Json                       @default("{}")
+  notes                     String?
+  metadata                  Json                       @default("{}")
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                  @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  rec_status                Int                        @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                    @default(true)
+  org_branches_mst          org_branches_mst?          @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prc_trx_dtl_br")
+  org_prc_trx_mst           org_prc_trx_mst            @relation(fields: [trx_id, order_id, tenant_org_id], references: [id, order_id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_prc_trx_dtl_hdr")
+  org_order_items_dtl       org_order_items_dtl?       @relation(fields: [order_item_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_prc_trx_dtl_itm")
+  org_order_item_pieces_dtl org_order_item_pieces_dtl? @relation(fields: [order_item_piece_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_prc_trx_dtl_pc")
+  org_order_preferences_dtl org_order_preferences_dtl? @relation(fields: [order_preference_id, tenant_org_id], references: [id, tenant_org_id], onUpdate: NoAction, map: "fk_prc_trx_dtl_prf")
+  org_tenants_mst           org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_prc_trx_dtl_tnt")
+
+  @@unique([tenant_org_id, trx_id, line_seq], map: "uq_prc_trx_dtl_seq")
+  @@index([tenant_org_id, order_id, created_at(sort: Desc)], map: "idx_prc_trx_dtl_tnt_ord")
+  @@index([tenant_org_id, trx_id, line_seq], map: "idx_prc_trx_dtl_tnt_trx")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_prc_trx_mst {
+  id               String            @id(map: "pk_org_prc_trx_mst") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String            @db.Uuid
+  branch_id        String?           @db.Uuid
+  order_id         String            @db.Uuid
+  trx_code         String
+  trans_type       String
+  trx_description  String?
+  source_screen    String
+  actor_user_id    String?           @db.Uuid
+  actor_name       String?
+  occurred_at      DateTime          @default(now()) @db.Timestamptz(6)
+  idempotency_key  String?
+  notes            String?
+  metadata         Json              @default("{}")
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?         @db.Timestamptz(6)
+  updated_by       String?
+  updated_info     String?
+  rec_status       Int               @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?
+  is_active        Boolean           @default(true)
+  org_prc_trx_dtl  org_prc_trx_dtl[]
+  users            users?            @relation(fields: [actor_user_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_prc_trx_mst_act")
+  org_branches_mst org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prc_trx_mst_br")
+  org_orders_mst   org_orders_mst    @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_prc_trx_mst_ord")
+  org_tenants_mst  org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_prc_trx_mst_tnt")
+
+  @@unique([id, order_id, tenant_org_id], map: "uq_prc_trx_mst_agg")
+  @@unique([tenant_org_id, trx_code], map: "uq_prc_trx_mst_code")
+  @@unique([id, tenant_org_id], map: "uq_prc_trx_mst_id_tnt")
+  @@index([tenant_org_id, order_id, occurred_at(sort: Desc)], map: "idx_prc_trx_mst_tnt_ord")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_currency_cd_b4 {
+  code                String?   @db.VarChar(3)
+  name                String?   @db.VarChar(250)
+  name2               String?   @db.VarChar(250)
+  description         String?
+  description2        String?
+  display_order       Int?
+  icon                String?   @db.VarChar(100)
+  color               String?   @db.VarChar(60)
+  symbol              String?   @db.VarChar(10)
+  symbol_position     String?   @db.VarChar(10)
+  decimal_places      Int?
+  thousands_separator String?   @db.VarChar(5)
+  decimal_separator   String?   @db.VarChar(5)
+  iso_code            String?   @db.VarChar(3)
+  iso_numeric         Int?
+  is_default          Boolean?
+  is_system           Boolean?
+  is_active           Boolean?
+  metadata            Json?
+  created_at          DateTime? @db.Timestamp(6)
+  created_by          String?   @db.Uuid
+  updated_at          DateTime? @db.Timestamp(6)
+  updated_by          String?   @db.Uuid
+  rec_status          Int?      @db.SmallInt
+
+  @@ignore
   @@schema("public")
 }
 

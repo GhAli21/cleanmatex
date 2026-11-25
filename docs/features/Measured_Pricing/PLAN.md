@@ -436,3 +436,5 @@ Owner approved v5. P1 and P2 are done and applied; P3 is mostly done. Details, d
 **P5 progress 2026-11-24:** migration `0821_oc_change_item_measure.sql` written (awaiting owner apply). Code design in RESUME_CONTINUATION (section P5).
 
 - 2026-11-25: P4 fix "free-garment check on measured lines" done (see STATUS, QA steps 31-34). P6/P8 now also own `lib/orders/line-qualifier.ts` for Order Cart Line Grouping.
+
+- 2026-11-25: P6 web surfaces done (line qualifier helper, money view, tracking, receipts, prints, order detail, state API live-lines fix, booking hides measured products). Left: P7 HQ, P8 mobile (qualifier + booking unit), P9 Migration B, P10 docs.

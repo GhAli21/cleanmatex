@@ -117,6 +117,10 @@ interface SummaryCartItemProps {
   uom?: OrderItemUom;
   measure?: OrderItemMeasure;
   onEditMeasure?: () => void;
+  /** The line's number among its product's lines; set only when the product has more than one line (Cart Line Grouping §5.5). */
+  lineNumber?: number | null;
+  /** A measured line with 2+ pieces: move one equal share and its last piece to a new line (§4.3). */
+  onSplitMeasuredShare?: () => void;
   quantity: number;
   totalPrice: number;
   conditions?: string[];
@@ -145,6 +149,8 @@ function SummaryCartItemComponent({
   uom,
   measure,
   onEditMeasure,
+  lineNumber,
+  onSplitMeasuredShare,
   quantity,
   totalPrice,
   conditions = [],
@@ -165,13 +171,15 @@ function SummaryCartItemComponent({
   const tPieces = useTranslations('newOrder.pieces');
   const tSpeed = useTranslations('newOrder.serviceSpeed');
   const tLine = useTranslations('newOrder.lineBreakdown');
+  const tLines = useTranslations('newOrder.lines');
   const [expanded, setExpanded] = useState(false);
   const { labelOf: speedLabel } = useServiceSpeeds();
   const { decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const getBilingual = useBilingual();
 
-  const displayName = getBilingual(productName, productName2) || '—';
+  const baseName = getBilingual(productName, productName2) || '—';
+  const displayName = lineNumber ? `${baseName} · ${tLines('lineNumber', { number: lineNumber })}` : baseName;
 
   // Per-piece preference labels as mini-chips (readable; includes service + packing)
   const piecePreferenceRows = useMemo((): { labels: string[] }[] => {
@@ -421,6 +429,18 @@ function SummaryCartItemComponent({
       {uom && (
         <div className="px-2 pb-1 ps-8">
           <CartMeasureNote uom={uom} measure={measure} quoted={quote?.line?.measure} onEdit={onEditMeasure} />
+          {onSplitMeasuredShare && quantity >= 2 && (
+            <CmxButton
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="h-auto px-1 py-0.5 text-xs text-primary-text pointer-coarse:min-h-11"
+              aria-label={tLines('moveOneShareFor', { item: displayName })}
+              onClick={onSplitMeasuredShare}
+            >
+              {tLines('moveOneShare')}
+            </CmxButton>
+          )}
         </div>
       )}
 

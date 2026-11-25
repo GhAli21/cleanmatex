@@ -73,11 +73,13 @@ import type {
   OrderItemUom,
   PreSubmissionPiece,
 } from '../model/new-order-types';
-import { MeasureLineDialog } from './measure-line-dialog';
+import { MeasureLineDialog, type MeasureMergeChoice } from './measure-line-dialog';
 import { useUomUnits } from '@features/uom/hooks/use-uom-units';
 import { pricedQty } from '@/lib/utils/order-item-helpers';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { newCartLineKey } from '../model/cart-line-key';
+import { findMatchingMeasuredLines, measureWithArticle, productLineNumber, resolveCartAddTarget } from '../model/cart-line-grouping';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { readyByBlockReason } from '@/lib/utils/ready-by-calculator';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import {
@@ -455,12 +457,17 @@ export function NewOrderContent() {
   // A line's cashier price and discount are their own policy cells (ITEM, P6-02c).
   const priceCapability = useEditControlGroup(['CHANGE_ITEM_PRICE'], 'ITEM');
   const lineDiscountCapability = useEditControlGroup(['CHANGE_DISCOUNT'], 'ITEM');
+  // A measured merge changes the line's quantity and measure and adds a piece (Cart Line Grouping §4.5).
+  const measuredMergeLineCapability = useEditControlGroup(['CHANGE_ITEM_QUANTITY', 'CHANGE_ITEM_MEASURE'], 'ITEM');
+  const measuredMergePieceCapability = useEditControlGroup(['ADD_PIECE']);
   // A line's own speed is its own policy cell (CHANGE_SERVICE_SPEED / ITEM, P6-02b).
   const lineSpeedCapability = useEditControlGroup(['CHANGE_SERVICE_SPEED'], 'ITEM');
 
   // Measured products (kg, m, m²…) are added through the Measure dialog; the unit list decides which are measured.
   const uomUnits = useUomUnits(true);
   const tUom = useTranslations('uom');
+  const tLines = useTranslations('newOrder.lines');
+  const { formatMoneyWithCode } = useTenantCurrency();
   const [measureTarget, setMeasureTarget] = useState<{ product: Pick<Product, 'id' | 'product_code' | 'product_name' | 'product_name2'>; uom: OrderItemUom; lineKey?: LineKey } | null>(null);
   const uomOf = useCallback(
     (product: Product): OrderItemUom | null => {
@@ -475,7 +482,7 @@ export function NewOrderContent() {
   );
 
   const handleAddItem = useCallback(
-    async (product: Product, measured?: { uom: OrderItemUom; measure: OrderItemMeasure }) => {
+    async (product: Product, measured?: { uom: OrderItemUom; measure: OrderItemMeasure }, mergeInto?: LineKey) => {
       if (!measured) {
         const uom = uomOf(product);
         // A product with a unit we cannot read yet is never added as a count: the server would refuse it as unmeasured.
@@ -549,8 +556,11 @@ export function NewOrderContent() {
         (sum, p) => sum + p.extra_price,
         0,
       );
-      // P1 keeps today's rule: the reducer adds a piece to the product's line when there is one (DESIGN §6).
-      const existingLine = state.state.items.find((item) => item.productId === product.id);
+      // The add rule (DESIGN §4): a counted product joins its latest open line; a measured article joins a
+      // line only when staff chose it in the Measure dialog (§4.1).
+      const counted = measured ? null : resolveCartAddTarget(state.state.items, product.id);
+      const targetKey = measured ? mergeInto : counted?.kind === 'MERGE' ? counted.lineKey : undefined;
+      const mergeLine = targetKey ? state.state.items.find((item) => item.lineKey === targetKey) : undefined;
       const lineKey = newCartLineKey();
       const newItem: OrderItem = {
         lineKey,
@@ -571,12 +581,17 @@ export function NewOrderContent() {
         pieces: trackByPiece ? generatePiecesForItem(lineKey, 1) : undefined,
       };
 
-      state.addItem(newItem);
+      const addedTo = state.addItem(
+        newItem,
+        mergeLine?.lineKey,
+        measured && mergeLine ? measureWithArticle(mergeLine, measured.measure) : undefined,
+      );
+      if (!addedTo) return;
       trackItemAddition();
-      if (existingLine) {
+      if (mergeLine && addedTo === mergeLine.lineKey) {
         // Merged: the reducer appended the piece to that line with the next sequence.
-        const nextSeq = Math.max(0, ...(existingLine.pieces ?? []).map((p) => p.pieceSeq)) + 1;
-        state.setSelectedPiece(trackByPiece ? `temp-${existingLine.lineKey}-${nextSeq}` : null);
+        const nextSeq = Math.max(0, ...(mergeLine.pieces ?? []).map((p) => p.pieceSeq)) + 1;
+        state.setSelectedPiece(trackByPiece ? `temp-${mergeLine.lineKey}-${nextSeq}` : null);
       } else if (trackByPiece && newItem.pieces && newItem.pieces.length > 0) {
         state.setSelectedPiece(newItem.pieces[newItem.pieces.length - 1].id);
       } else if (!trackByPiece && newItem.quantity === 1) {
@@ -598,19 +613,72 @@ export function NewOrderContent() {
     ],
   );
 
-  /** Measure dialog confirm: the chosen line (or, from the grid, the product's line) is re-measured, else the product is added. */
+  /** Measure dialog confirm: a line opened from the cart is re-measured; from the grid, the article becomes a new line. */
   const confirmMeasure = useCallback(
     (measure: OrderItemMeasure) => {
       if (!measureTarget) return;
       const { product, uom, lineKey } = measureTarget;
       setMeasureTarget(null);
-      const line = lineKey
-        ? state.state.items.find((i) => i.lineKey === lineKey)
-        : state.state.items.find((i) => i.productId === product.id);
-      if (line) state.updateItemMeasure(line.lineKey, measure);
+      if (lineKey) state.updateItemMeasure(lineKey, measure);
       else void handleAddItem(product as Product, { uom, measure });
     },
     [measureTarget, state, handleAddItem],
+  );
+
+  /** Staff chose to add the measured article to a line that already has this measure (§4.1). */
+  const mergeMeasuredArticle = useCallback(
+    (lineKey: string, measure: OrderItemMeasure) => {
+      if (!measureTarget) return;
+      const { product, uom } = measureTarget;
+      setMeasureTarget(null);
+      void handleAddItem(product as Product, { uom, measure }, lineKey as LineKey);
+    },
+    [measureTarget, handleAddItem],
+  );
+
+  const measuredMergeAllowed = measuredMergeLineCapability.interactive && measuredMergePieceCapability.interactive;
+  /** The lines that could take the article, as ready-to-show options; null adds a new line at once. */
+  const measureMergeChoice = useCallback(
+    (measure: OrderItemMeasure): MeasureMergeChoice | null => {
+      if (!measureTarget || measureTarget.lineKey || !measuredMergeAllowed) return null;
+      const product = measureTarget.product as Product;
+      const { uom } = measureTarget;
+      const items = state.state.items;
+      const matches = findMatchingMeasuredLines(items, {
+        productId: product.id, serviceCategoryCode: product.service_category_code, uomCode: uom.code,
+      }, measure);
+      if (matches.length === 0) return null;
+      const symbol = locale === 'ar' && uom.symbol2 ? uom.symbol2 : uom.symbol;
+      const perUnit = (amount: number) => `${formatMoneyWithCode(amount)}/${symbol}`;
+      // Order Edit: a saved line keeps its agreed price; a new line takes today's catalog price (§4.4).
+      const showPrices = state.state.isEditMode;
+      return {
+        title: tLines('measureMatchTitle'),
+        options: matches.map((line) => ({
+          lineKey: line.lineKey,
+          label: tLines('addToLine', { number: productLineNumber(items, line.lineKey) ?? 1 }),
+          result: tLines('addToLineResult', { pieces: line.quantity + 1, measure: `${measureWithArticle(line, measure).measuredQty} ${symbol}` }),
+          priceNote: showPrices && line.persistedItemId ? tLines('agreedPrice', { price: perUnit(line.pricePerUnit) }) : undefined,
+        })),
+        newLineLabel: tLines('addAsNewLine'),
+        newLinePriceNote: showPrices ? tLines('todaysPrice', { price: perUnit(product.default_sell_price ?? 0) }) : undefined,
+        note: uom.minBillableQty || uom.billingIncrement ? tLines('measureMinimumNote') : undefined,
+      };
+    },
+    [measureTarget, measuredMergeAllowed, state.state.items, state.state.isEditMode, locale, formatMoneyWithCode, tLines],
+  );
+
+  /** Moves one equal share of a measured line to a new line right after it (§4.3). */
+  const handleSplitMeasuredShare = useCallback(
+    (lineKey: LineKey) => {
+      const result = state.splitMeasuredShare(lineKey);
+      if (result === 'OK') {
+        cmxMessage.success(tLines('movedToLine', { number: (productLineNumber(state.state.items, lineKey) ?? 1) + 1 }));
+        return;
+      }
+      cmxMessage.warning(tLines(result === 'NOT_EXACT' ? 'shareNotExact' : result === 'SAVED_PIECE' ? 'savedPieceCannotMove' : 'moveBlocked'));
+    },
+    [state, tLines],
   );
 
   const handleRemoveItem = useCallback(
@@ -634,20 +702,27 @@ export function NewOrderContent() {
     [state, trackByPiece],
   );
 
-  // The product grid works with products: its +/- act on the product's line (P2 adds the per-line rules, DESIGN §7).
+  // The product grid works with products (DESIGN §7): its + goes through the add rule (`onAddItem`);
+  // its - takes one piece off the product's most recently added line, which is removed at 0.
+  const lastLineOf = useCallback(
+    (productId: string) => [...state.state.items].reverse().find((i) => i.productId === productId),
+    [state.state.items],
+  );
   const handleGridQuantityChange = useCallback(
     (productId: string, quantity: number) => {
-      const line = state.state.items.find((i) => i.productId === productId);
-      if (line) handleQuantityChange(line.lineKey, quantity);
+      const total = state.state.items.filter((i) => i.productId === productId).reduce((sum, i) => sum + i.quantity, 0);
+      const line = lastLineOf(productId);
+      if (!line || quantity >= total) return;
+      handleQuantityChange(line.lineKey, line.quantity - 1);
     },
-    [state.state.items, handleQuantityChange],
+    [state.state.items, lastLineOf, handleQuantityChange],
   );
   const handleGridRemoveItem = useCallback(
     (productId: string) => {
-      const line = state.state.items.find((i) => i.productId === productId);
+      const line = lastLineOf(productId);
       if (line) handleRemoveItem(line.lineKey);
     },
-    [state.state.items, handleRemoveItem],
+    [lastLineOf, handleRemoveItem],
   );
 
   const handlePiecesChange = useCallback(
@@ -894,6 +969,7 @@ export function NewOrderContent() {
         );
         return {
           id: item.lineKey,
+          lineNumber: productLineNumber(state.state.items, item.lineKey),
           productId: item.productId,
           productName: item.productName || 'Unknown Product',
           productName2: item.productName2 || undefined,
@@ -1147,6 +1223,7 @@ export function NewOrderContent() {
     // Bags
     bags: state.state.bags,
     onBagsChange: state.setBags,
+    onSplitMeasuredShare: handleSplitMeasuredShare,
     onEditItemMeasure: (lineKey: LineKey) => {
       const item = state.state.items.find((i) => i.lineKey === lineKey);
       if (item?.uom) setMeasureTarget({ product: { id: item.productId, product_code: item.productId, product_name: item.productName, product_name2: item.productName2 }, uom: item.uom, lineKey });
@@ -1664,6 +1741,8 @@ export function NewOrderContent() {
         productName={measureTarget ? getBilingual(measureTarget.product.product_name, measureTarget.product.product_name2) || measureTarget.product.product_code : ''}
         uom={measureTarget?.uom ?? { code: '', dimension: 'MASS', qtyDecimals: 0, symbol: '', symbol2: null, minBillableQty: null, billingIncrement: null }}
         initial={measureTarget ? state.state.items.find((i) => (measureTarget.lineKey ? i.lineKey === measureTarget.lineKey : i.productId === measureTarget.product.id))?.measure : undefined}
+        mergeChoice={measureMergeChoice}
+        onMerge={mergeMeasuredArticle}
         onConfirm={confirmMeasure}
         onClose={() => setMeasureTarget(null)}
       />

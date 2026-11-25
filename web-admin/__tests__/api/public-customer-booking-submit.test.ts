@@ -53,7 +53,7 @@ jest.mock('@/lib/supabase/server', () => ({
     from: (table: string) => {
       const next = () => tableResults[table]?.shift() ?? { data: null, error: null };
       const builder: Record<string, unknown> = {};
-      for (const method of ['select', 'eq', 'in', 'gte', 'order', 'limit']) builder[method] = () => builder;
+      for (const method of ['select', 'eq', 'neq', 'in', 'gte', 'order', 'limit']) builder[method] = () => builder;
       builder.single = async () => next();
       builder.maybeSingle = async () => next();
       builder.then = (resolve: (value: unknown) => unknown) => resolve(next());
@@ -79,7 +79,7 @@ function request(body: Record<string, unknown>) {
   });
 }
 
-function queueCatalog(product: Record<string, unknown> = {}) {
+function queueCatalog(product: Record<string, unknown> = {}, measuredUnits: Array<{ uom_code: string }> = []) {
   tableResults.org_product_data_mst = [{
     data: [{
       id: SHIRT, tenant_org_id: TENANT, service_category_code: 'WASH_AND_IRON', product_name: 'Shirt', product_name2: null,
@@ -88,6 +88,7 @@ function queueCatalog(product: Record<string, unknown> = {}) {
     error: null,
   }];
   tableResults.org_branches_mst = [{ data: { id: BRANCH }, error: null }];
+  tableResults.org_uom_cf = [{ data: measuredUnits, error: null }];
   // First the duplicate check (none), then the created order read.
   tableResults.org_orders_mst = [
     { data: null, error: null },
@@ -162,6 +163,17 @@ describe('customer booking submit', () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({ errorCode: 'booking_piece_invalid' });
+    expect(mockQuote).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('refuses a measured product: the app cannot measure, staff do at intake (Measured Pricing P6)', async () => {
+    queueCatalog({ base_uom_code: 'KG' }, [{ uom_code: 'KG' }]);
+
+    const response = await POST(request({}));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ errorCode: 'booking_item_needs_measure' });
     expect(mockQuote).not.toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
   });

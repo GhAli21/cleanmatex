@@ -36,6 +36,8 @@ import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 interface CartItem {
   /** The line's cart key (Cart Line Grouping P1). */
   id: LineKey;
+  /** Set only when the product has more than one line (§5.5). */
+  lineNumber?: number | null;
   productId: string;
   productName: string;
   productName2?: string;
@@ -138,6 +140,8 @@ interface OrderSummaryPanelProps {
   onEditItemPreferences?: (itemId: LineKey) => void;
   /** Opens the Measure dialog for a measured line. */
   onEditItemMeasure?: (lineKey: LineKey) => void;
+  /** Move one equal share of a measured line to a new line (§4.3). */
+  onSplitMeasuredShare?: (lineKey: LineKey) => void;
   showPaymentModalVersionSelector?: boolean;
   paymentModalVersion?: PaymentModalVersion;
   onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
@@ -197,6 +201,7 @@ function OrderSummaryPanelComponent({
   onBagsChange,
   onEditItemPreferences,
   onEditItemMeasure,
+  onSplitMeasuredShare,
   showPaymentModalVersionSelector = false,
   paymentModalVersion = PAYMENT_MODAL_VERSIONS.V4,
   onPaymentModalVersionChange,
@@ -343,6 +348,7 @@ function OrderSummaryPanelComponent({
             onEditItem={onEditItem}
             onEditItemPreferences={onEditItemPreferences}
             onEditItemMeasure={onEditItemMeasure}
+            onSplitMeasuredShare={onSplitMeasuredShare}
             onDeleteItem={handleDeleteItem}
             onPiecesChange={onPiecesChange}
             onCopyPieceToAll={onCopyPieceToAll}

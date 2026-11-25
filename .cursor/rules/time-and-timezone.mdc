@@ -1,5 +1,5 @@
 ---
-description: Instants are UTC everywhere. Only the UI converts them, and only with the location or organization IANA zone. Civil dates are stored as dates and never re-derived.
+description: Instants are UTC everywhere. Display uses the feature's documented scope, then the organization. Civil dates are stored once and never re-derived.
 alwaysApply: true
 ---
 
@@ -7,19 +7,19 @@ alwaysApply: true
 
 Canonical source: `docs/dev/rules/time-and-timezone.md`
 
-Apply that document before storing, comparing, formatting, scheduling, logging, or auditing a date or time. The document wins if this short form is quieter.
+Apply that document before storing, comparing, formatting, scheduling, logging, or auditing a date or time. The document wins if this short form is quieter. The implementation pack is `docs/features/Time_and_Timezone/`.
 
 ## Hard rules
 
-1. Classify the value first. An **instant** is `timestamptz` and RFC 3339 UTC (`Z`). A **civil date** is `date` / `YYYY-MM-DD`. A **local time-of-day** (hours, cutoff, quiet hours) is `time` or `HH:mm` in the operations zone. Do not store one kind in another kind's type.
+1. Classify the value first. An **instant** is `timestamptz` and RFC 3339 UTC (`Z`). A **civil date** is `date` / `YYYY-MM-DD`. A **local time-of-day** is `time` or `HH:mm`. A **local civil date-time** stays civil fields plus an IANA zone until the server resolves it. A **duration** is a difference of instants. A calendar period such as "one month" is a civil rule.
 2. New instant columns are `timestamptz` (Prisma `@db.Timestamptz(6)`). `timestamp without time zone` is forbidden for instants. Do not copy legacy naive columns (`ready_by`, naive `scheduled_at`, naive `locked_until`).
-3. The operations zone is `org_branches_mst.timezone_code` when it is a valid active `sys_timezone_cd` code, otherwise `org_tenants_mst.timezone`. A missing zone fails closed. Never fall back to the browser, the server, `UTC`, `Asia/Muscat`, or `sys_timezone_cd.utc_offset_hours`.
-4. Convert an instant only in the presentation layer, with `Intl` or `next-intl` and that zone, after the zone is known. The first paint and later paints use the same zone.
-5. When the system assigns a business day, persist the instant, the `date`, and the IANA zone in one transaction. Do not recompute that date on read. A later zone change does not rewrite it or issued document numbers.
-6. Authoritative instants come from the database clock. Durations subtract instants. Shop date-times are submitted as civil fields and converted on the server with the operations zone.
-7. Job workers compare `timestamptz` to `now()`. A "09:00 at this shop" rule stores local time plus the zone and a materialized UTC `next_run_at`. Platform cron is UTC and the screen says so.
-8. Logs are UTC. Audit stores the UTC instant and, for a civil decision, the zone id and the civil date.
-9. Reject API datetimes that have no offset. Do not use `toISOString().slice(0, 10)`, `occurred_at::date`, or `getHours` / `setHours` as a business date.
-10. Database session `TimeZone` and process `TZ` are UTC. That does not replace an explicit IANA zone at each civil conversion.
+3. The operations zone is the feature's documented scope, then `org_tenants_mst.timezone`. A branch-scoped operation uses `org_branches_mst.timezone_code` when that code is a valid active `sys_timezone_cd` code. Resolve it only through `resolveOperationalTimeZone` in the app or `fn_ops_zone` in SQL. UI, reports, HQ, mobile, and workers format that result or the zone snapshot on the row. Resolve once per action. Join a mixed list's zones in one query. Do not wrap a filtered instant in `AT TIME ZONE`. A client-supplied zone is an echo only. A missing zone fails closed. Never fall back to the browser, the server, `UTC`, `Asia/Muscat`, or `sys_timezone_cd.utc_offset_hours`. HQ's own documents use `hq_general_config.timezone`. A tenant row shown in HQ uses the tenant zone.
+4. Convert an instant only in the presentation layer, with `Intl` or `next-intl` and that zone, after the zone is known. The first paint and later paints use the same zone. A zone label uses the abbreviation and offset of the instant being shown.
+5. When the system assigns a business day, capture one database instant and persist that instant, the `date`, and the IANA zone in one transaction. Do not recompute that date on read. A later zone change does not rewrite it or issued document numbers. `businessDateForTimezone` without an explicit database instant must not assign a persisted date.
+6. Durations subtract instants. Shop date-times are civil fields. The server resolves them. A typed gap or overlap is rejected unless the form captured earlier or later. A computed gap advances to the next valid local time. A computed overlap uses the earlier offset.
+7. `next_run_at <= now()` means the job is due. A worker claims it with a bounded lease and one idempotency key per logical occurrence. A "09:00 at this shop" rule stores the civil rule, the IANA zone, and a derived UTC `next_run_at`. Platform cron is UTC and the screen says so.
+8. Logs are UTC. Audit stores the UTC instant and, for a civil decision, the zone id and the civil date. A stored offset is a legal snapshot of what was shown. It is not an input to the next calculation.
+9. Reject API datetimes that have no offset. Do not use `toISOString().slice(0, 10)`, `occurred_at::date`, or `getHours` / `setHours` as a business date. Prisma `date` and `time` leave services as civil strings.
+10. Do not read a legacy naive instant as a UTC wall clock. Use the `timestamptz` twin, or show no clock, until a provenance sample proves one stored clock. Conversion is expand-and-contract: twin, dual-write, bounded backfill, move readers, then drop the old column in a later migration. Database session `TimeZone` and process `TZ` are UTC. That does not replace an explicit IANA zone at each civil conversion.
 
 Helpers: `isValidTimeZone` and `businessDateForTimezone` in `web-admin/lib/utils/business-date.ts`. Working-calendar math: `web-admin/lib/commercial/calendar.ts`. Reference shape: `org_pos_sessions_mst` (`opened_at`, `business_date`, `business_timezone`).

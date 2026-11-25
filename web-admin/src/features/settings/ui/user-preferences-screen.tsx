@@ -410,13 +410,13 @@ export function UserPreferencesScreen() {
             ])}
 
             {renderSelectField('user.timezone', tSettings('timezone'), t('timezoneDescription'), [
+              { value: 'UTC', label: t('tzUtc') },
               { value: 'Asia/Muscat', label: t('tzMuscat') },
               { value: 'Asia/Riyadh', label: t('tzRiyadh') },
               { value: 'Asia/Dubai', label: t('tzDubai') },
               { value: 'Asia/Kuwait', label: t('tzKuwait') },
               { value: 'Asia/Bahrain', label: t('tzBahrain') },
               { value: 'Asia/Qatar', label: t('tzQatar') },
-              { value: 'UTC', label: t('tzUtc') },
             ])}
 
             {renderSelectField(

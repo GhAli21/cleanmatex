@@ -188,7 +188,7 @@ docs/         # All documentation
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
 - **Settings Reference:** `.claude/docs/settings-reference.md`
 - **Preferences (unified):** `docs/dev/preferences-architecture-reference.md` (canonical)
-- **Time and timezone:** `docs/dev/rules/time-and-timezone.md` (instants UTC; civil dates stored once; UI converts with the location or organization zone)
+- **Time and timezone:** `docs/dev/rules/time-and-timezone.md` (instants UTC; civil dates stored once; UI converts with the feature's documented scope, then the organization zone. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only.)
 
 ---
 

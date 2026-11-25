@@ -14,7 +14,7 @@ Copy these files to other React 19 + Next.js + ESLint projects. Names are **fram
 | `integration-contracts.md` | CleanMateX-specific (do not copy unless needed) |
 | `cmx-design-system.md` | CleanMateX web-admin design system: tokens, dark mode, RTL, components, states, a11y, how to check (`npm run check:ui`) and fix; review skill `/cmx-ui-design-review` |
 | `cmx-shared-components.md` / `cmx-message.md` | Reuse shared Cmx components; user feedback through `cmxMessage` |
-| `time-and-timezone.md` | Instants are UTC end to end; civil dates are stored as dates; UI converts with the location or organization zone |
+| `time-and-timezone.md` | Instants are UTC end to end; one zone policy with a TypeScript door and a SQL door; UI, reports, HQ, and mobile format the documented scope, then the organization zone |
 
 ## Cursor rules (`.cursor/rules/`)
 

@@ -4,10 +4,10 @@ This program changes how times are shown and how the business day is chosen. It 
 
 ## What you should see
 
-- Times on orders, receipts, reports, and customer messages use the branch clock. When the branch has no clock of its own, they use the organization's clock.
-- The clock is named on a mixed-branch list and on printed documents.
+- Each action uses the clock of the place that owns it: the branch that received the order, the branch that will do the work, the till, or the delivery place. When that place has no clock of its own, the action uses the organization's clock.
+- The clock is named on a mixed list and on printed documents. The label matches the instant on that row, including the offset in effect on that date.
 - "Today" on a till and on a day report is that clock's calendar day. An order taken at 00:30 in Muscat belongs to that Muscat date even though UTC is still on the previous date.
-- A ready time you type as 17:00 is 17:00 at the shop. A laptop set to another country does not move it.
+- A ready time you type as 17:00 is 17:00 at the shop that owns that promise. A laptop set to another country does not move it. If that local hour does not exist, or happens twice, the form asks you to pick a valid time.
 - "Try again in 15 minutes" means 15 minutes.
 
 ## When the clock is not set

@@ -4,18 +4,18 @@
 
 Bring every instant, civil date, local time-of-day, schedule, log, and audit timestamp in the tenant app up to [`docs/dev/rules/time-and-timezone.md`](../../dev/rules/time-and-timezone.md).
 
-Store, send, compare, log, schedule, and audit instants in UTC. Convert an instant only in the presentation layer, and only with the branch zone, else the organization zone. Store a business date once. Do not derive it again on read.
+Store, send, compare, log, schedule, and audit instants in UTC. Convert an instant only in the presentation layer, using the feature's documented scope, then the organization zone. Store a business date once, from one database instant. Do not derive it again on read. Do not treat a naive column as UTC until its provenance sample proves that clock.
 
 ## Why this is a program, not one migration
 
-On 2026-11-24, `web-admin/prisma/schema.prisma` has:
+On 2026-11-24, `web-admin/prisma/schema.prisma` had:
 
 | Prisma type | Columns |
 |---|---|
 | `@db.Timestamptz` | 977 |
 | `@db.Timestamp` (no zone) | 488 |
 
-Of the 488 naive columns, 398 are `created_at` or `updated_at`. The other 90 are event times, schedules, and a few values that may be civil dates stored in the wrong type. The database session has been observed as `Asia/Muscat`. A single `USING col AT TIME ZONE 'UTC'` across all of them would move any Muscat wall-clock row by four hours. Provenance comes before `ALTER`.
+Of the 488 naive columns, 398 are `created_at` or `updated_at`. The other 90 are event times, schedules, and a few values that may be civil dates stored in the wrong type. On 2026-11-25 both the local and remote sessions reported `TimeZone=UTC`. Older naive rows may still hold a Muscat wall clock from when the session was `Asia/Muscat`. A single `USING col AT TIME ZONE 'UTC'` across all of them would move those rows by four hours. Provenance comes before `ALTER`. A live catalog sample that day counted 905 `timestamptz` and 495 naive columns. WP2 recounts before any conversion.
 
 Known failures this program is here to close:
 
@@ -42,7 +42,7 @@ The shape to copy is `org_pos_sessions_mst`: `opened_at timestamptz`, `business_
 
 In scope: every surface in [`technical_docs/surface-map.md`](./technical_docs/surface-map.md). That includes the database, SQL functions, jobs, services, HTTP APIs, webhooks, server actions, pages, screens, date pickers, print, customer message text, exports, logs, `cmx-api`, and the mobile apps.
 
-HQ application code is changed in the HQ repo. This pack still requires the reader list before a column those readers use is converted. A tenant package that skips a row on the surface map is incomplete.
+HQ application code is changed in the HQ repo. The sibling plan is `cleanmatexsaas/docs/features/Time_and_Timezone/`. This pack still requires the reader list before a column those readers use is converted. A tenant package that skips a row on the surface map, or skips the close-out in `progress_summary.md`, is incomplete.
 
 ## Non-negotiable
 
@@ -50,4 +50,7 @@ HQ application code is changed in the HQ repo. This pack still requires the read
 - Do not add a new naive instant column while this program runs.
 - Do not drop `ready_by` until every reader uses `ready_by_at_new` and a backfill is proven.
 - Do not change historical `business_date` values or issued document numbers.
-- A missing operations zone fails closed. `Asia/Muscat`, the browser, and `utc_offset_hours` are not fallbacks.
+- A missing operations zone fails closed. `Asia/Muscat`, the browser, the server, `UTC`, and `utc_offset_hours` are not fallbacks.
+- The operations zone is the feature's documented scope, then the organization. One policy, two doors: `resolveOperationalTimeZone` in the app and `fn_ops_zone` in SQL. UI, reports, print, `cmx-api`, mobile, and HQ format that result or the row snapshot. Resolve once per action. A client-supplied zone is an echo only. HQ's own documents use the HQ zone. A tenant row shown in HQ uses the tenant zone.
+- A typed daylight-saving gap or overlap is rejected unless the form captured earlier or later. A computed gap advances. A computed overlap uses the earlier offset.
+- Legacy conversion is expand-and-contract. Readers use a `timestamptz` twin, or show no clock, until provenance names one stored clock.

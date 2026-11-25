@@ -21152,6 +21152,7 @@ export type Database = {
           money_basis: string
           net_amount: number
           notes: string | null
+          notes_followup: Json
           order_disc_alloc_amount: number
           order_id: string
           order_item_id: string
@@ -21218,6 +21219,7 @@ export type Database = {
           money_basis: string
           net_amount: number
           notes?: string | null
+          notes_followup?: Json
           order_disc_alloc_amount: number
           order_id: string
           order_item_id: string
@@ -21284,6 +21286,7 @@ export type Database = {
           money_basis?: string
           net_amount?: number
           notes?: string | null
+          notes_followup?: Json
           order_disc_alloc_amount?: number
           order_id?: string
           order_item_id?: string
@@ -21593,6 +21596,7 @@ export type Database = {
           money_basis: string
           net_amount: number
           notes: string | null
+          notes_followup: Json
           order_disc_alloc_amount: number
           order_id: string
           order_item_srno: string | null
@@ -21677,6 +21681,7 @@ export type Database = {
           money_basis: string
           net_amount: number
           notes?: string | null
+          notes_followup?: Json
           order_disc_alloc_amount: number
           order_id: string
           order_item_srno?: string | null
@@ -21761,6 +21766,7 @@ export type Database = {
           money_basis?: string
           net_amount?: number
           notes?: string | null
+          notes_followup?: Json
           order_disc_alloc_amount?: number
           order_id?: string
           order_item_srno?: string | null
@@ -22937,6 +22943,7 @@ export type Database = {
           locker_location: string | null
           net_collected_amount: number
           non_taxable_amount: number
+          notes_followup: Json
           order_no: string
           order_source_code: string
           order_subtype: string | null
@@ -23123,6 +23130,7 @@ export type Database = {
           locker_location?: string | null
           net_collected_amount?: number
           non_taxable_amount?: number
+          notes_followup?: Json
           order_no: string
           order_source_code?: string
           order_subtype?: string | null
@@ -23309,6 +23317,7 @@ export type Database = {
           locker_location?: string | null
           net_collected_amount?: number
           non_taxable_amount?: number
+          notes_followup?: Json
           order_no?: string
           order_source_code?: string
           order_subtype?: string | null
@@ -24861,6 +24870,286 @@ export type Database = {
           },
           {
             foreignKeyName: "org_pos_shift_z_rpt_tr_tenant_org_id_fkey"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_prc_trx_dtl: {
+        Row: {
+          after_values: Json
+          before_values: Json
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          from_value: string | null
+          id: string
+          is_active: boolean
+          line_seq: number
+          metadata: Json
+          notes: string | null
+          order_id: string
+          order_item_id: string | null
+          order_item_piece_id: string | null
+          order_preference_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          step_code: string | null
+          target_level: string
+          target_level_text: string | null
+          tenant_org_id: string
+          to_value: string | null
+          trans_dtl_description: string | null
+          trans_dtl_type: string
+          trx_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          after_values?: Json
+          before_values?: Json
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_value?: string | null
+          id?: string
+          is_active?: boolean
+          line_seq: number
+          metadata?: Json
+          notes?: string | null
+          order_id: string
+          order_item_id?: string | null
+          order_item_piece_id?: string | null
+          order_preference_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          step_code?: string | null
+          target_level: string
+          target_level_text?: string | null
+          tenant_org_id: string
+          to_value?: string | null
+          trans_dtl_description?: string | null
+          trans_dtl_type: string
+          trx_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          after_values?: Json
+          before_values?: Json
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_value?: string | null
+          id?: string
+          is_active?: boolean
+          line_seq?: number
+          metadata?: Json
+          notes?: string | null
+          order_id?: string
+          order_item_id?: string | null
+          order_item_piece_id?: string | null
+          order_preference_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          step_code?: string | null
+          target_level?: string
+          target_level_text?: string | null
+          tenant_org_id?: string
+          to_value?: string | null
+          trans_dtl_description?: string | null
+          trans_dtl_type?: string
+          trx_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_prc_trx_dtl_br"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_hdr"
+            columns: ["trx_id", "order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_prc_trx_mst"
+            referencedColumns: ["id", "order_id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_itm"
+            columns: ["order_item_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_items_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_pc"
+            columns: ["order_item_piece_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_item_pieces_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_prf"
+            columns: ["order_preference_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_order_preferences_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_tnt"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_tnt"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_dtl_tnt"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_prc_trx_mst: {
+        Row: {
+          actor_name: string | null
+          actor_user_id: string | null
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          idempotency_key: string | null
+          is_active: boolean
+          metadata: Json
+          notes: string | null
+          occurred_at: string
+          order_id: string
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          source_screen: string
+          tenant_org_id: string
+          trans_type: string
+          trx_code: string
+          trx_description: string | null
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          metadata?: Json
+          notes?: string | null
+          occurred_at?: string
+          order_id: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source_screen: string
+          tenant_org_id: string
+          trans_type: string
+          trx_code: string
+          trx_description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          idempotency_key?: string | null
+          is_active?: boolean
+          metadata?: Json
+          notes?: string | null
+          occurred_at?: string
+          order_id?: string
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source_screen?: string
+          tenant_org_id?: string
+          trans_type?: string
+          trx_code?: string
+          trx_description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_prc_trx_mst_act"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_locked_accounts"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_mst_br"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_mst_ord"
+            columns: ["order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_mst_tnt"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_mst_tnt"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_prc_trx_mst_tnt"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
@@ -53961,6 +54250,20 @@ export type Database = {
       order_has_action: {
         Args: { p_action_type: string; p_order_id: string }
         Returns: boolean
+      }
+      org_ord_append_notes_followup: {
+        Args: {
+          p_note_source: string
+          p_note_text: string
+          p_note_user_id: string
+          p_note_user_name?: string
+          p_target_id: string
+          p_target_level: string
+          p_tenant_org_id: string
+          p_trx_code?: string
+          p_updated_by?: string
+        }
+        Returns: Json
       }
       org_ord_has_unresolved_issues: {
         Args: { p_order_item_id: string }

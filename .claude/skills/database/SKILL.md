@@ -48,7 +48,7 @@ Use this skill only when the task explicitly matches **database**. Keep the acti
 
 ## Time and timezone
 
-Instants, civil dates, local times of day, schedules, logs, and audit timestamps follow `docs/dev/rules/time-and-timezone.md`. New instant columns are `timestamptz`. A business date is a `date` written once with the location zone (else the organization zone) and that IANA name. Do not compare `timestamp without time zone` to `now()`, and do not use `utc_offset_hours` to convert.
+Instants, civil dates, local times of day, schedules, logs, and audit timestamps follow `docs/dev/rules/time-and-timezone.md`. New instant columns are `timestamptz`. A business date is a `date` written once with the feature's documented scope, then the organization zone, and that IANA name. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only. Do not compare `timestamp without time zone` to `now()`, and do not use `utc_offset_hours` to convert.
 
 ## Numeric precision by class
 

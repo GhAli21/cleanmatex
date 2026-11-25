@@ -6,6 +6,22 @@ Inventory date: 2026-11-24, from `web-admin/prisma/schema.prisma`.
 
 Each phase ends with a review. A later phase does not start by rewriting the previous phase's rows.
 
+## Close-out after every step
+
+A step is one work package, or one batch inside a package (one domain migration, one screen batch, one HQ task). The step is done only after these files match what just landed:
+
+| File | What to write |
+|---|---|
+| `progress_summary.md` | That step's row moves to Done, or to Written, not applied, when a migration is waiting. Include the date, the files, and what was left on purpose. |
+| `current_status.md` | State, next action, and any new risk. |
+| `technical_docs/surface-map.md` | The row notes the search date and the hits still open. |
+| `CHANGELOG.md` and `version.txt` | One line, and the next `0.1.x-plan` version. |
+| This file | The phase is marked done only when every package in it has closed out. |
+
+A migration stays Written, not applied until the user says it was applied. The close-out then records `npm run prisma:pull` from the repo root. Conversation notes do not replace these files.
+
+The same close-out applies to the HQ sibling plan in `cleanmatexsaas` at `docs/features/Time_and_Timezone/`. HQ tasks update that folder. They do not mark a tenant package done.
+
 ## Phase 0 — Contract (done)
 
 The rule is canonical. Cursor, Claude, Codex, and Antigravity point at it. Audit-column templates in those instruction files use `timestamptz`.
@@ -16,17 +32,17 @@ No application behavior changed in this phase.
 
 Build the shared helpers and make new writes obey them. No `ALTER` yet.
 
-- `resolveOperationalTimeZone(branch, organization)` using `isValidTimeZone` and an active `sys_timezone_cd` code.
+- `resolveOperationalTimeZone({ tenantOrgId, operation, scopeId })` using `isValidTimeZone` and an active `sys_timezone_cd` code. The caller passes a closed operation code. A branch-scoped operation reads that branch's `timezone_code`, else the organization `timezone`, else null. A scope with no timezone column names the branch that owns it. A client-supplied zone cannot win. One indexed read per action, filtered by `tenant_org_id`. Request-scoped reuse only. A persisted business date takes one database instant. `pos-session.service.ts` today calls `businessDateForTimezone` with the application clock. That call is in this phase.
 - `formatInstant`, `civilDayBounds`, `parseInstant` (reject missing offsets).
 - Stop new readers of `org_orders_mst.ready_by`. Read `ready_by_at_new`.
 - Remove UTC-date fallbacks that call `toISOString().slice(0, 10)` when the zone is missing (`speed-rules.service.ts`, `prepaid-tax.service.ts`, `tax-lines.writer.ts`). Those paths fail closed.
-- Pass the operations zone into formatters before the first absolute date paints. `getTenantTimeZone` stays the organization zone only. It is not the branch resolver.
+- Pass the operations zone into formatters before the first absolute date paints. `getTenantTimeZone` stays the organization zone only. It is not the branch resolver. UI, reports, print, `cmx-api`, mobile, and HQ format this result or the row snapshot. The SQL twin `fn_ops_zone` is Phase 6 / WP12, in a new migration, and must match this function. Resolve once per action. Join mixed-list zones in one query.
 
-Exit: new code cannot add a naive instant, and Ready By no longer flips after sign-in.
+Exit: new code cannot add a naive instant, and Ready By no longer flips after sign-in. The close-out files name WP1 as done. No migration was added.
 
 ## Phase 2 — Provenance, then the clocks that are wrong today
 
-Read-only samples before any `USING` clause. Then one migration per column group.
+Read-only samples before any `USING` clause. On 2026-11-25 both database sessions reported `TimeZone=UTC`. Older naive rows may still hold a Muscat wall clock from when the session was `Asia/Muscat`. The sample decides. Prisma's 2026-11-24 counts (977 `timestamptz`, 488 naive) are the starting inventory. Recount the live catalog at the start of this phase and write both numbers in the provenance note. Then one migration per column group.
 
 Priority:
 
@@ -36,7 +52,7 @@ Priority:
 
 Campaign job writes that use `now() AT TIME ZONE 'UTC'` into a naive column are evidence, not a blanket conversion rule. Confirm the writer for each column.
 
-Exit: lockout duration is 15 minutes when the policy is 15 minutes. A quiet-hours send fires at the UTC instant that was stored. Ready By matches `ready_by_at_new` on screen, receipt, and list.
+Exit: lockout duration is 15 minutes when the policy is 15 minutes. A quiet-hours send fires at the UTC instant that was stored. Ready By matches `ready_by_at_new` on screen, receipt, and list. Each migration is closed out as Written, not applied, until the user applies it.
 
 ## Phase 3 — Presentation sweep
 
@@ -44,7 +60,7 @@ Replace operational `toLocaleString`, `toLocaleDateString`, `getHours` / `setHou
 
 Do it by feature, with the shared formatter. Locale still controls digits and month names. The zone controls the clock and the calendar day.
 
-Exit: a list and its print use the same zone. A mixed-branch list shows each row's zone abbreviation.
+Exit: a list and its print use the same zone. A mixed-scope list labels each row with that row's IANA zone and the abbreviation and offset of the instant on the row. A day filter compares a stored date or a bare instant after the bounds are computed once. The close-out names the batches that landed.
 
 ## Phase 4 — The other 90 naive event columns
 
@@ -54,7 +70,7 @@ Classify each name in [`technical_docs/column-inventory.md`](./technical_docs/co
 - instant stored as session wall (`Asia/Muscat` while that was the database zone)
 - civil date or local time-of-day that must become `date` or `time`, not `timestamptz`
 
-Convert one domain per migration: orders, notifications, delivery, finance, subscriptions, assembly. Dual-read when a screen is in production. Do not drop the old column in the same migration that adds the new one.
+Convert one domain per migration: orders, notifications, delivery, finance, subscriptions, assembly. Each migration follows expand-and-contract: add the twin, dual-write, backfill only rows with one proven clock, move readers, and drop the old column in a later migration. Do not drop the old column in the same migration that adds the new one. Do not assume the naive values are UTC wall clocks.
 
 ## Phase 5 — Audit stamps
 
@@ -63,6 +79,12 @@ Convert one domain per migration: orders, notifications, delivery, finance, subs
 ## Phase 6 — Every other surface
 
 The column and screen work is not the whole program. [`technical_docs/surface-map.md`](./technical_docs/surface-map.md) is the list. Each row has a package. A package starts by refreshing that row's file list, then changes every hit.
+
+`fn_ops_zone` is the SQL door. It matches the TypeScript door, filters by `tenant_org_id`, and is one indexed read. List SQL does not call it per row. New functions follow the database rules: comments, `TEXT` for a new zone column, and no grant to `anon` or `authenticated`.
+
+`cmx-api` gets the same parser and the same test vectors even when a fresh search finds no date route beyond the logger. It does not import `web-admin`.
+
+HQ work is the sibling plan in `cleanmatexsaas`. It starts after the tenant reader list exists. HQ's own documents use `hq_general_config.timezone`. A tenant row uses the tenant snapshot or `fn_ops_zone`. Platform cron says UTC.
 
 Included here, not left as a follow-up:
 
@@ -94,7 +116,7 @@ Phase 0 contract
                             -> Phase 7 CI guard
 ```
 
-Phase 3 and the read-only parts of Phase 6 can overlap Phase 2. Phase 4 does not overlap Phase 2 on the same column. Phase 6's document-number change is a new function migration and does not renumber issued codes. HQ application code stays in the HQ repo. This plan still blocks a tenant conversion until the HQ reader list exists.
+Phase 3 and the read-only parts of Phase 6 can overlap Phase 2. Phase 4 does not overlap Phase 2 on the same column. Phase 6's document-number change is a new function migration and does not renumber issued codes. HQ application code stays in the HQ repo. This plan still blocks a tenant conversion until the HQ reader list exists. Each package closes out before its phase is marked done.
 
 ## Explicitly not in this plan
 
@@ -104,4 +126,5 @@ Phase 3 and the read-only parts of Phase 6 can overlap Phase 2. Phase 4 does not
 - Renumbering issued orders.
 - Rewriting frozen `business_date` values.
 - A per-user display zone in the back office.
-- Editing HQ source during a tenant work package. The required HQ artifact is the reader list, then a sibling pack.
+- Editing HQ source during a tenant work package. The required HQ artifact is the reader list, then the sibling plan in `cleanmatexsaas`.
+- Calling a package done without updating `progress_summary.md`, `current_status.md`, and the surface map.

@@ -59,7 +59,7 @@ Canonical source: `docs/dev/rules/no-silent-money-mutation.md`
 
 ### Time and timezone (hard rule)
 
-Instants (created, posted, ready-by, promise expiry) stay UTC. The business day, opening hours, and ready-by promise are resolved in the branch zone, else the organization zone, and a system-assigned business date is stored once. Canonical source: `docs/dev/rules/time-and-timezone.md`.
+Instants (created, posted, ready-by, promise expiry) stay UTC. The business day, opening hours, and ready-by promise use the feature's documented scope, then the organization zone, and a system-assigned business date is stored once. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only. Canonical source: `docs/dev/rules/time-and-timezone.md`.
 
 ### Base Pricing
 

@@ -8,6 +8,7 @@ import { NEW_ORDER_DEFAULT_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { ORDER_TYPE_IDS } from '@/lib/constants/order-types';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
 import { pricedQty } from '@/lib/utils/order-item-helpers';
+import { toMoney } from '@/lib/commercial/money';
 
 /**
  * Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty).
@@ -220,22 +221,24 @@ export function newOrderReducer(
     }
 
     case 'ADD_ITEM': {
-      // P1 keeps today's rule: a tap adds a piece to the product's line. P2 replaces it with the add rule (DESIGN §4).
-      const existingItem = state.items.find(
-        (item) => item.productId === action.payload.productId
-      );
+      // The caller's add rule (`resolveCartAddTarget`) chose the line; the reducer never merges on its own (DESIGN §4).
+      const existingItem = action.mergeInto
+        ? state.items.find((item) => item.lineKey === action.mergeInto)
+        : undefined;
 
       let newItems: typeof state.items;
       if (existingItem) {
+        const measure = action.mergedMeasure ?? existingItem.measure;
         newItems = state.items.map((item) =>
           item.lineKey === existingItem.lineKey
             ? {
                 ...item,
                 quantity: item.quantity + 1,
+                measure,
                 totalPrice: itemLineBasePlusPrefCharges({
                   quantity: item.quantity + 1,
                   uom: item.uom,
-                  measure: item.measure,
+                  measure,
                   pricePerUnit: item.pricePerUnit,
                   servicePrefCharge: item.servicePrefCharge,
                   packingPrefCharge: item.packingPrefCharge,
@@ -258,6 +261,48 @@ export function newOrderReducer(
         items: newItems,
         readyByAt: retailReadyBy,
       };
+    }
+
+    case 'SPLIT_MEASURED_SHARE': {
+      const { lineKey, newLineKey, share } = action.payload;
+      const index = state.items.findIndex((item) => item.lineKey === lineKey);
+      const source = state.items[index];
+      if (!source || source.quantity < 2 || !source.measure) return state;
+      const remaining = toMoney(source.measure.measuredQty).minus(share).toString();
+      const sourcePieces = source.pieces ?? [];
+      const moved = sourcePieces[sourcePieces.length - 1];
+      const sourceMeasure = { measuredQty: remaining, length: '', width: '' };
+      const shareMeasure = { measuredQty: share, length: '', width: '' };
+      const nextSource: OrderItem = {
+        ...source,
+        quantity: source.quantity - 1,
+        measure: sourceMeasure,
+        pieces: source.pieces ? sourcePieces.slice(0, -1) : undefined,
+        totalPrice: itemLineBasePlusPrefCharges({ ...source, quantity: source.quantity - 1, measure: sourceMeasure }),
+      };
+      // The new line is open: catalog price, order speed, no discount; it keeps the line's care preferences.
+      const unitPrice = catalogUnitPrice(source);
+      const newLine: OrderItem = {
+        ...source,
+        lineKey: newLineKey,
+        persistedItemId: undefined,
+        piecePriced: undefined,
+        quantity: 1,
+        measure: shareMeasure,
+        notes: undefined,
+        priceOverride: null,
+        overrideReason: null,
+        overrideBy: null,
+        pricePerUnitBeforeOverride: undefined,
+        pricePerUnit: unitPrice,
+        serviceSpeed: null,
+        lineDiscount: null,
+        pieces: moved ? [{ ...moved, id: `temp-${newLineKey}-1`, itemId: newLineKey, pieceSeq: 1 }] : undefined,
+        totalPrice: itemLineBasePlusPrefCharges({ ...source, quantity: 1, measure: shareMeasure, pricePerUnit: unitPrice }),
+      };
+      const items = [...state.items];
+      items.splice(index, 1, nextSource, newLine);
+      return { ...state, items };
     }
 
     case 'REMOVE_ITEM':

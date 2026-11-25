@@ -21,7 +21,7 @@ author: CleanMateX Team
 - ❌ Don't skip error handling
 - ❌ Don't commit code without tests for business logic
 - ❌ **NEVER create duplicate `getTenantIdFromSession()` implementations** — Always use centralized version from `@/lib/db/tenant-context`
-- ❌ Don't store an instant as `timestamp without time zone`, and don't format an operational date before the branch or organization zone is known (`docs/dev/rules/time-and-timezone.md`)
+- ❌ Don't store an instant as `timestamp without time zone`, and don't format an operational date before the feature's documented scope is known, then the organization zone. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only. (`docs/dev/rules/time-and-timezone.md`)
 
 ---
 

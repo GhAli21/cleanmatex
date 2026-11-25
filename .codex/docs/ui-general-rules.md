@@ -13,7 +13,7 @@ If the data table has audit fields (`created_at`, `created_by`, `updated_at`, et
 
 - **Audit Record Fields UI** should be a **standard component** such as a Card or small popup window, used consistently across the app.
 - Provide a **small icon button** to open the audit fields for the current record.
-- Format those instants with the branch zone, else the organization zone, after that zone is known. Full rule: `docs/dev/rules/time-and-timezone.md`.
+- Format those instants with the feature's documented scope, then the organization zone, after that zone is known. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only. Full rule: `docs/dev/rules/time-and-timezone.md`.
 
 ## Bilingual Fields
 

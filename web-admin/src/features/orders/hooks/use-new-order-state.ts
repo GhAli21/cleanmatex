@@ -5,6 +5,8 @@
 
 import type { LineKey, OrderItemLineDiscount } from '../model/new-order-types';
 import { useNewOrderContext } from '../ui/context/new-order-context';
+import { newCartLineKey } from '../model/cart-line-key';
+import { equalMeasureShare } from '../model/cart-line-grouping';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { resolveEditControlCapability, resolveEditControlGroup } from '../order-change/edit-control-capability';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
@@ -38,7 +40,18 @@ export interface UseNewOrderStateWithDispatchReturn {
   setOrderTypeId: (orderTypeId: OrderTypeId) => void;
   /** Changes the auditable sales or integration channel before submission. */
   setOrderSourceCode: (orderSourceCode: OrderSourceCode) => void;
-  addItem: (item: OrderItem) => void;
+  /**
+   * Adds a new line, or one more piece on `mergeInto` (chosen by the add rule). In Order Edit a merge needs
+   * the quantity and piece policy cells (and the measure cell for `mergedMeasure`); when they are blocked
+   * the piece becomes a new line if `ADD_ITEM` is allowed.
+   * @returns the line the piece went to, or null when refused
+   */
+  addItem: (item: OrderItem, mergeInto?: LineKey, mergedMeasure?: OrderItemMeasure) => LineKey | null;
+  /**
+   * Moves one equal measure share and the last piece of a measured line to a new line (DESIGN §4.3).
+   * @returns `OK`, or why nothing changed
+   */
+  splitMeasuredShare: (lineKey: LineKey) => 'OK' | 'NOT_EXACT' | 'SAVED_PIECE' | 'BLOCKED';
   removeItem: (lineKey: LineKey) => boolean;
   /** @returns false when the change was held for a measure check (measured line) or refused; true when applied. */
   updateItemQuantity: (lineKey: LineKey, quantity: number) => boolean;
@@ -167,9 +180,29 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({ type: 'SET_ORDER_SOURCE_CODE', payload: orderSourceCode });
     },
 
-    addItem: (item: typeof state.items[0]) => {
-      if (blocked('ADD_ITEM')) return;
+    addItem: (item: OrderItem, mergeInto?: LineKey, mergedMeasure?: OrderItemMeasure) => {
+      const mergeBlocked = groupBlocked(['CHANGE_ITEM_QUANTITY', 'ADD_PIECE'])
+        || (mergedMeasure != null && blocked('CHANGE_ITEM_MEASURE', 'ITEM'));
+      if (mergeInto && !mergeBlocked && state.items.some((line) => line.lineKey === mergeInto)) {
+        dispatch({ type: 'ADD_ITEM', payload: item, mergeInto, mergedMeasure });
+        return mergeInto;
+      }
+      if (blocked('ADD_ITEM')) return null;
       dispatch({ type: 'ADD_ITEM', payload: item });
+      return item.lineKey;
+    },
+
+    splitMeasuredShare: (lineKey: LineKey) => {
+      const line = state.items.find((item) => item.lineKey === lineKey);
+      const share = line ? equalMeasureShare(line) : null;
+      if (!line || !share) return 'NOT_EXACT' as const;
+      // Order Edit: only a piece added during this edit can move; a saved piece keeps its line (DESIGN §4.3).
+      if (line.pieces?.[line.pieces.length - 1]?.persistedId) return 'SAVED_PIECE' as const;
+      if (blocked('ADD_ITEM') || groupBlocked(['CHANGE_ITEM_QUANTITY', 'REMOVE_PIECE']) || blocked('CHANGE_ITEM_MEASURE', 'ITEM')) {
+        return 'BLOCKED' as const;
+      }
+      dispatch({ type: 'SPLIT_MEASURED_SHARE', payload: { lineKey, newLineKey: newCartLineKey(), share } });
+      return 'OK' as const;
     },
 
     removeItem: (lineKey: LineKey) => {

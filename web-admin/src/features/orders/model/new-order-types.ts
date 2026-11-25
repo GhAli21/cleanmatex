@@ -388,7 +388,13 @@ export type NewOrderAction =
   /** Retains the selected channel as business data rather than deriving it at submit time. */
   | { type: 'SET_ORDER_SOURCE_CODE'; payload: OrderSourceCode }
   | { type: 'SET_ITEMS'; payload: OrderItem[] }
-  | { type: 'ADD_ITEM'; payload: OrderItem }
+  /**
+   * A new line, or (with `mergeInto`, chosen by the add rule) one more piece on that line.
+   * `mergedMeasure`: a measured line's new total after the article was added (DESIGN §4.1).
+   */
+  | { type: 'ADD_ITEM'; payload: OrderItem; mergeInto?: LineKey; mergedMeasure?: OrderItemMeasure }
+  /** Splits one equal measure share and the line's last piece off into a new open line right after it (DESIGN §4.3). */
+  | { type: 'SPLIT_MEASURED_SHARE'; payload: { lineKey: LineKey; newLineKey: LineKey; share: string } }
   | { type: 'REMOVE_ITEM'; payload: LineKey }
   | { type: 'UPDATE_ITEM_QUANTITY'; payload: { lineKey: LineKey; quantity: number } }
   | { type: 'UPDATE_ITEM_MEASURE'; payload: { lineKey: LineKey; measure: OrderItemMeasure } }

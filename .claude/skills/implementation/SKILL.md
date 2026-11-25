@@ -142,7 +142,7 @@ npm run register:ui-access-contract -- --fix                  # new *-access.ts 
 - [ ] New navigation entries updated in both `navigation.ts` AND `sys_components_cd` migration
 - [ ] New permission codes have a DB seed migration
 - [ ] No silent mutation of user-editable money fields; blocked/gated flows explain why and how to proceed
-- [ ] Instants are UTC; civil dates are stored once; operational screens format with the branch zone, else the organization zone (`docs/dev/rules/time-and-timezone.md`)
+- [ ] Instants are UTC; civil dates are stored once; operational screens format with the feature's documented scope, then the organization zone. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only. (`docs/dev/rules/time-and-timezone.md`)
 
 ## Platform info inventories (conditional)
 

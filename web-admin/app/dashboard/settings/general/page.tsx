@@ -52,9 +52,9 @@ const INITIAL_SETTINGS: GeneralSettings = {
   phone: '',
   address: '',
   city: '',
-  country: 'OM',
-  timezone: 'Asia/Muscat',
-  currency: 'OMR',
+  country: 'US',
+  timezone: 'UTC',
+  currency: 'USD',
   defaultLanguage: 'en',
 }
 
@@ -95,9 +95,9 @@ export default function GeneralSettingsPage() {
           phone: data.phone ?? '',
           address: data.address ?? '',
           city: data.city ?? '',
-          country: data.country || 'OM',
-          timezone: data.timezone || 'Asia/Muscat',
-          currency: data.currency || 'OMR',
+          country: data.country || 'US',
+          timezone: data.timezone || 'UTC',
+          currency: data.currency || 'USD',
           defaultLanguage: data.defaultLanguage || 'en',
         }
         setSettings(next)
@@ -277,7 +277,7 @@ export default function GeneralSettingsPage() {
               type="text"
               value={settings.city}
               onChange={(e) => setSettings({ ...settings, city: e.target.value })}
-              placeholder="Muscat"
+              placeholder="New York"
             />
           </Field>
 
@@ -296,6 +296,7 @@ export default function GeneralSettingsPage() {
               disabled={isLocked.country}
               onChange={(e) => setSettings({ ...settings, country: e.target.value })}
               options={[
+                { value: 'US', label: 'United States' },
                 { value: 'OM', label: 'Oman' },
                 { value: 'SA', label: 'Saudi Arabia' },
                 { value: 'AE', label: 'United Arab Emirates' },
@@ -329,6 +330,7 @@ export default function GeneralSettingsPage() {
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
               options={[
+                { value: 'UTC', label: 'UTC (UTC+0)' },
                 { value: 'Asia/Muscat', label: 'Asia/Muscat (GMT+4)' },
                 { value: 'Asia/Riyadh', label: 'Asia/Riyadh (GMT+3)' },
                 { value: 'Asia/Dubai', label: 'Asia/Dubai (GMT+4)' },
@@ -355,6 +357,7 @@ export default function GeneralSettingsPage() {
               disabled={isLocked.currency}
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
               options={[
+                { value: 'USD', label: 'USD - US Dollar' },
                 { value: 'SAR', label: 'SAR - Saudi Riyal' },
                 { value: 'OMR', label: 'OMR - Omani Rial' },
                 { value: 'AED', label: 'AED - UAE Dirham' },

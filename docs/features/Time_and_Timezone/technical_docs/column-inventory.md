@@ -121,6 +121,6 @@ WHERE table_schema = 'public'
   AND column_name IN ('locked_until', 'last_failed_login_at');
 ```
 
-Then pick a row whose real time is known from a log line that is already UTC, and write down whether the naive value equals that UTC wall or that Muscat wall. The migration comment repeats that sentence.
+Then pick a row whose real time is known from a log line that is already UTC, and write down whether the naive value equals that UTC wall or that Muscat wall. The migration comment repeats that sentence only after the sample. Until then, readers use a `timestamptz` twin or show no clock. They do not assume the naive value is a UTC wall clock.
 
 `SHOW timezone` is evidence of the session that will fill new naive writes. It is not, by itself, proof of what an old row contains.

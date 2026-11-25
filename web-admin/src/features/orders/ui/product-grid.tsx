@@ -107,10 +107,9 @@ export const ProductGrid = memo(function ProductGrid({
   const t = useTranslations('newOrder.itemsGrid');
   const tCommon = useTranslations('common');
 
-  const getItemQuantity = (productId: string): number => {
-    const item = items.find((i) => i.productId === productId);
-    return item?.quantity || 0;
-  };
+  // A product may have several cart lines (Cart Line Grouping): the card shows them all together.
+  const getItemQuantity = (productId: string): number =>
+    items.reduce((sum, item) => (item.productId === productId ? sum + item.quantity : sum), 0);
 
   // The server's price at the order speed, else the catalog price with a note that the cart prices it.
   const getItemPrice = (product: Product): number => speedPrices?.get(product.id) ?? (product.default_sell_price || 0);
@@ -300,7 +299,7 @@ export const ProductGrid = memo(function ProductGrid({
                     currencyCode={currencyCode}
                     categoryLabel={categoryLabel}
                     onAdd={() => onAddItem(product)}
-                    onIncrement={() => onQuantityChange(product.id, quantity + 1)}
+                    onIncrement={() => onAddItem(product)}
                     onDecrement={() => onQuantityChange(product.id, quantity - 1)}
                   />
                 );

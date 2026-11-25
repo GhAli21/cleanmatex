@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDefaultSalesVatRate } from '@/lib/services/tax/tax-explain.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
@@ -197,6 +198,24 @@ function buildServiceDescription(params: {
   };
 }
 
+/**
+ * Codes of the tenant's measured units (kg, m, m², L, h: a dimension other than COUNT).
+ * A customer cannot measure from the app, so a product sold by one of these is measured by staff at intake;
+ * the booking catalog does not offer it and submit refuses it (the order quote would refuse it as unmeasured).
+ * @param supabase session client of the customer request
+ * @param tenantId the tenant (explicit filter)
+ * @returns the measured unit codes
+ */
+async function loadMeasuredUnitCodes(supabase: SupabaseClient, tenantId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('org_uom_cf')
+    .select('uom_code')
+    .eq('tenant_org_id', tenantId)
+    .neq('uom_dimension', 'COUNT');
+  if (error) throw error;
+  return new Set((data ?? []).map((row: { uom_code: string }) => row.uom_code));
+}
+
 function normalizeProductUnit(unit: string | null): string {
   const normalized = (unit ?? '').trim().toLowerCase();
   return normalized.length > 0 ? normalized : 'per_piece';
@@ -212,6 +231,7 @@ function buildCatalogCategories(
     hint_text: string | null;
     default_sell_price: number | string | null;
     product_unit: string | null;
+    base_uom_code?: string | null;
     product_image: string | null;
   }>,
   serviceCategories: Array<{
@@ -456,7 +476,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from('org_product_data_mst')
         .select(
-          'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, product_unit, product_image, turnaround_hh',
+          'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, product_unit, base_uom_code, product_image, turnaround_hh',
         )
         .eq('tenant_org_id', tenantId)
         .eq('is_active', true)
@@ -506,6 +526,8 @@ export async function GET(request: NextRequest) {
       customerId: session.customerId,
       durationMs,
     });
+
+    const measuredUnits = await loadMeasuredUnitCodes(supabase, tenantId);
 
     const servicePreferenceKindCodes = new Set(
       servicePreferences.map(
@@ -559,7 +581,7 @@ export async function GET(request: NextRequest) {
         };
       }),
       categories: buildCatalogCategories(
-        services ?? [],
+        (services ?? []).filter((service) => !(service.base_uom_code && measuredUnits.has(service.base_uom_code))),
         serviceCategories ?? [],
         systemCategories ?? [],
       ),
@@ -787,7 +809,7 @@ export async function POST(request: NextRequest) {
         supabase
           .from('org_product_data_mst')
           .select(
-            'id, tenant_org_id, service_category_code, product_name, product_name2, default_sell_price, default_packing_pref',
+            'id, tenant_org_id, service_category_code, product_name, product_name2, default_sell_price, default_packing_pref, base_uom_code',
           )
           .eq('tenant_org_id', body.tenantId)
           .eq('is_active', true)
@@ -817,6 +839,17 @@ export async function POST(request: NextRequest) {
       return jsonError(
         'booking_item_unavailable',
         'One or more selected items are not available',
+        400,
+      );
+    }
+
+    // A measured product (kg, m, m²…) needs staff to measure it at intake; the app cannot send a measure.
+    const measuredUnits = await loadMeasuredUnitCodes(supabase, body.tenantId);
+    if (products.some((product) => product.base_uom_code && measuredUnits.has(product.base_uom_code))) {
+      logger.warn('Public customer booking submit rejected measured items', { ...submitContext, customerId: session.customerId });
+      return jsonError(
+        'booking_item_needs_measure',
+        'One or more selected items are measured at intake and cannot be booked in the app',
         400,
       );
     }

@@ -123,7 +123,7 @@ Last file Seq+1 Not Timestamp
 
 ## Time and timezone
 
-Instants, including `created_at` and `updated_at`, are `timestamptz`. A business date is a `date` written once with the location zone, else the organization zone, and that IANA name is stored with it. Local times of day stay `time`. Full rule: `docs/dev/rules/time-and-timezone.md`.
+Instants, including `created_at` and `updated_at`, are `timestamptz`. A business date is a `date` written once with the feature's documented scope, then the organization zone, and that IANA name is stored with it. Order acceptance uses the receiving branch. A ready-by promise uses the fulfilment branch. A POS session uses the till's branch. A delivery appointment uses the service location. An invoice uses the issuing legal entity. When that scope has no valid zone, use the organization zone. A client-supplied zone is an echo only. Local times of day stay `time`. Full rule: `docs/dev/rules/time-and-timezone.md`.
 
 ## Example Table Creation
 

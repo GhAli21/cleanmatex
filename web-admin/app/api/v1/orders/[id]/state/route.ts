@@ -139,6 +139,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         .select(ORDER_ITEM_STATE_SELECT)
         .eq('order_id', id)
         .eq('tenant_org_id', tenantId)
+        // Lines removed by an Edit stay in the table with rec_status 0 (history keeps them); the live view excludes them.
+        .eq('rec_status', 1)
         .order('order_item_srno', { ascending: true }),
       WorkflowService.getAllowedTransitions(
         id,
@@ -190,7 +192,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Line qualifier (measure, own speed, ordinal) for order detail and every print; live lines only.
-    const liveRows = (items ?? []).map((item) => item as unknown as OrderItemQualifierRow & { rec_status?: number | null }).filter((row) => row.rec_status !== 0);
+    const liveRows = (items ?? []).map((item) => item as unknown as OrderItemQualifierRow);
     const speedNames = await loadSpeedNames(liveRows.map((row) => row.service_speed), supabase);
     const qualifiers = orderLineQualifiers(liveRows.map(qualifierInputOfRow), orderRow.service_speed as string | null | undefined, speedNames);
 

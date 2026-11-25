@@ -1,0 +1,16 @@
+{
+  "lineNumber": "السطر {number}",
+  "measureMatchTitle": "يوجد في الطلب سطر بنفس هذا القياس",
+  "addToLine": "إضافة إلى السطر {number}",
+  "addToLineResult": "يصبح {pieces, plural, one {قطعة واحدة} two {قطعتين} few {# قطع} many {# قطعة} other {# قطعة}} · {measure}",
+  "addAsNewLine": "إضافة كسطر جديد",
+  "agreedPrice": "السعر المتفق عليه {price}",
+  "todaysPrice": "سعر اليوم {price}",
+  "measureMinimumNote": "يُطبَّق الحد الأدنى وخطوة الفوترة على إجمالي السطر.",
+  "moveOneShare": "نقل قطعة واحدة إلى سطر جديد",
+  "moveOneShareFor": "نقل قطعة واحدة من {item} إلى سطر جديد",
+  "shareNotExact": "لا يمكن تقسيم قياس هذا السطر إلى حصص متساوية. غيّر القياس أولاً.",
+  "savedPieceCannotMove": "لا يمكن نقل القطع المحفوظة إلى سطر آخر حالياً.",
+  "moveBlocked": "سياسة تعديل الطلب لا تسمح بهذا التغيير الآن.",
+  "movedToLine": "نُقلت إلى السطر {number}"
+}
