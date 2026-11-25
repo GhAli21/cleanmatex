@@ -28,6 +28,7 @@ import type {
 } from '@/lib/types/order-fin-view';
 import type { OrderFinCoreRow } from './sources/core.source';
 import type { OrderFinSourceData } from './sources/registry';
+import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
 
 /*
  * Saved-order normalizer (DESIGN §1): DB rows → the normalized source set the
@@ -159,15 +160,19 @@ function adjustmentState(status: string | null): State {
 }
 
 /** Fact rows per loaded source (value and settlement sections). */
-export function normalizeFacts(data: OrderFinSourceData): Partial<Record<OrderFinDataSource, OrderFinFactInput[]>> {
+export function normalizeFacts(data: OrderFinSourceData, orderSpeed?: string | null): Partial<Record<OrderFinDataSource, OrderFinFactInput[]>> {
   const facts: Partial<Record<OrderFinDataSource, OrderFinFactInput[]>> = {};
   if (data.items) {
+    const speedNames = new Map<string, { name: string; name2: string | null }>();
+    for (const r of data.items) if (r.service_speed && r.sys_service_speed_cd) speedNames.set(r.service_speed, r.sys_service_speed_cd);
+    const qualifiers = orderLineQualifiers(data.items.map(qualifierInputOfRow), orderSpeed, speedNames);
     facts.items = data.items.map((r) => ({
       id: r.id,
       label: { name: r.product_name ?? null, name2: r.product_name2 ?? null },
       amount: num(r.total_price),
       state: 'normal',
       methodCode: r.service_category_code,
+      qualifier: qualifiers.get(r.id),
       ...(r.taxParts?.length
         ? { taxParts: r.taxParts.map((p) => ({ taxCode: p.taxCode, ratePercent: p.ratePercent, amount: p.taxAmount })) }
         : {}),
@@ -416,7 +421,7 @@ export function normalizeOrderFinSources(
   return {
     sourceKind: 'saved',
     snapshot,
-    facts: normalizeFacts(data),
+    facts: normalizeFacts(data, core.service_speed),
     errors,
     checks: computeOrderFinChecks(core, data),
   };

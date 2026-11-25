@@ -2,6 +2,7 @@
  * Handler per queue this worker consumes. The registry (`sys_ops_job_queue_cf.consumer_app = 'CMX_WORKERS'`)
  * decides which queues run; a registry queue without a handler here is reported and never marked as seen.
  */
+import { FIN_ERP_RETRY_HANDLERS } from './fin-erp-retry';
 import { FIN_EXPIRY_HANDLERS } from './fin-expiry';
 import { FIN_POS_ROLLOVER_HANDLERS } from './fin-pos-rollover';
 import { FIN_REACTION_HANDLERS } from './fin-reactions';
@@ -15,6 +16,7 @@ export const HANDLERS: Readonly<Record<string, JobHandler>> = {
   ...FIN_REACTION_HANDLERS,
   ...FIN_EXPIRY_HANDLERS,
   ...FIN_POS_ROLLOVER_HANDLERS,
+  ...FIN_ERP_RETRY_HANDLERS,
   'ntf.orchestrate': ntfOrchestrate,
   'ntf.campaign_start': ntfCampaignStart,
   'ntf.campaign_chunk': ntfCampaignChunk,

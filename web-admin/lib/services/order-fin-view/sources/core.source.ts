@@ -62,6 +62,7 @@ export const ORDER_FIN_CORE_SELECT = {
   change_returned_amount: true,
   rounding_adjustment_amount: true,
   tax_pricing_mode: true,
+  service_speed: true,
   commercial_calc_version: true,
   financial_engine_version: true,
   financial_snapshot_status: true,

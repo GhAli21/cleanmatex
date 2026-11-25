@@ -7,6 +7,7 @@ import { CUSTOM_ITEM_KEY_PREFIX } from '@features/orders/model/checkout-line-int
 import type { EditLineDiscountDraft, EditMeasureDraft, EditOrderBaseline, EditPieceDraft, EditPreferenceDraft, EditRowIdentity } from './edit-order-view-model';
 import { sameLineDiscount, sameMeasure, sameOptionalMoney } from '@/lib/services/order-change/order-change-line-money-compare';
 import type { EditOrderController } from './edit-order-controller';
+import { savedLineKey } from '../model/cart-line-key';
 
 /** Header fields and the current cart. Review copies both into the Edit controller. */
 export interface VisualEditDraft {
@@ -67,6 +68,7 @@ export function projectEditVisualOrder(context: OrderChangeContext): {
       // The cart shows a line's own speed only where it differs from the order speed (null follows it).
       const ownSpeed = item.serviceSpeed && item.serviceSpeed !== context.order.serviceSpeed ? item.serviceSpeed : null;
       return [{
+        lineKey: savedLineKey(item.id),
         persistedItemId: item.id,
         // A stored custom line (no product) keeps a cart key of its own, as on New Order.
         productId: item.productId ?? `${CUSTOM_ITEM_KEY_PREFIX}${item.id}`,

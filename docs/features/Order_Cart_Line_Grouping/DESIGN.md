@@ -3,6 +3,23 @@
 **Status:** Approved (2026-11-25) · not started · owner decisions recorded in §11
 **Scope:** web-admin New Order + Order Edit shared cart. Server, API and DB core unchanged (verified, §3). One later phase touches both repos (§9 P4).
 
+## 0. Relation to Measured Pricing (owner decision 2026-11-25)
+
+Not merged. Two programs, with one owner for each shared piece and a fixed order. Measured Pricing docs: `docs/features/Measured_Pricing/`.
+
+| Shared piece | Owner | Section here |
+|---|---|---|
+| Free-garment fix: every piece-count change on a measured line opens the measure dialog (card `+`, step 2 `+`/`−`, Add piece, pieces manager, Edit quantity) | **Measured Pricing**, now, as a P4 fix | §4.2 (spec only) |
+| Customer line label helper `lib/orders/line-qualifier.ts` (measure + speed + ordinal) on receipts, prints, money view, tracking, customer app | **Measured Pricing P6 / P8** | §8.1 (spec only) |
+| Measured merge (§4.1), exact one-share split (§4.3), Edit prices in those choices (§4.4), combined Edit DB test (§4.5) | **Cart Line Grouping P2** | §4.1, §4.3–§4.5 |
+| Shared files: `ui/context/new-order-reducer.ts`, `hooks/use-new-order-state.ts`, `ui/new-order-content.tsx`, `order-change/edit-workspace-adapter.ts`, the measure dialog | one session at a time | — |
+
+**Order of work:**
+1. Measured Pricing: free-garment fix (§4.2).
+2. Cart Line Grouping P1 (line keys), in parallel with Measured Pricing P6 / P7 / P9, which don't touch the cart's state code. During P1, Measured Pricing doesn't edit the shared files above.
+3. Measured Pricing P6 / P8: the line label helper and its 5 surfaces (§8.1).
+4. Cart Line Grouping P2 (reuses the helper; touches none of the 5 surfaces), then P3, PF, P4.
+
 ## 1. Problem
 
 When staff add a product that is already in the cart, the cart always adds one piece to that product's line. A product can never have two lines in one order.
@@ -103,7 +120,7 @@ Line preferences (starch, perfume…) do **not** close a line. A new piece on th
 
 i18n keys added: `newOrder.lines.measureMatchTitle` ("A line with this measure is already in the order" / "يوجد في الطلب سطر بنفس هذا القياس"), `newOrder.lines.addToLine` ("Add to line {number}" / "إضافة إلى السطر {number}"), `newOrder.lines.addToLineResult` ("Becomes {pieces} pieces · {measure}" / "يصبح {pieces} قطع · {measure}"), `newOrder.lines.addAsNewLine` ("Add as a new line" / "إضافة كسطر جديد"), `newOrder.lines.measureMinimumNote` ("The minimum and billing step apply to the line total." / "يُطبَّق الحد الأدنى وخطوة الفوترة على إجمالي السطر.").
 
-### 4.2 Measured lines: every piece-count change asks for the measure (review B2)
+### 4.2 Measured lines: every piece-count change asks for the measure (review B2) — owned by Measured Pricing (§0)
 
 A measured line is billed on its total measure, so **any** change to its piece count that leaves the measure alone can add a free garment (or bill a removed one). Today four paths do exactly that:
 
@@ -256,7 +273,7 @@ Performance: the grid gets one memoised `Map<productId, { count, lastLineKey }>`
 | Workflow, assembly, tags | per piece; unchanged |
 | Order split (sub-orders) | works on saved lines and units; unchanged |
 
-### 8.1 Line qualifier on customer-facing documents (review B5)
+### 8.1 Line qualifier on customer-facing documents (review B5) — owned by Measured Pricing P6 / P8 (§0)
 
 Two rows "Turtleneck Sweater ×1" with different prices confuse customers. Every place that lists an order's lines adds a short qualifier after the name:
 
@@ -278,9 +295,9 @@ So: "Turtleneck Sweater · Express ×1", "Turtleneck Sweater ×1"; or "Rug · 2.
 | Public tracking page | `lib/services/public-order-tracking.service.ts` → `PublicOrderItem` (`order-tracking-page.tsx:27-34`) | add `qualifier` |
 | Customer app order detail | public customer orders API → `customer_order_detail_screen.dart:243-250` | API adds `qualifier`; Flutter renders it (mobile l10n EN/AR) |
 
-**Coordination:** Measured Pricing P6 (display on order detail, prints, tracking, booking, owned by the measured-units session) shows the measure on these same surfaces. Both must use the same helper: whichever lands first creates `line-qualifier.ts`, the other extends it. Don't show the measure twice.
+**Owner:** Measured Pricing P6 (web surfaces) and P8 (customer app) build the helper once with all three parts (§0). Cart Line Grouping only consumes it.
 
-**When:** P2 is the first phase that can create two lines of one product (closed lines, measured new lines), so §8.1 ships **in P2**.
+**Release gate:** P2 is the first phase here that can create two lines of one product, so P2 is not released to QA until §8.1 is live.
 
 ## 9. Phases
 
@@ -289,7 +306,7 @@ Each phase ends with: gates green (`npm run build`, `npx eslint . --quiet`, `npm
 | Phase | Content | Repos | DB |
 |---|---|---|---|
 | **P1 Line identity** | `lineKey` model, all actions/handlers/UI by `lineKey`, piece ids, `ensureLineKeys`, Edit projection. **No visible behaviour change.** | tenant | none |
-| **P2 Add rule** | `resolveCartAddTarget` + all add paths; measured: dialog on every `+`, §4.1 match-and-choose step with Edit prices (§4.4), `MERGE_MEASURED`; §4.2 re-measure on every piece-count change (all 4 paths); §4.3 exact one-share split; §4.5 combined Edit DB test + HQ rules; §8.1 line qualifier on all customer surfaces; grid badge/LIFO; measure dialog modes (`ADD` / `REMEASURE`) | tenant + customer app (`cmx_mobile_apps`) | none |
+| **P2 Add rule** | `resolveCartAddTarget` + all add paths; §4.1 match-and-choose step with Edit prices (§4.4), `MERGE_MEASURED`; §4.3 exact one-share split; §4.5 combined Edit DB test + HQ rules; grid badge/LIFO; measure dialog modes (`ADD` / `REMEASURE`). **Depends on** Measured Pricing's §4.2 fix and §8.1 helper (§0) | tenant | none |
 | **P3 Move piece** | `MOVE_PIECE` reducer action, cart + steps menus, line numbering, ITEM-level hint, i18n EN/AR, Edit: unsaved pieces only, saved pieces disabled with reason, "New line uses today's price" note in Edit (§4.4) | tenant | none |
 | **P4 Move saved piece (Order Edit)** | see §9.1 | tenant (+ HQ owner adds a policy rule; no HQ code) | 1 migration: catalog rows |
 | **PF Create write-path check (required before the program closes)** | see §9.2 | tenant | none expected |
@@ -398,13 +415,13 @@ Second pass over every layer. Each finding is now part of the plan.
 | Item | P1–P3 | P4 | P5 |
 |---|---|---|---|
 | Permissions | none (price override and discount keep their existing permissions) | none (policy rule, not a permission) | product edit permission (existing) |
-| Navigation / routes / pages | none new (changed: New Order, Order Edit, receipt and order prints, tracking page, customer app order detail) | none | product form field |
-| API endpoints | P2: additive `qualifier` field on line items in the public tracking API and the public customer orders API (§8.1); no new routes | none new; existing Order Edit change/preview/apply routes accept `MOVE_PIECE` | product save route field |
+| Navigation / routes / pages | none new (changed: New Order, Order Edit) | none | product form field |
+| API endpoints | none (the §8.1 `qualifier` field on public APIs is Measured Pricing P6/P8) | none new; existing Order Edit change/preview/apply routes accept `MOVE_PIECE` | product save route field |
 | Feature flag | none (pre-launch; rollout flags add little, see memory) | none | none |
 | Tenant / HQ settings | none | HQ Edit policy rule for `MOVE_PIECE` (data, not code) | none |
 | Plan limits | none | none | none |
 | Migrations | none | 1 (catalog rows) | 1 (typed column) |
-| i18n | §5.4 + §4.1–§4.4 + §8.1 + §13.1 keys, EN + AR (web) and mobile l10n EN + AR (customer app qualifier) | change-history label, review text | field label |
+| i18n | §5.4 + §4.1 + §4.3 + §4.4 + §13.1 keys, EN + AR | change-history label, review text | field label |
 | Env vars / infra | none | none | none |
 
 ## 15. Test plan

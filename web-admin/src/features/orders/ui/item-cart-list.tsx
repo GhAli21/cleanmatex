@@ -8,7 +8,7 @@
 
 import type { CartQuoteRequest } from '@/lib/validations/new-order-payment-schemas';
 import { memo } from 'react';
-import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
+import type { LineKey, OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
 import { useTranslations } from 'next-intl';
 import { SummaryCartItem } from './summary-cart-item';
 import { ShoppingCart } from 'lucide-react';
@@ -26,18 +26,19 @@ export interface ItemCartListQuoteProps {
   pending: boolean;
   /** Order Edit: no live line figures; each line shows its stored price and Review re-prices. */
   unquoted?: boolean;
-  onLineSpeedChange?: (productId: string, serviceSpeed: string | null) => void;
+  onLineSpeedChange?: (lineKey: LineKey, serviceSpeed: string | null) => void;
   lineSpeedDisabled?: boolean;
   /** The current cart request; lets a line's speed menu price its options. */
   previewRequest?: Omit<CartQuoteRequest, 'requestId'>;
   /** Opens the line discount dialog; absent when the user lacks `orders:discount` (P5-03c). */
-  onEditLineDiscount?: (productId: string) => void;
+  onEditLineDiscount?: (lineKey: LineKey) => void;
   /** Opens the discount dialog for one piece (PIECE level, P9-01). */
-  onEditPieceDiscount?: (productId: string, pieceId: string) => void;
+  onEditPieceDiscount?: (lineKey: LineKey, pieceId: string) => void;
 }
 
 interface CartItem {
-  id: string;
+  /** The line's cart key (Cart Line Grouping P1). */
+  id: LineKey;
   productId: string;
   productName: string;
   productName2?: string;
@@ -71,12 +72,12 @@ interface ColorCatalogEntry {
 
 interface ItemCartListProps {
   items: CartItem[];
-  onEditItem?: (itemId: string) => void;
-  onEditItemPreferences?: (itemId: string) => void;
-  onEditItemMeasure?: (productId: string) => void;
-  onDeleteItem: (itemId: string) => void;
-  onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
-  onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
+  onEditItem?: (itemId: LineKey) => void;
+  onEditItemPreferences?: (itemId: LineKey) => void;
+  onEditItemMeasure?: (lineKey: LineKey) => void;
+  onDeleteItem: (itemId: LineKey) => void;
+  onPiecesChange?: (itemId: LineKey, pieces: PreSubmissionPiece[]) => void;
+  onCopyPieceToAll?: (itemId: LineKey, pieceId: string) => void;
   trackByPiece?: boolean;
   currencyCode?: string;
   selectedPieceId?: string | null;
@@ -153,7 +154,7 @@ function ItemCartListComponent({
             productName2={item.productName2}
             uom={item.uom}
             measure={item.measure}
-            onEditMeasure={item.uom && onEditItemMeasure ? () => onEditItemMeasure(item.productId) : undefined}
+            onEditMeasure={item.uom && onEditItemMeasure ? () => onEditItemMeasure(item.id) : undefined}
             quantity={item.quantity}
             totalPrice={item.totalPrice}
             conditions={item.conditions}
@@ -168,7 +169,7 @@ function ItemCartListComponent({
             packingExtraPriceByCode={packingExtraPriceByCode}
             onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
             onEditPreferences={onEditItemPreferences ? () => onEditItemPreferences(item.id) : undefined}
-            onDelete={() => onDeleteItem(item.productId)}
+            onDelete={() => onDeleteItem(item.id)}
             quote={quote ? {
               line: quote.lines?.find((line) => line.index === index) ?? null,
               pending: quote.pending,
@@ -177,7 +178,7 @@ function ItemCartListComponent({
               lineSpeed: item.serviceSpeed ?? null,
               piecePriced: item.piecePriced,
               onLineSpeedChange: quote.onLineSpeedChange
-                ? (code: string | null) => quote.onLineSpeedChange?.(item.productId, code)
+                ? (code: string | null) => quote.onLineSpeedChange?.(item.id, code)
                 : undefined,
               lineSpeedDisabled: quote.lineSpeedDisabled,
               speedPreview: quote.previewRequest
@@ -190,16 +191,16 @@ function ItemCartListComponent({
                   }
                 : undefined,
               onEditLineDiscount: quote.onEditLineDiscount
-                ? () => quote.onEditLineDiscount?.(item.productId)
+                ? () => quote.onEditLineDiscount?.(item.id)
                 : undefined,
               onPieceSpeedChange: onPiecesChange && quote.onLineSpeedChange
                 ? (pieceId: string, code: string | null) => onPiecesChange(
-                    item.productId,
+                    item.id,
                     (item.pieces ?? []).map((p) => (p.id === pieceId ? { ...p, serviceSpeed: code } : p)),
                   )
                 : undefined,
               onEditPieceDiscount: quote.onEditPieceDiscount
-                ? (pieceId: string) => quote.onEditPieceDiscount?.(item.productId, pieceId)
+                ? (pieceId: string) => quote.onEditPieceDiscount?.(item.id, pieceId)
                 : undefined,
             } : undefined}
           />

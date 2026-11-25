@@ -1,11 +1,18 @@
 # Order Cart Line Grouping — Resume Here
 
-**State (2026-11-25):** design approved ([DESIGN.md §11](DESIGN.md#11-owner-decisions-recorded-2026-11-25)), no code written. Ready for P1.
+**State (2026-11-25):** P1 (line keys) done in code, owner QA + commit left (STATUS.md log). Next: P2, after Measured Pricing's line label helper (§8.1) is ready — see DESIGN §0 order.
 
 ## What this is
 Let one product have several lines in an order (New Order + Order Edit), so garments of the same product can get their own price, measure, and (at ITEM commercial level) speed or discount. No screen-wide switch: an add rule plus a "Move to a new line" action.
 
-## Next step
+## P1 facts for P2/P3
+- `LineKey` is branded: passing a product id where a line is meant does not compile. Comparing a `LineKey` with a string still compiles, so grep `productId ===` in cart code after each change.
+- `**/*.test.ts` is not type-checked by `tsconfig.json`; type-check new `.test.ts` files with a temporary config.
+- The product grid still works per product through `handleGridQuantityChange` / `handleGridRemoveItem` (`new-order-content.tsx`): they act on the product's first line. P2 replaces them with Σ quantity + LIFO (DESIGN §7).
+- `ADD_ITEM` still merges by product (P1 rule); P2 replaces it with `resolveCartAddTarget`.
+- Piece ids are `temp-<lineKey>-<seq>`; P3's move must keep a moved piece's id stable (DESIGN §6.1).
+
+## Next step (historical: P1)
 P1 (line identity), no behaviour change. Load `/frontend`, `/order-fin`, `/code-documentation` first. Start from DESIGN §6.2's list. Write reducer tests with **two lines of the same product** for every action before switching each action.
 
 ## Facts to rely on (verified 2026-11-25)
@@ -20,7 +27,7 @@ P1 (line identity), no behaviour change. Load `/frontend`, `/order-fin`, `/code-
 
 - **Closing gate PF (DESIGN §9.2):** before marking the program done, measure order-create (3 shapes) and batch the piece writes only if it misses the target. Owner requested it 2026-11-25.
 
-- Review B1–B5 (DESIGN §13.2) is part of P2: §4.2 re-measure on every piece-count change of a measured line; §4.3 exact one-share split; §4.4 Edit prices; §4.5 combined Edit DB test; §8.1 customer line qualifier (`lib/orders/line-qualifier.ts`, shared with Measured Pricing P6, coordinate with that session before creating it).
+- **Ownership with Measured Pricing (DESIGN §0):** MP owns §4.2 (free-garment fix) and §8.1 (line label helper, its P6/P8). This program owns §4.1, §4.3–§4.5 (in P2). During P1, MP stays off `new-order-reducer.ts`, `use-new-order-state.ts`, `new-order-content.tsx`, `edit-workspace-adapter.ts`, the measure dialog; tell that session when P1 is done.
 
 ## Gates per phase
 `npm run build`, `npx eslint . --quiet`, `npm run check:i18n`, `npm run check:ui`, `/cmx-ui-design-review`, targeted jest. Update STATUS.md, QA_TEST_GUIDE.md and this file.

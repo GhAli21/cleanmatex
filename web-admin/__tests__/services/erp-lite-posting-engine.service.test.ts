@@ -37,6 +37,11 @@ jest.mock('@/lib/db/tenant-context', () => ({
   ),
 }));
 
+const mockEnqueue = jest.fn();
+jest.mock('@/lib/jobs/producer', () => ({
+  jobs: { enqueue: (...args: unknown[]) => mockEnqueue(...args) },
+}));
+
 jest.mock('@/lib/utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -601,6 +606,71 @@ describe('ErpLitePostingEngineService', () => {
 
       expect(result.success).toBe(true);
       expect(result.rule_code).toBe('SPECIFIC');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Automatic retry of a SYSTEM_ERROR (Background Jobs step 6c)
+  // -------------------------------------------------------------------------
+
+  describe('auto-retry queueing', () => {
+    /** getNextAttemptNo, findExistingPostedLog, then the rules read fails like a lost connection. */
+    function seedSystemError(attemptNo: number, queryRaw: jest.Mock = mockQueryRaw) {
+      queryRaw
+        .mockResolvedValueOnce([{ next_attempt: attemptNo }])
+        .mockResolvedValueOnce(NO_DUPLICATE)
+        .mockRejectedValueOnce(new Error('connection reset'));
+    }
+
+    it('queues one delayed retry for a SYSTEM_ERROR, keyed by the exception id', async () => {
+      seedSystemError(1);
+      const result = await ErpLitePostingEngineService.execute({ ...BASE_REQUEST });
+
+      expect(result.success).toBe(false);
+      expect(result.exception_type_code).toBe(ERP_LITE_EXCEPTION_TYPES.SYSTEM_ERROR);
+      expect(mockEnqueue).toHaveBeenCalledTimes(1);
+      expect(mockEnqueue).toHaveBeenCalledWith(
+        expect.anything(),
+        'fin.erp_post.retry',
+        { tenantOrgId: 'tenant-123', exceptionId: result.exception_id, postingLogId: result.posting_log_id },
+        { id: result.exception_id, startAfter: 300 }
+      );
+    });
+
+    it('queues nothing on the last attempt or for a configuration error', async () => {
+      seedSystemError(3);
+      await ErpLitePostingEngineService.execute({ ...BASE_REQUEST });
+
+      mockQueryRaw
+        .mockResolvedValueOnce([{ next_attempt: 1 }])
+        .mockResolvedValueOnce(NO_DUPLICATE)
+        .mockResolvedValueOnce([]); // no rule → RULE_NOT_FOUND, needs a person
+      const ruleMissing = await ErpLitePostingEngineService.execute({ ...BASE_REQUEST });
+
+      expect(ruleMissing.exception_type_code).toBe(ERP_LITE_EXCEPTION_TYPES.RULE_NOT_FOUND);
+      expect(mockEnqueue).not.toHaveBeenCalled();
+    });
+
+    it('inside a business transaction, enqueues under a savepoint and survives a failed enqueue', async () => {
+      const txExecuteRawUnsafe = jest.fn().mockResolvedValue(0);
+      const tx = { $queryRaw: mockTxQueryRaw, $executeRaw: mockTxExecuteRaw, $executeRawUnsafe: txExecuteRawUnsafe };
+      seedSystemError(2, mockTxQueryRaw);
+      mockEnqueue.mockRejectedValueOnce(new Error('queue missing'));
+
+      const result = await ErpLitePostingEngineService.executeInTransaction(
+        tx as unknown as Parameters<typeof ErpLitePostingEngineService.executeInTransaction>[0],
+        { ...BASE_REQUEST }
+      );
+
+      expect(result.exception_type_code).toBe(ERP_LITE_EXCEPTION_TYPES.SYSTEM_ERROR);
+      expect(mockEnqueue).toHaveBeenCalledWith(tx, 'fin.erp_post.retry', expect.any(Object), {
+        id: result.exception_id,
+        startAfter: 900,
+      });
+      expect(txExecuteRawUnsafe.mock.calls.map((c) => c[0])).toEqual([
+        'SAVEPOINT erp_auto_retry',
+        'ROLLBACK TO SAVEPOINT erp_auto_retry',
+      ]);
     });
   });
 });

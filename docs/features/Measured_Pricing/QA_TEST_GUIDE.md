@@ -138,3 +138,12 @@ Before: HQ must publish an Edit policy rule for `CHANGE_ITEM_MEASURE` (target It
 | 28 | Edit an order, click a measured product | Enter a measure, Add | New line with its unit; Review lists "Add an item" with the measure; saving stores uom + measure + billed qty |
 | 29 | Edit an order that has only count lines | Try to measure one (no button is shown) | Count lines have no "Change measure" |
 | 30 | Order history / audit of the edited order | Open it | The measure change is recorded (target: item) with before/after measure |
+
+
+## P4 fix - free-garment check on measured lines (steps 31-34)
+
+Page: New Order, and Order Edit of an order with a measured line (e.g. Delicate Cardigan, meter).
+31. Add a measured product (2 pieces, 2.5 m). On the card press `+`. **Expected:** the Measure dialog opens ("Pieces changed from 2 to 3. Check the total measure."), the total 2.5 is filled in, nothing changed yet in the cart.
+32. Press Cancel. **Expected:** the cart still shows 2 pieces and 2.5 m. Repeat with step 2 `+` / `-`, Add piece, remove piece in the pieces manager: same dialog each time, Cancel leaves the count.
+33. Press `+` again, change the total to 3.75, Confirm. **Expected:** 3 pieces, 3.75 m, the line total follows the billed measure. Press `+` and Confirm without changing the total: 4 pieces, same total (allowed, explicit).
+34. A normal count product: `+`/`-` change at once, no dialog. Remove a measured line with `-` at 1 piece: removed, no dialog. In Order Edit, with the HQ rule for `CHANGE_ITEM_MEASURE` missing: changing the total and Confirm shows "this order does not allow changing it"; keeping the total works.

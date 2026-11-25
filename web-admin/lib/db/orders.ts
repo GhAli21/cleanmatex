@@ -6,7 +6,9 @@
  * All queries automatically filter by tenant_org_id via Prisma middleware.
  */
 
-import { prisma } from '@/lib/db/prisma';
+import { prisma } from '@/lib/db/prisma';
+import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
+import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 import type {
   Order,
   OrderWithDetails,
@@ -110,6 +112,10 @@ export async function getOrderById(
     LIMIT 1
   `;
 
+  // Line qualifier (measure, own speed, ordinal) tells same-name lines apart on the detail screen and prints.
+  const speedNames = await loadSpeedNames(order.org_order_items_dtl.map((item) => item.service_speed));
+  const qualifiers = orderLineQualifiers(order.org_order_items_dtl.map(qualifierInputOfRow), order.service_speed, speedNames);
+
   // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
   const customerData =
     order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
@@ -123,7 +129,7 @@ export async function getOrderById(
         ? Number(order.state_version)
         : order.state_version,
     customer: customerData,
-    items: order.org_order_items_dtl,
+    items: order.org_order_items_dtl.map((item) => ({ ...item, line_qualifier: qualifiers.get(item.id) ?? null })),
     branch: order.org_branches_mst,
     order_source: order.sys_order_sources_cd,
     // A pinned profile may be retired after ordering; retain its label for operational traceability.

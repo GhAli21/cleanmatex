@@ -28,6 +28,7 @@ import { CmxStatusBadge } from '@ui/feedback';
 import { CmxStatement, CmxStatementGroup, CmxStatementLine, CmxStatementLineList, CmxStatementRow } from '@ui/data-display';
 import { useFinMoney } from './order-fin-money';
 import { lineLabel, sectionTitle, type Translator } from './order-fin-labels';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
 
 const NOT_COUNTED_STATES = ['pending', 'failed', 'voided', 'reversed'] as const;
 
@@ -67,7 +68,9 @@ export function OrderFinStatement({ view, resolved, onRetry }: OrderFinStatement
   const setAll = (value: boolean) => setOpen(Object.fromEntries(expandableKeys.map((k) => [k, value])));
 
   const line = (key: OrderFinSectionKey, l: OrderFinLine) => {
-    const label = lineLabel(l, key, t, locale);
+    const qualifier = formatLineQualifier(l.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' });
+    const name = lineLabel(l, key, t, locale);
+    const label = qualifier ? `${name} · ${qualifier}` : name;
     const meta = [formatDate(l.meta?.dateIso, locale), l.meta?.ref].filter(Boolean).join(' · ') || undefined;
     const notCounted = (NOT_COUNTED_STATES as readonly string[]).includes(l.state);
     const chip = notCounted ? <CmxStatusBadge size="sm" tone={l.state === 'pending' ? 'warning' : 'neutral'} label={t(`orders.finView.lineStates.${l.state}`)} /> : undefined;

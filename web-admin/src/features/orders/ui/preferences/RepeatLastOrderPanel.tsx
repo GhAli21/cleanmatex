@@ -97,7 +97,7 @@ export function RepeatLastOrderPanel({
           const packingCfId =
             match.packing_pref_cf_id ?? packingCfByCode.get(match.packing_pref_code) ?? null;
           updateItemPackingPref(
-            item.productId,
+            item.lineKey,
             match.packing_pref_code,
             true,
             'repeat_last',
@@ -127,7 +127,7 @@ export function RepeatLastOrderPanel({
             }),
           ];
           const charge = newPrefs.reduce((sum, p) => sum + p.extra_price, 0);
-          updateItemServicePrefs(item.productId, newPrefs, charge);
+          updateItemServicePrefs(item.lineKey, newPrefs, charge);
         }
       });
 

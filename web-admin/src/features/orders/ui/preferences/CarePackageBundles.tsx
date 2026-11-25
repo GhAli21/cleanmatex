@@ -62,7 +62,7 @@ export function CarePackageBundles({
         })),
       ];
       const charge = newPrefs.reduce((sum, p) => sum + p.extra_price, 0);
-      updateItemServicePrefs(item.productId, newPrefs, charge);
+      updateItemServicePrefs(item.lineKey, newPrefs, charge);
     });
 
     cmxMessage.success(t('appliedSuccess') || 'Preferences applied');

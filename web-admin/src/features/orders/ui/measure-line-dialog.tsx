@@ -25,6 +25,10 @@ export interface MeasureLineDialogProps {
   uom: OrderItemUom;
   /** The current measure when the line is already in the cart. */
   initial?: OrderItemMeasure;
+  /** Re-measure after a piece-count change: what happened, shown under the title (announced politely). */
+  notice?: string;
+  /** A refusal of the last Confirm, shown above the buttons. */
+  refusal?: string;
   onConfirm: (measure: OrderItemMeasure) => void;
   onClose: () => void;
 }
@@ -44,7 +48,7 @@ function check(uom: OrderItemUom, value: MeasureValue) {
 }
 
 /** Dialog body; remounted on every open so it starts from `initial`. */
-function MeasureForm({ productName, uom, initial, onConfirm, onClose }: Omit<MeasureLineDialogProps, 'open'>) {
+function MeasureForm({ productName, uom, initial, notice, refusal, onConfirm, onClose }: Omit<MeasureLineDialogProps, 'open'>) {
   const t = useTranslations('uom');
   const tCommon = useTranslations('common');
   const ar = useLocale() === 'ar';
@@ -59,6 +63,7 @@ function MeasureForm({ productName, uom, initial, onConfirm, onClose }: Omit<Mea
     <>
       <CmxDialogHeader><CmxDialogTitle>{t('measure.dialogTitle', { product: productName })}</CmxDialogTitle></CmxDialogHeader>
       <div className="space-y-3">
+        {notice && <p role="status" aria-live="polite" className="text-sm text-foreground">{notice}</p>}
         <CmxQuantityMeasureInput
           dimension={uom.dimension as UomDimension}
           unitSymbol={symbol}
@@ -77,10 +82,11 @@ function MeasureForm({ productName, uom, initial, onConfirm, onClose }: Omit<Mea
             {uom.billingIncrement && <li>{t('measure.stepRule', { qty: `${uom.billingIncrement} ${symbol}` })}</li>}
           </ul>
         )}
+        {refusal && <p role="alert" className="text-sm text-destructive">{refusal}</p>}
       </div>
       <CmxDialogFooter>
         <CmxButton variant="outline" className="pointer-coarse:min-h-11" onClick={onClose}>{tCommon('cancel')}</CmxButton>
-        <CmxButton className="pointer-coarse:min-h-11" disabled={!result.ok} onClick={() => onConfirm(value)}>{initial ? tCommon('save') : tCommon('add')}</CmxButton>
+        <CmxButton className="pointer-coarse:min-h-11" disabled={!result.ok} onClick={() => onConfirm(value)}>{notice ? tCommon('confirm') : initial ? tCommon('save') : tCommon('add')}</CmxButton>
       </CmxDialogFooter>
     </>
   );

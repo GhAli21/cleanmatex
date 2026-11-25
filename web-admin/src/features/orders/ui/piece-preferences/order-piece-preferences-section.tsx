@@ -90,7 +90,7 @@ export function OrderPiecePreferencesSection({
       if (item.quantity <= 0) continue;
       const ok = item.pieces && item.pieces.length === item.quantity;
       if (!ok) {
-        updateItemPieces(item.productId, generatePiecesForItem(item.productId, item.quantity));
+        updateItemPieces(item.lineKey, generatePiecesForItem(item.lineKey, item.quantity));
       }
     }
   }, [editSession, state.items, updateItemPieces]);
@@ -101,8 +101,8 @@ export function OrderPiecePreferencesSection({
         item.pieces && item.pieces.length > 0
           ? item.pieces
           : Array.from({ length: item.quantity }, (_, i) => ({
-              id: `temp-${item.productId}-${i + 1}`,
-              itemId: item.productId,
+              id: `temp-${item.lineKey}-${i + 1}`,
+              itemId: item.lineKey,
               pieceSeq: i + 1,
             }));
       const cat = state.categories.find((c) => c.service_category_code === item.serviceCategoryCode);
@@ -114,13 +114,13 @@ export function OrderPiecePreferencesSection({
 
   // Focus request (cart pencil): scroll the item into view and briefly highlight it.
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
-  const focusProductId = useMemo(() => {
+  const [highlightedLineKey, setHighlightedLineKey] = useState<string | null>(null);
+  const focusLineKey = useMemo(() => {
     if (!focusItemId) return null;
     const match = state.items.find(
-      (i) => i.productId === focusItemId || i.persistedItemId === focusItemId,
+      (i) => i.lineKey === focusItemId,
     );
-    return match?.productId ?? null;
+    return match?.lineKey ?? null;
   }, [focusItemId, state.items]);
 
   // Parent passes an inline callback; keep it in a ref so re-renders don't restart the timer.
@@ -132,20 +132,20 @@ export function OrderPiecePreferencesSection({
   useEffect(() => {
     if (!focusItemId) return;
     const scrollTimer = setTimeout(() => {
-      if (focusProductId) {
-        itemRefs.current.get(focusProductId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setHighlightedProductId(focusProductId);
+      if (focusLineKey) {
+        itemRefs.current.get(focusLineKey)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setHighlightedLineKey(focusLineKey);
       }
       onFocusItemHandledRef.current?.();
     }, 100);
     return () => clearTimeout(scrollTimer);
-  }, [focusItemId, focusProductId]);
+  }, [focusItemId, focusLineKey]);
 
   useEffect(() => {
-    if (!highlightedProductId) return;
-    const clearTimer = setTimeout(() => setHighlightedProductId(null), FOCUS_HIGHLIGHT_MS);
+    if (!highlightedLineKey) return;
+    const clearTimer = setTimeout(() => setHighlightedLineKey(null), FOCUS_HIGHLIGHT_MS);
     return () => clearTimeout(clearTimer);
-  }, [highlightedProductId]);
+  }, [highlightedLineKey]);
 
   return (
     <section aria-label={t('sectionTitle')} className="space-y-3">
@@ -159,13 +159,13 @@ export function OrderPiecePreferencesSection({
           const siblingIds = pieces.map((p) => p.id);
           return (
             <div
-              key={item.productId}
+              key={item.lineKey}
               ref={(el) => {
-                if (el) itemRefs.current.set(item.productId, el);
-                else itemRefs.current.delete(item.productId);
+                if (el) itemRefs.current.set(item.lineKey, el);
+                else itemRefs.current.delete(item.lineKey);
               }}
               className={`space-y-3 scroll-mt-4 rounded-lg transition-shadow duration-300 ${
-                highlightedProductId === item.productId ? 'ring-2 ring-ring ring-offset-2' : ''
+                highlightedLineKey === item.lineKey ? 'ring-2 ring-ring ring-offset-2' : ''
               }`}
             >
               <div className="text-sm font-medium text-foreground">{title}</div>

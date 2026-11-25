@@ -48,6 +48,27 @@ function catalogUnitPrice(
 }
 
 /**
+ * The line's pieces plus the added ones, renumbered after the line's last piece and
+ * keyed to the line. Before this, a merge replaced the line's pieces (and their details) with the new one.
+ * @param line the line receiving the pieces
+ * @param added the pieces of the tapped product (their ids are discarded)
+ * @returns the line's pieces, or undefined when neither side tracks pieces
+ */
+function appendPieces(line: OrderItem, added: PreSubmissionPiece[] | undefined): PreSubmissionPiece[] | undefined {
+  if (!added?.length) return line.pieces;
+  const lastSeq = Math.max(0, ...(line.pieces ?? []).map((piece) => piece.pieceSeq));
+  return [
+    ...(line.pieces ?? []),
+    ...added.map((piece, index) => ({
+      ...piece,
+      id: `temp-${line.lineKey}-${lastSeq + index + 1}`,
+      itemId: line.lineKey,
+      pieceSeq: lastSeq + index + 1,
+    })),
+  ];
+}
+
+/**
  * Initial state
  */
 /**
@@ -126,6 +147,7 @@ export const initialState: NewOrderState = {
 
   // Customer/Order/Item/Pieces Preferences
   selectedPieceId: null,
+  measureRecheck: null,
 };
 
 /**
@@ -198,6 +220,7 @@ export function newOrderReducer(
     }
 
     case 'ADD_ITEM': {
+      // P1 keeps today's rule: a tap adds a piece to the product's line. P2 replaces it with the add rule (DESIGN §4).
       const existingItem = state.items.find(
         (item) => item.productId === action.payload.productId
       );
@@ -205,7 +228,7 @@ export function newOrderReducer(
       let newItems: typeof state.items;
       if (existingItem) {
         newItems = state.items.map((item) =>
-          item.productId === action.payload.productId
+          item.lineKey === existingItem.lineKey
             ? {
                 ...item,
                 quantity: item.quantity + 1,
@@ -217,7 +240,7 @@ export function newOrderReducer(
                   servicePrefCharge: item.servicePrefCharge,
                   packingPrefCharge: item.packingPrefCharge,
                 }),
-                pieces: action.payload.pieces || item.pieces,
+                pieces: appendPieces(item, action.payload.pieces),
               }
             : item
         );
@@ -240,23 +263,23 @@ export function newOrderReducer(
     case 'REMOVE_ITEM':
       return {
         ...state,
-        items: state.items.filter((item) => item.productId !== action.payload),
+        items: state.items.filter((item) => item.lineKey !== action.payload),
       };
 
     case 'UPDATE_ITEM_QUANTITY': {
-      const { productId, quantity } = action.payload;
+      const { lineKey, quantity } = action.payload;
 
       if (quantity === 0) {
         return {
           ...state,
-          items: state.items.filter((item) => item.productId !== productId),
+          items: state.items.filter((item) => item.lineKey !== lineKey),
         };
       }
 
       return {
         ...state,
         items: state.items.map((item) => {
-          if (item.productId !== productId) {
+          if (item.lineKey !== lineKey) {
             return item;
           }
 
@@ -272,8 +295,8 @@ export function newOrderReducer(
               const newPieces = [...pieces];
               for (let addIndex = 1; addIndex <= toAdd; addIndex += 1) {
                 newPieces.push({
-                  id: `temp-${item.productId}-${lastSeq + addIndex}`,
-                  itemId: item.productId,
+                  id: `temp-${item.lineKey}-${lastSeq + addIndex}`,
+                  itemId: item.lineKey,
                   pieceSeq: lastSeq + addIndex,
                 });
               }
@@ -304,12 +327,18 @@ export function newOrderReducer(
       };
     }
 
+    case 'REQUEST_MEASURE_RECHECK':
+      return { ...state, measureRecheck: action.payload };
+
+    case 'CLEAR_MEASURE_RECHECK':
+      return state.measureRecheck ? { ...state, measureRecheck: null } : state;
+
     case 'UPDATE_ITEM_MEASURE': {
-      const { productId, measure } = action.payload;
+      const { lineKey, measure } = action.payload;
       return {
         ...state,
         items: state.items.map((item) =>
-          item.productId === productId
+          item.lineKey === lineKey
             ? {
                 ...item,
                 measure,
@@ -331,7 +360,7 @@ export function newOrderReducer(
       return {
         ...state,
         items: state.items.map((item) => {
-          if (item.productId !== action.payload.productId) {
+          if (item.lineKey !== action.payload.lineKey) {
             return item;
           }
 
@@ -356,11 +385,11 @@ export function newOrderReducer(
       };
 
     case 'UPDATE_ITEM_SERVICE_PREFS': {
-      const { productId, servicePrefs, servicePrefCharge } = action.payload;
+      const { lineKey, servicePrefs, servicePrefCharge } = action.payload;
       return {
         ...state,
         items: state.items.map((item) =>
-          item.productId === productId
+          item.lineKey === lineKey
             ? {
                 ...item,
                 servicePrefs,
@@ -389,7 +418,7 @@ export function newOrderReducer(
 
     case 'UPDATE_ITEM_PACKING_PREF': {
       const {
-        productId,
+        lineKey,
         packingPrefCode,
         packingPrefIsOverride,
         packingPrefSource,
@@ -403,7 +432,7 @@ export function newOrderReducer(
       return {
         ...state,
         items: state.items.map((item) => {
-          if (item.productId !== productId) return item;
+          if (item.lineKey !== lineKey) return item;
           const nextPk =
             normalizedCode === undefined
               ? undefined
@@ -434,12 +463,12 @@ export function newOrderReducer(
     }
 
     case 'ADJUST_ITEM_PACKING_PREF_CHARGE': {
-      const { productId, packingPrefCharge } = action.payload;
+      const { lineKey, packingPrefCharge } = action.payload;
       const pk = Math.max(0, Number(packingPrefCharge ?? 0));
       return {
         ...state,
         items: state.items.map((item) =>
-          item.productId === productId
+          item.lineKey === lineKey
             ? {
                 ...item,
                 packingPrefCharge: pk,
@@ -461,18 +490,18 @@ export function newOrderReducer(
       return {
         ...state,
         items: state.items.map((item) =>
-          item.productId === action.payload.productId
+          item.lineKey === action.payload.lineKey
             ? { ...item, notes: action.payload.notes }
             : item
         ),
       };
 
     case 'UPDATE_ITEM_PRICE_OVERRIDE': {
-      const { productId, priceOverride, overrideReason, overrideBy } = action.payload;
+      const { lineKey, priceOverride, overrideReason, overrideBy } = action.payload;
       return {
         ...state,
         items: state.items.map((item) => {
-          if (item.productId !== productId) {
+          if (item.lineKey !== lineKey) {
             return item;
           }
           // PF-21: remember the price under the override, so clearing it restores that price
@@ -524,7 +553,7 @@ export function newOrderReducer(
       return {
         ...state,
         items: state.items.map((item) =>
-          item.productId === action.payload.productId
+          item.lineKey === action.payload.lineKey
             ? { ...item, serviceSpeed: action.payload.serviceSpeed }
             : item
         ),
@@ -535,7 +564,7 @@ export function newOrderReducer(
       return {
         ...state,
         items: state.items.map((item) =>
-          item.productId === action.payload.productId
+          item.lineKey === action.payload.lineKey
             ? { ...item, lineDiscount: action.payload.lineDiscount }
             : item
         ),
@@ -806,13 +835,13 @@ export function newOrderReducer(
       return {
         ...state,
         items: state.items.map((item) => {
-          const match = pieceId.startsWith(`temp-${item.productId}-`);
+          const match = pieceId.startsWith(`temp-${item.lineKey}-`);
           if (!match) return item;
           let pieces = item.pieces;
           if (!pieces || pieces.length === 0) {
             pieces = Array.from({ length: item.quantity }, (_, i) => ({
-              id: `temp-${item.productId}-${i + 1}`,
-              itemId: item.productId,
+              id: `temp-${item.lineKey}-${i + 1}`,
+              itemId: item.lineKey,
               pieceSeq: i + 1,
             }));
           }

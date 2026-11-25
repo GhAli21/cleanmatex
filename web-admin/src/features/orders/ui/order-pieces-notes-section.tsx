@@ -14,10 +14,10 @@ import { Copy } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxInput } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
-import type { OrderItem, PreSubmissionPiece } from '../model/new-order-types';
+import type { LineKey, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 
 interface OrderPiecesNotesSectionProps {
-  onCopyPieceToAll: (itemId: string, pieceId: string) => void;
+  onCopyPieceToAll: (itemId: LineKey, pieceId: string) => void;
   focusItemId?: string | null;
   onFocusItemHandled?: () => void;
 }
@@ -66,14 +66,14 @@ export function OrderPiecesNotesSection({
           item.pieces && item.pieces.length > 0
             ? item.pieces
             : Array.from({ length: item.quantity }, (_, i) => ({
-                id: `temp-${item.productId}-${i + 1}`,
-                itemId: item.productId,
+                id: `temp-${item.lineKey}-${i + 1}`,
+                itemId: item.lineKey,
                 pieceSeq: i + 1,
               }));
         return { item, pieces };
       })
       .filter(({ item, pieces }) => {
-        if (filterItemId) return item.productId === filterItemId;
+        if (filterItemId) return item.lineKey === filterItemId;
         return showAllItems || pieces.length > 1;
       });
   }, [state.items, showAllItems, filterItemId]);
@@ -82,11 +82,11 @@ export function OrderPiecesNotesSection({
     (item: OrderItem): PreSubmissionPiece[] => {
       if (item.pieces && item.pieces.length > 0) return item.pieces;
       const generated: PreSubmissionPiece[] = Array.from({ length: item.quantity }, (_, i) => ({
-        id: `temp-${item.productId}-${i + 1}`,
-        itemId: item.productId,
+        id: `temp-${item.lineKey}-${i + 1}`,
+        itemId: item.lineKey,
         pieceSeq: i + 1,
       }));
-      updateItemPieces(item.productId, generated);
+      updateItemPieces(item.lineKey, generated);
       return generated;
     },
     [updateItemPieces]
@@ -96,7 +96,7 @@ export function OrderPiecesNotesSection({
     (item: OrderItem, pieceId: string, updates: Partial<PreSubmissionPiece>) => {
       const pieces = materializePieces(item);
       const updated = pieces.map((p) => (p.id === pieceId ? { ...p, ...updates } : p));
-      updateItemPieces(item.productId, updated);
+      updateItemPieces(item.lineKey, updated);
     },
     [materializePieces, updateItemPieces]
   );
@@ -142,11 +142,11 @@ export function OrderPiecesNotesSection({
         <div className="space-y-3">
           {itemGroups.map(({ item, pieces }, groupIndex) => (
             <div
-              key={item.productId}
+              key={item.lineKey}
               className="rounded-lg border border-border overflow-hidden"
               ref={(el) => {
-                if (el) itemCardRefs.current.set(item.productId, el);
-                else itemCardRefs.current.delete(item.productId);
+                if (el) itemCardRefs.current.set(item.lineKey, el);
+                else itemCardRefs.current.delete(item.lineKey);
               }}
             >
               <div className="flex items-center gap-2 border-b border-border bg-muted px-3 py-3">
@@ -201,7 +201,7 @@ export function OrderPiecesNotesSection({
                             aria-label={tPieces('copyToAllPieces') || 'Copy to all pieces'}
                             onClick={(e) => {
                               e.stopPropagation();
-                              onCopyPieceToAll(item.productId, piece.id);
+                              onCopyPieceToAll(item.lineKey, piece.id);
                             }}
                             className="min-h-9 min-w-9 rounded-full p-1.5 text-muted-foreground hover:text-primary-text hover:bg-info-bg"
                           >

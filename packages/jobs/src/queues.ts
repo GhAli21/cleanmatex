@@ -56,6 +56,11 @@ export const QUEUE_PAYLOADS = {
   'fin.loyalty_expiry.item': z.strictObject({ tenantOrgId: zId, accountId: zId }),
   /** One POS rollover sweep over every live session (step 6b, migration 0824). The 15-minute schedule sends `{}`. */
   'fin.pos_rollover.sweep': z.strictObject({}),
+  /**
+   * One SYSTEM_ERROR posting exception, retried once by replaying its posting log (step 6c, migration 0825).
+   * Sent by the ERP-Lite posting engine when the posting fails; job id = exception id.
+   */
+  'fin.erp_post.retry': z.strictObject({ tenantOrgId: zId, exceptionId: zId, postingLogId: zId }),
 } as const;
 
 export type QueueName = keyof typeof QUEUE_PAYLOADS;

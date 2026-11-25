@@ -347,6 +347,7 @@ async function processSession(
           status: session.status as PosSessionStatus,
           openedAt: session.opened_at,
           staleFlaggedAt: session.stale_flagged_at,
+          rolloverAppliedAt: session.rollover_applied_at,
           staleHours: Number(settings.posSessionStaleHours),
           now,
         })

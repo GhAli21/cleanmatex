@@ -21,6 +21,8 @@ import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-st
 import { PICKUP_RELEASE_STATES } from '@/lib/types/pickup-release';
 import { httpStatusForWorkflowEngineError } from '@/lib/api/workflow-engine-http';
 import { observePublicConfirmRejected } from '@/lib/services/workflow/workflow-observability';
+import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
+import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 import {
   buildPublicTrackingPath,
   normalizePublicTrackingToken,
@@ -59,6 +61,15 @@ interface PublicOrderItemRow {
   quantity: number | string | null;
   total_price: number | string | null;
   line_total_amount?: number | string | null;
+  product_id?: string | null;
+  uom_code?: string | null;
+  uom_dimension?: string | null;
+  uom_symbol?: string | null;
+  uom_symbol2?: string | null;
+  uom_qty_decimals?: number | null;
+  measured_qty?: number | string | null;
+  billed_qty?: number | string | null;
+  service_speed?: string | null;
   product_name?: string | null;
   product_name2?: string | null;
   org_product_data_mst?: PublicOrderProductRow | null;
@@ -83,6 +94,7 @@ interface PublicOrderQueryRow {
   customer_notes: string | null;
   branch_id: string | null;
   bag_count: number | string | null;
+  service_speed?: string | null;
   org_customers_mst?: PublicOrderCustomerRow | null;
   org_order_items_dtl?: PublicOrderItemRow[] | null;
 }
@@ -369,6 +381,7 @@ export async function getPublicOrderTrackingResponse(
           customer_notes,
           branch_id,
           bag_count,
+          service_speed,
           org_customers_mst(
             id,
             name,
@@ -381,6 +394,15 @@ export async function getPublicOrderTrackingResponse(
             quantity,
             total_price,
             line_total_amount,
+            product_id,
+            uom_code,
+            uom_dimension,
+            uom_symbol,
+            uom_symbol2,
+            uom_qty_decimals,
+            measured_qty,
+            billed_qty,
+            service_speed,
             org_product_data_mst(
               id,
               product_name,
@@ -410,6 +432,14 @@ export async function getPublicOrderTrackingResponse(
         },
       };
     }
+
+    // Customer-facing line qualifier (measure, own speed, ordinal): one helper for every document.
+    const speedNames = await loadSpeedNames((order.org_order_items_dtl || []).map((i) => i.service_speed));
+    const qualifiers = orderLineQualifiers(
+      (order.org_order_items_dtl || []).map((i) => qualifierInputOfRow({ ...i, product_id: i.product_id ?? null })),
+      order.service_speed,
+      speedNames,
+    );
 
     const history = await OrderService.getOrderHistory(order.id, tenantId) as PublicOrderHistoryRow[];
     const tenantSettings = createTenantSettingsService(supabase);
@@ -472,6 +502,8 @@ export async function getPublicOrderTrackingResponse(
               totalPrice: item.total_price ? Number(item.total_price) : 0,
               // What the customer pays for the line; null only on an older line.
               lineTotalAmount: item.line_total_amount == null ? null : Number(item.line_total_amount),
+              // Structured parts; the page formats them in the customer's language.
+              qualifier: qualifiers.get(item.id) ?? {},
             })),
             customerNotes: order.customer_notes,
           },

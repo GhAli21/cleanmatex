@@ -157,3 +157,19 @@ describe('normalizeFacts — item tax by code (Tax Engine T4)', () => {
     expect(facts.items?.[1].taxParts).toBeUndefined();
   });
 });
+
+describe('normalizeFacts — line qualifier (Measured Pricing P6)', () => {
+  const rug = (id: string, qty: string, speed = 'STANDARD') => ({
+    id, product_id: 'rug', total_price: '10', uom_code: 'M2', uom_dimension: 'AREA', uom_symbol: 'm²', uom_symbol2: null,
+    uom_qty_decimals: 2, measured_qty: qty, billed_qty: qty, service_speed: speed,
+    sys_service_speed_cd: { name: speed === 'EXPRESS' ? 'Express' : 'Standard', name2: null },
+  });
+  it('gives a measured line its measure, its own speed only when it differs, and numbers identical lines', () => {
+    const facts = normalizeFacts(data({ items: [rug('A', '2.5'), rug('B', '2.500000'), rug('C', '3', 'EXPRESS')] }), 'STANDARD');
+    const q = facts.items?.map((f) => f.qualifier);
+    expect(q?.[0]).toMatchObject({ measure: { qty: '2.5', symbol: 'm²' }, ordinal: 1 });
+    expect(q?.[1]).toMatchObject({ ordinal: 2 });
+    expect(q?.[2]).toMatchObject({ speedCode: 'EXPRESS', speedName: { name: 'Express' } });
+    expect(q?.[2]?.ordinal).toBeUndefined();
+  });
+});

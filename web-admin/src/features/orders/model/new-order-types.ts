@@ -169,11 +169,20 @@ export interface OrderItemUom {
 }
 
 /**
+ * Cart identity of one order line (Cart Line Grouping P1). Branded so a product id
+ * can never be passed where a line is meant: one product may have several lines.
+ */
+export type LineKey = string & { readonly __brand: 'LineKey' };
+
+/**
  * Order Item
  */
 export interface OrderItem {
-  /** Database item id. Absent on a Create line, which is still grouped by product. */
+  /** Cart identity of this line: a new UUID on Create, the saved item id in Edit. Never sent to the server. */
+  lineKey: LineKey;
+  /** Database item id. Absent on a line not saved yet. */
   persistedItemId?: string;
+  /** The catalog product (or `custom:<uuid>` for a custom item). A catalog fact, not the line's identity. */
   productId: string;
   productName: string | null;
   productName2: string | null;
@@ -311,7 +320,8 @@ export interface NewOrderState {
 
   // Modal States
   modals: ModalStates;
-  priceOverrideItemId: string | null;
+  /** The line whose price override dialog is open. */
+  priceOverrideItemId: LineKey | null;
 
   // Data
   categories: ServiceCategory[];
@@ -336,6 +346,20 @@ export interface NewOrderState {
 
   /** B18 — order-level preferences (`org_order_preferences_dtl.prefs_level='ORDER'`), independent of any item/piece. */
   orderServicePrefs: OrderItemServicePref[];
+
+  /**
+   * A piece-count change on a measured line waiting for staff to check the total measure
+   * (Measured Pricing, free-garment fix). Nothing is applied until they confirm; Cancel drops it.
+   */
+  measureRecheck: MeasureRecheck | null;
+}
+
+/** A held piece-count change on a measured line: the counts before and after, and the action to apply on confirm. */
+export interface MeasureRecheck {
+  lineKey: LineKey;
+  from: number;
+  to: number;
+  deferred: NewOrderAction;
 }
 
 // ==================================================================
@@ -365,17 +389,19 @@ export type NewOrderAction =
   | { type: 'SET_ORDER_SOURCE_CODE'; payload: OrderSourceCode }
   | { type: 'SET_ITEMS'; payload: OrderItem[] }
   | { type: 'ADD_ITEM'; payload: OrderItem }
-  | { type: 'REMOVE_ITEM'; payload: string } // productId
-  | { type: 'UPDATE_ITEM_QUANTITY'; payload: { productId: string; quantity: number } }
-  | { type: 'UPDATE_ITEM_MEASURE'; payload: { productId: string; measure: OrderItemMeasure } }
-  | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
-  | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
-  | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { productId: string; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }
+  | { type: 'REMOVE_ITEM'; payload: LineKey }
+  | { type: 'UPDATE_ITEM_QUANTITY'; payload: { lineKey: LineKey; quantity: number } }
+  | { type: 'UPDATE_ITEM_MEASURE'; payload: { lineKey: LineKey; measure: OrderItemMeasure } }
+  | { type: 'REQUEST_MEASURE_RECHECK'; payload: MeasureRecheck }
+  | { type: 'CLEAR_MEASURE_RECHECK' }
+  | { type: 'UPDATE_ITEM_NOTES'; payload: { lineKey: LineKey; notes: string } }
+  | { type: 'UPDATE_ITEM_PIECES'; payload: { lineKey: LineKey; pieces: PreSubmissionPiece[] } }
+  | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { lineKey: LineKey; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }
   | { type: 'UPDATE_ORDER_SERVICE_PREFS'; payload: { servicePrefs: OrderItemServicePref[] } }
   | {
       type: 'UPDATE_ITEM_PACKING_PREF';
       payload: {
-        productId: string;
+        lineKey: LineKey;
         packingPrefCode: string;
         packingPrefIsOverride?: boolean;
         packingPrefSource?: string;
@@ -386,15 +412,15 @@ export type NewOrderAction =
     }
   | {
       type: 'ADJUST_ITEM_PACKING_PREF_CHARGE';
-      payload: { productId: string; packingPrefCharge: number };
+      payload: { lineKey: LineKey; packingPrefCharge: number };
     }
-  | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { productId: string; priceOverride: number | null; overrideReason: string; overrideBy: string } }
+  | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { lineKey: LineKey; priceOverride: number | null; overrideReason: string; overrideBy: string } }
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }
   | { type: 'SET_SERVICE_SPEED'; payload: string }
-  | { type: 'SET_ITEM_SERVICE_SPEED'; payload: { productId: string; serviceSpeed: string | null } }
+  | { type: 'SET_ITEM_SERVICE_SPEED'; payload: { lineKey: LineKey; serviceSpeed: string | null } }
   | { type: 'APPLY_SPEED_TO_ALL_LINES' }
-  | { type: 'SET_ITEM_LINE_DISCOUNT'; payload: { productId: string; lineDiscount: OrderItemLineDiscount | null } }
+  | { type: 'SET_ITEM_LINE_DISCOUNT'; payload: { lineKey: LineKey; lineDiscount: OrderItemLineDiscount | null } }
   | { type: 'SET_BAGS'; payload: number }
   | { type: 'SET_NOTES'; payload: string }
   | { type: 'SET_CUSTOMER_NOTES'; payload: string }
@@ -406,7 +432,7 @@ export type NewOrderAction =
   | { type: 'REMOVE_PENDING_PHOTO'; payload: number } // index
   | { type: 'OPEN_MODAL'; payload: keyof ModalStates }
   | { type: 'CLOSE_MODAL'; payload: keyof ModalStates }
-  | { type: 'OPEN_PRICE_OVERRIDE_MODAL'; payload: string } // productId
+  | { type: 'OPEN_PRICE_OVERRIDE_MODAL'; payload: LineKey }
   | { type: 'SET_CATEGORIES'; payload: ServiceCategory[] }
   | { type: 'SET_PRODUCTS'; payload: Product[] }
   | { type: 'SET_SELECTED_CATEGORY'; payload: string }

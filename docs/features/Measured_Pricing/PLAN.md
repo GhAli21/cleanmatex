@@ -434,3 +434,5 @@ Every phase ends with: STATUS.md + PLAN progress, QA_TEST_GUIDE.md, RESUME_CONTI
 Owner approved v5. P1 and P2 are done and applied; P3 is mostly done. Details, decisions and open questions: [STATUS.md](STATUS.md) → Session handoff.
 
 **P5 progress 2026-11-24:** migration `0821_oc_change_item_measure.sql` written (awaiting owner apply). Code design in RESUME_CONTINUATION (section P5).
+
+- 2026-11-25: P4 fix "free-garment check on measured lines" done (see STATUS, QA steps 31-34). P6/P8 now also own `lib/orders/line-qualifier.ts` for Order Cart Line Grouping.

@@ -59,6 +59,16 @@ export const ERP_LITE_EXCEPTION_STATUSES = {
   NEW: 'NEW',
 } as const;
 
+/**
+ * Automatic retry of a SYSTEM_ERROR posting (Background Jobs step 6c, queue `fin.erp_post.retry`).
+ * A failed attempt below MAX_ATTEMPTS queues one delayed retry: FIRST_DELAY_S × 3^(attempt − 1),
+ * so 5 min after attempt 1 and 15 min after attempt 2. Other exception types need a person.
+ */
+export const ERP_LITE_AUTO_RETRY = {
+  MAX_ATTEMPTS: 3,
+  FIRST_DELAY_S: 300,
+} as const;
+
 export const ERP_LITE_POSTING_MODES = {
   PREVIEW: 'preview',
   EXECUTE: 'execute',

@@ -96,6 +96,8 @@
     "width": "Width (m)",
     "billed": "Billed: {qty}",
     "dialogTitle": "Measure — {product}",
+    "recheckNotice": "Pieces changed from {from} to {to}. Check the total measure.",
+    "recheckBlocked": "You can keep the total, but this order does not allow changing it.",
     "minRule": "Minimum billed: {qty}",
     "stepRule": "Billed in steps of {qty}",
     "minimumApplied": "Raised to the minimum for this item.",

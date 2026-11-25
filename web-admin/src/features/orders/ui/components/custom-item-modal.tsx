@@ -24,6 +24,7 @@ import {
 import { cmxMessage } from '@ui/feedback';
 import type { OrderItem } from '../../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
+import { newCartLineKey } from '../../model/cart-line-key';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { CUSTOM_ITEM_KEY_PREFIX } from '../../model/checkout-line-intent';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -123,7 +124,9 @@ export function CustomItemModal({
     // MANUAL and never creates a catalog product for it.
     const customProductId = `${CUSTOM_ITEM_KEY_PREFIX}${crypto.randomUUID()}`;
 
+    const lineKey = newCartLineKey();
     const customItem: OrderItem = {
+      lineKey,
       productId: customProductId,
       customItem: { name: sanitizedName, name2: sanitizedName2, unitPrice: data.price },
       productName: sanitizedName,
@@ -135,7 +138,7 @@ export function CustomItemModal({
       serviceCategoryCode,
       notes: sanitizedNotes,
       pieces: trackByPiece
-        ? generatePiecesForItem(customProductId, data.quantity)
+        ? generatePiecesForItem(lineKey, data.quantity)
         : undefined,
     };
 

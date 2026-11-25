@@ -20,6 +20,9 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { renderChannelTemplate } from '@/lib/notifications/template-renderer';
 import { IMMEDIATE_SEND_PRIORITY, queueImmediateSendTx } from '@/lib/notifications/immediate-send.service';
+import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
+import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 
 /** Notification event of a sent receipt (sys_ntf_events_cd, 0820). */
 const RECEIPT_EVENT_CODE = 'order.receipt_sent';
@@ -159,6 +162,16 @@ export class ReceiptService {
             email
           ),
           items:org_order_items_dtl(
+            id,
+            product_id,
+            uom_code,
+            uom_dimension,
+            uom_symbol,
+            uom_symbol2,
+            uom_qty_decimals,
+            measured_qty,
+            billed_qty,
+            service_speed,
             product_name,
             product_name2,
             quantity,
@@ -180,6 +193,14 @@ export class ReceiptService {
       if (orderError || !order) {
         throw new Error('Order not found');
       }
+
+      // Line qualifier (measure, own speed, ordinal) tells same-name lines apart; formatted once, in the receipt language.
+      const speedNames = await loadSpeedNames((order.items ?? []).map((i: { service_speed?: string | null }) => i.service_speed), supabase);
+      const qualifiers = orderLineQualifiers((order.items ?? []).map(qualifierInputOfRow), order.service_speed, speedNames);
+      order.items = (order.items ?? []).map((item) => ({
+        ...item,
+        qualifier_text: formatLineQualifier(qualifiers.get(item.id), { locale: language === 'ar' ? 'ar' : 'en' }),
+      }));
 
       // Get template
       const { data: template, error: templateError } = await supabase
@@ -541,7 +562,7 @@ export class ReceiptService {
           language === 'ar'
             ? item.product_name2 || item.product_name || ''
             : item.product_name || '';
-        return `${name} x${item.quantity} - ${this.formatLineAmount(item, language, money)}`;
+        return `${name}${item.qualifier_text ? ` · ${item.qualifier_text}` : ''} x${item.quantity} - ${this.formatLineAmount(item, language, money)}`;
       })
       .join('\n');
   }
@@ -602,7 +623,7 @@ export class ReceiptService {
         <div class="items">
           <h3>${isRTL ? 'العناصر' : 'Items'}</h3>
           ${items.map((item: any) => `
-            <p>${isRTL ? item.product_name2 || item.product_name : item.product_name} x${item.quantity} - ${this.formatLineAmount(item, language, money)}</p>
+            <p>${isRTL ? item.product_name2 || item.product_name : item.product_name}${item.qualifier_text ? ` · ${item.qualifier_text}` : ''} x${item.quantity} - ${this.formatLineAmount(item, language, money)}</p>
           `).join('')}
         </div>
         ${this.formatPreferencesSummary(items) !== '—' ? `

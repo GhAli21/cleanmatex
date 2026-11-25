@@ -516,6 +516,25 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
         // A count line is counted, not measured: the edit is refused, nothing is dropped silently.
         const refused = await edit([{ seq: 1, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: trouserLine.id }, payload: { measure: { measuredQty: '2' } } }], true);
         expect(refused.preview.ok).toBe(false);
+        // Cart line grouping §4.5: merging a measured article into a saved line sends quantity + add piece + measure
+        // on ONE line in one edit. The measure is the line total, so billed = max(measure, minimum) rounded to the step.
+        // The line needs saved piece rows (a line without them takes the quantity alone: QUANTITY_DOUBLE_COUNT otherwise).
+        const pieceSoapRef = randomUUID();
+        await edit([
+          { seq: 1, code: 'ADD_ITEM', target: { kind: 'ORDER' }, payload: { clientRef: pieceSoapRef, productId: soap, quantity: 1, measure: { measuredQty: '2' } } },
+          { seq: 2, code: 'ADD_PIECE', target: { kind: 'LOCAL_ITEM', clientRef: pieceSoapRef }, payload: { clientRef: randomUUID() } },
+        ]);
+        const merged = await edit([
+          { seq: 1, code: 'CHANGE_ITEM_QUANTITY', target: { kind: 'PERSISTED_ITEM', id: pieceSoapRef }, payload: { quantity: 2 } },
+          { seq: 2, code: 'ADD_PIECE', target: { kind: 'PERSISTED_ITEM', id: pieceSoapRef }, payload: { clientRef: randomUUID() } },
+          { seq: 3, code: 'CHANGE_ITEM_MEASURE', target: { kind: 'PERSISTED_ITEM', id: pieceSoapRef }, payload: { measure: { measuredQty: '4.0' } } },
+        ]);
+        expect(merged.preview.ok).toBe(true);
+        const mergedRow = (await tx.$queryRaw<Array<{ quantity: number; measured_qty: string; billed_qty: string; total_price: string }>>`
+          SELECT quantity, measured_qty::text AS measured_qty, billed_qty::text AS billed_qty, total_price::text AS total_price
+          FROM public.org_order_items_dtl WHERE tenant_org_id = ${tenantId}::uuid AND id = ${pieceSoapRef}::uuid AND rec_status = 1`)[0];
+        expect(mergedRow).toMatchObject({ quantity: 2, measured_qty: '4.000000', billed_qty: '4.000000' });
+        expect(money(mergedRow.total_price)).toBe(money(20));
 
         // ─── 13. Price the cart showed (P6-02e): a stale price is listed, Apply charges today's ──
         const shownRef = randomUUID();

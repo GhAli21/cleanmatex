@@ -36,7 +36,7 @@ const SECTION_FIELDS = {
 } as const satisfies Record<keyof OrderFinSectionPayload, Cls>;
 const LINE_FIELDS = {
   id: 'public', labelKey: 'public', label: 'public', unit: 'public', amount: 'public',
-  previousAmount: 'private', sign: 'public', role: 'public', state: 'public', countsInTotal: 'public', meta: 'public',
+  previousAmount: 'private', sign: 'public', role: 'public', state: 'public', countsInTotal: 'public', meta: 'public', qualifier: 'public',
 } as const satisfies Record<keyof OrderFinLine, Cls>;
 const META_FIELDS = {
   methodCode: 'public', dateIso: 'private', ref: 'private', statusCode: 'private',

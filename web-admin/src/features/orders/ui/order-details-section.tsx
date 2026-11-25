@@ -24,7 +24,7 @@ import { useOrderTotals } from '../hooks/use-order-totals';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelector';
 import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
-import type { PreSubmissionPiece } from '../model/new-order-types';
+import type { LineKey, PreSubmissionPiece } from '../model/new-order-types';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -141,11 +141,11 @@ export function OrderDetailsSection({
   );
 
   const handlePieceUpdate = (
-    productId: string,
+    lineKey: LineKey,
     pieceId: string,
     updates: Partial<PreSubmissionPiece>,
   ) => {
-    const item = state.items.find((candidate) => candidate.productId === productId);
+    const item = state.items.find((candidate) => candidate.lineKey === lineKey);
     if (!item) return;
 
     const existingPieces: PreSubmissionPiece[] = item.pieces ?? [];
@@ -153,11 +153,11 @@ export function OrderDetailsSection({
       piece.id === pieceId ? { ...piece, ...updates } : piece,
     );
 
-    updateItemPieces(productId, updatedPieces);
+    updateItemPieces(lineKey, updatedPieces);
   };
 
-  const handleAddPiece = (productId: string) => {
-    const item = state.items.find((candidate) => candidate.productId === productId);
+  const handleAddPiece = (lineKey: LineKey) => {
+    const item = state.items.find((candidate) => candidate.lineKey === lineKey);
     if (!item) return;
 
     const existingPieces: PreSubmissionPiece[] = item.pieces ?? [];
@@ -167,16 +167,16 @@ export function OrderDetailsSection({
         : 1;
 
     const newPiece: PreSubmissionPiece = {
-      id: `temp-${productId}-${nextSeq}`,
-      itemId: productId,
+      id: `temp-${lineKey}-${nextSeq}`,
+      itemId: lineKey,
       pieceSeq: nextSeq,
     };
 
-    updateItemPieces(productId, [...existingPieces, newPiece]);
+    updateItemPieces(lineKey, [...existingPieces, newPiece]);
   };
 
-  const handleRemovePiece = (productId: string, pieceId: string) => {
-    const item = state.items.find((candidate) => candidate.productId === productId);
+  const handleRemovePiece = (lineKey: LineKey, pieceId: string) => {
+    const item = state.items.find((candidate) => candidate.lineKey === lineKey);
     if (!item) return;
 
     const existingPieces: PreSubmissionPiece[] = item.pieces ?? [];
@@ -186,7 +186,7 @@ export function OrderDetailsSection({
       pieceSeq: index + 1,
     }));
 
-    updateItemPieces(productId, resequenced);
+    updateItemPieces(lineKey, resequenced);
   };
 
   if (!hasItems) {
@@ -295,7 +295,7 @@ export function OrderDetailsSection({
           </TableHeader>
           <TableBody>
             {visibleItems.map((item) => (
-              <Fragment key={item.productId}>
+              <Fragment key={item.lineKey}>
                 {/* Parent item row */}
                 <TableRow className="border-t border-border hover:bg-muted">
                   <TableCell className="px-3 py-2 align-top">
@@ -315,14 +315,14 @@ export function OrderDetailsSection({
                         onClick={() => {
                           setExpandedPiecesItems((previous) => {
                             // Allow only one item expanded at a time
-                            const isExpanded = previous.has(item.productId);
+                            const isExpanded = previous.has(item.lineKey);
                             if (isExpanded) {
                               return new Set<string>();
                             }
-                            return new Set<string>([item.productId]);
+                            return new Set<string>([item.lineKey]);
                           });
                         }}
-                        className={`mt-1 h-auto rounded-full px-2 py-0.5 text-[11px] ${expandedPiecesItems.has(item.productId)
+                        className={`mt-1 h-auto rounded-full px-2 py-0.5 text-[11px] ${expandedPiecesItems.has(item.lineKey)
                             ? 'border-primary bg-info-bg text-info-text'
                             : 'border-border bg-card hover:bg-muted'
                           }`}
@@ -332,7 +332,7 @@ export function OrderDetailsSection({
                           {tPieces('pieces') || 'Pieces'} (
                           {item.pieces?.length ?? 0})
                         </span>
-                        {expandedPiecesItems.has(item.productId) ? (
+                        {expandedPiecesItems.has(item.lineKey) ? (
                           <ChevronUp className="w-3 h-3" />
                         ) : (
                           <ChevronDown className="w-3 h-3" />
@@ -359,7 +359,7 @@ export function OrderDetailsSection({
                         disabled={item.quantity <= 1}
                         onClick={() =>
                           updateItemQuantity(
-                            item.productId,
+                            item.lineKey,
                             Math.max(1, item.quantity - 1),
                           )
                         }
@@ -376,7 +376,7 @@ export function OrderDetailsSection({
                         aria-label={tItems('increaseQuantity') || 'Increase'}
                         className="h-7 w-7 p-0 text-muted-foreground rounded-e-full"
                         onClick={() =>
-                          updateItemQuantity(item.productId, item.quantity + 1)
+                          updateItemQuantity(item.lineKey, item.quantity + 1)
                         }
                       >
                         <Plus className="w-3 h-3" />
@@ -398,7 +398,7 @@ export function OrderDetailsSection({
                       type="text"
                       value={item.notes ?? ''}
                       onChange={(event) =>
-                        updateItemNotes(item.productId, event.target.value)
+                        updateItemNotes(item.lineKey, event.target.value)
                       }
                       placeholder={tItems('note') || 'Add note'}
                       className="h-8 text-xs text-start"
@@ -414,7 +414,7 @@ export function OrderDetailsSection({
                               availablePrefs={packingPrefs}
                               onChange={(code, packingCfId) =>
                                 updateItemPackingPref(
-                                  item.productId,
+                                  item.lineKey,
                                   code ?? '',
                                   undefined,
                                   undefined,
@@ -436,9 +436,9 @@ export function OrderDetailsSection({
                                     packingPrefCode: code,
                                     packingCfId: cf ?? undefined,
                                   }));
-                                  updateItemPieces(item.productId, updatedPieces);
+                                  updateItemPieces(item.lineKey, updatedPieces);
                                   adjustItemPackingCharge(
-                                    item.productId,
+                                    item.lineKey,
                                     orderItemLinePackingCharge({ ...item, pieces: updatedPieces }, packingPriceByCode)
                                   );
                                 }}
@@ -457,7 +457,7 @@ export function OrderDetailsSection({
                       type="button"
                       variant="ghost"
                       size="xs"
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(item.lineKey)}
                       className="h-7 w-7 p-0 text-danger-text hover:bg-danger-bg rounded-full"
                       aria-label={tItems('removeItem') || 'Remove item from order'}
                     >
@@ -468,7 +468,7 @@ export function OrderDetailsSection({
 
                 {/* Child rows: pieces — selectable rows */}
                 {trackByPiece &&
-                  expandedPiecesItems.has(item.productId) &&
+                  expandedPiecesItems.has(item.lineKey) &&
                   (item.pieces ?? []).map((piece) => {
                     const isPieceSelected = selectedPieceId === piece.id;
                     return (
@@ -532,7 +532,7 @@ export function OrderDetailsSection({
                             type="button"
                             variant="ghost"
                             size="xs"
-                            onClick={(e) => { e.stopPropagation(); handleRemovePiece(item.productId, piece.id); }}
+                            onClick={(e) => { e.stopPropagation(); handleRemovePiece(item.lineKey, piece.id); }}
                             className="h-7 w-7 p-0 text-danger-text hover:bg-danger-bg rounded-full"
                             aria-label={tPieces('removePiece') || 'Remove piece'}
                           >
@@ -544,7 +544,7 @@ export function OrderDetailsSection({
                   })}
 
                 {/* Add piece row */}
-                {trackByPiece && expandedPiecesItems.has(item.productId) && (
+                {trackByPiece && expandedPiecesItems.has(item.lineKey) && (
                   <TableRow className="bg-muted border-t border-border">
                     <TableCell
                       className="px-6 py-2 text-[11px] text-primary-text cursor-pointer"
@@ -554,7 +554,7 @@ export function OrderDetailsSection({
                         type="button"
                         variant="ghost"
                         size="xs"
-                        onClick={() => handleAddPiece(item.productId)}
+                        onClick={() => handleAddPiece(item.lineKey)}
                         className="h-auto px-0 text-primary-text"
                       >
                         + {tPieces('addPiece')}

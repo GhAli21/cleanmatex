@@ -3,12 +3,13 @@
  * Context consumer with dispatch helpers
  */
 
-import type { OrderItemLineDiscount } from '../model/new-order-types';
+import type { LineKey, OrderItemLineDiscount } from '../model/new-order-types';
 import { useNewOrderContext } from '../ui/context/new-order-context';
 import { useOrderWorkspaceSessionOptional } from '../order-change/order-workspace-session';
 import { resolveEditControlCapability, resolveEditControlGroup } from '../order-change/edit-control-capability';
 import type { OrderChangeOperationCode } from '@/lib/constants/order-change';
-import type { NewOrderState, MinimalCustomer, OrderItem, OrderItemMeasure, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
+import { sameMeasure } from '@/lib/services/order-change/order-change-line-money-compare';
+import type { NewOrderAction, NewOrderState, MinimalCustomer, OrderItem, OrderItemMeasure, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
 import type { OrderSourceCode } from '@/lib/constants/order-sources';
 import type { OrderTypeId } from '@/lib/constants/order-types';
 
@@ -38,32 +39,41 @@ export interface UseNewOrderStateWithDispatchReturn {
   /** Changes the auditable sales or integration channel before submission. */
   setOrderSourceCode: (orderSourceCode: OrderSourceCode) => void;
   addItem: (item: OrderItem) => void;
-  removeItem: (productId: string) => boolean;
-  updateItemQuantity: (productId: string, quantity: number) => void;
+  removeItem: (lineKey: LineKey) => boolean;
+  /** @returns false when the change was held for a measure check (measured line) or refused; true when applied. */
+  updateItemQuantity: (lineKey: LineKey, quantity: number) => boolean;
   /** Changes what was measured on a measured line (kg, m, length × width). */
-  updateItemMeasure: (productId: string, measure: OrderItemMeasure) => void;
-  updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
-  updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
+  updateItemMeasure: (lineKey: LineKey, measure: OrderItemMeasure) => void;
+  /** @returns false when the change was held for a measure check (measured line) or refused; true when applied. */
+  updateItemPieces: (lineKey: LineKey, pieces: PreSubmissionPiece[] | undefined) => boolean;
+  /**
+   * Applies the held piece-count change and the measure staff confirmed (kept or changed).
+   * @returns `MEASURE_BLOCKED` when the measure changed but the Edit policy does not allow it (nothing applied); else `APPLIED` with the action that was applied
+   */
+  confirmMeasureRecheck: (measure: OrderItemMeasure) => { status: 'APPLIED'; deferred: NewOrderAction } | { status: 'MEASURE_BLOCKED' | 'NONE' };
+  /** Drops the held piece-count change: the count stays as it was. */
+  cancelMeasureRecheck: () => void;
+  updateItemServicePrefs: (lineKey: LineKey, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
   updateOrderServicePrefs: (servicePrefs: OrderItemServicePref[]) => void;
   updateItemPackingPref: (
-    productId: string,
+    lineKey: LineKey,
     packingPrefCode: string,
     packingPrefIsOverride?: boolean,
     packingPrefSource?: string,
     packingCfId?: string | null,
     packingPrefCharge?: number
   ) => void;
-  adjustItemPackingCharge: (productId: string, packingPrefCharge: number) => void;
-  updateItemNotes: (productId: string, notes: string) => void;
-  updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
+  adjustItemPackingCharge: (lineKey: LineKey, packingPrefCharge: number) => void;
+  updateItemNotes: (lineKey: LineKey, notes: string) => void;
+  updateItemPriceOverride: (lineKey: LineKey, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
   setQuickDrop: (value: boolean) => void;
   setQuickDropQuantity: (quantity: number) => void;
   /** Sets the order speed (`sys_service_speed_cd.code`). */
   setServiceSpeed: (serviceSpeed: string) => void;
   /** Gives one line its own speed; null makes it follow the order speed. */
-  setItemServiceSpeed: (productId: string, serviceSpeed: string | null) => void;
+  setItemServiceSpeed: (lineKey: LineKey, serviceSpeed: string | null) => void;
   /** Sets or (with null) removes a cashier discount on one line. */
-  setItemLineDiscount: (productId: string, lineDiscount: OrderItemLineDiscount | null) => void;
+  setItemLineDiscount: (lineKey: LineKey, lineDiscount: OrderItemLineDiscount | null) => void;
   /** Every line follows the order speed again. */
   applySpeedToAllLines: () => void;
   setBags: (count: number) => void;
@@ -75,7 +85,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   setCreatedOrder: (orderId: string, status: string | null) => void;
   openModal: (modal: keyof NewOrderState['modals']) => void;
   closeModal: (modal: keyof NewOrderState['modals']) => void;
-  openPriceOverrideModal: (productId: string) => void;
+  openPriceOverrideModal: (lineKey: LineKey) => void;
   setCategories: (categories: ServiceCategory[]) => void;
   setProducts: (products: Product[]) => void;
   setSelectedCategory: (category: string) => void;
@@ -104,6 +114,19 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     editSession != null && !resolveEditControlCapability(editSession.editPolicy, code, targetType).interactive;
   const groupBlocked = (codes: readonly OrderChangeOperationCode[]) =>
     editSession != null && !resolveEditControlGroup(editSession.editPolicy, codes).interactive;
+
+  /**
+   * A measured line is billed on its total measure, so a piece-count change that leaves the measure alone
+   * can add a free garment. The change is held (nothing applied) and the Measure dialog asks staff to check the
+   * total; the measure is never changed automatically. Removing the line (quantity 0) is not held.
+   * @returns true when the change was held
+   */
+  const holdForMeasure = (lineKey: LineKey, nextQuantity: number, deferred: NewOrderAction): boolean => {
+    const item = state.items.find((i) => i.lineKey === lineKey);
+    if (!item?.uom || nextQuantity <= 0 || nextQuantity === item.quantity) return false;
+    dispatch({ type: 'REQUEST_MEASURE_RECHECK', payload: { lineKey, from: item.quantity, to: nextQuantity, deferred } });
+    return true;
+  };
 
   // Helper functions for common actions. An Edit session keeps committed commercial identity here.
   const actions = {
@@ -149,40 +172,59 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({ type: 'ADD_ITEM', payload: item });
     },
 
-    removeItem: (productId: string) => {
+    removeItem: (lineKey: LineKey) => {
       if (blocked('REMOVE_ITEM')) return false;
-      if (!state.items.some((item) => item.productId === productId)) return false;
-      dispatch({ type: 'REMOVE_ITEM', payload: productId });
+      if (!state.items.some((item) => item.lineKey === lineKey)) return false;
+      dispatch({ type: 'REMOVE_ITEM', payload: lineKey });
       return true;
     },
 
-    updateItemQuantity: (productId: string, quantity: number) => {
-      if (blocked('CHANGE_ITEM_QUANTITY')) return;
-      dispatch({
-        type: 'UPDATE_ITEM_QUANTITY',
-        payload: { productId, quantity },
-      });
+    updateItemQuantity: (lineKey: LineKey, quantity: number) => {
+      if (blocked('CHANGE_ITEM_QUANTITY')) return false;
+      const action: NewOrderAction = { type: 'UPDATE_ITEM_QUANTITY', payload: { lineKey, quantity } };
+      if (holdForMeasure(lineKey, quantity, action)) return false;
+      dispatch(action);
+      return true;
     },
 
-    updateItemMeasure: (productId: string, measure: OrderItemMeasure) => {
+    updateItemMeasure: (lineKey: LineKey, measure: OrderItemMeasure) => {
       // Order Edit: a stored line's measure is its own policy cell (CHANGE_ITEM_MEASURE / ITEM, Measured Pricing P5).
       if (blocked('CHANGE_ITEM_MEASURE', 'ITEM')) return;
-      dispatch({ type: 'UPDATE_ITEM_MEASURE', payload: { productId, measure } });
+      dispatch({ type: 'UPDATE_ITEM_MEASURE', payload: { lineKey, measure } });
     },
 
-    updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => {
-      if (groupBlocked(['ADD_PIECE', 'REMOVE_PIECE'])) return;
-      dispatch({
-        type: 'UPDATE_ITEM_PIECES',
-        payload: { productId, pieces: pieces || [] },
-      });
+    updateItemPieces: (lineKey: LineKey, pieces: PreSubmissionPiece[] | undefined) => {
+      if (groupBlocked(['ADD_PIECE', 'REMOVE_PIECE'])) return false;
+      const action: NewOrderAction = { type: 'UPDATE_ITEM_PIECES', payload: { lineKey, pieces: pieces || [] } };
+      // The reducer sets the quantity to the piece count when there are pieces, else keeps it.
+      const nextQuantity = pieces && pieces.length > 0 ? pieces.length : state.items.find((i) => i.lineKey === lineKey)?.quantity ?? 0;
+      if (holdForMeasure(lineKey, nextQuantity, action)) return false;
+      dispatch(action);
+      return true;
     },
 
-    updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => {
+    confirmMeasureRecheck: (measure: OrderItemMeasure) => {
+      const held = state.measureRecheck;
+      if (!held) return { status: 'NONE' as const };
+      const item = state.items.find((i) => i.lineKey === held.lineKey);
+      const changed = !sameMeasure(item?.measure, measure);
+      // Keeping the total is an explicit choice and always allowed; a new total needs the measure policy cell.
+      if (changed && blocked('CHANGE_ITEM_MEASURE', 'ITEM')) return { status: 'MEASURE_BLOCKED' as const };
+      dispatch({ type: 'CLEAR_MEASURE_RECHECK' });
+      dispatch(held.deferred);
+      if (changed) dispatch({ type: 'UPDATE_ITEM_MEASURE', payload: { lineKey: held.lineKey, measure } });
+      return { status: 'APPLIED' as const, deferred: held.deferred };
+    },
+
+    cancelMeasureRecheck: () => {
+      dispatch({ type: 'CLEAR_MEASURE_RECHECK' });
+    },
+
+    updateItemServicePrefs: (lineKey: LineKey, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => {
       if (groupBlocked(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE'])) return;
       dispatch({
         type: 'UPDATE_ITEM_SERVICE_PREFS',
-        payload: { productId, servicePrefs, servicePrefCharge },
+        payload: { lineKey, servicePrefs, servicePrefCharge },
       });
     },
 
@@ -195,7 +237,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
     },
 
     updateItemPackingPref: (
-      productId: string,
+      lineKey: LineKey,
       packingPrefCode: string,
       packingPrefIsOverride?: boolean,
       packingPrefSource?: string,
@@ -206,7 +248,7 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({
         type: 'UPDATE_ITEM_PACKING_PREF',
         payload: {
-          productId,
+          lineKey,
           packingPrefCode,
           packingPrefIsOverride,
           packingPrefSource,
@@ -216,28 +258,28 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       });
     },
 
-    adjustItemPackingCharge: (productId: string, packingPrefCharge: number) => {
+    adjustItemPackingCharge: (lineKey: LineKey, packingPrefCharge: number) => {
       if (groupBlocked(['ADD_PREFERENCE', 'CHANGE_PREFERENCE', 'REMOVE_PREFERENCE'])) return;
       dispatch({
         type: 'ADJUST_ITEM_PACKING_PREF_CHARGE',
-        payload: { productId, packingPrefCharge },
+        payload: { lineKey, packingPrefCharge },
       });
     },
 
-    updateItemNotes: (productId: string, notes: string) => {
+    updateItemNotes: (lineKey: LineKey, notes: string) => {
       if (identityLocked) return;
       dispatch({
         type: 'UPDATE_ITEM_NOTES',
-        payload: { productId, notes },
+        payload: { lineKey, notes },
       });
     },
 
-    updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => {
+    updateItemPriceOverride: (lineKey: LineKey, priceOverride: number | null, overrideReason: string, overrideBy: string) => {
       // Edit: a stored line's cashier price is its own policy cell (CHANGE_ITEM_PRICE / ITEM, P6-02c).
       if (blocked('CHANGE_ITEM_PRICE', 'ITEM')) return;
       dispatch({
         type: 'UPDATE_ITEM_PRICE_OVERRIDE',
-        payload: { productId, priceOverride, overrideReason, overrideBy },
+        payload: { lineKey, priceOverride, overrideReason, overrideBy },
       });
     },
 
@@ -256,14 +298,14 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({ type: 'SET_SERVICE_SPEED', payload: serviceSpeed });
     },
 
-    setItemServiceSpeed: (productId: string, serviceSpeed: string | null) => {
+    setItemServiceSpeed: (lineKey: LineKey, serviceSpeed: string | null) => {
       if (blocked('CHANGE_SERVICE_SPEED', 'ITEM')) return;
-      dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { productId, serviceSpeed } });
+      dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { lineKey, serviceSpeed } });
     },
 
-    setItemLineDiscount: (productId: string, lineDiscount: OrderItemLineDiscount | null) => {
+    setItemLineDiscount: (lineKey: LineKey, lineDiscount: OrderItemLineDiscount | null) => {
       if (blocked('CHANGE_DISCOUNT', 'ITEM')) return;
-      dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId, lineDiscount } });
+      dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { lineKey, lineDiscount } });
     },
 
     applySpeedToAllLines: () => {
@@ -319,9 +361,9 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({ type: 'CLOSE_MODAL', payload: modal });
     },
 
-    openPriceOverrideModal: (productId: string) => {
+    openPriceOverrideModal: (lineKey: LineKey) => {
       if (identityLocked) return;
-      dispatch({ type: 'OPEN_PRICE_OVERRIDE_MODAL', payload: productId });
+      dispatch({ type: 'OPEN_PRICE_OVERRIDE_MODAL', payload: lineKey });
     },
 
     setCategories: (categories: typeof state.categories) => {

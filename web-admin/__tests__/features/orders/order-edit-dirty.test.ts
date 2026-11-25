@@ -3,10 +3,12 @@ import {
   resolveEditCustomerSnapshot,
   type OrderEditDirtyCurrent,
 } from '@/src/features/orders/lib/order-edit-dirty';
-import type { OrderItem } from '@/src/features/orders/model/new-order-types';
+import type { LineKey, OrderItem } from '@/src/features/orders/model/new-order-types';
 
 function item(overrides: Partial<OrderItem> = {}): OrderItem {
   return {
+    lineKey: 'item-1' as LineKey,
+    persistedItemId: 'item-1',
     productId: 'prod-1',
     productName: 'Shirt',
     productName2: null,
@@ -51,6 +53,7 @@ const original = {
   order_service_prefs: [],
   items: [
     {
+      id: 'item-1',
       product_id: 'prod-1',
       quantity: 1,
       price_per_unit: 2.5,
@@ -61,6 +64,20 @@ const original = {
 };
 
 describe('isOrderEditFormDirty', () => {
+  it('Cart Line Grouping A6: two saved lines of one product are compared line by line', () => {
+    const second = { id: 'item-2', product_id: 'prod-1', quantity: 1, price_per_unit: 2.5, notes: '', pieces: [] };
+    const twoLines = { ...original, items: [...original.items, second] };
+    const line2 = item({ lineKey: 'item-2' as LineKey, persistedItemId: 'item-2' });
+    expect(isOrderEditFormDirty(current({ items: [item(), line2] }), twoLines)).toBe(false);
+    // Only line 2 changes: before the fix both lines matched the same product row, hiding or inventing changes.
+    expect(isOrderEditFormDirty(current({ items: [item(), { ...line2, quantity: 2 }] }), twoLines)).toBe(true);
+  });
+
+  it('a line not saved yet counts as a change', () => {
+    const unsaved = item({ lineKey: 'new' as LineKey, persistedItemId: undefined });
+    expect(isOrderEditFormDirty(current({ items: [unsaved] }), original)).toBe(true);
+  });
+
   it('is clean when form matches the loaded order', () => {
     expect(isOrderEditFormDirty(current(), original)).toBe(false);
   });

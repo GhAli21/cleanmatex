@@ -19,7 +19,7 @@ import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelect
 import { StainConditionToggles } from './stain-condition-toggles';
 import { CmxButton, CmxTextarea } from '@ui/primitives';
 import { ShoppingCart } from 'lucide-react';
-import type { PreSubmissionPiece } from '../model/new-order-types';
+import type { LineKey, PreSubmissionPiece } from '../model/new-order-types';
 import type { PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
@@ -92,7 +92,7 @@ export function PreferencesPanel({
     }
     for (const i of state.items) {
       if (!i.pieces || i.pieces.length === 0) {
-        if (selectedPieceId === `temp-${i.productId}-1`) {
+        if (selectedPieceId === `temp-${i.lineKey}-1`) {
           return { item: i, piece: null, isItemLevel: true };
         }
       } else {
@@ -103,14 +103,14 @@ export function PreferencesPanel({
     return { item: null, piece: null, isItemLevel: false };
   }, [selectedPieceId, state.items]);
 
-  const handlePieceUpdate = (productId: string, pieceId: string, updates: Partial<PreSubmissionPiece>) => {
-    const it = state.items.find((c) => c.productId === productId);
+  const handlePieceUpdate = (lineKey: LineKey, pieceId: string, updates: Partial<PreSubmissionPiece>) => {
+    const it = state.items.find((c) => c.lineKey === lineKey);
     if (!it) return;
     const existingPieces: PreSubmissionPiece[] = it.pieces ?? [];
     const updatedPieces = existingPieces.map((p) =>
       p.id === pieceId ? { ...p, ...updates } : p
     );
-    updateItemPieces(productId, updatedPieces);
+    updateItemPieces(lineKey, updatedPieces);
 
     if ('servicePrefs' in updates) {
       const pieceCharge = (pieces: PreSubmissionPiece[]) =>
@@ -120,7 +120,7 @@ export function PreferencesPanel({
           0
         );
       const newCharge = pieceCharge(updatedPieces);
-      updateItemServicePrefs(productId, it.servicePrefs ?? [], newCharge);
+      updateItemServicePrefs(lineKey, it.servicePrefs ?? [], newCharge);
     }
   };
 
@@ -145,7 +145,7 @@ export function PreferencesPanel({
                   availablePrefs={packingPrefs}
                   onChange={(code, packingCfId) =>
                     updateItemPackingPref(
-                      item.productId,
+                      item.lineKey,
                       code ?? '',
                       undefined,
                       undefined,
@@ -159,7 +159,7 @@ export function PreferencesPanel({
                   value={piece.packingPrefCode}
                   availablePrefs={packingPrefs}
                   onChange={(code, packingCfId) => {
-                    handlePieceUpdate(item.productId, piece.id, {
+                    handlePieceUpdate(item.lineKey, piece.id, {
                       packingPrefCode: code || undefined,
                       ...(code ? { packingCfId: packingCfId ?? null } : { packingCfId: undefined }),
                     });
@@ -173,7 +173,7 @@ export function PreferencesPanel({
                         : p
                     );
                     adjustItemPackingCharge(
-                      item.productId,
+                      item.lineKey,
                       orderItemLinePackingCharge({ ...item, pieces: updatedPieces }, packingPriceByCode)
                     );
                   }}
@@ -193,7 +193,7 @@ export function PreferencesPanel({
                 selectedPrefs={item.servicePrefs ?? []}
                 availablePrefs={prefsToShow}
                 onChange={(prefs, charge) =>
-                  updateItemServicePrefs(item.productId, prefs, charge)
+                  updateItemServicePrefs(item.lineKey, prefs, charge)
                 }
                 enforceCompatibility={enforcePrefCompatibility}
               />
@@ -202,7 +202,7 @@ export function PreferencesPanel({
                 selectedPrefs={piece.servicePrefs ?? []}
                 availablePrefs={prefsToShow}
                 onChange={(prefs) =>
-                  handlePieceUpdate(item.productId, piece.id, { servicePrefs: prefs })
+                  handlePieceUpdate(item.lineKey, piece.id, { servicePrefs: prefs })
                 }
                 maxPrefs={5}
                 enforceCompatibility={enforcePrefCompatibility}
@@ -334,7 +334,7 @@ export function PreferencesPanel({
               <CmxTextarea
                 value={piece.notes ?? ''}
                 onChange={(e) =>
-                  handlePieceUpdate(item.productId, piece.id, { notes: e.target.value })
+                  handlePieceUpdate(item.lineKey, piece.id, { notes: e.target.value })
                 }
                 placeholder={tPieces('notesPlaceholder') || 'Add notes for this piece...'}
                 className="min-h-[80px] text-sm"
@@ -344,7 +344,7 @@ export function PreferencesPanel({
             {isItemLevel && item && (
               <CmxTextarea
                 value={item.notes ?? ''}
-                onChange={(e) => updateItemNotes(item.productId, e.target.value)}
+                onChange={(e) => updateItemNotes(item.lineKey, e.target.value)}
                 placeholder={tPieces('notesPlaceholder') || 'Add notes...'}
                 className="min-h-[80px] text-sm"
                 rows={3}

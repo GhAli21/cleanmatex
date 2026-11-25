@@ -4,7 +4,7 @@
  */
 
 import { newOrderReducer, initialState } from '@/src/features/orders/ui/context/new-order-reducer';
-import type { NewOrderState, NewOrderAction, OrderItem, MinimalCustomer } from '@/src/features/orders/model/new-order-types';
+import type { LineKey, NewOrderState, NewOrderAction, OrderItem, MinimalCustomer } from '@/src/features/orders/model/new-order-types';
 
 describe('newOrderReducer', () => {
     describe('order creation context', () => {
@@ -89,6 +89,7 @@ describe('newOrderReducer', () => {
     describe('ADD_ITEM', () => {
         it('should add new item to empty items array', () => {
             const newItem: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -111,6 +112,7 @@ describe('newOrderReducer', () => {
 
         it('should increment quantity when adding existing item', () => {
             const existingItem: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -139,8 +141,9 @@ describe('newOrderReducer', () => {
     });
 
     describe('REMOVE_ITEM', () => {
-        it('should remove item by productId', () => {
+        it('should remove the line by its key', () => {
             const item1: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -151,6 +154,7 @@ describe('newOrderReducer', () => {
             };
 
             const item2: OrderItem = {
+                lineKey: 'line-product-2' as LineKey,
                 productId: 'product-2',
                 productName: 'Pants',
                 productName2: null,
@@ -167,7 +171,7 @@ describe('newOrderReducer', () => {
 
             const action: NewOrderAction = {
                 type: 'REMOVE_ITEM',
-                payload: 'product-1',
+                payload: 'line-product-1' as LineKey,
             };
 
             const result = newOrderReducer(stateWithItems, action);
@@ -176,8 +180,9 @@ describe('newOrderReducer', () => {
             expect(result.items[0].productId).toBe('product-2');
         });
 
-        it('keeps a saved line when the payload is the saved row id', () => {
+        it('a saved line is removed by its key (the saved row id), never by its product', () => {
             const saved: OrderItem = {
+                lineKey: 'row-uuid' as LineKey,
                 productId: 'product-1',
                 persistedItemId: 'row-uuid',
                 productName: 'Shirt',
@@ -189,17 +194,18 @@ describe('newOrderReducer', () => {
             };
             const stateWithSaved: NewOrderState = { ...initialState, items: [saved] };
 
-            const byRowId = newOrderReducer(stateWithSaved, { type: 'REMOVE_ITEM', payload: 'row-uuid' });
-            const byProductId = newOrderReducer(stateWithSaved, { type: 'REMOVE_ITEM', payload: 'product-1' });
+            const byRowId = newOrderReducer(stateWithSaved, { type: 'REMOVE_ITEM', payload: 'row-uuid' as LineKey });
+            const byProductId = newOrderReducer(stateWithSaved, { type: 'REMOVE_ITEM', payload: 'product-1' as LineKey });
 
-            expect(byRowId.items).toHaveLength(1);
-            expect(byProductId.items).toHaveLength(0);
+            expect(byRowId.items).toHaveLength(0);
+            expect(byProductId.items).toHaveLength(1);
         });
     });
 
     describe('UPDATE_ITEM_QUANTITY', () => {
         it('should update item quantity', () => {
             const item: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -217,7 +223,7 @@ describe('newOrderReducer', () => {
             const action: NewOrderAction = {
                 type: 'UPDATE_ITEM_QUANTITY',
                 payload: {
-                    productId: 'product-1',
+                    lineKey: 'line-product-1' as LineKey,
                     quantity: 3,
                 },
             };
@@ -230,6 +236,7 @@ describe('newOrderReducer', () => {
 
         it('should remove item when quantity is set to 0', () => {
             const item: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -247,7 +254,7 @@ describe('newOrderReducer', () => {
             const action: NewOrderAction = {
                 type: 'UPDATE_ITEM_QUANTITY',
                 payload: {
-                    productId: 'product-1',
+                    lineKey: 'line-product-1' as LineKey,
                     quantity: 0,
                 },
             };
@@ -261,6 +268,7 @@ describe('newOrderReducer', () => {
     describe('UPDATE_ITEM_NOTES', () => {
         it('should update notes for a specific item', () => {
             const item: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -278,7 +286,7 @@ describe('newOrderReducer', () => {
             const action: NewOrderAction = {
                 type: 'UPDATE_ITEM_NOTES',
                 payload: {
-                    productId: 'product-1',
+                    lineKey: 'line-product-1' as LineKey,
                     notes: 'Handle with care',
                 },
             };
@@ -292,6 +300,7 @@ describe('newOrderReducer', () => {
     describe('SET_SERVICE_SPEED (P5-03b)', () => {
         it('sets the order speed code and leaves line prices to the server quote', () => {
             const item: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Shirt',
                 productName2: null,
@@ -346,6 +355,7 @@ describe('newOrderReducer', () => {
                 customerName: 'John Doe',
                 items: [
                     {
+                        lineKey: 'line-product-1' as LineKey,
                         productId: 'product-1',
                         productName: 'Shirt',
                         productName2: null,
@@ -379,6 +389,7 @@ describe('newOrderReducer', () => {
     describe('UPDATE_ITEM_SERVICE_PREFS', () => {
         it('recalculates totalPrice as qty * pricePerUnit + servicePrefCharge', () => {
             const item: OrderItem = {
+                lineKey: 'line-product-1' as LineKey,
                 productId: 'product-1',
                 productName: 'Tank Top',
                 productName2: null,
@@ -392,7 +403,7 @@ describe('newOrderReducer', () => {
             const action: NewOrderAction = {
                 type: 'UPDATE_ITEM_SERVICE_PREFS',
                 payload: {
-                    productId: 'product-1',
+                    lineKey: 'line-product-1' as LineKey,
                     servicePrefs: [{ preference_code: 'SEP_WASH', source: 'ORDER_CREATE', extra_price: 0.5 }],
                     servicePrefCharge: 0.5,
                 },

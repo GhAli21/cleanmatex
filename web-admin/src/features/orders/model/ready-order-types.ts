@@ -1,4 +1,5 @@
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
+import type { LineQualifier } from '@/lib/orders/line-qualifier';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 import {
   NOT_RELEASED_PICKUP_SUMMARY,
@@ -34,6 +35,8 @@ export interface ReadyOrderItem {
   totalPrice: number;
   /** After the line's discounts; null only on an older line. */
   netAmount: number | null;
+  /** Measure, own speed and ordinal that tell same-name lines apart (from the state API). */
+  qualifier?: LineQualifier;
 }
 
 /**
@@ -123,6 +126,7 @@ export function mapReadyOrderFromStateResponse(
       quantity: Number(it.quantity ?? 0),
       totalPrice: Number(it.total_price ?? 0),
       netAmount: it.net_amount == null ? null : Number(it.net_amount),
+      qualifier: it.line_qualifier ?? undefined,
     }),
   );
 

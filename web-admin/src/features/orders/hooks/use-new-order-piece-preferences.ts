@@ -5,7 +5,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '../model/new-order-types';
+import type { LineKey, OrderItem, OrderItemServicePref, PreSubmissionPiece } from '../model/new-order-types';
 import type { PackingPreference } from '@/lib/types/service-preferences';
 import { useNewOrderStateWithDispatch } from './use-new-order-state';
 import {
@@ -60,21 +60,21 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
   const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
 
   const syncChargeForItem = useCallback(
-    (productId: string, pieces: PreSubmissionPiece[], itemServicePrefs: OrderItemServicePref[] | undefined) => {
+    (lineKey: LineKey, pieces: PreSubmissionPiece[], itemServicePrefs: OrderItemServicePref[] | undefined) => {
       const charge = pieceChargeFromPieces(pieces);
-      updateItemServicePrefs(productId, itemServicePrefs ?? [], charge);
+      updateItemServicePrefs(lineKey, itemServicePrefs ?? [], charge);
     },
     [updateItemServicePrefs]
   );
 
   const setPiecePreferences = useCallback(
-    (productId: string, nextPieces: PreSubmissionPiece[]) => {
-      const item = state.items.find((i) => i.productId === productId);
+    (lineKey: LineKey, nextPieces: PreSubmissionPiece[]) => {
+      const item = state.items.find((i) => i.lineKey === lineKey);
       if (!item) return;
-      updateItemPieces(productId, nextPieces);
-      syncChargeForItem(productId, nextPieces, item.servicePrefs);
+      updateItemPieces(lineKey, nextPieces);
+      syncChargeForItem(lineKey, nextPieces, item.servicePrefs);
       const merged: Pick<OrderItem, 'packingPrefCode' | 'pieces'> = { ...item, pieces: nextPieces };
-      adjustItemPackingCharge(productId, orderItemLinePackingCharge(merged, packingPriceByCode));
+      adjustItemPackingCharge(lineKey, orderItemLinePackingCharge(merged, packingPriceByCode));
     },
     [state.items, updateItemPieces, syncChargeForItem, adjustItemPackingCharge, packingPriceByCode]
   );
@@ -124,7 +124,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       const forPiece = mergedList.filter((x) => x.pieceId === pieceId);
       const updatedPiece = applySelectedPreferencesToPiece(piece, forPiece);
       const nextPieces = item.pieces.map((x) => (x.id === pieceId ? updatedPiece : x));
-      setPiecePreferences(item.productId, nextPieces);
+      setPiecePreferences(item.lineKey, nextPieces);
     },
     [state.items, setPiecePreferences, packingPriceByCode]
   );
@@ -144,7 +144,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       const forPiece = renumbered.filter((p) => p.pieceId === target.pieceId);
       const updatedPiece = applySelectedPreferencesToPiece(piece, forPiece);
       const nextPieces = item.pieces.map((x) => (x.id === target.pieceId ? updatedPiece : x));
-      setPiecePreferences(item.productId, nextPieces);
+      setPiecePreferences(item.lineKey, nextPieces);
     },
     [state.items, getAllPreferencesFlat, setPiecePreferences]
   );
@@ -157,10 +157,10 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       if (!source) return;
       const template = pieceToSelectedPreferences(source, { packingExtraByCode: packingPriceByCode });
 
-      const productToPieces = new Map<string, PreSubmissionPiece[]>();
+      const lineToPieces = new Map<LineKey, PreSubmissionPiece[]>();
       for (const item of state.items) {
         if (item.pieces?.length) {
-          productToPieces.set(item.productId, [...item.pieces]);
+          lineToPieces.set(item.lineKey, [...item.pieces]);
         }
       }
 
@@ -168,7 +168,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
         if (tid === sourcePieceId) continue;
         const item = findItemByPieceId(state.items, tid);
         if (!item) continue;
-        const arr = productToPieces.get(item.productId);
+        const arr = lineToPieces.get(item.lineKey);
         if (!arr) continue;
         const idx = arr.findIndex((p) => p.id === tid);
         if (idx < 0) continue;
@@ -182,8 +182,8 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
         arr[idx] = applySelectedPreferencesToPiece(tp, duplicated);
       }
 
-      for (const [productId, pieces] of productToPieces) {
-        setPiecePreferences(productId, pieces);
+      for (const [lineKey, pieces] of lineToPieces) {
+        setPiecePreferences(lineKey, pieces);
       }
     },
     [state.items, setPiecePreferences, packingPriceByCode]
@@ -195,17 +195,17 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       const src = flat.find((p) => p.id === sourcePreferenceUiId);
       if (!src) return;
 
-      const productToPieces = new Map<string, PreSubmissionPiece[]>();
+      const lineToPieces = new Map<LineKey, PreSubmissionPiece[]>();
       for (const item of state.items) {
         if (item.pieces?.length) {
-          productToPieces.set(item.productId, [...item.pieces]);
+          lineToPieces.set(item.lineKey, [...item.pieces]);
         }
       }
 
       for (const tid of targetPieceIds) {
         const item = findItemByPieceId(state.items, tid);
         if (!item) continue;
-        const arr = productToPieces.get(item.productId);
+        const arr = lineToPieces.get(item.lineKey);
         if (!arr) continue;
         const idx = arr.findIndex((p) => p.id === tid);
         if (idx < 0) continue;
@@ -229,8 +229,8 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
         arr[idx] = applySelectedPreferencesToPiece(tp, forPiece);
       }
 
-      for (const [productId, pieces] of productToPieces) {
-        setPiecePreferences(productId, pieces);
+      for (const [lineKey, pieces] of lineToPieces) {
+        setPiecePreferences(lineKey, pieces);
       }
     },
     [state.items, getAllPreferencesFlat, setPiecePreferences, packingPriceByCode]
@@ -241,7 +241,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       const item = findItemByPieceId(state.items, pieceId);
       if (!item?.pieces) return;
       const nextPieces = item.pieces.map((p) => (p.id === pieceId ? { ...p, ...updates } : p));
-      setPiecePreferences(item.productId, nextPieces);
+      setPiecePreferences(item.lineKey, nextPieces);
     },
     [state.items, setPiecePreferences]
   );

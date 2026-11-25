@@ -11,6 +11,8 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
+import { orderLineQualifiers, qualifierInputOfRow, type OrderItemQualifierRow } from '@/lib/orders/line-qualifier';
+import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 
 const ORDER_STATE_SELECT = `
   id,
@@ -39,6 +41,7 @@ const ORDER_STATE_SELECT = `
   has_issue,
   is_rejected,
   priority,
+  service_speed,
   customer_notes,
   internal_notes,
   created_at,
@@ -66,6 +69,15 @@ const ORDER_ITEM_STATE_SELECT = `
   quantity_ready,
   service_category_code,
   service_speed,
+  product_id,
+  rec_status,
+  uom_code,
+  uom_dimension,
+  uom_symbol,
+  uom_symbol2,
+  uom_qty_decimals,
+  measured_qty,
+  billed_qty,
   ready_by_at,
   barcode,
   item_last_step,
@@ -177,12 +189,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    // Line qualifier (measure, own speed, ordinal) for order detail and every print; live lines only.
+    const liveRows = (items ?? []).map((item) => item as unknown as OrderItemQualifierRow & { rec_status?: number | null }).filter((row) => row.rec_status !== 0);
+    const speedNames = await loadSpeedNames(liveRows.map((row) => row.service_speed), supabase);
+    const qualifiers = orderLineQualifiers(liveRows.map(qualifierInputOfRow), orderRow.service_speed as string | null | undefined, speedNames);
+
     const enrichedItems = (items ?? []).map((item) => {
       const row = item as unknown as Record<string, unknown>;
       const code = row.service_category_code as string | null | undefined;
       const cat = code ? categoryNameMap.get(code) : undefined;
       return {
         ...row,
+        line_qualifier: qualifiers.get(row.id as string) ?? null,
         service_category_name: cat?.name ?? null,
         service_category_name2: cat?.name2 ?? null,
       };

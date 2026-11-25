@@ -119,15 +119,14 @@ function itemsEqual(current: OrderItem[], original: unknown): boolean {
   const prev = Array.isArray(original) ? original : [];
   if (current.length !== prev.length) return false;
 
-  const origByProduct = new Map(
-    prev.map((row) => {
-      const o = row as { product_id?: unknown; productId?: unknown };
-      return [text(o.product_id ?? o.productId), row as Record<string, unknown>];
-    })
+  // Lines are matched by their saved item id: one product can have several lines (Cart Line Grouping).
+  // A line not saved yet has no match, so it counts as a change.
+  const origById = new Map(
+    prev.map((row) => [text((row as { id?: unknown }).id), row as Record<string, unknown>])
   );
 
   for (const item of current) {
-    const orig = origByProduct.get(text(item.productId));
+    const orig = item.persistedItemId ? origById.get(text(item.persistedItemId)) : undefined;
     if (!orig) return false;
     if (
       item.quantity !== Number(orig.quantity ?? 1) ||

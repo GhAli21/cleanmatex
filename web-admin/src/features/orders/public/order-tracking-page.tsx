@@ -7,6 +7,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
+import type { LineQualifier } from '@/lib/orders/line-qualifier';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
 
 interface PublicOrderTotals {
     subtotal: number | null;
@@ -31,6 +33,8 @@ interface PublicOrderItem {
     quantity: number;
     totalPrice: number;
     lineTotalAmount?: number | null;
+    /** Measure, own speed and ordinal that tell same-name lines apart. */
+    qualifier?: LineQualifier;
 }
 
 interface PublicOrderData {
@@ -497,6 +501,11 @@ export function PublicOrderTrackingPage({ lookupPath, confirmPath, financialView
                                         {item.name2 && (
                                             <span className="text-xs text-muted-foreground">
                                                 {item.name2}
+                                            </span>
+                                        )}
+                                        {formatLineQualifier(item.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' }) && (
+                                            <span className="text-xs text-muted-foreground tabular-nums">
+                                                {formatLineQualifier(item.qualifier, { locale: locale === 'ar' ? 'ar' : 'en' })}
                                             </span>
                                         )}
                                     </div>

@@ -85,7 +85,7 @@ function SmartSuggestionsForCustomer({
         { preference_code: code, source: 'suggestion' as const, extra_price: extraPrice },
       ];
       const charge = newPrefs.reduce((sum, p) => sum + p.extra_price, 0);
-      updateItemServicePrefs(item.productId, newPrefs, charge);
+      updateItemServicePrefs(item.lineKey, newPrefs, charge);
     });
 
     cmxMessage.success(t('appliedSuccess') || 'Preferences applied');

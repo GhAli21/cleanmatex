@@ -5,12 +5,14 @@ import { PiecePhotosControl } from './pieces/piece-photos';
 import { useState } from 'react';
 import React from 'react';
 import { AlertCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useBilingual } from '@/lib/hooks/useBilingual';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
+import type { LineQualifier } from '@/lib/orders/line-qualifier';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
 import { lineCodeOfPieceRef } from '@features/orders/lib/piece-highlight';
 import { OrderLineNetNote } from './order-line-net-note';
 
@@ -33,6 +35,8 @@ interface OrderItem {
   stain_notes?: string | null;
   damage_notes?: string | null;
   notes?: string | null;
+  /** Measure, own speed and ordinal that tell same-name lines apart (from the order reader). */
+  line_qualifier?: LineQualifier | null;
 }
 
 interface OrderItemsListProps {
@@ -67,6 +71,7 @@ export function OrderItemsList({
   highlightPiece = null,
 }: OrderItemsListProps) {
   const t = useTranslations('orders.itemsList');
+  const locale = useLocale();
   const tOrders = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const getBilingual = useBilingual();
@@ -115,6 +120,11 @@ export function OrderItemsList({
                 <span className="text-sm font-medium text-foreground text-start">
                   {getBilingual(item.product_name, item.product_name2) || item.service_category_code || t('item')}
                 </span>
+                {formatLineQualifier(item.line_qualifier ?? undefined, { locale: locale === 'ar' ? 'ar' : 'en' }) && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatLineQualifier(item.line_qualifier ?? undefined, { locale: locale === 'ar' ? 'ar' : 'en' })}
+                  </span>
+                )}
                 <CmxCodeChip code={item.order_item_srno} kind="item" />
                 {item.status && (
                   <span className="px-2 py-0.5 text-xs bg-muted text-foreground rounded text-start">

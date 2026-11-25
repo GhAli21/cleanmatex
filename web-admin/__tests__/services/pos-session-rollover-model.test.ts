@@ -89,6 +89,10 @@ describe('isSessionStale / openHours', () => {
     expect(isSessionStale({ ...facts, staleFlaggedAt: new Date() })).toBe(false);
   });
 
+  it('does not flag a session the rollover job already handled (one alert per session)', () => {
+    expect(isSessionStale({ ...facts, status: 'PAUSED', rolloverAppliedAt: new Date() })).toBe(false);
+  });
+
   it('ignores closed sessions and a non-positive threshold', () => {
     expect(isSessionStale({ ...facts, status: 'CLOSED' })).toBe(false);
     expect(isSessionStale({ ...facts, staleHours: 0 })).toBe(false);

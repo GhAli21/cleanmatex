@@ -66,6 +66,7 @@ import { EditOrderBar } from './edit-order-bar';
 import { PosSessionOrderBanner } from '@features/pos-sessions/ui/pos-session-order-banner';
 import { PosSessionHub } from '@features/pos-sessions/ui/pos-session-hub';
 import type {
+  LineKey,
   Product,
   OrderItem,
   OrderItemMeasure,
@@ -76,6 +77,7 @@ import { MeasureLineDialog } from './measure-line-dialog';
 import { useUomUnits } from '@features/uom/hooks/use-uom-units';
 import { pricedQty } from '@/lib/utils/order-item-helpers';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
+import { newCartLineKey } from '../model/cart-line-key';
 import { readyByBlockReason } from '@/lib/utils/ready-by-calculator';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import {
@@ -255,18 +257,18 @@ export function NewOrderContent() {
     captureSpeedChange();
     state.setServiceSpeed(serviceSpeed);
   };
-  const handleLineSpeedChange = (productId: string, serviceSpeed: string | null) => {
+  const handleLineSpeedChange = (lineKey: LineKey, serviceSpeed: string | null) => {
     captureSpeedChange();
-    state.setItemServiceSpeed(productId, serviceSpeed);
+    state.setItemServiceSpeed(lineKey, serviceSpeed);
   };
   // ─── Line discount (P5-03c): permission-gated; the server checks it again ───
   const canDiscountLines = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.lineDiscount?.requirement.permissions ?? []);
   // P5-03e: a custom item's entered price is a price decision (`pricing:override`); in Edit also an ADD_ITEM (P6-02d).
   const canEnterPrices = useHasAnyPermission(NEW_ORDER_ACCESS.actions?.priceOverride?.requirement.permissions ?? []);
-  const [discountProductId, setDiscountProductId] = useState<string | null>(null);
+  const [discountLineKey, setDiscountLineKey] = useState<LineKey | null>(null);
   const [discountPieceId, setDiscountPieceId] = useState<string | null>(null);
-  const discountItemIndex = discountProductId
-    ? state.state.items.findIndex((item) => item.productId === discountProductId)
+  const discountItemIndex = discountLineKey
+    ? state.state.items.findIndex((item) => item.lineKey === discountLineKey)
     : -1;
   const discountItem = discountItemIndex >= 0 ? state.state.items[discountItemIndex] : null;
   // Edit has no live quote: the stored line total caps the amount; Review re-prices and the server checks it again.
@@ -284,7 +286,7 @@ export function NewOrderContent() {
     ? cartQuote.data?.lines.find((line) => line.index === discountItemIndex)?.pieces[discountPieceIndex]?.grossAmount ?? null
     : null;
   const closeDiscountDialog = () => {
-    setDiscountProductId(null);
+    setDiscountLineKey(null);
     setDiscountPieceId(null);
   };
 
@@ -459,7 +461,7 @@ export function NewOrderContent() {
   // Measured products (kg, m, m²…) are added through the Measure dialog; the unit list decides which are measured.
   const uomUnits = useUomUnits(true);
   const tUom = useTranslations('uom');
-  const [measureTarget, setMeasureTarget] = useState<{ product: Pick<Product, 'id' | 'product_code' | 'product_name' | 'product_name2'>; uom: OrderItemUom } | null>(null);
+  const [measureTarget, setMeasureTarget] = useState<{ product: Pick<Product, 'id' | 'product_code' | 'product_name' | 'product_name2'>; uom: OrderItemUom; lineKey?: LineKey } | null>(null);
   const uomOf = useCallback(
     (product: Product): OrderItemUom | null => {
       const unit = uomUnits.data?.find((u) => u.code === product.base_uom_code);
@@ -547,7 +549,11 @@ export function NewOrderContent() {
         (sum, p) => sum + p.extra_price,
         0,
       );
+      // P1 keeps today's rule: the reducer adds a piece to the product's line when there is one (DESIGN §6).
+      const existingLine = state.state.items.find((item) => item.productId === product.id);
+      const lineKey = newCartLineKey();
       const newItem: OrderItem = {
+        lineKey,
         productId: product.id,
         productName: product.product_name,
         productName2: product.product_name2,
@@ -562,15 +568,19 @@ export function NewOrderContent() {
           resolvedServicePrefs.length > 0 ? resolvedServicePrefs : undefined,
         servicePrefCharge:
           resolvedServicePrefs.length > 0 ? servicePrefCharge : undefined,
-        pieces: trackByPiece ? generatePiecesForItem(product.id, 1) : undefined,
+        pieces: trackByPiece ? generatePiecesForItem(lineKey, 1) : undefined,
       };
 
       state.addItem(newItem);
       trackItemAddition();
-      if (trackByPiece && newItem.pieces && newItem.pieces.length > 0) {
+      if (existingLine) {
+        // Merged: the reducer appended the piece to that line with the next sequence.
+        const nextSeq = Math.max(0, ...(existingLine.pieces ?? []).map((p) => p.pieceSeq)) + 1;
+        state.setSelectedPiece(trackByPiece ? `temp-${existingLine.lineKey}-${nextSeq}` : null);
+      } else if (trackByPiece && newItem.pieces && newItem.pieces.length > 0) {
         state.setSelectedPiece(newItem.pieces[newItem.pieces.length - 1].id);
       } else if (!trackByPiece && newItem.quantity === 1) {
-        state.setSelectedPiece(`temp-${newItem.productId}-1`);
+        state.setSelectedPiece(`temp-${newItem.lineKey}-1`);
       } else {
         state.setSelectedPiece(null);
       }
@@ -588,43 +598,64 @@ export function NewOrderContent() {
     ],
   );
 
-  /** Measure dialog confirm: a measured product already in the cart is re-measured, else added. */
+  /** Measure dialog confirm: the chosen line (or, from the grid, the product's line) is re-measured, else the product is added. */
   const confirmMeasure = useCallback(
     (measure: OrderItemMeasure) => {
       if (!measureTarget) return;
-      const { product, uom } = measureTarget;
+      const { product, uom, lineKey } = measureTarget;
       setMeasureTarget(null);
-      if (state.state.items.some((i) => i.productId === product.id)) state.updateItemMeasure(product.id, measure);
+      const line = lineKey
+        ? state.state.items.find((i) => i.lineKey === lineKey)
+        : state.state.items.find((i) => i.productId === product.id);
+      if (line) state.updateItemMeasure(line.lineKey, measure);
       else void handleAddItem(product as Product, { uom, measure });
     },
     [measureTarget, state, handleAddItem],
   );
 
   const handleRemoveItem = useCallback(
-    (productId: string) => {
-      if (!state.removeItem(productId)) return;
+    (lineKey: LineKey) => {
+      if (!state.removeItem(lineKey)) return;
       cmxMessage.success(t('itemsGrid.itemRemoved'));
     },
     [state, t],
   );
 
   const handleQuantityChange = useCallback(
-    (productId: string, quantity: number) => {
-      const item = state.state.items.find((i) => i.productId === productId);
+    (lineKey: LineKey, quantity: number) => {
+      const item = state.state.items.find((i) => i.lineKey === lineKey);
       const prevQty = item?.quantity ?? 0;
-      state.updateItemQuantity(productId, quantity);
+      // false: held for the measure check (measured line) or refused; the follow-up runs on confirm.
+      if (!state.updateItemQuantity(lineKey, quantity)) return;
       if (trackByPiece && quantity > prevQty) {
-        state.setSelectedPiece(`temp-${productId}-${quantity}`);
+        state.setSelectedPiece(`temp-${lineKey}-${quantity}`);
       }
     },
     [state, trackByPiece],
   );
 
+  // The product grid works with products: its +/- act on the product's line (P2 adds the per-line rules, DESIGN §7).
+  const handleGridQuantityChange = useCallback(
+    (productId: string, quantity: number) => {
+      const line = state.state.items.find((i) => i.productId === productId);
+      if (line) handleQuantityChange(line.lineKey, quantity);
+    },
+    [state.state.items, handleQuantityChange],
+  );
+  const handleGridRemoveItem = useCallback(
+    (productId: string) => {
+      const line = state.state.items.find((i) => i.productId === productId);
+      if (line) handleRemoveItem(line.lineKey);
+    },
+    [state.state.items, handleRemoveItem],
+  );
+
   const handlePiecesChange = useCallback(
-    (itemId: string, pieces: PreSubmissionPiece[]) => {
-      const item = state.state.items.find((i) => i.productId === itemId);
+    (itemId: LineKey, pieces: PreSubmissionPiece[]) => {
+      const item = state.state.items.find((i) => i.lineKey === itemId);
       const prevPieces = item?.pieces ?? [];
-      state.updateItemPieces(itemId, pieces);
+      // false: held for the measure check (measured line) or refused; the follow-ups run on confirm.
+      if (!state.updateItemPieces(itemId, pieces)) return;
       if (item) {
         state.adjustItemPackingCharge(
           itemId,
@@ -641,10 +672,40 @@ export function NewOrderContent() {
     [state, packingPriceByCode],
   );
 
+  // A piece-count change on a measured line waits here until staff check the total measure.
+  const recheck = state.state.measureRecheck;
+  const recheckItem = recheck ? state.state.items.find((i) => i.lineKey === recheck.lineKey) : undefined;
+  const [recheckRefusal, setRecheckRefusal] = useState<string | undefined>(undefined);
+  const closeRecheck = useCallback(() => {
+    setRecheckRefusal(undefined);
+    state.cancelMeasureRecheck();
+  }, [state]);
+  const confirmRecheck = useCallback(
+    (measure: OrderItemMeasure) => {
+      const item = recheckItem;
+      const result = state.confirmMeasureRecheck(measure);
+      if (result.status === 'MEASURE_BLOCKED') { setRecheckRefusal(tUom('measure.recheckBlocked')); return; }
+      setRecheckRefusal(undefined);
+      if (result.status !== 'APPLIED' || !item) return;
+      // The follow-ups the plain handlers run once the change is really applied.
+      const action = result.deferred;
+      if (action.type === 'UPDATE_ITEM_PIECES') {
+        const pieces = action.payload.pieces;
+        const prevPieces = item.pieces ?? [];
+        state.adjustItemPackingCharge(item.lineKey, orderItemLinePackingCharge({ ...item, pieces }, packingPriceByCode));
+        const added = pieces.find((p) => !prevPieces.some((prev) => prev.id === p.id));
+        if (added) state.setSelectedPiece(added.id);
+      } else if (action.type === 'UPDATE_ITEM_QUANTITY' && trackByPiece && action.payload.quantity > item.quantity) {
+        state.setSelectedPiece(`temp-${item.lineKey}-${action.payload.quantity}`);
+      }
+    },
+    [recheckItem, state, tUom, packingPriceByCode, trackByPiece],
+  );
+
   // Copy piece conditions/notes to all siblings
   const handleCopyPieceToAll = useCallback(
-    (itemId: string, pieceId: string) => {
-      const item = state.state.items.find((i) => i.productId === itemId);
+    (itemId: LineKey, pieceId: string) => {
+      const item = state.state.items.find((i) => i.lineKey === itemId);
       const sourcePiece = item?.pieces?.find((p) => p.id === pieceId);
       if (!item || !sourcePiece || !item.pieces) return;
       const updated = item.pieces.map((p) => ({
@@ -832,7 +893,7 @@ export function NewOrderContent() {
           ].includes(c.toLowerCase()),
         );
         return {
-          id: item.persistedItemId ?? item.productId,
+          id: item.lineKey,
           productId: item.productId,
           productName: item.productName || 'Unknown Product',
           productName2: item.productName2 || undefined,
@@ -970,7 +1031,7 @@ export function NewOrderContent() {
 
   const sharedSummaryPanelProps = {
     items: memoizedOrderItems,
-    onEditItem: priceCapability.interactive ? (itemId: string) => {
+    onEditItem: priceCapability.interactive ? (itemId: LineKey) => {
       state.openPriceOverrideModal(itemId);
     } : undefined,
     onDeleteItem: handleRemoveItem,
@@ -1061,10 +1122,10 @@ export function NewOrderContent() {
           unquoted: true,
           onLineSpeedChange: handleLineSpeedChange,
           lineSpeedDisabled: !lineSpeedCapability.interactive,
-          onEditLineDiscount: canDiscountLines && lineDiscountCapability.interactive ? setDiscountProductId : undefined,
+          onEditLineDiscount: canDiscountLines && lineDiscountCapability.interactive ? setDiscountLineKey : undefined,
           onEditPieceDiscount: canDiscountLines && lineDiscountCapability.interactive
-            ? (productId: string, pieceId: string) => {
-                setDiscountProductId(productId);
+            ? (lineKey: LineKey, pieceId: string) => {
+                setDiscountLineKey(lineKey);
                 setDiscountPieceId(pieceId);
               }
             : undefined,
@@ -1074,10 +1135,10 @@ export function NewOrderContent() {
           pending: cartQuote.pending,
           onLineSpeedChange: handleLineSpeedChange,
           previewRequest: cartQuoteRequest,
-          onEditLineDiscount: canDiscountLines ? setDiscountProductId : undefined,
+          onEditLineDiscount: canDiscountLines ? setDiscountLineKey : undefined,
           onEditPieceDiscount: canDiscountLines
-            ? (productId: string, pieceId: string) => {
-                setDiscountProductId(productId);
+            ? (lineKey: LineKey, pieceId: string) => {
+                setDiscountLineKey(lineKey);
                 setDiscountPieceId(pieceId);
               }
             : undefined,
@@ -1086,12 +1147,12 @@ export function NewOrderContent() {
     // Bags
     bags: state.state.bags,
     onBagsChange: state.setBags,
-    onEditItemMeasure: (productId: string) => {
-      const item = state.state.items.find((i) => i.productId === productId);
-      if (item?.uom) setMeasureTarget({ product: { id: item.productId, product_code: item.productId, product_name: item.productName, product_name2: item.productName2 }, uom: item.uom });
+    onEditItemMeasure: (lineKey: LineKey) => {
+      const item = state.state.items.find((i) => i.lineKey === lineKey);
+      if (item?.uom) setMeasureTarget({ product: { id: item.productId, product_code: item.productId, product_name: item.productName, product_name2: item.productName2 }, uom: item.uom, lineKey });
     },
     // Edit item preferences — piece-level preferences tab (track-by-piece) or Order Items tab, focused on the item
-    onEditItemPreferences: (itemId: string) => {
+    onEditItemPreferences: (itemId: LineKey) => {
       if (trackByPiece) {
         setFocusItemId(itemId);
         setRequestedActiveTab('piecePreferences');
@@ -1383,8 +1444,8 @@ export function NewOrderContent() {
                           isFetching={productsQuery.isFetching}
                           getCategoryLabel={getCategoryLabel}
                           onAddItem={handleAddItem}
-                          onRemoveItem={handleRemoveItem}
-                          onQuantityChange={handleQuantityChange}
+                          onRemoveItem={handleGridRemoveItem}
+                          onQuantityChange={handleGridQuantityChange}
                           selectedConditions={selectedConditions}
                           onConditionToggle={handleConditionToggle}
                           selectedPieceId={state.state.selectedPieceId}
@@ -1583,29 +1644,41 @@ export function NewOrderContent() {
           productName={`${getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId} · ${discountPieceIndex + 1}`}
           lineGross={discountPieceGross}
           current={discountPiece.lineDiscount ?? null}
-          onApply={(lineDiscount) => handlePiecesChange(discountItem.productId, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount } : p)))}
-          onRemove={() => handlePiecesChange(discountItem.productId, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount: null } : p)))}
+          onApply={(lineDiscount) => handlePiecesChange(discountItem.lineKey, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount } : p)))}
+          onRemove={() => handlePiecesChange(discountItem.lineKey, (discountItem.pieces ?? []).map((p) => (p.id === discountPiece.id ? { ...p, lineDiscount: null } : p)))}
         />
       ) : discountItem ? (
         <LineDiscountDialog
-          key={discountItem.productId}
+          key={discountItem.lineKey}
           open
           onClose={closeDiscountDialog}
           productName={getBilingual(discountItem.productName, discountItem.productName2) || discountItem.productId}
           lineGross={discountLineGross}
           current={discountItem.lineDiscount ?? null}
-          onApply={(lineDiscount) => state.setItemLineDiscount(discountItem.productId, lineDiscount)}
-          onRemove={() => state.setItemLineDiscount(discountItem.productId, null)}
+          onApply={(lineDiscount) => state.setItemLineDiscount(discountItem.lineKey, lineDiscount)}
+          onRemove={() => state.setItemLineDiscount(discountItem.lineKey, null)}
         />
       ) : null}
       <MeasureLineDialog
         open={!!measureTarget}
         productName={measureTarget ? getBilingual(measureTarget.product.product_name, measureTarget.product.product_name2) || measureTarget.product.product_code : ''}
         uom={measureTarget?.uom ?? { code: '', dimension: 'MASS', qtyDecimals: 0, symbol: '', symbol2: null, minBillableQty: null, billingIncrement: null }}
-        initial={measureTarget ? state.state.items.find((i) => i.productId === measureTarget.product.id)?.measure : undefined}
+        initial={measureTarget ? state.state.items.find((i) => (measureTarget.lineKey ? i.lineKey === measureTarget.lineKey : i.productId === measureTarget.product.id))?.measure : undefined}
         onConfirm={confirmMeasure}
         onClose={() => setMeasureTarget(null)}
       />
+      {recheck && recheckItem?.uom ? (
+        <MeasureLineDialog
+          open
+          productName={getBilingual(recheckItem.productName, recheckItem.productName2) || recheckItem.productId}
+          uom={recheckItem.uom}
+          initial={recheckItem.measure}
+          notice={tUom('measure.recheckNotice', { from: recheck.from, to: recheck.to })}
+          refusal={recheckRefusal}
+          onConfirm={confirmRecheck}
+          onClose={closeRecheck}
+        />
+      ) : null}
     </section>
   );
 }

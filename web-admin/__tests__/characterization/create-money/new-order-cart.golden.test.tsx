@@ -8,7 +8,9 @@
 
 import { act, renderHook } from '@testing-library/react';
 import { newOrderReducer, initialState } from '@/src/features/orders/ui/context/new-order-reducer';
-import type { NewOrderAction, NewOrderState, OrderItem, PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
+import type { LineKey, NewOrderAction, NewOrderState, OrderItem, PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
+
+const SHIRT = 'line-shirt' as LineKey;
 
 /** In-memory store standing in for the New Order context. */
 const store: { state: NewOrderState } = { state: initialState };
@@ -19,12 +21,12 @@ const dispatch = (action: NewOrderAction) => {
 jest.mock('@/src/features/orders/hooks/use-new-order-state', () => ({
   useNewOrderStateWithDispatch: () => ({
     state: store.state,
-    updateItemPieces: (productId: string, pieces: PreSubmissionPiece[]) =>
-      dispatch({ type: 'UPDATE_ITEM_PIECES', payload: { productId, pieces } } as NewOrderAction),
-    updateItemServicePrefs: (productId: string, servicePrefs: OrderItem['servicePrefs'], servicePrefCharge: number) =>
-      dispatch({ type: 'UPDATE_ITEM_SERVICE_PREFS', payload: { productId, servicePrefs, servicePrefCharge } } as NewOrderAction),
-    adjustItemPackingCharge: (productId: string, packingPrefCharge: number) =>
-      dispatch({ type: 'ADJUST_ITEM_PACKING_PREF_CHARGE', payload: { productId, packingPrefCharge } } as NewOrderAction),
+    updateItemPieces: (lineKey: LineKey, pieces: PreSubmissionPiece[]) =>
+      dispatch({ type: 'UPDATE_ITEM_PIECES', payload: { lineKey, pieces } } as NewOrderAction),
+    updateItemServicePrefs: (lineKey: LineKey, servicePrefs: OrderItem['servicePrefs'], servicePrefCharge: number) =>
+      dispatch({ type: 'UPDATE_ITEM_SERVICE_PREFS', payload: { lineKey, servicePrefs, servicePrefCharge } } as NewOrderAction),
+    adjustItemPackingCharge: (lineKey: LineKey, packingPrefCharge: number) =>
+      dispatch({ type: 'ADJUST_ITEM_PACKING_PREF_CHARGE', payload: { lineKey, packingPrefCharge } } as NewOrderAction),
   }),
 }));
 
@@ -32,6 +34,7 @@ import { useNewOrderPiecePreferences } from '@/src/features/orders/hooks/use-new
 
 function line(over: Partial<OrderItem> = {}): OrderItem {
   return {
+    lineKey: SHIRT,
     productId: 'shirt',
     productName: 'Shirt',
     productName2: null,
@@ -40,8 +43,8 @@ function line(over: Partial<OrderItem> = {}): OrderItem {
     totalPrice: 3,
     defaultSellPrice: 1.5,
     pieces: [
-      { id: 'pc-1', itemId: 'shirt', pieceSeq: 1 },
-      { id: 'pc-2', itemId: 'shirt', pieceSeq: 2 },
+      { id: 'pc-1', itemId: SHIRT, pieceSeq: 1 },
+      { id: 'pc-2', itemId: SHIRT, pieceSeq: 2 },
     ],
     ...over,
   };
@@ -58,13 +61,13 @@ describe('P1-01 golden — cart line money', () => {
   it('C01 line total = qty × unit + service prefs + packing (prefs once per line, not × qty)', () => {
     dispatch({
       type: 'UPDATE_ITEM_SERVICE_PREFS',
-      payload: { productId: 'shirt', servicePrefs: [{ preference_code: 'STARCH', extra_price: 0.3 }], servicePrefCharge: 0.3 },
+      payload: { lineKey: SHIRT, servicePrefs: [{ preference_code: 'STARCH', extra_price: 0.3 }], servicePrefCharge: 0.3 },
     } as NewOrderAction);
     expect([item().servicePrefCharge, item().totalPrice]).toEqual([0.3, 3.3]);
   });
 
   it('C02 CHANGED (P5-03b): the speed is a code; the client never re-prices a line (the server quote does)', () => {
-    dispatch({ type: 'ADD_ITEM', payload: line({ productId: 'tie', defaultSellPrice: 1, pricePerUnit: 1, totalPrice: 1, quantity: 1, pieces: [] }) } as NewOrderAction);
+    dispatch({ type: 'ADD_ITEM', payload: line({ lineKey: 'line-tie' as LineKey, productId: 'tie', defaultSellPrice: 1, pricePerUnit: 1, totalPrice: 1, quantity: 1, pieces: [] }) } as NewOrderAction);
     dispatch({ type: 'SET_SERVICE_SPEED', payload: 'EXPRESS' } as NewOrderAction);
     expect(store.state.serviceSpeed).toBe('EXPRESS');
     // The express premium comes from the speed rules on the server; the cart shows the quote.
@@ -75,7 +78,7 @@ describe('P1-01 golden — cart line money', () => {
   });
 
   it('C02b P5-03b: a line can carry its own speed; "Apply to all lines" makes every line follow the order again', () => {
-    dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { productId: 'shirt', serviceSpeed: 'EXPRESS' } } as NewOrderAction);
+    dispatch({ type: 'SET_ITEM_SERVICE_SPEED', payload: { lineKey: SHIRT, serviceSpeed: 'EXPRESS' } } as NewOrderAction);
     expect(item().serviceSpeed).toBe('EXPRESS');
     dispatch({ type: 'APPLY_SPEED_TO_ALL_LINES' } as NewOrderAction);
     expect(item().serviceSpeed).toBeNull();
@@ -83,16 +86,16 @@ describe('P1-01 golden — cart line money', () => {
 
   it('C02c P5-03c: a line discount is stored as typed and removed with null; prices stay server-owned', () => {
     const lineDiscount = { type: 'PERCENTAGE' as const, value: 10, reason: 'Loyal customer' };
-    dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId: 'shirt', lineDiscount } } as NewOrderAction);
+    dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { lineKey: SHIRT, lineDiscount } } as NewOrderAction);
     expect([item().lineDiscount, item().totalPrice]).toEqual([lineDiscount, 3]);
-    dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { productId: 'shirt', lineDiscount: null } } as NewOrderAction);
+    dispatch({ type: 'SET_ITEM_LINE_DISCOUNT', payload: { lineKey: SHIRT, lineDiscount: null } } as NewOrderAction);
     expect(item().lineDiscount).toBeNull();
   });
 
   const override = (priceOverride: number | null) =>
     dispatch({
       type: 'UPDATE_ITEM_PRICE_OVERRIDE',
-      payload: { productId: 'shirt', priceOverride, overrideReason: priceOverride === null ? null : 'Goodwill gesture', overrideBy: 'u1' },
+      payload: { lineKey: SHIRT, priceOverride, overrideReason: priceOverride === null ? null : 'Goodwill gesture', overrideBy: 'u1' },
     } as NewOrderAction);
 
   it('C03 FIXED (PF-21): clearing a price override restores the price under it', () => {
@@ -114,7 +117,7 @@ describe('P1-01 golden — cart line money', () => {
   it('C04 KNOWN DEFECT (PF-12): a piece preference REPLACES the item-preference charge instead of adding to it', () => {
     dispatch({
       type: 'UPDATE_ITEM_SERVICE_PREFS',
-      payload: { productId: 'shirt', servicePrefs: [{ preference_code: 'STARCH', extra_price: 0.3 }], servicePrefCharge: 0.3 },
+      payload: { lineKey: SHIRT, servicePrefs: [{ preference_code: 'STARCH', extra_price: 0.3 }], servicePrefCharge: 0.3 },
     } as NewOrderAction);
 
     const { result, rerender } = renderHook(() => useNewOrderPiecePreferences([]));
@@ -139,7 +142,7 @@ describe('P1-01 golden — cart line money', () => {
     // Item-level preference panels compute the charge from item prefs only.
     dispatch({
       type: 'UPDATE_ITEM_SERVICE_PREFS',
-      payload: { productId: 'shirt', servicePrefs: [{ preference_code: 'STARCH', extra_price: 0.3 }], servicePrefCharge: 0.3 },
+      payload: { lineKey: SHIRT, servicePrefs: [{ preference_code: 'STARCH', extra_price: 0.3 }], servicePrefCharge: 0.3 },
     } as NewOrderAction);
     expect(item().pieces?.[0].servicePrefs).toEqual([
       expect.objectContaining({ preference_code: 'PERFUME', extra_price: 0.25 }),

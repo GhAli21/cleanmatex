@@ -8,6 +8,7 @@ import type { ReadyOrder } from '@features/orders/model/ready-order-types';
 import type { PrintLayout } from './order-receipt-print';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
 
 interface OrderDetailsPrintProps {
   order: ReadyOrder;
@@ -29,6 +30,7 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
+  const qualifierLocale = locale === 'ar' ? 'ar' : 'en';
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const fmt = (n: number) =>
@@ -88,6 +90,9 @@ export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDe
               <tr key={item.id} className="border-b border-dashed border-border">
                 <td className="py-1 pe-2">
                   <div className="font-medium">{item.productName}</div>
+                  {formatLineQualifier(item.qualifier, { locale: qualifierLocale }) && (
+                    <div className="text-muted-foreground">{formatLineQualifier(item.qualifier, { locale: qualifierLocale })}</div>
+                  )}
                 </td>
                 <td className="py-1 text-center">{item.quantity}</td>
                 <td className="py-1 text-end">

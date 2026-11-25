@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, memo, useCallback, useMemo, type Ref } from 'react';
-import type { OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
+import type { LineKey, OrderItemMeasure, OrderItemUom } from '../model/new-order-types';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import {
@@ -34,7 +34,8 @@ import {
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface CartItem {
-  id: string;
+  /** The line's cart key (Cart Line Grouping P1). */
+  id: LineKey;
   productId: string;
   productName: string;
   productName2?: string;
@@ -69,10 +70,10 @@ interface ColorCatalogEntry {
 
 interface OrderSummaryPanelProps {
   items?: CartItem[];
-  onEditItem?: (itemId: string) => void;
-  onDeleteItem?: (itemId: string) => void;
-  onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
-  onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
+  onEditItem?: (itemId: LineKey) => void;
+  onDeleteItem?: (itemId: LineKey) => void;
+  onPiecesChange?: (itemId: LineKey, pieces: PreSubmissionPiece[]) => void;
+  onCopyPieceToAll?: (itemId: LineKey, pieceId: string) => void;
   isQuickDrop: boolean;
   onQuickDropToggle: (value: boolean) => void;
   quickDropQuantity: number;
@@ -134,9 +135,9 @@ interface OrderSummaryPanelProps {
   bags?: number;
   onBagsChange?: (count: number) => void;
   // Edit item notes (navigates to pieces tab)
-  onEditItemPreferences?: (itemId: string) => void;
+  onEditItemPreferences?: (itemId: LineKey) => void;
   /** Opens the Measure dialog for a measured line. */
-  onEditItemMeasure?: (productId: string) => void;
+  onEditItemMeasure?: (lineKey: LineKey) => void;
   showPaymentModalVersionSelector?: boolean;
   paymentModalVersion?: PaymentModalVersion;
   onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
@@ -250,7 +251,7 @@ function OrderSummaryPanelComponent({
     }
   }, [onCalculateReadyBy]);
 
-  const handleDeleteItem = useCallback((itemId: string) => {
+  const handleDeleteItem = useCallback((itemId: LineKey) => {
     if (onDeleteItem) onDeleteItem(itemId);
   }, [onDeleteItem]);
 

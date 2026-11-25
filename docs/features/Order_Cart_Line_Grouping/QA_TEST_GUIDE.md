@@ -4,9 +4,12 @@ Nothing is testable yet (no phase built). These are the planned checks; each pha
 
 Page: **Dashboard → Orders → New Order** (`/dashboard/orders/new`), and **Edit Order** on a saved order. Run each block once in EN and once in AR (RTL).
 
-## P1 — line identity (expect: nothing looks different)
+## P1 — line identity (expect: nothing looks different) — ✅ ready to test
 1. Add 2 different products, change quantity, preferences, notes, price override, discount, line speed on each. Expected: only the line you touched changes. Totals as before.
 2. Submit, open the order in Edit, change one line. Expected: only that line is in the review list.
+2a. New Order: add a product, give its 2 pieces notes or stains, then add the same product again from the grid or Repeat last order. Expected: 3 pieces, the first 2 keep their notes (before P1 they were wiped).
+2b. Edit Order: open the price override from a cart line (pencil). Expected: the dialog shows that line's current price and saving changes it (before P1 the dialog could not find the line in Edit).
+2c. Edit Order: change nothing, then change one thing and undo it. Expected: Save/Review is enabled only while something really differs.
 
 ## P2 — add rule
 3. Tap Turtleneck twice. Expected: one line, quantity 2 (as today).
@@ -19,11 +22,11 @@ Page: **Dashboard → Orders → New Order** (`/dashboard/orders/new`), and **Ed
 6d. Product with a minimum billable measure: the choice step shows the note "The minimum and billing step apply to the line total."
 6e. Regression for today's gap: card `+` on a measured product in the cart always opens the measure dialog; it never adds a piece without a measure.
 6f. AREA product (if one exists): equal length × width never shows the choice step.
-6g. Step 2) Order Items: on a measured line press `+` (or "Add piece"). Expected: the measure dialog opens: "Pieces changed from 2 to 3. Check the total measure." with the current total filled in. **Cancel** → the piece count goes back to 2. **Confirm** without changing → 3 pieces, same measure (allowed, e.g. an extra bag).
+6g. *(Measured Pricing owns this fix, DESIGN §0; re-check here after P2.)* Step 2) Order Items: on a measured line press `+` (or "Add piece"). Expected: the measure dialog opens: "Pieces changed from 2 to 3. Check the total measure." with the current total filled in. **Cancel** → the piece count goes back to 2. **Confirm** without changing → 3 pieces, same measure (allowed, e.g. an extra bag).
 6h. Merge two 2.5 m pieces (6a), then on that line choose **Move one piece to a new line**. Expected: line 1 = 1 piece · 2.5 m, new line below = 1 piece · 2.5 m.
 6i. A measured line with 3 pieces and 7 kg: **Move one piece to a new line** is disabled with "This line's measure can't be divided into equal shares…".
 6j. Order Edit on a saved order with a measured line (setup: **HQ → Order Edit policy** has rules for Change Item Quantity, Add Piece and Change Item Measure at this stage). Add the same product with the same per-piece measure. Expected: the choice shows **Add to line 1 (agreed price …)** and **Add as a new line (today's price …)**. Choose add to line 1 → Review lists quantity, piece and measure changes → Apply succeeds. Remove one of the three HQ rules → the choice step no longer appears; the article becomes a new line.
-6k. Customer-facing: create an order with Turtleneck ×1 at Express and Turtleneck ×1 at the order speed, and two identical 2.5 m measured lines. Check the WhatsApp/email receipt text, the printed receipt, the order details print, the tracking page and the customer app order screen. Expected: "Turtleneck Sweater · Express", "Turtleneck Sweater", "… · 2.5 m (1)", "… · 2.5 m (2)", in EN and AR.
+6k. *(Label built by Measured Pricing P6/P8, DESIGN §0; check here once both are live.)* Customer-facing: create an order with Turtleneck ×1 at Express and Turtleneck ×1 at the order speed, and two identical 2.5 m measured lines. Check the WhatsApp/email receipt text, the printed receipt, the order details print, the tracking page and the customer app order screen. Expected: "Turtleneck Sweater · Express", "Turtleneck Sweater", "… · 2.5 m (1)", "… · 2.5 m (2)", in EN and AR.
 7. Card `−` on a product with two lines. Expected: the most recently added line loses one piece (or is removed if it had one). On a measured product, a confirm appears first.
 
 ## P3 — move piece

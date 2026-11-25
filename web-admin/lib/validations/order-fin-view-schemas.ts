@@ -26,6 +26,17 @@ import {
 const sectionKey = z.enum(ORDER_FIN_SECTION_KEYS);
 const names = z.object({ name: z.string().nullable(), name2: z.string().nullable() });
 
+/** Line qualifier (measure, own speed, ordinal): the structured tail that tells same-name item lines apart. */
+const lineQualifierSchema = z.strictObject({
+  measure: z.strictObject({
+    qty: z.string(), billedQty: z.string().nullable(), uomCode: z.string(), symbol: z.string(),
+    symbol2: z.string().nullable(), qtyDecimals: z.number().int().min(0),
+  }).optional(),
+  speedCode: z.string().optional(),
+  speedName: z.strictObject({ name: z.string(), name2: z.string().nullable() }).optional(),
+  ordinal: z.number().int().min(1).optional(),
+});
+
 export const orderFinLineSchema = z.object({
   id: z.string().min(1),
   labelKey: z.string().optional(),
@@ -43,6 +54,7 @@ export const orderFinLineSchema = z.object({
     ref: z.string().optional(),
     statusCode: z.string().optional(),
   }).optional(),
+  qualifier: lineQualifierSchema.optional(),
 });
 
 export const orderFinSectionPayloadSchema = z.object({
@@ -110,6 +122,7 @@ const publicLineSchema = z.strictObject({
   state: z.enum(ORDER_FIN_LINE_STATES),
   countsInTotal: z.boolean(),
   meta: z.strictObject({ methodCode: z.string().min(1) }).optional(),
+  qualifier: lineQualifierSchema.optional(),
 });
 
 const publicSectionSchema = z.strictObject({

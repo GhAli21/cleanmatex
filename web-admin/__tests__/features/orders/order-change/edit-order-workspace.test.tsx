@@ -8,6 +8,7 @@ import { applyVisualDraftToController, projectEditVisualOrder, visualHeaderChang
 import { mapChangeContextToEditBaseline } from '@features/orders/order-change/edit-order-view-model';
 import type { OrderChangeContext } from '@/lib/types/order-change';
 import type { EditOrderBaseline } from '@features/orders/order-change/edit-order-view-model';
+import type { LineKey } from '@features/orders/model/new-order-types';
 
 const ORDER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const ITEM_A = '11111111-1111-4111-8111-111111111111';
@@ -152,6 +153,7 @@ describe('shared edit workspace adapter', () => {
     const visual = projectEditVisualOrder(context());
     const kept = visual.items[0];
     const added = {
+      lineKey: 'line-new' as LineKey,
       productId: '77777777-7777-4777-8777-777777777777',
       productName: 'New',
       productName2: null,
@@ -167,7 +169,7 @@ describe('shared edit workspace adapter', () => {
       customerName: 'Ada',
       customerMobile: '050',
       customerEmail: 'ada@example.com',
-      items: [{ ...kept, quantity: 2, pieces: [...(kept.pieces ?? []), { id: 'temp-new', itemId: kept.productId, pieceSeq: 2 }] }, added],
+      items: [{ ...kept, quantity: 2, pieces: [...(kept.pieces ?? []), { id: 'temp-new', itemId: kept.lineKey, pieceSeq: 2 }] }, added],
     });
     expect(controller.buildOperations().map((operation) => operation.code)).toEqual([
       'CHANGE_ITEM_QUANTITY',
@@ -254,13 +256,13 @@ describe('shared edit workspace adapter', () => {
     const mapped = mapChangeContextToEditBaseline(context());
     if (!mapped.ok) throw new Error('baseline');
     const visual = projectEditVisualOrder(context());
-    const line = { productId: PRODUCT, productName: 'Shirt', productName2: null, quantity: 1, pricePerUnit: 2.5, totalPrice: 2.5, defaultSellPrice: 2.5, };
+    const line = { lineKey: 'line-a' as LineKey, productId: PRODUCT, productName: 'Shirt', productName2: null, quantity: 1, pricePerUnit: 2.5, totalPrice: 2.5, defaultSellPrice: 2.5, };
     let next = 0;
     const ids = ['dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'];
     const controller = createEditOrderController({ createId: () => ids[next++] });
     applyVisualDraftToController(controller, mapped.baseline, {
       notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
-      items: [...visual.items, line, { ...line, priceOverride: 2, overrideReason: 'Regular' }],
+      items: [...visual.items, line, { ...line, lineKey: 'line-b' as LineKey, priceOverride: 2, overrideReason: 'Regular' }],
     });
     const adds = controller.buildOperations().filter((operation) => operation.code === 'ADD_ITEM');
     expect(adds.map((operation) => operation.payload)).toEqual([
@@ -284,6 +286,7 @@ describe('shared edit workspace adapter', () => {
     applyVisualDraftToController(controller, mapped.baseline, {
       notes: 'original', serviceSpeed: 'STANDARD', customerName: 'Ada', customerMobile: '050', customerEmail: 'ada@example.com',
       items: [...visual.items, {
+        lineKey: 'line-custom' as LineKey,
         productId: 'custom:new', customItem: { name: 'Curtain', name2: null, unitPrice: 7.25 }, productName: 'Curtain', productName2: null,
         quantity: 1, pricePerUnit: 7.25, totalPrice: 7.25, defaultSellPrice: 7.25, serviceCategoryCode: 'LAUNDRY',
       }],

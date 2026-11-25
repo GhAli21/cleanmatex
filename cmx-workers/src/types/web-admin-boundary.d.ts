@@ -99,3 +99,8 @@ declare module '@/lib/services/pos-session-rollover.service' {
   export interface PosSessionRolloverOutcome { processedCount: number; failedCount: number }
   export function runPosSessionRolloverSweep(options?: { now?: Date; tenantId?: string; sessionIds?: readonly string[] }): Promise<PosSessionRolloverOutcome>;
 }
+
+declare module '@/lib/services/erp-posting-auto-retry.service' {
+  export interface ErpRetryItemOutcome { outcome: 'RETRIED' | 'FAILED_AGAIN' | 'SKIPPED_ORPHAN'; reason?: string }
+  export function runErpPostRetryItem(tenantOrgId: string, exceptionId: string, postingLogId: string): Promise<ErpRetryItemOutcome>;
+}

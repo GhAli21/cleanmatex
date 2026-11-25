@@ -372,3 +372,50 @@ Credit notes run in the database (pg_cron); gift cards and loyalty run in cmx-wo
 7. A gift card whose expiry date has passed. "Gift card expiry (daily)" → **Run now**. **Expected:** "Queued…", then SUCCESS in its run history ("Sent one job to fin.gift_card_expiry.sweep"); within about 10 minutes (300 s polling, twice) the card shows **Expired** with one EXPIRE row. Run now again: still one EXPIRE row. A card expiring in the future is untouched.
 8. Loyalty: an Organization with points expiry days set (for example 30), a customer whose points were earned more than that many days ago. Run "Loyalty points expiry (daily)". **Expected:** those points leave the balance once; newer points stay.
 9. Switch a schedule off. **Expected:** within 30 seconds it is gone from `pgboss.schedule` and shows as off.
+
+### 6.2 POS session rollover (STEP6_PLAN 6b)
+
+Runs in cmx-workers every 15 minutes. Each branch's business day is read in that branch's time zone.
+
+**Database (Owner):**
+
+1. Apply `0824_bg_jobs_fin_pos_rollover.sql` on local, then remote. **Expected:** it commits. In SQL: `SELECT name, policy, expire_seconds FROM pgboss.queue WHERE name = 'fin.pos_rollover.sweep'` → `stately`, 900; `sys_ops_job_cf` has `fin.pos_rollover.sweep` (PGBOSS_QUEUE, off) and `fin.pos_rollover.every_15m` (PGBOSS_SCHEDULE, `*/15 * * * *`, off); `fin-pos-session-rollover` is `SUPERSEDED`.
+2. On your machine: `npm test --workspace=cmx-workers`. **Expected:** all pass, including `pos-rollover.test.ts`. (It runs the real sweep, so any live local POS session from a past business day is rolled over too.)
+
+**Release:**
+
+3. Deploy cmx-workers (after step 1 on remote). **Expected:** the worker starts with no "registry sync failed"; HQ → Ops → Jobs shows the new queue as reported.
+4. HQ → Ops → Jobs: switch on `fin.pos_rollover.sweep`, then "POS session rollover (every 15 minutes)". **Expected:** within about 30 seconds the schedule shows as applied; `SELECT name, key, cron, timezone FROM pgboss.schedule` lists it with `*/15 * * * *`, `UTC`. A "State drift" right after switching on is normal until the worker's next check: press Refresh. "Last run" only fills for Run now (scheduled ticks are not in the run history until step 7).
+
+**Behaviour (demo Organization):**
+
+5. POS settings: rollover mode **Pause at rollover**. Open a POS session, then in SQL move its `business_date` back one day (`UPDATE org_pos_sessions_mst SET business_date = business_date - 1 WHERE tenant_org_id = '<tenant>' AND id = '<session>'`). "POS session rollover (every 15 minutes)" → **Run now**. **Expected:** SUCCESS in its run history; within about 5 minutes the session shows **Paused** (reason rollover) with one rollover event; the operator and supervisors get the "rolled over" notification; it cannot be resumed. Run now again: nothing new.
+6. Same with **Force close at rollover**, drawer session counted and closed. **Expected:** the session shows **Force closed** and its shift Z-report exists.
+6a. **Force close at rollover**, but the linked cash-drawer session still holds cash. **Expected:** the session is **Paused** (not force-closed) and cannot be resumed; its rollover event metadata shows `blockedByDrawer: true`.
+7. A session opened today is left alone.
+8. Stale: stale limit 1 hour, a session opened more than 1 hour ago (same business day). **Expected:** flagged stale once, one notification.
+8a. A session the job already rolled over (step 5) is **not** flagged stale on the next runs. **Expected:** one alert per session ("rolled over"), no later "stale" alert. In SQL: `SELECT state, output FROM pgboss.job WHERE name = 'fin.pos_rollover.sweep' ORDER BY created_on DESC LIMIT 3` → later runs show `processedCount` 0 when nothing new is due.
+9. Switch the schedule off. **Expected:** within 30 seconds it is gone from `pgboss.schedule` and shows as off.
+
+### 6.3 ERP posting retry (STEP6_PLAN 6c)
+
+No schedule. When an accounting posting fails with a **system error**, the posting engine queues one retry a few minutes later (5 minutes after the first failure, 15 after the second, none after the third). Other errors (missing rule, missing account mapping, closed period ...) still wait for a person in the Exception Workbench.
+
+**Database (Owner):**
+
+1. Apply `0825_bg_jobs_fin_erp_retry.sql` on local, then remote. **Expected:** it commits. In SQL: `SELECT name, policy, retry_limit, expire_seconds FROM pgboss.queue WHERE name = 'fin.erp_post.retry'` → `standard`, 2, 300; `sys_ops_job_cf` has `fin.erp_post.retry` (PGBOSS_QUEUE, off); `fin-erp-posting-retry` is `SUPERSEDED`.
+2. On your machine: `npm test --workspace=cmx-workers`. **Expected:** all pass, including `erp-retry.test.ts`.
+
+**Release:**
+
+3. Deploy web-admin and cmx-workers (after step 1 on remote; the engine change is in both). **Expected:** the worker starts with no "registry sync failed".
+4. HQ → Ops → Jobs: switch on `fin.erp_post.retry`. **Expected:** it shows as applied within about 30 seconds.
+
+**Behaviour (local, demo Organization with ERP-Lite on).** Block journals with `ALTER TABLE org_fin_journal_mst ADD CONSTRAINT qa_block CHECK (false) NOT VALID;` and unblock with `ALTER TABLE org_fin_journal_mst DROP CONSTRAINT qa_block;`. Count jobs with `SELECT state, start_after, output FROM pgboss.job WHERE name = 'fin.erp_post.retry' ORDER BY created_on DESC LIMIT 3`.
+
+5. Safety. Block, then record a payment on an order. **Expected:** the payment is refused and nothing is saved (the posting runs inside the payment's transaction). **No** new `fin.erp_post.retry` job. Unblock.
+6. In ERP-Lite usage mappings, switch off the cash account mapping, then record a cash payment. **Expected:** the payment is saved; the Exception Workbench shows a "Missing usage mapping" exception; **no** retry job (it needs a person).
+7. Switch the mapping back on. Block. In the Workbench, press **Retry** on that exception. **Expected:** the retry fails and a new **System error** exception appears; one job is `created`, starting about 15 minutes later. Unblock.
+8. Wait about 20 minutes. **Expected:** the job is `completed` with `{"outcome":"RETRIED"}`; the System error exception shows **Retried**; the payment's journal exists; the exception history shows "Retried automatically after a system error" by `system/erp-auto-retry`. The first "Missing usage mapping" exception stays open (known limit): close it in the Workbench.
+9. Repeat 6–7, but ignore the System error exception before its job runs. **Expected:** the job completes with `SKIPPED_ORPHAN`, reason `EXCEPTION_IGNORED`; no journal.
+10. Repeat 6–7 and keep the block on until the job has run. **Expected:** the automatic retry fails (third attempt): one more System error exception and **no** further job. Unblock.

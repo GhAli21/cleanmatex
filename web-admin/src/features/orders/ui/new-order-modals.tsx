@@ -339,7 +339,7 @@ export function NewOrderModals() {
     (override: { price: number; reason: string }) => {
       if (!state.state.priceOverrideItemId) return;
 
-      const item = state.state.items.find(i => i.productId === state.state.priceOverrideItemId);
+      const item = state.state.items.find(i => i.lineKey === state.state.priceOverrideItemId);
       if (!item) return;
 
       // Get current user ID from auth context
@@ -371,7 +371,7 @@ export function NewOrderModals() {
   // Get current item for price override modal
   const priceOverrideItem = useMemo(() => {
     if (!state.state.priceOverrideItemId) return null;
-    const item = state.state.items.find(i => i.productId === state.state.priceOverrideItemId);
+    const item = state.state.items.find(i => i.lineKey === state.state.priceOverrideItemId);
     if (!item) return null;
 
     const hasOverride = item.priceOverride !== null && item.priceOverride !== undefined;

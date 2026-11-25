@@ -6,10 +6,12 @@ import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import { logger } from '@/lib/utils/logger';
+import { jobs } from '@/lib/jobs/producer';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import {
   ERP_LITE_AMOUNT_SOURCES,
   ERP_LITE_ATTEMPT_STATUSES,
+  ERP_LITE_AUTO_RETRY,
   ERP_LITE_ENTRY_SIDES,
   ERP_LITE_ERROR_CODES,
   ERP_LITE_EXCEPTION_STATUSES,
@@ -374,7 +376,63 @@ export class ErpLitePostingEngineService {
       // Pass undefined instead so handleExecuteFailure creates a fresh log row
       // via the global prisma client before inserting the exception record.
       const safeLogId = journalTx ? undefined : postingLogId;
-      return this.handleExecuteFailure(envelope, safeLogId, error, prisma);
+      const failure = await this.handleExecuteFailure(envelope, safeLogId, error, prisma);
+      await this.queueAutoRetry(envelope, failure, journalTx);
+      return failure;
+    }
+  }
+
+  /**
+   * Queues one delayed `fin.erp_post.retry` job for a SYSTEM_ERROR failure (Background Jobs step 6c),
+   * while attempts remain. Inside a business transaction the job is written in that transaction,
+   * under a savepoint: it exists only if the business change commits, and a failed enqueue never
+   * rolls the business change back. Never throws: the exception row is already saved for a person.
+   */
+  private static async queueAutoRetry(
+    envelope: ErpLitePostingRequestEnvelope,
+    failure: ErpLitePostingExecuteResult,
+    journalTx?: PrismaTx
+  ): Promise<void> {
+    if (
+      failure.exception_type_code !== ERP_LITE_EXCEPTION_TYPES.SYSTEM_ERROR ||
+      !failure.exception_id ||
+      !failure.posting_log_id ||
+      (envelope.mode !== ERP_LITE_POSTING_MODES.EXECUTE && envelope.mode !== ERP_LITE_POSTING_MODES.RETRY) ||
+      envelope.attempt_no >= ERP_LITE_AUTO_RETRY.MAX_ATTEMPTS
+    ) {
+      return;
+    }
+    const payload = {
+      tenantOrgId: envelope.request.tenant_org_id,
+      exceptionId: failure.exception_id,
+      postingLogId: failure.posting_log_id,
+    };
+    const options = {
+      id: failure.exception_id,
+      startAfter: ERP_LITE_AUTO_RETRY.FIRST_DELAY_S * 3 ** (envelope.attempt_no - 1),
+    };
+    let savepoint = false;
+    try {
+      if (journalTx) {
+        // Fails when the posting error already aborted the transaction; the business change then rolls back too.
+        await journalTx.$executeRawUnsafe('SAVEPOINT erp_auto_retry');
+        savepoint = true;
+        await jobs.enqueue(journalTx, 'fin.erp_post.retry', payload, options);
+        await journalTx.$executeRawUnsafe('RELEASE SAVEPOINT erp_auto_retry');
+      } else {
+        await jobs.enqueue(prisma, 'fin.erp_post.retry', payload, options);
+      }
+    } catch (err) {
+      if (savepoint) {
+        await journalTx?.$executeRawUnsafe('ROLLBACK TO SAVEPOINT erp_auto_retry').catch(() => undefined);
+      }
+      logger.warn('ERP-Lite auto-retry not queued', {
+        tenantId: payload.tenantOrgId,
+        feature: 'erp-lite',
+        action: 'auto-retry-enqueue',
+        exceptionId: payload.exceptionId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

@@ -10,6 +10,7 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { CmxBarcode } from '@ui/print';
+import { formatLineQualifier } from '@/lib/orders/line-qualifier-format';
 import {
   buildCashChangeRows,
   type CashChangePaymentLike,
@@ -79,6 +80,7 @@ export function OrderReceiptPrint({
   const locale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const qualifierLocale = moneyLocale;
   const fmt = (n: number) =>
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
 
@@ -159,6 +161,9 @@ export function OrderReceiptPrint({
             <div key={item.id} className="flex justify-between">
               <div className="flex-1">
                 <div className="font-medium">{item.productName}</div>
+                {formatLineQualifier(item.qualifier, { locale: qualifierLocale }) && (
+                  <div className="text-muted-foreground">{formatLineQualifier(item.qualifier, { locale: qualifierLocale })}</div>
+                )}
                 <div className="text-[11px] text-muted-foreground">
                   {tWorkflowReady('quantity')}: {item.quantity}
                 </div>

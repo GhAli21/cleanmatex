@@ -158,7 +158,7 @@ export function PreferencesTabsSection({
             <div className="space-y-4 max-h-[50vh] sm:max-h-[40vh] overflow-y-auto">
               {state.items.map((item) => (
                 <div
-                  key={item.productId}
+                  key={item.lineKey}
                   className="rounded-lg border border-border p-3 bg-muted/50"
                 >
                   <div
@@ -195,13 +195,13 @@ export function PreferencesTabsSection({
                       kindsLoading={kindsLoading}
                       enforcePrefCompatibility={enforcePrefCompatibility}
                       onServicePrefsChange={(prefs, charge) =>
-                        updateItemServicePrefs(item.productId, prefs, charge)
+                        updateItemServicePrefs(item.lineKey, prefs, charge)
                       }
                       onPackingChange={(code, packingCfId) => {
                         const charge = code
                           ? Number(packingPrefs.find((p) => p.code === code)?.default_extra_price ?? 0)
                           : 0;
-                        updateItemPackingPref(item.productId, code ?? '', false, 'manual', packingCfId, charge);
+                        updateItemPackingPref(item.lineKey, code ?? '', false, 'manual', packingCfId, charge);
                       }}
                     />
                   </div>

@@ -26,6 +26,7 @@ import type {
   ORDER_FIN_WARNING_SEVERITIES,
 } from '@/lib/constants/order-fin-view';
 import type { ServerTotals } from '@/lib/types/payment-quote';
+import type { LineQualifier } from '@/lib/orders/line-qualifier';
 import type { TaxPricingMode } from '@/lib/constants/order-financial';
 import type { OrderChangeFinancialOutcome } from '@/lib/services/order-change/order-change-financial-result.service';
 
@@ -63,6 +64,8 @@ export interface OrderFinLine {
   meta?: { dateIso?: string; methodCode?: string; ref?: string; statusCode?: string };
   /** Item lines only: the line's tax by code (Tax Engine), shown under the line; never summed. */
   taxParts?: OrderFinTaxPart[];
+  /** Item lines only: measure, own speed and ordinal that tell same-name lines apart (structured, never text). */
+  qualifier?: LineQualifier;
 }
 
 /** One tax code's share of an item line's tax, as stored in the tax record. */
@@ -171,6 +174,7 @@ export interface OrderFinFactInput {
   methodCode?: string | null;               // payment method, credit type, charge type…
   ref?: string | null;                      // short display ref only (never a gateway reference)
   taxParts?: OrderFinTaxPart[];             // item lines: tax by code
+  qualifier?: LineQualifier;                // item lines: measure / speed / ordinal
 }
 
 export interface OrderFinSourceSet {

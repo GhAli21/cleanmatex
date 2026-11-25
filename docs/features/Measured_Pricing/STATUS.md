@@ -21,11 +21,18 @@ entering measures in a non-base unit (lb/ft) in the Measure dialog; UoM L2 with 
 
 **Owner (2026-11-24):** 0821 applied; HQ adds the policy rule for `CHANGE_ITEM_MEASURE`/ITEM; manual QA steps 25-30. **Next:** P5 (design in RESUME_CONTINUATION, section P5); P4 is closed apart from the two TODOs above; start P5 (Order Edit measure op). Earlier note: P3 is closed except Order Edit (P5) and cart `pricedQty` (P4); public APIs moved to P6. Start P4 (UI: unit picker, measure input, Units page). AMOUNT precision settled: `(19,4)` (doc corrected 2026-11-24).
 
+## Owned for Order Cart Line Grouping (owner agreed 2026-11-25; DESIGN §0 there)
+
+1. **Free-garment fix (P4 fix): DONE in code 2026-11-25.** A piece-count change on a measured line (card +/-, step 2 +/-, Add piece, pieces manager, Edit quantity/add/remove piece) is held in `state.measureRecheck`; the Measure dialog opens in re-measure mode ("Pieces changed from X to Y. Check the total measure."); Confirm applies the count and the staff-entered total (keeping the total is allowed and explicit); Cancel drops the change; code never changes the measure by itself; removing the line is not held; Edit: a changed total needs the `CHANGE_ITEM_MEASURE` policy cell (else "keep the total" only). Files: `new-order-types.ts` (`measureRecheck`, 2 actions), `new-order-reducer.ts`, `use-new-order-state.ts` (`holdForMeasure`, `confirmMeasureRecheck`, `cancelMeasureRecheck`; `updateItemQuantity/updateItemPieces` now return a boolean), `measure-line-dialog.tsx` (`notice`, `refusal`), `new-order-content.tsx` (second dialog + follow-ups), `uom.json` EN/AR (`measure.recheckNotice`, `recheckBlocked`), test `__tests__/features/orders/measure-recheck.test.tsx` (8). tsc, eslint, check:i18n, check:ui clean. Cart Line Grouping P1 must carry `productId` -> `lineKey` through `MeasureRecheck.productId` and the 3 hook methods.
+2. **Line qualifier (P6 / P8):** `lib/orders/line-qualifier.ts` = `orderLineQualifiers(lines, orderSpeed)` -> per line id `{ measure?, speedCode? (only when it differs from the order speed), ordinal? (only when a product has 2+ lines with identical parts) }`, structured, not text; used by receipts, prints, money view, tracking, customer app (Line Grouping DESIGN §8.1 has the surfaces). Not started. Hold: do not edit `new-order-reducer.ts`, `use-new-order-state.ts`, `new-order-content.tsx`, `edit-workspace-adapter.ts` or the measure dialog while Line Grouping P1 runs; they will say when P1 is done.
+
 ## Remaining to close the plan (2026-11-24, after P5)
 
 Code phases left: **P6** display/public (order detail, receipts, invoices, Order Fin View line rows, public tracking, public booking route still on `product_unit`); **P7** HQ uom-config + product config (`cleanmatexsaas`); **P8** mobile app (`cmx_mobile_apps`); **P9** Migration B, drop the legacy `product_unit` bridge (owner review, stop-and-wait); **P10** docs.
 Owner tasks: HQ policy rule `CHANGE_ITEM_MEASURE`/ITEM in each Edit policy draft; manual QA steps 1-30; commit.
 Open/minor: 10 `__tests__/features/orders` suites fail via barrel imports (pre-existing); `next build --webpack` not run for P5; optional migration to set the unused 0821 PIECE pair `is_active=false`; `CmxKeypadPopover` in the Measure dialog; non-base-unit entry (lb/ft); UoM L2 with ERP Lite PO. Decided: measure is line-level (ITEM only), no per-piece lengths.
+
+**Coordination (2026-11-25):** P6 and Order Cart Line Grouping share `lib/orders/line-qualifier.ts` (`{measure?, speedCode?, ordinal?}`, first to land creates it). Edit merge (quantity + add piece + measure on one line) proven on the real DB; no change needed for their §4.5. See RESUME_CONTINUATION.
 
 ## Session handoff — 2026-11-24
 

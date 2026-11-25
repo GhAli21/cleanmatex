@@ -83,6 +83,8 @@ export interface StaleFacts {
   status: PosSessionStatus;
   openedAt: Date | string;
   staleFlaggedAt: Date | string | null;
+  /** Set once the rollover job paused, marked or closed the session; its alert already went out. */
+  rolloverAppliedAt?: Date | string | null;
   /** `pos_session_stale_hours`; a non-positive value disables stale flagging. */
   staleHours: number;
   now: Date;
@@ -96,13 +98,14 @@ export function openHours(openedAt: Date | string, now: Date): number {
 
 /**
  * Whether a live session should be flagged stale now. Flagging happens once (`stale_flagged_at`
- * is set and never cleared), so a long-lived session notifies once, not on every sweep.
+ * is set and never cleared), so a long-lived session notifies once, not on every sweep. A session
+ * already rolled over is not flagged: it cannot be resumed and the rollover alert already went out.
  *
- * @param facts status, open time, flag state, threshold and the sweep instant
- * @returns true when the session is live, not yet flagged and past the threshold
+ * @param facts status, open time, flag and rollover state, threshold and the sweep instant
+ * @returns true when the session is live, not yet flagged or rolled over, and past the threshold
  */
 export function isSessionStale(facts: StaleFacts): boolean {
-  if (!isLive(facts.status) || facts.staleFlaggedAt) return false;
+  if (!isLive(facts.status) || facts.staleFlaggedAt || facts.rolloverAppliedAt) return false;
   if (!(facts.staleHours > 0)) return false;
   return openHours(facts.openedAt, facts.now) >= facts.staleHours;
 }
