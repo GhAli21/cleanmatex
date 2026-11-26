@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-23T23:37:53.059Z",
-  "gitSha": "ed7c5996",
+  "generatedAt": "2026-11-25T08:06:29.916Z",
+  "gitSha": "af9bb6c6",
   "sources": [
     "docs/platform/feature_flags/extracted-feature-flags-usage.json",
     "docs/platform/permissions/extracted-permissions.json",
@@ -16566,10 +16566,6 @@
       "depth": "section",
       "permissions": [
         "uom:view"
-      ],
-      "roles": [
-        "super_admin",
-        "tenant_admin"
       ],
       "provenance": [
         {

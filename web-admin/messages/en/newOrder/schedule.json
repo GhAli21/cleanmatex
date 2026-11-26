@@ -16,6 +16,7 @@
   "validation": {
     "dateMustBeFuture": "Date must be in the future"
   },
+  "timezoneNotConfigured": "No time zone is set for this branch, so a ready time cannot be chosen. Ask an administrator to set one.",
   "monthNames": {
     "january": "January",
     "february": "February",

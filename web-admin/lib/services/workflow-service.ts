@@ -390,7 +390,7 @@ export class WorkflowService {
   }
 
   /**
-   * Get overdue orders (past ready_by date)
+   * Get overdue orders (past the ready_by_at instant)
    */
   static async getOverdueOrders(tenantId: string): Promise<OverdueOrder[]> {
     try {
@@ -404,7 +404,7 @@ export class WorkflowService {
           id,
           order_no,
           status,
-          ready_by,
+          ready_by_at,
           customer:org_customers_mst!inner(
             name,
             name2,
@@ -417,9 +417,9 @@ export class WorkflowService {
         )
         .eq('tenant_org_id', tenantId)
         .not('status', 'in', '("DELIVERED","CLOSED","CANCELLED")')
-        .not('ready_by', 'is', null)
-        .lt('ready_by', now)
-        .order('ready_by', { ascending: true });
+        .not('ready_by_at', 'is', null)
+        .lt('ready_by_at', now)
+        .order('ready_by_at', { ascending: true });
 
       if (error) {
         console.error('Failed to fetch overdue orders:', error);
@@ -427,7 +427,7 @@ export class WorkflowService {
       }
 
       return (data || []).map((order: any) => {
-        const readyBy = new Date(order.ready_by);
+        const readyBy = new Date(order.ready_by_at);
         const hoursOverdue =
           (new Date().getTime() - readyBy.getTime()) / (1000 * 60 * 60);
 
@@ -436,7 +436,7 @@ export class WorkflowService {
           order_no: order.order_no,
           customer_name: String(order.customer?.name || order.customer?.name2 || '').trim(),
           status: order.status,
-          ready_by: order.ready_by,
+          ready_by: order.ready_by_at,
           hours_overdue: Math.round(hoursOverdue * 10) / 10,
           branch_name: order.branch?.branch_name,
         };
@@ -479,16 +479,16 @@ export class WorkflowService {
       // SLA compliance
       const { data: slaData } = await supabase
         .from('org_orders_mst')
-        .select('ready_by, ready_at')
+        .select('ready_by_at, ready_at')
         .eq('tenant_org_id', tenantId)
         .not('ready_at', 'is', null)
-        .not('ready_by', 'is', null);
+        .not('ready_by_at', 'is', null);
 
       let onTime = 0;
       let late = 0;
 
       slaData?.forEach((order: any) => {
-        if (new Date(order.ready_at) <= new Date(order.ready_by)) {
+        if (new Date(order.ready_at) <= new Date(order.ready_by_at)) {
           onTime++;
         } else {
           late++;
@@ -514,8 +514,8 @@ export class WorkflowService {
         .select('id')
         .eq('tenant_org_id', tenantId)
         .not('status', 'in', '("DELIVERED","CLOSED","CANCELLED")')
-        .not('ready_by', 'is', null)
-        .lt('ready_by', now);
+        .not('ready_by_at', 'is', null)
+        .lt('ready_by_at', now);
 
       return {
         statusDistribution,

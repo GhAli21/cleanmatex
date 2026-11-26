@@ -198,7 +198,46 @@ describe('Ready-By Calculator', () => {
       expect(typeof result.adjustedTurnaroundHours).toBe('number');
       expect(typeof result.priorityMultiplier).toBe('number');
       expect(typeof result.isWorkingDay).toBe('boolean');
-      expect(typeof result.formatted).toBe('string');
+      expect(result.formatted).toBe('');
+    });
+  });
+
+  describe('Operations zone', () => {
+    it('moves a Muscat time after close to the next working morning', () => {
+      const result = calculateReadyBy({
+        receivedAt: new Date('2025-10-30T14:30:00.000Z'),
+        turnaroundHours: 2,
+        priority: 'normal',
+        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5] },
+        timeZone: 'Asia/Muscat',
+      });
+
+      expect(result.readyBy.toISOString()).toBe('2025-10-31T05:00:00.000Z');
+      expect(result.isWorkingDay).toBe(true);
+    });
+
+    it('keeps a same-day Muscat turnaround on the civil clock', () => {
+      const result = calculateReadyBy({
+        receivedAt: new Date('2025-10-30T05:00:00.000Z'),
+        turnaroundHours: 4,
+        priority: 'normal',
+        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5, 6] },
+        timeZone: 'Asia/Muscat',
+      });
+
+      expect(result.readyBy.toISOString()).toBe('2025-10-30T09:00:00.000Z');
+    });
+
+    it('skips a Muscat weekend to Monday opening', () => {
+      const result = calculateReadyBy({
+        receivedAt: new Date('2025-10-31T13:00:00.000Z'),
+        turnaroundHours: 24,
+        priority: 'normal',
+        businessHours: { open: 9, close: 18, workingDays: [1, 2, 3, 4, 5] },
+        timeZone: 'Asia/Muscat',
+      });
+
+      expect(result.readyBy.toISOString()).toBe('2025-11-03T05:00:00.000Z');
     });
   });
 });

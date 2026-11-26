@@ -33,8 +33,7 @@ interface OrderRow {
   branch_id: string | null;
   customer_id: string | null;
   customer_name: string | null;
-  ready_by: string | null;
-  ready_by_at_new: string | null;
+  ready_by_at: string | null;
 }
 interface ItemRow {
   id: string;
@@ -51,7 +50,7 @@ interface PieceRow {
   tag_released_at: string | null;
 }
 
-const ORDER_COLUMNS = 'id, order_no, branch_id, customer_id, customer_name, ready_by, ready_by_at_new';
+const ORDER_COLUMNS = 'id, order_no, branch_id, customer_id, customer_name, ready_by_at';
 const ITEM_COLUMNS = 'id, order_item_srno, product_name, product_name2';
 const PIECE_COLUMNS = 'id, order_item_id, piece_seq, piece_code, barcode, tag_released_at';
 
@@ -81,7 +80,7 @@ export function buildOrderLabelData(
     barcodeValue: order.order_no,
     branchName: extras.branchName,
     branchName2: extras.branchName2,
-    readyBy: order.ready_by_at_new ?? order.ready_by ?? null,
+    readyBy: order.ready_by_at ?? null,
     itemCount: extras.itemCount,
     pieceCount: extras.pieceCount,
     customerShort: settings.showCustomerName ? shortCustomerName(extras.customerName) : null,

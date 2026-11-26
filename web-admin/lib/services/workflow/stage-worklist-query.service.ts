@@ -60,7 +60,7 @@ export interface StageWorklistQueryInput {
   priority?: string[]
   /** When true, only orders with `has_issue = true`. */
   hasIssue?: boolean
-  /** When true, only orders past their `ready_by` timestamp. */
+  /** When true, only orders past their `ready_by_at` instant. */
   overdue?: boolean
   /** Ready desk: outstanding balance still due. */
   collectionDue?: boolean
@@ -155,7 +155,7 @@ function buildWhereSql(
 
   if (input.overdue) {
     clauses.push(
-      Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) IS NOT NULL AND COALESCE(o.ready_by_at_new, o.ready_by) < NOW()`,
+      Prisma.sql`o.ready_by_at IS NOT NULL AND o.ready_by_at < NOW()`,
     )
   }
 
@@ -180,10 +180,10 @@ function buildWhereSql(
   if (input.receivedFrom) clauses.push(Prisma.sql`o.received_at >= ${input.receivedFrom}::timestamptz`)
   if (input.receivedTo) clauses.push(Prisma.sql`o.received_at <= ${input.receivedTo}::timestamptz`)
   if (input.readyByFrom) {
-    clauses.push(Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) >= ${input.readyByFrom}::timestamptz`)
+    clauses.push(Prisma.sql`o.ready_by_at >= ${input.readyByFrom}::timestamptz`)
   }
   if (input.readyByTo) {
-    clauses.push(Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) <= ${input.readyByTo}::timestamptz`)
+    clauses.push(Prisma.sql`o.ready_by_at <= ${input.readyByTo}::timestamptz`)
   }
 
   return Prisma.join(clauses, ' AND ')
@@ -211,8 +211,8 @@ function orderBySql(input: StageWorklistQueryInput): Prisma.Sql {
     case 'ready_by_at':
     case 'ready_by_at_new':
       return ascending
-        ? Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) ASC NULLS LAST`
-        : Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) DESC NULLS LAST`
+        ? Prisma.sql`o.ready_by_at ASC NULLS LAST`
+        : Prisma.sql`o.ready_by_at DESC NULLS LAST`
     case 'created_at':
       return ascending ? Prisma.sql`o.created_at ASC NULLS LAST` : Prisma.sql`o.created_at DESC NULLS LAST`
     case 'total':
@@ -380,8 +380,8 @@ async function queryStageWorklistPage(
         0
       )::double precision AS unpaid_outstanding,
       COUNT(*) FILTER (
-        WHERE COALESCE(o.ready_by_at_new, o.ready_by) IS NOT NULL
-          AND COALESCE(o.ready_by_at_new, o.ready_by) < NOW()
+        WHERE o.ready_by_at IS NOT NULL
+          AND o.ready_by_at < NOW()
       )::bigint AS overdue_count,
       COUNT(*) FILTER (WHERE COALESCE(o.has_issue, false) = true)::bigint AS open_issues_count
     FROM public.org_orders_mst o

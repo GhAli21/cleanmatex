@@ -6,7 +6,8 @@
  * All queries automatically filter by tenant_org_id via Prisma middleware.
  */
 
-import { prisma } from '@/lib/db/prisma';
+import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
 import { orderLineQualifiers, qualifierInputOfRow } from '@/lib/orders/line-qualifier';
 import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
 import type {
@@ -265,7 +266,7 @@ export async function listOrders(
   }
 
   if (overdue) {
-    where.ready_by = { lt: new Date() };
+    where.ready_by_at = { lt: new Date() };
     if (!status) {
       where.status = { notIn: ['delivered', 'closed', 'cancelled'] };
     }
@@ -376,7 +377,7 @@ export async function listOrders(
         : sortBy === 'total'
           ? { total_amount: sortOrder }
           : sortBy === 'ready_by'
-            ? { ready_by: { sort: sortOrder, nulls: 'last' } }
+            ? { ready_by_at: { sort: sortOrder, nulls: 'last' } }
             : sortBy === 'order_no'
               ? { order_no: sortOrder }
               : { created_at: sortOrder },
@@ -390,9 +391,10 @@ export async function listOrders(
     o.org_order_items_dtl.map((item) => item.id),
   );
 
-  const pieceCounts =
+  const branchIds = [...new Set(orders.flatMap((order) => (order.branch_id ? [order.branch_id] : [])))];
+  const [pieceCounts, zones] = await Promise.all([
     itemIds.length > 0
-      ? await prisma.org_order_item_pieces_dtl.groupBy({
+      ? prisma.org_order_item_pieces_dtl.groupBy({
           by: ['order_id'],
           where: {
             order_id: { in: orderIds },
@@ -403,7 +405,9 @@ export async function listOrders(
             id: true,
           },
         })
-      : [];
+      : Promise.resolve([]),
+    resolveOperationalTimeZonesForBranches(prisma, tenantOrgId, 'ready_by', branchIds),
+  ]);
 
   const pieceCountMap = new Map(
     pieceCounts.map((pc) => [pc.order_id, pc._count.id]),
@@ -451,7 +455,8 @@ export async function listOrders(
       total_pieces: pieceCountMap.get(order.id) ?? null,
       total: Number(order.total_amount ?? 0),
       received_at: order.received_at ?? null,
-      ready_by: order.ready_by,
+      ready_by: order.ready_by_at,
+      ops_zone: (order.branch_id ? zones.byBranch.get(order.branch_id) : zones.organization) ?? zones.organization,
       branch_name: order.org_branches_mst?.branch_name ?? undefined,
       order_source_code: order.order_source_code ?? undefined,
       physical_intake_status: order.physical_intake_status ?? null,
@@ -565,7 +570,7 @@ export async function getOrderStats(tenantOrgId: string) {
     prisma.org_orders_mst.count({
       where: {
         tenant_org_id: tenantOrgId,
-        ready_by: { lt: new Date() },
+        ready_by_at: { lt: new Date() },
         status: { notIn: ['delivered', 'closed', 'cancelled'] },
       },
     }),

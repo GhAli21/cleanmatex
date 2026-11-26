@@ -15,7 +15,8 @@ import { allocateLargestRemainder } from '@/lib/commercial/allocation';
 import { ZERO, sumMoney, toMoney, type Money, type MoneyInput } from '@/lib/commercial/money';
 import { MONEY_BASIS, TAX_CATEGORIES } from '@/lib/constants/commercial';
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
-import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { businessDateForTimezone } from '@/lib/utils/business-date';
+import { OperationalZoneMissingError, resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import type { CommercialQuote } from '@/lib/services/commercial/commercial-quote.service';
 import type { OrderTaxRecord } from '@/lib/tax/order-line-tax';
 
@@ -333,14 +334,13 @@ export async function finalizeOrderTaxLines(tx: Tx, input: { tenantOrgId: string
   if ((await tx.org_tax_lines_tr.count({ where: scope })) === 0) return;
 
   const order = await tx.org_orders_mst.findFirst({ where: { id: orderId, tenant_org_id: tenantOrgId }, select: { branch_id: true } });
-  const [branch, tenant] = await Promise.all([
-    order?.branch_id
-      ? tx.org_branches_mst.findFirst({ where: { id: order.branch_id, tenant_org_id: tenantOrgId }, select: { timezone_code: true } })
-      : null,
-    tx.org_tenants_mst.findFirst({ where: { id: tenantOrgId }, select: { timezone: true } }),
-  ]);
-  const timezone = [branch?.timezone_code, tenant?.timezone].find((tz) => isValidTimeZone(tz));
-  const taxDate = timezone ? businessDateForTimezone(timezone, at) : at.toISOString().slice(0, 10);
+  const zone = await resolveOperationalTimeZoneOn(tx, {
+    tenantOrgId,
+    operation: 'invoice',
+    branchId: order?.branch_id ?? null,
+  });
+  if (!zone) throw new OperationalZoneMissingError();
+  const taxDate = businessDateForTimezone(zone, at);
   const periodId = await periodIdFor(tx, tenantOrgId, taxDate);
 
   await tx.org_tax_lines_tr.updateMany({
@@ -373,7 +373,17 @@ export async function reverseOrderTaxLines(tx: Tx, input: {
   const total = toMoney(taxAmount);
   // The rows add up exactly to the credit note's tax, split by what each still holds.
   const shares = total.isZero() || sumMoney(taxed).isZero() ? finals.map(() => ZERO) : allocateLargestRemainder(total, taxed, 4);
-  const taxDate = at.toISOString().slice(0, 10);
+  const order = await tx.org_orders_mst.findFirst({
+    where: { id: orderId, tenant_org_id: tenantOrgId },
+    select: { branch_id: true },
+  });
+  const zone = await resolveOperationalTimeZoneOn(tx, {
+    tenantOrgId,
+    operation: 'invoice',
+    branchId: order?.branch_id ?? null,
+  });
+  if (!zone) throw new OperationalZoneMissingError();
+  const taxDate = businessDateForTimezone(zone, at);
   const periodId = await periodIdFor(tx, tenantOrgId, taxDate);
   const doc = { typeCode: DOC_SEQ_TYPES.TAX_CREDIT_NOTE, id: creditNote.id, no: creditNote.no, taxDate, at, periodId, userId };
   await tx.org_tax_lines_tr.createMany({

@@ -31,8 +31,7 @@ interface HomeCollectionListOrder {
   id: string;
   order_no: string;
   current_status?: string | null;
-  ready_by?: string | null;
-  ready_by_at_new?: string | null;
+  ready_by_at?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   total_items?: number | null;
@@ -211,7 +210,7 @@ export function HomeCollectionListScreen() {
           <div className="space-y-1">
             <CmxCodeChip code={order.order_no} kind="order" size="sm" />
             <WorkflowQueueOrderBadges
-              readyByAt={order.ready_by_at_new || order.ready_by}
+              readyByAt={order.ready_by_at}
               priority={order.priority}
               hasIssue={Boolean(order.has_issue)}
               nowMs={nowMs}
@@ -241,7 +240,7 @@ export function HomeCollectionListScreen() {
         header: tWorkflow('ready.sortBy.readyBy'),
         sortable: false,
         render: (order) => {
-          const formatted = formatQueueDateTime(order.ready_by_at_new || order.ready_by, locale);
+          const formatted = formatQueueDateTime(order.ready_by_at, locale);
           return <span className="text-sm tabular-nums">{formatted ?? '—'}</span>;
         },
       },

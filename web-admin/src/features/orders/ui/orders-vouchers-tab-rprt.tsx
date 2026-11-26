@@ -7,6 +7,7 @@ import { CreditCard, Receipt, ArrowUpRight } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 import { VoucherDirectionBadge } from '@features/finance/vouchers/ui/voucher-direction-badge';
 import { VoucherStatusBadge } from '@features/finance/vouchers/ui/voucher-status-badge';
 import { CmxButton } from '@ui/primitives';
@@ -19,6 +20,9 @@ interface OrdersVouchersTabRprtProps {
   /** Base path for order detail (default: full details page) */
   orderBasePath?: string;
   filterByInvoiceId?: string | null;
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  opsZone?: string | null;
+  locale?: string;
   translations: {
     emptyVouchers: string;
     viewPayments: string;
@@ -26,6 +30,27 @@ interface OrdersVouchersTabRprtProps {
     voucherId?: string;
     invoiceId?: string;
   };
+}
+
+function civilDateLabel(value: Date | string | null | undefined): string {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string') {
+    const match = /^(\d{4}-\d{2}-\d{2})/.exec(value);
+    return match?.[1] ?? '';
+  }
+  const year = value.getUTCFullYear();
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(value.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function voucherClock(
+  voucherDate: Date | string | null | undefined,
+  instant: Date | string | null | undefined,
+  zone: string | null,
+  locale: string,
+): string {
+  return civilDateLabel(voucherDate) || formatStoredClock(instant, zone, locale);
 }
 
 function buildSourceLink(voucher: VoucherData): string | null {
@@ -57,6 +82,8 @@ export function OrdersVouchersTabRprt({
   orderId,
   orderBasePath,
   filterByInvoiceId,
+  opsZone = null,
+  locale = 'en',
   translations: t,
 }: OrdersVouchersTabRprtProps) {
   const router = useRouter();
@@ -137,7 +164,7 @@ export function OrdersVouchersTabRprt({
           {filtered.map((voucher) => {
             const sourceLink = buildSourceLink(voucher);
             const voucherCurrency = voucher.currency_code?.trim() || currencyCode;
-            const voucherDate = voucher.voucher_datetime ?? voucher.voucher_date ?? voucher.issued_at ?? voucher.created_at;
+            const voucherDate = voucherClock(voucher.voucher_date, voucher.voucher_datetime ?? voucher.issued_at, opsZone, locale);
 
             return (
               <tr key={voucher.id} className="border-b border-border align-top hover:bg-muted">
@@ -238,11 +265,9 @@ export function OrdersVouchersTabRprt({
                 </td>
                 <td className="px-4 py-3 text-start">
                   <div className="space-y-2">
-                    <CopyValue
-                      value={voucherDate ? new Date(voucherDate).toLocaleString() : null}
-                    />
+                    <CopyValue value={voucherDate || null} />
                     <div className="text-xs text-muted-foreground">
-                      {tDetail('createdAt')}: {voucher.created_at ? new Date(voucher.created_at).toLocaleString() : '—'}
+                      {tDetail('createdAt')}: {formatStoredClock(voucher.created_at, opsZone, locale) || '—'}
                     </div>
                   </div>
                 </td>

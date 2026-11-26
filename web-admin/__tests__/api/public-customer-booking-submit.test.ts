@@ -92,7 +92,7 @@ function queueCatalog(product: Record<string, unknown> = {}, measuredUnits: Arra
   // First the duplicate check (none), then the created order read.
   tableResults.org_orders_mst = [
     { data: null, error: null },
-    { data: { ready_by: '2026-10-29T08:00:00.000Z', total_amount: '4.6200' }, error: null },
+    { data: { ready_by_at: '2026-10-29T08:00:00.000Z', total_amount: '4.6200' }, error: null },
   ];
 }
 
@@ -199,7 +199,7 @@ describe('customer booking submit', () => {
 
   it('returns the order already created by the same request within two minutes', async () => {
     tableResults.org_orders_mst = [{
-      data: { id: ORDER, order_no: 'ORD-1', ready_by_at_new: null, ready_by: '2026-10-29T08:00:00.000Z', total_amount: '4.6200', currency_code: 'OMR' },
+      data: { id: ORDER, order_no: 'ORD-1', ready_by_at: '2026-10-29T08:00:00.000Z', total_amount: '4.6200', currency_code: 'OMR' },
       error: null,
     }];
 

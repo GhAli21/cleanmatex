@@ -17,6 +17,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
+import { readDatabaseInstant } from '@/lib/utils/operational-zone.server';
 import { createClient } from '@/lib/supabase/server';
 import {
   roundMoney,
@@ -260,7 +261,9 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
   const currencyConfig = await measure('currency', () => tenantSettings.getCurrencyConfig(tenantId, branchId, userId));
   const currencyCode = currencyConfig.currencyCode;
   const decimalPlaces = currencyConfig.decimalPlaces ?? 3;
-  const intent = checkoutIntentOf(params, new Date());
+  // One database instant dates the quote. The tax write stores this same value.
+  const receivedAt = await readDatabaseInstant(prisma);
+  const intent = checkoutIntentOf(params, receivedAt);
 
   // ─── Order discounts: manual → rule → promo, evaluated as today ──────────
   const adjustmentMeta = new Map<string, AdjustmentMeta>();
@@ -299,7 +302,7 @@ export async function quoteCheckout(params: CheckoutQuoteParams): Promise<Checko
       order_total: num(afterManual),
       items_count: params.items.length,
       service_categories: serviceCategories ?? [],
-      order_date: new Date().toISOString(),
+      order_date: receivedAt.toISOString(),
     }));
     let rule = bestRule ? capped(bestRule.discount_amount, afterManual, rounding) : toMoney(0);
 

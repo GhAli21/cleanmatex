@@ -17,6 +17,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { civilDateFromPickerDate, civilDateInZone, formatCivilDate, instantFromCivilDateTime } from '@/lib/utils/operational-time';
 
 interface ReadyDatePickerModalProps {
   open: boolean;
@@ -26,6 +27,10 @@ interface ReadyDatePickerModalProps {
   initialTime?: string;
   /** When true (retail orders), allow "now" as valid instead of requiring strict future */
   allowNow?: boolean;
+  /** Fulfilment branch zone, otherwise the organization zone. */
+  opsZone?: string | null;
+  /** True while the zone is still being read. */
+  zonePending?: boolean;
 }
 
 /**
@@ -40,44 +45,53 @@ export function ReadyDatePickerModal(props: ReadyDatePickerModalProps) {
 
 type ReadyDatePickerModalOpenProps = Omit<ReadyDatePickerModalProps, 'open'>;
 
+function calendarDate(initialDate: Date | undefined, opsZone: string | null): Date {
+  if (initialDate) return initialDate;
+  if (!opsZone) return new Date();
+  const civil = civilDateInZone(new Date(), opsZone);
+  const [year, month, day] = civil.split('-').map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
 function ReadyDatePickerModalOpen({
   onClose,
   onApply,
   initialDate,
   initialTime,
   allowNow = false,
+  opsZone = null,
+  zonePending = false,
 }: ReadyDatePickerModalOpenProps) {
   const t = useTranslations('newOrder.schedule');
   const tCommon = useTranslations('common');
   const locale = useLocale();
-  const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => calendarDate(initialDate, opsZone));
   const [selectedTime, setSelectedTime] = useState(() => initialTime || '17:00');
-  const [currentMonth, setCurrentMonth] = useState(() => initialDate || new Date());
-  const [dateInput, setDateInput] = useState(() => {
-    const d = initialDate || new Date();
-    return d.toISOString().split('T')[0];
-  });
+  const [currentMonth, setCurrentMonth] = useState(() => calendarDate(initialDate, opsZone));
+  const [dateInput, setDateInput] = useState(() => civilDateFromPickerDate(calendarDate(initialDate, opsZone)));
   const [timeInput, setTimeInput] = useState(() => initialTime || '17:00');
 
   const handleDateInputChange = (value: string) => {
     setDateInput(value);
-    const parsedDate = new Date(value);
-    if (!isNaN(parsedDate.getTime())) {
-      setSelectedDate(parsedDate);
-      setCurrentMonth(parsedDate);
-    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+    const [year, month, day] = value.split('-').map(Number);
+    const parsedDate = new Date(year, month - 1, day);
+    setSelectedDate(parsedDate);
+    setCurrentMonth(parsedDate);
   };
 
+  const civilToday = opsZone ? civilDateInZone(new Date(), opsZone) : '';
   const dateValidation = useMemo(() => {
-    const now = new Date();
-    const selectedDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
-    const threshold = allowNow ? now.getTime() - 60000 : now.getTime();
-    const isValid = allowNow ? selectedDateTime.getTime() >= threshold : selectedDateTime > now;
-    return {
-      isValid,
-      isFuture: isValid,
-    };
-  }, [selectedDate, selectedTime, allowNow]);
+    if (!opsZone) return { isValid: false, isFuture: false };
+    try {
+      const instant = instantFromCivilDateTime(civilDateFromPickerDate(selectedDate), selectedTime, opsZone);
+      const nowMs = new Date().getTime();
+      const isValid = allowNow ? instant.getTime() >= nowMs - 60000 : instant.getTime() > nowMs;
+      return { isValid, isFuture: isValid };
+    } catch {
+      return { isValid: false, isFuture: false };
+    }
+  }, [selectedDate, selectedTime, allowNow, opsZone]);
 
   const handleApply = () => {
     if (!dateValidation.isValid) {
@@ -110,7 +124,7 @@ function ReadyDatePickerModalOpen({
     date1.getMonth() === date2.getMonth() &&
     date1.getFullYear() === date2.getFullYear();
 
-  const isToday = (date: Date) => isSameDay(date, new Date());
+  const isToday = (date: Date) => civilDateFromPickerDate(date) === civilToday;
 
   const days = getDaysInMonth(currentMonth);
   const monthNames = [
@@ -176,7 +190,7 @@ function ReadyDatePickerModalOpen({
                 type="date"
                 value={dateInput}
                 onChange={(e) => handleDateInputChange(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={civilToday}
                 error={!dateValidation.isValid ? ' ' : undefined}
                 aria-label={t('readyBy')}
               />
@@ -190,8 +204,11 @@ function ReadyDatePickerModalOpen({
                 aria-label={t('selectTime')}
               />
             </div>
-            {!dateValidation.isValid && (
-              <p className="text-xs text-danger-text">{t('validation.dateMustBeFuture') || 'Date must be in the future'}</p>
+            {!opsZone && !zonePending && (
+              <p className="text-xs text-danger-text">{t('timezoneNotConfigured')}</p>
+            )}
+            {opsZone && !dateValidation.isValid && (
+              <p className="text-xs text-danger-text">{t('validation.dateMustBeFuture')}</p>
             )}
           </div>
 
@@ -239,7 +256,7 @@ function ReadyDatePickerModalOpen({
                   variant={day && isSameDay(day, selectedDate) ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => day && setSelectedDate(day)}
-                  disabled={!day || day < new Date(new Date().setHours(0, 0, 0, 0))}
+                  disabled={!day || !civilToday || civilDateFromPickerDate(day) < civilToday}
                   className={`aspect-square h-auto p-0 text-xs font-medium tabular-nums ${
                     !day
                       ? 'invisible'
@@ -275,12 +292,7 @@ function ReadyDatePickerModalOpen({
           <div className="p-3 bg-info-bg rounded-lg text-start">
             <p className="text-xs text-muted-foreground mb-1">{t('readyBy')}:</p>
             <p className="font-bold text-sm text-primary-text">
-              {selectedDate.toLocaleDateString(locale === 'ar' ? 'ar' : 'en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}{' '}
+              {formatCivilDate(civilDateFromPickerDate(selectedDate), locale)}{' '}
               {t('at')}{' '}
               {timeOptions.find((t) => t.value === selectedTime)?.label || selectedTime}
             </p>

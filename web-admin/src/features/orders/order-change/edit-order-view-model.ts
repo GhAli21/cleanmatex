@@ -227,7 +227,7 @@ export function mapLoadedOrderToEditBaseline(order: LoadedEditOrder, orderId: st
     });
   }
   const speed = order.service_speed ?? undefined;
-  const readyBy = order.ready_by ?? order.ready_by_at ?? undefined;
+  const readyBy = (order.ready_by_at !== undefined ? order.ready_by_at : order.ready_by) ?? undefined;
   return {
     ok: true,
     baseline: {

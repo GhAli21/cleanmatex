@@ -15,18 +15,17 @@ function formatReadyByLabel(
   const date = readyByAt instanceof Date ? readyByAt : new Date(readyByAt);
   if (Number.isNaN(date.getTime())) return 'Pending';
 
-  // A date-only value ("2026-10-15") means a calendar day, not an instant: JS parses it as UTC midnight,
-  // so formatting it in the server's zone would show the previous day west of UTC. Format it in UTC.
+  // A date-only value ("2026-10-15") is a calendar day, not an instant. Format it in UTC so a
+  // negative-offset process cannot show the previous day. An instant needs the operations zone.
+  // A missing or invalid zone omits the day rather than printing the server's day.
   const isCalendarDay = typeof readyByAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(readyByAt.trim());
+  if (!isCalendarDay && !isValidTimeZone(timeZone)) return '';
 
   return date.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
-    year:   'numeric',
-    month:  'long',
-    day:    'numeric',
-    // A calendar day is formatted in UTC (see above); an instant in the organization's own timezone, so a
-    // ready time late in the evening does not show the next or previous day. Without a valid timezone the
-    // server's zone applies (never a guessed one).
-    ...(isCalendarDay ? { timeZone: 'UTC' } : isValidTimeZone(timeZone) ? { timeZone } : {}),
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: isCalendarDay ? 'UTC' : timeZone,
   });
 }
 
@@ -39,7 +38,7 @@ export function buildOrderCreatedNotificationVariables(params: {
   orderNo: string;
   readyByAt?: string | Date | null;
   locale?: string;
-  /** The organization's IANA timezone (getTenantTimeZone) used to format the ready time. */
+  /** Ready-by operations zone. A missing zone leaves the ready-by label empty. */
   timeZone?: string;
   customerName?: string;
   orderItems?: string;

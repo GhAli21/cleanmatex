@@ -105,8 +105,8 @@ END $f$;
 -- Same header columns web-admin copies for a sub-order (order-split.service.ts), used for the root order too.
 INSERT INTO zz_ctx VALUES ('order_cols', 'branch_id,customer_id,order_type_id,status,current_status,current_stage,priority,'
   'priority_multiplier,service_category_code,workflow_template_id,wf_profile_id,wf_version_no,wf_profile_version_id,'
-  'wf_profile_artifact_id,wf_profile_revision,wf_profile_checksum,wf_profile_schema_version,received_at,ready_by,'
-  'ready_by_at_new,physical_intake_status,order_source_code,currency_code,currency_ex_rate,is_retail,'
+  'wf_profile_artifact_id,wf_profile_revision,wf_profile_checksum,wf_profile_schema_version,received_at,'
+  'ready_by_at,physical_intake_status,order_source_code,currency_code,currency_ex_rate,is_retail,'
   'is_default_customer,customer_name,customer_mobile_number,customer_email,customer_details,service_speed');
 INSERT INTO zz_ctx VALUES ('item_cols', 'branch_id,service_category_code,product_id,product_name,'
   'product_name2,status,item_status,item_stage,notes,color,brand,has_stain,has_damage,stain_notes,'

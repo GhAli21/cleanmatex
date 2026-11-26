@@ -120,6 +120,7 @@ export const PROCESSING_PIECE_SELECT = `
   last_step_at,
   last_step_by,
   notes,
+  notes_followup,
   rack_location,
   barcode,
   scan_state,
@@ -621,10 +622,17 @@ export class OrderPieceService {
   ): Promise<{
     success: boolean;
     updated?: number;
+    pieceDeltas?: Array<{
+      pieceId: string;
+      orderItemId: string;
+      pieceCode: string | null;
+      before: Record<string, unknown>;
+      after: Record<string, unknown>;
+    }>;
     errors?: Array<{ pieceId: string; error: string }>;
   }> {
     if (params.updates.length === 0) {
-      return { success: true, updated: 0 };
+      return { success: true, updated: 0, pieceDeltas: [] };
     }
 
     try {
@@ -634,7 +642,7 @@ export class OrderPieceService {
       const { data: existingPieces, error: fetchError } = await supabase
         .from('org_order_item_pieces_dtl')
         .select(
-          'id, order_item_id, piece_status, is_ready, is_rejected, scan_state, rack_location, piece_stage, barcode, notes'
+          'id, order_item_id, piece_code, last_step, piece_status, is_ready, is_rejected, scan_state, rack_location, piece_stage, barcode, notes'
         )
         .eq('tenant_org_id', params.tenantId)
         .eq('order_id', params.orderId)
@@ -644,6 +652,7 @@ export class OrderPieceService {
         return {
           success: false,
           updated: 0,
+          pieceDeltas: [],
           errors: [{ pieceId: 'unknown', error: fetchError.message }],
         };
       }
@@ -653,6 +662,13 @@ export class OrderPieceService {
       );
 
       const errors: Array<{ pieceId: string; error: string }> = [];
+      const pieceDeltas: Array<{
+        pieceId: string;
+        orderItemId: string;
+        pieceCode: string | null;
+        before: Record<string, unknown>;
+        after: Record<string, unknown>;
+      }> = [];
       const historyRows: Array<{
         tenant_org_id: string;
         order_id: string;
@@ -689,7 +705,7 @@ export class OrderPieceService {
           .eq('tenant_org_id', params.tenantId)
           .eq('order_id', params.orderId)
           .select(
-            'piece_status, is_ready, is_rejected, scan_state, rack_location, piece_stage, barcode, notes'
+            'last_step, piece_status, is_ready, is_rejected, scan_state, rack_location, piece_stage, barcode, notes'
           )
           .single();
 
@@ -703,6 +719,13 @@ export class OrderPieceService {
 
         updatedCount++;
         touchedItemIds.add(entry.orderItemId);
+        pieceDeltas.push({
+          pieceId: entry.pieceId,
+          orderItemId: entry.orderItemId,
+          pieceCode: (before.piece_code as string | null | undefined) ?? null,
+          before,
+          after: after as Record<string, unknown>,
+        });
 
         const doneBy =
           typeof entry.updates.updated_by === 'string' ? entry.updates.updated_by : null;
@@ -744,6 +767,7 @@ export class OrderPieceService {
       return {
         success: errors.length === 0,
         updated: updatedCount,
+        pieceDeltas,
         errors: errors.length > 0 ? errors : undefined,
       };
     } catch (error) {

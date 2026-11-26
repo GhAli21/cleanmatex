@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 import { CREDIT_APPLICATION_TYPES, TAX_TYPES } from '@/lib/constants/order-financial';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
@@ -104,6 +105,8 @@ interface OrderDetailsFullClientProps {
   translations: Record<string, string>;
   orderTypeLabels?: Record<string, string>;
   locale: 'en' | 'ar';
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  opsZone?: string | null;
 }
 
 /**
@@ -158,6 +161,7 @@ export function OrderDetailsFullClient({
   translations: t,
   orderTypeLabels = {},
   locale,
+  opsZone = null,
 }: OrderDetailsFullClientProps) {
   const isRTL = useRTL();
   const router = useRouter();
@@ -403,8 +407,7 @@ export function OrderDetailsFullClient({
       sectionKey: 'datesAndTimeline',
       keys: [
         'received_at',
-        'ready_by',
-        'ready_by_override',
+        'ready_by_at',
         'ready_at',
         'delivered_at',
         'created_at',
@@ -429,7 +432,6 @@ export function OrderDetailsFullClient({
         'rejected_from_stage',
         'issue_id',
         'has_issue',
-        'ready_by_at_new',
         'last_transition_by',
         'is_order_quick_drop',
         'quick_drop_quantity',
@@ -461,14 +463,10 @@ export function OrderDetailsFullClient({
   const formatMasterValue = (key: string, value: unknown): string => {
     if (value == null) return '—';
     if (typeof value === 'boolean') return value ? (t.commonYes ?? 'Yes') : (t.commonNo ?? 'No');
-    if (value instanceof Date) return value.toLocaleString(locale === 'ar' ? 'ar' : 'en');
-    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}/.test(value)) {
-      try {
-        return new Date(value).toLocaleString(locale === 'ar' ? 'ar' : 'en');
-      } catch {
-        return String(value);
-      }
+    if (value instanceof Date || (typeof value === 'string' && value.includes('T'))) {
+      return formatStoredClock(value instanceof Date ? value : value, opsZone, locale) || '—';
     }
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
     const tRecord = t as Record<string, string>;
     if (key === 'status' && typeof value === 'string') return tRecord[`status_${value}`] ?? String(value);
     if (key === 'order_type_id' && typeof value === 'string') {
@@ -816,7 +814,7 @@ export function OrderDetailsFullClient({
                     )}
                     {paymentDueDate && (
                       <WRow label={t.paymentDueDate ?? 'Payment Due Date'} value={
-                        (() => { try { return new Date(paymentDueDate).toLocaleDateString(locale === 'ar' ? 'ar' : 'en'); } catch { return paymentDueDate; } })()
+                        formatStoredClock(String(paymentDueDate), opsZone, locale) || String(paymentDueDate)
                       } />
                     )}
                     {totalCreditApplied > 0 && (
@@ -1084,6 +1082,8 @@ export function OrderDetailsFullClient({
             vouchers={vouchers}
             orderId={order.id as string}
             filterByInvoiceId={invoiceIdFromUrl ?? undefined}
+            opsZone={opsZone}
+            locale={locale}
             translations={tabTranslations}
           />
         </div>
@@ -1550,29 +1550,20 @@ export function OrderDetailsFullClient({
             </div>
             {order.received_at && (
               <p className="text-sm text-muted-foreground mb-2 text-start">
-                {new Date(order.received_at as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
+                {formatStoredClock(order.received_at as string, opsZone, locale) || '—'}
               </p>
             )}
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 {t.received}:{' '}
-                {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
-                  locale === 'ar' ? 'ar' : 'en',
-                  { dateStyle: 'medium', timeStyle: 'short' }
-                )}
+                {formatStoredClock((order.received_at ?? order.created_at) as string, opsZone, locale) || '—'}
               </span>
-              {order.ready_by && (
+              {order.ready_by_at && (
                 <span className="flex items-center gap-1">
                   <Package className="w-4 h-4" />
                   {t.readyBy}:{' '}
-                  {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
+                  {formatStoredClock(order.ready_by_at as string, opsZone, locale) || '—'}
                 </span>
               )}
             </div>
@@ -1794,23 +1785,17 @@ export function OrderDetailsFullClient({
                 <div>
                   <span className="text-muted-foreground">{t.received}: </span>
                   <span className="font-medium text-foreground">
-                    {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
-                      locale === 'ar' ? 'ar' : 'en',
-                      { dateStyle: 'medium', timeStyle: 'short' }
-                    )}
+                    {formatStoredClock((order.received_at ?? order.created_at) as string, opsZone, locale) || '—'}
                   </span>
                 </div>
               </div>
-              {order.ready_by && (
+              {order.ready_by_at && (
                 <div className="flex items-start gap-2 text-sm">
                   <Package className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                   <div>
                     <span className="text-muted-foreground">{t.readyBy}: </span>
                     <span className="font-medium text-foreground">
-                      {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
+                      {formatStoredClock(order.ready_by_at as string, opsZone, locale) || '—'}
                     </span>
                   </div>
                 </div>

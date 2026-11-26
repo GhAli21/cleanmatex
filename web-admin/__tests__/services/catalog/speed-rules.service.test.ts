@@ -6,6 +6,13 @@
  * picks the same rule the calculator would.
  */
 jest.mock('server-only', () => ({}));
+jest.mock('@/lib/utils/operational-zone.server', () => ({
+  OperationalZoneMissingError: class OperationalZoneMissingError extends Error {
+    readonly code = 'TIMEZONE_NOT_CONFIGURED';
+  },
+  resolveOrganizationTimeZone: jest.fn(async () => 'Asia/Muscat'),
+  readDatabaseInstant: jest.fn(async () => new Date('2026-06-15T08:00:00Z')),
+}));
 
 const rules = {
   count: jest.fn(),

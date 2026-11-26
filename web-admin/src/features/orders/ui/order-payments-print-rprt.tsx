@@ -7,6 +7,7 @@ import type { OrderPaymentRow } from '@/lib/services/order-financial-summary.ser
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { buildCashChangeRows } from '@features/orders/model/cash-change-rows';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 
 /** Print payload — canonical payment rows (`org_order_payments_dtl`, ADR-002). */
 export interface OrderPaymentsPrintRprtData {
@@ -19,22 +20,16 @@ export interface OrderPaymentsPrintRprtData {
   /** Net posted cash-change rounding per currency; absent on older payloads. */
   cashChangeRounding?: Array<{ currencyCode: string; adjustment: number }>;
   sortOrder: 'asc' | 'desc';
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  opsZone?: string | null;
 }
 
 interface OrderPaymentsPrintRprtProps {
   data: OrderPaymentsPrintRprtData;
 }
 
-function formatDate(dateStr: string | undefined, locale: string): string {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(locale === 'ar' ? 'ar' : 'en', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function formatDate(dateStr: string | undefined, locale: string, zone: string | null | undefined): string {
+  return formatStoredClock(dateStr, zone, locale) || '—';
 }
 
 /**
@@ -105,7 +100,7 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
             <tbody>
               {data.payments.map((p) => (
                 <tr key={p.id} className="border-b border-dashed border-border">
-                  <td className="py-1">{formatDate(p.paid_at ?? p.created_at, locale)}</td>
+                  <td className="py-1">{formatDate(p.paid_at ?? p.created_at, locale, data.opsZone)}</td>
                   <td className="py-1 text-end font-medium">
                     {formatMoneyAmountWithCode(Number(p.amount), {
                       currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,

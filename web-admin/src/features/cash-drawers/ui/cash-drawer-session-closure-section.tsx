@@ -34,14 +34,22 @@ const CLOSED_STATUSES = ['CLOSED', 'FORCE_CLOSED']
  * @param props.drawerId drawer the session belongs to
  * @param props.sessionId session shown
  */
-export function CashDrawerSessionClosureSection({ drawerId, sessionId }: { drawerId: string; sessionId: string }) {
+export function CashDrawerSessionClosureSection({
+  drawerId,
+  sessionId,
+  opsZone,
+}: {
+  drawerId: string
+  sessionId: string
+  opsZone: string | null
+}) {
   const t = useTranslations('billing.cashDrawers.closure')
   const tDrawers = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
   const errorMessage = useCashDrawerErrorMessage()
   const locale = useLocale()
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
   const queryClient = useQueryClient()
   const { token: csrfToken } = useCSRFToken()
   const canUpdatePostClose = useHasPermissionCode('cash_drawer:post_close_update')

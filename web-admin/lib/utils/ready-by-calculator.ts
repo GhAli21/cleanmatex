@@ -15,6 +15,15 @@
  */
 
 import { addHours, addDays, setHours, setMinutes, isWeekend, format } from 'date-fns';
+import { isValidTimeZone } from '@/lib/utils/business-date';
+import {
+  civilDateFromPickerDate,
+  civilDateInZone,
+  civilTimeInZone,
+  formatStoredClock,
+  instantFromCivilDateTime,
+  shiftCivilDate,
+} from '@/lib/utils/operational-time';
 
 /**
  *
@@ -70,6 +79,12 @@ export interface ReadyByCalculationParams {
    * Holidays to skip (array of Date objects)
    */
   holidays?: Date[];
+
+  /** Operations zone for the formatted label. The label stays empty when this is missing. */
+  timeZone?: string | null;
+
+  /** Locale for the formatted label. Digits and month names only. */
+  locale?: string;
 }
 
 /**
@@ -161,14 +176,15 @@ export function calculateReadyBy(params: ReadyByCalculationParams): ReadyByResul
   // Calculate initial target date/time (without business hours consideration)
   let targetDate = addHours(new Date(receivedAt), adjustedTurnaroundHours);
 
-  // Round to business hours
-  targetDate = roundToBusinessHours(targetDate, businessHours, holidays);
+  // Round to business hours in the operations zone when one was passed.
+  targetDate = roundToBusinessHours(targetDate, businessHours, holidays, params.timeZone);
 
-  // Check if the final date is a working day
-  const isWorkingDay = businessHours.workingDays.includes(targetDate.getDay());
+  const weekday = params.timeZone && isValidTimeZone(params.timeZone)
+    ? civilWeekday(targetDate, params.timeZone)
+    : targetDate.getDay();
+  const isWorkingDay = businessHours.workingDays.includes(weekday);
 
-  // Format the date
-  const formatted = formatReadyByDate(targetDate);
+  const formatted = formatReadyByDate(targetDate, params.timeZone, params.locale);
 
   return {
     readyBy: targetDate,
@@ -190,8 +206,12 @@ export function calculateReadyBy(params: ReadyByCalculationParams): ReadyByResul
 function roundToBusinessHours(
   date: Date,
   businessHours: BusinessHours,
-  holidays: Date[] = []
+  holidays: Date[] = [],
+  zone?: string | null,
 ): Date {
+  if (zone && isValidTimeZone(zone)) {
+    return roundToBusinessHoursInZone(date, businessHours, holidays, zone);
+  }
   let result = new Date(date);
 
   // Skip to next working day if current day is not a working day
@@ -217,6 +237,48 @@ function roundToBusinessHours(
   }
 
   return result;
+}
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
+
+function civilWeekday(date: Date, zone: string): number {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: zone, weekday: 'short' }).format(date);
+  return WEEKDAY_INDEX[name] ?? date.getDay();
+}
+
+function openTime(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
+/**
+ * Snap an instant to opening hours using the civil clock of `zone`.
+ * A non-working day or a time at or after close moves to the next civil opening.
+ */
+function roundToBusinessHoursInZone(
+  date: Date,
+  businessHours: BusinessHours,
+  holidays: Date[],
+  zone: string,
+): Date {
+  const holidayDays = new Set(holidays.map((holiday) => civilDateFromPickerDate(holiday)));
+  let cursor = new Date(date);
+  for (let step = 0; step < 370; step += 1) {
+    const civil = civilDateInZone(cursor, zone);
+    const hour = Number(civilTimeInZone(cursor, zone).slice(0, 2));
+    const weekday = civilWeekday(cursor, zone);
+    const working = businessHours.workingDays.includes(weekday) && !holidayDays.has(civil);
+    if (!working || hour >= businessHours.close) {
+      cursor = instantFromCivilDateTime(shiftCivilDate(civil, 1), openTime(businessHours.open), zone);
+      continue;
+    }
+    if (hour < businessHours.open) {
+      return instantFromCivilDateTime(civil, openTime(businessHours.open), zone);
+    }
+    return cursor;
+  }
+  throw new RangeError('BUSINESS_HOURS_UNRESOLVED');
 }
 
 /**
@@ -247,13 +309,11 @@ function isWorkingDay(
 }
 
 /**
- * Format Ready-By date for display
- *
- * @param date - Date to format
- * @returns string - Formatted date (e.g., "Oct 27, 2025 at 6:00 PM")
+ * Ready-by label in the operations zone. A missing zone stays empty.
+ * Hour rounding uses that same zone when the caller passes it.
  */
-export function formatReadyByDate(date: Date): string {
-  return format(date, "MMM d, yyyy 'at' h:mm a");
+export function formatReadyByDate(date: Date, zone?: string | null, locale = 'en'): string {
+  return formatStoredClock(date, zone, locale);
 }
 
 /**

@@ -81,8 +81,7 @@ interface PublicOrderQueryRow {
   current_status: string | null;
   status: string | null;
   received_at: string | null;
-  ready_by: string | null;
-  ready_by_at_new: string | null;
+  ready_by_at: string | null;
   subtotal_amount: number | string | null;
   total_amount: number | string | null;
   payment_status: string | null;
@@ -368,8 +367,7 @@ export async function getPublicOrderTrackingResponse(
           current_status,
           status,
           received_at,
-          ready_by,
-          ready_by_at_new,
+          ready_by_at,
           subtotal_amount,
           total_amount,
           payment_status,
@@ -469,7 +467,7 @@ export async function getPublicOrderTrackingResponse(
             paymentTypeCode: order.payment_type_code,
             priority: order.priority,
             receivedAt: order.received_at,
-            readyBy: order.ready_by_at_new || order.ready_by || null,
+            readyBy: order.ready_by_at || null,
             totals: {
               subtotal: financialSnapshot.subtotalAmount,
               total: financialSnapshot.totalAmount,

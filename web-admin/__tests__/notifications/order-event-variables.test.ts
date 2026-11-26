@@ -28,11 +28,10 @@ describe('buildOrderCreatedNotificationVariables', () => {
     expect(vars.estimated_ready_at).toBe('October 15, 2026');
   });
 
-  it('keeps a full timestamp in the server zone (an instant, not a calendar day)', () => {
-    const spy = jest.spyOn(Date.prototype, 'toLocaleDateString');
-    buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15T23:30:00Z', locale: 'en' });
-    const options = spy.mock.calls[0][1] as Intl.DateTimeFormatOptions;
-    expect(options.timeZone).toBeUndefined();
+  it('omits an instant when no operations zone is given', () => {
+    const vars = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15T23:30:00Z', locale: 'en' });
+    expect(vars.estimated_ready_at).toBe('');
+    expect(vars.date).toBe('');
   });
 
   it("formats an instant in the organization's own timezone, so the day matches the clock the customer lives by", () => {
@@ -43,10 +42,9 @@ describe('buildOrderCreatedNotificationVariables', () => {
     expect(losAngeles.estimated_ready_at).toBe('October 15, 2026');
   });
 
-  it('ignores an invalid timezone instead of failing, and never lets the timezone shift a calendar day', () => {
-    const spy = jest.spyOn(Date.prototype, 'toLocaleDateString');
-    expect(() => buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15T21:30:00Z', timeZone: 'Not/AZone' })).not.toThrow();
-    expect((spy.mock.calls[0][1] as Intl.DateTimeFormatOptions).timeZone).toBeUndefined();
+  it('omits an instant with an invalid zone, and never lets the timezone shift a calendar day', () => {
+    const invalid = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15T21:30:00Z', timeZone: 'Not/AZone' });
+    expect(invalid.estimated_ready_at).toBe('');
     const day = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: '2026-10-15', locale: 'en', timeZone: 'Pacific/Kiritimati' });
     expect(day.estimated_ready_at).toBe('October 15, 2026');
   });
@@ -62,7 +60,12 @@ describe('buildOrderCreatedNotificationVariables', () => {
   });
 
   it('accepts a Date object and formats a year-boundary day correctly', () => {
-    const vars = buildOrderCreatedNotificationVariables({ orderNo: 'A', readyByAt: new Date(Date.UTC(2026, 11, 31, 12)), locale: 'en' });
-    expect(vars.estimated_ready_at).toMatch(/December 3[01], 2026/);
+    const vars = buildOrderCreatedNotificationVariables({
+      orderNo: 'A',
+      readyByAt: new Date(Date.UTC(2026, 11, 31, 12)),
+      locale: 'en',
+      timeZone: 'Asia/Muscat',
+    });
+    expect(vars.estimated_ready_at).toBe('December 31, 2026');
   });
 });

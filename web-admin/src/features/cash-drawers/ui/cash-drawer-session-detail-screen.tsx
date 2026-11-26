@@ -24,6 +24,8 @@ import type { CashDrawerSessionDetail } from '@lib/types/cash-drawer'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton } from '@ui/primitives'
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { CmxSummaryMessage } from '@ui/feedback'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 
 /**
@@ -52,7 +54,10 @@ export function CashDrawerSessionDetailScreen({
   const [, startTransition] = useTransition()
 
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const tPos = useTranslations('posSessions')
+  const { zoneFor, isPending: zonePending } = useOperationalZones('pos_session', [detail.drawer.branchId])
+  const opsZone = zoneFor(detail.drawer.branchId)
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
   const canApproveVariance = useHasPermissionCode('cash_drawer:approve_variance')
   const canCloseSession = useHasPermissionCode('cash_drawer:close_session')
   const [decisionMode, setDecisionMode] = useState<'approve' | 'reject' | null>(null)
@@ -191,6 +196,9 @@ export function CashDrawerSessionDetailScreen({
 
   return (
     <div className="space-y-6 p-6">
+      {!zonePending && !opsZone ? (
+        <CmxSummaryMessage type="warning" title={tPos('errors.timezoneNotConfigured')} />
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -418,7 +426,7 @@ export function CashDrawerSessionDetailScreen({
         </CmxCard>
       </div>
 
-      <CashDrawerSessionClosureSection drawerId={drawerId} sessionId={sessionId} />
+      <CashDrawerSessionClosureSection drawerId={drawerId} sessionId={sessionId} opsZone={opsZone} />
 
       <CmxCard>
         <CmxCardHeader>

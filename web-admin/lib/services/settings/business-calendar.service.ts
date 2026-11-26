@@ -15,6 +15,7 @@ import {
   timeColumnToText,
 } from '@/lib/services/commercial/calendar-facts';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { readDatabaseInstant } from '@/lib/utils/operational-zone.server';
 import type {
   BranchCalendarInput,
   HolidayInput,
@@ -450,11 +451,11 @@ export interface ReadyPreview {
  * on a 24 hour item because its hours come from the product or category.
  * @param tenantId - session tenant
  * @param branchId - a branch of this organization, or null for the organization
- * @param now - the moment to simulate (tests)
+ * @param now - the moment to simulate. Tests pass one. A live preview reads one database instant.
  * @throws BusinessCalendarError NOT_FOUND (also for a branch of another organization)
  * @example await previewReadyTimes(tenantId, null)
  */
-export async function previewReadyTimes(tenantId: string, branchId: string | null, now: Date = new Date()): Promise<ReadyPreview> {
+export async function previewReadyTimes(tenantId: string, branchId: string | null, now?: Date): Promise<ReadyPreview> {
   const [tenant, branch] = await Promise.all([
     prisma.org_tenants_mst.findFirst({ where: { id: tenantId }, select: TENANT_CALENDAR_SELECT }),
     branchId
@@ -466,7 +467,8 @@ export async function previewReadyTimes(tenantId: string, branchId: string | nul
   const none: ReadyPreview = { configured: false, timezone, openNow: false, countingStartsAt: null, rows: [] };
   if (!timezone) return none;
 
-  const today = businessDateForTimezone(timezone, now);
+  const at = now ?? await readDatabaseInstant(prisma);
+  const today = businessDateForTimezone(timezone, at);
   const calendar = await loadResolvedCalendar(prisma, tenantId, tenant, branch ?? null, branchId, today);
   if (!calendar) return none;
 
@@ -505,7 +507,7 @@ export async function previewReadyTimes(tenantId: string, branchId: string | nul
     const days = rule?.turnaround_days_speed ?? null;
     const unit = rule?.turnaround_unit === 'WORKING_DAYS' && days != null ? 'WORKING_DAYS' : 'HOURS';
     const result = resolveReadyBy({
-      startAt: now,
+      startAt: at,
       lines: [{
         lineId: speed.code,
         serviceSpeed: speed.code,
@@ -534,13 +536,13 @@ export async function previewReadyTimes(tenantId: string, branchId: string | nul
     });
   }
 
-  const local = toLocal(now, timezone);
+  const local = toLocal(at, timezone);
   const window = openWindow(calendar, local.date);
   return {
     configured: true,
     timezone,
     openNow: !!window && local.minutes >= window.open && local.minutes < window.close,
-    countingStartsAt: countingStart(calendar, now).toISOString(),
+    countingStartsAt: countingStart(calendar, at).toISOString(),
     rows,
   };
 }

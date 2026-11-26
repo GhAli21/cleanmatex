@@ -523,12 +523,12 @@ export class OrderService {
     const workflowProfile = workflowProfileBinding;
     const v_workflowTemplateId = workflowProfile.basedOnTemplateId;
 
-    let readyByFields: { ready_by?: Date; ready_by_at_new?: Date } = {};
+    let readyByFields: { ready_by_at?: Date } = {};
     if (readyByAt) {
       try {
         const d = new Date(readyByAt);
         if (!Number.isNaN(d.getTime())) {
-          readyByFields = { ready_by: d, ready_by_at_new: d };
+          readyByFields = { ready_by_at: d };
         }
       } catch {
         // ignore invalid date
@@ -618,8 +618,7 @@ export class OrderService {
         ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),
         // §5.3 snapshots, commercial_calc_version and the resolved ready-by (P5-02).
         ...(commercial && (() => {
-          const snapshot = commercial.orderColumns();
-          return { ...snapshot, ready_by_at_new: snapshot.ready_by };
+          return commercial.orderColumns();
         })()),
       } as any,
     });

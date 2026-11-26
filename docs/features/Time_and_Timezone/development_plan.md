@@ -34,7 +34,7 @@ Build the shared helpers and make new writes obey them. No `ALTER` yet.
 
 - `resolveOperationalTimeZone({ tenantOrgId, operation, scopeId })` using `isValidTimeZone` and an active `sys_timezone_cd` code. The caller passes a closed operation code. A branch-scoped operation reads that branch's `timezone_code`, else the organization `timezone`, else null. A scope with no timezone column names the branch that owns it. A client-supplied zone cannot win. One indexed read per action, filtered by `tenant_org_id`. Request-scoped reuse only. A persisted business date takes one database instant. `pos-session.service.ts` today calls `businessDateForTimezone` with the application clock. That call is in this phase.
 - `formatInstant`, `civilDayBounds`, `parseInstant` (reject missing offsets).
-- Stop new readers of `org_orders_mst.ready_by`. Read `ready_by_at_new`.
+- Read and write promised Ready By on `org_orders_mst.ready_by_at`. Actual Ready is `ready_at`. Both are `timestamptz` after `0833`.
 - Remove UTC-date fallbacks that call `toISOString().slice(0, 10)` when the zone is missing (`speed-rules.service.ts`, `prepaid-tax.service.ts`, `tax-lines.writer.ts`). Those paths fail closed.
 - Pass the operations zone into formatters before the first absolute date paints. `getTenantTimeZone` stays the organization zone only. It is not the branch resolver. UI, reports, print, `cmx-api`, mobile, and HQ format this result or the row snapshot. The SQL twin `fn_ops_zone` is Phase 6 / WP12, in a new migration, and must match this function. Resolve once per action. Join mixed-list zones in one query.
 
@@ -48,11 +48,11 @@ Priority:
 
 1. `org_users_mst.locked_until` and `last_failed_login_at` (the 255-minute lockout).
 2. `org_ntf_outbox_dtl.scheduled_at` and `next_retry_at`, `org_ntf_campaigns_mst.scheduled_at` (the four-hour-early send).
-3. `org_orders_mst.ready_by` backfill into `ready_by_at_new` where the twin is null, then stop writes to `ready_by`.
+3. Ready By cutover. `0829` backfilled null twins. `0833` dropped `ready_by` and `ready_by_override`, renamed the promised column to `ready_by_at`, and converted `ready_at` to `timestamptz`. Applied on local and remote.
 
 Campaign job writes that use `now() AT TIME ZONE 'UTC'` into a naive column are evidence, not a blanket conversion rule. Confirm the writer for each column.
 
-Exit: lockout duration is 15 minutes when the policy is 15 minutes. A quiet-hours send fires at the UTC instant that was stored. Ready By matches `ready_by_at_new` on screen, receipt, and list. Each migration is closed out as Written, not applied, until the user applies it.
+Exit: lockout duration is 15 minutes when the policy is 15 minutes. A quiet-hours send fires at the UTC instant that was stored. Ready By on screen, receipt, and list is `ready_by_at`. `0828` through `0833` are applied on local and remote.
 
 ## Phase 3 — Presentation sweep
 
@@ -74,7 +74,7 @@ Convert one domain per migration: orders, notifications, delivery, finance, subs
 
 ## Phase 5 — Audit stamps
 
-398 `created_at` / `updated_at` columns are still `@db.Timestamp`. They are last. Sample writers per table family. Many were filled by `now()` under a Muscat session; others were filled from a UTC ISO string. Mixed provenance inside one column is a stop: split the backfill, do not average the two interpretations.
+398 `created_at` / `updated_at` columns are still `@db.Timestamp`. `deleted_at` is the same kind of stamp: on 2026-11-26 all 64 are already `timestamptz`. They are one migration. Each naive column becomes `timestamptz` with `USING column AT TIME ZONE 'UTC'`, because the session is UTC and the writers store `now()`. An already-`timestamptz` `deleted_at` stays as it is. Development rows may move. The same file recreates every view, trigger, and function that blocks the type change. `sys_*` and `hq_*` stamps wait for the HQ reader list.
 
 ## Phase 6 — Every other surface
 

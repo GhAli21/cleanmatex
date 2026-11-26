@@ -143,7 +143,7 @@ export async function GET(
       payment_notes: order.payment_notes ?? null,
       notes: order.internal_notes ?? order.customer_notes ?? '',
       is_express: order.priority === 'express',
-      ready_by_at: order.ready_by ?? order.ready_by_at_new ?? null,
+      ready_by_at: order.ready_by_at ?? null,
       subtotal: financialSnapshot.subtotalAmount,
       discount: financialSnapshot.totalDiscountAmount,
       tax: financialSnapshot.totalTaxAmount,

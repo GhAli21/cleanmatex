@@ -216,7 +216,7 @@ function ProcessingQueueContent() {
       return {
         id: order.id,
         order_no: order.order_no,
-        ready_by_at: order.ready_by_at_new || order.ready_by || order.created_at,
+        ready_by_at: order.ready_by_at || '',
         customer_name: customerName,
         customer_name2: customerData.name2,
         customer_phone: customerData.phone || undefined,

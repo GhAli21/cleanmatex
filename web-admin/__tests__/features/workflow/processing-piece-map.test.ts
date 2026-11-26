@@ -8,6 +8,7 @@ import {
   hasProcessingPieceChanged,
   hasSimplePieceChanged,
   isPieceUuid,
+  normalizeOrderStateResponse,
   toSplitPieceId,
 } from '@/src/features/workflow/lib/processing-piece-map';
 
@@ -51,6 +52,7 @@ describe('processing-piece-map', () => {
     });
     expect(hasSimplePieceChanged(original, original)).toBe(false);
     expect(hasSimplePieceChanged({ ...original, notes: 'spot' }, original)).toBe(true);
+    expect(hasSimplePieceChanged({ ...original, processingNote: 'extra press' }, original)).toBe(true);
     expect(
       hasSimplePieceChanged(
         { ...original, currentStep: 'wash' as ItemPiece['currentStep'] },
@@ -76,6 +78,9 @@ describe('processing-piece-map', () => {
     expect(hasProcessingPieceChanged(original, undefined)).toBe(true);
     expect(hasProcessingPieceChanged(original, original)).toBe(false);
     expect(
+      hasProcessingPieceChanged({ ...original, processingNote: 'floor remark' }, original)
+    ).toBe(true);
+    expect(
       hasProcessingPieceChanged(
         { ...original, currentStep: 'wash' as ItemPiece['currentStep'] },
         original
@@ -84,6 +89,16 @@ describe('processing-piece-map', () => {
     expect(
       hasProcessingPieceChanged({ ...original, has_stain: true }, original)
     ).toBe(true);
+  });
+
+  it('normalizeOrderStateResponse extracts isCommercialLocked', () => {
+    const normalized = normalizeOrderStateResponse({
+      success: true,
+      order: { id: 'o1' },
+      items: [],
+      isCommercialLocked: true,
+    });
+    expect(normalized.isCommercialLocked).toBe(true);
   });
 
   it('groupPiecesByItemId groups and sorts by pieceNumber', () => {

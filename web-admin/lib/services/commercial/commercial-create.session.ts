@@ -118,6 +118,12 @@ export function openCommercialCreateSession(checkout: CheckoutQuote): Commercial
         adjustmentMeta: checkout.adjustmentMeta, chargeMeta, taxLineMeta,
       });
     },
-    writeTaxLines: (tx, ctx) => writeOrderTaxLines(tx, { ...ctx, at: new Date(), quote: checkout.quote, itemIds, pieceIds }),
+    writeTaxLines: (tx, ctx) => writeOrderTaxLines(tx, {
+      ...ctx,
+      at: checkout.intent.receivedAt,
+      quote: checkout.quote,
+      itemIds,
+      pieceIds,
+    }),
   };
 }

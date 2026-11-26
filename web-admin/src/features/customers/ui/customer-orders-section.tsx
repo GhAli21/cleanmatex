@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@ui/primitives/table';
@@ -21,7 +21,7 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { listOrders } from '@/app/actions/orders/list-orders';
 import type { OrderListItem } from '@/types/order';
-import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 
 const PAGE_SIZE = 10;
 
@@ -52,6 +52,7 @@ export function CustomerOrdersSection({
   const tOrders = useTranslations('orders');
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   const { formatMoney, formatNumber } = useTenantCurrency();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
@@ -286,7 +287,10 @@ export function CustomerOrdersSection({
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border">
-              {orders.map((order) => (
+              {orders.map((order) => {
+                const receivedLabel = formatInstantOrEmpty(order.received_at, order.ops_zone, locale);
+                const readyLabel = formatInstantOrEmpty(order.ready_by, order.ops_zone, locale);
+                return (
                 <TableRow
                   key={order.id}
                   className="cursor-pointer hover:bg-muted transition-colors"
@@ -296,11 +300,7 @@ export function CustomerOrdersSection({
                     <bdi dir="ltr" className="font-medium text-primary-text tabular-nums">{order.order_no}</bdi>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
-                    {order.received_at
-                      ? formatReadyByDate(
-                          order.received_at instanceof Date ? order.received_at : new Date(order.received_at)
-                        )
-                      : '—'}
+                    {receivedLabel || '—'}
                   </TableCell>
                   <TableCell className="px-4 py-3 capitalize">
                     {order.status?.replace(/_/g, ' ') || '—'}
@@ -326,14 +326,8 @@ export function CustomerOrdersSection({
                     </bdi>
                   </TableCell>
                   <TableCell className="px-4 py-3 tabular-nums">
-                    {order.ready_by ? (
-                      <span className="text-xs text-foreground">
-                        {formatReadyByDate(
-                          order.ready_by instanceof Date
-                            ? order.ready_by
-                            : new Date(order.ready_by)
-                        )}
-                      </span>
+                    {readyLabel ? (
+                      <span className="text-xs text-foreground">{readyLabel}</span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
@@ -348,7 +342,8 @@ export function CustomerOrdersSection({
                     </Link>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>

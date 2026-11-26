@@ -361,7 +361,7 @@
     "paid_by": "دفع بواسطة",
     "payment_notes": "ملاحظات الدفع",
     "received_at": "تاريخ الاستلام",
-    "ready_by": "جاهز قبل",
+    "ready_by_at": "جاهز قبل",
     "ready_at": "جاهز في",
     "delivered_at": "تاريخ التسليم",
     "created_at": "تاريخ الإنشاء",

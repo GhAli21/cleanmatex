@@ -12,6 +12,13 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
+import { ProcessingTrxService } from '@/lib/services/processing-trx-service';
+import {
+  PRC_TRX_DTL_TYPES,
+  PRC_TRX_SOURCE_SCREENS,
+  PRC_TRX_TARGET_LEVELS,
+  PRC_TRX_TYPES,
+} from '@/lib/constants/processing-trx';
 import {
   isTagReleasingStatus,
   pieceTagErrorBody,
@@ -34,7 +41,7 @@ async function writeTag(request: NextRequest, { params }: Params, tag: string | 
   const supabase = await createClient();
   const { data: piece, error } = await supabase
     .from('org_order_item_pieces_dtl')
-    .select('id, order_id, piece_code, deleted_order_change_id')
+    .select('id, order_id, order_item_id, piece_code, barcode, deleted_order_change_id')
     .eq('tenant_org_id', tenantId)
     .eq('id', pieceId)
     .maybeSingle();
@@ -42,15 +49,17 @@ async function writeTag(request: NextRequest, { params }: Params, tag: string | 
   if (!piece) return apiError('PIECE_NOT_FOUND', 404);
   if (piece.deleted_order_change_id) return apiError('PIECE_TAG_PIECE_REMOVED', 409);
 
+  let orderBranchId: string | null = null;
   if (tag !== null) {
     const { data: order, error: orderError } = await supabase
       .from('org_orders_mst')
-      .select('status, current_status')
+      .select('branch_id, status, current_status')
       .eq('tenant_org_id', tenantId)
       .eq('id', piece.order_id)
       .maybeSingle();
     if (orderError) throw new Error(orderError.message);
     if (!order) return apiError('PIECE_NOT_FOUND', 404);
+    orderBranchId = (order.branch_id as string | null) ?? null;
     if (isTagReleasingStatus(order.status) || isTagReleasingStatus(order.current_status)) {
       return apiError('PIECE_TAG_ORDER_CLOSED', 409);
     }
@@ -67,9 +76,54 @@ async function writeTag(request: NextRequest, { params }: Params, tag: string | 
     }
     return NextResponse.json({ success: false, error: result.error ?? 'Failed to update piece' }, { status: 400 });
   }
+
+  const nextTag = result.piece?.barcode ?? null;
+  const prevTag = (piece.barcode as string | null) ?? null;
+  let trxId: string | undefined;
+  let trxCode: string | undefined;
+  if (prevTag !== nextTag) {
+    const trxRes = await ProcessingTrxService.recordTransaction({
+      tenantId,
+      orderId: piece.order_id,
+      branchId: orderBranchId ?? undefined,
+      transType: PRC_TRX_TYPES.TAG_LINK,
+      trxDescription: nextTag
+        ? `Linked tag ${nextTag} to ${piece.piece_code ?? 'piece'}`
+        : `Removed tag from ${piece.piece_code ?? 'piece'}`,
+      sourceScreen: PRC_TRX_SOURCE_SCREENS.SCAN_STATION,
+      actorUserId: userId,
+      actorName: userName,
+      lines: [
+        {
+          targetLevel: PRC_TRX_TARGET_LEVELS.PIECE,
+          orderItemId: piece.order_item_id,
+          orderItemPieceId: pieceId,
+          transDtlType: PRC_TRX_DTL_TYPES.TAG_LINK,
+          transDtlDescription: nextTag
+            ? `Linked tag ${nextTag}`
+            : `Removed tag ${prevTag ?? ''}`.trim(),
+          fromValue: prevTag,
+          toValue: nextTag,
+          beforeValues: { barcode: prevTag },
+          afterValues: { barcode: nextTag },
+        },
+      ],
+    });
+    if (trxRes.success) {
+      trxId = trxRes.trxId;
+      trxCode = trxRes.trxCode;
+    }
+  }
+
   return NextResponse.json({
     success: true,
-    data: { pieceId, pieceCode: piece.piece_code, externalTag: result.piece?.barcode ?? null },
+    data: {
+      pieceId,
+      pieceCode: piece.piece_code,
+      externalTag: nextTag,
+      ...(trxId ? { trxId } : {}),
+      ...(trxCode ? { trxCode } : {}),
+    },
   });
 }
 

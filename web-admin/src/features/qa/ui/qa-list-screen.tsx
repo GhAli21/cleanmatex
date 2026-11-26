@@ -34,8 +34,7 @@ interface QAOrderRecord {
   total_items?: number | null;
   current_status?: string | null;
   status?: string | null;
-  ready_by?: string | null;
-  ready_by_at_new?: string | null;
+  ready_by_at?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   has_stain_any?: boolean | null;
@@ -112,7 +111,7 @@ export function QaListScreen() {
       order_no: order.order_no,
       total_items: order.total_items || 0,
       current_status: order.current_status || order.status || 'qa',
-      ready_by_at: order.ready_by_at_new || order.ready_by || null,
+      ready_by_at: order.ready_by_at || null,
       priority: order.priority || 'normal',
       has_issue: Boolean(order.has_issue),
       has_stain: Boolean(order.has_stain_any),

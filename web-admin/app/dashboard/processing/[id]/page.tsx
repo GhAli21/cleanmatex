@@ -64,6 +64,14 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { PiecePhotosControl } from '@features/orders/ui/pieces/piece-photos';
 import { WorkflowActionBar } from '@features/workflow/ui/WorkflowActionBar';
+import { CmxFollowupNotesFeed } from '@features/workflow/ui/cmx-followup-notes-feed';
+import { ProcessingTransactionsPanel } from '@features/workflow/ui/processing-transactions-panel';
+import {
+  NOTES_FOLLOWUP_TARGET_LEVELS,
+  PRC_TRX_SOURCE_SCREENS,
+} from '@/lib/constants/processing-trx';
+import { PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
+import { parseNotesFollowup, type PrefsFollowupNote } from '@/lib/utils/notes-followup';
 
 const SimpleProcessingDialog = dynamic(
   () =>
@@ -93,6 +101,7 @@ interface ProcessingDetailItem {
   has_damage: boolean;
   damage_notes?: string | null;
   notes: string | null;
+  notes_followup?: PrefsFollowupNote[];
 }
 
 interface ProcessingDetailOrder {
@@ -107,6 +116,8 @@ interface ProcessingDetailOrder {
   ready_by_at: string | null;
   created_at: string | null;
   notes: string | null;
+  notes_followup?: PrefsFollowupNote[];
+  isCommercialLocked?: boolean;
   payment_status: string;
   payment_type_code: string | null;
   subtotal: number;
@@ -229,6 +240,7 @@ export default function ProcessingDetailPage() {
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
   const [recordingStepKey, setRecordingStepKey] = useState<string | null>(null);
   const [actionBarKey, setActionBarKey] = useState(0);
+  const [trxRefreshKey, setTrxRefreshKey] = useState(0);
   const [isSimpleOpen, setIsSimpleOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -292,6 +304,7 @@ export default function ProcessingDetailPage() {
           has_damage: Boolean(item.has_damage),
           damage_notes: (item.damage_notes as string | null | undefined) ?? null,
           notes: (item.notes as string | null | undefined) ?? null,
+          notes_followup: parseNotesFollowup(item.notes_followup),
         };
       });
 
@@ -307,15 +320,17 @@ export default function ProcessingDetailPage() {
         has_issue: Boolean(raw.has_issue),
         is_rejected: Boolean(raw.is_rejected),
         rack_location: String(raw.rack_location ?? ''),
-        ready_by_at:
-          (raw.ready_by_at_new as string | null | undefined) ??
-          (raw.ready_by as string | null | undefined) ??
-          null,
+        ready_by_at: (raw.ready_by_at as string | null | undefined) ?? null,
         created_at: (raw.created_at as string | null | undefined) ?? null,
         notes:
           (raw.customer_notes as string | null | undefined) ??
           (raw.internal_notes as string | null | undefined) ??
           null,
+        notes_followup: parseNotesFollowup(raw.notes_followup),
+        isCommercialLocked: Boolean(
+          (json as { isCommercialLocked?: unknown }).isCommercialLocked ??
+            raw.isCommercialLocked
+        ),
         payment_status: String(raw.payment_status ?? ''),
         payment_type_code: (raw.payment_type_code as string | null | undefined) ?? null,
         subtotal: snapshot.subtotalAmount,
@@ -857,11 +872,22 @@ export default function ProcessingDetailPage() {
                       </div>
                     </div>
 
-                    {item.notes && (
-                      <p className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">{tDetail('notes')}:</span>{' '}
-                        {item.notes}
-                      </p>
+                    {orderId && (
+                      <CmxFollowupNotesFeed
+                        orderId={orderId}
+                        targetLevel={NOTES_FOLLOWUP_TARGET_LEVELS.ITEM}
+                        targetId={item.id}
+                        notes={item.notes_followup}
+                        intakeNote={item.notes}
+                        intakeNoteLocked={order.isCommercialLocked}
+                        noteSource={PREFS_SOURCE_STAGE.ORDER_PROCESSING}
+                        sourceScreen={PRC_TRX_SOURCE_SCREENS.PROCESSING_DETAIL}
+                        onNotesUpdated={() => {
+                          setTrxRefreshKey((k) => k + 1);
+                          void refetchOrder();
+                        }}
+                        compact
+                      />
                     )}
 
                     {/* Piece Photos (when item-level tracking) or Expandable Piece Manager */}
@@ -906,6 +932,7 @@ export default function ProcessingDetailPage() {
                                 enableBulkOperations
                                 pieceDensity="compact"
                                 onUpdate={() => {
+                                  setTrxRefreshKey((k) => k + 1);
                                   void handleRefreshAll();
                                 }}
                               />
@@ -921,6 +948,10 @@ export default function ProcessingDetailPage() {
           )}
 
           {orderId && <OrderStageFiles orderId={orderId} source={FILE_SOURCES.ORDER_PROCESSING} />}
+
+          {orderId && (
+            <ProcessingTransactionsPanel orderId={orderId} refreshKey={trxRefreshKey} />
+          )}
         </div>
 
         {/* Right Rail: Payment Summary, Storage & Quick Tools */}
@@ -974,12 +1005,21 @@ export default function ProcessingDetailPage() {
                 </div>
               </div>
 
-              {order.notes && (
-                <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">{tDetail('notes')}</div>
-                  <div className="mt-0.5 text-sm text-foreground">{order.notes}</div>
-                </div>
-              )}
+              <CmxFollowupNotesFeed
+                orderId={order.id}
+                targetLevel={NOTES_FOLLOWUP_TARGET_LEVELS.ORDER}
+                targetId={order.id}
+                notes={order.notes_followup}
+                intakeNote={order.notes}
+                intakeNoteLocked={order.isCommercialLocked}
+                noteSource={PREFS_SOURCE_STAGE.ORDER_PROCESSING}
+                sourceScreen={PRC_TRX_SOURCE_SCREENS.PROCESSING_DETAIL}
+                onNotesUpdated={() => {
+                  setTrxRefreshKey((k) => k + 1);
+                  void refetchOrder();
+                }}
+                compact
+              />
             </CmxCardContent>
           </CmxCard>
 

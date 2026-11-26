@@ -5,11 +5,26 @@ Do the packages in order. A package that says "migration" produces a new SQL fil
 Rule: [`docs/dev/rules/time-and-timezone.md`](../../../dev/rules/time-and-timezone.md).
 Inventory: [`column-inventory.md`](./column-inventory.md).
 
-This pack follows that contract: the operations zone is the feature's documented scope, then the organization; a client zone is an echo; a typed daylight-saving gap or overlap is rejected unless the form captured a choice; a computed gap advances and a computed overlap uses the earlier offset; legacy conversion is expand-and-contract; a naive column is not read as UTC until its sample proves one clock.
+This pack follows that contract: the operations zone is the feature's documented scope, then the organization; a client zone is an echo; a typed daylight-saving gap or overlap is rejected unless the form captured a choice; a computed gap advances and a computed overlap uses the earlier offset. Development rows may be rewritten. A naive instant whose writer stores `now()` converts as a UTC wall. A civil value stays `date` or `time`. A column that is still naive is shown with no clock.
 
 ## Close-out after every package
 
 A package is not done until `progress_summary.md`, `current_status.md`, and this folder's surface-map row match the work. Add one `CHANGELOG.md` line and bump `version.txt`. A migration is recorded as Written, not applied. After the user applies it, record `npm run prisma:pull`. The HQ sibling plan in `cleanmatexsaas` (`docs/features/Time_and_Timezone/`) closes out in that folder.
+
+## Production gate
+
+A package is production-ready only when every layer that owns that clock changes in the same pass. One layer left behind is a gap.
+
+| Layer | What the pass includes |
+|---|---|
+| Database | A new migration when a column, view, trigger, or function changes. Tenant migrations stay in this repo. `org_*` reads and writes filter `tenant_org_id` in the statement. |
+| Services | Writers store the same clock the column now holds. One zone resolution per action. A list joins its zones in one query. Features do not copy `Intl` or `AT TIME ZONE`. |
+| APIs, webhooks, server actions | An instant is RFC 3339 with an offset and is returned with `Z`. A civil date is `YYYY-MM-DD`. A client zone is an echo. |
+| Workers | `cmx-workers` schedules stay UTC. A shop-local fire time is derived in the web-admin service. HQ jobs in `platform-workers` follow the sibling plan. Removing that app is a separate piece of work, not this plan. |
+| Screens, print, messages | The operations zone, EN and AR, and no clock when the zone is missing. Feedback uses `cmxMessage`. Controls are Cmx components. |
+| Both repos | A tenant surface stays in `cleanmatex` (`web-admin`, `cmx-api`, `cmx-workers`, mobile). An HQ surface (`platform-web`, `platform-api`, `platform-workers`) is changed in `cleanmatexsaas` and closed out there. |
+
+Tests cover the clock rule that changed. A test sets an explicit zone. The machine zone is not the shop zone. A cache key or a default of today includes the civil date and the zone id.
 
 The operation codes are a closed list, shared by the TypeScript door and `fn_ops_zone`: `accept_order`, `ready_by`, `pos_session`, `delivery`, `invoice`, `ledger`. A report that shows a stored row reads that row's snapshot. A report limited to one zone says so. Registration is not an operation of either door.
 
@@ -18,8 +33,8 @@ The operation codes are a closed list, shared by the TypeScript door and `fn_ops
 **Done when** feature code can resolve a zone, format an instant, and reject a naive datetime without copying `Intl` logic.
 
 - Add `resolveOperationalTimeZone` next to `web-admin/lib/utils/business-date.ts`. The caller passes `tenantOrgId`, one closed operation code, and the scope id. For a branch-scoped operation: branch `timezone_code`, else organization `timezone`, else null. Both must be valid IANA names and active `sys_timezone_cd` codes. The query filters `tenant_org_id` and uses the existing branch and organization keys. One read per action. Reuse the result for the rest of that request only. A TTL must not choose the civil day.
-- A scope with no timezone column names the branch that owns the action. Delivery uses the branch of the service location. An invoice or a ledger line uses the issuing branch of that legal or accounting entity. `sys_country_cd.default_timezone_code` is catalog metadata and is not a fallback. A client `timeZone` cannot win. This is the TypeScript door. `fn_ops_zone` in WP12 returns the same answer for the same inputs. Do not add a React context that holds one zone for the session.
-- A persisted business date takes one database instant. `pos-session.service.ts` calls `businessDateForTimezone(businessTimezone)` with the application clock. Pass the database instant captured in that transaction. Refresh every other `businessDateForTimezone` caller and apply the same rule.
+- The scope id is the owning branch. Delivery uses the branch on the route or slot. An invoice uses `org_invoice_mst.branch_id`. A ledger journal uses `org_fin_journal_mst.branch_id`. The customer ledger follows the invoice. Those tables store the place, and the branch stores the zone. `sys_country_cd.default_timezone_code` is catalog metadata and is not a fallback. A client `timeZone` cannot win. This is the TypeScript door in `operational-zone.server.ts`. `fn_ops_zone` in WP12 returns the same answer for the same inputs. Do not add a React context that holds one zone for the session. When the document is issued, freeze that zone on the row the way a POS session freezes `business_timezone`.
+- A persisted business date takes one database instant. POS open, the rollover sweep, a live `previewReadyTimes` call, `quoteCheckout`, the tax lines written from that quote, tax-document issue, advance receipts, gift-card sales, and refund reversal read that instant. `createTaxDocumentTx` still takes the fiscal year from `new Date().getFullYear()`. Order create, order change, split, and preparation completion persist `ready_by_at`. `formatReadyByDate` stays empty without a zone (WP6).
 - Add `parseInstant` that accepts only RFC 3339 with `Z` or a numeric offset.
 - Add `formatInstant(value, zone, locale)` and `civilDayBounds(date, zone)` that return a half-open UTC range.
 - Keep `getTenantTimeZone` as the organization helper. Layout may keep passing it for non-operational chrome. Operational pages pass the resolver result.
@@ -29,10 +44,10 @@ The operation codes are a closed list, shared by the TypeScript door and `fn_ops
   - `web-admin/lib/services/tax/prepaid-tax.service.ts`
   - `web-admin/lib/services/tax/tax-lines.writer.ts`
   - `web-admin/lib/services/tax/tax-explain.service.ts` (`isoDate(now)` when the zone is missing)
-- Point Ready By readers at `ready_by_at_new`. Start with the receipt mapper called out in the line-level money QA (`ready-order-types`) and the All Orders list mapper. Search `ready_by` and switch display reads. Leave the column in place.
+- Ready By readers and writers use `ready_by_at`. Display reads landed in 0.1.6-plan. `0833` dropped `ready_by` and `ready_by_override` and renamed `ready_by_at_new` to `ready_by_at`. Actual Ready is `ready_at`.
 - i18n keys for "time zone is not set" in `messages/en` and `messages/ar`, reused if an existing key already says that.
 
-**Stop if** a Ready By reader has no `ready_by_at_new` in its query. Add the column to the select. Do not parse `ready_by` to fill the gap.
+**Stop if** a Ready By reader selects a column other than `ready_by_at`. Add that column to the select. A null `ready_by_at` shows no clock. Sort keys `ready_by` and `ready_by_at_new` are aliases that order by `ready_by_at`. They are not columns.
 
 **Tests:** T1, T2, T3, T6, T9, T18, T19, F1, F3 in the testing guide. Keep the vectors. WP12 runs the same vectors through `fn_ops_zone`.
 
@@ -44,7 +59,7 @@ The operation codes are a closed list, shared by the TypeScript door and `fn_ops
 
 Read-only SQL only. Use `supabase_local` or `supabase_remote` as the user directs. Do not `UPDATE`.
 
-Columns: `org_users_mst.locked_until`, `org_users_mst.last_failed_login_at`, `org_ntf_outbox_dtl.scheduled_at`, `org_ntf_outbox_dtl.next_retry_at`, `org_ntf_campaigns_mst.scheduled_at`, and `org_orders_mst.ready_by` where `ready_by_at_new` is null.
+Columns sampled before `0833`: `org_users_mst.locked_until`, `org_users_mst.last_failed_login_at`, `org_ntf_outbox_dtl.scheduled_at`, `org_ntf_outbox_dtl.next_retry_at`, `org_ntf_campaigns_mst.scheduled_at`, and `org_orders_mst.ready_by` where `ready_by_at_new` was null. `ready_by` and `ready_by_override` are dropped. The promised column is `ready_by_at`.
 
 Also list the writers. Known writer to inspect: `web-admin/lib/notifications/campaign-jobs.service.ts` (`now() AT TIME ZONE 'UTC'`).
 
@@ -58,7 +73,7 @@ Recount the live catalog in the note. The Prisma file on 2026-11-24 said 977 `ti
 
 **Depends on** WP2.
 
-New migration, next sequence number at the time of writing. Convert `org_users_mst.locked_until` and `last_failed_login_at` with the `USING` clause WP2 proved. Comment the provenance. Login duration math subtracts instants. The API returns the remaining minutes from that difference.
+`0832_lockout_timestamptz.sql` converts `org_users_mst.locked_until` and `last_failed_login_at` as UTC walls and makes `record_login_attempt` return `timestamptz`. Applied on local and remote. `attack_locked_until` was already `timestamptz`.
 
 **Stop** for review. Do not apply.
 
@@ -76,25 +91,28 @@ Quiet hours stay civil. The row that leaves the quiet-hours calculation is the U
 
 **Stop** for review. Name any HQ worker that reads `hq_ntf_dispatch_log` before touching `dispatched_at` or `failed_at`. Those two are Class B, not this package. Add each named reader to the HQ sibling plan.
 
+Written as `0828_ntf_schedule_timestamptz.sql` from the 2026-11-25 provenance note. `request.service.ts` still casts `AT TIME ZONE 'UTC'` so a Muscat Node process keeps reading the naive column correctly until the migration is applied. Remove that cast in the same deploy. The campaign `AT TIME ZONE 'UTC'` writes are `started_at`, `updated_at`, and `processed_at`, which are not this package. HQ readers named in the sibling progress: `ntf-status.jobs.ts`, `ntf-delivery.jobs.ts`, `webhook-status.ts`. They do not read `dispatched_at` or `failed_at`.
+
 **Tests after apply:** T5.
 
 **Close-out:** Written, not applied.
 
-## WP5 — Ready By backfill
+## WP5 — Ready By canonical columns
 
-**Depends on** WP2 for rows where `ready_by_at_new` is null.
+Applied on local and remote.
 
-New migration:
+`0829_ready_by_twin_backfill.sql` updated a null `ready_by_at_new` only, as a UTC wall, and changed 0 rows. The three divergent promised instants were not overwritten.
 
-- Backfill `ready_by_at_new` from `ready_by` only where the twin is null, using the proven `USING` interpretation.
-- Do not drop `ready_by`.
-- Application writes set `ready_by_at_new` only.
+`0833_orders_ready_columns_canonical.sql` then:
 
-A later package drops `ready_by` after a search shows no readers.
+- Backfilled any remaining null `ready_by_at_new` from `ready_by` as a UTC wall.
+- Dropped `ready_by` and `ready_by_override` with `RESTRICT`, and dropped `idx_orders_ready_by`.
+- Renamed `ready_by_at_new` to `ready_by_at` and `idx_orders_ready_by_new` to `idx_orders_ready_by_at`. `ready_by_at` is the promised Ready By instant.
+- Converted `ready_at` to `timestamptz` with `USING ready_at AT TIME ZONE 'UTC'`. `ready_at` is the actual Ready instant.
+
+Order, item, and piece rows use those two names. Application writes persist `ready_by_at`. A null promised instant shows no clock. List sort keys `ready_by` and `ready_by_at_new` order by `ready_by_at`.
 
 **Tests after apply:** T6, T7.
-
-**Close-out:** Written, not applied. `ready_by` stays.
 
 ## WP6 — Presentation sweep
 
@@ -102,10 +120,11 @@ A later package drops `ready_by` after a search shows no readers.
 
 Replace operational formatting in batches. Suggested order, because these files matched `toLocaleString`, `toLocaleDateString`, `getHours`, `setHours`, or `slice(0, 10)` on 2026-11-24:
 
-1. Orders and print: `order-details-full-client.tsx`, `order-detail-client.tsx`, `order-receipt-print.tsx`, `order-payments-print-rprt.tsx`, `ready-date-picker-modal.tsx`, `ready-by-calculator.ts`.
-2. Reports under `src/features/reports/ui/` and `app/dashboard/reports/`.
+1. Orders and print: order detail, the full order view, the receipt, the payments print, the order voucher tab, the ready-date picker, and preparation ready-by rounding use the branch zone (`0.1.18-plan`). `formatReadyByDate` stays empty without a zone. A caller that omits the zone still rounds on the machine clock.
+2. Reports under `src/features/reports/ui/` and `app/dashboard/reports/`. The orders, payments, invoices, revenue, customer, and reconciliation reports now use the organization civil day (`0.1.16-plan`).
 3. Finance vouchers and `app/dashboard/internal_fin/vouchers/`.
-4. Customers, notifications, marketing, delivery, workboard.
+4. Cash drawers use the till branch (`0.1.26-plan`). Refund timestamps and reconciliation run instants use that row's branch, then the organization. Reconciliation periods stay civil dates. Gift-card liability uses the organization zone. A tax-document fiscal year is the civil year of one database instant in the invoice zone.
+5. Customers, notifications, marketing, delivery, workboard.
 
 Each batch: the screen waits for the operations zone, EN and AR show the same instant, and the print matches the screen. A missing zone shows a skeleton and a message through `cmxMessage`, with keys in both languages. A list joins each row's zone in the same query. A day filter uses `civilDayBounds` once and compares a stored date or a bare `timestamptz`. Print roots keep `data-mode="LIGHT"`. Check the changed flow in the browser, including the empty and missing-zone states.
 
@@ -123,7 +142,7 @@ One migration per domain, each with its own provenance note:
 
 | Batch | Tables |
 |---|---|
-| B1 Orders | `org_orders_mst` event stamps other than `ready_by` (`paid_at`, `delivered_at`, `received_at`, `ready_at`, `prepared_at`, `ready_by_override`, `credit_limit_override_at`) |
+| B1 Orders | `org_orders_mst` event stamps other than the Ready pair (`paid_at`, `delivered_at`, `received_at`, `prepared_at`, `credit_limit_override_at`). `ready_by_at` and `ready_at` are already `timestamptz`. `ready_by` and `ready_by_override` are dropped. |
 | B2 Notifications | remaining `org_ntf_*` stamps (`sent_at`, `read_at`, `logged_at`, `performed_at`, `paused_at`, `delivered_at`) |
 | B3 Delivery and assembly | `org_dlv_*`, `org_asm_*`, `org_qa_decisions_tr`, `org_pck_*` |
 | B4 Finance | `org_fin_*`, `org_invoice_mst` after `handed_to_date` is classified |
@@ -136,14 +155,23 @@ Each batch closes out on its own. B6 waits for the HQ reader list and the siblin
 
 ## WP8 — Audit stamps
 
-**Depends on** the database `TimeZone` decision in the deploy guide.
+**Depends on** the database `TimeZone` decision in the deploy guide. Both sessions were UTC on 2026-11-25. Development rows may move.
 
-Prefix-sized migrations for the 398 `created_at` / `updated_at` columns. Skip a table whose sample mixes UTC wall and Muscat wall. Close out each prefix as Written, not applied.
+One migration for every naive `created_at`, `updated_at`, and `deleted_at`. The starting inventory has 398 `created_at` and `updated_at` columns (200 and 198). On 2026-11-26 the local catalog has 64 `deleted_at` columns and every one is already `timestamptz`, so the migration does not alter those. A naive `deleted_at` found at write time converts in this same file. Convert each naive stamp with `USING column AT TIME ZONE 'UTC'`. The session is UTC and the writers store `now()`.
+
+The same file drops and recreates every view, trigger, and function that blocks the type change. A blocked table does not become a second migration.
+
+Leave out:
+
+- A column that is a civil day or a time of day. Those stay `date` or `time`.
+- `sys_*` and `hq_*` stamps. They wait for `technical_docs/hq-readers.md` (WP21).
+
+Close out as Written, not applied. After apply, record the Prisma pull.
 
 ## WP9 — CI guard
 
 - A script or review check fails when a new migration adds `timestamp without time zone` without the comment `CIVIL:` (allowed only for a documented local wall clock that is not an instant).
-- The same check fails on new `toISOString().slice(0, 10)` and unzoned `new Date('YYYY-MM-DD')` under `web-admin`, `cmx-api`, and the mobile date parser.
+- The same check fails on new `toISOString().slice(0, 10)` and unzoned `new Date('YYYY-MM-DD')` under `web-admin`, `cmx-api`, `cmx-workers`, and the mobile date parser.
 - The same check fails when a new SQL function reads `org_tenants_mst.timezone` or `org_branches_mst.timezone_code` except `fn_ops_zone`.
 - The T and E cases that can run without a browser live next to `business-date` tests, including the two-door vectors.
 
@@ -225,13 +253,15 @@ Refresh export and import routes. Starting routes: `app/api/v1/customers/export`
 
 ## WP17 — Logs and audit screens
 
-Log formatters in `web-admin`, `cmx-api/src/common/utils/logger.ts`, and `cmx_mobile_apps/packages/mobile_core/lib/src/app_logger.dart` write UTC ISO-8601. A line about a civil decision adds the zone id. Audit screens format the stored instant with the operations zone. They do not display the naive column when a `timestamptz` twin exists. Log lines stay free of customer payloads.
+Log formatters in `web-admin`, `cmx-api/src/common/utils/logger.ts`, `cmx-workers/src/log.ts`, and `cmx_mobile_apps/packages/mobile_core/lib/src/app_logger.dart` write UTC ISO-8601. A line about a civil decision adds the zone id. Audit screens format the stored instant with the operations zone. They do not display the naive column when a `timestamptz` twin exists. Log lines stay free of customer payloads.
 
-**Close-out:** name the three loggers and the audit screens.
+**Close-out:** name the four loggers and the audit screens.
 
 ## WP18 — Jobs besides the notification outbox
 
 `finance-jobs.service.ts`, the POS session rollover, and the background-job claim functions from `0807` and `0810` compare `timestamptz` to `now()` for eligibility only. A worker claims a due row with a bounded lease and one idempotency key per logical occurrence. A job defined as local time stores the civil rule, the IANA zone, and a derived UTC fire time. A computed gap advances. A computed overlap uses the earlier offset. Operator screens that show a UTC cron say UTC. The zone is applied when `next_run_at` is calculated, not inside the due-row scan.
+
+`cmx-workers` is the tenant queue consumer in this repo. Its pg-boss schedules stay `tz: 'UTC'`. Its handlers call the web-admin services above and do not compute a shop day. A shop-local job keeps the civil rule in the service and still fires the worker on the derived UTC instant. `packages/jobs` `startAfter` is an instant. HQ jobs stay in the sibling plan (`platform-workers`), not in this package. Removing `platform-workers` is a separate piece of work. This plan does not remove it.
 
 **Close-out:** name the jobs and whether each change is code or a new migration.
 
@@ -249,7 +279,7 @@ Search `cmx-api/src` again at the start of the package. The 2026-11-24 search ma
 
 ## WP21 — HQ readers
 
-Before WP7 batch B6, and before any other column a platform worker reads, write `technical_docs/hq-readers.md`. Each row names the table, the column, and the HQ file or job in `platform-web`, `platform-api`, or `platform-workers`. Converting that column waits until the list is reviewed. HQ behavior changes are the sibling plan at `cleanmatexsaas/docs/features/Time_and_Timezone/`. This tenant pack does not edit that repo's application code.
+Before WP7 batch B6, and before the `sys_*` / `hq_*` part of WP8, write `technical_docs/hq-readers.md`. Each row names the table, the column, and the HQ file or job in `platform-web`, `platform-api`, or `platform-workers`. Converting that column waits until the list is reviewed. HQ screens, APIs, and workers do not wait for the list. Those behavior changes are the sibling plan at `cleanmatexsaas/docs/features/Time_and_Timezone/` (H0, H2–H5). This tenant pack does not edit that repo's application code. `cmx-workers` is tenant WP18, not an HQ reader.
 
 **Close-out:** the reader list is checked in. The sibling plan's status says the list is ready.
 
@@ -281,13 +311,14 @@ Build the page list from `web-admin/app/dashboard/**/page.tsx` and the feature s
 | Exports and imports | WP16 |
 | Logs and audit UI | WP17 |
 | `cmx-api` | WP19 |
+| `cmx-workers` | WP17, WP18. Tenant queues. Schedules stay UTC. Shop-local fire times are calculated in the web-admin service |
 | Mobile apps | WP20 |
-| HQ readers | WP21, then `cleanmatexsaas/docs/features/Time_and_Timezone/` |
+| HQ (`platform-web`, `platform-api`, `platform-workers`) | WP21 for column readers, then `cleanmatexsaas/docs/features/Time_and_Timezone/` for screens, APIs, and workers. Screens do not wait for the reader list. Removing `platform-workers` is a separate piece of work, not this plan |
 | Performance | WP1, WP6, WP12, WP18. One resolution per action. Join a mixed list. Filter a bare instant |
 | Plan status | Close-out after every package, in `progress_summary.md`, `current_status.md`, and the surface map |
 | Columns and migrations | WP3, WP4, WP5, WP7, WP8, WP12, WP13. New files only. Not applied here |
 | Constants | IANA codes stay `sys_timezone_cd.code` |
 | Env vars | None. Process `TZ=UTC` is an operations note in the deploy guide |
-| CI | WP9. It covers `web-admin`, `cmx-api`, mobile date parsing, and new SQL |
+| CI | WP9. It covers `web-admin`, `cmx-api`, `cmx-workers`, mobile date parsing, and new SQL |
 
 The surface map is [`surface-map.md`](./surface-map.md). A package that does not refresh its row on that map is not done.

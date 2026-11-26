@@ -11,8 +11,11 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { WorkflowService } from '@/lib/services/workflow-service';
 import { readCanonicalOrderFinancialSnapshot } from '@/lib/utils/order-financial-snapshot';
 import { getPickupReleaseSummary } from '@/lib/services/pickup/pickup-release-state.service';
+import { legacyCommittedReplacementStatus } from '@/lib/services/order-change/order-change-legacy-writer-guard';
 import { orderLineQualifiers, qualifierInputOfRow, type OrderItemQualifierRow } from '@/lib/orders/line-qualifier';
 import { loadSpeedNames } from '@/lib/orders/line-qualifier-speed';
+import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 
 const ORDER_STATE_SELECT = `
   id,
@@ -26,8 +29,7 @@ const ORDER_STATE_SELECT = `
   status,
   service_category_code,
   rack_location,
-  ready_by,
-  ready_by_at_new,
+  ready_by_at,
   payment_status,
   subtotal_amount,
   total_tax_amount,
@@ -44,6 +46,7 @@ const ORDER_STATE_SELECT = `
   service_speed,
   customer_notes,
   internal_notes,
+  notes_followup,
   created_at,
   updated_at,
   created_info,
@@ -93,6 +96,7 @@ const ORDER_ITEM_STATE_SELECT = `
   damage_notes,
   status,
   notes,
+  notes_followup,
   product_name,
   product_name2,
   org_product_data_mst(
@@ -133,7 +137,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     type InvoiceRow = { id: string; invoice_no: string | null; total: number; paid_amount: number };
 
-    const [itemsResult, allowedTransitions, invoicesResult, pickupRelease] = await Promise.all([
+    const [itemsResult, allowedTransitions, invoicesResult, pickupRelease, legacyWriterStatus, opsZone] = await Promise.all([
       supabase
         .from('org_order_items_dtl')
         .select(ORDER_ITEM_STATE_SELECT)
@@ -156,7 +160,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         .eq('tenant_org_id', tenantId)
         .order('created_at', { ascending: false }),
       getPickupReleaseSummary({ tenantId, orderId: id }),
+      legacyCommittedReplacementStatus(tenantId, id),
+      resolveOperationalTimeZoneOn(prisma, {
+        tenantOrgId: tenantId,
+        operation: 'ready_by',
+        branchId: typeof orderRow.branch_id === 'string' ? orderRow.branch_id : null,
+      }),
     ]);
+    const isCommercialLocked = legacyWriterStatus === 'RETIRED';
 
     const { data: items, error: itemsError } = itemsResult;
 
@@ -240,12 +251,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       primaryInvoiceId,
       invoices: orderInvoices,
       pickupRelease,
+      opsZone,
+      isCommercialLocked,
       flags: {
         isQuickDrop: orderRow.is_order_quick_drop,
         hasSplit: orderRow.has_split,
         hasIssue: orderRow.has_issue,
         isRejected: orderRow.is_rejected,
         requiresRackLocation: orderRow.current_status === 'ready' && !orderRow.rack_location,
+        isCommercialLocked,
       },
     });
   } catch (e) {

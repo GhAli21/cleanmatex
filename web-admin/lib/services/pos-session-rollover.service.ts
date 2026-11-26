@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { logger } from '@/lib/utils/logger';
 import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { readDatabaseInstant } from '@/lib/utils/operational-zone.server';
 import { emitNotificationEvent } from '@/lib/notifications/event-emitter';
 import { WORKFLOW_SYSTEM_ACTOR } from '@/lib/constants/workflow-system-actor';
 import { CASH_DRAWER_TERMINAL_SESSION_STATUSES } from '@/lib/constants/cash-drawer';
@@ -404,7 +405,7 @@ async function notify(pending: PendingNotification): Promise<void> {
 export async function runPosSessionRolloverSweep(
   options: PosSessionRolloverSweepOptions = {}
 ): Promise<PosSessionRolloverOutcome> {
-  const now = options.now ?? new Date();
+  const now = options.now ?? await readDatabaseInstant(prisma);
   const onlySessions = options.sessionIds ? new Set(options.sessionIds) : null;
   // Cross-tenant discovery only: which tenants have live sessions at all. Every query after this
   // is scoped to one tenant_org_id and runs under that tenant's context.

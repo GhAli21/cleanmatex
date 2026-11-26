@@ -6,7 +6,7 @@ Source: `web-admin/prisma/schema.prisma` on 2026-11-24. Recount before the first
 
 977 columns are `@db.Timestamptz`. Do not touch them in this program.
 
-`org_orders_mst.ready_by_at_new` is `timestamptz`. It is the Ready By instant.
+`org_orders_mst.ready_by_at` (renamed from `ready_by_at_new` in `0833`) and `org_orders_mst.ready_at` (upgraded in `0833`) are `timestamptz`. `ready_by_at` is the promised Ready By instant; `ready_at` is the actual Ready instant.
 
 `org_pos_sessions_mst.opened_at` is `timestamptz`. `business_date` is `date`. `business_timezone` is the snapshotted IANA name.
 
@@ -18,7 +18,7 @@ These are instants. The stored wall clock is not yet proven for the `USING` clau
 
 | Column | Table | Prisma |
 |---|---|---|
-| `ready_by` | `org_orders_mst` | `Timestamp(6)` |
+| `ready_by` | `org_orders_mst` | Dropped in `0833`. Promised instant is `ready_by_at`. |
 | `locked_until` | `org_users_mst` | `Timestamp(6)` |
 | `last_failed_login_at` | `org_users_mst` | `Timestamp(6)` |
 | `scheduled_at` | `org_ntf_campaigns_mst` | `Timestamp(6)` |
@@ -26,7 +26,7 @@ These are instants. The stored wall clock is not yet proven for the `USING` clau
 
 Also treat `org_ntf_outbox_dtl.next_retry_at` as Class A. It is the same family as `scheduled_at`.
 
-`ready_by` is not dropped in the Class A migration. Readers move to `ready_by_at_new`. The migration backfills only null twins after the wall clock is proven.
+Legacy `ready_by` and `ready_by_override` were dropped in `0833_orders_ready_columns_canonical.sql` (`RESTRICT`) after `0829` proved zero null twins and all readers/writers moved to `ready_by_at`.
 
 ## Class B — other naive names (90 columns, 61 names)
 
@@ -56,10 +56,10 @@ Counts are how many tables use that column name. Confirm the table list from Pri
 | 1 | `refreshed_at` | `sessions` |
 | 1 | `handed_to_date` | `org_invoice_mst` |
 | 1 | `received_at` | `org_orders_mst` |
-| 1 | `ready_by` | Class A |
-| 1 | `ready_at` | `org_orders_mst` |
+| 1 | `ready_by` | Dropped in `0833` |
+| 1 | `ready_at` | `org_orders_mst`, already `timestamptz` after `0833` |
 | 1 | `prepared_at` | `org_orders_mst` |
-| 1 | `ready_by_override` | `org_orders_mst` |
+| 1 | `ready_by_override` | Dropped in `0833` |
 | 1 | `credit_limit_override_at` | `org_orders_mst` |
 | 1 | `last_login_at` | `org_users_mst` |
 | 1 | `activated_at` | `org_pln_subscriptions_mst` |
@@ -105,7 +105,7 @@ Classify before choosing `timestamptz`:
 
 ## Class C — audit stamps
 
-`created_at`: 200 columns. `updated_at`: 198 columns. All `@db.Timestamp`. Phase 5 only. Group by table prefix (`org_ord_`, `org_fin_`, `org_ntf_`, `sys_`, `hq_`). One migration per prefix after a sample of that prefix.
+`created_at`: 200 columns. `updated_at`: 198 columns. All `@db.Timestamp` in the starting inventory. `deleted_at`: 64 columns on 2026-11-26, every one already `timestamptz`. One migration converts every naive tenant `created_at`, `updated_at`, and `deleted_at` with `USING column AT TIME ZONE 'UTC'`. An already-`timestamptz` `deleted_at` is left as it is. Views, triggers, and functions that block the type change are recreated in that file. `sys_*` and `hq_*` stamps wait for the HQ reader list.
 
 ## Provenance sample
 

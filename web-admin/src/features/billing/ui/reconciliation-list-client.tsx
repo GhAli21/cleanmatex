@@ -23,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { runReconciliationAction } from '@/app/actions/billing/reconciliation-actions';
+import { formatCivilDate, formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/primitives/table';
 import {
@@ -43,6 +44,7 @@ interface ReconRun {
   period_from: string | null;
   period_to: string | null;
   branch_id: string | null;
+  ops_zone: string | null;
   currency_code: string;
   total_checked: number | null;
   passed_checks: number | null;
@@ -64,15 +66,8 @@ interface ReconciliationListClientProps {
   pagination: PaginationInfo;
 }
 
-function fmtDate(locale: string, iso: string | null | undefined): string {
-  if (!iso) return EM_DASH;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso));
+function fmtDate(locale: string, iso: string | null | undefined, zone: string | null): string {
+  return formatInstantOrEmpty(iso, zone, locale === 'ar' ? 'ar' : 'en') || EM_DASH;
 }
 
 function fmtPeriod(
@@ -83,11 +78,7 @@ function fmtPeriod(
   if (!from && !to) return EM_DASH;
   const fmtShort = (iso: string | null) => {
     if (!iso) return '?';
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(new Date(iso));
+    return formatCivilDate(iso, locale === 'ar' ? 'ar' : 'en') || EM_DASH;
   };
   return `${fmtShort(from)} ${EM_DASH} ${fmtShort(to)}`;
 }
@@ -238,7 +229,7 @@ export default function ReconciliationListClient({
                       {run.currency_code}
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-4 py-3 text-foreground tabular-nums">
-                      {fmtDate(locale, run.completed_at ?? run.started_at)}
+                      {fmtDate(locale, run.completed_at ?? run.started_at, run.ops_zone)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-4 py-3 text-foreground">
                       {run.triggered_by ?? EM_DASH}

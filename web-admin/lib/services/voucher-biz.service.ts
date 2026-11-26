@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
 import { withTenantContext } from '../db/tenant-context';
 import { VOUCHER_STATUS } from '../constants/voucher';
 
@@ -571,12 +572,16 @@ export async function listBizVouchers(
           currency_code: true,
           voucher_date: true,
           created_at: true,
+          branch_id: true,
           ref_voucher_id: true,
           referenced_voucher: { select: { voucher_no: true } },
         },
       }),
       prisma.org_fin_vouchers_mst.count({ where }),
     ]);
+
+    const branchIds = rows.flatMap((row) => (row.branch_id ? [row.branch_id] : []));
+    const zones = await resolveOperationalTimeZonesForBranches(prisma, tenantOrgId, 'ledger', branchIds);
 
     const items: VoucherListItem[] = rows.map(r => ({
       id:             r.id,
@@ -589,6 +594,7 @@ export async function listBizVouchers(
       currency_code:  r.currency_code,
       voucher_date:   r.voucher_date ? r.voucher_date.toISOString().split('T')[0] ?? null : null,
       created_at:     r.created_at,
+      ops_zone:       (r.branch_id ? zones.byBranch.get(r.branch_id) : zones.organization) ?? zones.organization,
       ref_voucher_id: r.ref_voucher_id,
       ref_voucher_no: r.referenced_voucher?.voucher_no ?? null,
     }));

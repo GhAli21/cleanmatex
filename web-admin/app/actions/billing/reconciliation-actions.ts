@@ -17,6 +17,9 @@ import {
 } from '@/lib/services/reconciliation.service';
 import type { ReconciliationParams } from '@/lib/services/reconciliation.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
+import { prismaDateToCivil } from '@/lib/utils/operational-time';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -31,15 +34,22 @@ export async function listReconRunsAction(page = 1, pageSize = 20) {
   try {
     const auth = await getAuthContext();
     const result = await listReconRuns(auth.tenantId, page, pageSize);
+    const zones = await resolveOperationalTimeZonesForBranches(
+      prisma,
+      auth.tenantId,
+      'ledger',
+      result.items.flatMap((run) => (run.branch_id ? [run.branch_id] : [])),
+    );
 
     const serialized = result.items.map((r) => ({
       id:              r.id,
       run_no:          r.run_no,
       run_type:        r.run_type,
       status:          r.status,
-      period_from:     r.period_from?.toISOString() ?? null,
-      period_to:       r.period_to?.toISOString() ?? null,
+      period_from:     r.period_from ? prismaDateToCivil(r.period_from) : null,
+      period_to:       r.period_to ? prismaDateToCivil(r.period_to) : null,
       branch_id:       r.branch_id,
+      ops_zone:        r.branch_id ? (zones.byBranch.get(r.branch_id) ?? zones.organization) : zones.organization,
       currency_code:   r.currency_code,
       total_checked:   r.total_checked,
       passed_checks:   r.passed_checks,
@@ -106,15 +116,22 @@ export async function getReconRunAction(runId: string) {
   try {
     const auth = await getAuthContext();
     const run = await getReconRunWithIssues(auth.tenantId, runId);
+    const zones = await resolveOperationalTimeZonesForBranches(
+      prisma,
+      auth.tenantId,
+      'ledger',
+      run.branch_id ? [run.branch_id] : [],
+    );
 
     const serializedRun = {
       id:             run.id,
       run_no:         run.run_no,
       run_type:       run.run_type,
       status:         run.status,
-      period_from:    run.period_from?.toISOString() ?? null,
-      period_to:      run.period_to?.toISOString() ?? null,
+      period_from:    run.period_from ? prismaDateToCivil(run.period_from) : null,
+      period_to:      run.period_to ? prismaDateToCivil(run.period_to) : null,
       branch_id:      run.branch_id,
+      ops_zone:       run.branch_id ? (zones.byBranch.get(run.branch_id) ?? zones.organization) : zones.organization,
       currency_code:  run.currency_code,
       total_checked:  run.total_checked,
       passed_checks:  run.passed_checks,

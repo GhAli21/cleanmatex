@@ -11,9 +11,12 @@ import {
 export interface PrefsFollowupNote {
   note_seq: number;
   note_user_id: string;
+  note_user_name?: string;
   note_datetime: string;
   note_source: PrefsNoteSource | string;
   note_text: string;
+  trx_code?: string;
+  trx_id?: string;
 }
 
 /**
@@ -29,17 +32,32 @@ export function parseNotesFollowup(raw: unknown): PrefsFollowupNote[] {
     const note_text = typeof row.note_text === 'string' ? row.note_text : '';
     const note_user_id =
       typeof row.note_user_id === 'string' ? row.note_user_id : '';
+    const note_user_name =
+      typeof row.note_user_name === 'string' && row.note_user_name.trim()
+        ? row.note_user_name.trim()
+        : undefined;
     const note_datetime =
       typeof row.note_datetime === 'string' ? row.note_datetime : '';
     const note_source =
       typeof row.note_source === 'string' ? row.note_source : '';
+    const trx_code =
+      typeof row.trx_code === 'string' && row.trx_code.trim()
+        ? row.trx_code.trim()
+        : undefined;
+    const trx_id =
+      typeof row.trx_id === 'string' && row.trx_id.trim()
+        ? row.trx_id.trim()
+        : undefined;
     if (!Number.isFinite(note_seq) || !note_text.trim()) continue;
     out.push({
       note_seq,
       note_user_id,
+      ...(note_user_name ? { note_user_name } : {}),
       note_datetime,
       note_source,
       note_text,
+      ...(trx_code ? { trx_code } : {}),
+      ...(trx_id ? { trx_id } : {}),
     });
   }
   return out.sort((a, b) => a.note_seq - b.note_seq);
@@ -73,7 +91,10 @@ export function appendNotesFollowup(
     note_text: string;
     note_source: PrefsNoteSource | string;
     note_user_id: string;
+    note_user_name?: string;
     note_datetime?: string;
+    trx_code?: string;
+    trx_id?: string;
   }
 ): PrefsFollowupNote[] {
   const validated = validateFollowupNoteText(input.note_text);
@@ -88,9 +109,12 @@ export function appendNotesFollowup(
     {
       note_seq: nextSeq,
       note_user_id: input.note_user_id,
+      ...(input.note_user_name ? { note_user_name: input.note_user_name } : {}),
       note_datetime: input.note_datetime ?? new Date().toISOString(),
       note_source: input.note_source,
       note_text: validated.text,
+      ...(input.trx_code ? { trx_code: input.trx_code } : {}),
+      ...(input.trx_id ? { trx_id: input.trx_id } : {}),
     },
   ];
 }

@@ -149,7 +149,7 @@ supabase gen types typescript --local > web-admin/types/database.ts
 | `customer_mobile_number`    | `customer_mobile`                              |
 | `internal_notes`            | `notes`                                        |
 | `priority` (string)         | `is_express` (boolean)                         |
-| `ready_by` / `ready_by_at_new` | `ready_by_at`                               |
+| `ready_by_at` | `ready_by_at`                               |
 
 **Translation lives in:** `web-admin/app/api/v1/orders/[id]/route.ts` lines 71–85
 

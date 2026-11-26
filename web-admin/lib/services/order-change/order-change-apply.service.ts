@@ -134,13 +134,13 @@ function orderFields(request: ApplyRequest): Record<string, unknown> {
       // A line speed (ITEM) is stored on its line by the calculated money columns.
       data.service_speed = operation.payload.serviceSpeed;
     } else if (operation.code === 'CHANGE_READY_BY') {
-      data.ready_by = operation.payload.readyBy == null ? null : new Date(operation.payload.readyBy);
+      data.ready_by_at = operation.payload.readyBy == null ? null : new Date(operation.payload.readyBy);
     } else if (operation.code === 'CHANGE_CUSTOMER_SNAPSHOT') {
       if (operation.payload.customerName !== undefined) data.customer_name = operation.payload.customerName;
       if (operation.payload.customerMobile !== undefined) data.customer_mobile_number = operation.payload.customerMobile;
       if (operation.payload.customerEmail !== undefined) data.customer_email = operation.payload.customerEmail;
     } else if (operation.code === 'CHANGE_UNLISTED' && operation.payload.field === 'order.readyBy' && operation.target.kind === 'ORDER' && operation.payload.value === '') {
-      data.ready_by = null;
+      data.ready_by_at = null;
     }
   }
   return data;
@@ -595,7 +595,7 @@ async function loadOperationBeforeFacts(
   }
   const orderRows = needsOrder
     ? await query<OrderBeforeRow[]>`
-      SELECT status, current_status, current_stage, priority, service_speed, ready_by, total_items,
+      SELECT status, current_status, current_stage, priority, service_speed, ready_by_at AS ready_by, total_items,
              internal_notes, customer_notes, customer_name, customer_mobile_number, customer_email, is_default_customer, customer_details,
              currency_code, tax_rate::text AS tax_rate, vat_rate::text AS vat_rate,
              payment_status, payment_type_code,
@@ -1071,7 +1071,7 @@ function moneyHeaderFields(money: EditMoneyColumns | null, request: ApplyRequest
     speed_premium_amount: money.speedPremiumAmount,
     // D6: the header follows the fastest line, also after a line-only speed change.
     service_speed: money.serviceSpeed,
-    ...(money.readyBy && !readyBySet ? { ready_by: money.readyBy } : {}),
+    ...(money.readyBy && !readyBySet ? { ready_by_at: money.readyBy } : {}),
   };
 }
 

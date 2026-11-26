@@ -7,6 +7,7 @@ import { useLocale } from '@/lib/hooks/useLocale';
 import type { ReadyOrder } from '@features/orders/model/ready-order-types';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 import { sourceLabel } from '@/lib/db/order-discounts-types';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { CmxBarcode } from '@ui/print';
@@ -84,17 +85,10 @@ export function OrderReceiptPrint({
   const fmt = (n: number) =>
     formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
 
-  const formattedReadyBy = useMemo(() => {
-    if (!order.readyBy) return '';
-    const date = new Date(order.readyBy);
-    return date.toLocaleString(locale === 'ar' ? 'ar' : 'en', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }, [order.readyBy, locale]);
+  const formattedReadyBy = useMemo(
+    () => formatStoredClock(order.readyBy, order.opsZone, locale),
+    [order.readyBy, order.opsZone, locale],
+  );
 
   // Only completed tenders belong on a receipt; a pending or failed attempt is not "paid".
   const receiptPayments = payments.filter((p) => !p.payment_status || p.payment_status === 'COMPLETED');

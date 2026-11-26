@@ -19,6 +19,9 @@ const mockGiftById = jest.fn();
 
 jest.mock('server-only', () => ({}));
 jest.mock('@/lib/db/prisma', () => ({ prisma: {} }));
+jest.mock('@/lib/utils/operational-zone.server', () => ({
+  readDatabaseInstant: async () => new Date(),
+}));
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn().mockResolvedValue({}) }));
 jest.mock('@/lib/services/tenant-settings.service', () => ({
   createTenantSettingsService: () => ({ getCurrencyConfig: async () => ({ currencyCode: 'OMR', decimalPlaces: 3 }) }),

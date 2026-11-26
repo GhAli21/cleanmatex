@@ -5,7 +5,8 @@ import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { businessDateForTimezone } from '@/lib/utils/business-date';
+import { readDatabaseInstant, resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import { toMoneyString } from '@/lib/utils/money';
 import { getCashControlSettings } from '@/lib/services/cash-control-settings.service';
 import { sumLedgerWindow } from '@/lib/services/cash-drawer-ledger/cash-drawer-ledger.repository';
@@ -409,17 +410,12 @@ export async function resolveBranchBusinessTimezone(
   tenantId: string,
   branchId: string
 ): Promise<string> {
-  const rows = await db.$queryRaw<Array<{ timezone: string | null }>>(Prisma.sql`
-    SELECT COALESCE(b.timezone_code, t.timezone) AS timezone
-    FROM public.org_tenants_mst t
-    LEFT JOIN public.org_branches_mst b
-      ON b.tenant_org_id = t.id
-     AND b.id = ${branchId}::uuid
-    WHERE t.id = ${tenantId}::uuid
-    LIMIT 1
-  `);
-  const timezone = rows[0]?.timezone ?? null;
-  if (!isValidTimeZone(timezone)) {
+  const timezone = await resolveOperationalTimeZoneOn(db, {
+    tenantOrgId: tenantId,
+    operation: 'pos_session',
+    branchId,
+  });
+  if (!timezone) {
     throw new PosSessionError(
       POS_SESSION_ROLLOVER_ERROR.TENANT_TIMEZONE_NOT_CONFIGURED,
       'No valid timezone is configured for this branch or organization. Set one before opening a POS session.',
@@ -1207,20 +1203,21 @@ async function createOpenSessionTx(
     await assertUserExists(tx, input.tenantId, input.userId);
   }
 
+  const openedAt = await readDatabaseInstant(tx);
   const businessTimezone = await resolveBranchBusinessTimezone(tx, input.tenantId, input.branchId);
-  const businessDate = businessDateForTimezone(businessTimezone);
+  const businessDate = businessDateForTimezone(businessTimezone, openedAt);
   const sessionNo = sessionNoForDate(businessDate);
 
   const rows = await tx.$queryRaw<PosSessionRow[]>(Prisma.sql`
     INSERT INTO public.org_pos_sessions_mst (
       tenant_org_id, branch_id, user_id, terminal_id,
       session_no, business_date, business_timezone, status,
-      opened_by, created_by, metadata
+      opened_at, opened_by, created_by, metadata
     )
     VALUES (
       ${input.tenantId}::uuid, ${input.branchId}::uuid, ${input.userId}::uuid, ${input.terminalId ?? null}::uuid,
       ${sessionNo}, ${businessDate}::date, ${businessTimezone}, ${POS_SESSION_STATUS.OPEN},
-      ${performedBy}::uuid, ${performedBy}, ${JSON.stringify(input.metadata ?? {})}::jsonb
+      ${openedAt}::timestamptz, ${performedBy}::uuid, ${performedBy}, ${JSON.stringify(input.metadata ?? {})}::jsonb
     )
     RETURNING *
   `);

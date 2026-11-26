@@ -15,6 +15,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import type { InitiateRefundParams } from '@/lib/services/order-refund.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { resolveOperationalTimeZonesForBranches } from '@/lib/utils/operational-zone.server';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -55,11 +56,18 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
       ? await withTenantContext(auth.tenantId, () =>
           prisma.org_orders_mst.findMany({
             where: { id: { in: orderIds }, tenant_org_id: auth.tenantId },
-            select: { id: true, order_no: true },
+            select: { id: true, order_no: true, branch_id: true },
           })
         )
       : [];
     const orderNoMap = new Map(orders.map((o) => [o.id, o.order_no]));
+    const orderBranchMap = new Map(orders.map((o) => [o.id, o.branch_id]));
+    const zones = await resolveOperationalTimeZonesForBranches(
+      prisma,
+      auth.tenantId,
+      'invoice',
+      orders.flatMap((order) => (order.branch_id ? [order.branch_id] : [])),
+    );
 
     /** Serialize Decimal fields to plain numbers for RSC/client boundary */
     const serialized = items.map((r) => ({
@@ -67,6 +75,11 @@ export async function getAllRefunds(page = 1, pageSize = 20) {
       refund_no:          r.refund_no,
       order_id:           r.order_id,
       order_no:           orderNoMap.get(r.order_id) ?? null,
+      ops_zone:           (() => {
+        const branchId = orderBranchMap.get(r.order_id);
+        if (!branchId) return zones.organization;
+        return zones.byBranch.get(branchId) ?? zones.organization;
+      })(),
       refund_amount:      toNumber(r.refund_amount),
       currency_code:      r.currency_code,
       reason_code:        r.reason_code,

@@ -16,6 +16,7 @@ import {
 } from '@features/cash-drawers/api/cash-drawer-variance-report-api'
 import { CashDrawerVarianceByCashierRprt } from '@features/cash-drawers/ui/cash-drawer-variance-by-cashier-rprt'
 import { useCashDrawerDateFormatter } from '@features/cash-drawers/ui/cash-drawer-ui-parts'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
 import { RequireAnyPermission } from '@features/auth/ui/RequirePermission'
 import { REPORTS_REPORTS_CASH_VARIANCE_PRINT_ACCESS } from '@features/reports/access/reports-access'
 
@@ -34,11 +35,12 @@ function CashVarianceReportPrintContent() {
   const searchParams = useSearchParams()
   const t = useTranslations('cashVarianceReport')
   const tCommon = useTranslations('common')
-  const fmtDateTime = useCashDrawerDateFormatter()
 
   const dateFrom = searchParams.get('dateFrom') ?? ''
   const dateTo = searchParams.get('dateTo') ?? ''
   const branchId = searchParams.get('branchId') ?? undefined
+  const { zoneFor } = useOperationalZones('pos_session', [branchId])
+  const fmtDateTime = useCashDrawerDateFormatter(zoneFor(branchId))
   const valid = DATE_ONLY.test(dateFrom) && DATE_ONLY.test(dateTo) && dateFrom <= dateTo
 
   const branchesQuery = useQuery({

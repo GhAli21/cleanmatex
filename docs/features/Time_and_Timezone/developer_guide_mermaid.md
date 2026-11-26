@@ -33,6 +33,8 @@ flowchart TD
   pull --> tests[Lockout, quiet hours, Ready By, midnight business date]
 ```
 
+Ready By finished this path in `0833`. `ready_by_at` is the promised instant. `ready_at` is the actual instant. Both are `timestamptz`.
+
 ## Request path for an operational screen
 
 ```mermaid

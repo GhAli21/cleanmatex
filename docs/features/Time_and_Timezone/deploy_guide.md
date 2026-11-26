@@ -28,7 +28,7 @@ New instant columns are `timestamptz`, so they store UTC regardless of session `
 
 ## Rollback
 
-Prefer a forward migration that restores a column only if the conversion was proven wrong. Do not edit the applied file. A dropped legacy column (`ready_by`) is not part of the first release, so the first release can keep reading the twin if the new column is wrong.
+Prefer a forward migration that restores a column only if the conversion was proven wrong. Do not edit the applied file. `0833` dropped `ready_by` and `ready_by_override`. A restore is a new migration. Readers use `ready_by_at`.
 
 ## HQ
 

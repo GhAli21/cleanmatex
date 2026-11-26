@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 import {
   mapOrderFinancialSummaryView,
   mapOrderTaxDocumentChain,
@@ -97,6 +98,8 @@ interface OrderDetailClientProps {
   locale: 'en' | 'ar';
   returnUrl?: string;
   returnLabel?: string;
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  opsZone?: string | null;
 }
 
 /**
@@ -138,6 +141,7 @@ export function OrderDetailClient({
   locale,
   returnUrl = '/dashboard/orders',
   returnLabel,
+  opsZone = null,
 }: OrderDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -435,6 +439,8 @@ export function OrderDetailClient({
           vouchers={vouchers}
           orderId={String(order.id)}
           orderBasePath={`/dashboard/orders/${order.id}`}
+          opsZone={opsZone}
+          locale={locale}
           translations={{
             emptyVouchers: t.emptyVouchers ?? tFull('emptyVouchers'),
             viewPayments: t.viewPayments ?? tFull('viewPayments'),
@@ -686,7 +692,7 @@ export function OrderDetailClient({
               {order.received_at && (
                 <p className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
-                  {new Date(String(order.received_at)).toLocaleString(moneyLocale === 'ar' ? 'ar' : 'en')}
+                  {formatStoredClock(String(order.received_at), opsZone, locale) || '—'}
                 </p>
               )}
             </div>

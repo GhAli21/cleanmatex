@@ -22,6 +22,7 @@ import {
 import { CashTransitSendDialog } from '@features/cash-drawers/ui/cash-transit-send-dialog'
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -97,6 +98,7 @@ export function CashTransitScreen() {
   }
 
   const rows = listQuery.data?.rows ?? []
+  const { zoneFor } = useOperationalZones('pos_session', rows.map((row) => row.branchId))
 
   return (
     <div className="space-y-6 p-6">
@@ -160,7 +162,7 @@ export function CashTransitScreen() {
               render: (r: TransitEntry) => (
                 <div>
                   <div>{r.sentByName ?? '—'}</div>
-                  <div className="text-xs text-muted-foreground">{fmtDateTime(r.sentAt)}</div>
+                  <div className="text-xs text-muted-foreground">{fmtDateTime(r.sentAt, zoneFor(r.branchId))}</div>
                 </div>
               ),
             },
@@ -180,7 +182,7 @@ export function CashTransitScreen() {
                 ) : (
                   <div>
                     <div>
-                      {r.settledByName ?? '—'} · {fmtDateTime(r.settledAt)}
+                      {r.settledByName ?? '—'} · {fmtDateTime(r.settledAt, zoneFor(r.branchId))}
                     </div>
                     {r.cancelReason ? <div className="text-xs italic">{r.cancelReason}</div> : null}
                   </div>

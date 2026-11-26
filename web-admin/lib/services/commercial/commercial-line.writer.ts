@@ -187,7 +187,7 @@ export function orderSnapshotColumns(
     commercial_calc_version: result.calcVersion,
     service_speed: headerServiceSpeed(prices, facts, orderSpeed),
     speed_premium_amount: money(result.totals.speedPremiumTotal),
-    ready_by: result.orderReadyBy,
+    ready_by_at: result.orderReadyBy,
   };
 }
 

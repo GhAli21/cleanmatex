@@ -25,7 +25,8 @@ import { CmxButton } from '@ui/primitives'
 
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card'
 
-import { CmxStatusBadge } from '@ui/feedback';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { CmxStatusBadge, CmxSummaryMessage } from '@ui/feedback';
 const HUB_DRAWER_PAGE_SIZE = 5
 const HUB_SESSION_PAGE_SIZE = 5
 
@@ -58,7 +59,7 @@ export function CashDrawerHubScreen() {
   const requestedDrawerId = searchParams.get('drawerId')
 
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const tPos = useTranslations('posSessions')
   const statusText = useCashDrawerStatusText()
 
   const drawersQuery = useQuery({
@@ -76,6 +77,10 @@ export function CashDrawerHubScreen() {
 
     return rows.find((row) => row.id === requestedDrawerId) ?? rows[0]
   }, [drawersQuery.data?.items, requestedDrawerId])
+
+  const { zoneFor, isPending: zonePending } = useOperationalZones('pos_session', [selectedDrawer?.branchId])
+  const opsZone = zoneFor(selectedDrawer?.branchId)
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
 
   useEffect(() => {
     if (!drawersQuery.data) return
@@ -355,6 +360,9 @@ export function CashDrawerHubScreen() {
           {t('description')}
         </p>
       </div>
+      {selectedDrawer && !zonePending && !opsZone ? (
+        <CmxSummaryMessage type="warning" title={tPos('errors.timezoneNotConfigured')} />
+      ) : null}
 
       <CmxCard>
         <CmxCardHeader className="gap-2">

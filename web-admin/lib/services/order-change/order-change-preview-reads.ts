@@ -138,7 +138,7 @@ export async function loadOrderChangePreviewFacts(input: {
         where: { id: input.context.orderId, tenant_org_id: tenantId },
         select: {
           status: true, current_status: true, current_stage: true, priority: true, service_speed: true,
-          ready_by: true, total_items: true, internal_notes: true, customer_notes: true, customer_name: true,
+          ready_by_at: true, total_items: true, internal_notes: true, customer_notes: true, customer_name: true,
           customer_mobile_number: true, customer_email: true, is_default_customer: true, customer_details: true,
           currency_code: true, tax_rate: true, vat_rate: true,
           payment_status: true, payment_type_code: true, subtotal_amount: true, items_base_amount: true,
@@ -280,7 +280,7 @@ export async function loadOrderChangePreviewFacts(input: {
           current_stage: settlement.storedOrder.current_stage,
           priority: settlement.storedOrder.priority,
           service_speed: settlement.storedOrder.service_speed,
-          ready_by: auditTime(settlement.storedOrder.ready_by),
+          ready_by: auditTime(settlement.storedOrder.ready_by_at),
           total_items: settlement.storedOrder.total_items,
           internal_notes: settlement.storedOrder.internal_notes,
           customer_notes: settlement.storedOrder.customer_notes,

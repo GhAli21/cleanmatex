@@ -360,7 +360,7 @@ describe('applyOrderChange', () => {
     expect(result.ok).toBe(true);
     expect(committed()).toBe(true);
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ ready_by: null, updated_by: input.actorUserId }),
+      data: expect.objectContaining({ ready_by_at: null, updated_by: input.actorUserId }),
     }));
     const persisted = persistMock.mock.calls[0][1];
     expect(persisted.operations).toEqual([expect.objectContaining({
@@ -728,7 +728,7 @@ describe('applyOrderChange', () => {
     })]);
     // The order takes the line's recounted ready-by (express default 12h) and the header speed premium.
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ service_speed: 'EXPRESS', speed_premium_amount: '0.0000', ready_by: new Date('2026-10-14T20:00:00.000Z') }),
+      data: expect.objectContaining({ service_speed: 'EXPRESS', speed_premium_amount: '0.0000', ready_by_at: new Date('2026-10-14T20:00:00.000Z') }),
     }));
     // P6-01c: no EXPRESS charge is written; every old charge row is voided, and no raw SQL writes money.
     expect(rows.org_order_charges_dtl.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ is_voided: true }) }));

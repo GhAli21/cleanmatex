@@ -6,6 +6,7 @@
  */
 
 import type { OrderItemPiece } from '@/types/order';
+import { parseNotesFollowup } from '@/lib/utils/notes-followup';
 
 /**
  * Database model for order piece (as returned by Supabase)
@@ -37,6 +38,7 @@ export interface OrderPieceDbModel {
   last_step_by: string | null;
   last_step: string | null;
   notes: string | null;
+  notes_followup?: unknown;
   color: string | null;
   brand: string | null;
   has_stain: boolean | null;
@@ -64,6 +66,7 @@ export interface OrderPieceDbModel {
 export function mapOrderPieceFromDb(dbPiece: OrderPieceDbModel): OrderItemPiece {
   return {
     ...dbPiece,
+    notes_followup: parseNotesFollowup(dbPiece.notes_followup),
     last_step_at: dbPiece.last_step_at ? new Date(dbPiece.last_step_at) : null,
     created_at: dbPiece.created_at ? new Date(dbPiece.created_at) : null,
     updated_at: dbPiece.updated_at ? new Date(dbPiece.updated_at) : null,

@@ -21,7 +21,7 @@ Every other layer is a required package, not a later idea. The checklist is [`te
 
 The server receives `tenant_org_id`, the scope id, and the operation kind. It checks that the scope belongs to the tenant. A client-supplied `timeZone` is compared only as a stale-form echo.
 
-The operation code is one of `accept_order`, `ready_by`, `pos_session`, `delivery`, `invoice`, or `ledger`. Each feature documents which scope owns the civil decision: receiving branch, fulfilment branch, the till's branch, the branch of the service location, or the issuing branch of the legal or accounting entity. Those last scopes have no timezone column of their own. `sys_country_cd.default_timezone_code` is not a fallback. A branch-scoped operation then resolves:
+The operation code is one of `accept_order`, `ready_by`, `pos_session`, `delivery`, `invoice`, or `ledger`. The caller passes the branch that owns the action: the receiving branch, the fulfilment branch, the till's branch, the branch on the delivery route or slot, the invoice's `branch_id`, or the journal's `branch_id`. A customer address and an invoice do not store an IANA zone. There is no legal-entity timezone column. `sys_country_cd.default_timezone_code` is not a fallback. The door then resolves:
 
 ```text
 branch timezone_code if valid and active in sys_timezone_cd
@@ -39,7 +39,7 @@ Resolve once per action. A list joins each row's zone in the same query. A day f
 
 ## Read path that is safe before any migration
 
-`org_orders_mst.ready_by` is `@db.Timestamp(6)`. `ready_by_at_new` is `@db.Timestamptz(6)`. Every display, print, notification, and report reads `ready_by_at_new` first. A null twin is an empty Ready By until Phase 2 backfills it. Do not parse `ready_by` as local time.
+`org_orders_mst.ready_by_at` (promised Ready By) and `org_orders_mst.ready_at` (actual marked Ready) are both `@db.Timestamptz(6)` after migration `0833` dropped legacy `ready_by` and `ready_by_override` and renamed `ready_by_at_new` to `ready_by_at`. Every display, print, notification, and report reads `ready_by_at`.
 
 ## Writes that are wrong today
 
@@ -80,6 +80,8 @@ Follow the expand-and-contract steps in the rule. Do not read the naive column a
 4. Backfill in bounded batches with the `USING` clause the sample proved. Keep mixed rows out of the batch.
 5. Move readers, then stop the legacy writer.
 6. Drop the old column only in a later reviewed migration.
+
+Ready By already finished this path. `0833` dropped `ready_by` and `ready_by_override`. Promised Ready By is `ready_by_at`. Actual Ready is `ready_at`. Both are `timestamptz`.
 
 The backfill clause is one of these, and only after step 1:
 

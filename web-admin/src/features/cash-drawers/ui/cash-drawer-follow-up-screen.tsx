@@ -18,6 +18,7 @@ import {
 import { useCSRFToken } from '@lib/hooks/use-csrf-token'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
 import { useCashDrawerErrorMessage } from '@features/cash-drawers/hooks/use-cash-drawer-error-message'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -65,6 +66,8 @@ export function CashDrawerFollowUpScreen() {
     queryFn: () => fetchCashDrawerFollowUp({ page, pageSize: PAGE_SIZE, postCloseStatusCode: statusFilter || undefined }),
     placeholderData: keepPreviousData,
   })
+  const rows = listQuery.data?.rows ?? []
+  const { zoneFor } = useOperationalZones('pos_session', rows.map((row) => row.branchId))
 
   const openEditor = (row: FollowUpSessionEntry) => {
     setEditing(row)
@@ -149,7 +152,7 @@ export function CashDrawerFollowUpScreen() {
             },
             { key: 'drawer', header: t('columns.drawer'), render: (r: FollowUpSessionEntry) => r.drawerName ?? '—' },
             { key: 'branch', header: t('columns.branch'), render: (r: FollowUpSessionEntry) => r.branchName ?? '—' },
-            { key: 'closedAt', header: t('columns.closedAt'), render: (r: FollowUpSessionEntry) => fmtDateTime(r.closedAt) },
+            { key: 'closedAt', header: t('columns.closedAt'), render: (r: FollowUpSessionEntry) => fmtDateTime(r.closedAt, zoneFor(r.branchId)) },
             {
               key: 'amount',
               header: t('columns.amount'),
@@ -190,7 +193,7 @@ export function CashDrawerFollowUpScreen() {
                 ]
               : []),
           ]}
-          data={listQuery.data?.rows ?? []}
+          data={rows}
           loading={listQuery.isLoading}
           currentPage={page}
           pageSize={PAGE_SIZE}

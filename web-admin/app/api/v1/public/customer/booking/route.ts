@@ -989,7 +989,7 @@ export async function POST(request: NextRequest) {
     const duplicateSince = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     const { data: duplicateOrder } = await supabase
       .from('org_orders_mst')
-      .select('id, order_no, ready_by_at_new, ready_by, total_amount, currency_code')
+      .select('id, order_no, ready_by_at, total_amount, currency_code')
       .eq('tenant_org_id', body.tenantId)
       .eq('customer_id', session.customerId)
       .eq('customer_details->>bookingRequestSignature', bookingSignature)
@@ -1010,7 +1010,7 @@ export async function POST(request: NextRequest) {
           data: {
             orderId: duplicateOrder.id,
             orderNo: duplicateOrder.order_no,
-            promisedWindow: duplicateOrder.ready_by_at_new ?? duplicateOrder.ready_by ?? null,
+            promisedWindow: duplicateOrder.ready_by_at ?? null,
             totalAmount: duplicateOrder.total_amount != null ? String(duplicateOrder.total_amount) : null,
             currencyCode: duplicateOrder.currency_code ?? null,
           },
@@ -1121,7 +1121,7 @@ export async function POST(request: NextRequest) {
 
     const { data: createdOrder } = await supabase
       .from('org_orders_mst')
-      .select('ready_by, total_amount')
+      .select('ready_by_at, total_amount')
       .eq('tenant_org_id', body.tenantId)
       .eq('id', creationResult.order.id)
       .maybeSingle();
@@ -1143,7 +1143,7 @@ export async function POST(request: NextRequest) {
           orderId: creationResult.order.id,
           orderNo: creationResult.order.orderNo,
           // The calculator's ready-by (speed and business calendar included); the pickup slot is its own field.
-          promisedWindow: createdOrder?.ready_by ?? body.scheduledAt ?? null,
+          promisedWindow: createdOrder?.ready_by_at ?? null,
           scheduledAt: body.scheduledAt ?? null,
           // What the customer owes, as the calculator priced it.
           totalAmount: createdOrder?.total_amount != null ? String(createdOrder.total_amount) : String(checkout.totals.saleTotal),

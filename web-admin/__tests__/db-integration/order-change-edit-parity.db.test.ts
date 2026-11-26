@@ -221,7 +221,7 @@ describe('Edit on the commercial calculator (local PostgreSQL)', () => {
 
         // ─── Readers ──────────────────────────────────────────────────────
         const header = async () => (await tx.$queryRaw<Array<{ total_amount: string; total_tax_amount: string; ready_by: Date | null; service_speed: string | null }>>`
-          SELECT total_amount::text AS total_amount, total_tax_amount::text AS total_tax_amount, ready_by, service_speed
+          SELECT total_amount::text AS total_amount, total_tax_amount::text AS total_tax_amount, ready_by_at AS ready_by, service_speed
           FROM public.org_orders_mst WHERE tenant_org_id = ${tenantId}::uuid AND id = ${orderId}::uuid`)[0];
         const items = () => tx.$queryRaw<Array<{ id: string; product_id: string | null; quantity: number; service_speed: string | null; total_price: string; line_total_amount: string; ready_by_at: Date | null }>>`
           SELECT id, product_id, quantity, service_speed, total_price::text AS total_price, line_total_amount::text AS line_total_amount, ready_by_at

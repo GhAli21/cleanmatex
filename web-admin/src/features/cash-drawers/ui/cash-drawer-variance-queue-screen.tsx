@@ -19,6 +19,7 @@ import {
   type CashDrawerVarianceDecisionMode,
 } from '@features/cash-drawers/ui/cash-drawer-variance-approval-dialog'
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
 import { CmxStatusBadge } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxButton, CmxSelect } from '@ui/primitives'
@@ -52,6 +53,8 @@ export function CashDrawerVarianceQueueScreen() {
     queryFn: () => fetchVarianceQueue({ page, pageSize: PAGE_SIZE, decision }),
     placeholderData: keepPreviousData,
   })
+  const rows = listQuery.data?.rows ?? []
+  const { zoneFor } = useOperationalZones('pos_session', rows.map((row) => row.branchId))
 
   return (
     <div className="space-y-6 p-6">
@@ -96,7 +99,7 @@ export function CashDrawerVarianceQueueScreen() {
             },
             { key: 'drawer', header: t('columns.drawer'), render: (r: VarianceQueueEntry) => r.drawerName ?? '—' },
             { key: 'branch', header: t('columns.branch'), render: (r: VarianceQueueEntry) => r.branchName ?? '—' },
-            { key: 'closedAt', header: t('columns.closedAt'), render: (r: VarianceQueueEntry) => fmtDateTime(r.closedAt) },
+            { key: 'closedAt', header: t('columns.closedAt'), render: (r: VarianceQueueEntry) => fmtDateTime(r.closedAt, zoneFor(r.branchId)) },
             { key: 'closedBy', header: t('columns.closedBy'), render: (r: VarianceQueueEntry) => r.closedByName ?? '—' },
             {
               key: 'variance',
@@ -135,7 +138,7 @@ export function CashDrawerVarianceQueueScreen() {
               key: 'decidedBy',
               header: t('columns.decidedBy'),
               render: (r: VarianceQueueEntry) =>
-                r.decision === 'PENDING' ? '—' : `${r.decidedByName ?? '—'} · ${fmtDateTime(r.decidedAt)}`,
+                r.decision === 'PENDING' ? '—' : `${r.decidedByName ?? '—'} · ${fmtDateTime(r.decidedAt, zoneFor(r.branchId))}`,
             },
             { key: 'reason', header: t('columns.reason'), render: (r: VarianceQueueEntry) => r.decisionReason ?? '—' },
             {
@@ -160,7 +163,7 @@ export function CashDrawerVarianceQueueScreen() {
                 ),
             },
           ]}
-          data={listQuery.data?.rows ?? []}
+          data={rows}
           loading={listQuery.isLoading}
           currentPage={page}
           pageSize={PAGE_SIZE}

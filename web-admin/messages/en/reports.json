@@ -68,6 +68,7 @@
   },
   "title": "Reports & Analytics",
   "subtitle": "Business intelligence and analytics",
+  "timezoneNotConfigured": "No time zone is set for this organization, so the report dates cannot be chosen. Ask an administrator to set one.",
   "revenueReport": "Revenue Report",
   "ordersReport": "Orders Report",
   "slaReport": "SLA Report",

@@ -9,7 +9,7 @@
 import * as React from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Package, Tag, X } from 'lucide-react';
+import { Check, Package, QrCode, Tag, X } from 'lucide-react';
 import {
   CmxButton,
   CmxCard,
@@ -27,7 +27,16 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { PiecePreferenceReadonlyChips } from '@/src/features/orders/ui/piece-preferences/piece-preference-readonly-chips';
+import { LinkTagDialog } from '@/src/features/scan/ui/link-tag-dialog';
+import type { PieceTagSaved } from '@/src/features/scan/api/scan-api';
+import {
+  NOTES_FOLLOWUP_TARGET_LEVELS,
+  PRC_TRX_SOURCE_SCREENS,
+} from '@/lib/constants/processing-trx';
+import { PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
+import type { PrefsFollowupNote } from '@/lib/utils/notes-followup';
 import type { ItemPiece, ProcessingStep, ProcessingStepConfig } from '@/types/order';
+import { CmxFollowupNotesFeed } from './cmx-followup-notes-feed';
 
 interface ProcessingPieceRowProps {
   piece: ItemPiece;
@@ -49,6 +58,9 @@ interface ProcessingPieceRowProps {
   onConfirmSuccess?: () => void;
   issueOpenCount?: number;
   issueTotalCount?: number;
+  isCommercialLocked?: boolean;
+  onPieceNotesUpdated?: (pieceId: string, notes: PrefsFollowupNote[], trxCode?: string) => void;
+  onTagSaved?: (pieceId: string, saved: PieceTagSaved) => void;
 }
 
 const KNOWN_PIECE_STATUS_KEYS = new Set([
@@ -101,7 +113,15 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow(
     onConfirmSuccess,
     issueOpenCount,
     issueTotalCount,
+    isCommercialLocked = false,
+    onPieceNotesUpdated,
+    onTagSaved,
   } = props;
+
+  const [showLinkTagDialog, setShowLinkTagDialog] = React.useState(false);
+  const canLinkTag = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    piece.id
+  );
 
   const t = useTranslations('processing');
   const tStatus = useTranslations('processing.status');
@@ -355,12 +375,27 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow(
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Label className="mb-1 block text-xs">{t('modal.barcode')}</Label>
-          <CmxInput
-            value={piece.barcode || ''}
-            onChange={(e) => onChange({ barcode: e.target.value })}
-            placeholder={t('modal.barcode')}
-            className="h-9 font-mono text-xs"
-          />
+          <div className="flex items-center gap-1.5">
+            <CmxInput
+              value={piece.barcode || ''}
+              onChange={(e) => onChange({ barcode: e.target.value })}
+              placeholder={t('modal.barcode')}
+              className="h-9 min-w-0 flex-1 font-mono text-xs"
+            />
+            {canLinkTag && (
+              <CmxButton
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowLinkTagDialog(true)}
+                aria-label={t('modal.linkScanTag')}
+                title={t('modal.linkScanTag')}
+                className="h-9 shrink-0 px-2"
+              >
+                <QrCode className="h-4 w-4" aria-hidden />
+              </CmxButton>
+            )}
+          </div>
         </div>
 
         <div>
@@ -403,15 +438,50 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow(
 
       {/* Notes & Bottom Action Strip */}
       <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row sm:items-end">
-        <div className="min-w-0 flex-1">
-          <Label className="mb-1 block text-xs">{t('modal.notes')}</Label>
-          <CmxTextarea
-            value={piece.notes || ''}
-            onChange={(e) => onChange({ notes: e.target.value })}
-            placeholder={t('modal.notes')}
-            className="min-h-[44px] resize-none py-1.5 text-xs"
-            rows={2}
-          />
+        <div className="min-w-0 flex-1 space-y-2">
+          {!isCommercialLocked && (
+            <div>
+              <Label className="mb-1 block text-xs">{t('modal.notes')}</Label>
+              <CmxTextarea
+                value={piece.notes || ''}
+                onChange={(e) => onChange({ notes: e.target.value })}
+                placeholder={t('modal.notes')}
+                className="min-h-[44px] resize-none py-1.5 text-xs"
+                rows={2}
+              />
+            </div>
+          )}
+
+          {orderId && canLinkTag ? (
+            <CmxFollowupNotesFeed
+              orderId={orderId}
+              targetLevel={NOTES_FOLLOWUP_TARGET_LEVELS.PIECE}
+              targetId={piece.id}
+              notes={piece.notes_followup}
+              intakeNote={isCommercialLocked ? piece.notes : undefined}
+              intakeNoteLocked={isCommercialLocked}
+              noteSource={PREFS_SOURCE_STAGE.ORDER_PROCESSING}
+              sourceScreen={PRC_TRX_SOURCE_SCREENS.PROCESSING_MODAL}
+              stagedValue={piece.processingNote ?? ''}
+              onStagedChange={(nextText) => onChange({ processingNote: nextText })}
+              onNotesUpdated={(updatedNotes, trxCode) =>
+                onPieceNotesUpdated?.(piece.id, updatedNotes, trxCode)
+              }
+              title={t('notes.pieceFeedTitle')}
+              compact
+            />
+          ) : (
+            <div>
+              <Label className="mb-1 block text-xs">{t('notes.pieceFloorNoteLabel')}</Label>
+              <CmxTextarea
+                value={piece.processingNote ?? ''}
+                onChange={(e) => onChange({ processingNote: e.target.value })}
+                placeholder={t('notes.stagedPlaceholder')}
+                className="min-h-[44px] resize-none py-1.5 text-xs"
+                rows={2}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-3 pb-1">
@@ -450,6 +520,23 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow(
             ? confirmMutation.error.message
             : tTable('markReadyError')}
         </p>
+      )}
+
+      {canLinkTag && showLinkTagDialog && (
+        <LinkTagDialog
+          open={showLinkTagDialog}
+          onOpenChange={setShowLinkTagDialog}
+          pieceId={piece.id}
+          pieceCode={piece.piece_code}
+          currentTag={piece.barcode ?? null}
+          onSaved={(saved) => {
+            if (onTagSaved) {
+              onTagSaved(piece.id, saved);
+            } else {
+              onChange({ barcode: saved.externalTag ?? null });
+            }
+          }}
+        />
       )}
     </CmxCard>
   );

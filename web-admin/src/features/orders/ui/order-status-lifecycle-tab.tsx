@@ -37,8 +37,7 @@ type StatusFieldKey =
   | 'financial_last_calculated_by'
   | 'received_at'
   | 'prepared_at'
-  | 'ready_by'
-  | 'ready_by_override'
+  | 'ready_by_at'
   | 'ready_at'
   | 'delivered_at'
   | 'cancelled_at'
@@ -167,8 +166,7 @@ const LIFECYCLE_GROUPS: readonly StatusFieldGroup[] = [
     fields: [
       { key: 'received_at', kind: 'date' },
       { key: 'prepared_at', kind: 'date' },
-      { key: 'ready_by', kind: 'date' },
-      { key: 'ready_by_override', kind: 'date' },
+      { key: 'ready_by_at', kind: 'date' },
       { key: 'ready_at', kind: 'date' },
       { key: 'delivered_at', kind: 'date' },
     ],

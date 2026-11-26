@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
 
@@ -13,6 +13,8 @@ interface Props {
   data: ExcessLiabilityReport | null;
   loading: boolean;
   csvHref: string;
+  /** Organization zone. Empty when the catalog zone is missing. */
+  opsZone?: string | null;
 }
 
 /**
@@ -20,8 +22,9 @@ interface Props {
  *
  * @param props report data, loading flag, CSV export href.
  */
-export function ReconciliationExcessLiabilityRprt({ data, loading, csvHref }: Props) {
+export function ReconciliationExcessLiabilityRprt({ data, loading, csvHref, opsZone = null }: Props) {
   const t = useTranslations('reports.reconciliation');
+  const locale = useLocale();
 
   const sourceBadge = (source: string) => {
     const label =
@@ -55,7 +58,7 @@ export function ReconciliationExcessLiabilityRprt({ data, loading, csvHref }: Pr
     {
       key: 'lastActivity',
       header: t('lastActivity'),
-      render: (r: ExcessLiabilityRow) => <span className="text-sm">{fmtDate(r.lastActivityAt)}</span>,
+      render: (r: ExcessLiabilityRow) => <span className="text-sm">{fmtDate(r.lastActivityAt, opsZone, locale)}</span>,
     },
   ];
 

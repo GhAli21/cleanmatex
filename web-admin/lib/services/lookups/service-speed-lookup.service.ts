@@ -12,7 +12,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { SERVICE_SPEEDS } from '@/lib/constants/commercial';
-import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { businessDateForTimezone } from '@/lib/utils/business-date';
+import { readDatabaseInstant, resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server';
+import { prisma } from '@/lib/db/prisma';
 import type { LookupServiceResult, LookupSupabaseClient } from './types';
 import { catalogReadClient } from '@/lib/supabase/catalog-read';
 
@@ -57,7 +59,7 @@ export async function listActiveServiceSpeeds(
 ): Promise<LookupServiceResult<ServiceSpeedLookupRow[]>> {
   try {
     const client = supabase ?? (await createClient());
-    const [speeds, rules, tenant] = await Promise.all([
+    const [speeds, rules] = await Promise.all([
       catalogReadClient(client)
         .from('sys_service_speed_cd')
         .select('code, name, name2, description, description2, display_order, is_default, default_turnaround_unit')
@@ -72,17 +74,16 @@ export async function listActiveServiceSpeeds(
           .eq('is_active', true)
           .eq('rec_status', 1)
         : null,
-      tenantOrgId
-        ? client.from('org_tenants_mst').select('timezone').eq('id', tenantOrgId).maybeSingle()
-        : null,
     ]);
     if (speeds.error) return { success: false, error: speeds.error.message };
     if (rules?.error) return { success: false, error: rules.error.message };
-    if (tenant?.error) return { success: false, error: tenant.error.message };
 
-    const tz = tenant?.data?.timezone;
-    // The rule dates are business dates in the organization's zone (as the order loader reads them).
-    const today = businessDateForTimezone(isValidTimeZone(tz) ? tz : 'UTC');
+    let today = '0000-01-01';
+    if (tenantOrgId) {
+      const zone = await resolveOrganizationTimeZone(tenantOrgId);
+      if (!zone) return { success: false, error: 'TIMEZONE_NOT_CONFIGURED' };
+      today = businessDateForTimezone(zone, await readDatabaseInstant(prisma));
+    }
     // Speed → scope of its rules in force today: one organization-wide rule makes it ALL, anything narrower SOME.
     const scopeOf = new Map<string, OfferedScope>();
     for (const r of rules?.data ?? []) {

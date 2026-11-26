@@ -252,7 +252,7 @@ function buildWhereSql(
     clauses.push(Prisma.sql`NOT (COALESCE(o.has_issue, false) OR COALESCE(o.is_rejected, false))`)
   }
 
-  const dueAt = Prisma.sql`COALESCE(o.ready_by, o.ready_by_at_new)`
+  const dueAt = Prisma.sql`o.ready_by_at`
   const now = new Date()
   const today = dateRangeForToday(now)
   if (input.sla === 'overdue') clauses.push(Prisma.sql`${dueAt} < ${now}`)
@@ -370,9 +370,9 @@ export class WorkboardQueryService {
         case 'age_asc':
           return Prisma.sql`COALESCE(o.last_transition_at, o.received_at, o.created_at) DESC NULLS LAST`
         case 'ready_by_asc':
-          return Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) ASC NULLS LAST`
+          return Prisma.sql`o.ready_by_at ASC NULLS LAST`
         case 'ready_by_desc':
-          return Prisma.sql`COALESCE(o.ready_by_at_new, o.ready_by) DESC NULLS LAST`
+          return Prisma.sql`o.ready_by_at DESC NULLS LAST`
         case 'order_no_asc':
           return Prisma.sql`o.order_no ASC NULLS LAST`
         case 'order_no_desc':
@@ -409,7 +409,7 @@ export class WorkboardQueryService {
               COALESCE(o.customer_mobile_number, c.phone) AS customer_phone,
               COALESCE(b.name, b.branch_name) AS branch_name, o.current_status, o.priority,
               o.has_issue, o.is_rejected, o.received_at, o.last_transition_at,
-              COALESCE(o.ready_by_at_new, o.ready_by) AS ready_by_at, o.state_version,
+              o.ready_by_at, o.state_version,
               o.wf_profile_id::text, profile_row.name AS workflow_profile_name,
               profile_row.name2 AS workflow_profile_name2, o.wf_version_no,
               o.wf_profile_revision, o.wf_profile_version_id::text, o.order_source_code,
@@ -435,7 +435,7 @@ export class WorkboardQueryService {
         ? prisma.$queryRaw<WorkboardMetricRow[]>(Prisma.sql`
             SELECT COUNT(*)::bigint AS total,
               COUNT(*) FILTER (WHERE COALESCE(o.has_issue, false) OR COALESCE(o.is_rejected, false))::bigint AS blocked,
-              COUNT(*) FILTER (WHERE COALESCE(o.ready_by_at_new, o.ready_by) < NOW())::bigint AS overdue
+              COUNT(*) FILTER (WHERE o.ready_by_at < NOW())::bigint AS overdue
             FROM public.org_orders_mst o
             LEFT JOIN public.org_customers_mst c ON c.id = o.customer_id AND c.tenant_org_id = o.tenant_org_id
             LEFT JOIN public.org_asm_tasks_mst task ON task.order_id = o.id

@@ -141,7 +141,13 @@ export default function ReadyPrintPage() {
           setError(json.error || 'Failed to load report');
           return;
         }
-        setReportData({ order: json.order, payments: json.payments ?? [], sortOrder: json.sortOrder ?? 'desc' });
+        setReportData({
+          order: json.order,
+          payments: json.payments ?? [],
+          cashChangeRounding: json.cashChangeRounding,
+          sortOrder: json.sortOrder ?? 'desc',
+          opsZone: json.opsZone ?? null,
+        });
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') return;
         setError(e instanceof Error ? e.message : 'Failed to load report');

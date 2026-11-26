@@ -4,6 +4,7 @@ import enOrders from '../../../messages/en/orders/index.json';
 import enPrepStatuses from '../../../messages/en/orders/prepStatuses.json';
 import enCommon from '../../../messages/en/common.json';
 import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
+import { formatInstant } from '@/lib/utils/operational-time';
 import type { OrderListItem } from '@/types/order';
 
 const mockPush = jest.fn();
@@ -59,7 +60,8 @@ const sampleOrder = {
   total_items: 2,
   total_pieces: 2,
   total: 1.07,
-  ready_by: null,
+  ready_by: new Date('2026-11-20T06:00:00Z'),
+  ops_zone: 'America/New_York',
   is_retail: false,
   physical_intake_status: null,
   order_source: { name: 'POS' },
@@ -74,6 +76,7 @@ test('renders semantic status and prep badges and supports page size change', ()
     />
   );
 
+  expect(screen.getByText(formatInstant(sampleOrder.ready_by as Date, 'America/New_York', 'en'))).toBeInTheDocument();
   expect(screen.getByText('Ready')).toBeInTheDocument();
   expect(screen.getByText('Pending')).toBeInTheDocument();
   expect(screen.getByText('1-10 of 13')).toBeInTheDocument();

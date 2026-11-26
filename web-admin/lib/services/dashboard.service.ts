@@ -271,7 +271,7 @@ export class DashboardService {
         { data: overdueOrders },
         recentOrderIds,
       ] = await Promise.all([
-        buildDeliveredQuery('created_at, delivered_at, ready_by', last30StartStr),
+        buildDeliveredQuery('created_at, delivered_at, ready_by_at', last30StartStr),
         buildDeliveredQuery(
           'created_at, delivered_at',
           fourteenDaysAgo.toISOString(),
@@ -305,16 +305,16 @@ export class DashboardService {
               .eq('tenant_org_id', tenantId)
               .eq('branch_id', branchId)
               .not('status', 'in', '("DELIVERED","CLOSED","CANCELLED")')
-              .not('ready_by', 'is', null)
-              .lt('ready_by', new Date().toISOString())
+              .not('ready_by_at', 'is', null)
+              .lt('ready_by_at', new Date().toISOString())
               .limit(25)
           : this.supabase
               .from('org_orders_mst')
               .select('id, order_no')
               .eq('tenant_org_id', tenantId)
               .not('status', 'in', '("DELIVERED","CLOSED","CANCELLED")')
-              .not('ready_by', 'is', null)
-              .lt('ready_by', new Date().toISOString())
+              .not('ready_by_at', 'is', null)
+              .lt('ready_by_at', new Date().toISOString())
               .limit(25),
         recentOrderIdsPromise,
       ])
@@ -322,7 +322,7 @@ export class DashboardService {
       const deliveredLast30List = (deliveredLast30 || []) as unknown as Array<{
         created_at: string
         delivered_at: string
-        ready_by: string | null
+        ready_by_at: string | null
       }>
 
       const avgTat = (rows: Array<{ created_at: string; delivered_at: string }>): number => {
@@ -341,11 +341,11 @@ export class DashboardService {
       }
 
       const onTimePct = (rows: typeof deliveredLast30List): number => {
-        const eligible = rows.filter((r) => r.ready_by && r.delivered_at)
+        const eligible = rows.filter((r) => r.ready_by_at && r.delivered_at)
         if (!eligible.length) return 0
         let ok = 0
         for (const r of eligible) {
-          if (new Date(r.delivered_at!).getTime() <= new Date(r.ready_by!).getTime()) ok++
+          if (new Date(r.delivered_at!).getTime() <= new Date(r.ready_by_at!).getTime()) ok++
         }
         return (ok / eligible.length) * 100
       }

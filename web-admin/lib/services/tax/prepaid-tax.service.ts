@@ -22,7 +22,8 @@ import { CREDIT_APPLICATION_STATUSES, CREDIT_APPLICATION_TYPES, TAX_DOCUMENT_STA
 import { DOC_SEQ_TYPES } from '@/lib/constants/doc-seq';
 import { GIFT_CARD_TXN_TYPE, GIFT_CARD_VOUCHER_TAX_MODES } from '@/lib/constants/gift-card';
 import { TAX_CONFIG_STATUS } from '@/lib/constants/tax';
-import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { businessDateForTimezone } from '@/lib/utils/business-date';
+import { OperationalZoneMissingError, readDatabaseInstant, resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import { isoDate } from '@/lib/tax/determine';
 import { taxPartyScope } from '@/lib/tax/order-line-tax';
 import { takeFromPrepaid } from '@/lib/tax/prepaid-pool';
@@ -41,12 +42,13 @@ const INVOICE_DOC_TYPES = [DOC_SEQ_TYPES.TAX_INVOICE, DOC_SEQ_TYPES.TAX_SIMPLIFI
 const money = (m: Money) => m.toFixed(4);
 
 async function taxDateOf(tx: Tx, tenantOrgId: string, branchId: string | null, at: Date): Promise<string> {
-  const [branch, tenant] = await Promise.all([
-    branchId ? tx.org_branches_mst.findFirst({ where: { id: branchId, tenant_org_id: tenantOrgId }, select: { timezone_code: true } }) : null,
-    tx.org_tenants_mst.findFirst({ where: { id: tenantOrgId }, select: { timezone: true } }),
-  ]);
-  const timezone = [branch?.timezone_code, tenant?.timezone].find((tz) => isValidTimeZone(tz));
-  return timezone ? businessDateForTimezone(timezone, at) : at.toISOString().slice(0, 10);
+  const zone = await resolveOperationalTimeZoneOn(tx, {
+    tenantOrgId,
+    operation: 'invoice',
+    branchId,
+  });
+  if (!zone) throw new OperationalZoneMissingError();
+  return businessDateForTimezone(zone, at);
 }
 
 type TaxRow = Prisma.org_tax_lines_trUncheckedCreateInput;
@@ -383,7 +385,7 @@ export async function recordAdvanceReceiptTaxTx(tx: Tx, input: {
   await recordPrepaidTaxTx(tx, {
     tenantOrgId: input.tenantOrgId, kind: 'ADVANCE', docTypeCode: voucher.doc_type_code, docId: input.voucherId,
     docNo: voucher.voucher_no, lineId: input.voucherLineId, customerId: input.customerId, branchId: voucher.branch_id,
-    gross: input.amount, currencyCode: input.currencyCode, userId: input.userId, at: new Date(),
+    gross: input.amount, currencyCode: input.currencyCode, userId: input.userId, at: await readDatabaseInstant(tx),
   });
 }
 
@@ -409,6 +411,6 @@ export async function recordGiftCardSaleTaxTx(tx: Tx, input: {
   await recordPrepaidTaxTx(tx, {
     tenantOrgId: input.tenantOrgId, kind: 'GIFT_CARD_SPV', docTypeCode: DOC_SEQ_TYPES.GIFT_CARD, docId: input.giftCardId,
     docNo: null, lineId: null, customerId: card.purchased_by_cust_id, branchId: input.branchId,
-    gross: input.amount, currencyCode: card.currency_code, userId: input.userId, at: new Date(),
+    gross: input.amount, currencyCode: card.currency_code, userId: input.userId, at: await readDatabaseInstant(tx),
   });
 }

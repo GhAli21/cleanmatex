@@ -22983,9 +22983,7 @@ export type Database = {
           quick_drop_quantity: number | null
           rack_location: string | null
           ready_at: string | null
-          ready_by: string | null
-          ready_by_at_new: string | null
-          ready_by_override: string | null
+          ready_by_at: string | null
           real_payment_refunded_amount: number
           rec_notes: string | null
           rec_order: number | null
@@ -23170,9 +23168,7 @@ export type Database = {
           quick_drop_quantity?: number | null
           rack_location?: string | null
           ready_at?: string | null
-          ready_by?: string | null
-          ready_by_at_new?: string | null
-          ready_by_override?: string | null
+          ready_by_at?: string | null
           real_payment_refunded_amount?: number
           rec_notes?: string | null
           rec_order?: number | null
@@ -23357,9 +23353,7 @@ export type Database = {
           quick_drop_quantity?: number | null
           rack_location?: string | null
           ready_at?: string | null
-          ready_by?: string | null
-          ready_by_at_new?: string | null
-          ready_by_override?: string | null
+          ready_by_at?: string | null
           real_payment_refunded_amount?: number
           rec_notes?: string | null
           rec_order?: number | null
@@ -53491,6 +53485,10 @@ export type Database = {
       fn_ops_worker_job_sync: {
         Args: { p_job_code: string; p_worker: string }
         Returns: Json
+      }
+      fn_ops_zone: {
+        Args: { p_operation: string; p_scope: string; p_tenant: string }
+        Returns: string
       }
       fn_ord_next_sub_order_no: {
         Args: { p_parent_order_id: string; p_tenant: string }

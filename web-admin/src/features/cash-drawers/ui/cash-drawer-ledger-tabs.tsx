@@ -64,11 +64,11 @@ function TabError({ message, onRetry, retryLabel }: { message: string; onRetry: 
  * @param props component props
  * @param props.drawerId drawer whose ledger is shown
  */
-export function CashDrawerLedgerTab({ drawerId }: { drawerId: string }) {
+export function CashDrawerLedgerTab({ drawerId, opsZone }: { drawerId: string; opsZone: string | null }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
   const { page, setPage, query } = usePagedTab<DrawerLedgerEntry>('ledger', drawerId, fetchDrawerLedger)
 
   if (query.isError) {
@@ -121,12 +121,12 @@ export function CashDrawerLedgerTab({ drawerId }: { drawerId: string }) {
  * @param props component props
  * @param props.drawerId drawer whose custody transactions are shown
  */
-export function CashDrawerTransactionsTab({ drawerId }: { drawerId: string }) {
+export function CashDrawerTransactionsTab({ drawerId, opsZone }: { drawerId: string; opsZone: string | null }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
   const catalogLabels = useCashDrawerCatalogLabels()
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
   const { page, setPage, query } = usePagedTab<DrawerTrxEntry>('trx', drawerId, fetchDrawerTransactions)
 
   if (query.isError) {
@@ -197,17 +197,19 @@ export function CashDrawerCountsTab({
   currencyCode,
   currentSessionId,
   canCount,
+  opsZone,
 }: {
   drawerId: string
   currencyCode: string
   currentSessionId: string | null
   canCount: boolean
+  opsZone: string | null
 }) {
   const t = useTranslations('billing.cashDrawers')
   const tCommon = useTranslations('common')
   const errorMessage = useCashDrawerErrorMessage()
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
   const queryClient = useQueryClient()
   const { token: csrfToken } = useCSRFToken()
   const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()

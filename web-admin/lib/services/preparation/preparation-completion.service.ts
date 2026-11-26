@@ -8,6 +8,7 @@ import {
   hashPayload,
 } from '@/lib/utils/idempotency';
 import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
+import { readDatabaseInstant, resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import {
   executeAction,
   type ExecuteActionResult,
@@ -23,7 +24,8 @@ export type PreparationCompletionErrorCode =
   | 'ORDER_NOT_FOUND'
   | 'PREPARATION_NOT_ACTIVE'
   | 'IDEMPOTENCY_CONFLICT'
-  | 'IDEMPOTENCY_IN_FLIGHT';
+  | 'IDEMPOTENCY_IN_FLIGHT'
+  | 'TIMEZONE_NOT_CONFIGURED';
 
 /**
  * Keeps HTTP adapters independent from database/engine implementation details.
@@ -74,6 +76,7 @@ type LockedPreparationOrder = {
   received_at: Date | null;
   priority: string | null;
   service_category_code: string | null;
+  branch_id: string | null;
 };
 
 function normalisePreparationStatus(value: string | null): string {
@@ -107,7 +110,7 @@ async function lockPreparationOrder(
   orderId: string,
 ): Promise<LockedPreparationOrder> {
   const rows = await tx.$queryRaw<LockedPreparationOrder[]>`
-    SELECT id, preparation_status, received_at, priority, service_category_code
+    SELECT id, preparation_status, received_at, priority, service_category_code, branch_id
     FROM public.org_orders_mst
     WHERE id = ${orderId}::uuid
       AND tenant_org_id = ${tenantId}::uuid
@@ -122,10 +125,24 @@ async function lockPreparationOrder(
 
 async function resolveReadyBy(
   tx: PrismaTransactionClient,
+  tenantId: string,
   order: LockedPreparationOrder,
   override: Date | undefined,
 ): Promise<Date> {
   if (override) return override;
+
+  const zone = await resolveOperationalTimeZoneOn(tx, {
+    tenantOrgId: tenantId,
+    operation: 'ready_by',
+    branchId: order.branch_id,
+  });
+  if (!zone) {
+    throw new PreparationCompletionError(
+      'TIMEZONE_NOT_CONFIGURED',
+      'No time zone is set for this branch, so a ready time cannot be calculated.',
+      422,
+    );
+  }
 
   const categories = await tx.$queryRaw<Array<{ turnaround_hh: number | string | null }>>`
     SELECT turnaround_hh
@@ -134,11 +151,13 @@ async function resolveReadyBy(
     LIMIT 1
   `;
   const turnaroundHours = Number(categories[0]?.turnaround_hh ?? 48);
+  const receivedAt = order.received_at ?? await readDatabaseInstant(tx);
   return calculateReadyBy({
-    receivedAt: order.received_at ?? new Date(),
+    receivedAt,
     turnaroundHours,
     priority: normalisePriority(order.priority),
     businessHours: DEFAULT_BUSINESS_HOURS,
+    timeZone: zone,
   }).readyBy;
 }
 
@@ -202,13 +221,12 @@ export async function completePreparationCommand(
         );
       }
 
-      const readyBy = await resolveReadyBy(tx, order, params.readyByOverride);
+      const readyBy = await resolveReadyBy(tx, params.tenantId, order, params.readyByOverride);
       const now = new Date();
       const stageUpdate = await tx.org_orders_mst.updateMany({
         where: { id: params.orderId, tenant_org_id: params.tenantId },
         data: {
-          ready_by: readyBy,
-          ready_by_override: params.readyByOverride ?? null,
+          ready_by_at: readyBy,
           ...(params.internalNotes !== undefined && { internal_notes: params.internalNotes.trim() }),
           updated_at: now,
           updated_by: params.actorUserId,

@@ -11,6 +11,13 @@ import { ProcessingStepsService } from './processing-steps-service';
 import { WORKFLOW_ACTIONS } from '@/lib/constants/workflow-actions';
 import { listAvailableActions } from '@/lib/services/workflow/workflow-engine.service';
 import { executeWorkflowStageCommand } from '@/lib/services/workflow/workflow-stage-command.service';
+import { ProcessingTrxService } from '@/lib/services/processing-trx-service';
+import {
+  PRC_TRX_DTL_TYPES,
+  PRC_TRX_SOURCE_SCREENS,
+  PRC_TRX_TARGET_LEVELS,
+  PRC_TRX_TYPES,
+} from '@/lib/constants/processing-trx';
 
 /**
  *
@@ -189,6 +196,34 @@ export class ItemProcessingService {
         },
       });
 
+      await ProcessingTrxService.recordTransaction({
+        tenantId,
+        orderId,
+        branchId: (orderItem.branch_id as string | null) ?? undefined,
+        transType: PRC_TRX_TYPES.STEP_RECORD,
+        trxDescription: `Recorded processing step ${stepCode}`,
+        sourceScreen: PRC_TRX_SOURCE_SCREENS.PROCESSING_DETAIL,
+        actorUserId: userId,
+        actorName: userName,
+        notes: notes ?? null,
+        lines: [
+          {
+            targetLevel: PRC_TRX_TARGET_LEVELS.ITEM,
+            orderItemId,
+            branchId: (orderItem.branch_id as string | null) ?? null,
+            transDtlType: PRC_TRX_DTL_TYPES.STEP_CHANGE,
+            transDtlDescription: `Item step ${stepCode} (seq ${stepSeq})`,
+            stepCode,
+            toValue: stepCode,
+            afterValues: {
+              step_code: stepCode,
+              step_seq: stepSeq,
+            },
+            notes: notes ?? null,
+          },
+        ],
+      });
+
       return {
         success: true,
       };
@@ -230,6 +265,26 @@ export class ItemProcessingService {
           error: 'Failed to mark item as complete',
         };
       }
+
+      await ProcessingTrxService.recordTransaction({
+        tenantId,
+        orderId,
+        transType: PRC_TRX_TYPES.ITEM_COMPLETE,
+        trxDescription: 'Item marked ready',
+        sourceScreen: PRC_TRX_SOURCE_SCREENS.PROCESSING_DETAIL,
+        actorUserId: userId,
+        actorName: userName,
+        lines: [
+          {
+            targetLevel: PRC_TRX_TARGET_LEVELS.ITEM,
+            orderItemId,
+            transDtlType: PRC_TRX_DTL_TYPES.ITEM_COMPLETE,
+            transDtlDescription: 'Item status updated to ready',
+            toValue: 'ready',
+            afterValues: { item_status: 'ready', item_stage: 'ready' },
+          },
+        ],
+      });
 
       // Check if all items are ready
       const { data: order, error: orderError } = await supabase

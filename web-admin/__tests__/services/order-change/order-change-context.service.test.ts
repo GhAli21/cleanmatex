@@ -49,7 +49,7 @@ function seedEligibleOrder(overrides: Record<string, unknown> = {}) {
     edit_access_status: 'OPEN', edit_block_reason_code: null, edit_block_reason_text: null, edit_block_until: null,
     current_status: 'processing', wf_profile_id: ITEM_A, wf_profile_version_id: ITEM_B,
     customer_id: null, customer_name: 'Customer', customer_mobile_number: null, customer_email: null,
-    branch_id: null, currency_code: 'OMR', priority: 'normal', service_speed: 'STANDARD', ready_by: null,
+    branch_id: null, currency_code: 'OMR', priority: 'normal', service_speed: 'STANDARD', ready_by_at: null,
     internal_notes: null, customer_notes: null, ...overrides,
   };
   mockFindFirst.mockResolvedValue(order);

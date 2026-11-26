@@ -12,7 +12,7 @@ import { useOrderSubmission, type PaymentServerGuard } from '../hooks/use-order-
 import { AmountMismatchDialog } from './amount-mismatch-dialog';
 import { PriceChangedDialog } from './price-changed-dialog';
 import { useNewOrderCartQuote } from '../hooks/use-new-order-cart-quote';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -31,9 +31,16 @@ import { cmxMessage } from '@ui/feedback';
 import { CustomItemModal } from './components/custom-item-modal';
 import { CmxCameraCaptureDialog } from '@ui/overlays';
 import { ReadyDatePickerModal } from './ready-date-picker-modal';
+import { getReadyByZone } from '@/app/actions/orders/ready-by-zone';
+import { civilDateFromPickerDate, civilDateInZone, civilTimeInZone, instantFromCivilDateTime } from '@/lib/utils/operational-time';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { NEW_ORDER_ACCESS } from '@features/orders/access/orders-access';
+
+function localDateFromCivil(civilDate: string): Date {
+  const [year, month, day] = civilDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
 
 type PaymentModalComponentProps = {
   open: boolean;
@@ -325,13 +332,23 @@ export function NewOrderModals() {
   );
 
   // Handle ready-by date change
+  const readyByZone = useQuery({
+    queryKey: ['ready-by-zone', state.state.branchId],
+    queryFn: () => getReadyByZone(state.state.branchId),
+  });
+  const opsZone = readyByZone.data ?? null;
+
   const handleReadyByChange = useCallback(
     (date: Date, time: string) => {
-      const dateTime = new Date(`${date.toDateString()} ${time}`);
-      state.setReadyByAt(dateTime.toISOString());
+      if (!opsZone) {
+        cmxMessage.error(t('schedule.timezoneNotConfigured'));
+        return;
+      }
+      const instant = instantFromCivilDateTime(civilDateFromPickerDate(date), time, opsZone);
+      state.setReadyByAt(instant.toISOString());
       state.closeModal('readyBy');
     },
-    [state]
+    [state, opsZone, t]
   );
 
   // Handle price override save
@@ -500,11 +517,22 @@ export function NewOrderModals() {
 
       {/* Ready By Date Picker Modal */}
       <ReadyDatePickerModal
+        key={opsZone ?? 'ready-by-zone'}
         open={state.state.modals.readyBy}
         onClose={() => state.closeModal('readyBy')}
         onApply={handleReadyByChange}
-        initialDate={state.state.readyByAt ? new Date(state.state.readyByAt) : undefined}
-        initialTime={state.state.readyByAt ? new Date(state.state.readyByAt).toTimeString().slice(0, 5) : undefined}
+        opsZone={opsZone}
+        zonePending={readyByZone.isPending}
+        initialDate={
+          state.state.readyByAt && opsZone
+            ? localDateFromCivil(civilDateInZone(state.state.readyByAt, opsZone))
+            : undefined
+        }
+        initialTime={
+          state.state.readyByAt && opsZone
+            ? civilTimeInZone(state.state.readyByAt, opsZone)
+            : undefined
+        }
         allowNow={isRetailOnlyOrder}
       />
 

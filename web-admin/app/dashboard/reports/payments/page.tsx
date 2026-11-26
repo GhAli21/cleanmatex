@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { CreditCard, DollarSign, TrendingUp, RefreshCw } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+import { useReportRange } from '@features/reports/ui/reports-clock';
 import { fetchPaymentsReport } from '@/app/actions/reports/report-actions';
 import type { PaymentsReportData } from '@/lib/types/report-types';
 import ReportFiltersBar from '@features/reports/ui/report-filters-bar-rprt';
@@ -24,6 +24,9 @@ const BASE_PATH = '/dashboard/reports/payments';
 export default function PaymentsReportPage() {
   const t = useTranslations('reports');
   const searchParams = useSearchParams();
+  const { query } = useReportRange();
+  const rangeStart = query?.start ?? '';
+  const rangeEnd = query?.end ?? '';
   const [data, setData] = useState<PaymentsReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,14 +35,17 @@ export default function PaymentsReportPage() {
     setLoading(true);
     setError(null);
 
-    const startDate = searchParams.get('startDate') || format(subDays(new Date(), 30), 'yyyy-MM-dd');
-    const endDate = searchParams.get('endDate') || format(new Date(), 'yyyy-MM-dd');
+    if (!rangeStart || !rangeEnd) {
+      setError(t('timezoneNotConfigured'));
+      setLoading(false);
+      return;
+    }
     const status = searchParams.get('status') ? searchParams.get('status')!.split(',') : undefined;
     const page = parseInt(searchParams.get('page') || '1', 10);
 
     const result = await fetchPaymentsReport({
-      startDate: `${startDate}T00:00:00.000Z`,
-      endDate: `${endDate}T23:59:59.999Z`,
+      startDate: rangeStart,
+      endDate: rangeEnd,
       status,
       page,
       limit: 20,
@@ -51,7 +57,7 @@ export default function PaymentsReportPage() {
       setError(result.error || 'Failed to load report data');
     }
     setLoading(false);
-  }, [searchParams]);
+  }, [searchParams, rangeStart, rangeEnd, t]);
 
   useEffect(() => {
     loadData();

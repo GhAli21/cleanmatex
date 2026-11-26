@@ -6,6 +6,8 @@
  * These types are used across the application for type safety.
  */
 
+import type { PrefsFollowupNote } from '@/lib/utils/notes-followup';
+
 // ==================================================================
 // ENUMS & CONSTANTS
 // ==================================================================
@@ -83,7 +85,7 @@ export interface Order {
   is_rejected?: boolean;
   rejected_from_stage?: string;
   issue_id?: string;
-  ready_by_at_new?: Date | null;
+  ready_by_at?: Date | null;
   has_split?: boolean;
   has_issue?: boolean;
   last_transition_at?: Date | null;
@@ -112,7 +114,6 @@ export interface Order {
 
   // Priority & Timing
   priority_multiplier: number;
-  ready_by_override: Date | null;
 
   // Payment
   payment_status: PaymentStatus;
@@ -131,6 +132,7 @@ export interface Order {
   // Notes
   customer_notes: string | null;
   internal_notes: string | null;
+  notes_followup?: PrefsFollowupNote[];
 
   // Denormalized customer fields (written at order creation/update, schema org_orders_mst lines 774-778)
   // NOTE: These use schema names. The API layer (/api/v1/orders/[id]) translates:
@@ -211,6 +213,7 @@ export interface OrderItem {
 
   // Notes (new in PRD-004)
   notes: string | null;
+  notes_followup?: PrefsFollowupNote[];
   stain_notes: string | null;
   damage_notes: string | null;
 
@@ -275,6 +278,7 @@ export interface OrderItemPiece {
 
   // Notes
   notes: string | null;
+  notes_followup?: PrefsFollowupNote[];
 
   // Item details
   color: string | null;
@@ -475,6 +479,8 @@ export interface OrderListItem {
   total: number;
   received_at: Date | null;
   ready_by: Date | null;
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  ops_zone?: string | null;
   branch_name?: string;
   order_source_code?: string;
   physical_intake_status?: string | null;
@@ -752,6 +758,9 @@ export interface ItemPiece {
   readyByAt?: string | Date | null;
   lastStepAt?: string | Date | null;
   tagReleasedAt?: string | Date | null;
+  notes_followup?: PrefsFollowupNote[];
+  /** Staged operational follow-up note to append during next batch-update */
+  processingNote?: string;
 }
 
 /**
@@ -783,6 +792,8 @@ export interface PieceUpdate {
   barcode?: string | null;
   has_stain?: boolean | null;
   has_damage?: boolean | null;
+  /** Operational processing note stored in org_prc_trx_dtl + notes_followup (unlocked) */
+  processingNote?: string;
 }
 
 /**
@@ -797,6 +808,10 @@ export interface BatchUpdateRequest {
   lockerCode?: string; // Order-level locker access code
   bagCount?: number; // Order-level bag count (1-100)
   hangingCount?: number; // Order-level hanging garment count (>= 0)
+  sourceScreen?: string; // Origin screen (processing_modal, simple_processing, rack_bags_modal, etc.)
+  trxDescription?: string; // Optional batch description summary
+  processingNote?: string; // Optional order-level follow-up note stored in trx + notes_followup
+  idempotencyKey?: string; // Optional client deduplication token
 }
 
 /**
@@ -811,6 +826,8 @@ export interface BatchUpdateResponse {
     readyCount: number;
     stepsRecorded: number;
     rackLocationsSet: number;
+    trxId?: string;
+    trxCode?: string;
   };
 }
 

@@ -170,6 +170,8 @@
     "isRejected": "Is Rejected",
     "summary": {
       "updateSuccess": "Update Successful",
+      "updateSuccessWithTrx": "Saved ({trxCode})",
+      "trxCode": "Transaction: {trxCode}",
       "splitSuccess": "Order Split Successfully",
       "piecesUpdated": "{count} pieces updated",
       "readyCount": "{count} pieces marked as ready",
@@ -246,7 +248,18 @@
     "itemLevelTracking": "Item-level tracking active",
     "notesLabel": "Notes:",
     "unknownItem": "Unknown Item",
-    "itemAriaLabel": "Item: {name}"
+    "itemAriaLabel": "Item: {name}",
+    "linkScanTag": "Link / Scan Tag",
+    "tagLinked": "Tag updated",
+    "tagLinkedWithTrx": "Tag updated ({trxCode})",
+    "batchNoteLabel": "Batch Note",
+    "batchNotePlaceholder": "Optional floor note for this batch...",
+    "updateShortcutAria": "Update (Ctrl+S)",
+    "saveKeyHint": "Ctrl+S",
+    "tabs": {
+      "itemsAndPieces": "Items & Pieces",
+      "transactions": "Transactions"
+    }
   },
   "splitConfirm": {
     "title": "Confirm Split Order",
@@ -333,6 +346,7 @@
     "sendReceiptComingSoon": "Send Receipt is coming soon",
     "update": "Update",
     "updateSuccess": "Processing updated successfully",
+    "updateSuccessWithTrx": "Processing saved ({trxCode})",
     "updateFailed": "Failed to update processing",
     "splitFailed": "Failed to split order",
     "noChanges": "No changes to save",
@@ -346,6 +360,7 @@
     },
     "rackUnavailable": "—",
     "notesPlaceholder": "Notes",
+    "floorNotePlaceholder": "Floor note...",
     "rackOptional": "Rack location (optional)",
     "rackOptionalPlaceholder": "e.g. Rack A-12",
     "readyDisabledRejected": "Un-reject before marking ready",
@@ -427,6 +442,82 @@
         "complaint": "Complaint",
         "other": "Other"
       }
+    }
+  },
+  "notes": {
+    "feedTitle": "Follow-up Notes",
+    "orderFeedTitle": "Order Follow-up Notes",
+    "pieceFeedTitle": "Floor Follow-up Notes",
+    "pieceFloorNoteLabel": "Floor Note",
+    "stagedBadge": "Staged",
+    "intakeNoteReadOnly": "Intake Note (Locked)",
+    "empty": "No follow-up notes yet.",
+    "operatorFallback": "Operator",
+    "stagedPlaceholder": "Add floor note (saved on Update)...",
+    "addPlaceholder": "Write an operational follow-up note...",
+    "addButton": "Add Note",
+    "saved": "Follow-up note saved",
+    "savedWithTrx": "Follow-up note saved ({trxCode})",
+    "saveError": "Failed to save follow-up note",
+    "sources": {
+      "ORDER_CREATE": "Order Create",
+      "ORDER_EDIT": "Order Edit",
+      "ORDER_PREPARE": "Preparation",
+      "ORDER_PROCESSING": "Processing",
+      "ORDER_UPDATE": "Order Update",
+      "ORDER_ASSEMBLY": "Assembly",
+      "ORDER_QA": "Quality Check",
+      "ORDER_PACKING": "Packing",
+      "ORDER_READY": "Ready",
+      "ORDER_DELIVERY": "Delivery",
+      "manual": "Manual"
+    }
+  },
+  "trx": {
+    "title": "Processing Transactions",
+    "refresh": "Refresh",
+    "filterLabel": "Filter transactions by target level",
+    "loadError": "Failed to load processing transactions",
+    "emptyTitle": "No processing transactions yet",
+    "emptyDescription": "Batch saves, step updates, tag links, and floor notes appear here with their transaction code.",
+    "lineCount": "{count, plural, one {# line} other {# lines}}",
+    "batchNoteLabel": "Batch Note",
+    "targets": {
+      "ALL": "All",
+      "ORDER": "Order",
+      "ITEM": "Item",
+      "PIECE": "Piece",
+      "PREFERENCE": "Preference",
+      "OTHERS": "Others"
+    },
+    "types": {
+      "PROCESSING_BATCH": "Processing Batch",
+      "SIMPLE_PROCESSING": "Simple Processing",
+      "STEP_RECORD": "Step Recorded",
+      "ITEM_COMPLETE": "Item Complete",
+      "RACK_ASSIGN": "Rack Assigned",
+      "TAG_LINK": "Tag Link",
+      "NOTE_ADD": "Follow-up Note",
+      "OTHERS": "Other"
+    },
+    "dtlTypes": {
+      "STEP_CHANGE": "Step Change",
+      "STAGE_CHANGE": "Stage Change",
+      "MARK_READY": "Mark Ready",
+      "UNMARK_READY": "Unmark Ready",
+      "REJECT": "Reject",
+      "UNREJECT": "Unreject",
+      "RACK_ASSIGN": "Piece Rack",
+      "ORDER_RACK_ASSIGN": "Order Rack",
+      "LOCKER_ASSIGN": "Locker",
+      "BAG_COUNT_CHANGE": "Bag Count",
+      "HANGING_COUNT_CHANGE": "Hanging Count",
+      "BARCODE_SCAN": "Barcode Scan",
+      "TAG_LINK": "Tag Link",
+      "ITEM_COMPLETE": "Item Complete",
+      "PREF_CONFIRM": "Pref Confirm",
+      "NOTE_ADD": "Note Added",
+      "OTHERS": "Other"
     }
   }
 }

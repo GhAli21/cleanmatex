@@ -64,6 +64,8 @@ export interface ReadyOrder {
   total: number;
   rackLocation: string;
   readyBy: string;
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  opsZone?: string | null;
   paymentSummary?: PaymentSummary;
   primaryInvoiceId?: string | null;
   /** All order invoices (for choosing which invoice to pay when many) */
@@ -90,6 +92,7 @@ export interface ReadyOrderStateResponse {
     remaining: number;
   }>;
   pickupRelease?: PickupReleaseSummary;
+  opsZone?: string | null;
   error?: string;
 }
 
@@ -165,7 +168,8 @@ export function mapReadyOrderFromStateResponse(
     items,
     total: totalVal,
     rackLocation: raw.rack_location || '',
-    readyBy: raw.ready_by || raw.ready_by_at_new || '',
+    readyBy: raw.ready_by_at || '',
+    opsZone: response.opsZone ?? null,
     paymentSummary: response.paymentSummary ?? fallbackSummary,
     primaryInvoiceId: response.primaryInvoiceId ?? null,
     invoices,

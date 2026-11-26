@@ -17,6 +17,12 @@ import { resolveInitialEInvoiceStatus } from '@/lib/payments/e-invoice';
 import { addMoney, toMoneyString } from '@/lib/utils/money';
 import { logger } from '@/lib/utils/logger';
 import { finalizeOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
+import {
+  OperationalZoneMissingError,
+  readDatabaseInstant,
+  resolveOperationalTimeZoneOn,
+} from '@/lib/utils/operational-zone.server';
+import { civilYearInZone } from '@/lib/utils/operational-time';
 import { netPrepaidTaxTx } from '@/lib/services/tax/prepaid-tax.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -34,17 +40,23 @@ export async function createTaxDocumentTx(
   tx: PrismaTransactionClient,
   input: TaxDocumentCreateInput,
 ): Promise<string> {
-  const now = new Date();
-  const fiscalYear = now.getFullYear();
+  const order = await tx.org_orders_mst.findFirst({
+    where: { id: input.orderId, tenant_org_id: input.tenantId },
+    select: { created_at: true, branch_id: true },
+  });
+  const zone = await resolveOperationalTimeZoneOn(tx, {
+    tenantOrgId: input.tenantId,
+    operation: 'invoice',
+    branchId: order?.branch_id ?? null,
+  });
+  if (!zone) throw new OperationalZoneMissingError();
+  const now = await readDatabaseInstant(tx);
+  const fiscalYear = civilYearInZone(now, zone);
 
   // F-05/ADR-052 (mig 0386): stamp the initial e-invoice status from the order's
   // activation window. PENDING when e-invoicing is active for the order's date,
   // else NOT_APPLICABLE (existing flat-VAT flow — no behavior change for disabled
   // tenants / pre-start-date orders). The order's created_at is the order date.
-  const order = await tx.org_orders_mst.findFirst({
-    where: { id: input.orderId, tenant_org_id: input.tenantId },
-    select: { created_at: true },
-  });
   const activation = await resolveEInvoiceActivation(tx, input.tenantId, order?.created_at ?? now);
   const eInvoiceStatus = resolveInitialEInvoiceStatus(activation.active);
 
@@ -201,22 +213,23 @@ export async function issueTaxDocumentTx(
     sequenceNumber,
   );
 
+  const issuedAt = await readDatabaseInstant(tx);
   await tx.org_tax_documents_mst.update({
     where: { id: documentId, tenant_org_id: tenantId },
     data: {
       status:          TAX_DOCUMENT_STATUSES.ISSUED,
       sequence_number: sequenceNumber,
       document_no:     documentNo,
-      issued_at:       new Date(),
+      issued_at:       issuedAt,
       issued_by:       issuedBy,
-      updated_at:      new Date(),
+      updated_at:      issuedAt,
       updated_by:      issuedBy,
     },
   });
 
   // The invoice is the tax point: the order's tax record stops changing here.
   if (doc.document_type === TAX_DOCUMENT_TYPES.INVOICE || doc.document_type === TAX_DOCUMENT_TYPES.SIMPLIFIED_INVOICE) {
-    const at = new Date();
+    const at = issuedAt;
     await finalizeOrderTaxLines(tx, { tenantOrgId: tenantId, orderId: doc.order_id, userId: issuedBy, at });
     // Tax already recorded on advances and single-purpose gift cards that paid this order is netted here.
     await netPrepaidTaxTx(tx, {

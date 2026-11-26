@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { shiftCivilDate } from '@/lib/utils/operational-time';
+import { useReportsClock } from '@features/reports/ui/reports-clock';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxTabsPanel } from '@ui/navigation';
 import { cmxMessage } from '@ui/feedback';
@@ -19,15 +21,6 @@ import { ReconciliationCashDrawerRprt } from './reconciliation-cash-drawer-rprt'
 
 const BASE = '/api/v1/finance/reports/reconciliation';
 
-function defaultFrom() {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return d.toISOString().slice(0, 10);
-}
-function defaultTo() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /**
  * D-09 — reconciliation reports client. Tabbed orchestrator: each tab lazily
  * fetches its endpoint on first view, and the Apply button re-runs the active
@@ -36,9 +29,11 @@ function defaultTo() {
  */
 export function ReconciliationReportsClient() {
   const t = useTranslations('reports.reconciliation');
+  const tReports = useTranslations('reports');
+  const { zone, today } = useReportsClock();
 
-  const [from, setFrom] = useState(defaultFrom());
-  const [to, setTo] = useState(defaultTo());
+  const [from, setFrom] = useState(today ? shiftCivilDate(today, -30) : '');
+  const [to, setTo] = useState(today);
   const [activeTab, setActiveTab] = useState<string>(RECONCILIATION_REPORT_KEYS.EXCESS_LIABILITY);
 
   const [excess, setExcess] = useState<ExcessLiabilityReport | null>(null);
@@ -50,6 +45,10 @@ export function ReconciliationReportsClient() {
 
   const fetchTab = useCallback(
     async (tabId: string, nextFrom: string, nextTo: string) => {
+      if (!nextFrom || !nextTo) {
+        cmxMessage.error(tReports('timezoneNotConfigured'));
+        return;
+      }
       setLoading((prev) => ({ ...prev, [tabId]: true }));
       try {
         const range = `from=${nextFrom}&to=${nextTo}`;
@@ -89,7 +88,7 @@ export function ReconciliationReportsClient() {
         setLoading((prev) => ({ ...prev, [tabId]: false }));
       }
     },
-    [t],
+    [t, tReports],
   );
 
   const handleApply = () => {
@@ -148,6 +147,7 @@ export function ReconciliationReportsClient() {
             data={excess}
             loading={!!loading[RECONCILIATION_REPORT_KEYS.EXCESS_LIABILITY]}
             csvHref={`${BASE}/excess-liability?format=csv`}
+            opsZone={zone}
           />
         </div>
       ),

@@ -46,6 +46,8 @@ export function mapDbPieceToItemPiece(
     isReady: isReady || pieceStatus === 'ready',
     currentStep: dbPiece.last_step as ProcessingStep | undefined,
     notes: dbPiece.notes || '',
+    notes_followup: dbPiece.notes_followup ?? [],
+    processingNote: '',
     rackLocation: dbPiece.rack_location || '',
     isRejected: dbPiece.is_rejected || false,
     has_stain: dbPiece.has_stain || null,
@@ -72,6 +74,7 @@ export type NormalizedOrderState = {
   order: Record<string, unknown> | null;
   items: Array<Record<string, unknown>>;
   customer: Record<string, unknown> | null;
+  isCommercialLocked?: boolean;
 };
 
 /**
@@ -80,22 +83,26 @@ export type NormalizedOrderState = {
 export function normalizeOrderStateResponse(json: unknown): NormalizedOrderState {
   const body = json as Record<string, unknown> | null;
   if (!body || typeof body !== 'object') {
-    return { order: null, items: [], customer: null };
+    return { order: null, items: [], customer: null, isCommercialLocked: false };
   }
 
   let order: Record<string, unknown> | null = null;
   let items: Array<Record<string, unknown>> = [];
+  let isCommercialLocked = false;
 
   if (body.success && body.order && Array.isArray(body.items)) {
     order = body.order as Record<string, unknown>;
     items = body.items as Array<Record<string, unknown>>;
+    isCommercialLocked = Boolean(body.isCommercialLocked);
   } else if (body.success && body.data && typeof body.data === 'object') {
     const data = body.data as Record<string, unknown>;
     order = (data.order as Record<string, unknown>) || null;
     items = Array.isArray(data.items) ? (data.items as Array<Record<string, unknown>>) : [];
+    isCommercialLocked = Boolean(data.isCommercialLocked ?? body.isCommercialLocked);
   } else if (body.order && Array.isArray(body.items)) {
     order = body.order as Record<string, unknown>;
     items = body.items as Array<Record<string, unknown>>;
+    isCommercialLocked = Boolean(body.isCommercialLocked);
   }
 
   const customer =
@@ -111,7 +118,7 @@ export function normalizeOrderStateResponse(json: unknown): NormalizedOrderState
     })() ||
     null;
 
-  return { order, items, customer };
+  return { order, items, customer, isCommercialLocked };
 }
 
 /**
@@ -125,6 +132,7 @@ export function hasSimplePieceChanged(
   return (
     (current.is_ready ?? false) !== (original.is_ready ?? false) ||
     (current.notes || '') !== (original.notes || '') ||
+    (current.processingNote || '').trim() !== '' ||
     (current.rackLocation || '') !== (original.rackLocation || '') ||
     current.isRejected !== original.isRejected
   );
@@ -144,6 +152,7 @@ export function hasProcessingPieceChanged(
     current.currentStep !== original.currentStep ||
     (current.piece_stage || null) !== (original.piece_stage || null) ||
     (current.notes || '') !== (original.notes || '') ||
+    (current.processingNote || '').trim() !== '' ||
     (current.rackLocation || '') !== (original.rackLocation || '') ||
     current.isRejected !== original.isRejected ||
     (current.barcode || null) !== (original.barcode || null) ||

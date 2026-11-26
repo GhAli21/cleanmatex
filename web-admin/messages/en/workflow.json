@@ -497,8 +497,6 @@
         "receivedAt": "Received at",
         "readyBy": "Ready by (target)",
         "readyAt": "Ready at",
-        "readyByOverride": "Ready by override",
-        "readyByAtNew": "Ready by (revised)",
         "deliveredAt": "Delivered at",
         "preparationStatus": "Preparation status",
         "physicalIntakeStatus": "Physical intake status",

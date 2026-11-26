@@ -9,19 +9,20 @@ import {
 } from '@/lib/constants/commercial';
 import { textToTimeColumn, timeColumnToText } from '@/lib/services/commercial/calendar-facts';
 import { prisma } from '@/lib/db/prisma';
-import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date';
+import { businessDateForTimezone } from '@/lib/utils/business-date';
+import { OperationalZoneMissingError, readDatabaseInstant, resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server';
 import type { SpeedRuleBulkInput, SpeedRuleBulkStatusInput, SpeedRuleCreateInput } from '@/lib/validations/speed-rule-schemas';
 
 /**
- * Today's business date (`YYYY-MM-DD`) in the organization's time zone, as the order loader reads rule dates.
- * Falls back to the UTC date only when the organization has no valid zone.
+ * Today's business date (`YYYY-MM-DD`) in the organization's time zone.
+ * A missing zone fails closed. The UTC date is not a substitute.
  * @param tenantId session tenant
  * @returns the local date
  */
 async function tenantBusinessDate(tenantId: string): Promise<string> {
-  // org_tenants_mst is keyed by the tenant id itself (no tenant_org_id column).
-  const tenant = await prisma.org_tenants_mst.findFirst({ where: { id: tenantId }, select: { timezone: true } });
-  return isValidTimeZone(tenant?.timezone) ? businessDateForTimezone(tenant.timezone) : new Date().toISOString().slice(0, 10);
+  const zone = await resolveOrganizationTimeZone(tenantId);
+  if (!zone) throw new OperationalZoneMissingError();
+  return businessDateForTimezone(zone, await readDatabaseInstant(prisma));
 }
 
 /**

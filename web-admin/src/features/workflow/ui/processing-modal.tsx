@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Calendar,
   CheckCheck,
+  History,
   Loader2,
   MapPin,
   Package,
@@ -44,6 +45,7 @@ import { getCSRFHeader, useCSRFToken } from '@/lib/hooks/use-csrf-token';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { formatDateTime } from '@/lib/utils/rtl';
 import { logger } from '@/lib/utils/logger';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import { usePreferenceCatalog } from '@/src/features/orders/hooks/use-preference-catalog';
@@ -67,6 +69,15 @@ import type {
   SummaryMessage as SummaryMessageType,
 } from '@/types/order';
 import { ProcessingItemRow } from './processing-item-row';
+import { CmxFollowupNotesFeed } from './cmx-followup-notes-feed';
+import { ProcessingTransactionsPanel } from './processing-transactions-panel';
+import {
+  NOTES_FOLLOWUP_TARGET_LEVELS,
+  PRC_TRX_SOURCE_SCREENS,
+} from '@/lib/constants/processing-trx';
+import { PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
+import type { PrefsFollowupNote } from '@/lib/utils/notes-followup';
+import type { PieceTagSaved } from '@/src/features/scan/api/scan-api';
 import {
   ProcessingModalFilters,
   type ProcessingFilterOption,
@@ -110,6 +121,8 @@ function generatePieces(item: OrderItem): ItemPiece[] {
       currentStep: item.item_last_step as ProcessingStep | undefined,
       piece_stage: null,
       notes: '',
+      notes_followup: [],
+      processingNote: '',
       rackLocation: '',
       isRejected: item.item_is_rejected || false,
       serviceCategoryCode: item.service_category_code || null,
@@ -134,6 +147,8 @@ function mapDbPieceToItemPiece(
     isReady: isReady || pieceStatus === 'ready',
     currentStep: dbPiece.last_step as ProcessingStep | undefined,
     notes: dbPiece.notes || '',
+    notes_followup: dbPiece.notes_followup ?? [],
+    processingNote: '',
     rackLocation: dbPiece.rack_location || '',
     isRejected: dbPiece.is_rejected || false,
     has_stain: dbPiece.has_stain || null,
@@ -224,6 +239,9 @@ export function ProcessingModal(props: ProcessingModalProps) {
   );
   const [selectedForSplit, setSelectedForSplit] = React.useState<Set<string>>(new Set());
   const [rackLocation, setRackLocation] = React.useState('');
+  const [batchNote, setBatchNote] = React.useState('');
+  const [activeTab, setActiveTab] = React.useState<'pieces' | 'transactions'>('pieces');
+  const [trxRefreshKey, setTrxRefreshKey] = React.useState(0);
   const [summaryMessage, setSummaryMessage] = React.useState<SummaryMessageType | null>(null);
   const [showSplitDialog, setShowSplitDialog] = React.useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false);
@@ -231,6 +249,8 @@ export function ProcessingModal(props: ProcessingModalProps) {
 
   const initializedOrderIdRef = React.useRef<string | null>(null);
   const rackInitializedOrderIdRef = React.useRef<string | null>(null);
+  const originalPieceStatesRef = React.useRef<Map<string, ItemPiece>>(new Map());
+  originalPieceStatesRef.current = originalPieceStates;
 
   const { data: orderData, isLoading: orderLoading, error: orderError } = useQuery({
     queryKey: ['order-processing', orderId],
@@ -247,10 +267,11 @@ export function ProcessingModal(props: ProcessingModalProps) {
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: 'always',
   });
 
   const order: Order | null = (orderData?.order as unknown as Order | null) ?? null;
+  const isCommercialLocked = Boolean(orderData?.isCommercialLocked);
   const items = React.useMemo(
     () => (orderData?.items as unknown as OrderItem[]) ?? [],
     [orderData?.items]
@@ -339,7 +360,7 @@ export function ProcessingModal(props: ProcessingModalProps) {
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: 'always',
   });
 
   const { data: issueSummary } = useQuery({
@@ -411,6 +432,39 @@ export function ProcessingModal(props: ProcessingModalProps) {
       if (items.length <= 2) {
         setExpandedItemIds(new Set(items.map((it) => it.id)));
       }
+      return;
+    }
+
+    // Re-sync server refetches (after batch save, split, tag link, or pref confirm) without
+    // overwriting unsaved operator edits on pieces that are still dirty.
+    if (trackByPiece && !piecesLoading && dbPiecesByItemId.size > 0) {
+      const serverMap = new Map<string, ItemPiece>();
+      dbPiecesByItemId.forEach((pieces) => {
+        pieces.forEach((piece) => serverMap.set(piece.id, piece));
+      });
+      const prevOriginals = originalPieceStatesRef.current;
+
+      setPieceStates((prev) => {
+        const next = new Map<string, ItemPiece>();
+        serverMap.forEach((serverPiece, id) => {
+          const localPiece = prev.get(id);
+          const prevOriginal = prevOriginals.get(id);
+          if (!localPiece || !hasProcessingPieceChanged(localPiece, prevOriginal)) {
+            next.set(id, serverPiece);
+          } else {
+            next.set(id, {
+              ...localPiece,
+              notes_followup: serverPiece.notes_followup,
+              servicePrefs: serverPiece.servicePrefs,
+              colorPrefs: serverPiece.colorPrefs,
+              piece_code: serverPiece.piece_code,
+              tagReleasedAt: serverPiece.tagReleasedAt,
+            });
+          }
+        });
+        return next;
+      });
+      setOriginalPieceStates(new Map(serverMap));
     }
   }, [isOpen, orderId, items, trackByPiece, dbPiecesByItemId, piecesLoading]);
 
@@ -422,21 +476,38 @@ export function ProcessingModal(props: ProcessingModalProps) {
     }
   }, [isOpen, orderId, order]);
 
+  const resetModalState = React.useCallback(() => {
+    setExpandedItemIds(new Set());
+    setPieceStates(new Map());
+    setOriginalPieceStates(new Map());
+    setSelectedForSplit(new Set());
+    setRackLocation('');
+    setBatchNote('');
+    setActiveTab('pieces');
+    setTrxRefreshKey(0);
+    setSummaryMessage(null);
+    setShowSplitDialog(false);
+    setShowDiscardConfirm(false);
+    setFilters(DEFAULT_FILTERS);
+    initializedOrderIdRef.current = null;
+    rackInitializedOrderIdRef.current = null;
+  }, []);
+
   React.useEffect(() => {
     if (!isOpen) {
-      setExpandedItemIds(new Set());
-      setPieceStates(new Map());
-      setOriginalPieceStates(new Map());
-      setSelectedForSplit(new Set());
-      setRackLocation('');
-      setSummaryMessage(null);
-      setShowSplitDialog(false);
-      setShowDiscardConfirm(false);
-      setFilters(DEFAULT_FILTERS);
-      initializedOrderIdRef.current = null;
-      rackInitializedOrderIdRef.current = null;
+      resetModalState();
     }
-  }, [isOpen]);
+  }, [isOpen, resetModalState]);
+
+  const prevOrderIdRef = React.useRef<string | null>(orderId);
+  React.useEffect(() => {
+    if (prevOrderIdRef.current !== orderId) {
+      prevOrderIdRef.current = orderId;
+      if (isOpen) {
+        resetModalState();
+      }
+    }
+  }, [orderId, isOpen, resetModalState]);
 
   const updateMutation = useMutation({
     mutationFn: async (request: BatchUpdateRequest) => {
@@ -456,7 +527,8 @@ export function ProcessingModal(props: ProcessingModalProps) {
       }
       return response.json();
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data: { summary?: { trxCode?: string } }, variables) => {
+      const trxCode = data?.summary?.trxCode;
       const actualPiecesUpdated = variables.updates.length;
       const actualReadyCount = variables.updates.filter((u) => u.is_ready === true).length;
       const actualStepsRecorded = new Set(
@@ -467,6 +539,9 @@ export function ProcessingModal(props: ProcessingModalProps) {
       ).length;
 
       const summaryItems: string[] = [];
+      if (trxCode) {
+        summaryItems.push(String(t('summary.trxCode', { trxCode })));
+      }
       if (actualPiecesUpdated > 0) {
         summaryItems.push(String(t('summary.piecesUpdated', { count: actualPiecesUpdated })));
       }
@@ -485,13 +560,29 @@ export function ProcessingModal(props: ProcessingModalProps) {
         title: String(t('summary.updateSuccess')),
         items: summaryItems,
       });
-      cmxMessage.success(String(t('summary.updateSuccess')));
-      setOriginalPieceStates(new Map(pieceStates));
+      cmxMessage.success(
+        trxCode
+          ? String(t('summary.updateSuccessWithTrx', { trxCode }))
+          : String(t('summary.updateSuccess'))
+      );
+
+      setPieceStates((prev) => {
+        const clearedMap = new Map<string, ItemPiece>();
+        prev.forEach((piece, key) => {
+          clearedMap.set(key, { ...piece, processingNote: '' });
+        });
+        setOriginalPieceStates(new Map(clearedMap));
+        return clearedMap;
+      });
+      setBatchNote('');
+      setTrxRefreshKey((k) => k + 1);
       onRefresh?.();
 
       if (isOpen && orderId) {
         queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
         queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['processing-transactions', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-processing-detail', orderId] });
       }
     },
     onError: (error) => {
@@ -534,11 +625,14 @@ export function ProcessingModal(props: ProcessingModalProps) {
       cmxMessage.success(String(t('summary.splitSuccess')));
       setSelectedForSplit(new Set());
       setShowSplitDialog(false);
+      setTrxRefreshKey((k) => k + 1);
       onRefresh?.();
 
       if (isOpen && orderId) {
         queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
         queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['processing-transactions', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-processing-detail', orderId] });
       }
     },
     onError: (error) => {
@@ -563,7 +657,8 @@ export function ProcessingModal(props: ProcessingModalProps) {
   }, [pieceStates, originalPieceStates]);
 
   const rackDirty = rackLocation !== (order?.rack_location ?? '');
-  const totalDirtyCount = dirtyPiecesCount + (rackDirty ? 1 : 0);
+  const batchNoteDirty = batchNote.trim().length > 0;
+  const totalDirtyCount = dirtyPiecesCount + (rackDirty ? 1 : 0) + (batchNoteDirty ? 1 : 0);
   const hasChanges = totalDirtyCount > 0;
 
   const handleUpdate = React.useCallback(() => {
@@ -576,12 +671,19 @@ export function ProcessingModal(props: ProcessingModalProps) {
         is_ready: piece.is_ready ?? null,
         currentStep: piece.currentStep,
         piece_stage: piece.piece_stage || null,
-        notes: piece.notes || '',
+        ...(isCommercialLocked
+          ? {}
+          : {
+            notes: piece.notes || '',
+            has_stain: piece.has_stain || null,
+            has_damage: piece.has_damage || null,
+          }),
+        ...(piece.processingNote?.trim()
+          ? { processingNote: piece.processingNote.trim() }
+          : {}),
         rackLocation: piece.rackLocation || '',
         isRejected: piece.isRejected || false,
         barcode: piece.barcode || null,
-        has_stain: piece.has_stain || null,
-        has_damage: piece.has_damage || null,
       }));
 
     // Compute ready count across ALL pieces of each item (never only edited updates)
@@ -603,8 +705,74 @@ export function ProcessingModal(props: ProcessingModalProps) {
       updates,
       itemQuantityReady,
       orderRackLocation: rackLocation,
+      sourceScreen: PRC_TRX_SOURCE_SCREENS.PROCESSING_MODAL,
+      ...(batchNote.trim() ? { processingNote: batchNote.trim() } : {}),
     });
-  }, [pieceStates, originalPieceStates, items, piecesByItemId, rackLocation, updateMutation]);
+  }, [
+    pieceStates,
+    originalPieceStates,
+    items,
+    piecesByItemId,
+    rackLocation,
+    batchNote,
+    isCommercialLocked,
+    updateMutation,
+  ]);
+
+  const handlePieceNotesUpdated = React.useCallback(
+    (pieceId: string, updatedNotes: PrefsFollowupNote[]) => {
+      setPieceStates((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(pieceId);
+        if (cur) next.set(pieceId, { ...cur, notes_followup: updatedNotes });
+        return next;
+      });
+      setOriginalPieceStates((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(pieceId);
+        if (cur) next.set(pieceId, { ...cur, notes_followup: updatedNotes });
+        return next;
+      });
+      setTrxRefreshKey((k) => k + 1);
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: ['processing-transactions', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-processing-detail', orderId] });
+      }
+    },
+    [orderId, queryClient]
+  );
+
+  const handleTagSaved = React.useCallback(
+    (pieceId: string, saved: PieceTagSaved) => {
+      const nextTag = saved.externalTag ?? null;
+      setPieceStates((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(pieceId);
+        if (cur) next.set(pieceId, { ...cur, barcode: nextTag });
+        return next;
+      });
+      setOriginalPieceStates((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(pieceId);
+        if (cur) next.set(pieceId, { ...cur, barcode: nextTag });
+        return next;
+      });
+      setTrxRefreshKey((k) => k + 1);
+      cmxMessage.success(
+        saved.trxCode
+          ? String(t('tagLinkedWithTrx', { trxCode: saved.trxCode }))
+          : String(t('tagLinked'))
+      );
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: ['order-pieces', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['processing-transactions', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['order-processing-detail', orderId] });
+      }
+      onRefresh?.();
+    },
+    [orderId, onRefresh, queryClient, t]
+  );
 
   const handleSplitConfirm = React.useCallback(
     (reason: string) => {
@@ -738,7 +906,11 @@ export function ProcessingModal(props: ProcessingModalProps) {
             (piece.piece_code || '').toLowerCase().includes(q) ||
             (piece.barcode || '').toLowerCase().includes(q) ||
             (piece.rackLocation || '').toLowerCase().includes(q) ||
-            (piece.notes || '').toLowerCase().includes(q)
+            (piece.notes || '').toLowerCase().includes(q) ||
+            (piece.processingNote || '').toLowerCase().includes(q) ||
+            (piece.notes_followup ?? []).some((n) =>
+              n.note_text.toLowerCase().includes(q)
+            )
         );
       });
     }
@@ -828,7 +1000,7 @@ export function ProcessingModal(props: ProcessingModalProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        if (hasChanges && !updateMutation.isPending) {
+        if (hasChanges && !updateMutation.isPending && Boolean(csrfToken)) {
           handleUpdate();
         }
       }
@@ -843,6 +1015,7 @@ export function ProcessingModal(props: ProcessingModalProps) {
     isOpen,
     hasChanges,
     updateMutation.isPending,
+    csrfToken,
     handleUpdate,
     requestClose,
     showDiscardConfirm,
@@ -863,10 +1036,10 @@ export function ProcessingModal(props: ProcessingModalProps) {
 
   const displayCustomerName = customerData
     ? getBilingual(
-        customerData.name as string | undefined,
-        customerData.name2 as string | undefined
-      ) ||
-      String(customerData.display_name || customerData.phone || tProcessing('unknownCustomer'))
+      customerData.name as string | undefined,
+      customerData.name2 as string | undefined
+    ) ||
+    String(customerData.display_name || customerData.phone || tProcessing('unknownCustomer'))
     : tProcessing('unknownCustomer');
 
   const rawStatus = (order?.current_status || order?.status || 'processing').toLowerCase();
@@ -945,14 +1118,14 @@ export function ProcessingModal(props: ProcessingModalProps) {
                           </bdi>
                         </div>
                       ) : null}
-                      {order.ready_by && (
+                      {order.ready_by_at && (
                         <div className="flex items-center gap-1.5 tabular-nums">
                           <Calendar className="h-3.5 w-3.5" aria-hidden />
                           <span>
-                            {new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-                              dateStyle: 'medium',
-                              timeStyle: 'short',
-                            }).format(new Date(order.ready_by))}
+                            {formatDateTime(
+                              order.ready_by_at,
+                              locale === 'ar' ? 'ar' : 'en'
+                            )}
                           </span>
                         </div>
                       )}
@@ -1035,67 +1208,146 @@ export function ProcessingModal(props: ProcessingModalProps) {
 
           {!isLoading && !orderError && order && (
             <>
-              <div className="flex-1 space-y-3 overflow-y-auto py-3">
-                <ProcessingModalFilters
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  categories={categoryFilterOptions}
-                  stepOptions={dynamicStepFilterOptions}
-                  rejectEnabled={rejectEnabled}
-                  allExpanded={allFilteredExpanded}
-                  onToggleExpandAll={handleToggleExpandAll}
-                  showExpandAll={trackByPiece && filteredAndSortedItems.length > 0}
-                />
+              <div className="flex flex-wrap items-center gap-2 border-b border-border pb-2.5 pt-1">
+                <CmxButton
+                  type="button"
+                  size="sm"
+                  variant={activeTab === 'pieces' ? 'primary' : 'outline'}
+                  onClick={() => setActiveTab('pieces')}
+                >
+                  {t('tabs.itemsAndPieces')}
+                </CmxButton>
+                <CmxButton
+                  type="button"
+                  size="sm"
+                  variant={activeTab === 'transactions' ? 'primary' : 'outline'}
+                  onClick={() => setActiveTab('transactions')}
+                  className="gap-1.5"
+                >
+                  <History className="h-3.5 w-3.5" aria-hidden />
+                  {t('tabs.transactions')}
+                </CmxButton>
+              </div>
 
-                <div className="space-y-2.5">
-                  {filteredAndSortedItems.length === 0 ? (
-                    <div className="px-4 py-10 text-center">
-                      <Package className="mx-auto mb-3 h-12 w-12 text-muted-foreground" aria-hidden />
-                      <h3 className="mb-1 text-base font-semibold text-foreground">{t('noItems')}</h3>
-                      <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-                        {t('noItemsDesc')}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {filteredAndSortedItems.map((item) => (
-                        <ProcessingItemRow
-                          key={item.id}
-                          item={item}
-                          pieces={getPiecesForItem(item.id)}
-                          isExpanded={expandedItemIds.has(item.id)}
-                          onToggleExpand={handleToggleExpand}
-                          onPieceChange={handlePieceChange}
-                          onBulkReadyChange={handleBulkItemReadyChange}
-                          onSplitToggle={handleSplitToggle}
-                          selectedForSplit={selectedForSplit}
-                          splitOrderEnabled={splitOrderEnabled}
-                          rejectEnabled={rejectEnabled}
-                          trackByPiece={trackByPiece}
-                          rejectColor={rejectColor}
-                          orderId={orderId || undefined}
-                          tenantId={tenantId}
-                          processingConfirmationEnabled={processingConfirmationEnabled}
-                          processingSteps={
-                            processingStepsByCategory.get(item.service_category_code || '') || []
-                          }
-                          colorHexByCode={colorHexByCode}
-                          nameByCode={nameByCode}
-                          onConfirmSuccess={onConfirmSuccess}
-                          issueOpenCount={issueByItem[item.id]?.open}
-                          issueTotalCount={issueByItem[item.id]?.total}
-                          issueByPiece={issueByPiece}
-                        />
-                      ))}
-                      {isPiecesLoading && trackByPiece && (
-                        <div className="flex items-center justify-center py-3 text-sm text-muted-foreground">
-                          <Loader2 className="me-2 h-4 w-4 animate-spin" aria-hidden />
-                          <span>{t('loadingPieces')}</span>
+              <div className="flex-1 space-y-3 overflow-y-auto py-3">
+                {activeTab === 'transactions' ? (
+                  <ProcessingTransactionsPanel
+                    orderId={order.id}
+                    refreshKey={trxRefreshKey}
+                  />
+                ) : (
+                  <>
+                    <CmxFollowupNotesFeed
+                      orderId={order.id}
+                      targetLevel={NOTES_FOLLOWUP_TARGET_LEVELS.ORDER}
+                      targetId={order.id}
+                      notes={order.notes_followup}
+                      intakeNote={
+                        [order.customer_notes, order.internal_notes]
+                          .filter((s): s is string => Boolean(s && s.trim()))
+                          .join(' — ') || undefined
+                      }
+                      intakeNoteLocked={isCommercialLocked}
+                      noteSource={PREFS_SOURCE_STAGE.ORDER_PROCESSING}
+                      sourceScreen={PRC_TRX_SOURCE_SCREENS.PROCESSING_MODAL}
+                      onNotesUpdated={() => {
+                        setTrxRefreshKey((k) => k + 1);
+                        if (orderId) {
+                          queryClient.invalidateQueries({
+                            queryKey: ['order-processing', orderId],
+                          });
+                          queryClient.invalidateQueries({
+                            queryKey: ['processing-transactions', orderId],
+                          });
+                          queryClient.invalidateQueries({
+                            queryKey: ['order-processing-detail', orderId],
+                          });
+                        }
+                      }}
+                      title={tProcessing('notes.orderFeedTitle')}
+                      compact
+                      defaultOpen={false}
+                    />
+
+                    <ProcessingModalFilters
+                      filters={filters}
+                      onFiltersChange={setFilters}
+                      categories={categoryFilterOptions}
+                      stepOptions={dynamicStepFilterOptions}
+                      rejectEnabled={rejectEnabled}
+                      allExpanded={allFilteredExpanded}
+                      onToggleExpandAll={handleToggleExpandAll}
+                      showExpandAll={trackByPiece && filteredAndSortedItems.length > 0}
+                    />
+
+                    <div className="space-y-2.5">
+                      {filteredAndSortedItems.length === 0 ? (
+                        <div className="px-4 py-10 text-center">
+                          <Package className="mx-auto mb-3 h-12 w-12 text-muted-foreground" aria-hidden />
+                          <h3 className="mb-1 text-base font-semibold text-foreground">{t('noItems')}</h3>
+                          <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                            {t('noItemsDesc')}
+                          </p>
                         </div>
+                      ) : (
+                        <>
+                          {filteredAndSortedItems.map((item) => (
+                            <ProcessingItemRow
+                              key={item.id}
+                              item={item}
+                              pieces={getPiecesForItem(item.id)}
+                              isExpanded={expandedItemIds.has(item.id)}
+                              onToggleExpand={handleToggleExpand}
+                              onPieceChange={handlePieceChange}
+                              onBulkReadyChange={handleBulkItemReadyChange}
+                              onSplitToggle={handleSplitToggle}
+                              selectedForSplit={selectedForSplit}
+                              splitOrderEnabled={splitOrderEnabled}
+                              rejectEnabled={rejectEnabled}
+                              trackByPiece={trackByPiece}
+                              rejectColor={rejectColor}
+                              orderId={orderId || undefined}
+                              tenantId={tenantId}
+                              processingConfirmationEnabled={processingConfirmationEnabled}
+                              processingSteps={
+                                processingStepsByCategory.get(item.service_category_code || '') || []
+                              }
+                              colorHexByCode={colorHexByCode}
+                              nameByCode={nameByCode}
+                              onConfirmSuccess={onConfirmSuccess}
+                              issueOpenCount={issueByItem[item.id]?.open}
+                              issueTotalCount={issueByItem[item.id]?.total}
+                              issueByPiece={issueByPiece}
+                              isCommercialLocked={isCommercialLocked}
+                              onItemNotesUpdated={() => {
+                                setTrxRefreshKey((k) => k + 1);
+                                if (orderId) {
+                                  queryClient.invalidateQueries({
+                                    queryKey: ['order-processing', orderId],
+                                  });
+                                  queryClient.invalidateQueries({
+                                    queryKey: ['processing-transactions', orderId],
+                                  });
+                                  queryClient.invalidateQueries({
+                                    queryKey: ['order-processing-detail', orderId],
+                                  });
+                                }
+                              }}
+                              onPieceNotesUpdated={handlePieceNotesUpdated}
+                              onTagSaved={handleTagSaved}
+                            />
+                          ))}
+                          {isPiecesLoading && trackByPiece && (
+                            <div className="flex items-center justify-center py-3 text-sm text-muted-foreground">
+                              <Loader2 className="me-2 h-4 w-4 animate-spin" aria-hidden />
+                              <span>{t('loadingPieces')}</span>
+                            </div>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {summaryMessage && (
@@ -1108,8 +1360,8 @@ export function ProcessingModal(props: ProcessingModalProps) {
               )}
 
               <CmxDialogFooter className="flex-shrink-0 flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end">
-                <div className="flex flex-1 items-end gap-2">
-                  <div className="flex-1 space-y-1">
+                <div className="flex flex-1 flex-wrap items-end gap-2">
+                  <div className="min-w-[160px] flex-1 space-y-1">
                     <Label htmlFor="rack-location" className="block text-xs font-medium text-foreground">
                       {t('rackLocationOrder')}
                     </Label>
@@ -1119,6 +1371,18 @@ export function ProcessingModal(props: ProcessingModalProps) {
                       onChange={(e) => setRackLocation(e.target.value)}
                       placeholder={t('rackLocationPlaceholder')}
                       leftIcon={<MapPin className="h-4 w-4" aria-hidden />}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="min-w-[180px] flex-1 space-y-1">
+                    <Label htmlFor="batch-note" className="block text-xs font-medium text-foreground">
+                      {t('batchNoteLabel')}
+                    </Label>
+                    <CmxInput
+                      id="batch-note"
+                      value={batchNote}
+                      onChange={(e) => setBatchNote(e.target.value)}
+                      placeholder={t('batchNotePlaceholder')}
                       className="h-9 text-sm"
                     />
                   </div>
@@ -1147,12 +1411,15 @@ export function ProcessingModal(props: ProcessingModalProps) {
                   <CmxButton
                     type="button"
                     onClick={handleUpdate}
-                    disabled={!hasChanges || updateMutation.isPending}
+                    disabled={!hasChanges || updateMutation.isPending || !csrfToken}
                     loading={updateMutation.isPending}
-                    aria-label={`${t('update')} (Ctrl+S)`}
+                    aria-label={t('updateShortcutAria')}
+                    title={t('updateShortcutAria')}
                   >
                     {t('update')}
-                    <span className="ms-1.5 hidden text-xs opacity-75 sm:inline">(Ctrl+S)</span>
+                    <span className="ms-1.5 hidden text-xs opacity-75 sm:inline">
+                      ({t('saveKeyHint')})
+                    </span>
                   </CmxButton>
 
                   {splitOrderEnabled && selectedForSplit.size > 0 && (

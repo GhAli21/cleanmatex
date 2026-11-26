@@ -16,6 +16,8 @@
 import { useLocale, useMessages, useTranslations } from 'next-intl';
 
 import { CmxButton } from '@ui/primitives';
+import { CmxDataTable } from '@ui/data-display';
+import { formatCivilDate, formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { CmxSummaryMessage, CmxStatusBadge } from '@ui/feedback';
 
 const EM_DASH = '—';
@@ -41,6 +43,7 @@ interface ReconRunDetail {
   period_from: string | null;
   period_to: string | null;
   currency_code: string;
+  ops_zone: string | null;
   total_checked: number | null;
   passed_checks: number | null;
   failed_checks: number | null;
@@ -55,21 +58,15 @@ interface ReconciliationDetailClientProps {
   run: ReconRunDetail;
 }
 
-function fmtDate(locale: string, iso: string | null | undefined): string {
-  if (!iso) return EM_DASH;
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(iso));
+function fmtDate(locale: string, iso: string | null | undefined, zone: string | null): string {
+  return formatInstantOrEmpty(iso, zone, locale === 'ar' ? 'ar' : 'en') || EM_DASH;
 }
 
 function fmtPeriod(locale: string, from: string | null, to: string | null): string {
   if (!from && !to) return EM_DASH;
   const fmtShort = (iso: string | null) => {
     if (!iso) return '?';
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-      year: 'numeric', month: 'short', day: 'numeric',
-    }).format(new Date(iso));
+    return formatCivilDate(iso, locale === 'ar' ? 'ar' : 'en') || EM_DASH;
   };
   return `${fmtShort(from)} ${EM_DASH} ${fmtShort(to)}`;
 }
@@ -142,7 +139,7 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
         </div>
         <div>
           <p className="text-muted-foreground">{t('ranAt')}</p>
-          <p className="font-medium">{fmtDate(locale, run.completed_at ?? run.started_at)}</p>
+          <p className="font-medium">{fmtDate(locale, run.completed_at ?? run.started_at, run.ops_zone)}</p>
         </div>
         <div>
           <p className="text-muted-foreground">{t('ranBy')}</p>
@@ -198,71 +195,78 @@ export default function ReconciliationDetailClient({ run }: ReconciliationDetail
             </CmxButton>
           )}
         </div>
-        {run.issues.length === 0 ? (
-          <div className="px-6 py-8">
-            <CmxSummaryMessage type="success" title={t('issues.noIssues')} items={[]} />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-border text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.severity')}</th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.checkName')}</th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.affectedEntity')}</th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.expected')}</th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.actual')}</th>
-                  <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.delta')}</th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.message')}</th>
-                  <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('issues.status')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-card">
-                {run.issues.map((issue) => (
-                  <tr key={issue.id} className="hover:bg-muted">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <CmxStatusBadge size="sm" tone={severityBadgeVariant(issue.severity)}>
-                        {t(`issues.severityLabels.${issue.severity}` as Parameters<typeof t>[0])}
-                      </CmxStatusBadge>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-foreground">
-                      {/* The check_name string round-trips to the DB and to translation keys
-                          under `billing.reconciliation.checks.<NAME>` so the operator sees a
-                          human label when one is registered, falling back to the raw code. */}
-                      {labelForCheck(issue.check_name)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-foreground">
-                      {issue.affected_entity_type
-                        ? `${issue.affected_entity_type}: ${issue.affected_entity_id ?? EM_DASH}`
-                        : EM_DASH}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-end font-mono text-xs">
-                      {issue.expected_value != null ? issue.expected_value.toFixed(4) : EM_DASH}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-end font-mono text-xs">
-                      {issue.actual_value != null ? issue.actual_value.toFixed(4) : EM_DASH}
-                    </td>
-                    <td className={`whitespace-nowrap px-4 py-3 text-end font-mono text-xs font-semibold ${
-                      issue.delta < 0 ? 'text-danger-text' : issue.delta > 0 ? 'text-warning-text' : 'text-muted-foreground'
-                    }`}>
-                      {issue.delta != null ? issue.delta.toFixed(4) : EM_DASH}
-                    </td>
-                    <td className="px-4 py-3 text-foreground">
-                      <span className="block max-w-xs truncate" title={issue.message}>
-                        {issue.message}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <CmxStatusBadge size="sm" tone={issueBadgeVariant(issue.status)}>
-                        {t(`issues.statusLabels.${issue.status}` as Parameters<typeof t>[0])}
-                      </CmxStatusBadge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CmxDataTable
+          columns={[
+            {
+              key: 'severity',
+              header: t('issues.severity'),
+              render: (issue: ReconIssue) => (
+                <CmxStatusBadge size="sm" tone={severityBadgeVariant(issue.severity)}>
+                  {t(`issues.severityLabels.${issue.severity}` as Parameters<typeof t>[0])}
+                </CmxStatusBadge>
+              ),
+            },
+            {
+              key: 'check',
+              header: t('issues.checkName'),
+              render: (issue: ReconIssue) => (
+                <span className="font-mono text-xs">{labelForCheck(issue.check_name)}</span>
+              ),
+            },
+            {
+              key: 'entity',
+              header: t('issues.affectedEntity'),
+              render: (issue: ReconIssue) => (
+                issue.affected_entity_type
+                  ? `${issue.affected_entity_type}: ${issue.affected_entity_id ?? EM_DASH}`
+                  : EM_DASH
+              ),
+            },
+            {
+              key: 'expected',
+              header: t('issues.expected'),
+              align: 'right' as const,
+              render: (issue: ReconIssue) => issue.expected_value != null ? issue.expected_value.toFixed(4) : EM_DASH,
+            },
+            {
+              key: 'actual',
+              header: t('issues.actual'),
+              align: 'right' as const,
+              render: (issue: ReconIssue) => issue.actual_value != null ? issue.actual_value.toFixed(4) : EM_DASH,
+            },
+            {
+              key: 'delta',
+              header: t('issues.delta'),
+              align: 'right' as const,
+              render: (issue: ReconIssue) => (
+                <span className={issue.delta < 0 ? 'text-danger-text' : issue.delta > 0 ? 'text-warning-text' : 'text-muted-foreground'}>
+                  {issue.delta != null ? issue.delta.toFixed(4) : EM_DASH}
+                </span>
+              ),
+            },
+            {
+              key: 'message',
+              header: t('issues.message'),
+              render: (issue: ReconIssue) => issue.message,
+            },
+            {
+              key: 'status',
+              header: t('issues.status'),
+              render: (issue: ReconIssue) => (
+                <CmxStatusBadge size="sm" tone={issueBadgeVariant(issue.status)}>
+                  {t(`issues.statusLabels.${issue.status}` as Parameters<typeof t>[0])}
+                </CmxStatusBadge>
+              ),
+            },
+          ]}
+          data={run.issues}
+          currentPage={1}
+          pageSize={run.issues.length || 1}
+          totalCount={run.issues.length}
+          showPageSizeSelector={false}
+          paginationFooter="never"
+          emptyStateTitle={t('issues.noIssues')}
+        />
       </div>
     </div>
   );

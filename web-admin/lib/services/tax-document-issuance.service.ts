@@ -21,6 +21,7 @@ import {
   decideCorrectionDocumentType,
 } from '@/lib/services/tax-document-decision.service';
 import { reverseOrderTaxLines } from '@/lib/services/tax/tax-lines.writer';
+import { readDatabaseInstant } from '@/lib/utils/operational-zone.server';
 
 export class TaxDocumentIssuanceError extends Error {
   code: string;
@@ -251,7 +252,7 @@ export async function issueCorrectionTaxDocumentTx(
       taxAmount: correctionTaxAmount,
       portion: originalTotal > 0 ? Math.min(1, absDelta / originalTotal) : 0,
       userId: params.issuedBy,
-      at: new Date(),
+      at: await readDatabaseInstant(tx),
     });
   }
   return { documentId, documentNo };

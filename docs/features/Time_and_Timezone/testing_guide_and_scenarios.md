@@ -13,7 +13,7 @@ Zone under test: `Asia/Muscat` (UTC+4, no daylight saving) plus one daylight-sav
 | T3 | 1 | Clear both zones. Open a till, save a ready time, create an order. | Each action is refused with a message to set the zone. No hour is shown from the laptop clock. |
 | T4 | 2 | Fail login until lockout. Policy is 15 minutes. | The message says 15 minutes. A later login before 15 minutes stays locked. A login after 15 minutes works. |
 | T5 | 2 | Schedule a notification for 09:00 at the shop. | The outbox instant is 05:00Z when the zone is `Asia/Muscat`. It does not send at 05:00 Muscat. |
-| T6 | 2 | Order with `ready_by_at_new` at 06:00Z. | List, detail, and receipt show 10:00 in Muscat. |
+| T6 | 2 | Order with `ready_by_at` at 06:00Z. | List, detail, and receipt show 10:00 in Muscat. |
 | T7 | 3 | Print the same order from the list and from the receipt. | The same zone and the same hour. |
 | T8 | 3 | List that contains two scopes in two zones, including one winter instant and one summer instant in a daylight-saving zone. | Each row uses its own zone. The label is that row's IANA name plus the abbreviation and offset of the instant on the row. |
 | T9 | 1 | Create an order at 21:00Z with zone `Asia/Muscat`. | Business date and the day inside the order number are the next calendar day. |
@@ -48,7 +48,7 @@ Zone under test: `Asia/Muscat` (UTC+4, no daylight saving) plus one daylight-sav
 
 | ID | Steps | Expected |
 |---|---|---|
-| F1 | `ready_by_at_new` is null and `ready_by` has a value, before backfill. | UI shows no Ready By rather than the naive hour. |
+| F1 | `ready_by_at` is null. | UI shows no Ready By. |
 | F2 | Provenance sample for a column shows both UTC wall and Muscat wall. | That column is not in the migration. The work package stops. |
 | F3 | Report "today" while the zone is missing. | The report does not run against the UTC date. |
 | F4 | Complete public registration from a browser in `America/Chicago`. | The confirmed zone is stored on the organization. The operations door does not read the browser on the next order. |

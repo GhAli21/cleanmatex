@@ -8,9 +8,9 @@ Contract: [`docs/dev/rules/time-and-timezone.md`](../../../dev/rules/time-and-ti
 |---|---|---|---|---|
 | 1 | Postgres columns | Every naive instant is classified, proven, and converted, or explicitly left as `date` / `time` | 488 `@db.Timestamp`, 977 `@db.Timestamptz` | WP2–WP5, WP7, WP8 |
 | 2 | SQL functions, triggers, views | New civil-day work calls `fn_ops_zone` or reads the row snapshot. No function compares a naive timestamp to `now()` or casts an instant without a named IANA zone. List filters compute bounds once | `0670` doc-seq, `0739` holiday check substitutes `UTC`, `0625`/`0630` notifications, `0807`/`0810` job queues, `0715` HQ audit | WP12 |
-| 3 | Cron and workers | Fire times are UTC instants. Due means eligible. A claim uses a bounded lease and one idempotency key. A shop-local rule stores civil time plus the zone and a materialized `timestamptz` | `campaign-jobs.service.ts`, `finance-jobs.service.ts`, `process-outbox`, `process-campaigns`, POS rollover | WP4, WP18 |
+| 3 | Cron and workers | Fire times are UTC instants. Due means eligible. A claim uses a bounded lease and one idempotency key. A shop-local rule stores civil time plus the zone and a materialized `timestamptz`. `cmx-workers` schedules stay `tz: 'UTC'` | `cmx-workers`, `campaign-jobs.service.ts`, `finance-jobs.service.ts`, `process-outbox`, `process-campaigns`, POS rollover | WP4, WP18 |
 | 4 | Document numbers | The day inside a tenant code is the operations-zone civil day. An invalid tenant zone fails the issue. Issued codes are not renumbered | `fn_doc_seq_next` falls back to `hq_general_config.timezone` when the tenant zone is invalid (`0670`) | WP13 |
-| 5 | Services | Business rules call the shared resolver, parser, and calendar. No service computes a business day with `slice(0, 10)` or `getHours`. A persisted business date uses one database instant | Speed rules, tax lines, prepaid tax, tax explain, commercial calendar, POS session (`businessDateForTimezone` without an instant), delivery policy | WP1 |
+| 5 | Services | Business rules call the shared resolver, parser, and calendar. No service computes a business day with `slice(0, 10)` or `getHours`. A persisted business date uses one database instant | Named clocks now use a database instant, including prepaid tax and refund reversal. `createTaxDocumentTx` still takes the fiscal year from `getFullYear()`. `formatReadyByDate` remains WP6 | WP1 |
 | 6 | HTTP API routes | Every route that accepts or returns a date uses the shared parser and returns instants as RFC 3339 `Z` | Campaigns, public booking, orders, delivery routes, promotions, reconciliation, tax exemptions, credit notes, vouchers, price lists, cash drawers | WP10 |
 | 7 | Webhooks | Inbound instants have an offset. Outbound instants are `Z` | `hq_ntf_webhook_events`, notification dispatch | WP10 |
 | 8 | Server actions | Same parser and zone rules as HTTP routes | `app/actions` for promotions, gift cards, tax, refunds, reconciliation, drivers, cash drawers, loyalty, payment methods | WP11 |
@@ -20,7 +20,7 @@ Contract: [`docs/dev/rules/time-and-timezone.md`](../../../dev/rules/time-and-ti
 | 12 | Print, PDF, labels | Same zone as the screen, named in the document header | Order receipt, payment prints, B2B statements, cash-drawer session, label renderer | WP6 |
 | 13 | Customer message bodies | The day and clock inside SMS, email, WhatsApp, and in-app text use the operations zone | `order-event-variables.ts` formats with `toLocaleDateString` and, when the zone is missing, the server zone | WP15 |
 | 14 | Exports and imports | An export of an instant includes `Z`. A human export also includes the civil date and the zone id. An import rejects a datetime with no zone | `customers/export`, `products/export`, `ar/invoices/export`, `pricing/export`, FX import | WP16 |
-| 15 | Logs | Log lines are UTC ISO-8601. A civil decision adds the zone id as a field | `web-admin` logger, `cmx-api/src/common/utils/logger.ts`, `cmx_mobile_apps/.../app_logger.dart` | WP17 |
+| 15 | Logs | Log lines are UTC ISO-8601. A civil decision adds the zone id as a field | `web-admin` logger, `cmx-api/src/common/utils/logger.ts`, `cmx-workers/src/log.ts`, `cmx_mobile_apps/.../app_logger.dart` | WP17 |
 | 16 | Audit UI | Rows store a UTC instant. The screen formats it with the operations zone | Finance action audit, post audit, delivery log, order edit history | WP6, WP17 |
 | 17 | `cmx-api` | The Nest API has its own parser and zone helper, with the same vectors as `web-admin`, and every date route uses them | 2026-11-24 search matched only the logger. The helpers still land | WP19 |
 | 18 | Mobile apps | Booking, tracking, and the shared date picker submit civil fields and show the shop clock | `customer_order_booking_screen.dart`, `customer_booking_step3_schedule_vw.dart`, `app_date_time_picker_widget.dart`, `order_booking_service.dart`, `order_tracking_service.dart` | WP20 |
@@ -29,16 +29,17 @@ Contract: [`docs/dev/rules/time-and-timezone.md`](../../../dev/rules/time-and-ti
 | 21 | Seeds, fixtures, tests | Tests set an explicit zone. They do not treat the machine zone as the shop zone | `__tests__` next to each package | WP9 |
 | 22 | i18n | New errors exist in EN and AR. Locale changes digits and month names only | `web-admin/messages/en`, `web-admin/messages/ar` | WP1 |
 | 23 | Settings screens | Organization and branch zone screens stay the only place a zone is chosen. They do not gain a silent default | Existing timezone settings | WP22 |
-| 24 | CI | New naive instants, unzoned date parses, offset-less API datetimes, and a private timezone lookup in new SQL fail the check | `web-admin`, `cmx-api`, mobile date parsing, new migrations | WP9 |
+| 24 | CI | New naive instants, unzoned date parses, offset-less API datetimes, and a private timezone lookup in new SQL fail the check | `web-admin`, `cmx-api`, `cmx-workers`, mobile date parsing, new migrations | WP9 |
 
 ## Known defects the map must not lose
 
 - `fn_doc_seq_next` substitutes the HQ timezone when the tenant timezone is null or invalid. Tenant numbering fails closed instead. SYS and HQ document types keep the HQ clock.
 - The setup-health holiday check in `0739` substitutes `UTC` when the organization zone is missing or invalid. It will call `fn_ops_zone` and fail closed instead.
-- `formatReadyByLabel` in `order-event-variables.ts` uses `toLocaleDateString`. With no valid zone it uses the server zone. Customer text uses the operations zone or sends no clock.
+- `formatReadyByLabel` formats an instant in the operations zone. With no valid zone the label is empty. A date-only value stays that calendar day. Approved notification template text is still the stored wording.
 - `getTenantTimeZone` is the organization zone. Operational pages resolve the feature's documented scope, then the organization. Layout must not be treated as that scope clock.
 - Public booking (`app/api/v1/public/customer/booking/route.ts`) accepts a customer appointment. The server applies the documented scope. A zone sent by the phone is an echo only.
-- A naive instant is not read as a UTC wall clock. Readers use the `timestamptz` twin, or show no clock, until the column's provenance sample proves one stored clock. Conversion follows expand-and-contract. A UTC database session, measured on 2026-11-25, does not prove the old rows.
-- `pos-session.service.ts` assigns the POS business date from the application clock. The assignment uses one database instant.
-- `tax-explain.service.ts` uses `isoDate(now)` when the zone is missing. That path fails closed.
+- Development rows may be rewritten. A naive instant whose writer stores `now()` converts with `USING column AT TIME ZONE 'UTC'`. A civil value stays `date` or `time`. `sys_*` and `hq_*` stamps wait for the HQ reader list. Readers of a column that is still naive show no clock.
+- Opening a POS session stores `opened_at` from `clock_timestamp()` and derives the business date from that instant.
+- `tax-explain.service.ts` throws when the organization zone is missing.
+- Ready By readers and writers use canonical `ready_by_at` (`timestamptz`, renamed from `ready_by_at_new` in `0833`), and actual Ready uses `ready_at` (`timestamptz`). Order screens, the receipt, the payments print, the voucher list, the financial report date, the ready-date picker, and preparation ready-by rounding use the operations zone. A missing zone or a naive timestamp shows no clock. `formatReadyByDate` stays empty without a zone. A caller that omits the zone still rounds on the machine clock.
 - `sys_country_cd.default_timezone_code` is not an operations zone. A scope with no timezone column names the branch that owns the action.

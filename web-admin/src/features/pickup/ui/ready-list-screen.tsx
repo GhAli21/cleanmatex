@@ -44,8 +44,7 @@ interface ReadyListApiOrder extends CanonicalOrderFinancialRowLike {
   current_status?: string | null
   status?: string | null
   rack_location?: string | null
-  ready_by?: string | null
-  ready_by_at_new?: string | null
+  ready_by_at?: string | null
   payment_status?: string | null
   payment_type_code?: string | null
   total_items?: number | null
@@ -152,7 +151,7 @@ export function ReadyListScreen() {
         payment_status: paymentStatus,
         current_status: order.current_status || order.status || 'ready',
         rack_location: order.rack_location || '',
-        ready_by: order.ready_by_at_new || order.ready_by || '',
+        ready_by: order.ready_by_at || '',
         pickup_release: order.pickup_release ?? { ...NOT_RELEASED_PICKUP_SUMMARY },
       }
     })

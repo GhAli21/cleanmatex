@@ -40,6 +40,7 @@ import { CmxStatusBadge, useMessage } from '@ui/feedback';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { REFUND_METHODS, REFUND_STATUSES } from '@/lib/constants/order-financial';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useCashChangeRoundingPolicy, useRoundedCashChange } from '@features/orders/hooks/use-cash-change-rounding';
@@ -55,6 +56,7 @@ interface RefundItem {
   refund_no: string;
   order_id: string;
   order_no: string | null;
+  ops_zone: string | null;
   refund_amount: number;
   currency_code: string;
   reason_code: string | null;
@@ -121,12 +123,8 @@ type StageAction = 'approve' | 'process';
  * @param locale active Next Intl locale
  * @returns a localized timestamp or an em dash when unavailable
  */
-function fmtDate(iso: string | null | undefined, locale: string): string {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat(locale, {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(iso));
+function fmtDate(iso: string | null | undefined, zone: string | null, locale: string): string {
+  return formatInstantOrEmpty(iso, zone, locale === 'ar' ? 'ar' : 'en') || '—';
 }
 
 /**
@@ -345,12 +343,12 @@ export default function RefundsListClient({
     { accessorKey: 'pos_session_id', header: t('posSessionId'), meta: { hideBelow: 'lg', isCopyable: true } },
     { accessorKey: 'gateway_refund_id', header: t('settlementReference'), meta: { hideBelow: 'lg', isCopyable: true } },
     { accessorKey: 'created_by', header: t('requestedBy'), meta: { hideBelow: 'lg', isCopyable: true } },
-    { accessorKey: 'created_at', header: t('requestedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'md' } },
+    { accessorKey: 'created_at', header: t('requestedAt'), cell: ({ row }) => fmtDate(row.original.created_at, row.original.ops_zone, locale), meta: { hideBelow: 'md' } },
     { accessorKey: 'approved_by', header: t('approvedBy'), meta: { hideBelow: 'lg', isCopyable: true } },
-    { accessorKey: 'approved_at', header: t('approvedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'lg' } },
-    { accessorKey: 'processed_at', header: t('processedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'md' } },
+    { accessorKey: 'approved_at', header: t('approvedAt'), cell: ({ row }) => fmtDate(row.original.approved_at, row.original.ops_zone, locale), meta: { hideBelow: 'lg' } },
+    { accessorKey: 'processed_at', header: t('processedAt'), cell: ({ row }) => fmtDate(row.original.processed_at, row.original.ops_zone, locale), meta: { hideBelow: 'md' } },
     { accessorKey: 'updated_by', header: t('updatedBy'), meta: { hideBelow: 'lg', isCopyable: true } },
-    { accessorKey: 'updated_at', header: t('updatedAt'), cell: ({ getValue }) => fmtDate(getValue() as string | null, locale), meta: { hideBelow: 'lg' } },
+    { accessorKey: 'updated_at', header: t('updatedAt'), cell: ({ row }) => fmtDate(row.original.updated_at, row.original.ops_zone, locale), meta: { hideBelow: 'lg' } },
     { accessorKey: 'rec_notes', header: t('recordNotes'), meta: { hideBelow: 'lg', isCopyable: true } },
   ];
 

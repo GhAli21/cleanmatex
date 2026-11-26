@@ -72,7 +72,7 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
         edit_access_status: true, edit_block_reason_code: true, edit_block_reason_text: true, edit_block_until: true,
         current_status: true, wf_profile_id: true, wf_profile_version_id: true,
         customer_id: true, customer_name: true, customer_mobile_number: true, customer_email: true,
-        branch_id: true, currency_code: true, payment_type_code: true, priority: true, service_speed: true, ready_by: true,
+        branch_id: true, currency_code: true, payment_type_code: true, priority: true, service_speed: true, ready_by_at: true,
         internal_notes: true, customer_notes: true,
       },
     });
@@ -216,7 +216,7 @@ export async function getOrderChangeContext(input: { tenantId: string; orderId: 
         customer: { id: order.customer_id },
         customerSnapshot: { name: order.customer_name, mobile: order.customer_mobile_number, email: order.customer_email },
         branchId: order.branch_id, currencyCode: order.currency_code, timezone: organization?.timezone ?? null, paymentTypeCode: order.payment_type_code, priority: order.priority, serviceSpeed: order.service_speed,
-        readyBy: toIso(order.ready_by), notes: order.internal_notes, customerNotes: order.customer_notes,
+        readyBy: toIso(order.ready_by_at), notes: order.internal_notes, customerNotes: order.customer_notes,
       },
       items: items.map((item) => ({
         id: item.id, moneyBasis: item.money_basis, orderId: item.order_id, productId: item.product_id, productName: item.product_name, productName2: item.product_name2,

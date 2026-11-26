@@ -16,6 +16,7 @@
   "validation": {
     "dateMustBeFuture": "يجب أن يكون التاريخ في المستقبل"
   },
+  "timezoneNotConfigured": "لم يتم تحديد منطقة زمنية لهذا الفرع، لذا لا يمكن اختيار وقت الجاهزية. اطلب من المسؤول تحديدها.",
   "monthNames": {
     "january": "يناير",
     "february": "فبراير",

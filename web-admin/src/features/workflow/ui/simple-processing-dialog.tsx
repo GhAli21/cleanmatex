@@ -23,7 +23,8 @@ import {
   CmxInlineEditTable,
   type CmxInlineEditTableColumn,
 } from '@ui/data-display';
-import { X } from 'lucide-react';
+import { Lock, X } from 'lucide-react';
+import { PRC_TRX_SOURCE_SCREENS } from '@/lib/constants/processing-trx';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useHasPermissionCode } from '@/lib/hooks/usePermissions';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
@@ -195,6 +196,7 @@ export function SimpleProcessingDialog({
 
   const order = orderData?.order ?? null;
   const items = orderData?.items ?? [];
+  const isCommercialLocked = Boolean(orderData?.isCommercialLocked);
 
   const { data: piecesData, isLoading: piecesLoading } = useQuery({
     queryKey: ['order-pieces', orderId],
@@ -462,15 +464,37 @@ export function SimpleProcessingDialog({
         header: t('columns.notes'),
         width: splitOrderEnabled ? '22%' : '26%',
         cell: (piece) => (
-          <CmxInput
-            value={piece.notes || ''}
-            onChange={(e) =>
-              handlePieceChange(piece.id, { notes: e.target.value })
-            }
-            placeholder={t('notesPlaceholder')}
-            aria-label={t('columns.notes')}
-            className="h-8 w-full text-sm"
-          />
+          <div className="space-y-1">
+            {isCommercialLocked ? (
+              <>
+                {piece.notes && (
+                  <div className="flex items-start gap-1 rounded bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground">
+                    <Lock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                    <span className="line-clamp-2">{piece.notes}</span>
+                  </div>
+                )}
+                <CmxInput
+                  value={piece.processingNote || ''}
+                  onChange={(e) =>
+                    handlePieceChange(piece.id, { processingNote: e.target.value })
+                  }
+                  placeholder={t('floorNotePlaceholder')}
+                  aria-label={t('floorNotePlaceholder')}
+                  className="h-8 w-full text-sm"
+                />
+              </>
+            ) : (
+              <CmxInput
+                value={piece.notes || ''}
+                onChange={(e) =>
+                  handlePieceChange(piece.id, { notes: e.target.value })
+                }
+                placeholder={t('notesPlaceholder')}
+                aria-label={t('columns.notes')}
+                className="h-8 w-full text-sm"
+              />
+            )}
+          </div>
         ),
       },
       {
@@ -592,9 +616,20 @@ export function SimpleProcessingDialog({
       }
       return data;
     },
-    onSuccess: () => {
-      cmxMessage.success(t('updateSuccess'));
-      setOriginalPieceStates(new Map(pieceStates));
+    onSuccess: (data: { summary?: { trxCode?: string } }) => {
+      const trxCode = data?.summary?.trxCode;
+      cmxMessage.success(
+        trxCode ? t('updateSuccessWithTrx', { trxCode }) : t('updateSuccess')
+      );
+      const clearedMap = new Map<string, ItemPiece>();
+      pieceStates.forEach((piece, key) => {
+        clearedMap.set(key, { ...piece, processingNote: '' });
+      });
+      setPieceStates(clearedMap);
+      setOriginalPieceStates(new Map(clearedMap));
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: ['processing-transactions', orderId] });
+      }
       invalidateCaches();
     },
     onError: (error) => {
@@ -672,7 +707,10 @@ export function SimpleProcessingDialog({
         itemId: piece.itemId,
         pieceNumber: piece.pieceNumber,
         is_ready: piece.is_ready ?? null,
-        notes: piece.notes || '',
+        ...(isCommercialLocked ? {} : { notes: piece.notes || '' }),
+        ...(piece.processingNote?.trim()
+          ? { processingNote: piece.processingNote.trim() }
+          : {}),
         rackLocation: piece.rackLocation || '',
         isRejected: piece.isRejected || false,
       }));
@@ -698,6 +736,7 @@ export function SimpleProcessingDialog({
     updateMutation.mutate({
       updates,
       itemQuantityReady,
+      sourceScreen: PRC_TRX_SOURCE_SCREENS.SIMPLE_PROCESSING,
     });
   };
 

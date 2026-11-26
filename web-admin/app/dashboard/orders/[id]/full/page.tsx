@@ -26,6 +26,8 @@ import {
   isUuidLike,
   sanitizeOrderDetailsReturnUrl,
 } from '@/lib/orders/order-details-navigation';
+import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
 
@@ -253,11 +255,17 @@ async function OrderDetailsFullContent({
   const orderTypeLabels = Object.fromEntries(
     Object.values(ORDER_TYPE_IDS).map((code) => [code, tOrders(`orderTypes.${code}`)]),
   );
+  const opsZone = await resolveOperationalTimeZoneOn(prisma, {
+    tenantOrgId: tenantId,
+    operation: 'ready_by',
+    branchId: order.branch_id,
+  });
 
   return (
     <OrderDetailsFullClient
       order={serializedOrder}
       orderTypeLabels={orderTypeLabels}
+      opsZone={opsZone}
       publicTrackingPath={publicTrackingPath}
       allPayments={financialData?.payments ?? []}
       orderInvoices={orderInvoices}
@@ -513,7 +521,7 @@ async function OrderDetailsFullContent({
             'gift_card_id', 'service_charge',
             'currency_code', 'currency_ex_rate',
             'payment_status', 'payment_method_code', 'paid_amount', 'paid_at', 'paid_by', 'payment_notes',
-            'received_at', 'ready_by', 'ready_at', 'delivered_at', 'created_at', 'updated_at',
+            'received_at', 'ready_by_at', 'ready_at', 'delivered_at', 'created_at', 'updated_at',
             'customer_notes', 'internal_notes', 'payment_notes', 'preparation_status', 'prepared_at', 'prepared_by',
             'bag_count', 'is_retail',
             'cancelled_at', 'cancelled_by', 'cancelled_note', 'returned_at', 'returned_by', 'return_reason', 'return_reason_code',

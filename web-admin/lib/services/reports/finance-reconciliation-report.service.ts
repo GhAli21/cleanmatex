@@ -16,6 +16,8 @@ import 'server-only';
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
+import { resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server';
+import { civilRangeQuery } from '@/lib/utils/operational-time';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import {
   EXCESS_LIABILITY_SOURCES,
@@ -49,19 +51,34 @@ function toNumber(value: unknown): number {
   return Number(value);
 }
 
-/** Build the optional `created_at` window as raw SQL fragments. */
-function dateConds(column: string, from?: string, to?: string): Prisma.Sql[] {
+/** Inclusive instant window for civil dates in the organization zone. */
+async function resolveCivilWindow(
+  tenantOrgId: string,
+  from?: string,
+  to?: string,
+): Promise<{ start?: Date; end?: Date }> {
+  if (!from && !to) return {};
+  const zone = await resolveOrganizationTimeZone(tenantOrgId);
+  const startCivil = from ?? to;
+  const endCivil = to ?? from;
+  const query = civilRangeQuery(startCivil ?? '', endCivil ?? '', zone);
+  if (!query) throw new Error('TIMEZONE_NOT_CONFIGURED');
+  return { start: new Date(query.start), end: new Date(query.end) };
+}
+
+/** Build the optional instant window as raw SQL fragments. */
+function dateConds(column: string, start?: Date, end?: Date): Prisma.Sql[] {
   const conds: Prisma.Sql[] = [];
-  if (from) conds.push(Prisma.sql`${Prisma.raw(column)} >= ${new Date(from)}`);
-  if (to) conds.push(Prisma.sql`${Prisma.raw(column)} <= ${new Date(`${to}T23:59:59.999Z`)}`);
+  if (start) conds.push(Prisma.sql`${Prisma.raw(column)} >= ${start}`);
+  if (end) conds.push(Prisma.sql`${Prisma.raw(column)} <= ${end}`);
   return conds;
 }
 
-/** Prisma-side `created_at` window for typed model queries. */
-function dateFilter(from?: string, to?: string) {
+/** Prisma-side instant window for typed model queries. */
+function dateFilter(start?: Date, end?: Date) {
   const range: { gte?: Date; lte?: Date } = {};
-  if (from) range.gte = new Date(from);
-  if (to) range.lte = new Date(`${to}T23:59:59.999Z`);
+  if (start) range.gte = start;
+  if (end) range.lte = end;
   return Object.keys(range).length ? range : undefined;
 }
 
@@ -211,10 +228,11 @@ export async function getB2bStatementReconReport(
   const { tenantOrgId, from, to } = filter;
 
   return withTenantContext(tenantOrgId, async () => {
+    const window = await resolveCivilWindow(tenantOrgId, from, to);
     const conds = [
       Prisma.sql`s.tenant_org_id = ${tenantOrgId}::uuid`,
       Prisma.sql`s.is_active = true`,
-      ...dateConds('s.created_at', from, to),
+      ...dateConds('s.created_at', window.start, window.end),
     ];
 
     const raw = await prisma.$queryRaw<B2bReconRaw[]>`
@@ -304,11 +322,12 @@ export async function getOverpaymentDispositionReconReport(
   const { tenantOrgId, from, to, branchId } = filter;
 
   return withTenantContext(tenantOrgId, async () => {
+    const window = await resolveCivilWindow(tenantOrgId, from, to);
     const conds = [
       Prisma.sql`tenant_org_id = ${tenantOrgId}::uuid`,
       Prisma.sql`is_active = true`,
       ...(branchId ? [Prisma.sql`branch_id = ${branchId}::uuid`] : []),
-      ...dateConds('created_at', from, to),
+      ...dateConds('created_at', window.start, window.end),
     ];
 
     const raw = await prisma.$queryRaw<OverpayReconRaw[]>`
@@ -380,11 +399,13 @@ export async function getCashDrawerReconReport(
   const { tenantOrgId, from, to, branchId } = filter;
 
   return withTenantContext(tenantOrgId, async () => {
+    const window = await resolveCivilWindow(tenantOrgId, from, to);
+    const openedAt = dateFilter(window.start, window.end);
     const sessions = await prisma.org_cash_drawer_sessions_mst.findMany({
       where: {
         tenant_org_id: tenantOrgId,
         ...(branchId ? { branch_id: branchId } : {}),
-        ...(dateFilter(from, to) ? { opened_at: dateFilter(from, to) } : {}),
+        ...(openedAt ? { opened_at: openedAt } : {}),
       },
       select: {
         id: true,

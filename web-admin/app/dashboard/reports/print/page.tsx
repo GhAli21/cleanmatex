@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { format } from 'date-fns';
+import { useLocale, useTranslations } from 'next-intl';
+import { civilDateInZone, civilRangeQuery, formatCivilDate, formatInstant } from '@/lib/utils/operational-time';
+import { useReportsClock } from '@features/reports/ui/reports-clock';
 import {
   fetchOrdersReport,
   fetchPaymentsReport,
@@ -26,20 +27,28 @@ export default function ReportPrintPage() {
   const searchParams = useSearchParams();
   const t = useTranslations('reports');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { zone } = useReportsClock();
   const reportType = searchParams.get('type') || 'orders';
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
+  const query = civilRangeQuery(startDate, endDate, zone);
+  const queryStart = query?.start ?? '';
+  const queryEnd = query?.end ?? '';
 
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      if (!startDate || !endDate) return;
+      if (!queryStart || !queryEnd) {
+        setLoading(false);
+        return;
+      }
 
       const params = {
-        startDate: `${startDate}T00:00:00.000Z`,
-        endDate: `${endDate}T23:59:59.999Z`,
+        startDate: queryStart,
+        endDate: queryEnd,
         limit: 1000,
       };
 
@@ -64,7 +73,7 @@ export default function ReportPrintPage() {
       setLoading(false);
     }
     load();
-  }, [reportType, startDate, endDate]);
+  }, [reportType, queryStart, queryEnd]);
 
   useEffect(() => {
     if (data && !loading) {
@@ -89,7 +98,7 @@ export default function ReportPrintPage() {
   }
 
   const dateRangeLabel = startDate && endDate
-    ? `${format(new Date(startDate), 'dd MMM yyyy')} - ${format(new Date(endDate), 'dd MMM yyyy')}`
+    ? `${formatCivilDate(startDate, locale)} - ${formatCivilDate(endDate, locale)}`
     : '';
 
   const reportTitle: Record<string, string> = {
@@ -137,21 +146,21 @@ export default function ReportPrintPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{dateRangeLabel}</p>
           <p className="text-xs text-muted-foreground">
-            Generated: {format(new Date(), 'dd MMM yyyy HH:mm')}
+            Generated: {zone ? formatInstant(new Date(), zone, locale) : '—'}
           </p>
         </div>
 
         {/* Report Content based on type */}
-        {reportType === 'orders' && <OrdersPrintContent data={data as OrdersReportData} t={t} />}
-        {reportType === 'payments' && <PaymentsPrintContent data={data as PaymentsReportData} t={t} />}
-        {reportType === 'invoices' && <InvoicesPrintContent data={data as InvoicesReportData} t={t} />}
-        {reportType === 'customers' && <CustomersPrintContent data={data as CustomerReportData} t={t} />}
+        {reportType === 'orders' && <OrdersPrintContent data={data as OrdersReportData} t={t} zone={zone} />}
+        {reportType === 'payments' && <PaymentsPrintContent data={data as PaymentsReportData} t={t} zone={zone} />}
+        {reportType === 'invoices' && <InvoicesPrintContent data={data as InvoicesReportData} t={t} zone={zone} />}
+        {reportType === 'customers' && <CustomersPrintContent data={data as CustomerReportData} t={t} zone={zone} />}
       </div>
     </>
   );
 }
 
-function OrdersPrintContent({ data, t }: { data: OrdersReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
+function OrdersPrintContent({ data, t, zone }: { data: OrdersReportData; t: ReturnType<typeof useTranslations<'reports'>>; zone: string | null }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
@@ -170,14 +179,14 @@ function OrdersPrintContent({ data, t }: { data: OrdersReportData; t: ReturnType
           String(o.totalItems),
           `${kpis.currencyCode} ${o.total.toLocaleString()}`,
           o.paymentStatus,
-          o.createdAt ? format(new Date(o.createdAt), 'dd/MM/yyyy') : '',
+          o.createdAt && zone ? civilDateInZone(o.createdAt, zone) : '',
         ])}
       />
     </div>
   );
 }
 
-function PaymentsPrintContent({ data, t }: { data: PaymentsReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
+function PaymentsPrintContent({ data, t, zone }: { data: PaymentsReportData; t: ReturnType<typeof useTranslations<'reports'>>; zone: string | null }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
@@ -196,14 +205,14 @@ function PaymentsPrintContent({ data, t }: { data: PaymentsReportData; t: Return
           `${p.currencyCode} ${p.amount.toLocaleString()}`,
           p.methodName ?? p.methodCode,
           p.status,
-          p.paidAt ? format(new Date(p.paidAt), 'dd/MM/yyyy') : '',
+          p.paidAt && zone ? civilDateInZone(p.paidAt, zone) : '',
         ])}
       />
     </div>
   );
 }
 
-function InvoicesPrintContent({ data, t }: { data: InvoicesReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
+function InvoicesPrintContent({ data, t, zone }: { data: InvoicesReportData; t: ReturnType<typeof useTranslations<'reports'>>; zone: string | null }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
@@ -222,14 +231,14 @@ function InvoicesPrintContent({ data, t }: { data: InvoicesReportData; t: Return
           `${kpis.currencyCode} ${inv.paidAmount.toLocaleString()}`,
           `${kpis.currencyCode} ${inv.balance.toLocaleString()}`,
           inv.status + (inv.isOverdue ? ' (Overdue)' : ''),
-          inv.dueDate ? format(new Date(inv.dueDate), 'dd/MM/yyyy') : '-',
+          inv.dueDate && zone ? civilDateInZone(inv.dueDate, zone) : '-',
         ])}
       />
     </div>
   );
 }
 
-function CustomersPrintContent({ data, t }: { data: CustomerReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
+function CustomersPrintContent({ data, t, zone }: { data: CustomerReportData; t: ReturnType<typeof useTranslations<'reports'>>; zone: string | null }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
@@ -247,8 +256,8 @@ function CustomersPrintContent({ data, t }: { data: CustomerReportData; t: Retur
           String(c.totalOrders),
           `${kpis.currencyCode} ${c.totalRevenue.toLocaleString()}`,
           `${kpis.currencyCode} ${c.avgOrderValue.toLocaleString()}`,
-          c.lastOrderDate ? format(new Date(c.lastOrderDate), 'dd/MM/yyyy') : '-',
-          c.firstOrderDate ? format(new Date(c.firstOrderDate), 'dd/MM/yyyy') : '-',
+          c.lastOrderDate && zone ? civilDateInZone(c.lastOrderDate, zone) : '-',
+          c.firstOrderDate && zone ? civilDateInZone(c.firstOrderDate, zone) : '-',
         ])}
       />
     </div>

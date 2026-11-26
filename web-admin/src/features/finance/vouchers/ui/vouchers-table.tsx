@@ -14,6 +14,7 @@ import { VoucherEditDialog } from './voucher-edit-dialog';
 import type { VoucherListItem } from '@/lib/types/voucher';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { VOUCHER_RELATED_HREFS } from '@/lib/constants/voucher-related-hrefs';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 
 interface VouchersTableProps {
   items: VoucherListItem[];
@@ -119,8 +120,9 @@ export function VouchersTable({ items, total, page, pageSize, onPageChange }: Vo
       header: t('voucherDate'),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
-          {row.original.voucher_date ??
-            new Date(row.original.created_at).toLocaleDateString(isRtl ? 'ar' : 'en')}
+          {row.original.voucher_date
+            || formatStoredClock(row.original.created_at, row.original.ops_zone, locale)
+            || '—'}
         </span>
       ),
     },

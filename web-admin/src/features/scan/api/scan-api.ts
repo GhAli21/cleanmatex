@@ -36,6 +36,8 @@ export interface PieceTagSaved {
   pieceId: string;
   pieceCode: string | null;
   externalTag: string | null;
+  trxId?: string;
+  trxCode?: string;
 }
 
 export function linkPieceTag(pieceId: string, tag: string, csrfToken: string | null): Promise<ApiOutcome<PieceTagSaved>> {

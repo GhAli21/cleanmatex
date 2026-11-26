@@ -24,6 +24,14 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
 import { OrderIssueRowActions } from '@features/orders/ui/issues/order-issue-row-actions';
 import type { ItemPiece, OrderItem, ProcessingStepConfig } from '@/types/order';
+import type { PrefsFollowupNote } from '@/lib/utils/notes-followup';
+import type { PieceTagSaved } from '@/src/features/scan/api/scan-api';
+import {
+  NOTES_FOLLOWUP_TARGET_LEVELS,
+  PRC_TRX_SOURCE_SCREENS,
+} from '@/lib/constants/processing-trx';
+import { PREFS_SOURCE_STAGE } from '@/lib/constants/order-preferences';
+import { CmxFollowupNotesFeed } from './cmx-followup-notes-feed';
 import { ProcessingPieceRow } from './processing-piece-row';
 
 interface ProcessingItemRowProps {
@@ -49,6 +57,10 @@ interface ProcessingItemRowProps {
   issueOpenCount?: number;
   issueTotalCount?: number;
   issueByPiece?: Record<string, { open: number; total: number }>;
+  isCommercialLocked?: boolean;
+  onItemNotesUpdated?: (itemId: string, notes: PrefsFollowupNote[], trxCode?: string) => void;
+  onPieceNotesUpdated?: (pieceId: string, notes: PrefsFollowupNote[], trxCode?: string) => void;
+  onTagSaved?: (pieceId: string, saved: PieceTagSaved) => void;
 }
 
 const KNOWN_STATUS_KEYS = new Set([
@@ -107,6 +119,10 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow(
     issueOpenCount,
     issueTotalCount,
     issueByPiece = {},
+    isCommercialLocked = false,
+    onItemNotesUpdated,
+    onPieceNotesUpdated,
+    onTagSaved,
   } = props;
 
   const t = useTranslations('processing.modal');
@@ -359,9 +375,31 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow(
                 onConfirmSuccess={onConfirmSuccess}
                 issueOpenCount={issueByPiece[piece.id]?.open}
                 issueTotalCount={issueByPiece[piece.id]?.total}
+                isCommercialLocked={isCommercialLocked}
+                onPieceNotesUpdated={onPieceNotesUpdated}
+                onTagSaved={onTagSaved}
               />
             ))}
           </div>
+
+          {orderId && (
+            <div className="mt-2.5">
+              <CmxFollowupNotesFeed
+                orderId={orderId}
+                targetLevel={NOTES_FOLLOWUP_TARGET_LEVELS.ITEM}
+                targetId={item.id}
+                notes={item.notes_followup}
+                intakeNote={item.notes}
+                intakeNoteLocked={isCommercialLocked}
+                noteSource={PREFS_SOURCE_STAGE.ORDER_PROCESSING}
+                sourceScreen={PRC_TRX_SOURCE_SCREENS.PROCESSING_MODAL}
+                onNotesUpdated={(updatedNotes, trxCode) =>
+                  onItemNotesUpdated?.(item.id, updatedNotes, trxCode)
+                }
+                compact
+              />
+            </div>
+          )}
         </CmxCardContent>
       )}
 
@@ -378,11 +416,28 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow(
                 </span>
               )}
             </div>
-            {item.notes && (
-              <div className="rounded-md bg-muted p-2.5">
-                <span className="font-medium text-foreground">{t('notesLabel')}</span>
-                <p className="mt-1 text-muted-foreground">{item.notes}</p>
-              </div>
+            {orderId ? (
+              <CmxFollowupNotesFeed
+                orderId={orderId}
+                targetLevel={NOTES_FOLLOWUP_TARGET_LEVELS.ITEM}
+                targetId={item.id}
+                notes={item.notes_followup}
+                intakeNote={item.notes}
+                intakeNoteLocked={isCommercialLocked}
+                noteSource={PREFS_SOURCE_STAGE.ORDER_PROCESSING}
+                sourceScreen={PRC_TRX_SOURCE_SCREENS.PROCESSING_MODAL}
+                onNotesUpdated={(updatedNotes, trxCode) =>
+                  onItemNotesUpdated?.(item.id, updatedNotes, trxCode)
+                }
+                compact
+              />
+            ) : (
+              item.notes && (
+                <div className="rounded-md bg-muted p-2.5">
+                  <span className="font-medium text-foreground">{t('notesLabel')}</span>
+                  <p className="mt-1 text-muted-foreground">{item.notes}</p>
+                </div>
+              )
             )}
           </div>
         </CmxCardContent>

@@ -718,7 +718,7 @@ Layer 1 — DB/Prisma writes     Layer 2 — API serialization     Layer 3 — F
 customer_mobile_number     →   customer_mobile             →   state.customerMobile
 internal_notes             →   notes                       →   state.notes
 priority (string)          →   is_express (boolean)        →   state.express
-ready_by / ready_by_at_new →   ready_by_at                 →   state.readyByAt
+ready_by_at                →   ready_by_at                 →   state.readyByAt
 ```
 
 **Translation source file:** `web-admin/app/api/v1/orders/[id]/route.ts` lines 71–85

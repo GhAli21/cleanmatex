@@ -1,3 +1,5 @@
+import { civilDateInZone, formatCivilDate } from '@/lib/utils/operational-time';
+
 /**
  * Shared display helpers for the D-09 reconciliation report tables. Matches the
  * lightweight money formatting used by the existing finance reports
@@ -11,8 +13,11 @@ export function fmtAmount(n: number | null | undefined, currency?: string | null
   return `${currency ?? ''} ${n.toFixed(3)}`.trim();
 }
 
-/** Format an ISO timestamp as a locale date; `—` for null. */
-export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString();
+/** Civil day of an instant in the operations zone. A missing zone or instant is an em dash. */
+export function fmtDate(
+  iso: string | null | undefined,
+  zone: string | null | undefined,
+  locale: string,
+): string {
+  return formatCivilDate(civilDateInZone(iso, zone), locale) || '—';
 }

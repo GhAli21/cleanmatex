@@ -497,8 +497,6 @@
         "receivedAt": "تاريخ الاستلام",
         "readyBy": "الجاهزية المستهدفة بحلول",
         "readyAt": "تاريخ الجاهزية",
-        "readyByOverride": "تجاوز موعد الجاهزية",
-        "readyByAtNew": "موعد الجاهزية (المُحدَّث)",
         "deliveredAt": "تاريخ التسليم",
         "preparationStatus": "حالة التحضير",
         "physicalIntakeStatus": "حالة الاستلام الفعلي",

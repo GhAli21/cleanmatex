@@ -170,6 +170,8 @@
     "isRejected": "مرفوض",
     "summary": {
       "updateSuccess": "تم التحديث بنجاح",
+      "updateSuccessWithTrx": "تم الحفظ ({trxCode})",
+      "trxCode": "الحركة: {trxCode}",
       "splitSuccess": "تم تقسيم الطلب بنجاح",
       "piecesUpdated": "تم تحديث {count} قطعة",
       "readyCount": "{count} قطعة تم وضع علامة جاهز",
@@ -246,7 +248,18 @@
     "itemLevelTracking": "تتبع على مستوى الصنف نشط",
     "notesLabel": "ملاحظات:",
     "unknownItem": "صنف غير معروف",
-    "itemAriaLabel": "الصنف: {name}"
+    "itemAriaLabel": "الصنف: {name}",
+    "linkScanTag": "ربط / مسح الوسم",
+    "tagLinked": "تم تحديث الوسم",
+    "tagLinkedWithTrx": "تم تحديث الوسم ({trxCode})",
+    "batchNoteLabel": "ملاحظة الدفعة",
+    "batchNotePlaceholder": "ملاحظة تشغيلية اختيارية لهذه الدفعة...",
+    "updateShortcutAria": "تحديث (Ctrl+S)",
+    "saveKeyHint": "اختصار Ctrl+S",
+    "tabs": {
+      "itemsAndPieces": "الأصناف والقطع",
+      "transactions": "الحركات"
+    }
   },
   "splitConfirm": {
     "title": "تأكيد تقسيم الطلب",
@@ -333,6 +346,7 @@
     "sendReceiptComingSoon": "إرسال الإيصال قادم قريبًا",
     "update": "تحديث",
     "updateSuccess": "تم تحديث المعالجة بنجاح",
+    "updateSuccessWithTrx": "تم حفظ المعالجة ({trxCode})",
     "updateFailed": "فشل تحديث المعالجة",
     "splitFailed": "فشل تقسيم الطلب",
     "noChanges": "لا توجد تغييرات للحفظ",
@@ -346,6 +360,7 @@
     },
     "rackUnavailable": "—",
     "notesPlaceholder": "ملاحظات",
+    "floorNotePlaceholder": "ملاحظة تشغيلية...",
     "rackOptional": "موقع الرف (اختياري)",
     "rackOptionalPlaceholder": "مثال: رف أ-12",
     "readyDisabledRejected": "أزل الرفض قبل وضع علامة جاهز",
@@ -427,6 +442,82 @@
         "complaint": "شكوى",
         "other": "أخرى"
       }
+    }
+  },
+  "notes": {
+    "feedTitle": "ملاحظات المتابعة",
+    "orderFeedTitle": "ملاحظات متابعة الطلب",
+    "pieceFeedTitle": "ملاحظات متابعة التشغيل",
+    "pieceFloorNoteLabel": "ملاحظة التشغيل",
+    "stagedBadge": "مؤقت",
+    "intakeNoteReadOnly": "ملاحظة الاستلام (للقراءة فقط)",
+    "empty": "لا توجد ملاحظات متابعة بعد.",
+    "operatorFallback": "المشغّل",
+    "stagedPlaceholder": "أضف ملاحظة تشغيلية (تُحفظ عند التحديث)...",
+    "addPlaceholder": "اكتب ملاحظة متابعة تشغيلية...",
+    "addButton": "إضافة ملاحظة",
+    "saved": "تم حفظ ملاحظة المتابعة",
+    "savedWithTrx": "تم حفظ ملاحظة المتابعة ({trxCode})",
+    "saveError": "فشل حفظ ملاحظة المتابعة",
+    "sources": {
+      "ORDER_CREATE": "إنشاء الطلب",
+      "ORDER_EDIT": "تعديل الطلب",
+      "ORDER_PREPARE": "التحضير",
+      "ORDER_PROCESSING": "المعالجة",
+      "ORDER_UPDATE": "تحديث الطلب",
+      "ORDER_ASSEMBLY": "التجميع",
+      "ORDER_QA": "فحص الجودة",
+      "ORDER_PACKING": "التعبئة",
+      "ORDER_READY": "جاهز",
+      "ORDER_DELIVERY": "التسليم",
+      "manual": "يدوي"
+    }
+  },
+  "trx": {
+    "title": "حركات المعالجة",
+    "refresh": "تحديث",
+    "filterLabel": "تصفية الحركات حسب المستوى المستهدف",
+    "loadError": "فشل تحميل حركات المعالجة",
+    "emptyTitle": "لا توجد حركات معالجة بعد",
+    "emptyDescription": "تظهر هنا عمليات حفظ الدفعات وتحديثات الخطوات وربط الأوسمة وملاحظات التشغيل مع رمز الحركة.",
+    "lineCount": "{count, plural, zero {# سطر} one {سطر واحد} two {سطران} few {# أسطر} many {# سطراً} other {# سطر}}",
+    "batchNoteLabel": "ملاحظة الدفعة",
+    "targets": {
+      "ALL": "الكل",
+      "ORDER": "الطلب",
+      "ITEM": "الصنف",
+      "PIECE": "القطعة",
+      "PREFERENCE": "التفضيل",
+      "OTHERS": "أخرى"
+    },
+    "types": {
+      "PROCESSING_BATCH": "دفعة معالجة",
+      "SIMPLE_PROCESSING": "معالجة سريعة",
+      "STEP_RECORD": "تسجيل خطوة",
+      "ITEM_COMPLETE": "اكتمال الصنف",
+      "RACK_ASSIGN": "تعيين الرف",
+      "TAG_LINK": "ربط الوسم",
+      "NOTE_ADD": "ملاحظة متابعة",
+      "OTHERS": "أخرى"
+    },
+    "dtlTypes": {
+      "STEP_CHANGE": "تغيير الخطوة",
+      "STAGE_CHANGE": "تغيير المرحلة",
+      "MARK_READY": "تعيين كجاهز",
+      "UNMARK_READY": "إلغاء الجاهزية",
+      "REJECT": "رفض",
+      "UNREJECT": "إلغاء الرفض",
+      "RACK_ASSIGN": "رف القطعة",
+      "ORDER_RACK_ASSIGN": "رف الطلب",
+      "LOCKER_ASSIGN": "الخزانة",
+      "BAG_COUNT_CHANGE": "عدد الأكياس",
+      "HANGING_COUNT_CHANGE": "عدد المعلّقات",
+      "BARCODE_SCAN": "مسح الباركود",
+      "TAG_LINK": "ربط الوسم",
+      "ITEM_COMPLETE": "اكتمال الصنف",
+      "PREF_CONFIRM": "تأكيد التفضيل",
+      "NOTE_ADD": "إضافة ملاحظة",
+      "OTHERS": "أخرى"
     }
   }
 }

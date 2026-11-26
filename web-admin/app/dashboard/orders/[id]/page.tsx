@@ -22,6 +22,8 @@ import {
   isUuidLike,
   sanitizeOrderDetailsReturnUrl,
 } from '@/lib/orders/order-details-navigation';
+import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import { OrderDetailClient } from './order-detail-client';
 import { OrderDetailError } from './order-detail-error';
 
@@ -225,6 +227,11 @@ async function OrderDetailContent({
   const preferenceDtlColumnLabels = Object.fromEntries(
     ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => [col, tFull(`preferences.dtlColumns.${col}`)])
   ) as Record<OrderPreferenceDtlColumn, string>;
+  const opsZone = await resolveOperationalTimeZoneOn(prisma, {
+    tenantOrgId: tenantId,
+    operation: 'ready_by',
+    branchId: order.branch_id,
+  });
 
   return (
     <OrderDetailClient
@@ -243,6 +250,7 @@ async function OrderDetailContent({
       canViewFinancialDebug={canViewFinancialDebug}
       returnUrl={safeReturnUrl}
       returnLabel={searchParams?.returnLabel}
+      opsZone={opsZone}
       translations={{
         backToOrders: t('backToOrders'),
         edit: t('edit'),

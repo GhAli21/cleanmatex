@@ -2539,6 +2539,33 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
         notes: ['Stage-owned COMPLETE_PROCESSING; Idempotency-Key required. Destination is owned by the compiled artifact.'],
       },
+      {
+        label: 'List follow-up notes',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/notes-followup',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Append follow-up note',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/notes-followup',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List processing transactions',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/processing-transactions',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
     ],
     notes: ORDER_NOTES,
   },

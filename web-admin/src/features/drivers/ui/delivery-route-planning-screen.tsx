@@ -42,10 +42,8 @@ interface DeliveryQueueOrder {
   delivery_address?: string | null
   address?: string | null
   received_at?: string | null
-  ready_by?: string | null
+  ready_by_at?: string | null
   ready_at?: string | null
-  ready_by_override?: string | null
-  ready_by_at_new?: string | null
   delivered_at?: string | null
   preparation_status?: string | null
   physical_intake_status?: string | null
@@ -278,10 +276,8 @@ export function DeliveryRoutePlanningScreen() {
 
   const readyOrderAuditExtras = (order: DeliveryQueueOrder): AuditExtraRow[] => [
     { key: 'receivedAt', label: t('routes.auditExtras.receivedAt'), value: toAuditDate(order.received_at), hideWhenEmpty: true },
-    { key: 'readyBy', label: t('routes.auditExtras.readyBy'), value: toAuditDate(order.ready_by), hideWhenEmpty: true },
+    { key: 'readyBy', label: t('routes.auditExtras.readyBy'), value: toAuditDate(order.ready_by_at), hideWhenEmpty: true },
     { key: 'readyAt', label: t('routes.auditExtras.readyAt'), value: toAuditDate(order.ready_at), hideWhenEmpty: true },
-    { key: 'readyByOverride', label: t('routes.auditExtras.readyByOverride'), value: toAuditDate(order.ready_by_override), hideWhenEmpty: true },
-    { key: 'readyByAtNew', label: t('routes.auditExtras.readyByAtNew'), value: toAuditDate(order.ready_by_at_new), hideWhenEmpty: true },
     { key: 'deliveredAt', label: t('routes.auditExtras.deliveredAt'), value: toAuditDate(order.delivered_at), hideWhenEmpty: true },
     { key: 'preparationStatus', label: t('routes.auditExtras.preparationStatus'), value: order.preparation_status, hideWhenEmpty: true },
     { key: 'physicalIntakeStatus', label: t('routes.auditExtras.physicalIntakeStatus'), value: order.physical_intake_status, hideWhenEmpty: true },

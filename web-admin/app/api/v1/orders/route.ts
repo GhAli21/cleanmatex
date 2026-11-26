@@ -149,7 +149,6 @@ export async function GET(request: NextRequest) {
         received_info,
         preparation_status,
         ready_at,
-        ready_by_override,
         delivered_at,
         created_at,
         created_by,
@@ -177,8 +176,7 @@ export async function GET(request: NextRequest) {
         customer_notes,
         internal_notes,
         rack_location,
-        ready_by_at_new,
-        ready_by,
+        ready_by_at,
         org_customers_mst(
           id,
           name,
@@ -379,10 +377,10 @@ export async function GET(request: NextRequest) {
         query = query.lte('received_at', receivedTo);
       }
       if (readyByFrom) {
-        query = query.gte('ready_by_at_new', readyByFrom);
+        query = query.gte('ready_by_at', readyByFrom);
       }
       if (readyByTo) {
-        query = query.lte('ready_by_at_new', readyByTo);
+        query = query.lte('ready_by_at', readyByTo);
       }
     }
 
@@ -390,9 +388,9 @@ export async function GET(request: NextRequest) {
     const validSortColumns: Record<string, string> = {
       order_no: 'order_no',
       received_at: 'received_at',
-      ready_by: 'ready_by_at_new',
-      ready_by_at: 'ready_by_at_new',
-      ready_by_at_new: 'ready_by_at_new',
+      ready_by: 'ready_by_at',
+      ready_by_at: 'ready_by_at',
+      ready_by_at_new: 'ready_by_at',
       created_at: 'created_at',
       total: 'total_amount',
     };

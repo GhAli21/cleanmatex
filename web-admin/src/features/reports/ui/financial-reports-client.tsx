@@ -2,7 +2,7 @@
 
 import { CmxCodeChip } from '@ui/data-display/cmx-code-chip';
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives';
@@ -10,6 +10,7 @@ import { CmxTabsPanel } from '@ui/navigation';
 
 import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatStoredClock } from '@/lib/utils/operational-time';
 import { useTaxCategoryOptions } from '@features/catalog/hooks/use-tax-category-options';
 
 type OrderRow = {
@@ -46,13 +47,13 @@ type TaxRow = {
   orderCount: number;
 };
 
-function defaultFrom() {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return d.toISOString().slice(0, 10);
-}
-function defaultTo() {
-  return new Date().toISOString().slice(0, 10);
+interface FinancialReportsClientProps {
+  /** Organization zone. Empty when the catalog zone is missing. */
+  opsZone: string | null;
+  /** Civil start of the default range, in the organization zone. */
+  initialFrom: string;
+  /** Civil end of the default range, in the organization zone. */
+  initialTo: string;
 }
 
 function fmt(n: number | null | undefined, currency: string | null | undefined, decimalPlaces: number): string {
@@ -63,10 +64,11 @@ function fmt(n: number | null | undefined, currency: string | null | undefined, 
 /**
  *
  */
-export function FinancialReportsClient() {
+export function FinancialReportsClient({ opsZone, initialFrom, initialTo }: FinancialReportsClientProps) {
   const t = useTranslations('reports.financial');
-  const [from, setFrom] = useState(defaultFrom());
-  const [to, setTo] = useState(defaultTo());
+  const locale = useLocale();
+  const [from, setFrom] = useState(initialFrom);
+  const [to, setTo] = useState(initialTo);
 
   // Orders tab state
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -157,7 +159,7 @@ export function FinancialReportsClient() {
     {
       key: 'date',
       header: t('date'),
-      render: (o: OrderRow) => <span className="text-sm">{new Date(o.created_at).toLocaleDateString()}</span>,
+      render: (o: OrderRow) => <span className="text-sm">{formatStoredClock(o.created_at, opsZone, locale) || '—'}</span>,
     },
     {
       key: 'payment_status',

@@ -563,7 +563,7 @@ Forbidden:
 - `getHours`, `getDate`, `getDay`, `setHours`, `setDate` for anything a person sees or for a business-day boundary. Those follow the process zone. Process UTC does not make them the operations zone.
 - Formatting an absolute date when the operations zone is still unknown
 - Building a day range with local midnight on the server
-- Reading a legacy naive instant when a `timestamptz` twin exists. Readers use the `timestamptz` column (for example `ready_by_at_new`, not `ready_by`).
+- Reading a legacy naive instant when a `timestamptz` twin exists. Readers use the `timestamptz` column (for example `ready_by_at`, not legacy `ready_by`).
 - Using `businessDateForTimezone` without an explicit authoritative instant to assign a persisted event's civil date
 - Using a generic local-to-instant helper for operator-entered DST gap or overlap input unless it detects and applies the declared disambiguation policy
 

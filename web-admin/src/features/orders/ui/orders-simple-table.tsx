@@ -29,7 +29,7 @@ import { useLocale } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmount } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
-import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 
 interface OrdersSimpleTableProps {
   orders: OrderListItem[];
@@ -248,14 +248,14 @@ export function OrdersSimpleTable({
       key: 'ready_by',
       header: t('readyBy'),
       sortable: true,
-      render: (order) =>
-        order.ready_by ? (
-          <span className="text-xs text-foreground">
-            {formatReadyByDate(order.ready_by instanceof Date ? order.ready_by : new Date(order.ready_by))}
-          </span>
+      render: (order) => {
+        const label = formatInstantOrEmpty(order.ready_by, order.ops_zone, uiLocale);
+        return label ? (
+          <span className="text-xs text-foreground">{label}</span>
         ) : (
           <span className="text-muted-foreground">—</span>
-        ),
+        );
+      },
     },
     {
       key: 'actions',

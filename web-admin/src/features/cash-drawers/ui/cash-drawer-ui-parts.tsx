@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl'
 
 import { useTenantCurrency } from '@lib/context/tenant-currency-context'
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time'
 import { useSessionLifecycleLabels } from '@/lib/hooks/use-session-lifecycle-labels'
 import { useCashDrawerCatalogLabels } from '@features/cash-drawers/hooks/use-cash-drawer-catalog-labels'
 import type { MoneyAmountInput } from '@lib/money/format-money'
@@ -102,21 +103,17 @@ export function useCashDrawerMoneyFormatter() {
 }
 
 /**
- * Localized date-time formatter reused by cash-drawer screens.
- *
- * @param value ISO timestamp to format
- * @returns locale-aware date/time string or em dash
+ * Formats a cash-drawer instant in the till's branch zone.
+ * The hook zone covers a one-branch screen. A list passes each row's zone as the second argument.
+ * A missing instant or zone is an em dash.
  */
-export function useCashDrawerDateFormatter() {
+export function useCashDrawerDateFormatter(zone?: string | null) {
   const locale = useLocale()
+  const labelLocale = locale === 'ar' ? 'ar' : 'en'
 
-  return (value: string | null | undefined) => {
-    if (!value) return '—'
-
-    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(value))
+  return (value: string | null | undefined, zoneOverride?: string | null) => {
+    const activeZone = zoneOverride === undefined ? (zone ?? null) : zoneOverride
+    return formatInstantOrEmpty(value, activeZone, labelLocale) || '—'
   }
 }
 

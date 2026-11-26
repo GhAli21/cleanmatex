@@ -361,7 +361,7 @@
     "paid_by": "Paid by",
     "payment_notes": "Payment notes",
     "received_at": "Received at",
-    "ready_by": "Ready by",
+    "ready_by_at": "Ready by",
     "ready_at": "Ready at",
     "delivered_at": "Delivered at",
     "created_at": "Created at",

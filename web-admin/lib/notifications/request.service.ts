@@ -126,8 +126,7 @@ export async function runNotificationRequest(tenantOrgId: string, requestId: str
       // recipient), so these columns identify exactly the rows the orchestrator wrote or found.
       const rows = event.recipientUserIds.length === 0 ? [] : await tx.$queryRaw<{ id: string; send_at: Date }[]>`
         SELECT o.id::text AS id,
-               (CASE WHEN o.status = 'FAILED_TEMPORARY' THEN coalesce(o.next_retry_at, o.scheduled_at) ELSE o.scheduled_at END
-                 AT TIME ZONE 'UTC') AS send_at
+               (CASE WHEN o.status = 'FAILED_TEMPORARY' THEN coalesce(o.next_retry_at, o.scheduled_at) ELSE o.scheduled_at END) AS send_at
           FROM public.org_ntf_outbox_dtl o
          WHERE o.tenant_org_id = ${tenantOrgId}::uuid
            AND o.event_code = ${event.code}

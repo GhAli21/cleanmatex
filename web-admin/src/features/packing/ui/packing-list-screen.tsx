@@ -33,8 +33,7 @@ interface PackingOrderRecord {
   order_no: string;
   total_items?: number | null;
   rack_location?: string | null;
-  ready_by?: string | null;
-  ready_by_at_new?: string | null;
+  ready_by_at?: string | null;
   priority?: string | null;
   has_issue?: boolean | null;
   customer?: { name?: string; phone?: string };
@@ -107,7 +106,7 @@ export function PackingListScreen() {
       order_no: o.order_no,
       total_items: o.total_items || 0,
       rack_location: o.rack_location || '',
-      ready_by_at: o.ready_by_at_new || o.ready_by || null,
+      ready_by_at: o.ready_by_at || null,
       priority: o.priority || 'normal',
       has_issue: Boolean(o.has_issue),
       customer: {

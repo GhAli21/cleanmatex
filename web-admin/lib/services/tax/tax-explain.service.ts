@@ -4,7 +4,8 @@ import { withTenantContext } from '@/lib/db/tenant-context'
 import { determineTaxRule, pickTaxCodeVersion, type TaxFacts } from '@/lib/tax/determine'
 import { TAX_CONFIG_STATUS } from '@/lib/constants/tax'
 import { isoDate } from '@/lib/tax/determine'
-import { businessDateForTimezone, isValidTimeZone } from '@/lib/utils/business-date'
+import { businessDateForTimezone } from '@/lib/utils/business-date'
+import { OperationalZoneMissingError, readDatabaseInstant, resolveOrganizationTimeZone } from '@/lib/utils/operational-zone.server'
 import { loadActiveTaxRules } from './tax-rule-reader'
 
 /**
@@ -60,7 +61,7 @@ export async function getDefaultSalesVatRate(tenantOrgId: string): Promise<numbe
   const [config, tenant, defaultClass] = await withTenantContext(tenantOrgId, () =>
     Promise.all([
       prisma.org_tax_config_cf.findFirst({ where: { tenant_org_id: tenantOrgId, is_active: true, rec_status: 1 }, select: { status: true, tax_enabled: true } }),
-      prisma.org_tenants_mst.findFirst({ where: { id: tenantOrgId }, select: { country: true, timezone: true } }),
+      prisma.org_tenants_mst.findFirst({ where: { id: tenantOrgId }, select: { country: true } }),
       prisma.org_tax_item_classes_cf.findFirst({
         where: { tenant_org_id: tenantOrgId, tax_flow_code: 'OUTPUT', is_default: true, is_active: true, rec_status: 1 },
         select: { class_code: true },
@@ -69,9 +70,11 @@ export async function getDefaultSalesVatRate(tenantOrgId: string): Promise<numbe
   )
   if (config?.status !== TAX_CONFIG_STATUS.ACTIVE || !config.tax_enabled || !tenant?.country) return 0
 
-  const now = new Date()
+  const zone = await resolveOrganizationTimeZone(tenantOrgId)
+  if (!zone) throw new OperationalZoneMissingError()
+  const at = await readDatabaseInstant(prisma)
   const { codes } = await explainTax(tenantOrgId, {
-    date: isValidTimeZone(tenant.timezone) ? businessDateForTimezone(tenant.timezone as string, now) : isoDate(now),
+    date: businessDateForTimezone(zone, at),
     doc_type_code: 'ORDER',
     tax_flow_code: 'OUTPUT',
     branch_id: null,

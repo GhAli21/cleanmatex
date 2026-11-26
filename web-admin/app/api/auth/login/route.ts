@@ -152,9 +152,8 @@ export async function POST(request: NextRequest) {
       console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ record_login_attempt (failed) done — ${loginResult?.length ?? 0} row(s)`);
 
       if (loginResult && loginResult.length > 0 && loginResult[0].is_locked) {
-        // The RPC returns locked_until as timestamp without time zone, so a UTC+4
-        // server reads a UTC instant about four hours late (255 minutes for a 15-minute lock).
-        // The column on sys_users_mst is timestamptz and is the authority.
+        // attack_locked_until is the authority. 0832 also returns that instant
+        // from the RPC. Until 0832 is applied, the RPC value is a naive timestamp.
         return NextResponse.json(
           { error: await lockedSignInMessage(adminSupabase, email, loginResult[0].locked_until) },
           { status: 423 }
@@ -354,8 +353,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * Minutes left on a password-attack lock.
- * The lock RPC returns `timestamp without time zone`, so a UTC+4 host reads a
- * UTC instant about four hours late. `sys_users_mst.attack_locked_until` is timestamptz.
+ * `sys_users_mst.attack_locked_until` is the authority. The RPC result is the fallback.
  */
 async function lockedSignInMessage(
   admin: ReturnType<typeof createAdminSupabaseClient>,

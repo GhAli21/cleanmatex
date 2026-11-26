@@ -387,6 +387,8 @@ export interface VoucherListItem {
   currency_code: string | null;
   voucher_date: string | null;
   created_at: Date;
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  ops_zone?: string | null;
   ref_voucher_id?: string | null;
   ref_voucher_no?: string | null;
 }

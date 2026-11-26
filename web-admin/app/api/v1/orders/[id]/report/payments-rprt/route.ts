@@ -18,6 +18,8 @@ import {
   getOrderCashChangeRounding,
   type OrderCashChangeRoundingSummary,
 } from '@/lib/services/cash-change-rounding.service';
+import { prisma } from '@/lib/db/prisma';
+import { resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 
 /** Response contract consumed by `order-payments-print-rprt.tsx`. */
 export interface PaymentsRprtResponse {
@@ -30,6 +32,8 @@ export interface PaymentsRprtResponse {
   /** Net posted cash-change rounding per currency (A6-4); empty when none applied. */
   cashChangeRounding: OrderCashChangeRoundingSummary[];
   sortOrder: 'asc' | 'desc';
+  /** Branch zone, otherwise the organization zone. Empty when neither is an active catalog zone. */
+  opsZone: string | null;
 }
 
 /**
@@ -56,6 +60,7 @@ export async function GET(
       .select(`
         id,
         order_no,
+        branch_id,
         org_customers_mst(
           name,
           name2,
@@ -86,9 +91,14 @@ export async function GET(
       },
     };
 
-    const [payments, cashChangeRounding] = await Promise.all([
+    const [payments, cashChangeRounding, opsZone] = await Promise.all([
       getOrderPaymentsCanonical(tenantId, id),
       getOrderCashChangeRounding(tenantId, id),
+      resolveOperationalTimeZoneOn(prisma, {
+        tenantOrgId: tenantId,
+        operation: 'ready_by',
+        branchId: typeof order.branch_id === 'string' ? order.branch_id : null,
+      }),
     ]);
     if (sortOrder === 'asc') payments.reverse();
 
@@ -97,6 +107,7 @@ export async function GET(
       payments,
       cashChangeRounding,
       sortOrder,
+      opsZone,
     };
     return NextResponse.json({ success: true, ...body });
   } catch (e) {

@@ -41,8 +41,7 @@ function tables(): Record<string, Row[]> {
         branch_id: "b1",
         customer_id: "c1",
         customer_name: null,
-        ready_by: "2026-01-02T10:00:00",
-        ready_by_at_new: "2026-01-02T10:00:00+04:00",
+        ready_by_at: "2026-01-02T10:00:00+04:00",
       },
       {
         id: "other",

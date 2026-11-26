@@ -27,6 +27,11 @@ import {
   PieceCodeService,
   mapPieceTagDbError,
 } from '@/lib/services/piece-code/piece-code.service';
+import { ProcessingTrxService } from '@/lib/services/processing-trx-service';
+import {
+  PRC_TRX_SOURCE_SCREENS,
+  PRC_TRX_TYPES,
+} from '@/lib/constants/processing-trx';
 
 /**
  *
@@ -57,7 +62,7 @@ export async function POST(
       return authCheck; // Unauthorized or permission denied
     }
     tenantId = authCheck.tenantId;
-    const { userId } = authCheck;
+    const { userId, userName } = authCheck;
 
     // Apply rate limiting (per tenant)
     const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
@@ -69,7 +74,19 @@ export async function POST(
 
     // Parse request body
     const body: BatchUpdateRequest = await request.json();
-    const { updates, itemQuantityReady, orderRackLocation, lockerLocation, lockerCode, bagCount, hangingCount } = body;
+    const {
+      updates,
+      itemQuantityReady,
+      orderRackLocation,
+      lockerLocation,
+      lockerCode,
+      bagCount,
+      hangingCount,
+      sourceScreen,
+      trxDescription,
+      processingNote,
+      idempotencyKey,
+    } = body;
 
     if (!updates || !Array.isArray(updates)) {
       return NextResponse.json(
@@ -92,10 +109,10 @@ export async function POST(
       );
     }
 
-    // Verify order belongs to tenant
+    // Verify order belongs to tenant (capture branch & order-level rack/locker/bag before snapshot)
     const { data: order, error: orderError } = await supabase
       .from('org_orders_mst')
-      .select('id, tenant_org_id')
+      .select('id, tenant_org_id, branch_id, rack_location, locker_location, locker_code, bag_count, hanging_count')
       .eq('id', orderId)
       .eq('tenant_org_id', tenantId)
       .single();
@@ -199,6 +216,10 @@ export async function POST(
       orderItemId: string;
       updates: Parameters<typeof OrderPieceService.batchUpdatePiecesBulk>[0]['updates'][number]['updates'];
     }> = [];
+    const pieceNotesByPieceId = new Map<string, string>();
+    let pieceDeltas: NonNullable<
+      Awaited<ReturnType<typeof OrderPieceService.batchUpdatePiecesBulk>>['pieceDeltas']
+    > = [];
 
     // Always update pieces in database
     for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
@@ -279,6 +300,10 @@ export async function POST(
           }
           if (finalIsReady === false && finalPieceStatus === 'ready') {
             finalPieceStatus = 'processing';
+          }
+
+          if (update.processingNote && update.processingNote.trim()) {
+            pieceNotesByPieceId.set(actualPieceId, update.processingNote.trim());
           }
 
           return {
@@ -378,6 +403,7 @@ export async function POST(
       }
 
       piecesUpdated = batchResult.updated ?? 0;
+      pieceDeltas = batchResult.pieceDeltas ?? [];
     }
 
     // Update order-level rack/locker/bag/hanging fields if any were provided
@@ -401,6 +427,69 @@ export async function POST(
         .eq('id', orderId)
         .eq('tenant_org_id', tenantId);
     }
+
+    const trxLines = [
+      ...ProcessingTrxService.buildPieceDeltaLines(
+        pieceDeltas.map((d) => ({
+          ...d,
+          processingNote: pieceNotesByPieceId.get(d.pieceId) ?? null,
+        }))
+      ),
+      ...ProcessingTrxService.buildOrderLevelDeltaLines(
+        {
+          rack_location: order.rack_location,
+          locker_location: order.locker_location,
+          locker_code: order.locker_code,
+          bag_count: order.bag_count,
+          hanging_count: order.hanging_count,
+        },
+        {
+          rack_location: orderRackLocation,
+          locker_location: lockerLocation,
+          locker_code: lockerCode,
+          bag_count: bagCount,
+          hanging_count: hangingCount,
+        },
+        processingNote
+      ),
+    ];
+
+    const resolvedSourceScreen =
+      sourceScreen?.trim() || PRC_TRX_SOURCE_SCREENS.PROCESSING_MODAL;
+    const resolvedTransType =
+      resolvedSourceScreen === PRC_TRX_SOURCE_SCREENS.SIMPLE_PROCESSING
+        ? PRC_TRX_TYPES.SIMPLE_PROCESSING
+        : resolvedSourceScreen === PRC_TRX_SOURCE_SCREENS.RACK_BAGS_MODAL
+          ? PRC_TRX_TYPES.RACK_ASSIGN
+          : PRC_TRX_TYPES.PROCESSING_BATCH;
+
+    const pieceNotesToAppend = pieceDeltas
+      .map((d) => {
+        const noteText = pieceNotesByPieceId.get(d.pieceId);
+        return noteText ? { pieceId: d.pieceId, noteText } : null;
+      })
+      .filter((x): x is { pieceId: string; noteText: string } => x !== null);
+
+    const trxResult = await ProcessingTrxService.recordTransaction({
+      tenantId,
+      orderId,
+      branchId: order.branch_id,
+      transType: resolvedTransType,
+      trxDescription: trxDescription?.trim() || undefined,
+      sourceScreen: resolvedSourceScreen,
+      actorUserId: userId,
+      actorName: userName,
+      idempotencyKey: idempotencyKey ?? null,
+      notes: processingNote?.trim() || null,
+      appendOrderFollowupNote: Boolean(processingNote?.trim()),
+      pieceNotesToAppend,
+      metadata: {
+        pieces_updated: piecesUpdated,
+        items_updated: itemsUpdated,
+        ready_count: readyCount,
+      },
+      lines: trxLines,
+    });
 
     // Check if all items are ready and auto-transition to READY
     const { data: allItems } = await supabase
@@ -468,6 +557,8 @@ export async function POST(
         readyCount,
         stepsRecorded,
         rackLocationsSet,
+        ...(trxResult.trxId ? { trxId: trxResult.trxId } : {}),
+        ...(trxResult.trxCode ? { trxCode: trxResult.trxCode } : {}),
       },
     });
 

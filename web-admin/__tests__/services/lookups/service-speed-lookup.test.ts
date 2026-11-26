@@ -5,7 +5,13 @@
  * this organization offers — STANDARD always, any other speed
  * only with an active rule in effect today. The rule read filters the tenant.
  */
+jest.mock('server-only', () => ({}));
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn() }));
+jest.mock('@/lib/db/prisma', () => ({ prisma: {} }));
+jest.mock('@/lib/utils/operational-zone.server', () => ({
+  resolveOrganizationTimeZone: jest.fn(async () => 'Asia/Muscat'),
+  readDatabaseInstant: jest.fn(async () => new Date('2026-06-15T08:00:00Z')),
+}));
 
 import { listActiveServiceSpeeds } from '@/lib/services/lookups/service-speed-lookup.service';
 import type { LookupSupabaseClient } from '@/lib/services/lookups/types';

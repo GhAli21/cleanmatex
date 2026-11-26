@@ -45,7 +45,7 @@ import {
 import { emitNotificationEvent } from '@lib/notifications/event-emitter';
 import { buildOrderCreatedNotificationVariables } from '@lib/notifications/order-event-variables';
 import { loadOrderCreatedFacts } from '@lib/notifications/order-created-facts';
-import { getTenantTimeZone } from '@/lib/utils/tenant-timezone.server';
+import { resolveOperationalTimeZoneOn } from '@/lib/utils/operational-zone.server';
 import {
   extractThrownErrorDetails,
   isStableErrorCode,
@@ -362,7 +362,11 @@ export async function POST(request: NextRequest) {
         buildOrderCreatedNotificationVariables({
           orderNo: result.order.orderNo,
           readyByAt: input.readyByAt,
-          timeZone: await getTenantTimeZone(),
+          timeZone: (await resolveOperationalTimeZoneOn(prisma, {
+            tenantOrgId: tenantId,
+            operation: 'ready_by',
+            branchId: branchId ?? null,
+          })) ?? undefined,
           ...facts,
         })),
     };

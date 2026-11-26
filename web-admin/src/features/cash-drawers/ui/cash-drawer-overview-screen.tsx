@@ -35,7 +35,8 @@ import { LINE_ROLE, LINE_ROLE_REQUIREMENTS } from '@lib/constants/voucher'
 
 type DrawerCashMovementRole =
   (typeof DRAWER_CASH_IN_OUT_ROLES.OUT)[number] | (typeof DRAWER_CASH_IN_OUT_ROLES.IN)[number]
-import { cmxMessage, CmxStatusBadge } from '@ui/feedback'
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones'
+import { cmxMessage, CmxStatusBadge, CmxSummaryMessage } from '@ui/feedback'
 import { CmxDataTable } from '@ui/data-display'
 import { CmxTabsPanel } from '@ui/navigation'
 import { CmxButton, CmxInput, CmxSelect, CmxTextarea, Label } from '@ui/primitives'
@@ -81,7 +82,10 @@ export function CashDrawerOverviewScreen({
   const [isPending, startTransition] = useTransition()
 
   const money = useCashDrawerMoneyFormatter()
-  const fmtDateTime = useCashDrawerDateFormatter()
+  const { zoneFor, isPending: zonePending } = useOperationalZones('pos_session', [overview.drawer.branchId])
+  const opsZone = zoneFor(overview.drawer.branchId)
+  const fmtDateTime = useCashDrawerDateFormatter(opsZone)
+  const tPos = useTranslations('posSessions')
 
   const [openDialogOpen, setOpenDialogOpen] = useState(false)
   const [moveDialogOpen, setMoveDialogOpen] = useState(false)
@@ -246,6 +250,10 @@ export function CashDrawerOverviewScreen({
   }
 
   return (
+    <>
+    {!zonePending && !opsZone ? (
+      <CmxSummaryMessage type="warning" title={tPos('errors.timezoneNotConfigured')} items={[]} />
+    ) : null}
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-3">
@@ -450,8 +458,8 @@ export function CashDrawerOverviewScreen({
               />
             ),
           },
-          { id: 'ledger', label: t('tabs.ledger.title'), content: <CashDrawerLedgerTab drawerId={drawerId} /> },
-          { id: 'transactions', label: t('tabs.trx.title'), content: <CashDrawerTransactionsTab drawerId={drawerId} /> },
+          { id: 'ledger', label: t('tabs.ledger.title'), content: <CashDrawerLedgerTab drawerId={drawerId} opsZone={opsZone} /> },
+          { id: 'transactions', label: t('tabs.trx.title'), content: <CashDrawerTransactionsTab drawerId={drawerId} opsZone={opsZone} /> },
           {
             id: 'counts',
             label: t('tabs.counts.title'),
@@ -461,6 +469,7 @@ export function CashDrawerOverviewScreen({
                 currencyCode={overview.drawer.currencyCode}
                 currentSessionId={currentSession?.id ?? null}
                 canCount={canCount}
+                opsZone={opsZone}
               />
             ),
           },
@@ -563,5 +572,6 @@ export function CashDrawerOverviewScreen({
         />
       ) : null}
     </div>
+    </>
   )
 }

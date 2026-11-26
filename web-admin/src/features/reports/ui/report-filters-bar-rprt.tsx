@@ -4,8 +4,9 @@ import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition, useCallback } from 'react';
 import { Calendar, Search, X } from 'lucide-react';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
+import { shiftCivilDate } from '@/lib/utils/operational-time';
+import { useReportsClock } from '@features/reports/ui/reports-clock';
 
 const DATE_PRESETS = ['today', '7d', '30d', '90d', 'custom'] as const;
 type DatePreset = typeof DATE_PRESETS[number];
@@ -18,21 +19,11 @@ interface ReportFiltersBarProps {
   showPaymentMethodFilter?: boolean;
 }
 
-function getPresetDates(preset: DatePreset): { startDate: string; endDate: string } | null {
-  const now = new Date();
-  const end = format(endOfDay(now), 'yyyy-MM-dd');
-  switch (preset) {
-    case 'today':
-      return { startDate: format(startOfDay(now), 'yyyy-MM-dd'), endDate: end };
-    case '7d':
-      return { startDate: format(subDays(now, 7), 'yyyy-MM-dd'), endDate: end };
-    case '30d':
-      return { startDate: format(subDays(now, 30), 'yyyy-MM-dd'), endDate: end };
-    case '90d':
-      return { startDate: format(subDays(now, 90), 'yyyy-MM-dd'), endDate: end };
-    default:
-      return null;
-  }
+function getPresetDates(preset: DatePreset, today: string): { startDate: string; endDate: string } | null {
+  if (!today) return null;
+  const daysBack = preset === 'today' ? 0 : preset === '7d' ? 7 : preset === '30d' ? 30 : preset === '90d' ? 90 : null;
+  if (daysBack == null) return null;
+  return { startDate: daysBack === 0 ? today : shiftCivilDate(today, -daysBack), endDate: today };
 }
 
 /**
@@ -55,10 +46,11 @@ export default function ReportFiltersBar({
   const tCommon = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { today } = useReportsClock();
   const [isPending, startTransition] = useTransition();
 
-  const currentStartDate = searchParams.get('startDate') || format(subDays(new Date(), 30), 'yyyy-MM-dd');
-  const currentEndDate = searchParams.get('endDate') || format(new Date(), 'yyyy-MM-dd');
+  const currentStartDate = searchParams.get('startDate') || (today ? shiftCivilDate(today, -30) : '');
+  const currentEndDate = searchParams.get('endDate') || today;
   const currentStatus = searchParams.get('status') || '';
   const currentPreset = searchParams.get('preset') || '30d';
 
@@ -84,7 +76,7 @@ export default function ReportFiltersBar({
   );
 
   const handlePresetChange = (preset: DatePreset) => {
-    const dates = getPresetDates(preset);
+    const dates = getPresetDates(preset, today);
     if (dates) {
       setStartDate(dates.startDate);
       setEndDate(dates.endDate);
@@ -107,9 +99,9 @@ export default function ReportFiltersBar({
   };
 
   const handleClearFilters = () => {
-    const defaults = getPresetDates('30d')!;
-    setStartDate(defaults.startDate);
-    setEndDate(defaults.endDate);
+    const defaults = getPresetDates('30d', today);
+    setStartDate(defaults?.startDate ?? '');
+    setEndDate(defaults?.endDate ?? '');
     startTransition(() => {
       router.push(basePath);
     });

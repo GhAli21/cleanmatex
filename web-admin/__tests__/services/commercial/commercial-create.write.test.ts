@@ -8,6 +8,10 @@
 
 jest.mock('server-only', () => ({}));
 jest.mock('@/lib/db/prisma', () => ({ prisma: {} }));
+jest.mock('@/lib/utils/operational-zone.server', () => ({
+  ...jest.requireActual('@/lib/utils/operational-zone.server'),
+  readDatabaseInstant: async () => new Date(),
+}));
 jest.mock('@/lib/supabase/server', () => ({ createClient: jest.fn().mockResolvedValue({}) }));
 jest.mock('@/lib/supabase/client', () => ({ createClient: jest.fn(() => ({ from: jest.fn(), rpc: jest.fn() })) }));
 jest.mock('@/lib/services/tenant-settings.service', () => ({

@@ -13,7 +13,9 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useOperationalZones } from '@/lib/hooks/use-operational-zones';
+import { formatInstantOrEmpty } from '@/lib/utils/operational-time';
 import { CreditCard, Hash, TrendingDown, TrendingUp, AlertCircle } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
@@ -85,13 +87,8 @@ function expiryDateClasses(isoDate: string | undefined): string {
  * Format an ISO date string for display (date portion only).
  * @param iso
  */
-function fmtDate(iso: string | undefined): string {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  }).format(new Date(iso));
+function fmtDate(iso: string | undefined, zone: string | null, locale: string): string {
+  return formatInstantOrEmpty(iso, zone, locale === 'ar' ? 'ar' : 'en') || '—';
 }
 
 // ---------------------------------------------------------------------------
@@ -134,6 +131,9 @@ export function GiftCardsLiabilityRprt() {
   const t = useTranslations('marketing.giftCards');
   const tRpt = useTranslations('marketing.giftCards.reports');
   const tCommon = useTranslations('common');
+  const tReports = useTranslations('reports');
+  const locale = useLocale();
+  const { organization: opsZone, isPending: zonePending } = useOperationalZones('invoice', []);
 
   // --- summary state ---
   const [summary, setSummary] = useState<LiabilitySummary | null>(null);
@@ -314,7 +314,7 @@ export function GiftCardsLiabilityRprt() {
       header: t('fields.expiryDate'),
       render: (row: GiftCard) => (
         <span className={`text-sm tabular-nums ${expiryDateClasses(row.expiry_date)}`}>
-          {fmtDate(row.expiry_date)}
+          {fmtDate(row.expiry_date, opsZone, locale)}
         </span>
       ),
     },
@@ -332,7 +332,7 @@ export function GiftCardsLiabilityRprt() {
       header: tCommon('date'),
       render: (row: GiftCard) => (
         <span className="tabular-nums text-sm text-muted-foreground">
-          {fmtDate(row.created_at)}
+          {fmtDate(row.created_at, opsZone, locale)}
         </span>
       ),
     },
@@ -347,6 +347,9 @@ export function GiftCardsLiabilityRprt() {
 
   return (
     <div className="flex flex-col gap-6">
+      {!zonePending && !opsZone ? (
+        <CmxSummaryMessage type="warning" title={tReports('timezoneNotConfigured')} />
+      ) : null}
       {/* ---- Page header ---- */}
       <div>
         <h2 className="text-xl font-semibold">{tRpt('liabilityTitle')}</h2>

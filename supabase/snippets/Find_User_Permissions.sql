@@ -71,7 +71,7 @@ rollback;
 select * from get_role_permissions_jh('super_admin') order by permission_code
 ;
 
--- 8) Compare with the user+tenant helper
+-- 8) Compare with the user+tenant helper 
 select *
 from get_user_permissions_jh(
   '8ee8d050-aa45-4c04-82d6-cfc761a0a1bd',
